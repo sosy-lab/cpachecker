@@ -13,7 +13,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-public abstract class ACSLPredicate {
+public abstract class ACSLPredicate implements LogicExpression {
 
   private final boolean negated;
 
@@ -80,25 +80,6 @@ public abstract class ACSLPredicate {
    */
   public abstract ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor);
 
-  /**
-   * Returns a version of the predicate where each identifier is augmented with the ACSL builtin
-   * predicate "\old" to signal to use the value from the pre-state when evaluating.
-   */
-  public abstract ACSLPredicate useOldValues();
-
-  /**
-   * Returns whether the predicate may be used in a clause of the given type.
-   *
-   * @param clauseType the type of the clause the predicate should be used in
-   * @return true if the predicate may be used in a clause of the given type, false otherwise
-   */
-  public abstract boolean isAllowedIn(Class<?> clauseType);
-
-  /**
-   * Returns a set of all subterms of the predicate that represent ACSL builtins.
-   */
-  public abstract Set<ACSLBuiltin> getUsedBuiltins();
-
   private static class TRUE extends ACSLPredicate {
 
     private static final TRUE singleton = new TRUE();
@@ -140,11 +121,6 @@ public abstract class ACSLPredicate {
     @Override
     public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
       return ExpressionTrees.getTrue();
-    }
-
-    @Override
-    public ACSLPredicate useOldValues() {
-      return this;
     }
 
     @Override
@@ -213,11 +189,6 @@ public abstract class ACSLPredicate {
     @Override
     public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
       return ExpressionTrees.getFalse();
-    }
-
-    @Override
-    public ACSLPredicate useOldValues() {
-      return this;
     }
 
     @Override

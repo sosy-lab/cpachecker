@@ -166,12 +166,6 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     }
   }
 
-  @Override
-  public ACSLPredicate useOldValues() {
-    return new ACSLLogicalPredicate(
-        left.useOldValues(), right.useOldValues(), operator, isNegated());
-  }
-
   public ACSLPredicate getRight() {
     return right;
   }

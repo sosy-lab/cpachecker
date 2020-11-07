@@ -49,7 +49,7 @@ public class StatementContract implements ACSLAnnotation {
   public static StatementContract fromFunctionContract(
       List<Behavior> enclosing, FunctionContract fcontract) {
     assert FluentIterable.from(fcontract.getEnsures().getPredicate().getUsedBuiltins())
-            .filter(ACSLBuiltin.Result.class)
+            .filter(Result.class)
             .isEmpty()
         : "\\result is only allowed in function contracts";
     return new StatementContract(
@@ -66,6 +66,11 @@ public class StatementContract implements ACSLAnnotation {
   }
 
   private ACSLPredicate getPreStateRepresentation() {
+    if (!enclosingBehaviors.isEmpty()) {
+      // TODO: can currently not be expressed correctly
+      return ACSLPredicate.getTrue();
+    }
+
     ACSLPredicate preStatePredicate = requiresClause.getPredicate();
 
     for (Behavior behavior : ownBehaviors) {
@@ -74,46 +79,21 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    if (!enclosingBehaviors.isEmpty()) {
-      ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
-      ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
-      for (Behavior behavior : enclosingBehaviors) {
-        AssumesClause assumesClause = behavior.getAssumesClause();
-        enclosingConjunction =
-            enclosingConjunction.and(assumesClause.getPredicate().negate()).simplify();
-        enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate()).simplify();
-      }
-      preStatePredicate =
-          new ACSLLogicalPredicate(enclosingDisjunction, preStatePredicate, BinaryOperator.AND);
-      preStatePredicate =
-          new ACSLLogicalPredicate(preStatePredicate, enclosingConjunction, BinaryOperator.OR);
-    }
-
     return preStatePredicate.simplify();
   }
 
   private ACSLPredicate getPostStateRepresentation() {
+    if (!enclosingBehaviors.isEmpty()) {
+      // TODO: can currently not be expressed correctly
+      return ACSLPredicate.getTrue();
+    }
+
     ACSLPredicate postStatePredicate = ensuresClause.getPredicate();
 
     for (Behavior behavior : ownBehaviors) {
       ACSLPredicate behaviorPredicate = behavior.getPostStatePredicate();
       postStatePredicate =
           new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
-    }
-
-    if (!enclosingBehaviors.isEmpty()) {
-      ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
-      ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
-      for (Behavior behavior : enclosingBehaviors) {
-        AssumesClause assumesClause = behavior.getAssumesClause();
-        enclosingConjunction =
-            enclosingConjunction.and(assumesClause.getPredicate().negate()).simplify();
-        enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate()).simplify();
-      }
-      postStatePredicate =
-          new ACSLLogicalPredicate(enclosingDisjunction, postStatePredicate, BinaryOperator.AND);
-      postStatePredicate =
-          new ACSLLogicalPredicate(postStatePredicate, enclosingConjunction, BinaryOperator.OR);
     }
 
     return postStatePredicate.simplify();

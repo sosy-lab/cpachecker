@@ -31,15 +31,8 @@ public class ACSLAssertion implements ACSLAnnotation {
   @Override
   public ACSLPredicate getPredicateRepresentation() {
     if (!enclosingBehaviors.isEmpty()) {
-      ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
-      ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
-      for (Behavior behavior : enclosingBehaviors) {
-        AssumesClause assumesClause = behavior.getAssumesClause();
-        enclosingConjunction =
-            enclosingConjunction.and(assumesClause.getPredicate().negate()).simplify();
-        enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate()).simplify();
-      }
-      return predicate.and(enclosingDisjunction).or(enclosingConjunction);
+      // TODO: can currently not be expressed correctly
+      return ACSLPredicate.getTrue();
     }
     return predicate;
   }

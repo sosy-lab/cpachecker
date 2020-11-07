@@ -50,11 +50,6 @@ public class StringLiteral implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm useOldValues() {
-    return this;
-  }
-
-  @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return true;
   }

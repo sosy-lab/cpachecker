@@ -55,11 +55,6 @@ public class Cast implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm useOldValues() {
-    return new Cast(type, term.useOldValues());
-  }
-
-  @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return term.isAllowedIn(clauseType);
   }

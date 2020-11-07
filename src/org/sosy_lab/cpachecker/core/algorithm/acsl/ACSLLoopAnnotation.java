@@ -35,30 +35,9 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
 
   @Override
   public ACSLPredicate getPredicateRepresentation() {
-    ACSLPredicate predicateRepresentation = lInvariant.getPredicate();
-    for (Entry<List<Behavior>, LoopInvariant> entry : additionalInvariants.entrySet()) {
-      List<Behavior> behaviors = entry.getKey();
-      ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
-      ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
-      for (Behavior behavior : behaviors) {
-        AssumesClause assumesClause = behavior.getAssumesClause();
-        enclosingConjunction = enclosingConjunction.and(assumesClause.getPredicate().negate());
-        enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate());
-      }
-      enclosingConjunction = enclosingConjunction.simplify();
-      enclosingDisjunction = enclosingDisjunction.simplify();
-      ACSLPredicate behaviorRepresentation =
-          new ACSLLogicalPredicate(
-              enclosingDisjunction,
-              entry.getValue().getPredicate(),
-              BinaryOperator.AND);
-      behaviorRepresentation =
-          new ACSLLogicalPredicate(behaviorRepresentation, enclosingConjunction, BinaryOperator.OR);
-      predicateRepresentation =
-          new ACSLLogicalPredicate(
-              predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
-    }
-    return predicateRepresentation.simplify();
+    // TODO: Invariants specific to certain enclosing behaviors can currently not be expressed
+    //  correctly, so we ignore them
+    return lInvariant.getPredicate();
   }
 
   @Override

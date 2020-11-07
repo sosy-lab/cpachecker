@@ -56,11 +56,6 @@ public class ArrayAccess implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm useOldValues() {
-    return new ArrayAccess(array.useOldValues(), index.useOldValues());
-  }
-
-  @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return array.isAllowedIn(clauseType) && index.isAllowedIn(clauseType);
   }

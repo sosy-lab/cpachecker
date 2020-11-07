@@ -639,7 +639,7 @@ predicate ::= PRED_START TRUE                                       {: RESULT = 
 	| PRED_START NEG predicate:p                                {: RESULT = p.negate(); :} %prec NEG
 	| PRED_START LPAREN predicate:p RPAREN                      {: RESULT = p; :}
 	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :}
-	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = p.useOldValues(); :};
+	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = new At(p, ACSLDefaultLabel.OLD); :};
 asc_comp_predicate ::= asc_comp_predicate:p asc_rel_op:op term:t    {: ACSLTerm innerLeft;
                                                                        if (p instanceof ACSLSimplePredicate) {
                                                                         innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
@@ -719,8 +719,8 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | term:t1 arith_op:op term:t2                   {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | LPAREN term:t RPAREN                          {: RESULT = t; :}
-        | OLD LPAREN term:t RPAREN                      {: RESULT = t.useOldValues(); :}
-        | RETVAL                                        {: RESULT = new ACSLBuiltin.Result(parser.getCurrentNode().getFunctionName()); :};
+        | OLD LPAREN term:t RPAREN                      {: RESULT = new At(t, ACSLDefaultLabel.OLD); :}
+        | RETVAL                                        {: RESULT = new Result(parser.getCurrentNode().getFunctionName()); :};
 log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | OR    {: RESULT = BinaryOperator.OR; :}
         | IMP   {: RESULT = BinaryOperator.IMP; :}

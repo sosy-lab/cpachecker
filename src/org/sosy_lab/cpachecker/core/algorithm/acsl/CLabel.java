@@ -8,4 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-public interface ACSLBuiltin extends ACSLTerm {}
+class CLabel implements ACSLLabel {
+
+  private String name;
+
+  CLabel(String pName) {
+    name = pName;
+  }
+
+  @Override
+  public String toString() {
+    return name;
+  }
+}

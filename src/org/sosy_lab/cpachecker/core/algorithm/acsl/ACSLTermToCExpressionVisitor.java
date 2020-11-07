@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLBuiltin.Old;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLBuiltin.Result;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ACSLTermToCExpressionVisitor {
@@ -230,6 +228,14 @@ public class ACSLTermToCExpressionVisitor {
       result = cache.get(old.getInner());
       assert result != null : "Expected to have seen the old value already";
       cache.put(old, result);
+    }
+    return result;
+  }
+
+  public CExpression visit(At at) {
+    CExpression result = cache.get(at);
+    if (result == null) {
+      throw new UnsupportedOperationException("Translation of \\at currently not supported.");
     }
     return result;
   }

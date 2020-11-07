@@ -32,22 +32,14 @@ public class Behavior {
 
   public ACSLPredicate getPreStatePredicate() {
     ACSLPredicate requiresPredicate = requiresClause.getPredicate();
-    ACSLPredicate assumesPredicate = assumesClause.getPredicate();
-    ACSLPredicate negatedAssumesPredicate = assumesPredicate.negate();
-    return new ACSLLogicalPredicate(
-        new ACSLLogicalPredicate(assumesPredicate, requiresPredicate, BinaryOperator.AND),
-        negatedAssumesPredicate,
-        BinaryOperator.OR);
+    ACSLPredicate negatedAssumesPredicate = assumesClause.getPredicate().negate();
+    return new ACSLLogicalPredicate(requiresPredicate, negatedAssumesPredicate, BinaryOperator.OR);
   }
 
   public ACSLPredicate getPostStatePredicate() {
     ACSLPredicate ensuresPredicate = ensuresClause.getPredicate();
-    ACSLPredicate assumesPredicate = assumesClause.getPredicate().useOldValues();
-    ACSLPredicate negatedAssumesPredicate = assumesPredicate.negate();
-    return new ACSLLogicalPredicate(
-        new ACSLLogicalPredicate(assumesPredicate, ensuresPredicate, BinaryOperator.AND),
-        negatedAssumesPredicate,
-        BinaryOperator.OR);
+    ACSLPredicate negatedAssumesPredicate = new At(assumesClause.getPredicate(), ACSLDefaultLabel.OLD).negate();
+    return new ACSLLogicalPredicate(ensuresPredicate, negatedAssumesPredicate, BinaryOperator.OR);
   }
 
   @Override

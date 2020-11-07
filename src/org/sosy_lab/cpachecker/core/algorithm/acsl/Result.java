@@ -13,38 +13,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class Identifier implements ACSLTerm {
+public class Result implements ACSLBuiltin {
 
-  private final String name;
   private final String functionName;
-  // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
 
-  public Identifier(String pName, String pFunctionName) {
-    name = pName;
+  public Result(String pFunctionName) {
     functionName = pFunctionName;
-  }
-
-  @Override
-  public String toString() {
-    return name;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o instanceof Identifier) {
-      Identifier other = (Identifier) o;
-      return name.equals(other.name);
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return 29 * name.hashCode() * name.hashCode() + 29;
-  }
-
-  public String getName() {
-    return name;
   }
 
   public String getFunctionName() {
@@ -52,17 +26,37 @@ public class Identifier implements ACSLTerm {
   }
 
   @Override
-  public CExpression accept(ACSLTermToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+  public String toString() {
+    return "\\result";
+  }
+
+  @Override
+  public int hashCode() {
+    return 3 * functionName.hashCode() + 3;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof Result) {
+      Result other = (Result) obj;
+      return functionName.equals(other.functionName);
+    }
+    return false;
+  }
+
+  @Override
+  public CExpression accept(ACSLTermToCExpressionVisitor visitor)
+      throws UnrecognizedCodeException {
     return visitor.visit(this);
   }
 
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
-    return true;
+    return clauseType.equals(EnsuresClause.class);
   }
 
   @Override
   public Set<ACSLBuiltin> getUsedBuiltins() {
-    return ImmutableSet.of();
+    return ImmutableSet.of(this);
   }
 }

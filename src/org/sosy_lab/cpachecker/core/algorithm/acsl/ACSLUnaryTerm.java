@@ -58,11 +58,6 @@ public class ACSLUnaryTerm implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm useOldValues() {
-    return new ACSLUnaryTerm(term.useOldValues(), operator);
-  }
-
-  @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return term.isAllowedIn(clauseType);
   }
