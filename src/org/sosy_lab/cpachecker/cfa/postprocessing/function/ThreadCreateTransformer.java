@@ -88,6 +88,12 @@ public class ThreadCreateTransformer {
   )
   private String threadJoinN = "pthread_join_N";
 
+  @Option(
+    secure = true,
+    name = "cfa.threads.addAssumptions",
+    description = "Add assumptions about successfull thread create")
+  private boolean addAssumptions = true;
+
   private class ThreadFinder implements CFATraversal.CFAVisitor {
 
     Map<CFAEdge, CFunctionCallExpression> threadCreates = new HashMap<>();
@@ -184,42 +190,61 @@ public class ThreadCreateTransformer {
       if (edge instanceof CStatementEdge) {
         CStatement stmnt = ((CStatementEdge) edge).getStatement();
         if (stmnt instanceof CFunctionCallAssignmentStatement) {
-          /* We should replace r = pthread_create(f) into
-           *   - r = TMP;
-           *   - [r == 0]
-           *   - f()
-           */
           String pRawStatement = edge.getRawStatement();
 
           CFANode pPredecessor = edge.getPredecessor();
           CFANode pSuccessor = edge.getSuccessor();
-          CFANode firstNode = new CFANode(pPredecessor.getFunction());
-          CFANode secondNode = new CFANode(pPredecessor.getFunction());
-          ((MutableCFA) cfa).addNode(firstNode);
-          ((MutableCFA) cfa).addNode(secondNode);
 
           CFACreationUtils.removeEdgeFromNodes(edge);
 
-          CStatement assign = prepareRandomAssignment((CFunctionCallAssignmentStatement) stmnt);
-          CStatementEdge randAssign =
-              new CStatementEdge(pRawStatement, assign, pFileLocation, pPredecessor, firstNode);
+          if (addAssumptions) {
+            // We should replace r = pthread_create(f) into
+            // - r = TMP;
+            // - [r == 0]
+            // - f()
+            CFANode firstNode = new CFANode(pPredecessor.getFunction());
+            CFANode secondNode = new CFANode(pPredecessor.getFunction());
+            ((MutableCFA) cfa).addNode(firstNode);
+            ((MutableCFA) cfa).addNode(secondNode);
 
-          CExpression assumption = prepareAssumption((CFunctionCallAssignmentStatement) stmnt, cfa);
-          CAssumeEdge trueEdge =
-              new CAssumeEdge(
-                  pRawStatement, pFileLocation, firstNode, secondNode, assumption, true);
-          CAssumeEdge falseEdge =
-              new CAssumeEdge(
-                  pRawStatement, pFileLocation, firstNode, pSuccessor, assumption, false);
+            CStatement assign = prepareRandomAssignment((CFunctionCallAssignmentStatement) stmnt);
+            CStatementEdge randAssign =
+                new CStatementEdge(pRawStatement, assign, pFileLocation, pPredecessor, firstNode);
+
+            CExpression assumption =
+                prepareAssumption((CFunctionCallAssignmentStatement) stmnt, cfa);
+            CAssumeEdge trueEdge =
+                new CAssumeEdge(
+                    pRawStatement,
+                    pFileLocation,
+                    firstNode,
+                    secondNode,
+                    assumption,
+                    true);
+            CAssumeEdge falseEdge =
+                new CAssumeEdge(
+                    pRawStatement,
+                    pFileLocation,
+                    firstNode,
+                    pSuccessor,
+                    assumption,
+                    false);
+
+            CFACreationUtils.addEdgeUnconditionallyToCFA(randAssign);
+            CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
+            CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
+            pPredecessor = secondNode;
+          }
 
           CStatementEdge callEdge =
               new CStatementEdge(
-                  pRawStatement, pFunctionCall, pFileLocation, secondNode, pSuccessor);
+                  pRawStatement,
+                  pFunctionCall,
+                  pFileLocation,
+                  pPredecessor,
+                  pSuccessor);
 
           CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
-          CFACreationUtils.addEdgeUnconditionallyToCFA(randAssign);
-          CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
-          CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
 
           logger.log(Level.FINE, "Replace " + edge + " with " + callEdge);
         } else {

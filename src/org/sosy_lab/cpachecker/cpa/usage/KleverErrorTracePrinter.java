@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
@@ -138,23 +139,27 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
 
-    Iterator<CFAEdge> firstIterator = getPathIterator(firstUsage);
-    Iterator<CFAEdge> secondIterator = getPathIterator(secondUsage);
+    List<CFAEdge> firstPath = getPath(firstUsage);
+    List<CFAEdge> secondPath = getPath(secondUsage);
 
-    if (!firstIterator.hasNext()) {
+    if (firstPath.isEmpty()) {
       // Empty path is strange
       logger.log(Level.WARNING, "Path to " + firstUsage + "is empty");
       return;
     }
 
-    if (!secondIterator.hasNext()) {
+    if (secondPath.isEmpty()) {
       // Empty path is strange
       logger.log(Level.WARNING, "Path to " + secondUsage + "is empty");
       return;
     }
 
+    Iterator<CFAEdge> firstIterator = firstPath.iterator();
+    Iterator<CFAEdge> secondIterator = secondPath.listIterator();
+
     CFAEdge firstEdge = firstIterator.next();
     CFAEdge secondEdge = secondIterator.next();
+
     int forkThread = 0;
 
     defaultSourcefileName =
@@ -186,38 +191,27 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element result = builder.createNodeElement(getCurrentId(), NodeType.ONPATH);
       builder.addDataElementChild(result, NodeFlag.ISENTRY.key, "true");
 
-      if (firstUsage.equals(secondUsage)) {
-        printPath(firstUsage, firstIterator, builder);
-      } else {
-
-        while (firstEdge.equals(secondEdge)) {
-          if (isThreadCreateNFunction(firstEdge)) {
-            break;
-          }
-
-          printEdge(builder, firstEdge);
-
-          // The case may be
-          if (!firstIterator.hasNext()) {
-            logger.log(Level.WARNING, "Path to " + firstUsage + "is ended before deviding");
-            return;
-          } else if (!secondIterator.hasNext()) {
-            logger.log(Level.WARNING, "Path to " + secondUsage + "is ended before deviding");
-            return;
-          }
-
-          firstEdge = firstIterator.next();
-          secondEdge = secondIterator.next();
-        }
-
-        forkThread = threadIterator.getCurrentThread();
-        printEdge(builder, firstEdge);
-        printPath(firstUsage, firstIterator, builder);
-
-        threadIterator.setCurrentThread(forkThread);
-        printEdge(builder, secondEdge);
-        printPath(secondUsage, secondIterator, builder);
+      int commonIndex = getCommonPrefix(firstPath, secondPath);
+      if (commonIndex < 0) {
+        logger
+            .log(Level.WARNING, "No thread create found, likely, you need another WitnessPrinter");
+        return;
       }
+      // commonIndex is index of threadCreate, need to stop one edge before
+      for (int i = 0; i < commonIndex - 1; i++) {
+        printEdge(builder, firstEdge);
+
+        firstEdge = firstIterator.next();
+        secondEdge = secondIterator.next();
+      }
+
+      forkThread = threadIterator.getCurrentThread();
+      printEdge(builder, firstEdge);
+      printPath(firstUsage, firstIterator, builder);
+
+      threadIterator.setCurrentThread(forkThread);
+      printEdge(builder, secondEdge);
+      printPath(secondUsage, secondIterator, builder);
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
       Path currentPath;
@@ -240,6 +234,30 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     } catch (InvalidConfigurationException e1) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
     }
+  }
+
+  private int getCommonPrefix(List<CFAEdge> firstPath, List<CFAEdge> secondPath) {
+    // Common prefix MUST be ended on thread create, thus it is i bit complicated
+    Iterator<CFAEdge> firstIterator = firstPath.iterator();
+    Iterator<CFAEdge> secondIterator = secondPath.iterator();
+    int threadCreateIndex = -1;
+    int index = 0;
+
+    while (firstIterator.hasNext() && secondIterator.hasNext()) {
+      CFAEdge firstEdge = firstIterator.next();
+      CFAEdge secondEdge = secondIterator.next();
+
+      if (isThreadCreateFunction(firstEdge) || isThreadCreateFunction(secondEdge)) {
+        // Not indexof, just in case of multiple cases
+        threadCreateIndex = index;
+      }
+      if (firstEdge != secondEdge) {
+        // Note, after previous check, because devision on threadCreate is ok
+        return threadCreateIndex;
+      }
+      index++;
+    }
+    return threadCreateIndex;
   }
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
@@ -357,11 +375,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   private boolean isThreadCreateFunction(CFAEdge pEdge) {
     return getThreadCreateStatementIfExists(pEdge) != null;
-  }
-
-  private boolean isThreadCreateNFunction(CFAEdge pEdge) {
-    CThreadCreateStatement stmnt = getThreadCreateStatementIfExists(pEdge);
-    return stmnt == null ? false : stmnt.isSelfParallel();
   }
 
   private CThreadCreateStatement getThreadCreateStatementIfExists(CFAEdge pEdge) {
