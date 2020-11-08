@@ -50,7 +50,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="${update-lib.version}"
+        <dependency org="com.google.guava" name="guava" rev="30.0-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.4"
@@ -157,8 +157,8 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.37.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.36.2" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.38.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.37" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
