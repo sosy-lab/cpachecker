@@ -416,8 +416,8 @@ public class PredicateStaticRefiner extends StaticRefiner
     // Predicates that should be tracked globally
     Collection<AbstractionPredicate> globalPredicates = new ArrayList<>();
 
-    // Determine the ERROR location of the path (last node)
-    CFANode targetLocation = AbstractStates.extractLocation(targetState);
+    // Determine the ERROR location of the path (last node, or set of nodes if multiple threads)
+    Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
     Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
@@ -433,7 +433,8 @@ public class PredicateStaticRefiner extends StaticRefiner
             getAssumeEdgesAlongPath(pReached, targetState, directlyAffectingStatements));
       }
       if (addAssumesByBoundedBackscan) {
-        assumeEdges.addAll(getTargetLocationAssumes(ImmutableList.of(targetLocation)).values());
+        assumeEdges.addAll(
+            getTargetLocationAssumes(ImmutableList.copyOf(targetLocations)).values());
       }
     }
 
