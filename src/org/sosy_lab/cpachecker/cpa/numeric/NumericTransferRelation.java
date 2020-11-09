@@ -95,7 +95,11 @@ public class NumericTransferRelation
   @Override
   protected Collection<NumericState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement statement) throws UnrecognizedCodeException {
-    return statement.accept(new NumericStatementVisitor(state, cfaEdge, precision, logger));
+    NumericState copy = state.deepCopy();
+    Collection<NumericState> successors =
+        statement.accept(new NumericStatementVisitor(copy, cfaEdge, precision, logger));
+    copy.getValue().dispose();
+    return successors;
   }
 
   @Override
@@ -168,7 +172,7 @@ public class NumericTransferRelation
         NumericVariable.valueOf(
             declaration, pCfaEdge.getSuccessor(), precision, state.getManager(), logger);
 
-    if (variable.isPresent()) {
+    if (variable.isPresent() && pEnvironment.containsVariable(variable.get())) {
       ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
       Collection<PartialState> partialAssignments =
           expression.accept(
@@ -176,15 +180,19 @@ public class NumericTransferRelation
                   pEnvironment, state.getManager(), pCfaEdge, precision, logger));
       for (PartialState partialAssignment : partialAssignments) {
         ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
+
         for (NumericState current : pStates) {
           successorCandidates.add(current.deepCopy());
         }
 
-        if (pEnvironment.containsVariable(variable.get())) {
-          assignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
-        }
+        assignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
       }
-      return statesBuilder.build();
+
+      if (statesBuilder.build().isEmpty()) {
+        return pStates;
+      } else {
+        return statesBuilder.build();
+      }
     } else {
       return pStates;
     }
@@ -210,13 +218,14 @@ public class NumericTransferRelation
               pStatesBuilder.add(st);
             }
           });
-      successorCandidate.getValue().dispose();
     }
   }
 
   private void disposeAll(Collection<NumericState> states) {
     for (NumericState tempState : states) {
-      tempState.getValue().dispose();
+      if (tempState != state) {
+        tempState.getValue().dispose();
+      }
     }
   }
 
@@ -231,6 +240,7 @@ public class NumericTransferRelation
 
       if (declaration.isPresent() && declaration.get() instanceof CVariableDeclaration) {
         assert ((CVariableDeclaration) declaration.get()).getInitializer() == null;
+
         Collection<NumericState> intermediateStates =
             ((CDeclaration) declaration.get())
                 .accept(new NumericDeclarationVisitor(state, cfaEdge, precision, logger));
@@ -330,6 +340,9 @@ public class NumericTransferRelation
 
     for (NumericState pState : pStates) {
       successorsBuilder.add(pState.removeVariables(pVariables));
+      if (pState != state) {
+        pState.getValue().dispose();
+      }
     }
 
     return successorsBuilder.build();

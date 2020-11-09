@@ -98,7 +98,7 @@ public class NumericStatementVisitor
   @Override
   public Collection<NumericState> visit(CExpressionStatement pIastExpressionStatement)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(state);
+    return ImmutableSet.of(state.deepCopy());
   }
 
   @Override
@@ -157,7 +157,7 @@ public class NumericStatementVisitor
       if (intermediateState.isPresent()) {
         if (!intermediateState.get().isBottom()) {
           NumericState newState =
-              extendedState.assignTreeExpression(
+              intermediateState.get().assignTreeExpression(
                   variable.get(), partialState.getPartialConstraint());
           if (!newState.getValue().isBottom()) {
             successorsBuilder.add(newState);
@@ -234,7 +234,11 @@ public class NumericStatementVisitor
   private Collection<NumericState> handleReturnVariable(Variable variable) {
     TreeNode right = new VariableTreeNode(returnVariable.get());
     NumericState newState = state.assignTreeExpression(variable, right);
-    return ImmutableSet.of(newState);
+    if (newState.isBottom()) {
+      return ImmutableSet.of(state);
+    } else {
+      return ImmutableSet.of(newState);
+    }
   }
 
   @Override
