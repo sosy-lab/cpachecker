@@ -47,8 +47,6 @@ public class Fuzzer {
         for (int i = 0; i < pPasses; i++) {
             logger.log(Level.INFO, "Fuzzing pass", i + 1);
 
-            int previousSetSize = pReachedSet.size();
-
             // Preload values if they exist
             int size = pPreLoadedValues.size();
             if (size > 0) {
@@ -57,12 +55,11 @@ public class Fuzzer {
                 // valCpa.getTransferRelation().setKnownValues(pPreLoadedValues.get(j));
                 preloadValues(pPreLoadedValues.get(j));
             }
-            // Run algorithm and collect result
-            pAlgorithm.run(pReachedSet);
-
-            // Write output if new states have been reached
-            if (previousSetSize < pReachedSet.size()) {
-                outputWriter.writeTestCases(pReachedSet);
+            try {
+                // Run algorithm and collect result
+                pAlgorithm.run(pReachedSet);
+            } finally {
+                this.outputWriter.writeTestCases(pReachedSet);
             }
 
             // Check whether to shut down
@@ -76,6 +73,8 @@ public class Fuzzer {
         }
         return pReachedSet;
     }
+
+
 
     /**
      * Use assignments to preload the ValueCPA in order to use them as applicable.

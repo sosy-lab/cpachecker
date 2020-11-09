@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -41,6 +42,7 @@ public class OutputWriter {
     private String path;
 
     private int testCaseNumber;
+    private int previousSetSize;
 
     /**
      * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
@@ -49,10 +51,12 @@ public class OutputWriter {
      * @param pPath The output path to write files to.
      */
     public OutputWriter(LogManager pLogger, PredicateCPA pPredicateCPA, String pPath) {
-        testCaseNumber = 0;
-        logger = pLogger;
-        predicateCPA = pPredicateCPA;
-        path = pPath;
+        this.logger = pLogger;
+        this.predicateCPA = pPredicateCPA;
+        this.path = pPath;
+
+        this.testCaseNumber = 0;
+        this.previousSetSize = 0;
 
         initOutDir(path);
         writeTestMetadata();
@@ -84,6 +88,12 @@ public class OutputWriter {
      * Handles writing of all testcases necessary for the given reachedSet.
      */
     public void writeTestCases(ReachedSet pReachedSet) {
+
+        // Write output only if new states have been reached
+        if (previousSetSize > pReachedSet.size()) {
+            return;
+        }
+
         // Get starting point for search
         AbstractState first = pReachedSet.getFirstState();
         ARGState args = AbstractStates.extractStateByType(first, ARGState.class);
@@ -127,6 +137,7 @@ public class OutputWriter {
             logger.log(Level.SEVERE, "Could not write test output", exc);
         } finally {
             this.testCaseNumber += 1;
+            this.previousSetSize = pReachedSet.size();
         }
 
     }

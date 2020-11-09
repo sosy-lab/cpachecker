@@ -53,7 +53,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
   private final LogManager logger;
-  private HashMap<String,Value> loadedValues = new HashMap<>();
+  private HashMap<String, Value> loadedValues = new HashMap<>();
 
   @Option(
     description = "If this option is set to true, an own symbolic identifier is assigned to"
@@ -64,13 +64,15 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   @Option(description = "Default size of arrays whose length can't be determined.")
   private int defaultArraySize = 20;
 
-  public RandomValueAssigner(LogManager logger, long seed, Configuration pConfig) throws InvalidConfigurationException {
+  public RandomValueAssigner(LogManager logger, long seed, Configuration pConfig)
+      throws InvalidConfigurationException {
     this.logger = logger;
     this.rnd = new Random(seed);
     pConfig.inject(this);
   }
 
-  public RandomValueAssigner(LogManager logger, Configuration pConfig) throws InvalidConfigurationException {
+  public RandomValueAssigner(LogManager logger, Configuration pConfig)
+      throws InvalidConfigurationException {
     this.logger = logger;
     this.rnd = new Random();
     pConfig.inject(this);
@@ -123,59 +125,6 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
             + pType.getClass().toString());
   }
 
-  // public void loadValues(ImmutableList<ValueAssignment> values){
-  //   for (ValueAssignment assignment : values){
-  //     String name = assignment.getName();
-  //     if (name.contains("__VERIFIER_nondet_int")){
-  //       continue;
-  //     }
-  //     String[] split_name = name.split("@");
-  //     Integer i = Integer.parseInt(split_name[1]);
-  //     name = split_name[0];
-  //     logger.log(Level.INFO, "To assign", i, name, assignment.getValue());
-  //   }
-  // }
-
-  // /**
-  //  * Add a value as preloaded to this value assigner.
-  //  */
-  // public void loadValue(String name, Object value){
-  //   if (value instanceof Boolean){
-  //     loadedValues.put(name, BooleanValue.valueOf((Boolean)value));
-  //   } else if (value instanceof Integer){
-  //     loadedValues.put(name, new NumericValue((Integer)value));
-  //   } else if (value instanceof Character){
-  //     loadedValues.put(name, new NumericValue((Integer)value));
-  //   } else if (value instanceof Float) {
-  //     loadedValues.put(name, new NumericValue((Float)value));
-  //   } else if (value instanceof Double) {
-  //     loadedValues.put(name, new NumericValue((Double)value));
-  //   } else if (value instanceof BigInteger) {
-  //     BigInteger v = (BigInteger)value;
-  //     String n = sanitize(name);
-  //     loadedValues.put(n, new NumericValue(v));
-  //     logger.log(Level.INFO, "Preloaded to ", n, v, name);
-  //   } else {
-  //     throw new IllegalArgumentException(String.format("Did not recognize value for loadedValues Map: %s.", value.getClass()));
-  //   }
-  // }
-
-  // public void clearPreLoaded(){
-  //   loadedValues.clear();
-  // }
-
-  // private String sanitize(String name){
-  //   while (Character.isDigit(name.charAt(name.length()-1))) {
-  //     name = name.substring(0, name.length()-1);
-  //   }
-
-  //   if (name.charAt(name.length()-1) == '@') {
-  //     name = name.substring(0, name.length()-1);
-  //   }
-
-  //   return name;
-  // }
-
   /**
    * Create a simple Type and assign it to the pMemLocation.
    */
@@ -203,7 +152,16 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
         pPreviousState.nonDeterministicMark = true;
         break;
       case INT:
-        value = new NumericValue(this.rnd.nextInt());
+        int v = this.rnd.nextInt();
+
+        // if unsigned, generate positive
+        if (pType.toString().equals("unsigned int")) {
+          while (v <= 0) {
+            v = this.rnd.nextInt();
+          }
+        }
+
+        value = new NumericValue(v);
         pPreviousState.nonDeterministicMark = true;
         this.logger.log(
             Level.FINE,

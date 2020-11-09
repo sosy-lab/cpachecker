@@ -75,6 +75,9 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     @Option(secure = true, description = "fuzzingPasses = ⌈ fuzzingMultiplier * fuzzingSolutions ⌉")
     private double fuzzingMultiplier = 1;
 
+    @Option(secure = true, description = "If 0 fuzzing would run, instead run this amount of passes.")
+    private int emergencyFuzzingPasses = 1;
+
     @Option(
         secure = true,
         description = "How many total iterations of [select, target, fuzz] to perform.")
@@ -153,9 +156,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             reachedSet = fuzzer.fuzz(reachedSet, initialPasses, algorithm, preloadedValues);
         } catch (PropertyViolationException ex) {
             logger.log(Level.WARNING, "Found violated property at preload.");
-            outputWriter.writeTestCases(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
+        } finally {
+            outputWriter.writeTestCases(reachedSet);
         }
+        
         Instant init_end = Instant.now();
         timings.merge(
                 "init",
@@ -180,9 +185,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 target = selectionStrategy.select(reachedSet);
             } catch (IllegalArgumentException e) {
                 logger.log(Level.WARNING, "No target state found");
-                outputWriter.writeTestCases(reachedSet);
                 break;
+            } finally {
+                outputWriter.writeTestCases(reachedSet);
             }
+
             if (target == null) {
                 logger.log(Level.WARNING, "No target states left");
                 break;
@@ -224,6 +231,9 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             // new paths through the program.
             Instant fuzzing_start = Instant.now();
             int fuzzingPasses = (int) Math.ceil(fuzzingMultiplier * preloadedValues.size());
+            if (fuzzingPasses == 0){
+                fuzzingPasses = this.emergencyFuzzingPasses;
+            }
             try {
                 reachedSet = fuzzer.fuzz(reachedSet, fuzzingPasses, algorithm, preloadedValues);
             } catch (PropertyViolationException ex) {
