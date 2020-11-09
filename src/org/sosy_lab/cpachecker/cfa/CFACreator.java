@@ -444,6 +444,10 @@ public class CFACreator {
     if (!loopIsAutomated || automateAbstractLoopParser) {
     stats.totalTime.start();
   }
+    boolean stopTimer = false;
+    if (!loopIsAutomated) {
+      stopTimer = true;
+    }
 
     try {
       // FIRST, parse file(s) and create CFAs for each function
@@ -469,6 +473,7 @@ public class CFACreator {
       if (!automateAbstractLoopParser) {
         result = createCFA(c, mainFunction);
     } else {
+        stopTimer = true;
         CFA cfa = createCFA(c, mainFunction);
         LoopInformation builder = new LoopInformation(config, logger, cfa);
         builder.collectStatistics(stats.statisticsCollection);
@@ -490,7 +495,7 @@ public class CFACreator {
     return result;
 
     } finally {
-      if ((loopIsAutomated && !automateAbstractLoopParser) || !loopIsAutomated) {
+      if (stopTimer) {
       stats.totalTime.stop();
         }
     }
