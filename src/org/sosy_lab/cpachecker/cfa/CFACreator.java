@@ -440,12 +440,10 @@ public class CFACreator {
         !sourceFiles.isEmpty(), "At least one source file must be provided!");
 
     CFA result = null;
+    boolean stopTimer = false;
 
     if (!loopIsAutomated || automateAbstractLoopParser) {
-    stats.totalTime.start();
-  }
-    boolean stopTimer = false;
-    if (!loopIsAutomated) {
+      stats.totalTime.start();
       stopTimer = true;
     }
 
@@ -473,7 +471,6 @@ public class CFACreator {
       if (!automateAbstractLoopParser) {
         result = createCFA(c, mainFunction);
     } else {
-        stopTimer = true;
         CFA cfa = createCFA(c, mainFunction);
         LoopInformation builder = new LoopInformation(config, logger, cfa);
         builder.collectStatistics(stats.statisticsCollection);
@@ -496,8 +493,8 @@ public class CFACreator {
 
     } finally {
       if (stopTimer) {
-      stats.totalTime.stop();
-        }
+        stats.totalTime.stop();
+      }
     }
   }
 
