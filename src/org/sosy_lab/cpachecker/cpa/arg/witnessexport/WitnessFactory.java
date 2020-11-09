@@ -1656,7 +1656,8 @@ class WitnessFactory implements EdgeAppender {
 
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
-    assert !pEdge.getSource().equals(SINK_NODE_ID);
+    assert !pEdge.getSource().equals(SINK_NODE_ID)
+        : "unexpected edge added to witness (edge should not start with SINK): " + pEdge;
     leavingEdges.put(pEdge.getSource(), pEdge);
     enteringEdges.put(pEdge.getTarget(), pEdge);
     assert leavingEdges.size() == enteringEdges.size();

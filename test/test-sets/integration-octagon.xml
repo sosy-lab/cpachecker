@@ -23,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
   <!-- Integer Tests -->
   <tasks name="ControlFlowInteger">
       <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
-      <include>../programs/benchmarks/ssh-simplified/*.cil.yml</include>
+      <include>../programs/benchmarks/openssl-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/locks/*.yml</include>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
@@ -50,7 +50,6 @@ SPDX-License-Identifier: Apache-2.0
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
-      <option name="-64"/>
       <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
 

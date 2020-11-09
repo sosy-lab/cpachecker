@@ -44,13 +44,14 @@ import org.sosy_lab.pjbdd.Builders;
 import org.sosy_lab.pjbdd.Builders.ParallelizationType;
 import org.sosy_lab.pjbdd.creator.bdd.BDDBuilder;
 import org.sosy_lab.pjbdd.creator.bdd.Creator;
+import org.sosy_lab.pjbdd.creator.bdd.intBDD.IntBuilder;
 import org.sosy_lab.pjbdd.node.BDD;
 
 public class PJBDDRegionManager implements RegionManager {
 
   private final Region trueFormula;
   private final Region falseFormula;
-  private Creator bddCreator;
+  private final Creator<BDD> bddCreator;
 
   public PJBDDRegionManager(Configuration pConfig) throws InvalidConfigurationException {
     BuildFromConfig buildFromConfig = new BuildFromConfig(pConfig);
@@ -104,7 +105,9 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public void setVarOrder(ImmutableIntArray pOrder) {
-    bddCreator.setVarOrder(pOrder.asList());
+    throw new UnsupportedOperationException(
+        "'reorder(PredicateOrderingStrategy)' not yet implemented");
+    // bddCreator.setVarOrder(pOrder.asList());
   }
 
   @Override
@@ -160,11 +163,11 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Region makeExists(Region f1, Region... f2) {
-
-    BDD[] bddF2 = new BDD[f2.length];
-    IntStream.range(0, f2.length).forEach(i -> bddF2[i] = unwrap(f2[i]));
-    return wrap(bddCreator.makeExists(unwrap(f1), bddF2));
+    BDD[] bddLevels = new BDD[f2.length];
+    IntStream.range(0, f2.length).forEach(i -> bddLevels[i] = unwrap(f2[i]));
+    return wrap(bddCreator.makeExists(unwrap(f1), bddLevels));
   }
+
 
   @Override
   public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
@@ -173,8 +176,7 @@ public class PJBDDRegionManager implements RegionManager {
     for (int i = 0; i < pOldPredicates.length; i++) {
       BDD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
       BDD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
-      bdd = bddCreator.makeAnd(bdd, bddCreator.makeEqual(oldVar, newVar));
-      bdd = bddCreator.makeExists(bdd, oldVar);
+      bdd = bddCreator.makeReplace(bdd, oldVar, newVar);
     }
     return wrap(bdd);
   }
@@ -208,7 +210,8 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description =
-            "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
+            "Initial size of the BDD node table in percentage of available Java heap memory (only"
+                + " used if initTableSize is 0).")
     private double initTableRatio = 0.001;
 
     @Option(
@@ -220,17 +223,35 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description =
-            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
+                + " cache size).")
     private double cacheRatio = 0.1;
 
-    private BDDBuilder builder;
+    @Option(
+        secure = true,
+        description =
+            "Threadsafe reference counting is very costly, with this option gc can be disabled."
+                + " Only applicable with useInts = true.")
+    private boolean disableGC = false;
+
+    @Option(secure = true, description = "Use internal a int based bdd representation.")
+    private boolean useInts = false;
+
+    @Option(secure = true, description = "Use bdd chaining.")
+    private boolean useChainedBDD = false;
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
-      builder = Builders.newBDDBuilder();
     }
 
-    private Creator makeCreator() {
+    private Creator<BDD> makeCreator() {
+      if (useInts) {
+        IntBuilder intBuilder = Builders.newIntBuilder();
+        resolveProperties(intBuilder);
+        return intBuilder.build();
+      }
+
+      BDDBuilder builder = Builders.newBDDBuilder();
       resolveProperties(builder);
       return builder.build();
     }
@@ -247,7 +268,7 @@ public class PJBDDRegionManager implements RegionManager {
       }
 
       if (cacheSize == 0) {
-        cacheSize = (int) (initTableSize * cacheRatio);
+        cacheSize = Math.min((int) (initTableSize * cacheRatio), 10000);
       }
 
       pBuilder
@@ -259,6 +280,36 @@ public class PJBDDRegionManager implements RegionManager {
           .setIncreaseFactor(increaseFactor);
       if (threads == 1) {
         pBuilder.setParallelizationType(ParallelizationType.NONE);
+      }
+      if (useChainedBDD) {
+        pBuilder.setUseChained(true);
+      }
+    }
+
+    private void resolveProperties(IntBuilder pBuilder) {
+
+      if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
+        initTableSize = 100000;
+      }
+
+      if (initTableSize == 0) {
+        // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
+        double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
+        initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
+      }
+      if (cacheSize == 0) {
+        cacheSize = (int) (initTableSize * cacheRatio);
+      }
+
+      pBuilder
+          .setParallelism(tableParallelism)
+          .setVarCount(varCount)
+          .setSelectedCacheSize(cacheSize)
+          .setThreads(threads)
+          .setTableSize(initTableSize)
+          .setIncreaseFactor(increaseFactor);
+      if (disableGC) {
+        pBuilder.disableGC();
       }
     }
   }

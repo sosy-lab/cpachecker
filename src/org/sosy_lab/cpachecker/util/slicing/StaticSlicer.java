@@ -125,8 +125,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
   private double getSliceProgramRatio() {
 
-    double sliceEdges = sliceEdgesNumber.getValueSum();
-    double programEdges = programEdgesNumber.getValueSum();
+    double sliceEdges = sliceEdgesNumber.getMaxValue();
+    double programEdges = programEdgesNumber.getMaxValue();
 
     return programEdges > 0.0 ? sliceEdges / programEdges : 1.0;
   }
@@ -145,7 +145,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
             writer.put(sliceEdgesNumber).put(programEdgesNumber);
             writer.put(
-                "Slice/Program ratio", String.format(Locale.US, "%.3f", getSliceProgramRatio()));
+                "Largest slice / program ratio",
+                String.format(Locale.US, "%.3f", getSliceProgramRatio()));
           }
 
           @Override

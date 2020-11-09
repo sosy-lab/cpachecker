@@ -143,6 +143,10 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     return new SlicingPrecision(wrappedPrec, relevantEdges);
   }
 
+  Slicer getSlicer() {
+    return slicer;
+  }
+
   private Slice computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
     return slicer.getSlice(pCfa, pSpec);
   }

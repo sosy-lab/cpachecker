@@ -44,6 +44,12 @@ public class TestTargetCPA extends AbstractCPA {
 
   @Option(
     secure = true,
+    name = "targets.funName", // adapt CPAMain.java if adjust name
+    description = "Name of target function if target type is FUN_CALL")
+  private String targetFun = null;
+
+  @Option(
+    secure = true,
     name = "targets.optimization.strategy",
     description = "Which strategy to use to optimize set of test target edges"
   )
@@ -58,11 +64,16 @@ public class TestTargetCPA extends AbstractCPA {
     super("sep", "sep", DelegateAbstractDomain.<TestTargetState>getInstance(), null);
 
     pConfig.inject(this);
+    if (targetType == TestTargetType.FUN_CALL && targetFun == null) {
+      throw new InvalidConfigurationException(
+          "If you choose target type to be FUN_CALL, you need to specify the target function.");
+    }
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
     transferRelation =
         new TestTargetTransferRelation(
-            TestTargetProvider.getTestTargets(pCfa, runParallel, targetType, targetOptimization));
+            TestTargetProvider
+                .getTestTargets(pCfa, runParallel, targetType, targetFun, targetOptimization));
   }
 
   @Override

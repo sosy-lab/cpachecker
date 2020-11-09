@@ -9,7 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -83,16 +86,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
-      CFANode location = AbstractStates.extractLocation(fullState);
 
-      if (shouldComputeAbstraction(fullState, location, element)) {
-        PredicatePrecision precision = (PredicatePrecision)pPrecision;
+      // default number of locations is 1, for concurrent programs we can have multiple locations.
+      // if any location wants to abstract, we compute the abstraction
+      final Collection<CFANode> locations =
+          ImmutableList.copyOf(AbstractStates.extractLocations(fullState));
+      for (CFANode location : locations) {
+        if (shouldComputeAbstraction(fullState, location, element)) {
+          PredicatePrecision precision = (PredicatePrecision) pPrecision;
+          return computeAbstraction(element, precision, locations, fullState);
+        }
+      }
 
-        return computeAbstraction(element, precision, location, fullState);
-      } else {
         return Optional.of(PrecisionAdjustmentResult.create(
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
-      }
 
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
@@ -125,35 +132,38 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
       PredicateAbstractState element,
       PredicatePrecision precision,
-      CFANode loc,
+      Collection<CFANode> pLocations,
       AbstractState fullState)
       throws SolverException, CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
-    Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
     statistics.numAbstractions.inc();
-    logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
+    logger.log(Level.FINEST, "Computing abstraction at node", pLocations, "in path.");
 
     statistics.blockSize.setNextValue(pathFormula.getLength());
 
     // update/get invariants and add them, the need to be instantiated
     // (we do only update global invariants (computed by a parallelalgorithm) here
     // as everything else can only be computed during refinement)
-    invariants.updateGlobalInvariants();
-    BooleanFormula invariant;
-    if (invariants.appendToPathFormula()) {
-      invariant =
-          fmgr.instantiate(
-              invariants.getInvariantFor(loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
-              pathFormula.getSsa());
-    } else {
-      invariant = fmgr.getBooleanFormulaManager().makeTrue();
+    this.invariants.updateGlobalInvariants();
+
+    final List<BooleanFormula> invariantFormulas = new ArrayList<>();
+    for (CFANode loc : pLocations) {
+      if (this.invariants.appendToPathFormula()) {
+        BooleanFormula invariant =
+            fmgr.instantiate(
+                this.invariants.getInvariantFor(
+                    loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
+                pathFormula.getSsa());
+        invariantFormulas.add(invariant);
+      }
     }
+    final BooleanFormula invariant = fmgr.getBooleanFormulaManager().and(invariantFormulas);
 
     // we don't want to add trivially true invariants
     if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
@@ -168,12 +178,17 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
-      Set<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
-      preds = Sets.union(preds, additionalPredicates);
+      for (CFANode loc : pLocations) {
+        Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
+        additionalPredicates.addAll(precision.getPredicates(loc, newLocInstance));
+        // update abstraction locations map
+        abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
+      }
 
       // compute a new abstraction with a precision based on `preds`
-      newAbstractionFormula = formulaManager.buildAbstraction(
-          loc, callstackWrapper, abstractionFormula, pathFormula, preds);
+      newAbstractionFormula =
+          formulaManager.buildAbstraction(
+              pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
     } finally {
       computingAbstractionTime.stop();
     }
@@ -189,12 +204,10 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
     // initialize path formula with current invariants
+    // we don't want to add trivially true invariants
     if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
       newPathFormula = pathFormulaManager.makeAnd(newPathFormula, invariant);
     }
-
-    // update abstraction locations map
-    abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     PredicateAbstractState state =
         PredicateAbstractState.mkAbstractionState(newPathFormula,
