@@ -427,24 +427,23 @@ public class CFACreator {
   /**
    * Parse some files and create a CFA, including all post-processing etc.
    *
-   * @param sourceFiles  The files to parse.
+   * @param sourceFiles The files to parse.
    * @return A representation of the CFA.
-   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
+   * @throws InvalidConfigurationException If the main function that was specified in the
+   *     configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    boolean flag = false;
+    CFA result = null;
 
     Preconditions.checkArgument(
         !sourceFiles.isEmpty(), "At least one source file must be provided!");
-
-    CFA result = null;
-    boolean stopTimer = false;
-
     if (!loopIsAutomated || automateAbstractLoopParser) {
       stats.totalTime.start();
-      stopTimer = true;
     }
 
     try {
@@ -458,19 +457,20 @@ public class CFACreator {
       FunctionEntryNode mainFunction;
 
       switch (language) {
-      case JAVA:
-        mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
-        break;
-      case C:
-        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
-        break;
-      default:
-        throw new AssertionError();
+        case JAVA:
+          mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
+          break;
+        case C:
+          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          break;
+        default:
+          throw new AssertionError();
       }
 
       if (!automateAbstractLoopParser) {
         result = createCFA(c, mainFunction);
-    } else {
+      } else {
+        flag = true;
         CFA cfa = createCFA(c, mainFunction);
         LoopInformation builder = new LoopInformation(config, logger, cfa);
         builder.collectStatistics(stats.statisticsCollection);
@@ -479,21 +479,21 @@ public class CFACreator {
         loopAbstraction.collectStatistics(stats.statisticsCollection);
         automateAbstractLoopParser = false;
         result = parseFileAndCreateCFA(sourceFiles);
-    }
-
-      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-          || ((exportFunctionCallsFile != null) && exportFunctionCalls)
-          || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
-          || ((serializeCfaFile != null) && serializeCfa)
-          || (exportCfaPixelFile != null)
-          || (exportCfaToCFile != null && exportCfaToC)) {
-        exportCFAAsync(result);
       }
-    return result;
+
+      return result;
 
     } finally {
-      if (stopTimer) {
+      if (flag || !loopIsAutomated) {
         stats.totalTime.stop();
+        if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+            || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+            || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
+            || ((serializeCfaFile != null) && serializeCfa)
+            || (exportCfaPixelFile != null)
+            || (exportCfaToCFile != null && exportCfaToC)) {
+          exportCFAAsync(result);
+        }
       }
     }
   }
