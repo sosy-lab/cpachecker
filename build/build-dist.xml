@@ -22,7 +22,7 @@ SPDX-License-Identifier: Apache-2.0
         <property name="namezw" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namezw}.zip" whenempty="fail">
             <zipfileset dir="." includes="config/** doc/** LICENSES/* scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.md *.txt LICENSE" prefix="${namezw}/"/>
-            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namezw}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar lib/java/runtime/*.dll" excludes="lib/ivy*" prefix="${namezw}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namezw}/"/>
         </zip>
     </target>
@@ -35,7 +35,7 @@ SPDX-License-Identifier: Apache-2.0
         <tar destfile="${namet}.tar.bz2" compression="bzip2" longfile="posix">
             <tarfileset dir="."
                 includes="config/** doc/** LICENSES/* cpachecker.jar *.md *.txt LICENSE lib/*.* lib/java/runtime/* lib/python-benchmark/*"
-                excludes="lib/ivy*"
+                excludes="lib/ivy* lib/java/runtime/*dll"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
                 includes="*.* benchmark/** **/*.md"
@@ -53,7 +53,7 @@ SPDX-License-Identifier: Apache-2.0
         <zip destfile="${namez}.zip" whenempty="fail">
             <zipfileset dir="."
                 includes="config/** doc/** LICENSES/* cpachecker.jar *.md *.txt LICENSE lib/*.* lib/java/runtime/* lib/python-benchmark/*"
-                excludes="lib/ivy*"
+                excludes="lib/ivy* lib/java/runtime/*dll"
                 prefix="${namez}/"/>
             <zipfileset dir="scripts"
                 includes="*.* benchmark/** **/*.md"
