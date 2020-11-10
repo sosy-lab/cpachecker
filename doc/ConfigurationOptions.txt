@@ -2223,7 +2223,8 @@ cpa.predicate.memoryAllocationFunctions = {
 
 # Memory allocation functions of which all parameters but the first should be
 # ignored.
-cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {"__kmalloc", "kmalloc", "kzalloc"}
+cpa.predicate.memoryAllocationFunctionsWithSuperfluousParameters = {
+      "__kmalloc", "kmalloc", "kzalloc"}
 
 # Set of functions that non-deterministically provide new zeroed memory on
 # the heap, i.e. they can return either a valid pointer or zero.
@@ -2543,7 +2544,7 @@ cpa.predicate.trackFunctionPointers = true
 
 # Use SMT arrays for encoding heap memory instead of uninterpreted function.
 # This is more precise but may lead to interpolation failures.
-cpa.predicate.useArraysForHeap = false
+cpa.predicate.useArraysForHeap = true
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
@@ -2553,7 +2554,7 @@ cpa.predicate.useBitwiseAxioms = false
 # Use SMT byte array for encoding heap memory instead of uninterpreted
 # function. This is more close to c heap implementation but may be to
 # expensive.
-cpa.predicate.useByteArrayForHeap = true
+cpa.predicate.useByteArrayForHeap = false
 
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
@@ -3262,6 +3263,32 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# The distance metric that ought to be used for the computation of the
+# distance
+explainer.distanceMetric = no default value
+  enum:     [ADM, CFDM, PG]
+
+# Configuration of the first step of the Explainer Algorithm
+explainer.firstStep = no default value
+
+# The number that specifies how many times are we going to iterate over the
+# reachedSet
+explainer.stopAfter = no default value
+
+# Ranking algorithm to use for fault localization
+faultLocalization.by_coverage.type = no default value
+  enum:     [TARANTULA, DSTAR, OCHIAI]
+
+# disable flow-sensitive trace formula (may increase runtime)
+faultLocalization.by_traceformula.errorInvariants.disableFSTF = no default value
+
+# ban faults with certain variables
+faultLocalization.by_traceformula.maxsat.ban = no default value
+
+# which algorithm to use
+faultLocalization.by_traceformula.type = no default value
+  enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
@@ -4113,6 +4140,22 @@ testcase.xml = no default value
 
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
+
+# add initial variable assignments to the pre-condition instead of just using
+# failing variable assignments for nondet variables
+traceformula.altpre = no default value
+
+# do not create selectors for this variables (separate by commas)
+traceformula.disable = no default value
+
+# filter the alternative precondition by scopes
+traceformula.filter = no default value
+
+# do not add variables to alternative precondition (separate by commas)
+traceformula.ignore = no default value
+
+# equal statements on the same line get the same selector
+traceformula.uniqueselectors = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
