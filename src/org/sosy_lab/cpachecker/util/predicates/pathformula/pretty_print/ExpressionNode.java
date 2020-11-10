@@ -84,7 +84,14 @@ public class ExpressionNode implements FormulaNode {
     if (operands.size() == 2) {
       return "(" + operands.get(0) + " " + op + " "  + operands.get(1) + ")";
     }
-    return "(" + op + " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" ")) + ")";
+    final String operandsRepresentation;
+    if (operands.isEmpty()) {
+      operandsRepresentation = "";
+    } else {
+      operandsRepresentation =
+          " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" "));
+    }
+    return "(" + op + operandsRepresentation + ")";
   }
 
   private String readableOperator (String pOperator, boolean pNegated) {
