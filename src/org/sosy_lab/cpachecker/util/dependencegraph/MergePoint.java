@@ -113,10 +113,4 @@ public class MergePoint<T> {
 
       return dominators;
     }
-
-    /* Debug method
-    private List<List<String>> readable(List<List<Integer>> list) {
-      return list.stream().map(l -> l.stream().map(t -> tree.getNode(t).toString()).collect(Collectors.toList())).collect(
-          Collectors.toList());
-    }*/
 }

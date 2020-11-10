@@ -415,7 +415,7 @@ public abstract class TraceFormula {
                 break;
               }
             default:
-              throw new AssertionError("not a valid label");
+              throw new AssertionError("Not a valid label: " + label);
           }
         }
 
