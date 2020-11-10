@@ -14,8 +14,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
  * This class represents a simple Pair of an object and a state.
@@ -45,9 +45,12 @@ public abstract class SMGAbstractObjectAndState<T> {
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
+    private final SMGValue symbolicValue;
 
-    private SMGAddressValueAndState(SMGState pState, SMGAddressValue pValue) {
+    private SMGAddressValueAndState(
+        SMGState pState, SMGAddressValue pValue, SMGValue pSymbolicValue) {
       super(pState, pValue);
+      symbolicValue = pSymbolicValue;
     }
 
     @Override
@@ -55,16 +58,25 @@ public abstract class SMGAbstractObjectAndState<T> {
       return (SMGAddressValue) super.getObject();
     }
 
+    public SMGValue getValue() {
+      return symbolicValue;
+    }
+
     public static SMGAddressValueAndState of(SMGState pState, SMGAddressValue pValue) {
-      return new SMGAddressValueAndState(pState, pValue);
+      return new SMGAddressValueAndState(pState, pValue, pValue);
     }
 
     public static SMGAddressValueAndState of(SMGState pState) {
       return of(pState, SMGUnknownValue.INSTANCE);
     }
 
+    public static SMGAddressValueAndState of(SMGState pState, SMGValue pValue) {
+      return new SMGAddressValueAndState(pState, SMGUnknownValue.INSTANCE, pValue);
+    }
+
     public static SMGAddressValueAndState of(SMGState pState, SMGEdgePointsTo pAddressValue) {
-      return of(pState, SMGKnownAddressValue.valueOf(pAddressValue));
+      return new SMGAddressValueAndState(
+          pState, SMGKnownAddressValue.valueOf(pAddressValue), pAddressValue.getValue());
     }
   }
 
@@ -83,9 +95,9 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
   }
 
-  public static class SMGValueAndState extends SMGAbstractObjectAndState<SMGSymbolicValue> {
+  public static class SMGValueAndState extends SMGAbstractObjectAndState<SMGValue> {
 
-    private SMGValueAndState(SMGState pState, SMGSymbolicValue pValue) {
+    private SMGValueAndState(SMGState pState, SMGValue pValue) {
       super(pState, pValue);
     }
 
@@ -93,7 +105,7 @@ public abstract class SMGAbstractObjectAndState<T> {
       return of(pState, SMGUnknownValue.INSTANCE);
     }
 
-    public static SMGValueAndState of(SMGState pState, SMGSymbolicValue pValue) {
+    public static SMGValueAndState of(SMGState pState, SMGValue pValue) {
       return new SMGValueAndState(pState, pValue);
     }
   }

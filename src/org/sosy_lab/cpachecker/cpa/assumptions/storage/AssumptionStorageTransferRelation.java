@@ -10,13 +10,11 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -74,9 +72,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 
-    final CFANode currentLocation =
-        Iterables.getOnlyElement(AbstractStates.extractLocations(pOthers));
-    String function = currentLocation.getFunctionName();
+    String function = pEdge.getSuccessor().getFunctionName();
 
     BooleanFormula assumption = pAsmptStorageElem.getAssumption();
     BooleanFormula stopFormula = pAsmptStorageElem.getStopFormula();

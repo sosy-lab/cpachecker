@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -152,8 +153,9 @@ final class ImpactUtility {
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula" using the predicates from "itp".
       Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
-      newAbstraction = predAbsMgr.buildAbstraction(
-          location, callstackInfo, lastAbstraction, blockFormula, preds);
+      newAbstraction =
+          predAbsMgr.buildAbstraction(
+              ImmutableSet.of(location), callstackInfo, lastAbstraction, blockFormula, preds);
     }
     abstractionTime.stop();
 

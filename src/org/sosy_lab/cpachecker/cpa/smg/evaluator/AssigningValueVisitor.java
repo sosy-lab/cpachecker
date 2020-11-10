@@ -25,15 +25,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -147,8 +149,10 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
       return;
     }
 
-    SMGSymbolicValue rSymValue = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
+    SMGValue rSymValue =
+        smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
+    CType lValueType = TypeUtils.getRealExpressionType(lValue);
     if(rSymValue.isUnknown()) {
 
       rSymValue = SMGKnownSymValue.of();
@@ -172,14 +176,13 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
               assignableState,
               addressOfField.getObject(),
               addressOfField.getOffset().getAsLong(),
-              TypeUtils.getRealExpressionType(lValue),
+              lValueType,
               rSymValue,
               edge);
     }
-    int size =
-        smgRightHandSideEvaluator.getBitSizeof(
-            edge, TypeUtils.getRealExpressionType(lValue), assignableState);
-    assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
+    SMGType symValueType =
+        SMGType.constructSMGType(lValueType, assignableState, edge, smgRightHandSideEvaluator);
+    assignableState.addPredicateRelation(rSymValue, symValueType, rValue, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {
         assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
@@ -238,7 +241,8 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // If this value is known, the assumption can be evaluated, therefore it should be unknown
     assert smgRightHandSideEvaluator.evaluateExplicitValueV2(assignableState, edge, lValue).isUnknown();
 
-    SMGSymbolicValue value = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
+    SMGValue value =
+        smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
     // This symbolic value should have been added when evaluating the assume
     assert !value.isUnknown();

@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -81,7 +81,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return smgStatesToBeProccessed;
   }
 
-  private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
+  private SMGExplicitValue getExplicitValue(SMGValue pValue) {
     if (pValue.isUnknown()) {
       return SMGUnknownValue.INSTANCE;
     }
@@ -116,7 +116,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       }
 
       SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
-      SMGSymbolicValue symValue = symValueAndState.getObject();
+      SMGValue symValue = symValueAndState.getObject();
       setState(symValueAndState.getSmgState());
 
       if (symValue.equals(SMGKnownSymValue.TRUE)) {
@@ -150,7 +150,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     SMGValueAndState valueAndState = getStateAndAddRestForLater(valueAndStates);
-    SMGSymbolicValue value = valueAndState.getObject();
+    SMGValue value = valueAndState.getObject();
     setState(valueAndState.getSmgState());
 
     SMGExplicitValue expValue = getExplicitValue(value);
