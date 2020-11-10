@@ -72,7 +72,8 @@ public class BooleanFormulaParser {
           }
           if (currentString.startsWith(" ") && currentString.endsWith(" ") && !currentString.isBlank()) {
             syntaxStack.push(new LiteralNode(currentString.trim()));
-            // " " is correct here
+            // " " is correct here because possible successors are ( or another literal.
+            // Both tokens are allowed and meant to start with " " (for clear identification).
             currentString = " ";
           }
           if (currentString.startsWith(" ") && currentString.endsWith(")")) {

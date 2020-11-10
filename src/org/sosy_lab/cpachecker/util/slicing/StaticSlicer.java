@@ -52,8 +52,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   private final StatInt sliceEdgesNumber =
-      new StatInt(StatKind.SUM, "Number of relevant slice edges");
-  private final StatInt programEdgesNumber = new StatInt(StatKind.SUM, "Number of program edges");
+      new StatInt(StatKind.MAX, "Number of relevant slice edges");
+  private final StatInt programEdgesNumber = new StatInt(StatKind.MAX, "Number of program edges");
 
   StaticSlicer(
       SlicingCriteriaExtractor pExtractor,

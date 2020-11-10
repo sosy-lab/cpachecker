@@ -41,17 +41,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private List<BooleanFormula> atoms;
 
   /**
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
+   * <p>Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
    * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
-   * After ranking the set of faults an instance of this class can be created.
+   * After ranking the set of faults an instance of this class can be created.</p>
    *
-   * The class should be used to display information to the user.
+   *  <p>The class should be used to display information to the user.</p>
    *
-   * Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
+   *  <p>Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.</p>
    *
-   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
-   * or simply call apply() on an instance of this class.
+   *  <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
+   * or simply call {@link #apply()}  on an instance of this class.</p>
    *
    * @param pFaults Ranked list of faults obtained by a fault localization algorithm
    * @param pParent the counterexample info of the target state
@@ -72,18 +72,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   *
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
+   * <p>Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
    * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
-   * After ranking the set of faults an instance of this class can be created.
+   * After ranking the set of faults an instance of this class can be created.</p>
    *
-   * The class should be used to display information to the user.
+   *  <p>The class should be used to display information to the user.</p>
    *
-   * Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
+   *  <p>Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.</p>
    *
-   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
-   * or simply call apply() on an instance of this class.
+   *  <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
+   * or simply call {@link #apply()}  on an instance of this class.</p>
    *
    * @param pFaults set of faults obtained by a fault localization algorithm
    * @param pRanking the ranking for pFaults
@@ -103,18 +102,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   *
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
+   * <p>Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
    * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
-   * After ranking the set of faults an instance of this class can be created.
+   * After ranking the set of faults an instance of this class can be created.</p>
    *
-   * The class should be used to display information to the user.
+   *  <p>The class should be used to display information to the user.</p>
    *
-   * Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
+   *  <p>Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.</p>
    *
-   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
-   * or simply call apply() on an instance of this class.
+   *  <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
+   * or simply call {@link #apply()} on an instance of this class.</p>
    *
    * @param pFaults set of faults obtained by a fault localization algorithm
    * @param pScoring how to calculate the scores of each fault
@@ -152,7 +150,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   * Sort faults by their attribute <code>intendedIndex</code>.
+   * Sort faults by the index returned by {@link Fault#getIntendedIndex()}.
    * The index has to be set manually in advance.
    */
   public void sortIntended() {
