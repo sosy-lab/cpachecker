@@ -49,6 +49,11 @@ public class NotNode implements FormulaNode {
   }
 
   @Override
+  public boolean equivalent(FormulaNode input) {
+    return input.equivalent(node);
+  }
+
+  @Override
   public List<FormulaNode> getSuccessors() {
     return ImmutableList.of(node);
   }

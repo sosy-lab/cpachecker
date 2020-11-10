@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -128,6 +129,10 @@ public abstract class TraceFormula {
     precondition = calculatePrecondition();
     postcondition = calculatePostCondition();
     trace = calculateTrace();
+    // logs for unit tests
+    context.getLogger().log(Level.FINEST, "tfprecondition=" + precondition);
+    context.getLogger().log(Level.FINEST, "tftrace=" + trace);
+    context.getLogger().log(Level.FINEST, "tfpostcondition=" + postcondition);
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {

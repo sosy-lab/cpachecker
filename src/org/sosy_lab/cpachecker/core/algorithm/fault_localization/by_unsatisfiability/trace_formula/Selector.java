@@ -169,4 +169,9 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     // a selector stays a selector for one edge (reasons do not matter)
     return Objects.hash(31, name.hashCode());
   }
+
+  public static void reset() {
+    maxIndex = 0;
+    selectors.clear();
+  }
 }

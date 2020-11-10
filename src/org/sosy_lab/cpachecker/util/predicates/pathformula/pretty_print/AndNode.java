@@ -54,6 +54,18 @@ public class AndNode implements FormulaNode {
   }
 
   @Override
+  public boolean equivalent(FormulaNode node) {
+    if (node instanceof AndNode) {
+      AndNode andNode = (AndNode) node;
+      if (andNode.left.equivalent(left) && andNode.right.equivalent(right) ||
+          andNode.left.equivalent(right) && andNode.right.equivalent(left)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public List<FormulaNode> getSuccessors() {
     return ImmutableList.of(left,right);
   }

@@ -31,6 +31,26 @@ public class ExpressionNode implements FormulaNode {
   }
 
   @Override
+  public boolean equivalent(FormulaNode node) {
+    if (node instanceof ExpressionNode) {
+      ExpressionNode expNode = (ExpressionNode) node;
+      if (expNode.operator.equals(operator) && operands.size() == expNode.operands.size()) {
+        List<FormulaNode> copy = new ArrayList<>(expNode.operands);
+        for (FormulaNode operand: operands) {
+          for (int i = 0; i < copy.size(); i++) {
+            if (operand.equivalent(copy.get(i))) {
+              copy.remove(i);
+              break;
+            }
+          }
+        }
+        return copy.isEmpty();
+      }
+    }
+    return false;
+  }
+
+  @Override
   public List<FormulaNode> getSuccessors() {
     return operands;
   }

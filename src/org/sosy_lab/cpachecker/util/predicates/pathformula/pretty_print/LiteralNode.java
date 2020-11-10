@@ -46,6 +46,14 @@ public class LiteralNode implements FormulaNode {
   }
 
   @Override
+  public boolean equivalent(FormulaNode node) {
+    if (node instanceof LiteralNode) {
+      return ((LiteralNode)node).literal.equals(literal);
+    }
+    return false;
+  }
+
+  @Override
   public List<FormulaNode> getSuccessors() {
     return ImmutableList.of();
   }
