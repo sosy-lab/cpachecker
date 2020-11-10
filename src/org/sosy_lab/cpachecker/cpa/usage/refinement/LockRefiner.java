@@ -194,7 +194,9 @@ public class LockRefiner
   private LockIdentifier
       getInconsistentLockId(AbstractLockState pRealState, AbstractLockState pLastState) {
     Collection<LockIdentifier> ids =
-        from(pRealState.getDifference(pLastState)).transform(e -> e.getAffectedLock()).toList();
+        from(pRealState.getDifference(pLastState)).filter(LockEffect.class)
+            .transform(LockEffect::getAffectedLock)
+            .toList();
 
     if (!ids.isEmpty()) {
       return Iterables.getLast(ids);

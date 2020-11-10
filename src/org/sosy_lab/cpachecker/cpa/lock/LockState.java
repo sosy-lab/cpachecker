@@ -22,8 +22,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.GenericLockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
@@ -357,7 +357,7 @@ public final class LockState extends AbstractLockState {
       int otherCounter = other.locks.getOrDefault(lockId, 0);
       if (thisCounter > otherCounter) {
         for (int i = 0; i < thisCounter - otherCounter; i++) {
-          result.add(ReleaseLockEffect.createEffectForId(lockId));
+          result.add(GenericLockEffectWithId.RELEASE.applyToTarget(lockId));
         }
       } else if (thisCounter < otherCounter) {
         for (int i = 0; i < otherCounter - thisCounter; i++) {

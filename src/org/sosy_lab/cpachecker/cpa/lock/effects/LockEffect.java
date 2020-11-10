@@ -19,13 +19,19 @@ public abstract class LockEffect implements AbstractLockEffect {
     target = id;
   }
 
-  public abstract LockEffect cloneWithTarget(LockIdentifier id);
+  LockEffect() {
+    this(null);
+  }
 
   protected abstract String getAction();
 
   @Override
   public String toString() {
-    return getAction() + " " + target;
+    String result = getAction();
+    if (target != null) {
+      result += " " + target;
+    }
+    return result;
   }
 
   public LockIdentifier getAffectedLock() {
@@ -38,13 +44,11 @@ public abstract class LockEffect implements AbstractLockEffect {
   }
 
   @Override
-  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
   public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (!(obj instanceof LockEffect)) {
       return false;
     }
     LockEffect other = (LockEffect) obj;

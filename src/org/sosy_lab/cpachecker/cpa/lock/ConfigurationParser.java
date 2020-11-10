@@ -23,10 +23,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.ResetLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.GenericLockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -44,6 +43,12 @@ public class ConfigurationParser {
   )
   private Set<String> annotated;
 
+  @Option(
+    name = "stopAfterLockLimit",
+    description = "stop path exploration if a lock limit is reached",
+    secure = true)
+  private boolean stopAfterLockLimit = true;
+
   ConfigurationParser(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     config = pConfig;
@@ -52,15 +57,19 @@ public class ConfigurationParser {
   @SuppressWarnings("deprecation")
   public LockInfo parseLockInfo() {
     Map<String, Integer> tmpInfo = new HashMap<>();
-    Map<String, Pair<LockEffect, LockIdUnprepared>> functionEffects = new HashMap<>();
+    Map<String, Pair<AbstractLockEffect, LockIdUnprepared>> functionEffects = new HashMap<>();
     Map<String, LockIdentifier> variableEffects = new HashMap<>();
     String tmpString;
 
     for (String lockName : lockinfo) {
       int num = getValue(lockName + ".maxDepth", 10);
-      functionEffects.putAll(createMap(lockName, "lock", AcquireLockEffect.getInstance()));
-      functionEffects.putAll(createMap(lockName, "unlock", ReleaseLockEffect.getInstance()));
-      functionEffects.putAll(createMap(lockName, "reset", ResetLockEffect.getInstance()));
+      functionEffects.putAll(
+          createMap(
+              lockName,
+              "lock",
+              AcquireLockEffect.createEffectForId(null, num, stopAfterLockLimit)));
+      functionEffects.putAll(createMap(lockName, "unlock", GenericLockEffectWithId.RELEASE));
+      functionEffects.putAll(createMap(lockName, "reset", GenericLockEffectWithId.RESET));
 
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
@@ -81,8 +90,11 @@ public class ConfigurationParser {
   }
 
   @SuppressWarnings("deprecation")
-  private Map<String, Pair<LockEffect, LockIdUnprepared>> createMap(
-      String lockName, String target, LockEffect effect) {
+  private Map<String, Pair<AbstractLockEffect, LockIdUnprepared>>
+      createMap(
+      String lockName,
+      String target,
+      AbstractLockEffect effect) {
 
     String tmpString = config.getProperty(lockName + "." + target);
     if (tmpString != null) {

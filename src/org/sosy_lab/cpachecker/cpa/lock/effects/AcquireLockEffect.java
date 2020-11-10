@@ -17,45 +17,26 @@ import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 public class AcquireLockEffect extends LockEffect {
-
-  private static final class StopAcquireLockEffect extends AcquireLockEffect {
-
-    private StopAcquireLockEffect(LockIdentifier id, int t) {
-      super(id, t);
-    }
-
-    @Override
-    public void effect(AbstractLockStateBuilder pBuilder) {
-      Preconditions.checkArgument(target != null, "Lock identifier must be set");
-      int previousP = pBuilder.getOldState().getCounter(target);
-      if (maxRecursiveCounter > previousP) {
-        pBuilder.add(target);
-      } else {
-        pBuilder.setAsFalseState();
-      }
-    }
-
-    @Override
-    public AcquireLockEffect cloneWithTarget(LockIdentifier id) {
-      return createEffectForId(id, this.maxRecursiveCounter, true);
-    }
-
-  }
-
   private final static AcquireLockEffect instance = new AcquireLockEffect();
 
   private static final NavigableMap<LockIdentifier, AcquireLockEffect> AcquireLockEffectMap =
       new TreeMap<>();
 
-  protected final int maxRecursiveCounter;
+  private final int maxRecursiveCounter;
+  private final boolean stopAfterLimit;
 
-  private AcquireLockEffect(LockIdentifier id, int t) {
+  private AcquireLockEffect(LockIdentifier id, int t, boolean stop) {
     super(id);
     maxRecursiveCounter = t;
+    stopAfterLimit = stop;
+  }
+
+  private AcquireLockEffect(LockIdentifier id) {
+    this(id, Integer.MAX_VALUE, true);
   }
 
   private AcquireLockEffect() {
-    this(null, Integer.MAX_VALUE);
+    this(null);
   }
 
   @Override
@@ -64,6 +45,8 @@ public class AcquireLockEffect extends LockEffect {
     int previousP = pBuilder.getOldState().getCounter(target);
     if (maxRecursiveCounter > previousP) {
       pBuilder.add(target);
+    } else if (stopAfterLimit) {
+      pBuilder.setAsFalseState();
     }
   }
 
@@ -77,11 +60,7 @@ public class AcquireLockEffect extends LockEffect {
       result = AcquireLockEffectMap.get(id);
       checkArgument(result.maxRecursiveCounter == counter, "Recursive counter differs for %s", id);
     } else {
-      if (stop) {
-        result = new StopAcquireLockEffect(id, counter);
-      } else {
-        result = new AcquireLockEffect(id, counter);
-      }
+      result = new AcquireLockEffect(id, counter, stop);
       AcquireLockEffectMap.put(id, result);
     }
     return result;
@@ -92,13 +71,13 @@ public class AcquireLockEffect extends LockEffect {
       return AcquireLockEffectMap.get(id);
     } else {
       //Means that the lock is set ('lock = 1'), not store it
-      return new AcquireLockEffect(id, Integer.MAX_VALUE);
+      return new AcquireLockEffect(id);
     }
   }
 
   @Override
-  public AcquireLockEffect cloneWithTarget(LockIdentifier id) {
-    return createEffectForId(id, this.maxRecursiveCounter, false);
+  public AcquireLockEffect applyToTarget(LockIdentifier id) {
+    return createEffectForId(id, this.maxRecursiveCounter, this.stopAfterLimit);
   }
 
   @Override

@@ -83,8 +83,4 @@ public abstract class AbstractLockState
   public AbstractLockState join(AbstractLockState pOther) {
     throw new UnsupportedOperationException("Operation join isn't supported for LockStatisticsCPA");
   }
-
-  protected AbstractLockState getRestoredState() {
-    return toRestore;
-  }
 }

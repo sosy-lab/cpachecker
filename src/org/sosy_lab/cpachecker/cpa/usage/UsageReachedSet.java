@@ -271,16 +271,17 @@ public class UsageReachedSet extends PartitionedReachedSet {
     AbstractState reducedState = innerReached.getFirstState();
     LockState rootLockState = AbstractStates.extractStateByType(rootState, LockState.class);
     LockState reducedLockState = AbstractStates.extractStateByType(reducedState, LockState.class);
-    Set<LockEffect> difference;
+    Set<LockEffect> difference = currentEffects;
     if (rootLockState == null || reducedLockState == null) {
       // No LockCPA
-      difference = new HashSet<>();
     } else {
       // the same element, so do not distinguish lock[1] and lock [2]
-      difference = new HashSet<>(reducedLockState.getDifference(rootLockState).elementSet());
+      difference = reducedLockState.getDifference(rootLockState).elementSet();
+      if (!difference.isEmpty()) {
+        difference = new HashSet<>(difference);
+        difference.addAll(currentEffects);
+      }
     }
-
-    difference.addAll(currentEffects);
 
     AbstractState firstState = innerReached.getFirstState();
     Pair<AbstractState, Set<LockEffect>> newPair =
