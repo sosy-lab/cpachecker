@@ -65,38 +65,6 @@ class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
-  private final ShutdownNotifier shutdownNotifier;
-  private final CToFormulaConverterWithPointerAliasing conv;
-  private final FormulaEncodingWithPointerAliasingOptions options;
-  private final FormulaManagerView formulaManager;
-  private final BooleanFormulaManagerView bfmgr;
-  private final TypeHandlerWithPointerAliasing typeHandler;
-  private final MemoryRegionManager regionMgr;
-  private final SMTHeap heap;
-  /**
-   * Creates a new PointerTargetSetManager.
-   *
-   * @param pOptions Additional configuration options.
-   * @param pFormulaManager The manager for SMT formulae.
-   * @param pTypeHandler A type handler for certain types.
-   * @param pShutdownNotifier A notifier for external shutdowns to stop long-running algorithms.
-   */
-  PointerTargetSetManager(
-      CToFormulaConverterWithPointerAliasing pConv,
-      FormulaEncodingWithPointerAliasingOptions pOptions,
-      FormulaManagerView pFormulaManager,
-      TypeHandlerWithPointerAliasing pTypeHandler,
-      ShutdownNotifier pShutdownNotifier,
-      MemoryRegionManager pRegionMgr) {
-    conv = pConv;
-    options = pOptions;
-    formulaManager = pFormulaManager;
-    bfmgr = formulaManager.getBooleanFormulaManager();
-    typeHandler = pTypeHandler;
-    shutdownNotifier = pShutdownNotifier;
-    regionMgr = pRegionMgr;
-    heap = makeHeap(options, conv.machineModel);
-  }
 
   /**
    * Returns a fake base type of a given size, i.e. an array of {@code size} voids.
@@ -136,42 +104,47 @@ class PointerTargetSetManager {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
 
-  static <T> PersistentList<T> mergeLists(
-      final PersistentList<T> list1, final PersistentList<T> list2) {
-    if (list1 == list2) {
-      return list1;
-    }
-    final int size1 = list1.size();
-    final int size2 = list2.size();
-    if (size1 == size2 && list1.equals(list2)) {
-      return list1;
-    }
+  private final ShutdownNotifier shutdownNotifier;
 
-    PersistentList<T> smallerList, biggerList;
-    if (size1 > size2) {
-      smallerList = list2;
-      biggerList = list1;
-    } else {
-      smallerList = list1;
-      biggerList = list2;
-    }
+  private final CToFormulaConverterWithPointerAliasing conv;
 
-    final Set<T> fromBigger = new HashSet<>(biggerList);
-    PersistentList<T> result = biggerList;
-
-    for (final T target : from(smallerList).filter(not(in(fromBigger)))) {
-      result = result.with(target);
-    }
-    return result;
+  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final FormulaManagerView formulaManager;
+  private final BooleanFormulaManagerView bfmgr;
+  private final TypeHandlerWithPointerAliasing typeHandler;
+  private final MemoryRegionManager regionMgr;
+  private final SMTHeap heap;
+  /**
+   * Creates a new PointerTargetSetManager.
+   *
+   * @param pOptions Additional configuration options.
+   * @param pFormulaManager The manager for SMT formulae.
+   * @param pTypeHandler A type handler for certain types.
+   * @param pShutdownNotifier A notifier for external shutdowns to stop long-running algorithms.
+   */
+  PointerTargetSetManager(
+      CToFormulaConverterWithPointerAliasing pConv,
+      FormulaEncodingWithPointerAliasingOptions pOptions,
+      FormulaManagerView pFormulaManager,
+      TypeHandlerWithPointerAliasing pTypeHandler,
+      ShutdownNotifier pShutdownNotifier,
+      MemoryRegionManager pRegionMgr) {
+    conv = pConv;
+    options = pOptions;
+    formulaManager = pFormulaManager;
+    bfmgr = formulaManager.getBooleanFormulaManager();
+    typeHandler = pTypeHandler;
+    shutdownNotifier = pShutdownNotifier;
+    regionMgr = pRegionMgr;
+    heap = makeHeap(options, conv.machineModel);
   }
 
   /**
    * Make a formula that represents a pointer access.
-   *
    * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param targetType The formula type of the value
-   * @param ssaIndex   The SSA index for targetName
-   * @param address    The address to access
+   * @param ssaIndex The SSA index for targetName
+   * @param address The address to access
    * @return A formula representing {@code targetName@ssaIndex[address]}
    */
   <I extends Formula, V extends Formula> V makePointerDereference(
@@ -350,6 +323,118 @@ class PointerTargetSetManager {
   }
 
   /**
+   * A handler for merge conflicts that appear when merging bases.
+   */
+  private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
+    INSTANCE;
+
+    /**
+     * Resolves a merge conflict between two types and returns the resolved type.
+     *
+     * <p>We build up a new union-type containing all given types, except for fake-types.
+     *
+     * @param key   Not used in the algorithm.
+     * @param type1 The first type to merge.
+     * @param type2 The second type to merge.
+     * @return A conflict resolving C type.
+     */
+    @Override
+    public CType resolveConflict(final String key, final CType type1, final CType type2) {
+      if (isFakeBaseType(type1) || type1.isIncomplete()) {
+        return type2;
+      } else if (isFakeBaseType(type2) || type2.isIncomplete()) {
+        return type1;
+      }
+      int currentFieldIndex = 0;
+      final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
+          ImmutableList.builder();
+      final Set<CType> seenMembers = new HashSet<>();
+      if (isAlreadyMergedCompositeType(type1)) {
+        // if already a merged type, just copy the inner types, without creating new base-names
+        for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type1).getMembers()) {
+          membersBuilder.add(innerType);
+          seenMembers.add(innerType.getType());
+          currentFieldIndex++;
+        }
+      } else {
+        membersBuilder.add(
+            new CCompositeTypeMemberDeclaration(type1, getUnitedFieldBaseName(currentFieldIndex)));
+        seenMembers.add(type1);
+        currentFieldIndex++;
+      }
+      if (isAlreadyMergedCompositeType(type2)) {
+        // if already a merged type, just copy the inner types, if needed
+        for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type2).getMembers()) {
+          if (seenMembers.add(innerType.getType())) {
+            membersBuilder.add(
+                new CCompositeTypeMemberDeclaration(
+                    innerType.getType(), getUnitedFieldBaseName(currentFieldIndex)));
+            currentFieldIndex++;
+          }
+        }
+      } else {
+        if (seenMembers.add(type2)) {
+          membersBuilder.add(
+              new CCompositeTypeMemberDeclaration(
+                  type2, getUnitedFieldBaseName(currentFieldIndex)));
+        }
+      }
+
+      ImmutableList<CCompositeTypeMemberDeclaration> members = membersBuilder.build();
+      String varName =
+          UNITED_BASE_UNION_TAG_PREFIX
+              + Joiner.on("_and_")
+                .join(
+                    Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
+      return new CCompositeType(false, false, ComplexTypeKind.UNION, members, varName, varName);
+    }
+
+    /**
+     * check whether the given type was already build by a previous merge of other types.
+     *
+     * <p>We check for UNION-type with special fieldnames.
+     */
+    private static boolean isAlreadyMergedCompositeType(final CType type) {
+      if (type instanceof CCompositeType) {
+        final CCompositeType compositeType = (CCompositeType) type;
+        return compositeType.getKind() == ComplexTypeKind.UNION
+            && !compositeType.getMembers().isEmpty()
+            && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
+      }
+      return false;
+    }
+  }
+
+  static <T> PersistentList<T> mergeLists(
+      final PersistentList<T> list1, final PersistentList<T> list2) {
+    if (list1 == list2) {
+      return list1;
+    }
+    final int size1 = list1.size();
+    final int size2 = list2.size();
+    if (size1 == size2 && list1.equals(list2)) {
+      return list1;
+    }
+
+    PersistentList<T> smallerList, biggerList;
+    if (size1 > size2) {
+      smallerList = list2;
+      biggerList = list1;
+    } else {
+      smallerList = list1;
+      biggerList = list2;
+    }
+
+    final Set<T> fromBigger = new HashSet<>(biggerList);
+    PersistentList<T> result = biggerList;
+
+    for (final T target : from(smallerList).filter(not(in(fromBigger)))) {
+      result = result.with(target);
+    }
+    return result;
+  }
+
+  /**
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
    * @param newBases A map of new bases.
@@ -417,8 +502,7 @@ class PointerTargetSetManager {
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM
-          : "Enums are not composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {
@@ -492,87 +576,6 @@ class PointerTargetSetManager {
       return new SMTHeapWithArrays(formulaManager, typeHandler);
     } else {
       return new SMTHeapWithUninterpretedFunctionCalls(formulaManager);
-    }
-  }
-
-  /** A handler for merge conflicts that appear when merging bases. */
-  private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
-    INSTANCE;
-
-    /**
-     * check whether the given type was already build by a previous merge of other types.
-     *
-     * <p>We check for UNION-type with special fieldnames.
-     */
-    private static boolean isAlreadyMergedCompositeType(final CType type) {
-      if (type instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) type;
-        return compositeType.getKind() == ComplexTypeKind.UNION
-            && !compositeType.getMembers().isEmpty()
-            && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
-      }
-      return false;
-    }
-
-    /**
-     * Resolves a merge conflict between two types and returns the resolved type.
-     *
-     * <p>We build up a new union-type containing all given types, except for fake-types.
-     *
-     * @param key Not used in the algorithm.
-     * @param type1 The first type to merge.
-     * @param type2 The second type to merge.
-     * @return A conflict resolving C type.
-     */
-    @Override
-    public CType resolveConflict(final String key, final CType type1, final CType type2) {
-      if (isFakeBaseType(type1) || type1.isIncomplete()) {
-        return type2;
-      } else if (isFakeBaseType(type2) || type2.isIncomplete()) {
-        return type1;
-      }
-      int currentFieldIndex = 0;
-      final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
-          ImmutableList.builder();
-      final Set<CType> seenMembers = new HashSet<>();
-      if (isAlreadyMergedCompositeType(type1)) {
-        // if already a merged type, just copy the inner types, without creating new base-names
-        for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type1).getMembers()) {
-          membersBuilder.add(innerType);
-          seenMembers.add(innerType.getType());
-          currentFieldIndex++;
-        }
-      } else {
-        membersBuilder.add(
-            new CCompositeTypeMemberDeclaration(type1, getUnitedFieldBaseName(currentFieldIndex)));
-        seenMembers.add(type1);
-        currentFieldIndex++;
-      }
-      if (isAlreadyMergedCompositeType(type2)) {
-        // if already a merged type, just copy the inner types, if needed
-        for (CCompositeTypeMemberDeclaration innerType : ((CCompositeType) type2).getMembers()) {
-          if (seenMembers.add(innerType.getType())) {
-            membersBuilder.add(
-                new CCompositeTypeMemberDeclaration(
-                    innerType.getType(), getUnitedFieldBaseName(currentFieldIndex)));
-            currentFieldIndex++;
-          }
-        }
-      } else {
-        if (seenMembers.add(type2)) {
-          membersBuilder.add(
-              new CCompositeTypeMemberDeclaration(
-                  type2, getUnitedFieldBaseName(currentFieldIndex)));
-        }
-      }
-
-      ImmutableList<CCompositeTypeMemberDeclaration> members = membersBuilder.build();
-      String varName =
-          UNITED_BASE_UNION_TAG_PREFIX
-              + Joiner.on("_and_")
-                  .join(
-                      Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
-      return new CCompositeType(false, false, ComplexTypeKind.UNION, members, varName, varName);
     }
   }
 }
