@@ -162,7 +162,7 @@ public class ValueAnalysisTransferRelation
     @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
     
-    @Option(description = "When the Value of a variable is unknown, the value is set to have the possible values: unknow, INT_MAX, INT_MIN")
+    @Option(secure = true, description = "When the Value of a variable is unknown, the value is set to have the possible values: unknow, INT_MAX, INT_MIN")
     private boolean unknownToRangeLimits = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {

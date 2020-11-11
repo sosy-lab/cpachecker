@@ -18,6 +18,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-svcomp21"/>
     <option name="-benchmark"/>
   </rundefinition>
+
+  <rundefinition name="sv-comp21-2">
+    <option name="-svcomp21-2"/>
+    <option name="-benchmark"/>
+  </rundefinition>
   
   <rundefinition name="bmc">
     <option name="-config">config/bmc--overflow.properties</option>
@@ -46,7 +51,7 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition name="valueAnalysisUnknownToIntLimits">
     <option name="-config">config/valueAnalysis--overflow.properties</option>
     <option name="-heap">10000M</option>
-    <option name="setprop">cpa.value.unknownToRangeLimits=true</option>
+    <option name="-setprop">cpa.value.unknownToRangeLimits=true</option>
     <option name="-benchmark"/>
   </rundefinition>
   
