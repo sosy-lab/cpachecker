@@ -52,7 +52,7 @@ import org.sosy_lab.numericdomains.environment.Variable;
 
 public class NumericTransferRelation
     extends ForwardingTransferRelation<
-        Collection<NumericState>, NumericState, VariableTrackingPrecision> {
+    Collection<NumericState>, NumericState, VariableTrackingPrecision> {
 
   private final LogManager logger;
   private boolean useLoopInformation;
@@ -95,11 +95,7 @@ public class NumericTransferRelation
   @Override
   protected Collection<NumericState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement statement) throws UnrecognizedCodeException {
-    NumericState copy = state.deepCopy();
-    Collection<NumericState> successors =
-        statement.accept(new NumericStatementVisitor(copy, cfaEdge, precision, logger));
-    copy.getValue().dispose();
-    return successors;
+    return statement.accept(new NumericStatementVisitor(state, cfaEdge, precision, logger));
   }
 
   @Override
@@ -172,7 +168,7 @@ public class NumericTransferRelation
         NumericVariable.valueOf(
             declaration, pCfaEdge.getSuccessor(), precision, state.getManager(), logger);
 
-    if (variable.isPresent() && pEnvironment.containsVariable(variable.get())) {
+    if (variable.isPresent()) {
       ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
       Collection<PartialState> partialAssignments =
           expression.accept(
@@ -180,19 +176,15 @@ public class NumericTransferRelation
                   pEnvironment, state.getManager(), pCfaEdge, precision, logger));
       for (PartialState partialAssignment : partialAssignments) {
         ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
-
         for (NumericState current : pStates) {
           successorCandidates.add(current.deepCopy());
         }
 
-        assignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
+        if (pEnvironment.containsVariable(variable.get())) {
+          assignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
+        }
       }
-
-      if (statesBuilder.build().isEmpty()) {
-        return pStates;
-      } else {
-        return statesBuilder.build();
-      }
+      return statesBuilder.build();
     } else {
       return pStates;
     }
@@ -218,14 +210,13 @@ public class NumericTransferRelation
               pStatesBuilder.add(st);
             }
           });
+      successorCandidate.getValue().dispose();
     }
   }
 
   private void disposeAll(Collection<NumericState> states) {
     for (NumericState tempState : states) {
-      if (tempState != state) {
-        tempState.getValue().dispose();
-      }
+      tempState.getValue().dispose();
     }
   }
 
@@ -240,7 +231,6 @@ public class NumericTransferRelation
 
       if (declaration.isPresent() && declaration.get() instanceof CVariableDeclaration) {
         assert ((CVariableDeclaration) declaration.get()).getInitializer() == null;
-
         Collection<NumericState> intermediateStates =
             ((CDeclaration) declaration.get())
                 .accept(new NumericDeclarationVisitor(state, cfaEdge, precision, logger));
@@ -340,9 +330,6 @@ public class NumericTransferRelation
 
     for (NumericState pState : pStates) {
       successorsBuilder.add(pState.removeVariables(pVariables));
-      if (pState != state) {
-        pState.getValue().dispose();
-      }
     }
 
     return successorsBuilder.build();
