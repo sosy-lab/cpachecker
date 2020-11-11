@@ -205,10 +205,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
           Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
-          int newStart = Integer.min(lastInterval.getStart(), toMerge.getStart());
-          int newEnd = Integer.max(lastInterval.getEnd(), toMerge.getEnd());
-          BooleanFormula conjunct = bmgr.and(lastInterval.getInvariant(), toMerge.getInvariant());
-          Interval merged = new Interval(newStart, newEnd, conjunct);
+          Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
           summarizedList.add(summarizedList.size()-1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
@@ -381,6 +378,12 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       start = pStart;
       end = pEnd;
       invariant = pInvariant;
+    }
+
+    public static Interval merge(final Interval pFirst, final Interval pSecond, final BooleanFormulaManager pBmgr) {
+        int newStart = Integer.min(pFirst.start, pSecond.start);
+        int newEnd = Integer.max(pFirst.end, pSecond.end);
+        return new Interval(newStart, newEnd, pBmgr.and(pFirst.getInvariant(), pSecond.getInvariant()));
     }
 
     public int getEnd() {
