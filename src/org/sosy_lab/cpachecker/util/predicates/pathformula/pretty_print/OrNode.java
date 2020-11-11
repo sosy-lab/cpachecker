@@ -55,8 +55,8 @@ public class OrNode implements FormulaNode {
   public boolean equivalent(FormulaNode node) {
     if (node instanceof OrNode) {
       OrNode orNode = (OrNode) node;
-      if (orNode.left.equivalent(left) && orNode.right.equivalent(right) ||
-          orNode.left.equivalent(right) && orNode.right.equivalent(left)) {
+      if ((orNode.left.equivalent(left) && orNode.right.equivalent(right)) ||
+          (orNode.left.equivalent(right) && orNode.right.equivalent(left))) {
         return true;
       }
     }

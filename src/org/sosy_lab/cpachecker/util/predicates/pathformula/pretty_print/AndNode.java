@@ -57,8 +57,8 @@ public class AndNode implements FormulaNode {
   public boolean equivalent(FormulaNode node) {
     if (node instanceof AndNode) {
       AndNode andNode = (AndNode) node;
-      if (andNode.left.equivalent(left) && andNode.right.equivalent(right) ||
-          andNode.left.equivalent(right) && andNode.right.equivalent(left)) {
+      if ((andNode.left.equivalent(left) && andNode.right.equivalent(right)) ||
+          (andNode.left.equivalent(right) && andNode.right.equivalent(left))) {
         return true;
       }
     }
