@@ -142,8 +142,13 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     htmlWriter = new FaultReportWriter();
   }
 
-  // called automatically when necessary
-  public void prepare(){
+  /**
+   * Fills {@link FaultLocalizationInfo#mapEdgeToFaultContribution} and {@link FaultLocalizationInfo#mapEdgeToRankedFaultIndex}
+   * to ensure correct calls to {@link FaultLocalizationInfo#addAdditionalInfo(Map, CFAEdge)}.
+   * {@link org.sosy_lab.cpachecker.core.counterexample.ReportGenerator} calls this method when needed.
+   * After accessing this method {@link FaultLocalizationInfo#rankedList} must not be changed.
+   */
+  public final void prepare(){
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
     for(int i = 0; i < rankedList.size(); i++){
