@@ -41,6 +41,15 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     entries.add(new FormulaEntry(pAtomId, pSSAMap, pSelector, pAtom));
   }
 
+  public void addEntry(
+      int pos, FormulaEntry entry) {
+    entries.add(pos, entry);
+  }
+
+  public void addEntry(FormulaEntry entry) {
+    entries.add(entry);
+  }
+
   /**
    * If predicate remove holds on an entry, remove it from the set map it to T with <code>extract
    * </code> and return all mapped elements as a list to the user.
@@ -151,5 +160,13 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     public int hashCode() {
       return Objects.hash(atomId);
     }
+  }
+
+  public static class PreconditionEntry extends FormulaEntry {
+
+    public PreconditionEntry(SSAMap pSSAMap) {
+      super(-1, pSSAMap, null, null);
+    }
+
   }
 }
