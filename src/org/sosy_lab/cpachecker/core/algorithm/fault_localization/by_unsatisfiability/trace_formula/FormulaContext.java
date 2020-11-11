@@ -19,13 +19,13 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 public class FormulaContext {
 
-  private Solver solver;
-  private PathFormulaManagerImpl manager;
-  private ProverEnvironment prover;
-  private CFA cfa;
-  private LogManager logger;
-  private Configuration configuration;
-  private ShutdownNotifier shutdownNotifier;
+  private final Solver solver;
+  private final PathFormulaManagerImpl manager;
+  private final ProverEnvironment prover;
+  private final CFA cfa;
+  private final LogManager logger;
+  private final Configuration configuration;
+  private final ShutdownNotifier shutdownNotifier;
 
   /**
    * This class maintains the most often used objects in fault localization.
@@ -80,4 +80,5 @@ public class FormulaContext {
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
+
 }
