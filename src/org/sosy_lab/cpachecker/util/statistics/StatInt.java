@@ -113,6 +113,14 @@ public class StatInt extends AbstractStatValue implements IntConsumer {
         return String.format(
             "%8d (sum: %d, min: %d, max: %d, avg: %.2f)",
             getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
+      case MIN:
+        return String.format(
+            "%8d (sum: %d, count: %d, max: %d, avg: %.2f)",
+            getMinValue(), getValueSum(), getValueCount(), getMaxValue(), getAverage());
+      case MAX:
+        return String.format(
+            "%8d (sum: %d, count: %d, min: %d, avg: %.2f)",
+            getMaxValue(), getValueSum(), getValueCount(), getMinValue(), getAverage());
     }
     throw new AssertionError();
   }

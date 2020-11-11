@@ -16,16 +16,23 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -59,24 +66,53 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         for (SMGValueAndState leftSideValAndState :
             smgExpressionEvaluator.evaluateExpressionValue(
                 getInitialSmgState(), edge, leftSideExpression)) {
-        SMGSymbolicValue leftSideVal = leftSideValAndState.getObject();
+          SMGValue leftSideVal = leftSideValAndState.getObject();
         SMGState newState = leftSideValAndState.getSmgState();
 
           for (SMGValueAndState rightSideValAndState :
               smgExpressionEvaluator.evaluateExpressionValue(newState, edge, rightSideExpression)) {
-          SMGSymbolicValue rightSideVal = rightSideValAndState.getObject();
+            SMGValue rightSideVal = rightSideValAndState.getObject();
           newState = rightSideValAndState.getSmgState();
 
             for (SMGValueAndState resultValueAndState :
                 evaluateBinaryAssumption(newState, binaryOperator, leftSideVal, rightSideVal)) {
               newState = resultValueAndState.getSmgState();
-              SMGSymbolicValue resultValue = resultValueAndState.getObject();
+              SMGValue resultValue = resultValueAndState.getObject();
 
-              //TODO: separate modifiable and unmodifiable visitor
-              int leftSideTypeSize = smgExpressionEvaluator.getBitSizeof(edge, leftSideExpression.getExpressionType(), newState);
-              int rightSideTypeSize = smgExpressionEvaluator.getBitSizeof(edge, rightSideExpression.getExpressionType(), newState);
-              newState.addPredicateRelation(leftSideVal, leftSideTypeSize,
-                  rightSideVal, rightSideTypeSize, binaryOperator, edge);
+              // TODO: separate modifiable and unmodifiable visitor
+              CType leftSideType = leftSideExpression.getExpressionType();
+              SMGType leftSideSMGType =
+                  SMGType.constructSMGType(leftSideType, newState, edge, smgExpressionEvaluator);
+              while (leftSideExpression instanceof CCastExpression) {
+                //TODO: rewrite as list of castings
+                CCastExpression leftSideCastExpression = (CCastExpression) leftSideExpression;
+                leftSideExpression = leftSideCastExpression.getOperand();
+                CType leftSideOriginType = leftSideExpression.getExpressionType();
+                SMGType leftSideOriginSMGType =
+                    SMGType.constructSMGType(
+                        leftSideOriginType, newState, edge, smgExpressionEvaluator);
+                leftSideSMGType = new SMGType(leftSideSMGType, leftSideOriginSMGType);
+              }
+
+              CType rightSideType = rightSideExpression.getExpressionType();
+              SMGType rightSideSMGType =
+                  SMGType.constructSMGType(rightSideType, newState, edge, smgExpressionEvaluator);
+              while (rightSideExpression instanceof CCastExpression) {
+                CCastExpression rightSideCastExpression = (CCastExpression) rightSideExpression;
+                rightSideExpression = rightSideCastExpression.getOperand();
+                CType rightSideOriginType = rightSideExpression.getExpressionType();
+                SMGType rightSideOriginSMGType =
+                    SMGType.constructSMGType(
+                        rightSideOriginType, newState, edge, smgExpressionEvaluator);
+                rightSideSMGType = new SMGType(leftSideSMGType, rightSideOriginSMGType);
+              }
+              newState.addPredicateRelation(
+                  leftSideVal,
+                  leftSideSMGType,
+                  rightSideVal,
+                  rightSideSMGType,
+                  binaryOperator,
+                  edge);
               result.add(SMGValueAndState.of(newState, resultValue));
             }
         }
@@ -88,7 +124,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private boolean isPointer(UnmodifiableSMGState pNewSmgState, SMGSymbolicValue symVal) {
+  private boolean isPointer(UnmodifiableSMGState pNewSmgState, SMGValue symVal) {
 
     if (symVal.isUnknown()) {
       return false;
@@ -102,8 +138,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   /** returns the comparison of two pointers, i.e. "p1 op p2". */
-  private boolean comparePointer(
-      SMGKnownAddressValue pV1, SMGKnownAddressValue pV2, BinaryOperator pOp) {
+  private boolean comparePointer(SMGAddressValue pV1, SMGAddressValue pV2, BinaryOperator pOp) {
 
     SMGObject object1 = pV1.getObject();
     SMGObject object2 = pV2.getObject();
@@ -131,7 +166,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   private SMGValueAndState evaluateBinaryAssumptionOfConcreteSymbolicValues(
-      SMGState pNewState, BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2) {
+      SMGState pNewState, BinaryOperator pOp, SMGValue pV1, SMGValue pV2) {
 
     boolean isPointerOp1 = pV1 instanceof SMGKnownAddressValue;
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
@@ -189,6 +224,28 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         if (isPointerOp1 && isPointerOp2) {
           isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
+        } else if (isPointerOp1 && !pV2.isUnknown()) {
+          SMGKnownExpValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
+          if (explicit2 != null) {
+            isTrue =
+                comparePointer(
+                    (SMGKnownAddressValue) pV1,
+                    SMGKnownAddressValue.valueOf(
+                        (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
+                    pOp);
+            isFalse = !isTrue;
+          }
+        } else if (isPointerOp2 && !pV1.isUnknown()) {
+          SMGKnownExpValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
+            if (explicit1 != null) {
+            isTrue =
+                comparePointer(
+                    SMGKnownAddressValue.valueOf(
+                        (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
+                    (SMGKnownAddressValue) pV2,
+                    pOp);
+              isFalse = !isTrue;
+            }
         }
       break;
     default:
@@ -209,7 +266,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   public List<? extends SMGValueAndState> evaluateBinaryAssumption(
-      SMGState pNewState, BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2)
+      SMGState pNewState, BinaryOperator pOp, SMGValue pV1, SMGValue pV2)
       throws SMGInconsistentException {
 
     // If a value is unknown, we can't make further assumptions about it.
@@ -220,10 +277,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(4);
 
     for (SMGValueAndState operand1AndState : getOperand(pNewState, pV1)) {
-      SMGSymbolicValue operand1 = operand1AndState.getObject();
+      SMGValue operand1 = operand1AndState.getObject();
 
       for (SMGValueAndState operand2AndState : getOperand(pNewState, pV2)) {
-        SMGSymbolicValue operand2 = operand2AndState.getObject();
+        SMGValue operand2 = operand2AndState.getObject();
         SMGState newState = operand2AndState.getSmgState();
 
         SMGValueAndState resultValueAndState = evaluateBinaryAssumptionOfConcreteSymbolicValues(newState, pOp, operand1, operand2);
@@ -234,7 +291,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     return result.build();
   }
 
-  private List<? extends SMGValueAndState> getOperand(SMGState pNewState, SMGSymbolicValue pV)
+  private List<? extends SMGValueAndState> getOperand(SMGState pNewState, SMGValue pV)
       throws SMGInconsistentException {
     if (isPointer(pNewState, pV)) {
       return smgExpressionEvaluator.getAddressFromSymbolicValue(SMGValueAndState.of(pNewState, pV));
@@ -257,11 +314,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     return relations.get(pState).impliesNeq(pTruth);
   }
 
-  public SMGSymbolicValue impliesVal1(UnmodifiableSMGState pState) {
+  public SMGValue impliesVal1(UnmodifiableSMGState pState) {
     return relations.get(pState).getVal1();
   }
 
-  public SMGSymbolicValue impliesVal2(UnmodifiableSMGState pState) {
+  public SMGValue impliesVal2(UnmodifiableSMGState pState) {
     return relations.get(pState).getVal2();
   }
 
@@ -276,16 +333,15 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     private final boolean impliesEqWhenFalse;
     private final boolean impliesNeqWhenFalse;
 
-    private final SMGSymbolicValue val1;
-    private final SMGSymbolicValue val2;
+    private final SMGValue val1;
+    private final SMGValue val2;
 
     /**
-     * Creates an object of the BinaryRelationResult. The object is used to
-     * determine the relation between two symbolic values in the context of
-     * the given smgState and the given binary operator. Note that the given
-     * symbolic values, which may also be address values, do not have to be
-     * part of the given Smg. The definition of an smg implies conditions for
-     * its values, even if they are not part of it.
+     * Creates an object of the BinaryRelationResult. The object is used to determine the relation
+     * between two symbolic values in the context of the given smgState and the given binary
+     * operator. Note that the given symbolic values, which may also be address values, do not have
+     * to be part of the given Smg. The definition of an smg implies conditions for its values, even
+     * if they are not part of it.
      *
      * @param pIsTrue boolean expression is true.
      * @param pIsFalse boolean expression is false
@@ -303,8 +359,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         boolean pImpliesNeqWhenFalse,
         boolean pImpliesEqWhenTrue,
         boolean pImpliesNeqWhenTrue,
-        SMGSymbolicValue pVal1,
-        SMGSymbolicValue pVal2) {
+        SMGValue pVal1,
+        SMGValue pVal2) {
       isTrue = pIsTrue;
       isFalse = pIsFalse;
       impliesEqWhenFalse = pImpliesEqWhenFalse;
@@ -333,11 +389,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       return pTruth ? impliesNeqWhenTrue : impliesNeqWhenFalse;
     }
 
-    SMGSymbolicValue getVal2() {
+    SMGValue getVal2() {
       return val2;
     }
 
-    SMGSymbolicValue getVal1() {
+    SMGValue getVal1() {
       return val1;
     }
   }

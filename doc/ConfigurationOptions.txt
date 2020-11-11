@@ -479,6 +479,9 @@ analysis.unknownIfUnrestrictedProgram = false
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
+# Use explainer for fault localization with distance metrics 
+analysis.useExplainer = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -1471,7 +1474,8 @@ cpa.callstack.traverseBackwards = false
 
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
-          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg"}
+          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg",
+          "atexit"}
 
 # firing relation to be used in the precision adjustment operator
 cpa.chc.firingRelation = "Always"
@@ -3071,8 +3075,18 @@ cpa.value.abstraction.onlyAtNonLinearCFA = false
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# Fixed set of values for function calls to VERIFIER_nondet_*. Does only
+# work, if ignoreFunctionValueExceptRandom is enabled 
+cpa.value.functionValuesForRandom = no default value
+
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
+
+# If 'ignoreFunctionValue' is set to true, this option allows to provide a
+# fixed set of values in the TestComp format. It is used for function-calls
+# to calls of VERIFIER_nondet_*. The file is provided via the option
+# functionValuesForRandom 
+cpa.value.ignoreFunctionValueExceptRandom = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -3305,6 +3319,18 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# The distance metric that ought to be used for the computation of the
+# distance
+explainer.distanceMetric = ADM
+  enum:     [ADM, CFDM, PG]
+
+# Configuration of the first step of the Explainer Algorithm
+explainer.firstStep = no default value
+
+# The number that specifies how many times are we going to iterate over the
+# reachedSet
+explainer.stopAfter = 40
 
 # Ranking algorithm to use for fault localization
 faultLocalization.by_coverage.type = TARANTULA

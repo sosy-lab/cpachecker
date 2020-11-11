@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -211,7 +212,12 @@ public class PredicateAbstractionManager {
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =
-        buildAbstraction(location, callstackInformation, emptyAbstraction, pf, predicates);
+        buildAbstraction(
+            Collections.singleton(location),
+            callstackInformation,
+            emptyAbstraction,
+            pf,
+            predicates);
 
     // fix block formula in result
     return new AbstractionFormula(
@@ -240,7 +246,7 @@ public class PredicateAbstractionManager {
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(
-      final CFANode location,
+      final Collection<CFANode> locations,
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
@@ -267,8 +273,11 @@ public class PredicateAbstractionManager {
 
     // Try to reuse stored abstractions
     if (options.getReuseAbstractionsFrom() != null && !abstractionReuseDisabledBecauseOfAmbiguity) {
+      // TODO we do not yet support multiple CFA nodes per abstraction here
+      // and choosing *one* location is best way for backwards compatibility.
       AbstractionFormula reused =
-          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
+          reuseAbstractionIfPossible(
+              abstractionFormula, pathFormula, primaryFormula, Iterables.getOnlyElement(locations));
       if (reused != null) {
         return reused;
       }
@@ -350,8 +359,11 @@ public class PredicateAbstractionManager {
 
     // add invariants to abstraction formula if available
     if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
-      BooleanFormula invariant = invariantSupplier.getInvariantFor(
-          location, callstackInformation, fmgr, pfmgr, pathFormula);
+      // TODO we do not yet support multiple CFA nodes per abstraction here
+      // and choosing *one* location is best way for backwards compatibility.
+      BooleanFormula invariant =
+          invariantSupplier.getInvariantFor(
+              Iterables.getOnlyElement(locations), callstackInformation, fmgr, pfmgr, pathFormula);
 
       if (!bfmgr.isTrue(invariant)) {
         AbstractionPredicate absPred = amgr.makePredicate(invariant);

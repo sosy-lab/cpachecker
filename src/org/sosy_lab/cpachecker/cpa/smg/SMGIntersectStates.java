@@ -218,7 +218,7 @@ public final class SMGIntersectStates {
 
     SMGKnownSymbolicValue symVal = (SMGKnownSymbolicValue) pValue;
     if (pSmgState.isExplicit(symVal)) {
-      destExplicitValues.put(symVal, (SMGKnownExpValue) pSmgState.getExplicit(symVal));
+      destExplicitValues.put(symVal, pSmgState.getExplicit(symVal));
     }
 
     if (pSmg.isPointer(pValue)) {
