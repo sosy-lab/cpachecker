@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.tests;
 
 import com.google.common.collect.ForwardingMap;
@@ -19,6 +27,6 @@ public class ExpectMap<K, L> extends ForwardingMap<K, L> {
 
     @Override
     protected Map<K, L> delegate() {
-        return null;
+        return map;
     }
 }
