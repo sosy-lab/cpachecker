@@ -183,7 +183,7 @@ public abstract class TraceFormula {
     if (options.forcePre && bmgr.isTrue(precond)) {
       return AlternativePrecondition.of(options.filter, options.ignore, precond, context, entries);
     } else {
-      entries.addEntry(0, -1, SSAMap.emptySSAMap(), null, null);
+      entries.addEntry(0, new FormulaEntryList.PreconditionEntry(SSAMap.emptySSAMap()));
     }
     return precond;
   }
@@ -226,8 +226,7 @@ public abstract class TraceFormula {
                 bmgr.and(
                     entries.removeExtract(
                         entry -> {
-                          if (entry.getSelector() == null) {
-                            //TODO find better solution
+                          if (entry instanceof FormulaEntryList.PreconditionEntry) {
                             return false;
                           }
                           return entry.getSelector().getEdge().equals(curr);

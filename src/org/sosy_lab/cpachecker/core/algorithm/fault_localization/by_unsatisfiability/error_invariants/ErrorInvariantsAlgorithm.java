@@ -144,21 +144,21 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     }
 
     // sort the intervals and calculate abstrace error trace
-    Collections.sort(sortedIntervals, Comparator.comparingInt(i -> i.start));
+    Collections.sort(sortedIntervals, Comparator.comparingInt(i -> i.getStart()));
     List<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
     for (Interval currInterval : sortedIntervals) {
-      if (currInterval.start > prevEnd) {
+      if (currInterval.getStart() > prevEnd) {
         abstractTrace.add(maxInterval);
-        if (maxInterval.end < tf.traceSize()) {
-          abstractTrace.add(selectors.get(maxInterval.end));
+        if (maxInterval.getEnd() < tf.traceSize()) {
+          abstractTrace.add(selectors.get(maxInterval.getEnd()));
         }
-        prevEnd = maxInterval.end;
+        prevEnd = maxInterval.getEnd();
         maxInterval = currInterval;
       } else {
-        if (currInterval.end > maxInterval.end) {
+        if (currInterval.getEnd() > maxInterval.getEnd()) {
           maxInterval = currInterval;
         }
       }
@@ -205,10 +205,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
           Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
-          int newStart = Integer.min(lastInterval.start, toMerge.start);
-          int newEnd = Integer.max(lastInterval.end, toMerge.end);
-          BooleanFormula conjunct = bmgr.and(lastInterval.invariant, toMerge.invariant);
-          Interval merged = new Interval(newStart, newEnd, conjunct);
+          Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
           summarizedList.add(summarizedList.size()-1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
@@ -381,6 +378,20 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       start = pStart;
       end = pEnd;
       invariant = pInvariant;
+    }
+
+    public static Interval merge(final Interval pFirst, final Interval pSecond, final BooleanFormulaManager pBmgr) {
+        int newStart = Integer.min(pFirst.start, pSecond.start);
+        int newEnd = Integer.max(pFirst.end, pSecond.end);
+        return new Interval(newStart, newEnd, pBmgr.and(pFirst.getInvariant(), pSecond.getInvariant()));
+    }
+
+    public int getEnd() {
+      return end;
+    }
+
+    public int getStart() {
+      return start;
     }
 
     @Override

@@ -66,15 +66,19 @@ public class BooleanFormulaParser {
           break;
         }
         default: {
-          if (currentString.startsWith("`") && currentString.endsWith("`") && currentString.length() > 1) {
+            if (currentString.startsWith("`")
+                && currentString.endsWith("`")
+                && currentString.length() > 1) {
             syntaxStack.push(new ExpressionNode(currentString.substring(1, currentString.length()-1)));
             currentString = "";
           }
-          if (currentString.startsWith(" ") && currentString.endsWith(" ") && !currentString.isBlank()) {
+            if (currentString.startsWith(" ")
+                && currentString.endsWith(" ")
+                && !currentString.isBlank()) {
             syntaxStack.push(new LiteralNode(currentString.trim()));
-            // " " is correct here because possible successors are ( or another literal.
-            // Both tokens are allowed and meant to start with " " (for clear identification).
-            currentString = " ";
+              // " " is correct here because possible successors are ( or another literal.
+              // Both tokens are allowed and meant to start with " " (for clear identification).
+              currentString = " ";
           }
           if (currentString.startsWith(" ") && currentString.endsWith(")")) {
             syntaxStack.push(new LiteralNode(currentString.substring(1, currentString.length()-1)));
