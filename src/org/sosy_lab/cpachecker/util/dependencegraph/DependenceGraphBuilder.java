@@ -447,7 +447,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void addControlDependences() throws InterruptedException {
+  private void addControlDependences() {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
@@ -462,8 +462,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
             controlDepCounter.increment();
           };
 
-      ControlDependenceBuilder.compute(
-          cfa, entryNode, depConsumer, controlDepsTakeBothAssumptions, shutdownNotifier);
+      ControlDependenceBuilder.compute(cfa, entryNode, depConsumer, controlDepsTakeBothAssumptions);
 
       controlDependenceNumber.setNextValue(controlDepCounter.get());
     }

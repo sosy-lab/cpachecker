@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -35,17 +34,19 @@ final class ControlDependenceBuilder {
       MutableCFA pCfa,
       FunctionEntryNode pEntryNode,
       DepConsumer pDepConsumer,
-      boolean pDependOnBothAssumptions,
-      ShutdownNotifier pShutdownNotifier)
-      throws InterruptedException {
+      boolean pDependOnBothAssumptions) {
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
-
     DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
+
+    Set<CFANode> postDomTreeNodes = new HashSet<>();
     Set<CFAEdge> dependentEdges = new HashSet<>();
 
     for (CFANode dependentNode : postDomTree) {
+      
       int nodeId = postDomTree.getId(dependentNode);
+      postDomTreeNodes.add(dependentNode);
+
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
         for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
           int assumeSuccessorId = postDomTree.getId(assumeEdge.getSuccessor());
@@ -64,35 +65,26 @@ final class ControlDependenceBuilder {
     }
 
     Set<CFAEdge> noDomEdges = new HashSet<>();
-    if (CFAUtils.existsPath(
-        pEntryNode, pEntryNode.getExitNode(), CFAUtils::allLeavingEdges, pShutdownNotifier)) {
-      for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
+    for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
+      if (postDomTreeNodes.contains(node)) {
         int nodeId = postDomTree.getId(node);
         if (!postDomTree.hasParent(nodeId)) {
           Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
         }
       }
-    } else {
-      // Sometimes there is no path from the function entry node to the function exit node.
-      // In this case, domTree is incomplete as it does not contain all function nodes.
-      // Calling domTree.getId would throw an exception for these missing nodes.
-      for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
-        Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
-        Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
-      }
     }
 
-    Set<CFAEdge> noDomAssumes = new HashSet<>();
+    Set<CFAEdge> noDomAssumeEdges = new HashSet<>();
     for (CFAEdge edge : noDomEdges) {
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-        noDomAssumes.add(edge);
+        noDomAssumeEdges.add(edge);
       }
     }
 
     for (CFAEdge dependentEdge : noDomEdges) {
       if (!ignoreFunctionEdge(dependentEdge)) {
-        for (CFAEdge assumeEdge : noDomAssumes) {
+        for (CFAEdge assumeEdge : noDomAssumeEdges) {
           if (!assumeEdge.equals(dependentEdge)) {
             pDepConsumer.accept(assumeEdge, dependentEdge);
             dependentEdges.add(dependentEdge);
