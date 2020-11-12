@@ -33,8 +33,8 @@ public class LoopData implements Comparable<LoopData> {
   private List<CFANode> conditionInFor;
   private List<CFANode> nodesInLoop;
   private List<CFANode> nodesInCondition;
-  private List<String> output;
-  private List<String> inputOutput;
+  private List<LoopVariables> output;
+  private List<LoopVariables> inputOutput;
   private List<CFANode> endOfCondition;
 
   private String condition;
@@ -186,8 +186,8 @@ public class LoopData implements Comparable<LoopData> {
    * @param loopNodes checks all of the nodes in a loop for output variables
    * @return returns a list with all of the variable names that are outputs in a loop
    */
-  private List<String> getAllOutputs(CFA cfa, List<CFANode> loopNodes) {
-    List<String> tempOutput = new ArrayList<>();
+  private List<LoopVariables> getAllOutputs(CFA cfa, List<CFANode> loopNodes) {
+    List<LoopVariables> tmpO = new ArrayList<>();
 
     for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -210,8 +210,6 @@ public class LoopData implements Comparable<LoopData> {
           }
 
           if (flag && flagCPAchecker) {
-
-            String temp = "";
             if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null) {
               if (CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().contains("[")) {
                 String tmpType =
@@ -220,37 +218,35 @@ public class LoopData implements Comparable<LoopData> {
                             .split(CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString()),
                         0);
                 tmpType = Iterables.get(Splitter.on('(').split(tmpType), 1);
-                temp =
+                String tmpName =
                     Iterables.get(
-                            Splitter.onPattern(OUTPUT_NAME_SYMBOL_CUT)
-                                .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
-                            OUTPUT_VARIABLE_ARRAY_POSITION)
-                        + "&"
-                        + "Array:"
-                        + tmpType
-                        + ":"
-                        + Iterables.get(
-                            Splitter.on(']')
-                                .split(
-                                    Iterables.get(
-                                        Splitter.on('[')
-                                            .split(
-                                                CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i))
-                                                    .toString()),
-                                        1)),
-                            0);
-
+                        Splitter.onPattern(OUTPUT_NAME_SYMBOL_CUT)
+                            .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
+                        OUTPUT_VARIABLE_ARRAY_POSITION);
+                String tmpArraySize =
+                    Iterables.get(
+                        Splitter.on(']')
+                            .split(
+                                Iterables.get(
+                                    Splitter.on('[')
+                                        .split(
+                                            CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i))
+                                                .toString()),
+                                    1)),
+                        0);
+                tmpO.add(new LoopVariables(tmpName, tmpType, node, true, tmpArraySize, null));
               } else {
                 if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)).contains(":")) {
-                  temp =
+                  String tempName =
                       Iterables.get(
-                              Splitter.onPattern(OUTPUT_NAME_SYMBOL_CUT)
-                                  .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
-                              OUTPUT_VARIABLE_ARRAY_POSITION)
-                          + "&"
-                          + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
+                          Splitter.onPattern(OUTPUT_NAME_SYMBOL_CUT)
+                              .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
+                          OUTPUT_VARIABLE_ARRAY_POSITION);
+                  String tempType = CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString();
+                  tmpO.add(new LoopVariables(tempName, tempType, node, false, null, null));
                 } else {
-                  temp = CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i));
+                  String tempName = CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i));
+                  tmpO.add(new LoopVariables(tempName, null, node, false, null, null));
                 }
               }
             } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null) {
@@ -258,43 +254,34 @@ public class LoopData implements Comparable<LoopData> {
                   .getClass()
                   .getName()
                   .contains("Array")) {
-                temp =
+                String tempName =
                     Iterables.get(
-                            Splitter.on('[')
-                                .split(
-                                    CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
-                                        .toString()),
-                            0)
-                        + "&"
-                        + "Array:"
-                        + CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType();
+                        Splitter.on('[')
+                            .split(CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).toString()),
+                        0);
+                String tempType = CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType().toString();
+                tmpO.add(new LoopVariables(tempName, tempType, node, true, null, null));
               }
             }
-            tempOutput.add(temp);
           }
         }
       }
     }
 
-    List<String> overwrite = new ArrayList<>();
     for (CFANode n : cfa.getAllNodes()) {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
-          for (String s : tempOutput) {
+          for (LoopVariables o : tmpO) {
             if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null) {
               if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
-                  && Iterables.get(Splitter.on('&').split(s), 0)
+                  && o.getVariableName()
                       .equals(
                           Iterables.get(
                               Splitter.on(':')
                                   .split(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e))),
                               2))) {
 
-                String tempNew = s;
-
-                if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
-                  String tmpNewStart = Iterables.get(Splitter.on('&').split(tempNew), 0);
-                  String tmpNewEnd = Iterables.get(Splitter.on('&').split(tempNew), 1);
+                if (o.getIsArray() && o.getArrayLength() == null) {
                   String arraySize =
                       Iterables.get(
                           Splitter.on(']')
@@ -306,31 +293,18 @@ public class LoopData implements Comparable<LoopData> {
                                                   .toString()),
                                       1)),
                           0);
-
-                  tmpNewEnd = tmpNewEnd + ":" + arraySize;
-
-                  tempNew = tmpNewStart + "&" + tmpNewEnd;
+                  o.setArrayLength(arraySize);
                 }
-
-                tempNew =
-                    tempNew
-                        + "&"
-                        + ((ADeclarationEdge) n.getLeavingEdge(e))
-                            .getDeclaration()
-                            .getFileLocation()
-                            .getStartingLineInOrigin();
-
-                overwrite.add(tempNew);
+                o.setInitializationLine(((ADeclarationEdge) n.getLeavingEdge(e))
+                    .getDeclaration()
+                    .getFileLocation()
+                    .getStartingLineInOrigin());
 
               } else if (!CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
-                  && Iterables.get(Splitter.on('&').split(s), 0)
+                  && o.getVariableName()
                       .equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)))) {
-                String tempNew = s;
 
-                if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
-                  String tmpNewStart = Iterables.get(Splitter.on('&').split(tempNew), 0);
-                  String tmpNewEnd = Iterables.get(Splitter.on('&').split(tempNew), 1);
-
+                if (o.getIsArray() && o.getArrayLength() == null) {
                   String arraySize =
                       Iterables.get(
                           Splitter.on(']')
@@ -342,47 +316,50 @@ public class LoopData implements Comparable<LoopData> {
                                                   .toString()),
                                       1)),
                           0);
-
-                  tmpNewEnd = tmpNewEnd + ":" + arraySize;
-
-                  tempNew = tmpNewStart + "&" + tmpNewEnd;
+                  o.setArrayLength(arraySize);
+                }
+                if (o.getVariableType() == null) {
+                  String tempType = CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString();
+                  o.setVariableType(tempType);
                 }
 
-                tempNew =
-                    tempNew
-                        + "&"
-                        + ((ADeclarationEdge) n.getLeavingEdge(e))
-                            .getDeclaration()
-                            .getFileLocation()
-                            .getStartingLineInOrigin();
-
-                overwrite.add(tempNew);
+                o.setInitializationLine(
+                    ((ADeclarationEdge) n.getLeavingEdge(e))
+                        .getDeclaration()
+                        .getFileLocation()
+                        .getStartingLineInOrigin());
               }
             }
           }
         }
       }
     }
-    tempOutput = overwrite;
-    List<String> removeDuplicates = new ArrayList<>();
-    for (String duplicate : tempOutput) {
-      if (!removeDuplicates.contains(duplicate)) {
-        removeDuplicates.add(duplicate);
+    List<LoopVariables> removeDO = new ArrayList<>();
+    for (LoopVariables o : tmpO) {
+      boolean flag = true;
+      if (removeDO.isEmpty()) {
+        removeDO.add(o);
+      } else {
+        for (LoopVariables tempO : removeDO) {
+          if (tempO.getVariableName().equals(o.getVariableName())
+              && tempO.getInitializationLine().equals(o.getInitializationLine())) {
+            flag = false;
+          }
+        }
+        if(flag) {
+          removeDO.add(o);
+        }
       }
     }
-    tempOutput = removeDuplicates;
-    return tempOutput;
+    tmpO = removeDO;
+    return tmpO;
   }
 
-  private int getAllNumberOutputs(List<String> pOutput) {
+  private int getAllNumberOutputs(List<LoopVariables> pOutput) {
     int tmpInt = 0;
-    for (String tmp : pOutput) {
-      if (tmp.contains("Array")) {
-        tmpInt =
-            tmpInt
-                + Integer.parseInt(
-                    Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(tmp), 1)), 2));
+    for (LoopVariables tmp : pOutput) {
+      if (tmp.getIsArray()) {
+        tmpInt = tmpInt + Integer.parseInt(tmp.getArrayLength());
 
       } else {
         tmpInt = tmpInt + 1;
@@ -400,18 +377,17 @@ public class LoopData implements Comparable<LoopData> {
    *     getAllInputs method
    * @return returns a list of variables that are inputs and outputs at the same time
    */
-  private List<String> getAllIO(List<String> tmpOutput, List<CFANode> loopNodes) {
+  private List<LoopVariables> getAllIO(List<LoopVariables> tmpOutput, List<CFANode> loopNodes) {
     List<String> inputs = getAllInputs(loopNodes);
-    List<String> outputs = tmpOutput;
-    List<String> temp = new ArrayList<>();
+    List<LoopVariables> loopO = tmpOutput;
+    List<LoopVariables> temp = new ArrayList<>();
 
-    for (String o : outputs) {
+    for (LoopVariables o : loopO) {
       for (String i : inputs) {
-        if (Iterables.get(Splitter.on('&').split(o), 0).contentEquals(i)) {
+        if (o.getVariableName().contentEquals(i)) {
           boolean flagNO = true;
-          for (String v : temp) {
-            if (Iterables.get(Splitter.on('&').split(v), 0)
-                .equals(Iterables.get(Splitter.on('&').split(o), 0))) {
+          for (LoopVariables v : temp) {
+            if (o.getVariableName().equals(v.getVariableName())) {
               flagNO = false;
             }
           }
@@ -433,7 +409,6 @@ public class LoopData implements Comparable<LoopData> {
    */
   private List<String> getAllInputs(List<CFANode> loopNodes) {
     List<String> temp = new ArrayList<>();
-
     for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
@@ -526,7 +501,7 @@ public class LoopData implements Comparable<LoopData> {
       CFANode endNode,
       List<CFANode> conditionNodes,
       CFANode failed,
-      List<String> outputs) {
+      List<LoopVariables> outputs) {
     // there is always one path in a loop that can be travelled
     int paths = 1;
     for (CFANode node : loopNodes) {
@@ -538,15 +513,12 @@ public class LoopData implements Comparable<LoopData> {
         paths += (node.getNumLeavingEdges() - LAST_POSITION_OF_LIST);
       }
     }
-    for (String z : outputs) {
-      if (z.contains("Array")) {
+    for (LoopVariables z : outputs) {
+      if (z.getIsArray()) {
         // we add the number of array-cells to the number of paths in case there is an array
         // in the loop. this is an over-approximation that could be refined if you know the
         // amount of array values that will be used later on
-        paths +=
-            Integer.parseInt(
-                Iterables.get(
-                    Splitter.on(':').split(Iterables.get(Splitter.on('&').split(z), 1)), 2));
+        paths += Integer.parseInt(z.getArrayLength());
       }
     }
     return paths;
@@ -685,9 +657,6 @@ public class LoopData implements Comparable<LoopData> {
       String type,
       List<CFANode> conditionEnd,
       boolean endless) {
-
-    // TODO mit Martin besprechen ob n Iterator nicht doch besser wäre
-
     String cond = "";
     List<CFANode> temp = copyList(conditionNodes);
     CFANode node;
@@ -968,7 +937,7 @@ public class LoopData implements Comparable<LoopData> {
     return condition;
   }
 
-  public List<String> getOutputs() {
+  public List<LoopVariables> getOutputs() {
     return output;
   }
 
@@ -984,7 +953,7 @@ public class LoopData implements Comparable<LoopData> {
     return amountOfPaths;
   }
 
-  public List<String> getInputsOutputs() {
+  public List<LoopVariables> getInputsOutputs() {
     return inputOutput;
   }
 

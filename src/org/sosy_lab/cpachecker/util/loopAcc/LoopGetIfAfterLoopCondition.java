@@ -79,9 +79,9 @@ public class LoopGetIfAfterLoopCondition {
 
   private static int getSmallestLineNumber(List<CFANode> nodes) {
     int small = -1;
-    for (int i = 0; i < nodes.size(); i++) {
-      if (nodes.get(i).getNumLeavingEdges() > 0) {
-        small = nodes.get(i).getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+    for (CFANode node : nodes) {
+      if (node.getNumLeavingEdges() > 0) {
+        small = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
         break;
       }
     }
@@ -97,9 +97,9 @@ public class LoopGetIfAfterLoopCondition {
 
   private static int getBiggestLineNumber(List<CFANode> nodes) {
     int big = -1;
-    for (int i = 0; i < nodes.size(); i++) {
-      if (nodes.get(i).getNumLeavingEdges() > 0) {
-        big = nodes.get(i).getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+    for (CFANode node : nodes) {
+      if (node.getNumLeavingEdges() > 0) {
+        big = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
         break;
       }
     }

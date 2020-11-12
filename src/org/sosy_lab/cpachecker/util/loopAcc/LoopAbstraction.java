@@ -72,7 +72,7 @@ public class LoopAbstraction {
     totalTime.start();
     List<LoopData> outerLoopTemp = new ArrayList<>();
     List<Integer> loopStarts = new ArrayList<>();
-    List<String> preUsedVariables = new ArrayList<>();
+    List<LoopVariables> preUsedVariables = new ArrayList<>();
     boolean closed = true;
     for (LoopData loopData : loopInfo.getLoopData()) {
       if (loopData.getLoopType().equals("while")) {
@@ -100,8 +100,8 @@ public class LoopAbstraction {
     boolean flagLongLong = true;
     boolean flagDouble = true;
     for (LoopData lD : loopInfo.getLoopData()) {
-      for (String io : lD.getInputsOutputs()) {
-        switch (Iterables.get(Splitter.on('&').split(io), 1)) {
+      for (LoopVariables io : lD.getInputsOutputs()) {
+        switch (io.getVariableType()) {
           case "int":
           case "signed int":
             if (flagInt) {
@@ -545,385 +545,120 @@ public class LoopAbstraction {
    *     assigned
    */
   private String undeterministicVariables(
-      LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
+      LoopData loopD, List<LoopVariables> preUsedVariables, String abstractionLevel) {
     String tmp = "";
-    List<String> variables = null;
+    List<LoopVariables> variables = null;
     if (abstractionLevel.equals("naiv")) {
       variables = loopD.getOutputs();
     } else {
       variables = loopD.getInputsOutputs();
     }
-    for (String x : variables) {
-      if (x.contains("Array")) {
-        String tempString = x;
-        tempString = Iterables.get(Splitter.on('&').split(tempString), 1);
-        tempString = Iterables.get(Splitter.on(':').split(tempString), 1);
-        switch (tempString) {
+    for (LoopVariables x : variables) {
+      if (x.getIsArray()) {
+        String tempString = x.getVariableType();
+        if (x.getInitializationLine() >= lineNumber
+            && !preUsedVariables.contains(x.getVariableName())) {
+          tmp +=
+              tempString
+                  + " "
+                  + x.getVariableName()
+                  + "["
+                  + x.getArrayLength()
+                  + "]"
+                  + ";"
+                  + System.lineSeparator();
+          preUsedVariables.add(x);
+        }
+        tmp +=
+            "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                + x.getArrayLength()
+                + "; __cpachecker_tmp_i++){"
+                + x.getVariableName()
+                + "[__cpachecker_tmp_i]";
+        switch (x.getVariableType()) {
           case "int":
           case "signed int":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_int();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_int();}" + System.lineSeparator();
             break;
           case "unsigned int":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_uint();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_uint();}" + System.lineSeparator();
             break;
           case "char":
           case "signed char":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_char();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_char();}" + System.lineSeparator();
             break;
           case "unsigned char":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_uchar();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_uchar();}" + System.lineSeparator();
             break;
           case "short":
           case "signed short":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_short();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_short();}" + System.lineSeparator();
             break;
           case "unsigned short":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_ushort();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_ushort();}" + System.lineSeparator();
             break;
           case "long":
           case "signed long":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_long();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_long();}" + System.lineSeparator();
             break;
           case "unsigned long":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_ulong();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_ulong();}" + System.lineSeparator();
             break;
           case "long double":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_long_double();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_long_double();}" + System.lineSeparator();
             break;
           case "double":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_double();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_double();}" + System.lineSeparator();
             break;
           case "float":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp +=
-                  tempString
-                      + " "
-                      + Iterables.get(Splitter.on('&').split(x), 0)
-                      + "["
-                      + Iterables.get(
-                          Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                      + "]"
-                      + ";"
-                      + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp +=
-                "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
-                    + Iterables.get(
-                        Splitter.on(':').split(Iterables.get(Splitter.on('&').split(x), 1)), 2)
-                    + "; __cpachecker_tmp_i++){"
-                    + (Iterables.get(Splitter.on('&').split(x), 0)
-                        + "[__cpachecker_tmp_i]"
-                        + "=__VERIFIER_nondet_float();}"
-                        + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_float();}" + System.lineSeparator();
             break;
           default:
             break; // does nothing
         }
       } else {
-        switch (Iterables.get(Splitter.on('&').split(x), 1)) {
+        if (x.getInitializationLine() >= lineNumber && !preUsedVariables.contains(x)) {
+          tmp += x.getVariableType() + " " + x.getVariableName() + ";" + System.lineSeparator();
+          preUsedVariables.add(x);
+        }
+        tmp += x.getVariableName();
+        switch (x.getVariableType()) {
           case "int":
           case "signed int":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber
-                && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_int();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_int();" + System.lineSeparator();
             break;
           case "unsigned int":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_uint();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_uint();" + System.lineSeparator();
             break;
           case "char":
           case "signed char":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_char();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_char();" + System.lineSeparator();
             break;
           case "unsigned char":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_uchar();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_uchar();" + System.lineSeparator();
             break;
           case "short":
           case "signed short":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_short();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_short();" + System.lineSeparator();
             break;
           case "unsigned short":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_ushort();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_ushort();" + System.lineSeparator();
             break;
           case "long":
           case "signed long":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_long();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_long();" + System.lineSeparator();
             break;
           case "unsigned long":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_ulong();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_ulong();" + System.lineSeparator();
             break;
           case "long double":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_long_double();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_long_double();" + System.lineSeparator();
             break;
           case "double":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_double();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_double();" + System.lineSeparator();
             break;
           case "float":
-            if (Integer.parseInt(Iterables.get(Splitter.on('&').split(x), 2)) >= lineNumber && !preUsedVariables.contains(x)) {
-              tmp += Iterables.get(Splitter.on('&').split(x),1) + " " + Iterables.get(Splitter.on('&').split(x),0) + ";" + System.lineSeparator();
-              preUsedVariables.add(x);
-            }
-            tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_float();" + System.lineSeparator());
+            tmp += "=__VERIFIER_nondet_float();" + System.lineSeparator();
             break;
           default:
             break; // does nothing
@@ -941,53 +676,38 @@ public class LoopAbstraction {
    * @param line string that get's checked if there is a variable that needs to be changed
    * @return returns a line of the program that can be added back to the program-string
    */
-  private String variablesAlreadyUsed(List<String> preUsedVariables, String line) {
+  private String variablesAlreadyUsed(List<LoopVariables> preUsedVariables, String line) {
     boolean uVFlag = false;
     String thisLine = line;
-    for (String s : preUsedVariables) {
-      if (!s.isEmpty() && s.contains("Array")) {
+    for (LoopVariables s : preUsedVariables) {
+      if (s.getIsArray()) {
         // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
         // namens ist
         if (thisLine != null
-            && thisLine.contains((Iterables.get(Splitter.on('&').split(s), 0) + "["))
-            && thisLine.contains(
-                Iterables.get(
-                    Splitter.on(':').split(Iterables.get(Splitter.on('&').split(s), 1)), 1))) {
+            && thisLine.contains(s.getVariableName() + "[")
+            && thisLine.contains(s.getVariableType())) {
           String tmpArray = Iterables.get(Splitter.on('=').split(thisLine), 1);
           thisLine =
-              Iterables.get(Splitter.on(':').split(Iterables.get(Splitter.on('&').split(s), 1)), 1)
+              s.getVariableType()
                   + " __cpachecker_tmp_array["
-                  + Iterables.get(
-                      Splitter.on(':').split(Iterables.get(Splitter.on('&').split(s), 1)), 2)
+                  + s.getArrayLength()
                   + "] = "
                   + tmpArray;
-          thisLine =
-              thisLine
-                  + " "
-                  + Iterables.get(Splitter.on('&').split(s), 0)
-                  + " = __cpachecker_tmp_array;";
+          thisLine = thisLine + " " + s.getVariableName() + " = __cpachecker_tmp_array;";
         }
       } else {
         if (thisLine != null
-            && !s.isEmpty()
-            && thisLine.contains(Iterables.get(Splitter.on('&').split(s), 1))
+            && thisLine.contains(s.getVariableType())
             && thisLine.contains(";")
-            && thisLine.contains(Iterables.get(Splitter.on('&').split(s), 0))) {
-          thisLine =
-              Iterables.get(
-                  Splitter.on(Iterables.get(Splitter.on('&').split(s), 1)).split(thisLine), 1);
+            && thisLine.contains(s.getVariableName())) {
+          thisLine = Iterables.get(Splitter.on(s.getVariableType()).split(thisLine), 1);
           uVFlag = true;
         }
         if (thisLine != null
-            && !s.isEmpty()
             && (thisLine.startsWith(" ") || thisLine.startsWith(""))
-            && thisLine.endsWith(Iterables.get(Splitter.on('&').split(s), 0) + ";")
+            && thisLine.endsWith(s.getVariableName() + ";")
             && uVFlag) {
-          thisLine =
-              Iterables.get(Splitter.on('&').split(s), 0)
-                  + "="
-                  + Iterables.get(Splitter.on('&').split(s), 0)
-                  + ";";
+          thisLine = s.getVariableName() + "=" + s.getVariableName() + ";";
         }
       }
     }
@@ -1025,14 +745,14 @@ public class LoopAbstraction {
    * @return string that is the new abstracted header of the for loop
    */
   private String forCondition(
-      LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
+      LoopData loopD, List<LoopVariables> preUsedVariables, String abstractionLevel) {
     boolean flag = true;
     String variable = "";
-    for (String x : preUsedVariables) {
+    for (LoopVariables x : preUsedVariables) {
       if (Iterables.get(Splitter.on(';').split(loopD.getCondition()), 0)
-          .contains(Iterables.get(Splitter.on('&').split(x), 0))) {
+          .contains(x.getVariableName())) {
         flag = false;
-        variable = Iterables.get(Splitter.on('&').split(x), 1);
+        variable = x.getVariableType();
       }
     }
     if (abstractionLevel.equals("naiv")) {
