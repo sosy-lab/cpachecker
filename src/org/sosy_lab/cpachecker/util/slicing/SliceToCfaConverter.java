@@ -649,13 +649,12 @@ final class SliceToCfaConverter {
     NavigableMap<String, FunctionEntryNode> relevantFunctions = new TreeMap<>();
     TreeMultimap<String, CFANode> relevantNodes = TreeMultimap.create();
     FunctionEntryNode relevantMainEntryNode = null;
-    for (AFunctionDeclaration originalFunction : entryNodes.keySet()) {
-
-      FunctionEntryNode originalEntryNode = entryNodes.get(originalFunction);
+    for (Map.Entry<AFunctionDeclaration, FunctionEntryNode> entry : entryNodes.entrySet()) {
+      AFunctionDeclaration originalFunction = entry.getKey();
+      FunctionEntryNode originalEntryNode = entry.getValue();
       FunctionEntryNode relevantEntryNode =
           createRelevantFunction((CFunctionEntryNode) originalEntryNode, relevantNodes);
       relevantFunctions.put(originalFunction.getQualifiedName(), relevantEntryNode);
-
       if (originalFunction.equals(originalMainFunction)) {
         Preconditions.checkState(
             relevantMainEntryNode == null,
