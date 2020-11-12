@@ -340,16 +340,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      // TODO: use more reasonable counter
-      var flowDepCount =
-          new Object() {
-            int value = 0;
-          };
+      DepCounter flowDepCounter = new DepCounter();
 
       CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
       for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
         addFlowDependence(funcDeclEdge, Optional.empty(), callEdge, Optional.empty());
-        flowDepCount.value++;
+        flowDepCounter.increment();
       }
 
       DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
@@ -413,7 +409,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                   .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
                   .contains(cause)) {
                 addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
-                flowDepCount.value++;
+                flowDepCounter.increment();
               }
 
               for (int index = 0; index < params.size(); index++) {
@@ -425,12 +421,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 if (defUseData.getUses().contains(cause)
                     || !defUseData.getPointeeUses().isEmpty()) {
                   addFlowDependence(defEdge, defEdgeCause, useEdge, paramUseCause);
-                  flowDepCount.value++;
+                  flowDepCounter.increment();
                 }
               }
             } else {
               addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
-              flowDepCount.value++;
+              flowDepCounter.increment();
             }
           };
 
@@ -447,7 +443,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               dependenceConsumer)
           .run();
 
-      flowDependenceNumber.setNextValue(flowDepCount.value);
+      flowDependenceNumber.setNextValue(flowDepCounter.get());
     }
   }
 
