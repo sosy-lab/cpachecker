@@ -146,10 +146,11 @@ public final class DependenceGraph implements Serializable {
         } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
 
           CFAEdge edge = current.getCfaEdge();
+          MemoryLocation cause = current.getCause();
+          int dgNodeCount = nodes.nodesForEdges.get(edge).size();
 
-          if (nodes.nodesForEdges.get(edge).size() > 1) {
+          if (dgNodeCount > 1 || (dgNodeCount == 1 && cause != null)) {
 
-            MemoryLocation cause = current.getCause();
             Set<MemoryLocation> causes =
                 reachable.computeIfAbsent(edge, key -> Optional.of(new HashSet<>())).orElseThrow();
 
