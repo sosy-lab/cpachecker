@@ -10,12 +10,10 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -26,10 +24,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -59,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -229,37 +224,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private static Iterable<CFANode> createNodeIterable(
-      CFANode pNode, boolean pForward, Predicate<CFANode> pStop, Predicate<CFANode> pFilter) {
-
-    if (pStop.test(pNode)) {
-      return Collections::emptyIterator;
-    }
-
-    Iterator<CFANode> iterator =
-        (pForward ? CFAUtils.allSuccessorsOf(pNode) : CFAUtils.allPredecessorsOf(pNode)).iterator();
-
-    return () -> Iterators.filter(iterator, pFilter);
-  }
-
-  private static Iterable<CFANode> iteratePredecessors(CFANode pNode) {
-
-    return createNodeIterable(
-        pNode,
-        false,
-        node -> node instanceof FunctionEntryNode,
-        node -> !(node instanceof FunctionExitNode));
-  }
-
-  private static Iterable<CFANode> iterateSuccessors(CFANode pNode) {
-
-    return createNodeIterable(
-        pNode,
-        true,
-        node -> node instanceof FunctionExitNode,
-        node -> !(node instanceof FunctionEntryNode));
-  }
-
   private boolean ignoreFunctionEdge(CFAEdge pEdge) {
     return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
@@ -394,11 +358,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         flowDepCount.value++;
       }
 
-      DomTree<CFANode> domTree =
-          Dominance.createDomTree(
-              entryNode,
-              DependenceGraphBuilder::iterateSuccessors,
-              DependenceGraphBuilder::iteratePredecessors);
+      DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
 
       DependenceConsumer dependenceConsumer =
           (defEdge, useEdge, cause) -> {
@@ -511,23 +471,19 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      DomTree<CFANode> domTree =
-          Dominance.createDomTree(
-              entryNode.getExitNode(),
-              DependenceGraphBuilder::iteratePredecessors,
-              DependenceGraphBuilder::iterateSuccessors);
+      DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(entryNode);
 
-      DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
+      DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
       Set<CFAEdge> dependentEdges = new HashSet<>();
 
-      for (CFANode dependentNode : domTree) {
-        int nodeId = domTree.getId(dependentNode);
+      for (CFANode dependentNode : postDomTree) {
+        int nodeId = postDomTree.getId(dependentNode);
         for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            int assumeSuccessorId = domTree.getId(assumeEdge.getSuccessor());
+            int assumeSuccessorId = postDomTree.getId(assumeEdge.getSuccessor());
             if (dependOnBothAssumptions
                 || nodeId == assumeSuccessorId
-                || domTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+                || postDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
                   addControlDependence(assumeEdge, dependentEdge);
@@ -544,8 +500,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       if (CFAUtils.existsPath(
           entryNode, entryNode.getExitNode(), CFAUtils::allLeavingEdges, shutdownNotifier)) {
         for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
-          int nodeId = domTree.getId(node);
-          if (!domTree.hasParent(nodeId)) {
+          int nodeId = postDomTree.getId(node);
+          if (!postDomTree.hasParent(nodeId)) {
             Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
             Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
           }
