@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
@@ -20,8 +21,8 @@ import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -94,7 +95,7 @@ public final class DependenceGraph implements Serializable {
     return nodes.getAllNodes();
   }
 
-  public ImmutableSet<ReachableEntry> getReachable(CFAEdge pStart, TraversalDirection pDirection)
+  public ReachedSet getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
     return getReachable(pStart, pDirection, ImmutableSet.of());
   }
@@ -107,38 +108,66 @@ public final class DependenceGraph implements Serializable {
    * @param pEdgesToIgnore edges to ignore on the search. Edges in this collection are ignored in
    *     the search.
    */
-  public ImmutableSet<ReachableEntry> getReachable(
+  public ReachedSet getReachable(
       CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
       throws InterruptedException {
     Collection<DGNode> visited = new HashSet<>();
-    Set<ReachableEntry> reachable = new HashSet<>();
+
+    // reachable.get(cfaEdge) == null
+    //   => cfaEdge not reachable
+    // reachable.get(cfaEdge) == optional && optional.isEmpty()
+    //   => edge reachable, all its causes reachable
+    // reachable.get(cfaEdge) == optional && optional.isPresent()
+    //   => edge reachable, all its causes in optional.get() are reachable
+    Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
+
     Queue<DGNode> waitlist = new ArrayDeque<>();
     nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
 
     while (!waitlist.isEmpty()) {
+      
       shutdownNotifier.shutdownIfNecessary();
       DGNode current = waitlist.poll();
 
       if (!visited.contains(current)) {
+        
         visited.add(current);
+        
         // FIXME: this is a strong overapproximation: If an unknown pointer is used,
         // we don't know anything, so we use the full program as slice
         if (current.isUnknownPointerNode()) {
+          
           reachable.clear();
           for (CFAEdge edge : nodes.nodesForEdges.keySet()) {
-            reachable.add(new ReachableEntry(edge, Optional.empty()));
+            reachable.put(edge, Optional.empty());
           }
           break;
+          
         } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
-          reachable.add(
-              new ReachableEntry(current.getCfaEdge(), Optional.ofNullable(current.getCause())));
+
+          CFAEdge edge = current.getCfaEdge();
+
+          if (nodes.nodesForEdges.get(edge).size() > 1) {
+
+            MemoryLocation cause = current.getCause();
+            Set<MemoryLocation> causes =
+                reachable.computeIfAbsent(edge, key -> Optional.of(new HashSet<>())).orElseThrow();
+
+            if (cause != null) {
+              causes.add(cause);
+            }
+
+          } else {
+            reachable.put(edge, Optional.empty());
+          }
+
           Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
           waitlist.addAll(adjacent);
         }
       }
     }
 
-    return ImmutableSet.copyOf(reachable);
+    return new ReachedSet(reachable);
   }
 
   private Collection<DGNode> getAdjacentNeighbors(
@@ -256,55 +285,43 @@ public final class DependenceGraph implements Serializable {
     }
   }
 
-  public static final class ReachableEntry {
+  public static final class ReachedSet {
 
-    private final CFAEdge edge;
-    private final Optional<MemoryLocation> cause;
+    private final ImmutableMap<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> reachable;
 
-    private ReachableEntry(CFAEdge pEdge, Optional<MemoryLocation> pCause) {
-      edge = pEdge;
-      cause = pCause;
+    private ReachedSet(Map<CFAEdge, Optional<Set<MemoryLocation>>> pReachable) {
+
+      ImmutableMap.Builder<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> builder =
+          ImmutableMap.builderWithExpectedSize(pReachable.size());
+
+      pReachable.forEach(
+          (key, value) -> {
+            if (value.isPresent()) {
+              builder.put(key, Optional.of(ImmutableSet.copyOf(value.orElseThrow())));
+            } else {
+              builder.put(key, Optional.empty());
+            }
+          });
+
+      reachable = builder.build();
     }
 
-    public CFAEdge getCfaEdge() {
-      return edge;
+    public ImmutableSet<CFAEdge> getReachedCfaEdges() {
+      return reachable.keySet();
     }
 
-    public Optional<MemoryLocation> getCause() {
-      return cause;
-    }
+    public boolean contains(CFAEdge pEdge, MemoryLocation pCause) {
 
-    @Override
-    public int hashCode() {
-      return Objects.hash(cause, edge);
-    }
+      Optional<ImmutableSet<MemoryLocation>> causes = reachable.get(pEdge);
 
-    @Override
-    public boolean equals(Object obj) {
-
-      if (this == obj) {
+      if (causes == null) {
+        return false;
+      } else if (causes.isEmpty()) {
         return true;
+      } else {
+        return causes.orElseThrow().contains(pCause);
       }
-
-      if (obj == null) {
-        return false;
-      }
-
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-
-      ReachableEntry other = (ReachableEntry) obj;
-      return Objects.equals(cause, other.cause) && Objects.equals(edge, other.edge);
-    }
-
-    @Override
-    public String toString() {
-      return String.format(
-          Locale.ENGLISH,
-          "(edge: %s, cause: %s)",
-          edge,
-          cause.map(MemoryLocation::toString).orElse("none"));
+      
     }
     
   }
