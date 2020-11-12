@@ -215,7 +215,18 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
       Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs =
           getRelevantEdgeDefs(pCfa, reachableEntries, relevantEdges, relevantCauses);
-      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria, relevantEdgeDefs);
+      final Slice slice =
+          new AbstractSlice(pCfa, relevantEdges, pSlicingCriteria) {
+
+            @Override
+            public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+              if (relevantEdgeDefs.containsKey(pEdge)) {
+                return relevantEdgeDefs.get(pEdge).contains(pMemoryLocation);
+              } else {
+                return false;
+              }
+            }
+          };
       slicingTime.stop();
 
       sliceEdgesNumber.setNextValue(relevantEdges.size());
