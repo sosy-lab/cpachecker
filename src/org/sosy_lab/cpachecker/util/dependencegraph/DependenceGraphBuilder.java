@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -88,7 +87,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -222,10 +220,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         isolatedNodes.inc();
       }
     }
-  }
-
-  private boolean ignoreFunctionEdge(CFAEdge pEdge) {
-    return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
 
   private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
@@ -457,106 +451,25 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void addControlDependence(CFAEdge pDependingOnEdge, CFAEdge pDependentEdge) {
-    addDependence(
-        getDGNode(pDependingOnEdge, Optional.empty()),
-        getDGNode(pDependentEdge, Optional.empty()),
-        DependenceType.CONTROL);
-  }
-
   private void addControlDependences() throws InterruptedException {
-
-    int controlDepCount = 0;
-    boolean dependOnBothAssumptions = controlDepsTakeBothAssumptions;
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(entryNode);
+      DepCounter controlDepCounter = new DepCounter();
 
-      DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
-      Set<CFAEdge> dependentEdges = new HashSet<>();
+      ControlDependenceBuilder.DepConsumer depConsumer =
+          (controlEdge, dependentEdge) -> {
+            addDependence(
+                getDGNode(controlEdge, Optional.empty()),
+                getDGNode(dependentEdge, Optional.empty()),
+                DependenceType.CONTROL);
+            controlDepCounter.increment();
+          };
 
-      for (CFANode dependentNode : postDomTree) {
-        int nodeId = postDomTree.getId(dependentNode);
-        for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
-          for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            int assumeSuccessorId = postDomTree.getId(assumeEdge.getSuccessor());
-            if (dependOnBothAssumptions
-                || nodeId == assumeSuccessorId
-                || postDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
-              for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
-                if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
-                  addControlDependence(assumeEdge, dependentEdge);
-                  controlDepCount++;
-                  dependentEdges.add(dependentEdge);
-                }
-              }
-            }
-          }
-        }
-      }
+      ControlDependenceBuilder.compute(
+          cfa, entryNode, depConsumer, controlDepsTakeBothAssumptions, shutdownNotifier);
 
-      Set<CFAEdge> noDomEdges = new HashSet<>();
-      if (CFAUtils.existsPath(
-          entryNode, entryNode.getExitNode(), CFAUtils::allLeavingEdges, shutdownNotifier)) {
-        for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
-          int nodeId = postDomTree.getId(node);
-          if (!postDomTree.hasParent(nodeId)) {
-            Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
-            Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
-          }
-        }
-      } else {
-        // Sometimes there is no path from the function entry node to the function exit node.
-        // In this case, domTree is incomplete as it does not contain all function nodes.
-        // Calling domTree.getId would throw an exception for these missing nodes.
-        for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
-          Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
-          Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
-        }
-      }
-
-      Set<CFAEdge> noDomAssumes = new HashSet<>();
-      for (CFAEdge edge : noDomEdges) {
-        if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          noDomAssumes.add(edge);
-        }
-      }
-
-      for (CFAEdge dependentEdge : noDomEdges) {
-        if (!ignoreFunctionEdge(dependentEdge)) {
-          for (CFAEdge assumeEdge : noDomAssumes) {
-            if (!assumeEdge.equals(dependentEdge)) {
-              addControlDependence(assumeEdge, dependentEdge);
-              controlDepCount++;
-              dependentEdges.add(dependentEdge);
-            }
-          }
-        }
-      }
-
-      Set<CFAEdge> callEdges = new HashSet<>();
-      for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
-        if (callEdge instanceof CFunctionCallEdge) {
-          CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
-          callEdges.add(callEdge);
-          addControlDependence(summaryEdge, callEdge);
-          controlDepCount++;
-        }
-      }
-
-      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
-        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-          if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
-            for (CFAEdge callEdge : callEdges) {
-              addControlDependence(callEdge, edge);
-              controlDepCount++;
-            }
-          }
-        }
-      }
-
-      controlDependenceNumber.setNextValue(controlDepCount);
+      controlDependenceNumber.setNextValue(controlDepCounter.get());
     }
   }
 
@@ -804,6 +717,19 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               + pState.toString();
 
       return s;
+    }
+  }
+
+  private static final class DepCounter {
+
+    private int value = 0;
+
+    private int get() {
+      return value;
+    }
+
+    private void increment() {
+      value++;
     }
   }
 }
