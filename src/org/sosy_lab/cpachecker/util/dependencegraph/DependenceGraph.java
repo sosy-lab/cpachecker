@@ -108,6 +108,10 @@ public final class DependenceGraph implements Serializable {
     return getReachable(pStart, pDirection, ImmutableSet.of());
   }
 
+  /**
+   * Returns all summary edges that must be reached during backward traversal because they are
+   * callers (or the caller's caller, etc.) of the function that contains pStart.
+   */
   private Set<CFunctionSummaryEdge> getRelevantCallerSummaryEdges(CFAEdge pStart) {
 
     Deque<CFAEdge> waitlist = new ArrayDeque<>();
@@ -159,6 +163,7 @@ public final class DependenceGraph implements Serializable {
 
     Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
     Multimap<AFunctionDeclaration, CFunctionCallEdge> ignoredCallEdges = HashMultimap.create();
+
     Collection<DGNode> seen = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
 
@@ -190,6 +195,8 @@ public final class DependenceGraph implements Serializable {
 
         CFAEdge edge = current.getCfaEdge();
 
+        // Only consider relevant call edges during backward traversal, but remember irrelevant
+        // call edges as they can become relevant later on.
         if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionCallEdge) {
           CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
           if (!relevantSummaryEdges.contains(callEdge.getSummaryEdge())) {
@@ -200,28 +207,26 @@ public final class DependenceGraph implements Serializable {
 
         MemoryLocation cause = current.getCause();
         int dgNodeCount = nodes.nodesForEdges.get(edge).size();
-
+        // for edges that have DG-nodes with causes, a set for these causes must be added
         if (dgNodeCount > 1 || (dgNodeCount == 1 && cause != null)) {
-
           Set<MemoryLocation> causes =
               reachable.computeIfAbsent(edge, key -> Optional.of(new HashSet<>())).orElseThrow();
-
           if (cause != null) {
             causes.add(cause);
           }
-
         } else {
           reachable.put(edge, Optional.empty());
         }
 
+        // Additional call edges become relevant during backward traversal, when the corresponding
+        // return edge is visited. Previously seen, but ignored, call edges must be checked again.
         if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionReturnEdge) {
           relevantSummaryEdges.add(((CFunctionReturnEdge) edge).getSummaryEdge());
           ignoredCallEdges.removeAll(edge.getPredecessor().getFunction());
           nodes.getNodesForEdge(pStart).forEach(waitlist::add);
         }
 
-        Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
-        for (DGNode dgNode : adjacent) {
+        for (DGNode dgNode : getAdjacentNeighbors(current, pDirection)) {
           if (seen.add(dgNode)) {
             waitlist.add(dgNode);
           }
@@ -347,6 +352,7 @@ public final class DependenceGraph implements Serializable {
     }
   }
 
+  /** Contains reached CFA edges as well as their relevant causes. */
   public static final class ReachedSet {
 
     private final ImmutableMap<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> reachable;
@@ -383,9 +389,7 @@ public final class DependenceGraph implements Serializable {
       } else {
         return causes.orElseThrow().contains(pCause);
       }
-      
     }
-    
   }
 
   static final class NodeMap {
