@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import com.google.common.collect.Lists;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,17 +50,13 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
   private int index;
 
   @Parameters(name = "smtSolver= {0}, machineModel={1}, heapEncoding={2}")
-  public static Collection<Object[]> data() {
-    List<Object[]> params = new ArrayList<>();
-
-    for (Solvers solver : Solvers.values()) {
-      for (MachineModel model : MachineModel.values()) {
-        for (HeapOptions heapOption : HeapOptions.values()) {
-          params.add(new Object[] {solver, model, heapOption});
-        }
-      }
-    }
-    return params;
+  public static List<Object[]> data() {
+    return Lists.transform(
+        Lists.cartesianProduct(
+            Arrays.asList(Solvers.values()),
+            Arrays.asList(MachineModel.values()),
+            Arrays.asList(HeapOptions.values())),
+        List::toArray);
   }
 
   @Before
