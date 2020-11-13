@@ -12,9 +12,9 @@ import com.google.common.truth.TruthJUnit;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * Abstract base class for tests that use SMTHeap and SMT solver just like {@link
@@ -26,21 +26,19 @@ public abstract class SMTHeapBasedTest0 extends SolverViewBasedTest0 {
   protected SMTHeap heap;
 
   @Before
-  public final void initSMTHeap() throws InvalidConfigurationException {
-    FormulaEncodingWithPointerAliasingOptions options =
-        new FormulaEncodingWithPointerAliasingOptions(config);
-    TypeHandlerWithPointerAliasing handler =
-        new TypeHandlerWithPointerAliasing(logger, modelToUse(), options);
+  public final void initSMTHeap() {
+    FormulaType<?> pointerType =
+        FormulaType.getBitvectorTypeWithSize(modelToUse().getSizeofPtrInBits());
 
     switch (heapToUse()) {
       case UF:
         heap = new SMTHeapWithUninterpretedFunctionCalls(mgrv);
         break;
       case ARRAYS:
-        heap = new SMTHeapWithArrays(mgrv, handler);
+        heap = new SMTHeapWithArrays(mgrv, pointerType);
         break;
       case SINGLE_BYTE_ARRAY:
-        heap = new SMTHeapWithByteArray(mgrv, handler, modelToUse());
+        heap = new SMTHeapWithByteArray(mgrv, pointerType, modelToUse());
         break;
     }
   }

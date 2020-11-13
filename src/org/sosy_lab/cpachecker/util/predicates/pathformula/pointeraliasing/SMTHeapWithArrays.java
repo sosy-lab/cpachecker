@@ -21,15 +21,13 @@ import org.sosy_lab.java_smt.api.FormulaType;
 class SMTHeapWithArrays implements SMTHeap {
 
   private final ArrayFormulaManagerView afmgr;
-
   private final FormulaManagerView formulaManager;
-  private final TypeHandlerWithPointerAliasing typeHandler;
+  private final FormulaType<?> pointerType;
 
-  SMTHeapWithArrays(
-      FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandle) {
+  SMTHeapWithArrays(FormulaManagerView pFormulaManager, FormulaType<?> pPointerType) {
     formulaManager = pFormulaManager;
     afmgr = formulaManager.getArrayFormulaManager();
-    typeHandler = pTypeHandle;
+    pointerType = pPointerType;
   }
 
   @Override
@@ -43,7 +41,7 @@ class SMTHeapWithArrays implements SMTHeap {
     FormulaType<E> targetType = formulaManager.getFormulaType(value);
     checkArgument(pTargetType.equals(targetType));
     FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
+    checkArgument(pointerType.equals(addressType));
     final ArrayFormula<I, E> oldFormula =
         afmgr.makeArray(targetName, oldIndex, addressType, targetType);
     final ArrayFormula<I, E> arrayFormula =
@@ -55,7 +53,7 @@ class SMTHeapWithArrays implements SMTHeap {
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
+    checkArgument(pointerType.equals(addressType));
 
     final ArrayFormula<I, E> arrayFormula = afmgr.makeArray(targetName, addressType, targetType);
     return afmgr.select(arrayFormula, address);
@@ -65,7 +63,7 @@ class SMTHeapWithArrays implements SMTHeap {
   public <I extends Formula, V extends Formula> V makePointerDereference(
       String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
+    checkArgument(pointerType.equals(addressType));
     final ArrayFormula<I, V> arrayFormula =
         afmgr.makeArray(targetName, ssaIndex, addressType, targetType);
     return afmgr.select(arrayFormula, address);

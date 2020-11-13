@@ -32,16 +32,14 @@ class SMTHeapWithByteArray implements SMTHeap {
   private final ArrayFormulaManagerView afmgr;
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManager bfmgr;
-  private final TypeHandlerWithPointerAliasing typeHandler;
+  private final FormulaType<?> pointerType;
   private final ByteOrder endianness;
 
   SMTHeapWithByteArray(
-      FormulaManagerView pFormulaManager,
-      TypeHandlerWithPointerAliasing pTypeHandle,
-      MachineModel pModel) {
+      FormulaManagerView pFormulaManager, FormulaType<?> pPointerType, MachineModel pModel) {
     formulaManager = pFormulaManager;
     afmgr = formulaManager.getArrayFormulaManager();
-    typeHandler = pTypeHandle;
+    pointerType = pPointerType;
     endianness = pModel.getEndianness();
     bfmgr = formulaManager.getBitvectorFormulaManager();
   }
@@ -61,7 +59,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       checkArgument(pTargetType.equals(targetType));
 
       FormulaType<I> addressType = formulaManager.getFormulaType(address);
-      checkArgument(typeHandler.getPointerType().equals(addressType));
+      checkArgument(pointerType.equals(addressType));
 
       return handleBitVectorAssignment(
           targetType, addressType, oldIndex, newIndex, address, (BitvectorFormula) value);
@@ -75,10 +73,10 @@ class SMTHeapWithByteArray implements SMTHeap {
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
+    checkArgument(pointerType.equals(addressType));
     if (targetType.isBitvectorType()) {
       final FormulaType<I> bvAddressType = formulaManager.getFormulaType(address);
-      checkArgument(typeHandler.getPointerType().equals(addressType));
+      checkArgument(pointerType.equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
 
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
@@ -97,7 +95,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     if (targetType.isBitvectorType()) {
       final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-      checkArgument(typeHandler.getPointerType().equals(addressType));
+      checkArgument(pointerType.equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
           afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, ssaIndex, addressType, BYTE_TYPE);

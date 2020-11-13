@@ -137,9 +137,11 @@ class PointerTargetSetManager {
     regionMgr = pRegionMgr;
 
     if (pOptions.useByteArrayForHeap()) {
-      heap = new SMTHeapWithByteArray(pFormulaManager, pTypeHandler, pConv.machineModel);
+      heap =
+          new SMTHeapWithByteArray(
+              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel);
     } else if (pOptions.useArraysForHeap()) {
-      heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler);
+      heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
     } else {
       heap = new SMTHeapWithUninterpretedFunctionCalls(pFormulaManager);
     }
