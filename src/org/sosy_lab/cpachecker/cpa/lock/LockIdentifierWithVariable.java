@@ -14,9 +14,13 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
 
   private final String varName;
 
-  LockIdentifierWithVariable(String pName, String var, LockType pType) {
-    super(pName, pType);
+  LockIdentifierWithVariable(String pName, String var) {
+    super(pName);
     assert !var.isEmpty();
+
+    String newName = var.replaceAll("\\(", "");
+    newName = newName.replaceAll("\\)", "");
+    newName = newName.replaceAll("___\\d*", "");
     varName = var;
   }
 

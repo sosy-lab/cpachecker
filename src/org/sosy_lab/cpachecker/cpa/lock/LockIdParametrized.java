@@ -11,18 +11,14 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
-public class LockIdUnprepared {
+public class LockIdParametrized {
 
   private int p;
   private String lockName;
 
-  public LockIdUnprepared(String pName, int num) {
+  public LockIdParametrized(String pName, int num) {
     p = num;
     lockName = pName;
-  }
-
-  public String getName() {
-    return lockName;
   }
 
   public LockIdentifier apply(List<CExpression> params) {

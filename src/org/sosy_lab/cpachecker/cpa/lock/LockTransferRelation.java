@@ -325,10 +325,10 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     if (!lockDescription.getFunctionEffectDescription().containsKey(functionName)) {
       return ImmutableList.of();
     }
-    Pair<AbstractLockEffect, LockIdUnprepared> locksWithEffect =
+    Pair<AbstractLockEffect, LockIdParametrized> locksWithEffect =
         lockDescription.getFunctionEffectDescription().get(functionName);
     AbstractLockEffect effect = locksWithEffect.getFirst();
-    LockIdUnprepared uId = locksWithEffect.getSecond();
+    LockIdParametrized uId = locksWithEffect.getSecond();
 
     ImmutableList.Builder<AbstractLockEffect> result = ImmutableList.builder();
 

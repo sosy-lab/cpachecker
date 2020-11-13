@@ -57,7 +57,7 @@ public class ConfigurationParser {
   @SuppressWarnings("deprecation")
   public LockInfo parseLockInfo() {
     Map<String, Integer> tmpInfo = new HashMap<>();
-    Map<String, Pair<AbstractLockEffect, LockIdUnprepared>> functionEffects = new HashMap<>();
+    Map<String, Pair<AbstractLockEffect, LockIdParametrized>> functionEffects = new HashMap<>();
     Map<String, LockIdentifier> variableEffects = new HashMap<>();
     String tmpString;
 
@@ -82,7 +82,7 @@ public class ConfigurationParser {
       tmpString = config.getProperty(lockName + ".setlevel");
       if (!isNullOrEmpty(tmpString)) {
         functionEffects.put(
-            tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdUnprepared(lockName, 0)));
+            tmpString, Pair.of(SetLockEffect.getInstance(), new LockIdParametrized(lockName, 0)));
       }
       tmpInfo.put(lockName, num);
     }
@@ -90,7 +90,7 @@ public class ConfigurationParser {
   }
 
   @SuppressWarnings("deprecation")
-  private Map<String, Pair<AbstractLockEffect, LockIdUnprepared>>
+  private Map<String, Pair<AbstractLockEffect, LockIdParametrized>>
       createMap(
       String lockName,
       String target,
@@ -105,7 +105,7 @@ public class ConfigurationParser {
               f ->
                   Pair.of(
                       effect,
-                      new LockIdUnprepared(
+                      new LockIdParametrized(
                           lockName, getValue(lockName + "." + f + ".parameters", 0))));
     }
     return ImmutableMap.of();
