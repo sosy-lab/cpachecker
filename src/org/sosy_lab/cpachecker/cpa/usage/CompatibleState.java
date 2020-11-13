@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
+import org.sosy_lab.cpachecker.cpa.usage.storage.GenericDelta;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 public interface CompatibleState extends Comparable<CompatibleState> {
@@ -24,5 +26,9 @@ public interface CompatibleState extends Comparable<CompatibleState> {
 
   public default boolean isRelevantFor(@SuppressWarnings("unused") SingleIdentifier id) {
     return true;
+  }
+
+  public default Delta<CompatibleState> getDeltaBetween(CompatibleState pOther) {
+    return GenericDelta.getInstance();
   }
 }

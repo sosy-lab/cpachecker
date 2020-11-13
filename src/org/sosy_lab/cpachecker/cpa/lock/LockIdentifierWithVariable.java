@@ -34,6 +34,9 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
     if (!super.equals(obj)) {
       return false;
     }
+    if (!(obj instanceof LockIdentifierWithVariable)) {
+      return false;
+    }
     LockIdentifierWithVariable other = (LockIdentifierWithVariable) obj;
     return Objects.equals(varName, other.varName);
   }

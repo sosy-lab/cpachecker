@@ -14,6 +14,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -375,6 +376,11 @@ public final class LockState extends AbstractLockState {
       }
     }
     return result;
+  }
+
+  public LockDelta getDeltaBetween(AbstractLockState pOther) {
+    // TODO more deterministic
+    return new LockDelta(new ArrayList<>(getDifference(pOther)));
   }
 
   @Override

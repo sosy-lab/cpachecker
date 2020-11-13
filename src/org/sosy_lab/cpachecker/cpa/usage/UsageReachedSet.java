@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,12 +34,10 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageDelta;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -150,17 +147,18 @@ public class UsageReachedSet extends PartitionedReachedSet {
       totalTimer.start();
       logger.log(Level.INFO, "Analysis is finished, start usage extraction");
       usagesExtracted = true;
-      Deque<Pair<AbstractState, Set<LockEffect>>> waitlist = new ArrayDeque<>();
-      Multimap<AbstractState, Set<LockEffect>> processedSets = ArrayListMultimap.create();
+      Deque<Pair<AbstractState, UsageDelta>> waitlist = new ArrayDeque<>();
+      Multimap<AbstractState, UsageDelta> processedSets = ArrayListMultimap.create();
 
-      Pair<AbstractState, Set<LockEffect>> currentPair = Pair.of(getFirstState(), new HashSet<>());
+      UsageDelta emptyDelta = UsageDelta.constructDeltaBetween(getFirstState(), getFirstState());
+      Pair<AbstractState, UsageDelta> currentPair = Pair.of(getFirstState(), emptyDelta);
       waitlist.add(currentPair);
-      processedSets.put(getFirstState(), new HashSet<>());
+      processedSets.put(getFirstState(), emptyDelta);
       usageProcessor.updateRedundantUnsafes(container.getNotInterestingUnsafes());
 
       while (!waitlist.isEmpty()) {
         currentPair = waitlist.pop();
-        Set<LockEffect> currentEffects = currentPair.getSecond();
+        UsageDelta currentDelta = currentPair.getSecond();
         processingSteps.inc();
         Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
         Deque<AbstractState> stateWaitlist = new ArrayDeque<>();
@@ -174,7 +172,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
             continue;
           }
           List<UsageInfo> expandedUsages =
-              expandUsagesAndAdd(argState, stateToUsage, currentEffects);
+              expandUsagesAndAdd(argState, stateToUsage, currentDelta);
 
           if (needToDumpUsages(argState)) {
             addingToContainerTimer.start();
@@ -195,12 +193,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
               ReachedSet innerReached =
                   manager.getReachedSetForInitialState(argState, reducedChild);
 
-              processReachedSet(argState, innerReached, waitlist, processedSets, currentEffects);
+              processReachedSet(argState, innerReached, waitlist, processedSets, currentDelta);
             }
           } else if (manager != null && manager.hasInitialStateWithoutExit(argState)) {
             ReachedSet innerReached = manager.getReachedSetForInitialState(argState);
 
-            processReachedSet(argState, innerReached, waitlist, processedSets, currentEffects);
+            processReachedSet(argState, innerReached, waitlist, processedSets, currentDelta);
           }
         }
       }
@@ -223,7 +221,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
       expandUsagesAndAdd(
           ARGState state,
           Map<AbstractState, List<UsageInfo>> stateToUsage,
-          Set<LockEffect> currentEffects) {
+          UsageDelta currentEffects) {
 
     List<UsageInfo> expandedUsages = new ArrayList<>();
 
@@ -234,25 +232,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
       expandedUsages.addAll(stateToUsage.getOrDefault(parent, ImmutableList.of()));
     }
 
-    LockState locks, expandedLocks;
     List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
 
     usageExpandingTimer.start();
     for (UsageInfo uinfo : usages) {
-      UsageInfo expandedUsage = null;
-      if (currentEffects.isEmpty()) {
-        expandedUsage = uinfo;
-      } else {
-        locks = (LockState) uinfo.getLockState();
-        LockStateBuilder builder = locks.builder();
-        currentEffects.forEach(e -> e.effect(builder));
-        expandedLocks = builder.build();
-        if (expandedLocks != null) {
-          // means we have impossible state, do not add the usage.
-          expandedUsage = uinfo.expand(expandedLocks);
-        }
-      }
-      if (expandedUsage != null) {
+      UsageInfo expandedUsage = uinfo.expand(currentEffects);
+      if (expandedUsage.isRelevant()) {
         expandedUsages.add(expandedUsage);
       }
     }
@@ -264,47 +249,34 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private void processReachedSet(
       AbstractState rootState,
       ReachedSet innerReached,
-      Deque<Pair<AbstractState, Set<LockEffect>>> waitlist,
-      Multimap<AbstractState, Set<LockEffect>> processedSets,
-      Set<LockEffect> currentEffects) {
+      Deque<Pair<AbstractState, UsageDelta>> waitlist,
+      Multimap<AbstractState, UsageDelta> processedSets,
+      UsageDelta currentEffects) {
 
     AbstractState reducedState = innerReached.getFirstState();
-    LockState rootLockState = AbstractStates.extractStateByType(rootState, LockState.class);
-    LockState reducedLockState = AbstractStates.extractStateByType(reducedState, LockState.class);
-    Set<LockEffect> difference = currentEffects;
-    if (rootLockState == null || reducedLockState == null) {
-      // No LockCPA
-    } else {
-      // the same element, so do not distinguish lock[1] and lock [2]
-      difference = reducedLockState.getDifference(rootLockState).elementSet();
-      if (!difference.isEmpty()) {
-        difference = new HashSet<>(difference);
-        difference.addAll(currentEffects);
-      }
-    }
+
+    UsageDelta newDiff = UsageDelta.constructDeltaBetween(reducedState, rootState);
+    UsageDelta difference = currentEffects.add(newDiff);
 
     AbstractState firstState = innerReached.getFirstState();
-    Pair<AbstractState, Set<LockEffect>> newPair =
+    Pair<AbstractState, UsageDelta> newPair =
         Pair.of(innerReached.getFirstState(), difference);
 
     if (shouldContinue(processedSets.get(firstState), difference)) {
       waitlist.add(newPair);
-      if (difference.isEmpty() && processedSets.containsKey(firstState)) {
-        processedSets.removeAll(firstState);
-      }
       processedSets.put(firstState, difference);
     }
   }
 
   private boolean
       shouldContinue(
-          Collection<Set<LockEffect>> processed,
-          Set<LockEffect> currentDifference) {
+          Collection<UsageDelta> processed,
+          UsageDelta currentDifference) {
     if (processCoveredUsages) {
       return !processed.contains(currentDifference);
     } else {
-      for (Set<LockEffect> locks : processed) {
-        if (currentDifference.containsAll(locks)) {
+      for (UsageDelta delta : processed) {
+        if (delta.covers(currentDifference)) {
           return false;
         }
       }

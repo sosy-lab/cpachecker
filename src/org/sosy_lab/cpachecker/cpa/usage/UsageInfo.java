@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageDelta;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsagePoint;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
@@ -80,13 +80,11 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     if (ident instanceof SingleIdentifier) {
       ImmutableList.Builder<CompatibleState> storedStates = ImmutableList.builder();
 
-      for (AbstractState s : AbstractStates.asIterable(state)) {
-        if (s instanceof CompatibleState) {
-          if (!((CompatibleState) s).isRelevantFor((SingleIdentifier) ident)) {
-            return IRRELEVANT_USAGE;
-          }
-          storedStates.add(((CompatibleState) s).prepareToStore());
+      for (CompatibleState s : AbstractStates.asIterable(state).filter(CompatibleState.class)) {
+        if (!s.isRelevantFor((SingleIdentifier) ident)) {
+          return IRRELEVANT_USAGE;
         }
+        storedStates.add(s.prepareToStore());
       }
       UsageInfo result =
           new UsageInfo(
@@ -156,9 +154,6 @@ public final class UsageInfo implements Comparable<UsageInfo> {
       sb.append(" with ");
       sb.append(locks);
     }
-
-    sb.append(", ");
-    sb.append(core.node);
 
     return sb.toString();
   }
@@ -234,19 +229,6 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     return new UsageInfo(core, newStates);
   }
 
-  public UsageInfo expand(LockState expandedState) {
-    ImmutableList.Builder<CompatibleState> builder = ImmutableList.builder();
-
-    for (CompatibleState state : this.compatibleStates) {
-      if (state instanceof AbstractLockState) {
-        builder.add(expandedState);
-      } else {
-        builder.add(state);
-      }
-    }
-    return copy(builder.build());
-  }
-
   public AbstractLockState getLockState() {
     for (CompatibleState state : compatibleStates) {
       if (state instanceof AbstractLockState) {
@@ -264,5 +246,13 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   List<CompatibleNode> getCompatibleNodes() {
     return transformedImmutableListCopy(compatibleStates, CompatibleState::getCompatibleNode);
+  }
+
+  public UsageInfo expand(UsageDelta pDelta) {
+    ImmutableList<CompatibleState> newStates = pDelta.apply(compatibleStates);
+    if (newStates.isEmpty()) {
+      return IRRELEVANT_USAGE;
+    }
+    return copy(newStates);
   }
 }

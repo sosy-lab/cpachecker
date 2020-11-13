@@ -98,6 +98,11 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       logger.log(Level.WARNING, "Path is repeated, BAM is looped");
       pInput.getUsageInfo().setAsLooped();
       externalRefinement.stop();
+    } catch (AssertionError e) {
+      // Sometimes the assertion is inside the solver
+      logger.log(Level.WARNING, "Assertion error in the solver: " + e.getMessage());
+      pInput.getUsageInfo().setAsLooped();
+      externalRefinement.stop();
     }
     return result;
   }

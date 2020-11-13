@@ -172,7 +172,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       if (locks > 0) {
         stats.locksInStateWithLocks.setNextValue(locks);
       }
-      return Collections.singleton(successor);
+      return ImmutableSet.of(successor);
     } else {
       return ImmutableSet.of();
     }
