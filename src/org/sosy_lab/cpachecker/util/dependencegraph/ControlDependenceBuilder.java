@@ -68,12 +68,9 @@ final class ControlDependenceBuilder {
 
     Set<CFAEdge> noDomEdges = new HashSet<>();
     for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
-      if (postDomTreeNodes.contains(node)) {
-        int nodeId = postDomTree.getId(node);
-        if (!postDomTree.hasParent(nodeId)) {
-          Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
-          Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
-        }
+      if (!postDomTreeNodes.contains(node) || !postDomTree.hasParent(postDomTree.getId(node))) {
+        Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
+        Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
       }
     }
 
