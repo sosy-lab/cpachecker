@@ -209,8 +209,17 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       printEdge(builder, firstEdge);
       printPath(firstUsage, firstIterator, builder);
 
-      threadIterator.setCurrentThread(forkThread);
-      printEdge(builder, secondEdge);
+      if (forkThread != threadIterator.currentThread) {
+        threadIterator.setCurrentThread(forkThread);
+        printEdge(builder, secondEdge);
+      } else {
+        // Means we split not on thread create, manually create thread
+        Element edge = printEdge(builder, secondEdge);
+        builder.addDataElementChild(
+            edge,
+            KeyDef.CREATETHREAD,
+            Integer.toString(threadIterator.next()));
+      }
       printPath(secondUsage, secondIterator, builder);
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
@@ -242,6 +251,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     Iterator<CFAEdge> secondIterator = secondPath.iterator();
     int threadCreateIndex = -1;
     int index = 0;
+    int mainIndex = -1;
 
     while (firstIterator.hasNext() && secondIterator.hasNext()) {
       CFAEdge firstEdge = firstIterator.next();
@@ -253,11 +263,25 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       }
       if (firstEdge != secondEdge) {
         // Note, after previous check, because devision on threadCreate is ok
-        return threadCreateIndex;
+        if (threadCreateIndex > 0) {
+          return threadCreateIndex;
+        } else {
+          return mainIndex;
+        }
+      } else {
+        if (firstEdge instanceof CFunctionCallEdge && mainIndex < 0) {
+          // inter in main function will be considered as thread create if we do not found the
+          // thread create
+          mainIndex = index;
+        }
       }
       index++;
     }
-    return threadCreateIndex;
+    if (threadCreateIndex > 0) {
+      return threadCreateIndex;
+    } else {
+      return mainIndex;
+    }
   }
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
