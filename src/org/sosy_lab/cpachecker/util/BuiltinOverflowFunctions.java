@@ -22,18 +22,31 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.List;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BuiltinOverflowFunctions {
   // https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
-  private static final String ADD = of("addl");
-  private static final String ADDL = of("addl");
+  private static final String ADD = of("add");
+  private static final String SADD = of("sadd");
   private static final String SADDL = of("saddl");
   private static final String SADDLL = of("saddll");
   private static final String UADD = of("uadd");
@@ -41,7 +54,7 @@ public class BuiltinOverflowFunctions {
   private static final String UADDLL = of("uaddll");
 
   private static final String SUB = of("sub");
-  private static final String SUBL = of("subl");
+  private static final String SSUB = of("ssub");
   private static final String SSUBL = of("ssubl");
   private static final String SSUBLL = of("ssubll");
   private static final String USUB = of("usub");
@@ -57,14 +70,14 @@ public class BuiltinOverflowFunctions {
   private static final ImmutableList<String> possibleIdentifiers =
       ImmutableList.<String>builder()
           .add(ADD)
-          .add(ADDL)
+          .add(SADD)
           .add(SADDL)
           .add(SADDLL)
           .add(UADD)
           .add(UADDL)
           .add(UADDLL)
           .add(SUB)
-          .add(SUBL)
+          .add(SSUB)
           .add(SSUBL)
           .add(SSUBLL)
           .add(USUB)
@@ -119,7 +132,7 @@ public class BuiltinOverflowFunctions {
     return null;
   }
 
-  private static BinaryOperator getOperator(String functionName) {
+  public static BinaryOperator getOperator(String functionName) {
     String shortIdentifier = getShortIdentifiers(functionName);
     if (shortIdentifier.contains("add")) {
       return BinaryOperator.PLUS;
@@ -134,6 +147,11 @@ public class BuiltinOverflowFunctions {
    */
   public static boolean isBuiltinOverflowFunction(String pFunctionName) {
     return possibleIdentifiers.contains(pFunctionName);
+  }
+
+  /* Functions without prefix and suffix have arbitrary argument types */
+  public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
+    return pFunctionName.equals(ADD) || pFunctionName.equals(SUB);
   }
 
   /**
@@ -167,5 +185,109 @@ public class BuiltinOverflowFunctions {
     CExpression castedVar1 = new CCastExpression(FileLocation.DUMMY, type, var1);
     CExpression castedVar2 = new CCastExpression(FileLocation.DUMMY, type, var2);
     return ofmgr.getResultOfAdditiveOperation(castedVar1, castedVar2, operator);
+  }
+
+  /* This class represents the result of a function evalutation */
+  public static class BuiltinOverflowFunctionResult {
+    public Value resultOfComputation;
+    public Value didOverflow;
+
+    public BuiltinOverflowFunctionResult() {
+      resultOfComputation = Value.UnknownValue.getInstance();
+      didOverflow = Value.UnknownValue.getInstance();
+    }
+  }
+
+  /*
+   * Calcualtes the result of a builtin overflow function. The arguments are converted to respective
+   * types (if necessary), the result of the operation is computed with infinite precision, and the
+   * overflow is determined by casting to the type of the third parameter.
+   */
+  public static BuiltinOverflowFunctionResult evaluateFunctionCall(
+      AFunctionCallExpression functionCallExpression,
+      AbstractExpressionValueVisitor evv,
+      MachineModel machineModel,
+      LogManagerWithoutDuplicates logger)
+      throws UnrecognizedCodeException {
+    BuiltinOverflowFunctionResult result = new BuiltinOverflowFunctionResult();
+
+    AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
+    if (nameExpressionOfCalledFunc instanceof AIdExpression) {
+      String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(nameOfCalledFunc)) {
+        List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
+        if (parameters.size() == 3 && parameters.get(2) instanceof CExpression) {
+          Value firstParameterValue =
+              evv.evaluate(
+                  (CRightHandSide) parameters.get(0),
+                  (CType) parameters.get(0).getExpressionType());
+          Value secondParameterValue =
+              evv.evaluate(
+                  (CRightHandSide) parameters.get(1),
+                  (CType) parameters.get(1).getExpressionType());
+          CSimpleType resultType =
+              (CSimpleType) ((CPointerType) parameters.get(2).getExpressionType()).getType();
+
+          if (resultType.getType().isIntegerType()
+              && firstParameterValue.isExplicitlyKnown()
+              && secondParameterValue.isExplicitlyKnown()) {
+            // cast arguments to matching values
+            if (!BuiltinOverflowFunctions.isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
+              firstParameterValue =
+                  AbstractExpressionValueVisitor.castCValue(
+                      firstParameterValue,
+                      resultType,
+                      machineModel,
+                      logger,
+                      functionCallExpression.getFileLocation());
+              secondParameterValue =
+                  AbstractExpressionValueVisitor.castCValue(
+                      secondParameterValue,
+                      resultType,
+                      machineModel,
+                      logger,
+                      functionCallExpression.getFileLocation());
+            }
+
+            // perform operation with infinite precision
+            BigInteger p1 = firstParameterValue.asNumericValue().bigInteger();
+            BigInteger p2 = secondParameterValue.asNumericValue().bigInteger();
+
+            BigInteger resultOfComputation;
+            BinaryOperator operator = BuiltinOverflowFunctions.getOperator(nameOfCalledFunc);
+            switch (operator) {
+              case PLUS:
+                resultOfComputation = p1.add(p2);
+                break;
+
+              case MINUS:
+                resultOfComputation = p1.subtract(p2);
+                break;
+
+              default:
+                return result;
+            }
+
+            // cast result type of third parameter
+            Value resultValue = new NumericValue(resultOfComputation);
+            resultValue =
+                AbstractExpressionValueVisitor.castCValue(
+                    resultValue,
+                    resultType,
+                    machineModel,
+                    logger,
+                    functionCallExpression.getFileLocation());
+
+            result.resultOfComputation = resultValue;
+            if (resultValue.asNumericValue().bigInteger().equals(resultOfComputation)) {
+              result.didOverflow = new NumericValue(0);
+            } else {
+              result.didOverflow = new NumericValue(1);
+            }
+          }
+        }
+      }
+    }
+    return result;
   }
 }
