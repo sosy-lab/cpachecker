@@ -17,12 +17,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
+/** Utility class for computing control dependencies. */
 final class ControlDependenceBuilder {
 
   private ControlDependenceBuilder() {}
@@ -31,20 +33,19 @@ final class ControlDependenceBuilder {
     return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
 
-  public static void compute(
+  static void compute(
       MutableCFA pCfa,
       FunctionEntryNode pEntryNode,
       DepConsumer pDepConsumer,
       boolean pDependOnBothAssumptions) {
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
-    DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
-
     Set<CFANode> postDomTreeNodes = new HashSet<>();
     Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
 
     Set<CFAEdge> dependentEdges = new HashSet<>();
 
+    DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
     for (CFANode dependentNode : postDomTree) {
       int nodeId = postDomTree.getId(dependentNode);
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
@@ -66,24 +67,32 @@ final class ControlDependenceBuilder {
       }
     }
 
-    Set<CFAEdge> noDomEdges = new HashSet<>();
+    // Some function nodes are missing from the post-DomTree. This happens when a path from the node
+    // to the function exit node does not exist. These nodes are handled the following way:
+    //   1. Edges directly connected to these nodes are collected, resulting in set E.
+    //   2. A subset C that contains all assume edges in E is created.
+    //   3. The following dependencies are added: { e depends on c | e in E, c in C, e != c }
+
+    Set<CFAEdge> edgesWithoutDominator = new HashSet<>();
     for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
-      if (!postDomTreeNodes.contains(node) || !postDomTree.hasParent(postDomTree.getId(node))) {
-        Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
-        Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
+      if (!(node instanceof FunctionExitNode)) {
+        if (!postDomTreeNodes.contains(node) || !postDomTree.hasParent(postDomTree.getId(node))) {
+          Iterables.addAll(edgesWithoutDominator, CFAUtils.allEnteringEdges(node));
+          Iterables.addAll(edgesWithoutDominator, CFAUtils.allLeavingEdges(node));
+        }
       }
     }
 
-    Set<CFAEdge> noDomAssumeEdges = new HashSet<>();
-    for (CFAEdge edge : noDomEdges) {
+    Set<CFAEdge> assumeEdgesWithoutDominator = new HashSet<>();
+    for (CFAEdge edge : edgesWithoutDominator) {
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-        noDomAssumeEdges.add(edge);
+        assumeEdgesWithoutDominator.add(edge);
       }
     }
 
-    for (CFAEdge dependentEdge : noDomEdges) {
+    for (CFAEdge dependentEdge : edgesWithoutDominator) {
       if (!ignoreFunctionEdge(dependentEdge)) {
-        for (CFAEdge assumeEdge : noDomAssumeEdges) {
+        for (CFAEdge assumeEdge : assumeEdgesWithoutDominator) {
           if (!assumeEdge.equals(dependentEdge)) {
             pDepConsumer.accept(assumeEdge, dependentEdge);
             dependentEdges.add(dependentEdge);
@@ -91,6 +100,8 @@ final class ControlDependenceBuilder {
         }
       }
     }
+
+    // add dependencies on function call and summary edges
 
     Set<CFAEdge> callEdges = new HashSet<>();
     for (CFAEdge callEdge : CFAUtils.enteringEdges(pEntryNode)) {
@@ -112,8 +123,8 @@ final class ControlDependenceBuilder {
     }
   }
 
+  @FunctionalInterface
   interface DepConsumer {
-
     void accept(CFAEdge pControlEdge, CFAEdge pDependentEdge);
   }
 }
