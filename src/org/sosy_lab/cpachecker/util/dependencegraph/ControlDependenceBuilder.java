@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -40,23 +41,24 @@ final class ControlDependenceBuilder {
     DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
 
     Set<CFANode> postDomTreeNodes = new HashSet<>();
+    Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
+
     Set<CFAEdge> dependentEdges = new HashSet<>();
 
     for (CFANode dependentNode : postDomTree) {
-      
       int nodeId = postDomTree.getId(dependentNode);
-      postDomTreeNodes.add(dependentNode);
-
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
         for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-          int assumeSuccessorId = postDomTree.getId(assumeEdge.getSuccessor());
-          if (pDependOnBothAssumptions
-              || nodeId == assumeSuccessorId
-              || postDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
-            for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
-              if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
-                pDepConsumer.accept(assumeEdge, dependentEdge);
-                dependentEdges.add(dependentEdge);
+          if (postDomTreeNodes.contains(assumeEdge.getSuccessor())) {
+            int assumeSuccessorId = postDomTree.getId(assumeEdge.getSuccessor());
+            if (pDependOnBothAssumptions
+                || nodeId == assumeSuccessorId
+                || postDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+              for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
+                if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
+                  pDepConsumer.accept(assumeEdge, dependentEdge);
+                  dependentEdges.add(dependentEdge);
+                }
               }
             }
           }
