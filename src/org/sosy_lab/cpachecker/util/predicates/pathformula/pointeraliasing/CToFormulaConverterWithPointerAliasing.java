@@ -236,7 +236,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
 
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      if(!options.useMemoryRegions() && !options.useByteArrayForHeap()) {
+      if (!options.useMemoryRegions() && !options.useByteArrayForHeap()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
@@ -257,10 +257,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final int pNewIndex) {
 
     final FormulaType<?> returnFormulaType;
-    if(options.useByteArrayForHeap()){
-      //8-bit vector type for byte array heap
-      returnFormulaType = fmgr.getFormulaType(fmgr.getBitvectorFormulaManager().makeBitvector(8,0));
-    }else {
+    if (options.useByteArrayForHeap()) {
+      // 8-bit vector type for byte array heap
+      returnFormulaType =
+          fmgr.getFormulaType(fmgr.getBitvectorFormulaManager().makeBitvector(8, 0));
+    } else {
       returnFormulaType = getFormulaTypeFromCType(pReturnType);
     }
     final ArrayFormula<?, ?> newArray =

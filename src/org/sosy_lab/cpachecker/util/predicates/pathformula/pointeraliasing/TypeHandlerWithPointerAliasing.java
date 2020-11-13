@@ -65,7 +65,6 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   public static boolean isByteArrayAccessName(String pName) {
     return (POINTER_NAME_PREFIX + BYTE_ARRAY_HEAP_ACCESS_NAME).equals(pName);
-
   }
 
   /**
@@ -182,10 +181,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     if (result != null) {
       return result;
     } else {
-      if (options.useByteArrayForHeap()){
+      if (options.useByteArrayForHeap()) {
         result = POINTER_NAME_PREFIX + BYTE_ARRAY_HEAP_ACCESS_NAME;
-      }else {
-        result = POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+      } else {
+        result =
+            POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
       }
       pointerNameCache.put(type, result);
       return result;

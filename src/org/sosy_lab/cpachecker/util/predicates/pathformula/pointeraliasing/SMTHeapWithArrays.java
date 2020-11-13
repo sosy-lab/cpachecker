@@ -17,9 +17,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/**
- * SMT heap representation with multiple arrays.
- */
+/** SMT heap representation with multiple arrays. */
 public class SMTHeapWithArrays implements SMTHeap {
 
   private final ArrayFormulaManagerView afmgr;
@@ -27,12 +25,12 @@ public class SMTHeapWithArrays implements SMTHeap {
   private final FormulaManagerView formulaManager;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
-  public SMTHeapWithArrays(FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandle){
+  public SMTHeapWithArrays(
+      FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandle) {
     formulaManager = pFormulaManager;
     afmgr = formulaManager.getArrayFormulaManager();
     typeHandler = pTypeHandle;
   }
-
 
   @Override
   public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -46,19 +44,11 @@ public class SMTHeapWithArrays implements SMTHeap {
     checkArgument(pTargetType.equals(targetType));
     FormulaType<I> addressType = formulaManager.getFormulaType(address);
     checkArgument(typeHandler.getPointerType().equals(addressType));
-      final ArrayFormula<I, E> oldFormula =
-          afmgr.makeArray(
-              targetName,
-              oldIndex,
-              addressType,
-              targetType);
-      final ArrayFormula<I, E> arrayFormula =
-          afmgr.makeArray(
-              targetName,
-              newIndex,
-              addressType,
-              targetType);
-      return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
+    final ArrayFormula<I, E> oldFormula =
+        afmgr.makeArray(targetName, oldIndex, addressType, targetType);
+    final ArrayFormula<I, E> arrayFormula =
+        afmgr.makeArray(targetName, newIndex, addressType, targetType);
+    return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
   }
 
   @Override
@@ -73,10 +63,7 @@ public class SMTHeapWithArrays implements SMTHeap {
 
   @Override
   public <I extends Formula, V extends Formula> V makePointerDereference(
-      String targetName,
-      FormulaType<V> targetType,
-      int ssaIndex,
-      I address) {
+      String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);
     checkArgument(typeHandler.getPointerType().equals(addressType));
     final ArrayFormula<I, V> arrayFormula =

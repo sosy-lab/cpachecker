@@ -70,5 +70,9 @@ public abstract class SMTHeapBasedTest0 extends SolverViewBasedTest0 {
 
   protected abstract MachineModel modelToUse();
 
-  protected enum HeapOptions {UF, SINGLE_BYTE_ARRAY, ARRAYS}
+  protected enum HeapOptions {
+    UF,
+    SINGLE_BYTE_ARRAY,
+    ARRAYS
+  }
 }

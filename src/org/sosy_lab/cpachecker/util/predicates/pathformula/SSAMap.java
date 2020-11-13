@@ -120,8 +120,8 @@ public class SSAMap implements Serializable {
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
-      //Disables sanity checks for single byte array heaps
-      if(!TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+      // Disables sanity checks for single byte array heaps
+      if (!TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
         type = type.getCanonicalType();
         assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
         CType oldType = varTypes.get(name);

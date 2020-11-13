@@ -16,19 +16,16 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/**
- * SMT heap representation with uninterpreted function calls.
- */
+/** SMT heap representation with uninterpreted function calls. */
 public class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
 
   private final FunctionFormulaManagerView ffmgr;
   private final FormulaManagerView formulaManager;
 
-  public SMTHeapWithUninterpretedFunctionCalls(FormulaManagerView pFormulaManager){
+  public SMTHeapWithUninterpretedFunctionCalls(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
     ffmgr = formulaManager.getFunctionFormulaManager();
   }
-
 
   @Override
   public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -53,10 +50,7 @@ public class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
 
   @Override
   public <I extends Formula, V extends Formula> V makePointerDereference(
-      String targetName,
-      FormulaType<V> targetType,
-      int ssaIndex,
-      I address) {
+      String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
   }
 }

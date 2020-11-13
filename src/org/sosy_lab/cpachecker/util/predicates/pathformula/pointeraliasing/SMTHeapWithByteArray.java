@@ -23,9 +23,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
-/**
- * SMT heap representation with one huge byte array.
- */
+/** SMT heap representation with one huge byte array. */
 public class SMTHeapWithByteArray implements SMTHeap {
 
   private static final String SINGLE_BYTEARRAY_HEAP_NAME = "SINGLE_BYTEARRAY_HEAP_";
@@ -45,7 +43,6 @@ public class SMTHeapWithByteArray implements SMTHeap {
     endianness = pModel.getEndianness();
     bfmgr = formulaManager.getBitvectorFormulaManager();
   }
-
 
   @Override
   public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -71,8 +68,6 @@ public class SMTHeapWithByteArray implements SMTHeap {
           "ByteArray Heap encoding does not support " + pTargetType.toString());
     }
   }
-
-
 
   @Override
   public <I extends Formula, E extends Formula> E makePointerDereference(

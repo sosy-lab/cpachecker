@@ -152,7 +152,7 @@ class PointerTargetSetManager {
       final FormulaType<V> targetType,
       final int ssaIndex,
       final I address) {
-    return heap.makePointerDereference(targetName,targetType,ssaIndex,address);
+    return heap.makePointerDereference(targetName, targetType, ssaIndex, address);
   }
 
   /**
@@ -166,7 +166,7 @@ class PointerTargetSetManager {
       final String targetName,
       final FormulaType<E> targetType,
       final I address) {
-    return heap.makePointerDereference(targetName,targetType,address);
+    return heap.makePointerDereference(targetName, targetType, address);
   }
 
   /**
@@ -186,7 +186,7 @@ class PointerTargetSetManager {
       final int newIndex,
       final I address,
       final E value) {
-    return heap.makePointerAssignment(targetName,pTargetType,oldIndex,newIndex,address,value);
+    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, address, value);
   }
 
   /**
@@ -384,8 +384,8 @@ class PointerTargetSetManager {
       String varName =
           UNITED_BASE_UNION_TAG_PREFIX
               + Joiner.on("_and_")
-                .join(
-                    Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
+                  .join(
+                      Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
       return new CCompositeType(false, false, ComplexTypeKind.UNION, members, varName, varName);
     }
 

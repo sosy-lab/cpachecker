@@ -72,7 +72,7 @@ public enum MachineModel {
       1, // void
       1, //bool
       4, //pointer
-      ByteOrder.LITTLE_ENDIAN//endianness
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
@@ -151,8 +151,9 @@ public enum MachineModel {
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
+
   @SuppressWarnings("ImmutableEnumChecker")
-  private transient final ByteOrder endianness;
+  private final transient ByteOrder endianness;
 
   // alignof numeric types
   private final int alignofShort;
