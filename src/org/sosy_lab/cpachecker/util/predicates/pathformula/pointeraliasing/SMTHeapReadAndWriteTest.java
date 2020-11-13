@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.truth.TruthJUnit.assume;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,10 +54,6 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     List<Object[]> params = new ArrayList<>();
 
     for (Solvers solver : Solvers.values()) {
-      // Class cast exception in Princess
-      if (solver == Solvers.PRINCESS) {
-        continue;
-      }
       for (MachineModel model : MachineModel.values()) {
         for (HeapOptions heapOption : HeapOptions.values()) {
           params.add(new Object[] {solver, model, heapOption});
@@ -69,6 +67,10 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
   public void init() {
     requireBitvectors();
     requireArrays();
+    assume()
+        .withMessage("Solver %s does not support arrays of bitvectors", solverToUse())
+        .that(solverToUse())
+        .isNotEqualTo(Solvers.PRINCESS);
     index = 0;
   }
 
