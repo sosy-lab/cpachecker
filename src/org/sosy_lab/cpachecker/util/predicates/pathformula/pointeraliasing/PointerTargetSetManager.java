@@ -38,7 +38,6 @@ import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -136,7 +135,14 @@ class PointerTargetSetManager {
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
     regionMgr = pRegionMgr;
-    heap = makeHeap(options, conv.machineModel);
+
+    if (pOptions.useByteArrayForHeap()) {
+      heap = new SMTHeapWithByteArray(pFormulaManager, pTypeHandler, pConv.machineModel);
+    } else if (pOptions.useArraysForHeap()) {
+      heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler);
+    } else {
+      heap = new SMTHeapWithUninterpretedFunctionCalls(pFormulaManager);
+    }
   }
 
   /**
@@ -560,22 +566,5 @@ class PointerTargetSetManager {
       targets = addToTargets(name, null, type, null, 0, 0, targets, fields);
     }
     return targets;
-  }
-
-  /**
-   * Creates heap for given configuration options.
-   *
-   * @param pOptions A configuration
-   * @return A new heap allocation
-   */
-  private SMTHeap makeHeap(
-      FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pModel) {
-    if (pOptions.useByteArrayForHeap()) {
-      return new SMTHeapWithByteArray(formulaManager, typeHandler, pModel);
-    } else if (pOptions.useArraysForHeap()) {
-      return new SMTHeapWithArrays(formulaManager, typeHandler);
-    } else {
-      return new SMTHeapWithUninterpretedFunctionCalls(formulaManager);
-    }
   }
 }
