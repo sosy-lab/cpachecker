@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 @Options(prefix = "cpa.local")
 public class LocalCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
-  private Statistics statistics;
-
   @Option(name = "localvariables", description = "variables, which are always local", secure = true)
   private Set<String> localVariables = ImmutableSet.of();
 
@@ -45,9 +43,8 @@ public class LocalCPA extends AbstractCPA
         "join",
         "sep",
         DelegateAbstractDomain.<LocalState>getInstance(),
-        new LocalTransferRelation(pConfig));
+        new LocalTransferRelation(pConfig, pLogger));
     pConfig.inject(this);
-    statistics = new LocalStatistics(pConfig, pLogger);
   }
 
   @Override
@@ -62,6 +59,6 @@ public class LocalCPA extends AbstractCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(statistics);
+    pStatsCollection.add(((LocalTransferRelation) getTransferRelation()).getStatistics());
   }
 }

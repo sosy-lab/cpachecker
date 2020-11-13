@@ -13,13 +13,16 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -33,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -90,9 +94,23 @@ public class LocalTransferRelation
 
   private final Map<String, Integer> allocateInfo;
 
-  public LocalTransferRelation(Configuration config) throws InvalidConfigurationException {
+  private final LocalStatistics stats;
+
+  public LocalTransferRelation(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
     allocateInfo = from(allocate).toMap(f -> getNumOrDefault(config, f));
+    stats = new LocalStatistics(config, pLogger);
+  }
+
+  public LocalStatistics getStatistics() {
+    return stats;
+  }
+
+  @Override
+  protected Collection<LocalState> postProcessing(@Nullable LocalState successor, CFAEdge edge) {
+    stats.registerState(successor, edge.getSuccessor());
+    return super.postProcessing(successor, edge);
   }
 
   @SuppressWarnings("deprecation")
@@ -212,6 +230,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
+
     LocalState newState = state.copy();
     if (statement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
