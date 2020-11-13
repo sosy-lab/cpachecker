@@ -24,7 +24,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 /** SMT heap representation with one huge byte array. */
-public class SMTHeapWithByteArray implements SMTHeap {
+class SMTHeapWithByteArray implements SMTHeap {
 
   private static final String SINGLE_BYTEARRAY_HEAP_NAME = "SINGLE_BYTEARRAY_HEAP_";
   private static final BitvectorType BYTE_TYPE = FormulaType.getBitvectorTypeWithSize(8);
@@ -35,7 +35,7 @@ public class SMTHeapWithByteArray implements SMTHeap {
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final ByteOrder endianness;
 
-  public SMTHeapWithByteArray(
+  SMTHeapWithByteArray(
       FormulaManagerView pFormulaManager,
       TypeHandlerWithPointerAliasing pTypeHandle,
       MachineModel pModel) {

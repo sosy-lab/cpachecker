@@ -17,12 +17,12 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /** SMT heap representation with uninterpreted function calls. */
-public class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
+class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
 
   private final FunctionFormulaManagerView ffmgr;
   private final FormulaManagerView formulaManager;
 
-  public SMTHeapWithUninterpretedFunctionCalls(FormulaManagerView pFormulaManager) {
+  SMTHeapWithUninterpretedFunctionCalls(FormulaManagerView pFormulaManager) {
     formulaManager = pFormulaManager;
     ffmgr = formulaManager.getFunctionFormulaManager();
   }

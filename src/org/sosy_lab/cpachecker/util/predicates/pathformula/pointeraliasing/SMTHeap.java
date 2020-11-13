@@ -13,7 +13,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /** Interface abstraction for smt heap accesses. */
-public interface SMTHeap {
+interface SMTHeap {
 
   /**
    * Create a formula that represents an assignment to a value via a pointer.

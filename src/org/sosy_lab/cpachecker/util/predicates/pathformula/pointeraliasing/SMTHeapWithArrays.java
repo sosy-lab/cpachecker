@@ -18,14 +18,14 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /** SMT heap representation with multiple arrays. */
-public class SMTHeapWithArrays implements SMTHeap {
+class SMTHeapWithArrays implements SMTHeap {
 
   private final ArrayFormulaManagerView afmgr;
 
   private final FormulaManagerView formulaManager;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
-  public SMTHeapWithArrays(
+  SMTHeapWithArrays(
       FormulaManagerView pFormulaManager, TypeHandlerWithPointerAliasing pTypeHandle) {
     formulaManager = pFormulaManager;
     afmgr = formulaManager.getArrayFormulaManager();
