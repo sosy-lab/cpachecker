@@ -75,12 +75,10 @@ class SMTHeapWithByteArray implements SMTHeap {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);
     checkArgument(pointerType.equals(addressType));
     if (targetType.isBitvectorType()) {
-      final FormulaType<I> bvAddressType = formulaManager.getFormulaType(address);
-      checkArgument(pointerType.equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
 
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
-          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, bvAddressType, BYTE_TYPE);
+          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, addressType, BYTE_TYPE);
       @SuppressWarnings("unchecked")
       E returnVal = (E) handleBitVectorDeref(arrayFormula, address, bvTargetType);
       return returnVal;
