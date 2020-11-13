@@ -27,6 +27,8 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 public class SMTHeapWithByteArray implements SMTHeap {
 
   private static final String SINGLE_BYTEARRAY_HEAP_NAME = "SINGLE_BYTEARRAY_HEAP_";
+  private static final BitvectorType BYTE_TYPE = FormulaType.getBitvectorTypeWithSize(8);
+
   private final ArrayFormulaManagerView afmgr;
   private final FormulaManagerView formulaManager;
   private final BitvectorFormulaManager bfmgr;
@@ -79,10 +81,8 @@ public class SMTHeapWithByteArray implements SMTHeap {
       checkArgument(typeHandler.getPointerType().equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
 
-      FormulaType<BitvectorFormula> bv8TargetType =
-          formulaManager.getFormulaType(bfmgr.makeBitvector(8, 0));
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
-          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, bvAddressType, bv8TargetType);
+          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, bvAddressType, BYTE_TYPE);
       @SuppressWarnings("unchecked")
       E returnVal = (E) handleBitVectorDeref(arrayFormula, address, bvTargetType);
       return returnVal;
@@ -99,9 +99,8 @@ public class SMTHeapWithByteArray implements SMTHeap {
       final FormulaType<I> addressType = formulaManager.getFormulaType(address);
       checkArgument(typeHandler.getPointerType().equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
-      BitvectorType bv8TargetType = FormulaType.getBitvectorTypeWithSize(8);
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
-          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, ssaIndex, addressType, bv8TargetType);
+          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, ssaIndex, addressType, BYTE_TYPE);
       @SuppressWarnings("unchecked")
       V returnVal = (V) handleBitVectorDeref(arrayFormula, address, bvTargetType);
       return returnVal;

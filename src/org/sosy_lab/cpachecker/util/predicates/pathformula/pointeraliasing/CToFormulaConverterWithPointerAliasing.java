@@ -259,8 +259,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final FormulaType<?> returnFormulaType;
     if (options.useByteArrayForHeap()) {
       // 8-bit vector type for byte array heap
-      returnFormulaType =
-          fmgr.getFormulaType(fmgr.getBitvectorFormulaManager().makeBitvector(8, 0));
+      returnFormulaType = FormulaType.getBitvectorTypeWithSize(8);
     } else {
       returnFormulaType = getFormulaTypeFromCType(pReturnType);
     }
