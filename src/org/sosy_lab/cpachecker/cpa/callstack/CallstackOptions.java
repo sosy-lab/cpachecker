@@ -23,7 +23,8 @@ class CallstackOptions {
       description = "Blacklist of extern functions that will make the analysis abort if called")
   private ImmutableSet<String> unsupportedFunctions =
       ImmutableSet.of(
-          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg");
+          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg",
+          "atexit");
 
   @Option(secure = true, name = "depth", description = "depth of recursion bound")
   private int recursionBoundDepth = 0;

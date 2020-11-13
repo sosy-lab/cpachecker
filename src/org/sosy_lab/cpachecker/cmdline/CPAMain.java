@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
@@ -504,6 +506,18 @@ public class CPAMain {
       return Configuration.builder()
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
+          .build();
+    } else if (from(properties).anyMatch(p -> p instanceof CoverFunction)) {
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", "FUN_CALL")
+          .setOption(
+              "testcase.targets.funName",
+              ((CoverFunction) properties.iterator().next()).getCoverFunction())
           .build();
     } else {
       alternateConfigFile = null;

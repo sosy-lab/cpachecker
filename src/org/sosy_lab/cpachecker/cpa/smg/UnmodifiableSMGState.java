@@ -19,11 +19,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -151,19 +150,19 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   boolean isTrackPredicatesEnabled();
 
-  PredRelation getPathPredicateRelation();
+  SMGPredicateRelation getPathPredicateRelation();
 
-  PredRelation getErrorPredicateRelation();
+  SMGPredicateRelation getErrorPredicateRelation();
 
   boolean isExplicit(SMGKnownSymbolicValue value);
 
-  SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey);
+  SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey);
 
   boolean hasMemoryErrors();
 
   boolean hasMemoryLeaks();
 
-  boolean areNonEqual(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2);
+  boolean areNonEqual(SMGValue pValue1, SMGValue pValue2);
 
   SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration);
 

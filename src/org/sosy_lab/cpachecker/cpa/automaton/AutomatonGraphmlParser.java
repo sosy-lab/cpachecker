@@ -866,7 +866,7 @@ public class AutomatonGraphmlParser {
   }
 
   private Optional<String> getFunction(
-      AutomatonGraphmlParserState pGraphmlParserState,
+      @SuppressWarnings("unused") AutomatonGraphmlParserState pGraphmlParserState,
       GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
@@ -874,10 +874,8 @@ public class AutomatonGraphmlParser {
         || !cfa.getAllFunctionNames().contains(pFunctionName.orElseThrow())) {
       return pFunctionName;
     }
-    Optional<String> functionName =
-        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.orElseThrow());
-    if (functionName.isPresent()) {
-      return functionName;
+    if (pFunctionName.isPresent()) {
+      return pFunctionName;
     }
     throw new WitnessParseException(
         String.format(

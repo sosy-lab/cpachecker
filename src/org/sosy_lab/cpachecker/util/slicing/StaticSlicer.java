@@ -52,8 +52,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   private final StatInt sliceEdgesNumber =
-      new StatInt(StatKind.SUM, "Number of relevant slice edges");
-  private final StatInt programEdgesNumber = new StatInt(StatKind.SUM, "Number of program edges");
+      new StatInt(StatKind.MAX, "Number of relevant slice edges");
+  private final StatInt programEdgesNumber = new StatInt(StatKind.MAX, "Number of program edges");
 
   StaticSlicer(
       SlicingCriteriaExtractor pExtractor,
@@ -125,8 +125,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
   private double getSliceProgramRatio() {
 
-    double sliceEdges = sliceEdgesNumber.getValueSum();
-    double programEdges = programEdgesNumber.getValueSum();
+    double sliceEdges = sliceEdgesNumber.getMaxValue();
+    double programEdges = programEdgesNumber.getMaxValue();
 
     return programEdges > 0.0 ? sliceEdges / programEdges : 1.0;
   }
@@ -145,7 +145,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
             writer.put(sliceEdgesNumber).put(programEdgesNumber);
             writer.put(
-                "Slice/Program ratio", String.format(Locale.US, "%.3f", getSliceProgramRatio()));
+                "Largest slice / program ratio",
+                String.format(Locale.US, "%.3f", getSliceProgramRatio()));
           }
 
           @Override

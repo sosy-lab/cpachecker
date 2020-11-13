@@ -10,7 +10,6 @@ import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
-import base64
 import fnmatch
 import hashlib
 import io
@@ -25,6 +24,7 @@ import ssl
 import zipfile
 import zlib
 
+from getpass import getpass
 from time import sleep
 from time import time
 
@@ -360,7 +360,7 @@ class WebInterface:
         Creates a new WebInterface object.
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
-        @param user_pwd: user name and password in the format '<user_name>:<password>' or none if no authentification is required
+        @param user_pwd: user name (and password) in the format '<user_name>[:<password>]' or none if no authentification is required
         @param revision: the svn revision string, defaults to 'trunk:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
@@ -414,12 +414,7 @@ class WebInterface:
         self._connection.verify = cert_path or True
 
         if user_pwd:
-            self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
-            self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode(
-                "utf-8"
-            )
-        else:
-            self._base64_user_pwd = None
+            self._connection.auth = self.getUserAndPassword(user_pwd)
 
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
@@ -431,7 +426,7 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        self._resolved_tool_revision(revision)
+        self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
         if HAS_SSECLIENT:
@@ -440,6 +435,16 @@ class WebInterface:
             self._result_downloader = PollingResultDownloader(
                 self, result_poll_interval
             )
+
+    def getUserAndPassword(self, user_pwd):
+        # split only once, password might contain special char ':'
+        tokens = user_pwd.split(":", maxsplit=1)
+        if len(tokens) == 2 and all(tokens):
+            user, password = tokens
+        else:
+            user = user_pwd
+            password = getpass("Please enter password for user '" + user + "': ")
+        return user, password
 
     def _read_hash_code_cache(self):
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
@@ -474,12 +479,10 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _resolved_tool_revision(self, revision):
-
+    def _request_tool_revision(self, revision):
         path = "tool/version_string?revision=" + revision
-
         (resolved_svn_revision, _) = self._request("GET", path)
-        self._revision = resolved_svn_revision.decode("UTF-8")
+        return resolved_svn_revision.decode("UTF-8")
 
     def _request_tool_name(self):
         path = "tool/name"
@@ -898,7 +901,7 @@ class WebInterface:
         norm_path = os.path.normpath(path)
         if ".." in norm_path or os.path.isabs(norm_path):
             norm_path = os.path.basename(norm_path)
-        return norm_path
+        return norm_path.replace("\\", "/")
 
     def flush_runs(self):
         """

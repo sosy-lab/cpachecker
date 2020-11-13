@@ -357,7 +357,6 @@ public class SliceExporter {
       if (pRelevantEdges.contains(edge)
           || edge.getEdgeType() == CFAEdgeType.BlankEdge
           || edge.getEdgeType() == CFAEdgeType.AssumeEdge
-          || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
           || edge instanceof CFunctionSummaryStatementEdge) {
 
         newEdge = cloneEdge(edge, newPred, newSucc);
@@ -427,7 +426,8 @@ public class SliceExporter {
 
       FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
 
-      Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
+      Collection<CFANode> functionNodes =
+          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
 
       if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
         final FunctionEntryNode newEntryNode =
