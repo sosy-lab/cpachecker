@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
@@ -36,6 +38,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -112,6 +115,7 @@ public final class DependenceGraph implements Serializable {
     Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
 
     waitlist.add(pStart);
+    seen.add(pStart);
 
     while (!waitlist.isEmpty()) {
 
@@ -154,67 +158,73 @@ public final class DependenceGraph implements Serializable {
     Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
 
     Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
-    Collection<DGNode> visited = new HashSet<>();
+    Multimap<AFunctionDeclaration, CFunctionCallEdge> ignoredCallEdges = HashMultimap.create();
+    Collection<DGNode> seen = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
-    
-    nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
+
+    for (DGNode dgNode : nodes.getNodesForEdge(pStart)) {
+      seen.add(dgNode);
+      waitlist.add(dgNode);
+    }
 
     if (pDirection == TraversalDirection.BACKWARD) {
       relevantSummaryEdges.addAll(getRelevantCallerSummaryEdges(pStart));
     }
 
     while (!waitlist.isEmpty()) {
-      
+
       shutdownNotifier.shutdownIfNecessary();
-      DGNode current = waitlist.poll();
+      DGNode current = waitlist.remove();
 
-      if (!visited.contains(current)) {
-        
-        visited.add(current);
-        
-        // FIXME: this is a strong overapproximation: If an unknown pointer is used,
-        // we don't know anything, so we use the full program as slice
-        if (current.isUnknownPointerNode()) {
-          
-          reachable.clear();
-          for (CFAEdge edge : nodes.nodesForEdges.keySet()) {
-            reachable.put(edge, Optional.empty());
+      // FIXME: this is a strong overapproximation: If an unknown pointer is used,
+      // we don't know anything, so we use the full program as slice
+      if (current.isUnknownPointerNode()) {
+
+        reachable.clear();
+        for (CFAEdge edge : nodes.nodesForEdges.keySet()) {
+          reachable.put(edge, Optional.empty());
+        }
+        break;
+
+      } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
+
+        CFAEdge edge = current.getCfaEdge();
+
+        if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionCallEdge) {
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+          if (!relevantSummaryEdges.contains(callEdge.getSummaryEdge())) {
+            ignoredCallEdges.put(edge.getSuccessor().getFunction(), callEdge);
+            continue;
           }
-          break;
-          
-        } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
+        }
 
-          CFAEdge edge = current.getCfaEdge();
+        MemoryLocation cause = current.getCause();
+        int dgNodeCount = nodes.nodesForEdges.get(edge).size();
 
-          if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionCallEdge) {
-            CFunctionSummaryEdge summaryEdge = ((CFunctionCallEdge) edge).getSummaryEdge();
-            if (!relevantSummaryEdges.contains(summaryEdge)) {
-              continue;
-            }
-          }
+        if (dgNodeCount > 1 || (dgNodeCount == 1 && cause != null)) {
 
-          MemoryLocation cause = current.getCause();
-          int dgNodeCount = nodes.nodesForEdges.get(edge).size();
+          Set<MemoryLocation> causes =
+              reachable.computeIfAbsent(edge, key -> Optional.of(new HashSet<>())).orElseThrow();
 
-          if (dgNodeCount > 1 || (dgNodeCount == 1 && cause != null)) {
-
-            Set<MemoryLocation> causes =
-                reachable.computeIfAbsent(edge, key -> Optional.of(new HashSet<>())).orElseThrow();
-
-            if (cause != null) {
-              causes.add(cause);
-            }
-
-          } else {
-            reachable.put(edge, Optional.empty());
+          if (cause != null) {
+            causes.add(cause);
           }
 
-          if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionReturnEdge) {
-            relevantSummaryEdges.add(((CFunctionReturnEdge) edge).getSummaryEdge());
-          }
+        } else {
+          reachable.put(edge, Optional.empty());
+        }
 
-          Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
-          waitlist.addAll(adjacent);
+        if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionReturnEdge) {
+          relevantSummaryEdges.add(((CFunctionReturnEdge) edge).getSummaryEdge());
+          ignoredCallEdges.removeAll(edge.getPredecessor().getFunction());
+          nodes.getNodesForEdge(pStart).forEach(waitlist::add);
+        }
+
+        Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
+        for (DGNode dgNode : adjacent) {
+          if (seen.add(dgNode)) {
+            waitlist.add(dgNode);
+          }
         }
       }
     }
