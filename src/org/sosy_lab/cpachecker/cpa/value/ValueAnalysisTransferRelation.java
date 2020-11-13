@@ -719,8 +719,35 @@ public class ValueAnalysisTransferRelation
     if (initialValue.isUnknown()) {
       unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
       if (options.isUnknownToRangeLimits()) {
-        newElement.assignConstant(memoryLocation, new NumericValue(2147483647), declarationType);
-        newElement.assignConstant(memoryLocation, new NumericValue(-2147483647), declarationType);
+        if (declarationType instanceof JSimpleType) {
+          JBasicType basicType = ((JSimpleType) declarationType).getType();
+          switch (basicType) {
+            case BYTE:
+            case CHAR:
+              newElement.assignConstant(memoryLocation, new NumericValue(127), declarationType);
+              newElement.assignConstant(memoryLocation, new NumericValue(-128), declarationType);
+              break;
+            case SHORT:
+              newElement.assignConstant(memoryLocation, new NumericValue(32767), declarationType);
+              newElement.assignConstant(memoryLocation, new NumericValue(-32768), declarationType);
+              break;
+            case INT:
+            case LONG:
+              newElement.assignConstant(memoryLocation, new NumericValue(2147483647), declarationType);
+              newElement.assignConstant(memoryLocation, new NumericValue(-2147483647), declarationType);
+              break;
+            case FLOAT:
+            case DOUBLE:
+              newElement.assignConstant(memoryLocation, new NumericValue(1.2e-38), declarationType);
+              newElement.assignConstant(memoryLocation, new NumericValue(3.4e38), declarationType);
+              break;
+            case UNSPECIFIED:
+            case BOOLEAN:
+            default:
+              break;
+          }
+        }
+
       }
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
@@ -1034,8 +1061,34 @@ public class ValueAnalysisTransferRelation
       if (value.isUnknown()) {
         unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
         if (options.isUnknownToRangeLimits()) {
-          newElement.assignConstant(assignedVar, new NumericValue(2147483647), lType);
-          newElement.assignConstant(assignedVar, new NumericValue(-2147483647), lType);
+          if (lType instanceof JSimpleType) {
+            JBasicType basicType = ((JSimpleType) lType).getType();
+            switch (basicType) {
+              case BYTE:
+              case CHAR:
+                newElement.assignConstant(assignedVar, new NumericValue(127), lType);
+                newElement.assignConstant(assignedVar, new NumericValue(-128), lType);
+                break;
+              case SHORT:
+                newElement.assignConstant(assignedVar, new NumericValue(32767), lType);
+                newElement.assignConstant(assignedVar, new NumericValue(-32768), lType);
+                break;
+              case INT:
+              case LONG:
+                newElement.assignConstant(assignedVar, new NumericValue(2147483647), lType);
+                newElement.assignConstant(assignedVar, new NumericValue(-2147483647), lType);
+                break;
+              case FLOAT:
+              case DOUBLE:
+                newElement.assignConstant(assignedVar, new NumericValue(1.2e-38), lType);
+                newElement.assignConstant(assignedVar, new NumericValue(3.4e38), lType);
+                break;
+              case UNSPECIFIED:
+              case BOOLEAN:
+              default:
+                break;
+            }
+          }
         }
       } else {
         newElement.assignConstant(assignedVar, value, lType);
