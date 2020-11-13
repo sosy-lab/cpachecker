@@ -21,6 +21,7 @@ import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,6 +37,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
@@ -100,6 +105,34 @@ public final class DependenceGraph implements Serializable {
     return getReachable(pStart, pDirection, ImmutableSet.of());
   }
 
+  private Set<CFunctionSummaryEdge> getRelevantCallerSummaryEdges(CFAEdge pStart) {
+
+    Deque<CFAEdge> waitlist = new ArrayDeque<>();
+    Set<CFAEdge> seen = new HashSet<>();
+    Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
+
+    waitlist.add(pStart);
+
+    while (!waitlist.isEmpty()) {
+
+      CFAEdge edge = waitlist.remove();
+
+      if (edge instanceof CFunctionCallEdge) {
+        relevantSummaryEdges.add(((CFunctionCallEdge) edge).getSummaryEdge());
+      }
+
+      if (!(edge instanceof CFunctionReturnEdge)) {
+        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(edge.getPredecessor())) {
+          if (seen.add(enteringEdge)) { // if not previously seen -> add to waitlist
+            waitlist.add(enteringEdge);
+          }
+        }
+      }
+    }
+
+    return relevantSummaryEdges;
+  }
+
   /**
    * Return the reachable dependences of the given {@link CFAEdge} ignoring a set of given edges.
    *
@@ -111,7 +144,6 @@ public final class DependenceGraph implements Serializable {
   public ReachedSet getReachable(
       CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
       throws InterruptedException {
-    Collection<DGNode> visited = new HashSet<>();
 
     // reachable.get(cfaEdge) == null
     //   => cfaEdge not reachable
@@ -121,8 +153,15 @@ public final class DependenceGraph implements Serializable {
     //   => edge reachable, all its causes in optional.get() are reachable
     Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
 
+    Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
+    Collection<DGNode> visited = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
+    
     nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
+
+    if (pDirection == TraversalDirection.BACKWARD) {
+      relevantSummaryEdges.addAll(getRelevantCallerSummaryEdges(pStart));
+    }
 
     while (!waitlist.isEmpty()) {
       
@@ -146,6 +185,14 @@ public final class DependenceGraph implements Serializable {
         } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
 
           CFAEdge edge = current.getCfaEdge();
+
+          if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionCallEdge) {
+            CFunctionSummaryEdge summaryEdge = ((CFunctionCallEdge) edge).getSummaryEdge();
+            if (!relevantSummaryEdges.contains(summaryEdge)) {
+              continue;
+            }
+          }
+
           MemoryLocation cause = current.getCause();
           int dgNodeCount = nodes.nodesForEdges.get(edge).size();
 
@@ -160,6 +207,10 @@ public final class DependenceGraph implements Serializable {
 
           } else {
             reachable.put(edge, Optional.empty());
+          }
+
+          if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionReturnEdge) {
+            relevantSummaryEdges.add(((CFunctionReturnEdge) edge).getSummaryEdge());
           }
 
           Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
