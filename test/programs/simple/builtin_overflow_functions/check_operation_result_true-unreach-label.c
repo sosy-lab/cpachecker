@@ -16,6 +16,10 @@ int main()
         __builtin_add_overflow(INT_MAX, INT_MAX, &c);
         shouldBeTrue(c == 2LL * INT_MAX)
 
+        int x = INT_MAX, y = INT_MAX;
+        __builtin_add_overflow(x, y, &c);
+        shouldBeTrue(c == 1LL*x + y)
+
         // overflow
         __builtin_add_overflow(INT_MAX, 1, &a);
         shouldBeTrue(a == INT_MIN)
@@ -42,6 +46,10 @@ int main()
         long a;
         __builtin_saddl_overflow(LONG_MAX - 1l, 1l, &a);
         shouldBeTrue(a == LONG_MAX)
+        
+        int c;
+        __builtin_saddl_overflow(LONG_MAX - 1l, 1l, &c);
+        shouldBeTrue(c == -1) // type conversion when writing to c
 
         __builtin_saddl_overflow(LONG_MAX, 4l, &a);
         shouldBeTrue(a == LONG_MIN + 3l)
@@ -182,8 +190,80 @@ int main()
         shouldBeTrue(a == ULLONG_MAX - 3ull)
     }
 
+    // __builtin_mul_overflow
+    {
+        int a; long long c;
+        // no overflow in type of c
+        __builtin_mul_overflow(INT_MAX, 2, &c);
+        shouldBeTrue(c == INT_MAX * 2ll)
+
+        // overflow
+        __builtin_mul_overflow(INT_MAX, 2, &a);
+        shouldBeTrue(a == -2)
+    }
+
+    // __builtin_smul_overflow
+    {
+        int a;
+        __builtin_smul_overflow(5, 2, &a);
+        shouldBeTrue(a == 10)
+
+        __builtin_smul_overflow(INT_MAX, 2, &a);
+        shouldBeTrue(a == -2)
+    }
+    
+    // __builtin_smull_overflow
+    {
+        long a;
+        __builtin_smull_overflow(5, 2, &a);
+        shouldBeTrue(a == 10)
+
+        __builtin_smull_overflow(LONG_MAX, 2, &a);
+        shouldBeTrue(a == -2)
+    }
+
+    // __builtin_smulll_overflow
+    {
+        long long a;
+        __builtin_smulll_overflow(5, 2, &a);
+        shouldBeTrue(a == 10)
+
+        __builtin_smulll_overflow(LLONG_MAX, 2, &a);
+        shouldBeTrue(a == -2)
+    }
+
+    // __builtin_umul_overflow
+    {
+        unsigned int a;
+        __builtin_umul_overflow(5, 2, &a);
+        shouldBeTrue(a == 10)
+
+        __builtin_umul_overflow(UINT_MAX, 2, &a);
+        shouldBeTrue(a == UINT_MAX - 1)
+    }
+    
+    // __builtin_umull_overflow
+    {
+        unsigned long a;
+        __builtin_umull_overflow(5, 2, &a);
+        shouldBeTrue(a == 10)
+
+        __builtin_umull_overflow(ULONG_MAX, 2, &a);
+        shouldBeTrue(a == ULONG_MAX - 1)
+    }
+
+    // __builtin_umulll_overflow
+    {
+        unsigned long long a;
+        __builtin_umulll_overflow(5, 2, &a);
+        shouldBeTrue(a == 10)
+
+        __builtin_umulll_overflow(ULLONG_MAX, 2, &a);
+        shouldBeTrue(a == ULLONG_MAX - 1)
+    }
+
     return 0;
 
     ERROR:
-        return 1;
+      return 1;
 }

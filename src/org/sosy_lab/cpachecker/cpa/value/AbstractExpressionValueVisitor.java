@@ -819,11 +819,8 @@ public abstract class AbstractExpressionValueVisitor
         }
 
         if(BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          BuiltinOverflowFunctions.BuiltinOverflowFunctionResult result;
-          result =
-              BuiltinOverflowFunctions.evaluateFunctionCall(
-                  pIastFunctionCallExpression, this, machineModel, logger);
-          return result.didOverflow;
+          return BuiltinOverflowFunctions.evaluateFunctionCall(
+              pIastFunctionCallExpression, this, machineModel, logger);
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
 

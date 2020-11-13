@@ -19,7 +19,10 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -85,7 +88,27 @@ public class OverflowAssumptionManager {
     return assumption;
   }
 
-  public CExpression getResultOfAdditiveOperation(
+  public CExpression getConjunctionOfMultiplicationAssumptions(
+      CExpression operand1, CExpression operand2, CSimpleType type, boolean negate)
+      throws UnrecognizedCodeException {
+    var assumptions = new HashSet<CExpression>();
+    addMultiplicationAssumptions(
+        operand1, operand2, getLowerBound(type), getUpperBound(type), assumptions);
+    CExpression result = from(assumptions).get(0);
+    for (var assumption : from(assumptions).skip(1)) {
+      result =
+          cBinaryExpressionBuilder.buildBinaryExpression(
+              assumption, result, BinaryOperator.BINARY_AND);
+    }
+    if (negate) {
+      result =
+          cBinaryExpressionBuilder.buildBinaryExpression(
+              result, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+    }
+    return result;
+  }
+
+  public CExpression getResultOfOperation(
       CExpression operand1, CExpression operand2, BinaryOperator operator)
       throws UnrecognizedCodeException {
     return cBinaryExpressionBuilder.buildBinaryExpression(operand1, operand2, operator);

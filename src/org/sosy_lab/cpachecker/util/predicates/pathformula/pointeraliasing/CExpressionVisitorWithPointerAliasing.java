@@ -734,28 +734,31 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         assert parameters.size() == 3;
         CExpression var1 = parameters.get(0);
         CExpression var2 = parameters.get(1);
+        CExpression var3 = parameters.get(2);
         Expression overflows =
-            BuiltinOverflowFunctions.handleOverflow(ofmgr, var1, var2, functionName).accept(this);
+            BuiltinOverflowFunctions.handleOverflow(ofmgr, var1, var2, var3, functionName)
+                .accept(this);
         Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
-        CLeftHandSide lhs =
-            new CPointerExpression(
-                FileLocation.DUMMY,
-                BuiltinOverflowFunctions.getType(functionName),
-                parameters.get(2));
-        CRightHandSide rhs =
-            BuiltinOverflowFunctions.handleOverflowSideeffects(ofmgr, var1, var2, functionName);
 
-        BooleanFormula form = null;
-        try {
-          form =
-              conv.makeAssignment(
-                  lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
-        } catch (InterruptedException e1) {
-          CtoFormulaConverter.propagateInterruptedException(e1);
+        if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(functionName)) {
+          CLeftHandSide lhs =
+              new CPointerExpression(
+                  FileLocation.DUMMY, ((CPointerType) var3.getExpressionType()).getType(), var3);
+          CRightHandSide rhs =
+              BuiltinOverflowFunctions.handleOverflowSideeffects(
+                  ofmgr, var1, var2, var3, functionName);
+
+          BooleanFormula form = null;
+          try {
+            form =
+                conv.makeAssignment(
+                    lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+          } catch (InterruptedException e1) {
+            CtoFormulaConverter.propagateInterruptedException(e1);
+          }
+
+          constraints.addConstraint(checkNotNull(form));
         }
-
-        constraints.addConstraint(checkNotNull(form));
-
         return Value.ofValue(f);
       }
     }
