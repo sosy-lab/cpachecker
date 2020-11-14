@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,16 +36,24 @@ final class ControlDependenceBuilder {
     return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
 
+  private static Iterable<CFAEdge> functionEdges(MutableCFA pCfa, FunctionEntryNode pEntryNode) {
+
+    return FluentIterable.from(pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName()))
+        .transformAndConcat(CFAUtils::allLeavingEdges)
+        .filter(edge -> !ignoreFunctionEdge(edge));
+  }
+
   static void compute(
       MutableCFA pCfa,
       FunctionEntryNode pEntryNode,
-      DepConsumer pDepConsumer,
+      ControlDependencyConsumer pDepConsumer,
       boolean pDependOnBothAssumptions) {
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
     Set<CFANode> postDomTreeNodes = new HashSet<>();
     Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
 
+    Set<ControlDependency> dependencies = new HashSet<>();
     Set<CFAEdge> dependentEdges = new HashSet<>();
 
     DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
@@ -58,6 +69,7 @@ final class ControlDependenceBuilder {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
                   pDepConsumer.accept(assumeEdge, dependentEdge);
+                  dependencies.add(new ControlDependency(assumeEdge, dependentEdge));
                   dependentEdges.add(dependentEdge);
                 }
               }
@@ -95,6 +107,7 @@ final class ControlDependenceBuilder {
         for (CFAEdge assumeEdge : assumeEdgesWithoutDominator) {
           if (!assumeEdge.equals(dependentEdge)) {
             pDepConsumer.accept(assumeEdge, dependentEdge);
+            dependencies.add(new ControlDependency(assumeEdge, dependentEdge));
             dependentEdges.add(dependentEdge);
           }
         }
@@ -112,19 +125,93 @@ final class ControlDependenceBuilder {
       }
     }
 
-    for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
-          for (CFAEdge callEdge : callEdges) {
-            pDepConsumer.accept(callEdge, edge);
+    for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
+      if (!dependentEdges.contains(edge)) {
+        for (CFAEdge callEdge : callEdges) {
+          pDepConsumer.accept(callEdge, edge);
+        }
+      }
+    }
+
+    Set<CFAEdge> functionCallDependent = new HashSet<>();
+    boolean changed = true;
+    while (changed) {
+
+      changed = false;
+
+      for (ControlDependency dependency : dependencies) {
+
+        CFAEdge controlEdge = dependency.getControlEdge();
+        CFAEdge dependentEdge = dependency.getDependentEdge();
+
+        if (callEdges.contains(controlEdge) || functionCallDependent.contains(controlEdge)) {
+          if (functionCallDependent.add(dependentEdge)) {
+            changed = true;
           }
+        }
+      }
+    }
+
+    for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
+      if (!functionCallDependent.contains(edge)) {
+        for (CFAEdge callEdge : callEdges) {
+          pDepConsumer.accept(callEdge, edge);
         }
       }
     }
   }
 
   @FunctionalInterface
-  interface DepConsumer {
+  interface ControlDependencyConsumer {
     void accept(CFAEdge pControlEdge, CFAEdge pDependentEdge);
+  }
+
+  private static final class ControlDependency {
+
+    private final CFAEdge controlEdge;
+    private final CFAEdge dependentEdge;
+
+    private ControlDependency(CFAEdge pControlEdge, CFAEdge pDependentEdge) {
+      controlEdge = pControlEdge;
+      dependentEdge = pDependentEdge;
+    }
+
+    private CFAEdge getControlEdge() {
+      return controlEdge;
+    }
+
+    private CFAEdge getDependentEdge() {
+      return dependentEdge;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(controlEdge, dependentEdge);
+    }
+
+    @Override
+    public boolean equals(Object pObject) {
+
+      if (this == pObject) {
+        return true;
+      }
+
+      if (pObject == null) {
+        return false;
+      }
+
+      if (getClass() != pObject.getClass()) {
+        return false;
+      }
+
+      ControlDependency other = (ControlDependency) pObject;
+      return Objects.equals(controlEdge, other.controlEdge)
+          && Objects.equals(dependentEdge, other.dependentEdge);
+    }
+
+    @Override
+    public String toString() {
+      return String.format(Locale.ENGLISH, "((%s) depends on (%s))", dependentEdge, controlEdge);
+    }
   }
 }

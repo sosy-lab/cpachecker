@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependencyConsumer;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
@@ -453,7 +454,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       DepCounter controlDepCounter = new DepCounter();
 
-      ControlDependenceBuilder.DepConsumer depConsumer =
+      ControlDependencyConsumer depConsumer =
           (controlEdge, dependentEdge) -> {
             addDependence(
                 getDGNode(controlEdge, Optional.empty()),
