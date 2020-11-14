@@ -1,3 +1,22 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2020  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.util.ArrayList;
@@ -21,6 +40,7 @@ public class TargetSolver {
     private LogManager logger;
     private Solver solver;
     private int maxSolverAsks;
+    public LegionPhaseStatistics stats;
 
     /**
      * @param pLogger        The logging instance to use.
@@ -31,6 +51,8 @@ public class TargetSolver {
         logger = pLogger;
         solver = pSolver;
         maxSolverAsks = pMaxSolverAsks;
+
+        this.stats = new LegionPhaseStatistics("targetting");
     }
 
 
@@ -42,6 +64,7 @@ public class TargetSolver {
     ArrayList<ArrayList<ValueAssignment>> target(PathFormula pTarget)
             throws InterruptedException, SolverException {
                         
+        this.stats.start();
         ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
 
         try (ProverEnvironment prover =
@@ -57,6 +80,7 @@ public class TargetSolver {
                 preloadedValues.add(computePreloadValues(constraints));
             } catch (SolverException ex) {
                 this.logger.log(Level.WARNING, "Could not solve even once formula.");
+                this.stats.finish();
                 throw ex;
             }
 
@@ -76,8 +100,10 @@ public class TargetSolver {
                         this.logger.log(Level.WARNING, "Is unsat.", i);
                         continue;
                     }
-                    Model constraints = prover.getModel();
-                    preloadedValues.add(computePreloadValues(constraints));
+                    try (Model constraints = prover.getModel()){
+                        preloadedValues.add(computePreloadValues(constraints));
+                    }
+                    
                 } catch (SolverException ex) {
                     // If this is not solvable, just skip
                     this.logger.log(Level.INFO, "Could not solve for more solutions.");
@@ -87,7 +113,7 @@ public class TargetSolver {
                 }
             }
         }
-
+        this.stats.finish();
         return preloadedValues;
     }
 
@@ -112,7 +138,7 @@ public class TargetSolver {
     }
 
     /**
-     * Pushes the values from the model into the value assigner. TODO may be moved to RVA
+     * Pushes the values from the model into the value assigner.
      * 
      * @param pConstraints The source of values to assign.
      */
@@ -125,8 +151,8 @@ public class TargetSolver {
                 continue;
             }
 
-            Value value = utils.toValue(assignment.getValue());
-            logger.log(Level.INFO, "Loaded Value", name, value);
+            Value value = Utils.toValue(assignment.getValue());
+            logger.log(Level.FINE, "Loaded Value", name, value);
             values.add(assignment);
         }
         return values;

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
+  private static long random_seed = 1636672210L;
   private final LogManager logger;
   private HashMap<String, Value> loadedValues = new HashMap<>();
 
@@ -74,7 +75,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   public RandomValueAssigner(LogManager logger, Configuration pConfig)
       throws InvalidConfigurationException {
     this.logger = logger;
-    this.rnd = new Random();
+    this.rnd = new Random(random_seed);
     pConfig.inject(this);
   }
 

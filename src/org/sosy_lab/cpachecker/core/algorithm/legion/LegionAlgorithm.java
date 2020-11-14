@@ -20,12 +20,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.io.PrintStream;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -69,17 +65,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
     @Option(
         secure = true,
-        description = "How many passes to fuzz before asking the solver for the first time.")
-    private int initialPasses = 3;
-
-    @Option(secure = true, description = "fuzzingPasses = ⌈ fuzzingMultiplier * fuzzingSolutions ⌉")
-    private double fuzzingMultiplier = 1;
-
-    @Option(secure = true, description = "If 0 fuzzing would run, instead run this amount of passes.")
-    private int emergencyFuzzingPasses = 1;
-
-    @Option(
-        secure = true,
         description = "How many total iterations of [select, target, fuzz] to perform.")
     private int maxIterations = 5;
 
@@ -104,9 +89,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     private Selector selectionStrategy;
     private TargetSolver targetSolver;
     private Fuzzer fuzzer;
-
-    // Statistics
-    private HashMap<String, Duration> timings;
+    private Fuzzer init_fuzzer;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -132,12 +115,19 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         // Configure Output
         this.outputWriter = new OutputWriter(logger, predCpa, "./output/testcases");
 
-        // Set selection Strategy, targetSolver and fuzzer
+        // Set selection Strategy, targetSolver and fuzzers
         this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
-        this.fuzzer = new Fuzzer(logger, valueCpa, this.outputWriter, pShutdownNotifier);
-
-        this.timings = new HashMap<>();
+        this.init_fuzzer =
+                new Fuzzer("init", logger, valueCpa, this.outputWriter, pShutdownNotifier, pConfig);
+        this.fuzzer =
+                new Fuzzer(
+                        "fuzzer",
+                        logger,
+                        valueCpa,
+                        this.outputWriter,
+                        pShutdownNotifier,
+                        pConfig);
     }
 
     @Override
@@ -150,22 +140,15 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         // Before asking a solver for path constraints, one initial pass through the program
         // has to be done to provide an initial set of states. This initial discovery
         // is meant to be cheap in resources and tries to establish easy to reach states.
-        Instant init_start = Instant.now();
         ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
         try {
-            reachedSet = fuzzer.fuzz(reachedSet, initialPasses, algorithm, preloadedValues);
+            reachedSet = init_fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
         } catch (PropertyViolationException ex) {
             logger.log(Level.WARNING, "Found violated property at preload.");
             return AlgorithmStatus.SOUND_AND_PRECISE;
         } finally {
             outputWriter.writeTestCases(reachedSet);
         }
-        
-        Instant init_end = Instant.now();
-        timings.merge(
-                "init",
-                Duration.between(init_start, init_end),
-                (oldValue, newValue) -> oldValue.plus(newValue));
 
         // In it's main iterations, ask the solver for new solutions every time.
         // This is done until a resource limit is reached or no new target states
@@ -174,12 +157,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             logger.log(Level.INFO, "Iteration", i + 1);
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()){
+            if (this.shutdownNotifier.shouldShutdown()) {
                 break;
             }
 
             // Phase Selection: Select non-deterministic variables for path solving
-            Instant selection_start = Instant.now();
             PathFormula target;
             try {
                 target = selectionStrategy.select(reachedSet);
@@ -194,20 +176,14 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 logger.log(Level.WARNING, "No target states left");
                 break;
             }
-            Instant selection_end = Instant.now();
-            timings.merge(
-                    "selection",
-                    Duration.between(selection_start, selection_end),
-                    (oldValue, newValue) -> oldValue.plus(newValue));
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()){
+            if (this.shutdownNotifier.shouldShutdown()) {
                 break;
             }
 
             // Phase Targetting: Solve for the target and produce a number of values
             // needed as input to reach this target.
-            Instant targetting_start = Instant.now();
             ArrayList<ArrayList<ValueAssignment>> previousLoadedValues = preloadedValues;
             try {
                 preloadedValues = this.targetSolver.target(target);
@@ -216,26 +192,17 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 logger.log(Level.WARNING, "Running with previous preloaded values");
                 preloadedValues = previousLoadedValues;
             }
-            Instant targetting_end = Instant.now();
-            timings.merge(
-                    "targetting",
-                    Duration.between(targetting_start, targetting_end),
-                    (oldValue, newValue) -> oldValue.plus(newValue));
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()){
+            if (this.shutdownNotifier.shouldShutdown()) {
                 break;
             }
 
             // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
             // new paths through the program.
-            Instant fuzzing_start = Instant.now();
-            int fuzzingPasses = (int) Math.ceil(fuzzingMultiplier * preloadedValues.size());
-            if (fuzzingPasses == 0){
-                fuzzingPasses = this.emergencyFuzzingPasses;
-            }
+            fuzzer.computePasses(preloadedValues.size());
             try {
-                reachedSet = fuzzer.fuzz(reachedSet, fuzzingPasses, algorithm, preloadedValues);
+                reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
             } catch (PropertyViolationException ex) {
                 logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
                 status = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -243,11 +210,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             } finally {
                 valueCpa.getTransferRelation().clearKnownValues();
             }
-            Instant fuzzing_end = Instant.now();
-            timings.merge(
-                    "fuzzing",
-                    Duration.between(fuzzing_start, fuzzing_end),
-                    (oldValue, newValue) -> oldValue.plus(newValue));
 
         }
         return status;
@@ -275,21 +237,15 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         String programName = config.getProperty("analysis.programNames");
         pOut.println("program: " + programName);
 
-        pOut.println("");
         pOut.println("settings:");
         pOut.println("  selection_strategy: " + selectionStrategyOption);
 
-        pOut.println("");
-        pOut.println("times:");
-        String format = "  %-10s: %ss";
-        for (Map.Entry<String, Duration> entry : timings.entrySet()) {
-            String out =
-                    String.format(
-                            format,
-                            entry.getKey(),
-                            (float) entry.getValue().toMillis() / 1000);
-            pOut.println(out);
-        }
+        pOut.println("phases:");
+
+        pOut.println(this.init_fuzzer.stats.collect());
+        pOut.println(this.selectionStrategy.getStats().collect());
+        pOut.println(this.targetSolver.stats.collect());
+        pOut.println(this.fuzzer.stats.collect());
     }
 
     @Override

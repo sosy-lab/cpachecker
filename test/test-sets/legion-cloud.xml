@@ -1,5 +1,3 @@
-<?xml version="1.0"?>
-
 <!--
 This file is part of CPAchecker,
 a tool for configurable software verification:
@@ -10,6 +8,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+<?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="180 s" hardtimelimit="200 s" memlimit="8 GB" cpuCores="2">
 
@@ -24,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
 
 
   <tasks name="ReachSafety-Bitvector">
-    <includesfile>/mnt/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <includesfile>/mnt/benchmarks/Custom.set</includesfile>
     <propertyfile>/mnt/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 

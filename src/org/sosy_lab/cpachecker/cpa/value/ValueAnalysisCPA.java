@@ -88,7 +88,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     RANDOM_VALUE,
   }
 
-  // TODO: add a new value: CONCOLIC
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "CONCOLIC"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";

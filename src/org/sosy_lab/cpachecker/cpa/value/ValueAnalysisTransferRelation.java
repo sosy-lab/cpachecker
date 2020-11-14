@@ -326,10 +326,6 @@ public class ValueAnalysisTransferRelation
           addMissingInformation(formalParamName, exp);
         }
         unknownValueHandler.handle(formalParamName, paramType, state, newElement, visitor);
-        // Previous state has mark, this should suffice
-        // TODO check if ok
-        // state.nonDeterministicMark = newElement.nonDeterministicMark;
-
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
       }
