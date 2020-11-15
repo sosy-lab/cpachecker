@@ -6,10 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
+package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.base.Splitter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,19 +20,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
-import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.ExpressionNode;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.FormulaNode;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.LiteralNode;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class InformationProvider {
 
   /**
-   * First raw implementation of additional information search. Search for iteration variables and
-   * for calculations in array brackets.
+   * Search for iteration variables and for suspicious
+   * calculations within the array subscript.
    *
    * @param faults ranked faults
    * @param edges counterexample as list of edges
@@ -47,7 +45,7 @@ public class InformationProvider {
     // Find iteration variables
     Map<Object, Long> counts =
         edges.stream()
-            .map(e -> e.getDescription())
+            .map(CFAEdge::getDescription)
             .collect(Collectors.groupingBy(e -> e, Collectors.counting()));
     Set<String> iterationVariables = new HashSet<>();
     for (Entry<Object, Long> entry : counts.entrySet()) {
@@ -79,20 +77,20 @@ public class InformationProvider {
         boolean hasCalc = matchArrayOperation.matcher(description).matches();
         if (hasIter && hasCalc) {
           fault.addInfo(
-              FaultInfo.hint(
+              FaultInfo.fix(
                   "Detected suspicious calculation within the array subscript using an iteration"
                       + " variable. Have a closer look to this line."));
           break;
         }
         if (hasIter) {
           fault.addInfo(
-              FaultInfo.hint(
+              FaultInfo.fix(
                   "This line uses an iteration variable. This may be especially prone to errors."));
           break;
         }
         if (hasCalc) {
           fault.addInfo(
-              FaultInfo.hint(
+              FaultInfo.fix(
                   "Detected suspicious calculation within the array subscript. This may be"
                       + " especially prone to errors"));
           break;
@@ -101,68 +99,52 @@ public class InformationProvider {
     }
   }
 
-  public static void propagatePreCondition(
-      Collection<Fault> rankedList, TraceFormula traceFormula, FormulaManagerView fmgr) {
-    if (!traceFormula.getPrecondition().toString().contains("_VERIFIER_nondet_")) {
-      return;
-    }
-    Set<BooleanFormula> preconditions =
-        fmgr.getBooleanFormulaManager().toConjunctionArgs(traceFormula.getPrecondition(), true);
+  public static String prettyPrecondition(BooleanFormula precondition, List<BooleanFormula> atoms) {
+    FormulaNode root = BooleanFormulaParser.parse(precondition);
+    List<FormulaNode> conjuncts = BooleanFormulaParser.toConjunctionArgs(root);
 
-    Map<String, String> mapFormulaToValue = new HashMap<>();
-    List<String> assignments = new ArrayList<>();
+    Map<String, String> nondetToName = new HashMap<>();
 
-    for (BooleanFormula precondition : preconditions) {
-      String formulaString = precondition.toString();
-      formulaString = formulaString.replaceAll("\\(", "").replaceAll("\\)", "");
-      List<String> operatorAndOperands = Splitter.on("` ").splitToList(formulaString);
-      if (operatorAndOperands.size() != 2) {
-        return;
-      }
-      String withoutOperator = operatorAndOperands.get(1);
-      List<String> operands = Splitter.on(" ").splitToList(withoutOperator);
-      if (operands.size() != 2) {
-        return;
-      }
-      if (operands.get(0).contains("__VERIFIER_nondet_")
-          || (operands.get(0).contains("::") && operands.get(0).contains("@"))) {
-        if ((operands.get(0).contains("::") && operands.get(0).contains("@"))) {
-          assignments.add(
-              Splitter.on("@").splitToList(operands.get(0)).get(0) + " = " + operands.get(1));
-        } else {
-          mapFormulaToValue.put(operands.get(0), operands.get(1));
-        }
-      } else {
-        if ((operands.get(1).contains("::") && operands.get(1).contains("@"))) {
-          assignments.add(
-              Splitter.on("@").splitToList(operands.get(1)).get(0) + " = " + operands.get(0));
-        } else {
-          mapFormulaToValue.put(operands.get(1), operands.get(0));
+    for (BooleanFormula atom : atoms) {
+      FormulaNode atomRoot = BooleanFormulaParser.parse(atom);
+      if (atomRoot.getType().equals(FormulaNode.FormulaNodeType.ExpressionNode)) {
+        ExpressionNode exNode = (ExpressionNode) atomRoot;
+        if (exNode.getOperands().size() == 2 &&
+            exNode.getOperator().contains("=")) {
+          FormulaNode left = exNode.getOperands().get(0);
+          FormulaNode right = exNode.getOperands().get(1);
+          if (left.toString().contains("__VERIFIER_nondet")) {
+            nondetToName.put(left.toString(), right.toString());
+          }
+          if (right.toString().contains("__VERIFIER_nondet")) {
+            nondetToName.put(right.toString(), left.toString());
+          }
         }
       }
     }
 
-    List<BooleanFormula> atoms = traceFormula.getEntries().toAtomList();
-    for (Entry<String, String> entry : mapFormulaToValue.entrySet()) {
-      for (BooleanFormula atom : atoms) {
-        if (atom.toString().contains(entry.getKey())) {
-          atom = fmgr.uninstantiate(atom);
-          String assignment =
-              BooleanFormulaParser.parse(
-                      atom.toString().replaceAll(entry.getKey(), entry.getValue()))
-                  .toString();
-          assignments.add(assignment);
-        }
+
+    for (FormulaNode conjunct : conjuncts) {
+      if (conjunct.getSuccessors().size() == 2 &&
+          conjunct.getType().equals(FormulaNode.FormulaNodeType.ExpressionNode) &&
+          conjunct.toString().contains("__VERIFIER_nondet") &&
+          conjunct.getSuccessors().get(0).getType().equals(FormulaNode.FormulaNodeType.LiteralNode) &&
+          conjunct.getSuccessors().get(1).getType().equals(FormulaNode.FormulaNodeType.LiteralNode)) {
+          LiteralNode n1 = (LiteralNode) conjunct.getSuccessors().get(0);
+          if (n1.toString().contains("__VERIFIER_nondet")) {
+            conjunct.getSuccessors().remove(0);
+            conjunct.getSuccessors().add(0, new LiteralNode(nondetToName.getOrDefault(n1.toString(), n1.toString())));
+            continue;
+          }
+          LiteralNode n2 = (LiteralNode) conjunct.getSuccessors().get(1);
+          if (n1.toString().contains("__VERIFIER_nondet")) {
+            conjunct.getSuccessors().remove(1);
+            conjunct.getSuccessors().add(new LiteralNode(nondetToName.getOrDefault(n2.toString(), n2.toString())));
+          }
       }
     }
 
-    String allAssignments = String.join(", ", assignments);
-    for (Fault fault : rankedList) {
-      fault.addInfo(
-          FaultInfo.hint(
-              "The program fails for the following initial variable assignment: "
-                  + allAssignments));
-    }
+    return root.toString();
   }
 
   public static void addDefaultPotentialFixesToFaults(

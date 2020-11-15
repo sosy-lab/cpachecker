@@ -399,6 +399,8 @@ with considerably less effort */
 
 		// make faults visible to angular
 		$rootScope.faults = [];
+		$rootScope.precondition = cfaJson.precondition === undefined ? "" : cfaJson.precondition["fl-precondition"];
+		$rootScope.hasPrecondition = $rootScope.precondition !== ""
 		if (cfaJson.faults !== undefined) {
 			for (var i = 0; i < cfaJson.faults.length; i++) {
 				var fault = cfaJson.faults[i];

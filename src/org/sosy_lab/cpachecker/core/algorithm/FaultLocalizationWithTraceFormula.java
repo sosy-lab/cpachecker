@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
+import org.sosy_lab.cpachecker.util.faultlocalization.InformationProvider;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -170,7 +171,7 @@ public class FaultLocalizationWithTraceFormula
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
-          "The option reduceselectors will be ignored since MAX-SAT is not selected");
+          "The option reduceselectors requires the MAXSAT algorithm");
     }
     if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
@@ -235,14 +236,14 @@ public class FaultLocalizationWithTraceFormula
         return;
       }
 
-      //Find correct ranking and correct trace formula for the specified algorithm
+      //Find correct scoring and correct trace formula for the specified algorithm
       TraceFormula tf;
-      FaultScoring ranking;
+      FaultScoring scoring;
       switch(algorithmType){
         case MAXORG:
         case MAXSAT: {
           tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-          ranking =  FaultRankingUtils.concatHeuristics(
+          scoring =  FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new SetSizeScoring(),
               new OverallOccurrenceScoring(),
@@ -252,14 +253,14 @@ public class FaultLocalizationWithTraceFormula
         }
         case ERRINV: {
           tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristics(
+          scoring = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case UNSAT: {
           tf = new TraceFormula.DefaultTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristics(
+          scoring = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
@@ -283,12 +284,30 @@ public class FaultLocalizationWithTraceFormula
 
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
-      InformationProvider.propagatePreCondition(errorIndicators, tf, context.getSolver().getFormulaManager());
-      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+
+      List<BooleanFormula> nondets = tf.getEntries().toAtomList()
+          .stream()
+          .filter(f -> f.toString().contains("__VERIFIER_nondet"))
+          .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
+          .collect(Collectors.toList());
+      FaultLocalizationInfo info = new FaultLocalizationInfo(
+          errorIndicators,
+          scoring,
+          tf.getPrecondition(),
+          nondets,
+          pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
         info.replaceHtmlWriter(new IntervalReportWriter());
         info.sortIntended();
+        if (!info.getRankedList().isEmpty()) {
+          Fault first = info.getRankedList().get(0);
+          if (first instanceof ErrorInvariantsAlgorithm.Interval) {
+            if (((ErrorInvariantsAlgorithm.Interval)first).getInvariant().equals(tf.getPrecondition())) {
+              info.getRankedList().remove(0);
+            }
+          }
+        }
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
@@ -310,9 +329,6 @@ public class FaultLocalizationWithTraceFormula
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
-    } finally{
-      context.getSolver().close();
-      context.getProver().close();
     }
   }
 

@@ -52,7 +52,7 @@ public class AlternativePrecondition {
     AlternativePreconditionHelper altpre =
         new AlternativePreconditionHelper(pFormulaContext, pIgnore, pFilter);
     pEntries.removeIf(entry -> altpre.add(entry));
-    pEntries.addEntry(0, -1, altpre.preConditionMap, null, null);
+    pEntries.addEntry(0, new FormulaEntryList.PreconditionEntry(altpre.preConditionMap));
     BooleanFormulaManager bmgr =
         pFormulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
     return bmgr.and(altpre.toFormula(), pDefaultPrecondition);
