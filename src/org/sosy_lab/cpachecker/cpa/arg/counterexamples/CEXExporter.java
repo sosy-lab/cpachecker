@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -37,6 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -62,7 +48,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -70,6 +58,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -108,6 +97,7 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
+  private TestCaseExporter testExporter;
 
   public CEXExporter(
       Configuration config,
@@ -128,13 +118,15 @@ public class CEXExporter {
       cexFilter =
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
+      testExporter = new TestCaseExporter(cfa, logger, config);
     } else {
       cexFilter = null;
       harnessExporter = null;
+      testExporter = null;
     }
   }
 
-  /** @see #exportCounterexample(ARGState, CounterexampleInfo) */
+  /** See {@link #exportCounterexample(ARGState, CounterexampleInfo)}. */
   public void exportCounterexampleIfRelevant(
       final ARGState pTargetState, final CounterexampleInfo pCounterexampleInfo)
       throws InterruptedException {
@@ -286,30 +278,38 @@ public class CEXExporter {
       }
     }
 
+    final Witness witness =
+        witnessExporter.generateErrorWitness(
+            rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+
     writeErrorPathFile(
         options.getWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable ->
-                witnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
+            },
+        compressWitness);
+
+    writeErrorPathFile(
+        options.getWitnessDotFile(),
+        uniqueId,
+        (Appender)
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
+            },
         compressWitness);
 
     writeErrorPathFile(
         options.getExtendedWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable ->
-                extendedWitnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+            pAppendable -> {
+              Witness extWitness =
+                  extendedWitnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+              WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
+            },
         compressWitness);
 
     writeErrorPathFile(
@@ -323,6 +323,10 @@ public class CEXExporter {
                     Predicates.in(pathElements),
                     isTargetPathEdge,
                     counterexample));
+
+    if (options.exportToTest() && testExporter != null) {
+      testExporter.writeTestCaseFiles(counterexample, Optional.empty());
+    }
   }
 
   // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -187,6 +172,7 @@ class ASTConverter {
 
   // Calls to this functions are handled by this class and replaced with regular C code.
   private static final String FUNC_CONSTANT = "__builtin_constant_p";
+  private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
@@ -1032,6 +1018,7 @@ class ASTConverter {
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
+    final FileLocation loc = getLocation(e);
 
     if (functionName instanceof CIdExpression) {
       if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionName).getName())) {
@@ -1073,6 +1060,20 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
+      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF)
+          && params.size() == 1
+          && params.get(0) instanceof CFieldReference) {
+        CFieldReference exp = (CFieldReference) params.get(0);
+        BigInteger offset = handleBuiltinOffsetOfFunction(exp, e);
+        BigInteger byteInBit = new BigInteger("8");
+        if (offset.remainder(byteInBit).equals(BigInteger.ZERO)) {
+          return new CIntegerLiteralExpression(loc, CNumericTypes.INT, offset.divide(byteInBit));
+        } else {
+          throw parseContext.parseError("__builtin_offset is not applicable to bitfields ", exp);
+        }
+
+      }
+
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
@@ -1107,7 +1108,6 @@ class ASTConverter {
           ((CPointerType)functionNameType).getType(), functionName);
     }
 
-    final FileLocation loc = getLocation(e);
     CType returnType = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
@@ -1137,6 +1137,49 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
+  }
+
+  private BigInteger
+      handleBuiltinOffsetOfFunction(CFieldReference exp, IASTFunctionCallExpression e) {
+    List<CFieldReference> fields = new ArrayList<>();
+    fields.add(exp);
+    while (exp.getFieldOwner() instanceof CFieldReference) {
+      CFieldReference tmp = (CFieldReference) exp.getFieldOwner();
+      exp = tmp;
+      fields.add(exp);
+    }
+
+    if (!(exp.getFieldOwner() instanceof CIdExpression)) {
+      throw parseContext.parseError(
+          "unexpected type " + exp.getFieldOwner() + " in __builtin_offsetof argument: ",
+          e);
+
+    }
+    final CType ownerType = exp.getFieldOwner().getExpressionType().getCanonicalType();
+    if (!(ownerType instanceof CCompositeType)) {
+      throw parseContext.parseError(
+          "unexpected type " + ownerType + " in __builtin_offsetof argument", e);
+    }
+    CCompositeType structType = (CCompositeType) ownerType;
+
+    BigInteger sumOffset = BigInteger.ZERO;
+    Collections.reverse(fields);
+
+    for (CFieldReference field : fields) {
+      BigInteger offset = machinemodel.getFieldOffsetInBits(structType, field.getFieldName());
+      sumOffset = sumOffset.add(offset);
+      CFieldReference lastField = fields.get(fields.size() - 1);
+      if (!field.equals(lastField)) {
+        final CType fieldType = field.getExpressionType().getCanonicalType();
+        if (!(fieldType instanceof CCompositeType)) {
+          throw parseContext.parseError(
+              "unexpected type " + fieldType + " in __builtin_offsetof argument", e);
+        }
+        structType = (CCompositeType) fieldType;
+      }
+    }
+
+    return sumOffset;
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {

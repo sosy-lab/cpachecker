@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
 
@@ -17,37 +28,37 @@
 
   <tasks name="va-bdd-bool">
     <option name="-valueAnalysis-BDD-bool"/>
-    <include>../programs/benchmarks/ssh/*clnt*.yml</include>
-    <include>../programs/benchmarks/ssh-simplified/*clnt*.yml</include>
+    <include>../programs/benchmarks/openssl/*clnt*.yml</include>
+    <include>../programs/benchmarks/openssl-simplified/*clnt*.yml</include>
     <include>../programs/benchmarks/product-lines/*product0*.yml</include>
-    <exclude>../programs/benchmarks/ssh/*clnt*1*.yml</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/*clnt*1*.yml</exclude>
+    <exclude>../programs/benchmarks/openssl/*clnt*1*.yml</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/*clnt*1*.yml</exclude>
     <exclude>../programs/benchmarks/product-lines/email*</exclude>
   </tasks>
 
   <tasks name="va-bdd-eq">
     <option name="-valueAnalysis-BDD-bool-intEQ"/>
-    <include>../programs/benchmarks/ssh/*clnt*1*.yml</include>
-    <include>../programs/benchmarks/ssh-simplified/*clnt*1*.yml</include>
+    <include>../programs/benchmarks/openssl/*clnt*1*.yml</include>
+    <include>../programs/benchmarks/openssl-simplified/*clnt*1*.yml</include>
     <include>../programs/benchmarks/product-lines/*product1*.yml</include>
     <exclude>../programs/benchmarks/product-lines/email*</exclude>
   </tasks>
 
   <tasks name="va-bdd-add">
     <option name="-valueAnalysis-BDD-bool-intEQ-intADD"/>
-    <include>../programs/benchmarks/ssh/*srvr*.yml</include>
-    <include>../programs/benchmarks/ssh-simplified/*srvr*.yml</include>
+    <include>../programs/benchmarks/openssl/*srvr*.yml</include>
+    <include>../programs/benchmarks/openssl-simplified/*srvr*.yml</include>
     <include>../programs/benchmarks/product-lines/*product2*.yml</include>
-    <exclude>../programs/benchmarks/ssh/*srvr*1*.yml</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/*srvr*1*.yml</exclude>
+    <exclude>../programs/benchmarks/openssl/*srvr*1*.yml</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/*srvr*1*.yml</exclude>
     <exclude>../programs/benchmarks/product-lines/email*</exclude>
   </tasks>
 
   <tasks name="plain-bdd">
     <option name="-bddAnalysis"/>
     <option name="-setprop">cpa.bdd.ymlompressIntEqual=false</option>
-    <include>../programs/benchmarks/ssh/*srvr*1*.yml</include>
-    <include>../programs/benchmarks/ssh-simplified/*srvr*1*.yml</include>
+    <include>../programs/benchmarks/openssl/*srvr*1*.yml</include>
+    <include>../programs/benchmarks/openssl-simplified/*srvr*1*.yml</include>
     <include>../programs/benchmarks/product-lines/*product3*.yml</include>
     <exclude>../programs/benchmarks/product-lines/email*</exclude>
   </tasks>

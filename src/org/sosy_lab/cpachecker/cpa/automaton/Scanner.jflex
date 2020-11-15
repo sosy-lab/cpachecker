@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.FileNotFoundException;
@@ -18,29 +26,31 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 
 @javax.annotation.processing.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast", "FallThrough" })
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
 %%
 
 %cup
 %class AutomatonScanner
+%final
+%apiprivate
 %line
 %column
 
+%ctorarg Path file
+%ctorarg LogManager logger
+%ctorarg ComplexSymbolFactory sf
+%init{
+  filesStack.push(file);
+    this.sf = sf;
+    this.logger = logger;
+%init}
 %{
-  private StringBuilder string = new StringBuilder();
-  private ComplexSymbolFactory sf;
-  private LogManager logger;
+  private final StringBuilder string = new StringBuilder();
+  private final ComplexSymbolFactory sf;
+  private final LogManager logger;
   private final List<Path> scannedFiles = new ArrayList<>();
   private final Deque<Path> filesStack = new ArrayDeque<>();
 
-  public AutomatonScanner(java.io.Reader r, Path file, LogManager logger, ComplexSymbolFactory sf) {
-    this(r);
-    filesStack.push(file);
-    this.sf = sf;
-    this.logger = logger;
-  }
-   
   private Path getFile(String pYytext) throws FileNotFoundException {
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
@@ -97,9 +107,6 @@ import org.sosy_lab.common.log.LogManager;
     throw new IOException(msg.toString());
   }
 %}
-%eofval{
-    return symbol("EOF", AutomatonSym.EOF);
-%eofval}
 
 LineTerminator = \R
 InputCharacter = .
@@ -149,6 +156,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
 <YYINITIAL> "ENTRY"             { return symbol("ENTRY", AutomatonSym.ENTRY); }
+<YYINITIAL> "FUNCTIONCALL"      { return symbol("FUNCTIONCALL", AutomatonSym.FUNCTIONCALL); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }

@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Joiner;
@@ -68,9 +77,7 @@ public final class PolicyIntermediateState extends PolicyState {
     return other == mergedInto;
   }
 
-  /**
-   * @return Starting {@link PolicyAbstractedState} for the starting location.
-   */
+  /** Returns starting {@link PolicyAbstractedState} for the starting location. */
   public PolicyAbstractedState getBackpointerState() {
     return startingAbstraction;
   }

@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
 <!--
   Example file that demonstrates the use of CPAchecker.
@@ -10,18 +21,15 @@
 
   <!-- Global sourcefiles are used in every run definition. -->
   <tasks name="locks">
-    <include>../../test/programs/benchmarks/locks/*_5_*.yml</include>
+    <include>../../test/programs/benchmarks/locks/*_5*.yml</include>
 
     <!-- Next line shows the use of a variable,
     in this case it has no effect, because of the path '../' after it. -->
-    <include>../../test/programs/${benchmark_name}/../benchmarks/locks/*_6_*.yml</include>
+    <include>../../test/programs/${benchmark_name}/../benchmarks/locks/*_6*.yml</include>
 
     <!-- Files can be "included" and "excluded". -->
-    <include>../../test/programs/benchmarks/locks/*_1*_*.yml</include>
-    <exclude>../../test/programs/benchmarks/locks/*_13_*.yml</exclude>
-
-    <!-- Multiple sourcefiles can be used as input for the tool, just append some files. All matching files will be appended. -->
-    <append>../../${inputfile_path}/${inputfile_name}__second_file.c.does_not_exist</append>
+    <include>../../test/programs/benchmarks/locks/*_1*.yml</include>
+    <exclude>../../test/programs/benchmarks/locks/*_13*.yml</exclude>
   </tasks>
 
   <tasks name="DeviceDrivers64">
@@ -38,9 +46,9 @@
   <!--
     Always use property files as specification
     to guarantee correct interpretation of the results.
-    The following will use the file ALL.prp in the same directory as the source file.
+    The following will use the file unreach-call.prp from directory `config/properties/.
   -->
-  <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
+  <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
 
 
   <!-- For final benchmarks for performance measurement,

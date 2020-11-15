@@ -1,31 +1,15 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -39,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.OptionalInt;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -151,7 +134,7 @@ public class CFABuilder {
   private int basicBlockId;
   protected NavigableMap<String, FunctionEntryNode> functions;
 
-  protected SortedSetMultimap<String, CFANode> cfaNodes;
+  protected TreeMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
@@ -269,7 +252,7 @@ public class CFABuilder {
 
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
-      SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
+      NavigableMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
       CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
@@ -327,7 +310,7 @@ public class CFABuilder {
   private CLabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
-      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
     if (pFunction.countBasicBlocks() == 0) {
@@ -365,7 +348,7 @@ public class CFABuilder {
   /** Add branching edges between first and last nodes of basic blocks. */
   private void addJumpsBetweenBasicBlocks(
       final Function pFunction,
-      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
     // for every basic block, get the last instruction and

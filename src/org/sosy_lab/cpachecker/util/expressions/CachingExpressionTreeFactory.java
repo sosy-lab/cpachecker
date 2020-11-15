@@ -1,27 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.expressions;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,9 +22,9 @@ import java.util.Set;
  */
 public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFactory<LeafType> {
 
-  private final Map<Object, ExpressionTree<LeafType>> leafCache = new HashMap<>();
-  private final Map<Object, ExpressionTree<LeafType>> andCache = new HashMap<>();
-  private final Map<Object, ExpressionTree<LeafType>> orCache = new HashMap<>();
+  private final Map<ExpressionTree<LeafType>, ExpressionTree<LeafType>> leafCache = new HashMap<>();
+  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> andCache = new HashMap<>();
+  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> orCache = new HashMap<>();
 
   @Override
   public ExpressionTree<LeafType> leaf(LeafType pLeafType) {
@@ -44,12 +34,7 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
   @Override
   public ExpressionTree<LeafType> leaf(LeafType pLeafExpression, boolean pAssumeTruth) {
     ExpressionTree<LeafType> potentialResult = LeafExpression.of(pLeafExpression, pAssumeTruth);
-    ExpressionTree<LeafType> cachedResult = leafCache.get(potentialResult);
-    if (cachedResult == null) {
-      leafCache.put(potentialResult, potentialResult);
-      return potentialResult;
-    }
-    return cachedResult;
+    return leafCache.computeIfAbsent(potentialResult, ignore -> potentialResult);
   }
 
   @Override
@@ -59,33 +44,16 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
   }
 
   @Override
-  public ExpressionTree<LeafType> and(Iterable<ExpressionTree<LeafType>> pOperands) {
-    final Set<ExpressionTree<LeafType>> key;
-    if (pOperands instanceof Set) {
-      key = (Set<ExpressionTree<LeafType>>) pOperands;
-    } else {
-      Iterator<ExpressionTree<LeafType>> operandIterator = pOperands.iterator();
-      if (!operandIterator.hasNext()) {
+  public ExpressionTree<LeafType> and(Collection<ExpressionTree<LeafType>> pOperands) {
+    switch (pOperands.size()) {
+      case 0:
         return ExpressionTrees.getTrue();
-      }
-      ExpressionTree<LeafType> first = operandIterator.next();
-      if (!operandIterator.hasNext()) {
-        return first;
-      }
-      ImmutableSet.Builder<ExpressionTree<LeafType>> keyBuilder = ImmutableSet.builder();
-      keyBuilder.add(first);
-      while (operandIterator.hasNext()) {
-        keyBuilder.add(operandIterator.next());
-      }
-      key = keyBuilder.build();
+      case 1:
+        return Iterables.getOnlyElement(pOperands);
+      default:
+        final Set<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
+        return andCache.computeIfAbsent(key, ignore -> And.of(key));
     }
-    ExpressionTree<LeafType> result = andCache.get(key);
-    if (result != null) {
-      return result;
-    }
-    result = And.of(key);
-    andCache.put(key, result);
-    return result;
   }
 
   @Override
@@ -94,32 +62,15 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
   }
 
   @Override
-  public ExpressionTree<LeafType> or(Iterable<ExpressionTree<LeafType>> pOperands) {
-    final Set<ExpressionTree<LeafType>> key;
-    if (pOperands instanceof Set) {
-      key = (Set<ExpressionTree<LeafType>>) pOperands;
-    } else {
-      Iterator<ExpressionTree<LeafType>> operandIterator = pOperands.iterator();
-      if (!operandIterator.hasNext()) {
+  public ExpressionTree<LeafType> or(Collection<ExpressionTree<LeafType>> pOperands) {
+    switch (pOperands.size()) {
+      case 0:
         return ExpressionTrees.getFalse();
-      }
-      ExpressionTree<LeafType> first = operandIterator.next();
-      if (!operandIterator.hasNext()) {
-        return first;
-      }
-      ImmutableSet.Builder<ExpressionTree<LeafType>> keyBuilder = ImmutableSet.builder();
-      keyBuilder.add(first);
-      while (operandIterator.hasNext()) {
-        keyBuilder.add(operandIterator.next());
-      }
-      key = keyBuilder.build();
+      case 1:
+        return Iterables.getOnlyElement(pOperands);
+      default:
+        final Set<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
+        return orCache.computeIfAbsent(key, ignore -> Or.of(key));
     }
-    ExpressionTree<LeafType> result = orCache.get(key);
-    if (result != null) {
-      return result;
-    }
-    result = Or.of(key);
-    orCache.put(key, result);
-    return result;
   }
 }

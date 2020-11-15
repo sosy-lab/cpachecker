@@ -1,31 +1,20 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 
 import java.io.PrintStream;
+import java.util.Objects;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -77,11 +66,28 @@ public class CPAcheckerResult {
     this.stats = stats;
   }
 
+  private CPAcheckerResult(Result result) {
+    this(result, "");
+  }
+
+  private CPAcheckerResult(Result result, String violatedPropertyDescription) {
+    this(result, violatedPropertyDescription, null, null, null);
+  }
+
   /**
    * Return the result of the analysis.
    */
   public Result getResult() {
     return result;
+  }
+
+  /**
+   * Return the reason as to why a property got violated. If the result does not contain a property
+   * violation, then calling this method will result in an error.
+   */
+  public String getViolatedPropertyDescription() {
+    checkState(result == Result.FALSE);
+    return violatedPropertyDescription;
   }
 
   /**
@@ -154,6 +160,29 @@ public class CPAcheckerResult {
       default:
         throw new AssertionError(result);
     }
+  }
+
+  public static Optional<CPAcheckerResult> parseResultString(String pResult) {
+    Objects.requireNonNull(pResult);
+
+    if (pResult.startsWith("Verification result: ")) {
+      String property = pResult.substring(21);
+      if (property.equals("TRUE. No property violation found by chosen configuration.")) {
+        return Optional.of(new CPAcheckerResult(Result.TRUE));
+      } else if (property.startsWith("FALSE. Property violation")) {
+        if (property.contains("(")) {
+          String propertyDesc =
+              property.substring(property.indexOf("(") + 1, property.indexOf(")"));
+          return Optional.of(new CPAcheckerResult(Result.FALSE, propertyDesc));
+        }
+        return Optional.of(new CPAcheckerResult(Result.FALSE));
+      } else {
+        verify(property.equals("UNKNOWN, incomplete analysis."));
+        return Optional.of(new CPAcheckerResult(Result.UNKNOWN));
+      }
+    }
+
+    return Optional.empty();
   }
 
   public Statistics getStatistics() {

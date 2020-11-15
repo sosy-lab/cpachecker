@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,6 +44,12 @@ public class TestTargetCPA extends AbstractCPA {
 
   @Option(
     secure = true,
+    name = "targets.funName", // adapt CPAMain.java if adjust name
+    description = "Name of target function if target type is FUN_CALL")
+  private String targetFun = null;
+
+  @Option(
+    secure = true,
     name = "targets.optimization.strategy",
     description = "Which strategy to use to optimize set of test target edges"
   )
@@ -73,11 +64,16 @@ public class TestTargetCPA extends AbstractCPA {
     super("sep", "sep", DelegateAbstractDomain.<TestTargetState>getInstance(), null);
 
     pConfig.inject(this);
+    if (targetType == TestTargetType.FUN_CALL && targetFun == null) {
+      throw new InvalidConfigurationException(
+          "If you choose target type to be FUN_CALL, you need to specify the target function.");
+    }
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
     transferRelation =
         new TestTargetTransferRelation(
-            TestTargetProvider.getTestTargets(pCfa, runParallel, targetType, targetOptimization));
+            TestTargetProvider
+                .getTestTargets(pCfa, runParallel, targetType, targetFun, targetOptimization));
   }
 
   @Override

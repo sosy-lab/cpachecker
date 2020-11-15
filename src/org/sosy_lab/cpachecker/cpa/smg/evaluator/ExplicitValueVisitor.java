@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Preconditions;
@@ -41,8 +26,8 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -96,7 +81,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return smgStatesToBeProccessed;
   }
 
-  private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
+  private SMGExplicitValue getExplicitValue(SMGValue pValue) {
     if (pValue.isUnknown()) {
       return SMGUnknownValue.INSTANCE;
     }
@@ -131,7 +116,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       }
 
       SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
-      SMGSymbolicValue symValue = symValueAndState.getObject();
+      SMGValue symValue = symValueAndState.getObject();
       setState(symValueAndState.getSmgState());
 
       if (symValue.equals(SMGKnownSymValue.TRUE)) {
@@ -165,7 +150,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     SMGValueAndState valueAndState = getStateAndAddRestForLater(valueAndStates);
-    SMGSymbolicValue value = valueAndState.getObject();
+    SMGValue value = valueAndState.getObject();
     setState(valueAndState.getSmgState());
 
     SMGExplicitValue expValue = getExplicitValue(value);

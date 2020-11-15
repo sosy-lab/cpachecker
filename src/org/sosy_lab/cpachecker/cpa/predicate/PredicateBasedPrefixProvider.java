@@ -1,30 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.GET_BLOCK_FORMULA;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
 
 import java.util.ArrayList;
@@ -38,12 +22,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -59,7 +45,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   @Option(secure=true, description="Max. number of prefixes to extract")
   private int maxPrefixCount = 64;
 
-  @Option(secure=true, description="Max. length of feasible prefixes to extract from if at least one prefix was already extracted")
+  @Option(
+      secure = true,
+      description =
+          "Max. length of feasible prefixes to extract from if at least one prefix was already"
+              + " extracted")
   private int maxPrefixLength = 1024;
 
   private final LogManager logger;
@@ -91,15 +81,28 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     pathFormulaManager = pPathFormulaManager;
   }
 
+  public static PredicateBasedPrefixProvider create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateBasedPrefixProvider.class);
+    return new PredicateBasedPrefixProvider(
+        predicateCpa.getConfiguration(),
+        predicateCpa.getLogger(),
+        predicateCpa.getSolver(),
+        predicateCpa.getPathFormulaManager(),
+        predicateCpa.getShutdownNotifier());
+  }
+
   @Override
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath pPath)
       throws CPAException, InterruptedException {
 
     List<ARGState> abstractionStates = filterAbstractionStates(pPath);
-    List<BooleanFormula> blockFormulas = from(abstractionStates)
-        .transform(AbstractStates.toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList();
+    List<BooleanFormula> blockFormulas =
+        from(abstractionStates)
+            .transform(AbstractStates.toState(PredicateAbstractState.class))
+            .transform(PredicateAbstractState::getBlockFormula)
+            .toList();
 
     List<RawInfeasiblePrefix> rawPrefixes;
 
@@ -260,7 +263,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @return true, if all states in the path are abstraction states, else false
    */
   private boolean isSingleBlockEncoded(final ARGPath pPath) {
-    return from(pPath.asStatesList()).allMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+    return from(pPath.asStatesList()).allMatch(PredicateAbstractState::containsAbstractionState);
   }
 
   private boolean isAbstractionState(ARGState pCurrentState) {

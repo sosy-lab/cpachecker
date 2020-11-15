@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
@@ -28,23 +13,20 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -60,13 +42,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  *
  * @see SlicerFactory
  */
-@Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
-
-  @Option(secure = true, name = "preserveTargetPaths",
-      description = "Whether to create slices that are behaviorally equivalent not only to "
-          + "the target location, but also on the paths to that target location.")
-  private boolean preserveTargetPaths = false;
 
   private DependenceGraph depGraph;
 
@@ -74,6 +50,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
   private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
+
+  private final StatInt sliceEdgesNumber =
+      new StatInt(StatKind.MAX, "Number of relevant slice edges");
+  private final StatInt programEdgesNumber = new StatInt(StatKind.MAX, "Number of program edges");
 
   StaticSlicer(
       SlicingCriteriaExtractor pExtractor,
@@ -83,8 +63,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       CFA pCfa)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
-
-    pConfig.inject(this);
 
     depGraph =
         pCfa.getDependenceGraph()
@@ -120,31 +98,37 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         relevantEdges.addAll(depGraph.getReachable(g, TraversalDirection.BACKWARD));
       }
 
-      if (preserveTargetPaths) {
-        // we do this only after we computed the slices for all slicing criteria,
-        // because this would otherwise disturb our optimization above that stops
-        // if a criterion is already part of the criteria edges (because we don't
-        // add any dependences for assumptions on cfa paths)
-        for (CFAEdge g : criteriaEdges) {
-          EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
-          CFATraversal.dfs().backwards().traverseOnce(g.getPredecessor(), visitor);
-          Set<CFAEdge> assumptions =
-              visitor
-                  .getVisitedEdges()
-                  .stream()
-                  .filter(x -> x.getEdgeType().equals(CFAEdgeType.AssumeEdge))
-                  .collect(Collectors.toSet());
-          relevantEdges.addAll(assumptions);
-        }
-      }
-
       final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
       slicingTime.stop();
+
+      sliceEdgesNumber.setNextValue(relevantEdges.size());
+      if (programEdgesNumber.getValueCount() == 0) {
+        programEdgesNumber.setNextValue(countProgramEdges(pCfa));
+      }
+
       return slice;
 
     } finally {
       sliceCount.setNextValue(realSlices);
     }
+  }
+
+  private int countProgramEdges(CFA pCfa) {
+
+    int programEdgeCounter = 0;
+    for (CFANode node : pCfa.getAllNodes()) {
+      programEdgeCounter += CFAUtils.allLeavingEdges(node).size();
+    }
+
+    return programEdgeCounter;
+  }
+
+  private double getSliceProgramRatio() {
+
+    double sliceEdges = sliceEdgesNumber.getMaxValue();
+    double programEdges = programEdgesNumber.getMaxValue();
+
+    return programEdges > 0.0 ? sliceEdges / programEdges : 1.0;
   }
 
   @Override
@@ -158,6 +142,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
             StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
             writer.put(candidateSliceCount).put(sliceCount).put(slicingTime);
+
+            writer.put(sliceEdgesNumber).put(programEdgesNumber);
+            writer.put(
+                "Largest slice / program ratio",
+                String.format(Locale.US, "%.3f", getSliceProgramRatio()));
           }
 
           @Override

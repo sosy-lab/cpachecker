@@ -1,31 +1,12 @@
 #!/usr/bin/env python3
 
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
-
-Copyright (C) 2007-2014  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
-
-# prepare for Python 3
-from __future__ import absolute_import, division, print_function, unicode_literals
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import subprocess
 import sys
@@ -34,14 +15,14 @@ import os
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 
-def determineRevision(dir):
+def determineRevision(dir_path):
     """
     Determine the revision of the given directory in a version control system.
     """
     # Check for SVN repository
     try:
         svnProcess = subprocess.Popen(
-            ["svnversion", "--committed", dir],
+            ["svnversion", "--committed", dir_path],
             env={"LANG": "C"},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -70,37 +51,37 @@ def determineRevision(dir):
         gitProcess = subprocess.Popen(
             ["git", "svn", "find-rev", "HEAD"],
             env={"LANG": "C"},
-            cwd=dir,
+            cwd=dir_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         (stdout, stderr) = gitProcess.communicate()
         stdout = _decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return stdout + ("M" if _isGitRepositoryDirty(dir) else "")
+            return stdout + ("M" if _isGitRepositoryDirty(dir_path) else "")
 
         # Check for git repository
         gitProcess = subprocess.Popen(
             ["git", "log", "-1", "--pretty=format:%h", "--abbrev-commit"],
             env={"LANG": "C"},
-            cwd=dir,
+            cwd=dir_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         (stdout, stderr) = gitProcess.communicate()
         stdout = _decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return stdout + ("+" if _isGitRepositoryDirty(dir) else "")
+            return stdout + ("+" if _isGitRepositoryDirty(dir_path) else "")
     except OSError:
         pass
     return None
 
 
-def _isGitRepositoryDirty(dir):
+def _isGitRepositoryDirty(dir_path):
     gitProcess = subprocess.Popen(
         ["git", "status", "--porcelain"],
         env={"LANG": "C"},
-        cwd=dir,
+        cwd=dir_path,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -125,14 +106,16 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         sys.exit("Unsupported command-line parameters.")
 
-    dir = "."
+    dir_path = "."
     if len(sys.argv) > 1:
-        dir = sys.argv[1]
+        dir_path = sys.argv[1]
 
-    revision = determineRevision(dir)
+    revision = determineRevision(dir_path)
     if revision:
         print(revision)
     else:
         sys.exit(
-            "Directory {0} is not a supported version control checkout.".format(dir)
+            "Directory {0} is not a supported version control checkout.".format(
+                dir_path
+            )
         )
