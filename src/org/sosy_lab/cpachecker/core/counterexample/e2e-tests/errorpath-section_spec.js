@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+// SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 let EC = protractor.ExpectedConditions;
 
 var hasClass = function (element, cls) {
@@ -192,7 +201,7 @@ describe('Error path section in Report.js', function () {
 
         it('Highlight selected code in source tab', function () {
             browser.wait(EC.presenceOf(element(by.css('.marked-source-line'))));
-            expect(hasClass(element(by.xpath('//*[@id="source-2"]/td[2]/pre')), 'marked-source-line')).toBe(true);
+            expect(hasClass(element(by.xpath('//*[@id="source-10"]/td[2]/pre')), 'marked-source-line')).toBe(true);
         })
         browser.driver.sleep(100);
 

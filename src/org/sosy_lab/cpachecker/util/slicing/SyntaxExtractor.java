@@ -1,41 +1,28 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.slicing;
 
-import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,22 +34,15 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 
 @Options(prefix = "slicing")
 public class SyntaxExtractor implements SlicingCriteriaExtractor {
@@ -92,10 +72,11 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
                 : DummyScope.getInstance(),
             pCfa.getLanguage(),
             pShutdownNotifier);
-    if (automata.size() != 1) {
-      throw new InvalidConfigurationException("Require exactly one condition automaton.");
+    try {
+      condition = Iterables.getOnlyElement(automata);
+    } catch (NoSuchElementException e) {
+      throw new InvalidConfigurationException("Require exactly one condition automaton.", e);
     }
-    condition = automata.get(0);
   }
 
   @Override
@@ -106,17 +87,17 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
       final LogManager pLogger)
       throws InterruptedException {
 
-    Multimap<CFANode, CFAEdge> targetsReachableFrom =
+    Multimap<CFANode, CFAEdge> nodesReachingTargetEdges =
         computeReachableTargetsPerLocation(
-            getTargetStates(pCfa, pError, pShutdownNotifier, pLogger), pShutdownNotifier);
+            getTargetNodes(pCfa, pError, pShutdownNotifier, pLogger), pShutdownNotifier);
 
-    Set<CFAEdge> notFoundTargets = new HashSet<>(targetsReachableFrom.values());
-    List<CFAEdge> relevantTargets = new ArrayList<>(notFoundTargets.size());
+    Set<CFAEdge> notFoundTargets = new HashSet<>(nodesReachingTargetEdges.values());
+    ImmutableSet.Builder<CFAEdge> relevantTargets = ImmutableSet.builder();
     Collection<CFAEdge> allEdges = extractAllCFAEdges(pCfa);
 
     // currently we assume that
-    // (1) we goto dedicated state FALSE when successors are not explored
-    // (2) TRUE -> ... edge never necessary
+    // (1) we goto dedicated state __FALSE when successors are not explored
+    // (2) __TRUE -> ... edge never necessary
     for (AutomatonInternalState state : condition.getStates()) {
       if (state.isTarget()) {
         continue;
@@ -125,18 +106,18 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
         if (notFoundTargets.contains(edge) && state.nontriviallyMatches(edge, pLogger)) {
           notFoundTargets.remove(edge);
           relevantTargets.add(edge);
-        } else if (state.nontriviallyMatchesAndEndsIn(edge, "FALSE", pLogger)) {
-          relevantTargets.addAll(targetsReachableFrom.get(edge.getSuccessor()));
-          notFoundTargets.removeAll(targetsReachableFrom.get(edge.getSuccessor()));
+        } else if (state.nontriviallyMatchesAndEndsIn(edge, "__FALSE", pLogger)) {
+          relevantTargets.addAll(nodesReachingTargetEdges.get(edge.getSuccessor()));
+          notFoundTargets.removeAll(nodesReachingTargetEdges.get(edge.getSuccessor()));
         }
 
         if (notFoundTargets.isEmpty()) {
-          return new HashSet<>(relevantTargets);
+          return relevantTargets.build();
         }
       }
     }
 
-    return new HashSet<>(relevantTargets);
+    return relevantTargets.build();
   }
 
   private Collection<CFAEdge> extractAllCFAEdges(final CFA pCfa) {
@@ -148,99 +129,51 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     return edges;
   }
 
-  private Iterable<ARGState> getTargetStates(
+  private Iterable<CFANode> getTargetNodes(
       final CFA pCfa,
       final Specification targetSpec,
       final ShutdownNotifier pShutdown,
-      final LogManager pLogger)
-      throws InterruptedException {
-    try {
-      // Create new configuration with default set of CPAs
-      // might not work correctly in the presence of recursion and function pointers
-      ConfigurationBuilder configurationBuilder = Configuration.builder();
-      configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
-      configurationBuilder.setOption("cpa.automaton.breakOnTargetState", "0");
-      configurationBuilder.setOption("ARGCPA.cpa", "");
-      Configuration configuration = configurationBuilder.build();
+      final LogManager pLogger) {
 
-      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, pLogger);
-      CPABuilder cpaBuilder = new CPABuilder(configuration, pLogger, pShutdown, reachedSetFactory);
-      final ConfigurableProgramAnalysis cpa =
-          cpaBuilder.buildCPAs(pCfa, targetSpec, new AggregatedReachedSets());
-
-      ReachedSet reached = reachedSetFactory.create();
-      reached.add(
-          cpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-          cpa.getInitialPrecision(
-              pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
-      CPAAlgorithm targetFindingAlgorithm =
-          CPAAlgorithm.create(cpa, pLogger, configuration, pShutdown);
-
-      pShutdown.shutdownIfNecessary();
-      try {
-
-        targetFindingAlgorithm.run(reached);
-
-        Preconditions.checkState(!reached.hasWaitingState());
-
-        return from(reached)
-            .filter(AbstractStates.IS_TARGET_STATE)
-            .transform(state -> AbstractStates.extractStateByType(state, ARGState.class));
-
-      } finally {
-        CPAs.closeCpaIfPossible(cpa, pLogger);
-        CPAs.closeIfPossible(targetFindingAlgorithm, pLogger);
-      }
-    } catch (InvalidConfigurationException | CPAException | IllegalArgumentException e) {
-      // Supplied configuration should not fail.
-      throw new AssertionError(
-          "Computation of target states that are syntactically reachable failed unexpectedly.", e);
-    }
+    final TargetLocationProvider targetProvider =
+        new CachingTargetLocationProvider(pShutdown, pLogger, pCfa);
+    return targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), targetSpec);
   }
 
+  /**
+   * Returns a map of {@link CFANode CFANodes} to the target edges they can reach. A target edge is
+   * an edge directly leading to a target node. If a CFANode can not reach any target, it may be
+   * omitted.
+   *
+   * @param targets target nodes. these are used to compute the target edges
+   * @param pShutdown {@link ShutdownNotifier} for stopping early
+   * @return map of CFANodes to target edges reachable from them
+   * @throws InterruptedException if ShutdownNotifier is triggered
+   */
   private Multimap<CFANode, CFAEdge> computeReachableTargetsPerLocation(
-      final Iterable<ARGState> targets, final ShutdownNotifier pShutdown)
+      final Iterable<CFANode> targets, final ShutdownNotifier pShutdown)
       throws InterruptedException {
     Multimap<CFANode, CFAEdge> locToTargets = HashMultimap.create();
-    CFAEdge targetEdge;
-    List<CFAEdge> pathSeq;
-    Set<ARGState> seen = new HashSet<>();
-    Deque<ARGState> waitlist = new ArrayDeque<>();
-    ARGState succ;
-    for (ARGState target : targets) {
+    for (CFANode target : targets) {
       pShutdown.shutdownIfNecessary();
-
-      for (ARGState predTarget : target.getParents()) {
-        pShutdown.shutdownIfNecessary();
-
-        pathSeq = predTarget.getEdgesToChild(target);
-        targetEdge = pathSeq.get(pathSeq.size() - 1);
-        addToMultiMap(targetEdge, pathSeq, locToTargets);
-
-        seen.clear();
-        seen.add(predTarget);
-        waitlist.add(predTarget);
-
-        while (!waitlist.isEmpty()) {
-          pShutdown.shutdownIfNecessary();
-
-          succ = waitlist.pop();
-          for (ARGState pred : succ.getParents()) {
-            pathSeq = pred.getEdgesToChild(succ);
-            addToMultiMap(targetEdge, pathSeq, locToTargets);
-            if (seen.add(pred)) {
-              waitlist.push(pred);
-            }
-          }
-        }
+      List<CFAEdge> allEdgesOnPathsToTarget = getAllEdgesOnPathToTarget(target);
+      Iterable<CFAEdge> targetEdges = CFAUtils.allEnteringEdges(target);
+      for (CFAEdge e : targetEdges) {
+        putAllLocationsOnPathWithTarget(allEdgesOnPathsToTarget, e, locToTargets);
       }
     }
     return locToTargets;
   }
 
-  private void addToMultiMap(
-      final CFAEdge pTargetEdge,
+  private List<CFAEdge> getAllEdgesOnPathToTarget(CFANode target) {
+    final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().backwards().traverseOnce(target, edgeCollector);
+    return edgeCollector.getVisitedEdges();
+  }
+
+  private void putAllLocationsOnPathWithTarget(
       final List<CFAEdge> edges,
+      final CFAEdge pTargetEdge,
       final Multimap<CFANode, CFAEdge> locToTargets) {
     for (CFAEdge edge : edges) {
       locToTargets.put(edge.getPredecessor(), pTargetEdge);

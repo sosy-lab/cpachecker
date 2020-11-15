@@ -1,33 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
@@ -73,7 +57,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -96,6 +79,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -117,8 +101,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -126,17 +112,17 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  static final Predicate<AbstractState> IS_STOP_STATE =
-    Predicates.compose(new Predicate<AssumptionStorageState>() {
-                             @Override
-                             public boolean apply(AssumptionStorageState pArg0) {
-                               return (pArg0 != null) && pArg0.isStop();
-                             }
-                           },
-                       AbstractStates.toState(AssumptionStorageState.class));
+  protected static final boolean isStopState(AbstractState state) {
+    AssumptionStorageState assumptionState =
+        AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+    return assumptionState != null && assumptionState.isStop();
+  }
 
-  static final Predicate<AbstractState> IS_SLICED_STATE = (state) ->
-    AbstractStates.extractStateByType(state, ReachabilityState.class) == ReachabilityState.IRRELEVANT_TO_TARGET;
+  /** Filters out states that were detected as irrelevant for reachability */
+  protected static final boolean isRelevantForReachability(AbstractState state) {
+    return AbstractStates.extractStateByType(state, ReachabilityState.class)
+        != ReachabilityState.IRRELEVANT_TO_TARGET;
+  }
 
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
@@ -368,8 +354,7 @@ abstract class AbstractBMCAlgorithm
 
     AlgorithmStatus status;
 
-    try (ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -381,8 +366,8 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
-            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
+            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
           logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
@@ -587,15 +572,10 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
    *     possible.
    */
-  private boolean adjustConditions() {
+  protected boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
-    boolean adjusted = false;
-    for (AdjustableConditionCPA condCpa : conditionCPAs) {
-      if (condCpa.adjustPrecision()) {
-        adjusted = true;
-      }
-    }
+    boolean adjusted = conditionCPAs.anyMatch(AdjustableConditionCPA::adjustPrecision);
     if (!adjusted) {
       // these cpas said "do not continue"
       logger.log(
@@ -605,14 +585,13 @@ abstract class AbstractBMCAlgorithm
               .join(
                   conditionCPAs.transform(
                       conditionCpa -> conditionCpa.getClass().getSimpleName())));
-      return false;
     }
-    return !Iterables.isEmpty(conditionCPAs);
+    return adjusted;
   }
 
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver,
+      final BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     return boundedModelCheck((Iterable<AbstractState>) pReachedSet, pProver, pCandidateInvariant);
@@ -620,7 +599,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean boundedModelCheck(
       Iterable<AbstractState> pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
@@ -647,7 +626,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean refineCtiBlockingClauses(
       ReachedSet pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       Set<Obligation> pCtiBlockingClauses,
       Map<SymbolicCandiateInvariant, BmcResult> pCheckedClauses)
       throws CPATransferException, InterruptedException, SolverException {
@@ -752,7 +731,7 @@ abstract class AbstractBMCAlgorithm
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexample,
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver)
+      final BasicProverEnvironment<?> pProver)
       throws CPATransferException, InterruptedException {
     // by default, do nothing (just a hook for subclasses)
   }
@@ -772,11 +751,12 @@ abstract class AbstractBMCAlgorithm
    * @throws InterruptedException if the satisfiability check is interrupted.
    */
   private boolean checkBoundingAssertions(
-      final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
+      final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
-    FluentIterable<AbstractState> stopStates = from(pReachedSet)
-        .filter(IS_STOP_STATE)
-        .filter(Predicates.not(IS_SLICED_STATE));
+    FluentIterable<AbstractState> stopStates =
+        from(pReachedSet)
+            .filter(AbstractBMCAlgorithm::isStopState)
+            .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 
     if (boundingAssertions) {
       logger.log(Level.INFO, "Starting assertions check...");

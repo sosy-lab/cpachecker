@@ -1,0 +1,12 @@
+SPDX-FileCopyrightText: 1996-2002 Jorn Lind-Nielsen
+SPDX-FileCopyrightText: 2001 Denis Oddoux
+SPDX-FileCopyrightText: 2007 Paul Gastin
+SPDX-FileCopyrightText: 2012 Tomas Babiak
+
+SPDX-License-Identifier: GPL-2.0-or-later AND LicenseRef-BuDDy
+
+The source code is available in
+buddy-2.4.tar.xz and ltl3ba-1.1.3.tar.gz.
+It was taken from:
+https://sourceforge.net/projects/ltl3ba/
+https://sourceforge.net/projects/buddy/

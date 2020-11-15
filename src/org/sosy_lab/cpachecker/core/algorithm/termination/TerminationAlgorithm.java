@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -41,8 +26,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -82,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
@@ -118,8 +100,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -127,11 +107,8 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty;
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
-
-  private final static Path SPEC_FILE = Paths.get("config/specification/termination_as_reach.spc");
-
-  @Nullable private static Specification terminationSpecification;
+  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
+      NamedProperty.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -187,10 +164,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CFA pCfa,
       ReachedSetFactory pReachedSetFactory,
       AggregatedReachedSetManager pAggregatedReachedSetManager,
-      Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
-      throws InvalidConfigurationException, InterruptedException {
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
@@ -199,16 +175,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
-
-    Specification requiredSpecification =
-        loadTerminationSpecification(
-            pSpecification.getProperties(), pCfa, pConfig, pLogger, pShutdownNotifier);
-    Preconditions.checkArgument(
-        requiredSpecification.equals(pSpecification),
-        "%s requires %s, but %s is given.",
-        TerminationAlgorithm.class.getSimpleName(),
-        requiredSpecification,
-        pSpecification);
 
     TerminationCPA terminationCpa =
         CPAs.retrieveCPAOrFail(pSafetyCPA, TerminationCPA.class, TerminationAlgorithm.class);
@@ -228,64 +194,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                     new InvalidConfigurationException(
                         "Loop structure is not present, but required for termination analysis."));
 
-    // rebuild termination specification for witness export
-    Set<SpecificationProperty> property =
-        ImmutableSet.of(
-            new SpecificationProperty(
-                pCfa.getMainFunction().getFunctionName(),
-                CommonPropertyType.TERMINATION,
-                Optional.of(SPEC_FILE.toString())));
-    Specification termSpec =
-        Specification.fromFiles(
-            property, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger, pShutdownNotifier);
-
     statistics =
         new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), termSpec, pCfa);
+            pConfig,
+            logger,
+            loopStructure.getAllLoops().size(),
+            pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
-  }
-
-  /** Loads the specification required to run the {@link TerminationAlgorithm}. */
-  public static Specification loadTerminationSpecification(
-      Set<SpecificationProperty> pProperties,
-      CFA pCfa,
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, InterruptedException {
-    if (terminationSpecification == null) {
-      terminationSpecification =
-          Specification.fromFiles(
-              pProperties,
-              Collections.singleton(SPEC_FILE),
-              pCfa,
-              pConfig,
-              pLogger,
-              pShutdownNotifier);
-    }
-
-    return terminationSpecification;
-  }
-
-  public static Specification loadTerminationSpecification(
-      final Set<SpecificationProperty> pProperties,
-      final Optional<Path> pWitness,
-      final CFA pCfa,
-      final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, InterruptedException {
-    if (pWitness.isPresent()) {
-      Collection<Path> specFiles = new ArrayList<>(2);
-      specFiles.add(SPEC_FILE);
-      specFiles.add(pWitness.orElseThrow());
-      terminationSpecification =
-          Specification.fromFiles(
-              pProperties, specFiles, pCfa, pConfig, pLogger, pShutdownNotifier);
-      return terminationSpecification;
-    } else {
-      return loadTerminationSpecification(pProperties, pCfa, pConfig, pLogger, pShutdownNotifier);
-    }
   }
 
   @Override
@@ -506,7 +421,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CBinaryExpression binExpr = (CBinaryExpression) expr;
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
           && binExpr.getOperand2() instanceof CCastExpression
-          && ((CCastExpression) binExpr.getOperand2()).getExpressionType() instanceof CPointerType
+          && binExpr.getOperand2().getExpressionType() instanceof CPointerType
           && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
         return true;
       }
@@ -532,8 +447,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
     CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
     if (firstLoopHead instanceof FunctionEntryNode) {
-      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder =
-          ImmutableSet.<CVariableDeclaration>builder();
+      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder = ImmutableSet.builder();
       relVarBuilder.addAll(globalDeclaration);
       for (CFANode entryNode :
           FluentIterable.from(pLoop.getLoopNodes())

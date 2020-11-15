@@ -1,0 +1,24 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CPAchecker
+Source: https://cpachecker.sosy-lab.org
+
+Files: config/properties/*.prp
+ test/config/properties/*.prp
+Copyright: 2013-2020 Dirk Beyer <https://www.sosy-lab.org>
+License: Apache-2.0
+
+Files: test/*/blasting_linux/*.c
+ test/*/blasting_linux/*.h
+ test/*/linux-kernel/*.c
+ test/*/linux-kernel/*.i.bz2
+Copyright: The Linux kernel authors
+License: GPL-2.0-only
+
+Files: test/programs/parser/*.c
+ test/programs/parser/*.h
+ test/programs/parser/*.i
+ test/programs/parser/*.desc
+Copyright: 2001-2013, Daniel Kroening, Edmund Clarke
+Copyright: Computer Science Department, Carnegie Mellon University
+Copyright: Computer Science Department, University of Oxford
+License: LicenseRef-BSD-4-Clause-CBMC

@@ -1,33 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -86,7 +70,7 @@ class CFABuilder extends ASTVisitor {
   // Data structures for handling function declarations
   private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>> functionDeclarations = new ArrayList<>();
   private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
-  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
+  private final TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
@@ -171,9 +155,6 @@ class CFABuilder extends ASTVisitor {
     shutdownNotifier.shutdownIfNecessary();
   }
 
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
-   */
   @Override
   public int visit(IASTDeclaration declaration) {
     if (shutdownNotifier.shouldShutdown()) {
@@ -322,9 +303,6 @@ class CFABuilder extends ASTVisitor {
   }
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
-   */
   @Override
   public int visit(IASTProblem problem) {
     if (shutdownNotifier.shouldShutdown()) {

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Preconditions;
@@ -57,8 +42,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -150,7 +135,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         } else {
           description =
               String.format(
-                  "Field with %d  byte size can't be read from offset %s byte of object %d byte size",
+                  "Field with %d  byte size can't be read from offset %s byte of object %d byte"
+                      + " size",
                   typeBitSize / 8, fieldOffset / 8, objectBitSize / 8);
         }
         errState.addInvalidObject(pObject);
@@ -180,7 +166,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGObject pMemoryOfField,
       long pFieldOffset,
       CType pRValueType,
-      SMGSymbolicValue pValue,
+      SMGValue pValue,
       CFAEdge pEdge)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
@@ -223,10 +209,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         && pValue instanceof SMGKnownSymbolicValue) {
       SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
       if (pState.isExplicit(knownValue)) {
-        SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
-        pValue =
-            SMGKnownAddressValue.valueOf(
-                knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
+        SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
+        pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
+        pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
       }
     }
     return pState
@@ -243,7 +228,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CFAEdge cfaEdge,
       SMGObject memoryOfField,
       long fieldOffset,
-      SMGSymbolicValue value,
+      SMGValue value,
       CType rValueType)
       throws UnrecognizedCodeException, SMGInconsistentException {
 
@@ -275,7 +260,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGObject pMemoryOfField,
       long pFieldOffset,
       CType pRValueType,
-      SMGSymbolicValue pValue,
+      SMGValue pValue,
       CFAEdge pCfaEdge)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
@@ -326,7 +311,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                       pCfaEdge,
                       object,
                       offset.getAsLong(),
-                      (SMGSymbolicValue) newParamValue.getValue(),
+                      newParamValue.getValue(),
                       paramType);
             }
           }

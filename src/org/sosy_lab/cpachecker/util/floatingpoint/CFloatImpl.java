@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import com.google.common.base.Splitter;
@@ -336,8 +321,7 @@ public class CFloatImpl extends CFloat {
   }
 
   private int[] digitwiseAdd(final int[] pArrayA, final int[] pArrayB, final int pRadix) {
-    int[] rArray =
-        new int[((pArrayB.length > pArrayA.length) ? pArrayB.length : pArrayA.length) + 1];
+    int[] rArray = new int[Math.max(pArrayB.length, pArrayA.length) + 1];
 
     for (int i = rArray.length - 1; i >= 0; i--) {
       rArray[i] +=
@@ -468,10 +452,10 @@ public class CFloatImpl extends CFloat {
     CFloat divisor = new CFloatImpl("1", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
     CFloat result = new CFloatImpl("0", pType);
-    for (int i = 0; i < digits.size(); i++) {
+    for (String pDigit : digits) {
       result = result.multiply(ten);
       divisor = divisor.multiply(ten);
-      CFloat fD = new CFloatImpl(digits.get(i), pType);
+      CFloat fD = new CFloatImpl(pDigit, pType);
       result = result.add(fD);
     }
     result = result.divideBy(divisor);

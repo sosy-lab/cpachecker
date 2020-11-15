@@ -1,33 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,11 +24,10 @@ public class BlockGuard implements Cloneable, Serializable{
 
   private static final long serialVersionUID = 7481418201286823199L;
 
-  /**
-   * Internal Stack: that contains relevant information to all active control flow
-   */
-  private List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> contextstack=new ArrayList<>();
-
+  /** Internal Stack: that contains relevant information to all active control flow */
+  private List<
+          Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>>>
+      contextstack = new ArrayList<>();
 
     /**
      * Constructs an empty BlockGuard
@@ -53,11 +36,14 @@ public class BlockGuard implements Cloneable, Serializable{
 
     }
 
-    /**
-     * Constructs an BlockGuard with the given <i>pContextstack</i>
-     * @param pContextstack stack that contains relevant information to all active control flow
-     */
-    private BlockGuard(List<Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>>> pContextstack){
+  /**
+   * Constructs an BlockGuard with the given <i>pContextstack</i>
+   *
+   * @param pContextstack stack that contains relevant information to all active control flow
+   */
+  private BlockGuard(
+      List<Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>>>
+          pContextstack) {
       this.contextstack=pContextstack;
     }
 
@@ -68,24 +54,25 @@ public class BlockGuard implements Cloneable, Serializable{
       } catch (CloneNotSupportedException e) {
         //    logger.logUserException(Level.WARNING, e, "");
       }
-      //Copy internal structure
-      List<Pair<Pair<CFANode,CFANode>, Pair< Pair<CExpression,Boolean>,SortedSet<Variable>>>> tmpallcontexts=new ArrayList<>();
-      for(int i=0;i<contextstack.size();i++){
-        Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> value = contextstack.get(i);
-        CFANode node=value.first.first;
-        CFANode node2=value.first.second;
-        CExpression expr=value.second.first.first;
-        boolean truth=value.second.first.second.booleanValue();
-        SortedSet<Variable> scs=value.second.second;
-        SortedSet<Variable> secsec=new TreeSet<>();
-        secsec.addAll(scs);
-
-        Pair<CExpression,Boolean> secfirst=new Pair<>(expr,truth);
-        Pair<Pair<CExpression,Boolean>,SortedSet<Variable>> sec= new Pair<>(secfirst,secsec);
-        Pair<CFANode,CFANode> first=new Pair<> (node,node2);
-        Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>> elem=new Pair<> (first, sec);
-        tmpallcontexts.add(elem);
-      }
+    // Copy internal structure
+    List<Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>>>
+        tmpallcontexts = new ArrayList<>();
+    for (Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>>
+        value : contextstack) {
+      CFANode node = value.first.first;
+      CFANode node2 = value.first.second;
+      CExpression expr = value.second.first.first;
+      boolean truth = value.second.first.second.booleanValue();
+      NavigableSet<Variable> scs = value.second.second;
+      NavigableSet<Variable> secsec = new TreeSet<>();
+      secsec.addAll(scs);
+      Pair<CExpression, Boolean> secfirst = new Pair<>(expr, truth);
+      Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>> sec = new Pair<>(secfirst, secsec);
+      Pair<CFANode, CFANode> first = new Pair<>(node, node2);
+      Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>> elem =
+          new Pair<>(first, sec);
+      tmpallcontexts.add(elem);
+    }
       //create copy
       BlockGuard tmp=new BlockGuard(tmpallcontexts);
       return tmp;
@@ -101,18 +88,19 @@ public class BlockGuard implements Cloneable, Serializable{
     public void addDependancy(CFANode pNodeV, CFANode pNodeW, CExpression pExpression, boolean pValue) throws UnsupportedCodeException{
       VariableDependancy visitor=new VariableDependancy();
       pExpression.accept(visitor);
-      SortedSet<Variable> varl=visitor.getResult();
+    NavigableSet<Variable> varl = visitor.getResult();
 
       int size=contextstack.size();
       if(size>0){
-        SortedSet<Variable> end=contextstack.get(size-1).second.second;
+      NavigableSet<Variable> end = contextstack.get(size - 1).second.second;
         varl.addAll(end);
       }
 
       Pair<CExpression,Boolean> secfirst=new Pair<>(pExpression,pValue);
-      Pair<Pair<CExpression,Boolean>,SortedSet<Variable>> sec= new Pair<>(secfirst,varl);
+    Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>> sec = new Pair<>(secfirst, varl);
       Pair<CFANode,CFANode> first=new Pair<>(pNodeV,pNodeW);
-      Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>> elem=new Pair<> (first, sec);
+    Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>> elem =
+        new Pair<>(first, sec);
       contextstack.add(elem);
     }
 
@@ -126,7 +114,8 @@ public class BlockGuard implements Cloneable, Serializable{
   public void changeContextStack(CFANode pCurrentNode, NavigableSet<CFANode> pDependencies) {
      int size=contextstack.size();
      for(int i=size;i>0;i--){
-       Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> elem=contextstack.get(i-1);
+      Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>> elem =
+          contextstack.get(i - 1);
        CFANode first=elem.first.first;
        if(!pDependencies.contains(first)){
          contextstack.remove(i-1);
@@ -142,13 +131,14 @@ public class BlockGuard implements Cloneable, Serializable{
      return contextstack.size();
    }
 
-   /**
-    * Returns the Variables that influence the expression of top Control Dependency of the stack.
-    * @return The Variables that influence the expression of top Control Dependency of the stack.
-    */
-   public SortedSet<Variable> getTopVariables(){
+  /**
+   * Returns the Variables that influence the expression of top Control Dependency of the stack.
+   *
+   * @return The Variables that influence the expression of top Control Dependency of the stack.
+   */
+  public NavigableSet<Variable> getTopVariables() {
      int index=contextstack.size()-1;
-     SortedSet<Variable> tmp;
+    NavigableSet<Variable> tmp;
      if(index>=0){
        tmp=contextstack.get(index).second.second;
      }
@@ -158,24 +148,29 @@ public class BlockGuard implements Cloneable, Serializable{
      return tmp;
    }
 
-   /**
-    * Replace the set of the Variables that influence the expression of top Control Dependency of the stack by the set <i>vars</i>.
-    * @param pVars Replacing set of Variables.
-    */
-   public void changeTopVariables(SortedSet<Variable> pVars){
+  /**
+   * Replace the set of the Variables that influence the expression of top Control Dependency of the
+   * stack by the set <i>vars</i>.
+   *
+   * @param pVars Replacing set of Variables.
+   */
+  public void changeTopVariables(NavigableSet<Variable> pVars) {
      int index=contextstack.size()-1;
      if(index>=0){
        contextstack.get(index).second.second=pVars;
      }
    }
 
-   /**
-    * Returns all Variable that influence the <i>index</i> expression of any Control Dependency of the stack.
-    * @param pIndex Index of the Control Dependency
-    * @return All Variable that influence the <i>index</i> expression of any Control Dependency of the stack.
-    */
-   public SortedSet<Variable> getVariables(int pIndex){
-     SortedSet<Variable> tmp=contextstack.get(pIndex).second.second;
+  /**
+   * Returns all Variable that influence the <i>index</i> expression of any Control Dependency of
+   * the stack.
+   *
+   * @param pIndex Index of the Control Dependency
+   * @return All Variable that influence the <i>index</i> expression of any Control Dependency of
+   *     the stack.
+   */
+  public NavigableSet<Variable> getVariables(int pIndex) {
+    NavigableSet<Variable> tmp = contextstack.get(pIndex).second.second;
      return tmp;
    }
 
@@ -223,8 +218,10 @@ public class BlockGuard implements Cloneable, Serializable{
      int size1=this.contextstack.size();
      int size2=pOther.contextstack.size();
      for(int i=0;i<((size1<size2)?size1:size2);i++){
-       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> value = this.contextstack.get(i);
-       Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> othervalue = pOther.contextstack.get(i);
+      Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>> value =
+          this.contextstack.get(i);
+      Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, NavigableSet<Variable>>>
+          othervalue = pOther.contextstack.get(i);
 
        Pair<CFANode,CFANode> edge=value.first;
        Pair<CFANode,CFANode> otheredge=othervalue.first;
@@ -249,8 +246,8 @@ public class BlockGuard implements Cloneable, Serializable{
 //       }
 
 
-       SortedSet<Variable> variables=value.second.second;
-       SortedSet<Variable> othervariables=othervalue.second.second;
+       NavigableSet<Variable> variables=value.second.second;
+       NavigableSet<Variable> othervariables=othervalue.second.second;
 
 
        if(!variables.equals(othervariables)){

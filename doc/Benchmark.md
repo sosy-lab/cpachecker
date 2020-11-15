@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 Benchmarking CPAchecker
 =======================
 
@@ -41,11 +51,7 @@ The specification is given in a property file (`.prp`) just like in the SV-COMP.
 There are examples for such files in `test/programs/benchmarks/property*.prp`.
 To specify them in the benchmark, use the `<propertyfiles>` tag.
 It can occur either in global scope or inside a `<tasks>` tag.
-You can use the variables that will be resolved by the benchmark scripts
-like in other tags, for example:
-`<propertyfile>${inputfile_path}/ALL.prp</propertyfile>`
-This will verify each source file against the specification ALL.prp
-in the same directory.
+We provide common program properties in `config/properties`.
 You do not need to specify a separate command-line option
 with the specification for the verifier,
 as the script will automatically add it to the command line.

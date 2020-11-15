@@ -1,37 +1,22 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 
-import apache.harmony.math.BigInteger;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -199,7 +184,7 @@ public class BVConverter extends Converter {
     // simplify numerals, use the correct size directly instead of expensive casting
     if (term.matches("(\\(_\\sbv\\d+\\s\\d+\\))")) {
       List<String> splitted = Splitter.on(' ').splitToList(term);
-      BigInteger num = BigInteger.valueOf(splitted.get(1).substring(2));
+      BigInteger num = new BigInteger(splitted.get(1).substring(2));
       assert num.bitLength() <= neededBitsize:
         format("numeral %s does not fit into bitvector of length %d", num, neededBitsize);
       return getNumber(num, neededBitsize);
@@ -224,7 +209,7 @@ public class BVConverter extends Converter {
 
   @Override
   public Pair<String, Type<FormulaType<?>>> convertNumeral(String num) {
-    BigInteger n = BigInteger.valueOf(num);
+    BigInteger n = new BigInteger(num);
     // sufficient for a valid formula, we want one bit for bv0
     int bitsize = Math.max(1, n.bitLength());
     return Pair.of(
@@ -233,7 +218,8 @@ public class BVConverter extends Converter {
   }
 
   private String getNumber(BigInteger num, int bitsize) {
-    assert !num.isNegative() : "Negative numbers should be written with an unary minus.";
+    assert num.compareTo(BigInteger.ZERO) >= 0
+        : "Negative numbers should be written with an unary minus.";
     return format("(_ bv%s %d)", num, bitsize);
   }
 

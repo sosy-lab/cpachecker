@@ -1,0 +1,40 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# This is a Docker image for running the latest release of CPAchecker.
+# It is built weekly using GitLab CI and pushed to
+# registry.gitlab.com/sosy-lab/software/cpachecker (:latest and :1.9.1).
+# The version number of latest release of CPAchecker needs to be updated here
+# and in .gitlab-ci.yml
+#
+# Commands for building the image manually:
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:1.9.1 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest - < build/Dockerfile.release
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker:1.9.1
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker:latest
+
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  unzip
+
+ADD https://cpachecker.sosy-lab.org/CPAchecker-1.9.1-unix.zip /
+RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
+
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  gcc \
+  libgmp10 \
+  libgomp1 \
+  openjdk-11-jre-headless \
+  python3
+
+COPY --from=0 /cpachecker /cpachecker
+RUN mkdir /workdir
+WORKDIR /workdir
+ENTRYPOINT ["/cpachecker/scripts/cpa.sh"]
