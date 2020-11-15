@@ -126,15 +126,19 @@ public class CFACreator {
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
 
-  @Option(secure=true, name="parser.usePreprocessor",
-      description="For C files, run the preprocessor on them before parsing. " +
-                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  @Option(
+      secure = true,
+      name = "parser.usePreprocessor",
+      description =
+          "For C files, run the preprocessor on them before parsing. "
+              + "Note that all line numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
   private boolean usePreprocessor = false;
 
-  //TODO change description
-  @Option(secure=true, name="parser.useClang",
-      description="For C files, run the preprocessor on them before parsing. " +
-                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  @Option(
+      secure = true,
+      name = "parser.useClang",
+      description =
+          "For C files, convert to LLVM IR with clang first and then use the LLVM parser.")
   private boolean useClang = false;
 
   @Option(secure=true, name="parser.readLineDirectives",

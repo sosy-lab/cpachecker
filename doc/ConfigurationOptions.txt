@@ -3436,10 +3436,13 @@ parser.readLineDirectives = false
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
 
-# For C files, run the preprocessor on them before parsing. Note that all
-# file numbers printed by CPAchecker will refer to the pre-processed file,
-# not the original input file.
+# For C files, convert to LLVM IR with clang first and then use the LLVM
+# parser.
 parser.useClang = false
+
+# For C files, run the preprocessor on them before parsing. Note that all
+# line numbers printed by CPAchecker will refer to the pre-processed file,
+# not the original input file.
 parser.usePreprocessor = false
 
 # Specifies the mode how HW requirements are detected in the proof.

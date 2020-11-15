@@ -56,8 +56,8 @@ public class LlvmParserWithClang extends LlvmParser {
 
   @Override
   public ParseResult parseString(final String pFilename, final String pCode) {
-    // TODO ?!
-    return null;
+    // TODO
+    throw new UnsupportedOperationException();
   }
 
   static class Factory {
