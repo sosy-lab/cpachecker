@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
 import java.util.Collection;
@@ -50,13 +35,13 @@ public class SymbolicValues {
   }
 
   /**
-   * Returns whether the given constraints represent the same C code (string wise).
-   * This is the case if two constraints are completely equal after replacing symbolic expressions
-   * with the program variables they represent.
+   * Returns whether the given constraints represent the same C code (string wise). This is the case
+   * if two constraints are completely equal after replacing symbolic expressions with the program
+   * variables they represent.
    *
-   * <p>Example: <code>s1 < 5</code> is equal to <code>s2 + 2 < 5</code> in respect to its meaning
-   * with <code>s1</code> and <code>s2</code> being symbolic identifiers, if both constraints
-   * represent <code>a < 5</code> with <code>a</code> being a program variable.</p>
+   * <p>Example: <code>{@code s1 < 5}</code> is equal to <code>{@code s2 + 2 < 5}</code> in respect
+   * to its meaning with <code>s1</code> and <code>s2</code> being symbolic identifiers, if both
+   * constraints represent <code>{@code a < 5}</code> with <code>a</code> being a program variable.
    *
    * @param pValue1 the first symbolic value
    * @param pValue2 the second symbolic value

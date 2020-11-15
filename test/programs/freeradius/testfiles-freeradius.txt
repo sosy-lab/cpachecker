@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2000-2006 The FreeRADIUS server project
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 auth.c - NULL deref
 entryfunction: rad_authenticate
 GIT-SHA1-ID: e53508920463ea475b4bb420859ea72f69529352

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
@@ -67,17 +52,17 @@ class AutomatonExpressionArguments {
    */
   private String transitionLogMessages = "";
 
-  // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by a non-word-character)
-  static Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
+  // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by
+  // a non-word-character)
+  static final Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
   // the pattern \$\d+ matches Expressions like $1 $2 $3 $201
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
-  static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
+  static final Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
   AutomatonExpressionArguments(AutomatonState pState,
       Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractState> pAbstractStates, CFAEdge pCfaEdge,
       LogManager pLogger) {
-    super();
     if (pAutomatonVariables == null) {
       automatonVariables = ImmutableMap.of();
     } else {
@@ -149,7 +134,7 @@ class AutomatonExpressionArguments {
 
     // replace references to Transition Variables
     Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);
-    StringBuffer result = new StringBuffer();
+    StringBuilder result = new StringBuilder();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
       String key = matcher.group().substring(1); // matched string startswith $
@@ -172,7 +157,7 @@ class AutomatonExpressionArguments {
 
     // replace references to automaton Variables
     matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(result.toString());
-    result = new StringBuffer();
+    result = new StringBuilder();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
       String varName =  matcher.group().substring(2); // matched string starts with $$
@@ -238,6 +223,15 @@ class AutomatonExpressionArguments {
             pNode.getFileLocation(),
             CNumericTypes.INT,
             BigInteger.valueOf(automatonVariable.getValue()));
+      } else if (idName.equals("false")) {
+        // this branch is a compromise between human-readable automata
+        // and assumptions that are valid C expressions:
+        // In automata, we use assumption 'false', which is no valid expression
+        // in the C standard. so we replace 'false' with '0' to get a valid C expression
+        // with the intended semantics.
+        // This may lead to problems if people use a variable with name 'false' and a non-zero
+        // value in their code.
+        return CIntegerLiteralExpression.ZERO;
       } else {
         return getTransitionVariable(idName);
       }

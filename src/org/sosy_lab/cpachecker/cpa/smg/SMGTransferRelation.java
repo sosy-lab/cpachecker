@@ -1,32 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -104,7 +88,6 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGEx
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
@@ -114,6 +97,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -168,12 +152,6 @@ public class SMGTransferRelation
       }
       successors.add(checkAndSetErrorRelation(s));
     }
-    logger.log(
-        Level.ALL,
-        "state with id",
-        state.getId(),
-        "has successors with ids",
-        Collections2.transform(successors, UnmodifiableSMGState::getId));
     return successors;
   }
 
@@ -290,10 +268,9 @@ public class SMGTransferRelation
       CExpression lValue = funcAssignment.getLeftHandSide();
       CType rValueType = TypeUtils.getRealExpressionType(funcAssignment.getRightHandSide());
       SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
-      SMGSymbolicValue rValue =
+      SMGValue rValue =
           expressionEvaluator
-              .readValue(
-                  newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge)
+              .readValue(newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge)
               .getObject();
 
       // Lvalue is one frame above
@@ -350,8 +327,8 @@ public class SMGTransferRelation
     }
 
     SMGState initialNewState = state.copyOf();
-    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap = new LinkedHashMap<>();
-    List<Pair<SMGRegion, SMGSymbolicValue>> initialValuesList = new ArrayList<>();
+    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap = new LinkedHashMap<>();
+    List<Pair<SMGRegion, SMGValue>> initialValuesList = new ArrayList<>();
     valuesMap.put(initialNewState, initialValuesList);
     List<SMGState> newStates =
         evaluateArgumentValues(callEdge, arguments, paramDecl, initialNewState, valuesMap);
@@ -373,7 +350,7 @@ public class SMGTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> paramDecl,
       SMGState initialNewState,
-      Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap)
+      Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap)
       throws CPATransferException {
 
     List<SMGState> newStates = Collections.singletonList(initialNewState);
@@ -423,11 +400,10 @@ public class SMGTransferRelation
     return newStates;
   }
 
-
   /** read and evaluate one argument (at index <code>i</code>) and put it into the valuesMap. */
   private List<SMGState> evaluateArgumentValue(
       CFunctionCallEdge callEdge,
-      Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGSymbolicValue>>> valuesMap,
+      Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap,
       int i,
       CExpression exp,
       SMGRegion paramObj,
@@ -440,7 +416,7 @@ public class SMGTransferRelation
 
     for (SMGValueAndState stateValue : readValueToBeAssiged(newState, callEdge, exp)) {
       SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
-      SMGSymbolicValue value = stateValue.getObject();
+      SMGValue value = stateValue.getObject();
 
       for (Pair<SMGState, SMGKnownSymbolicValue> newStateWithExpVal :
           assignExplicitValueToSymbolicValue(newStateWithReadSymbolicValue, callEdge, value, exp)) {
@@ -453,15 +429,15 @@ public class SMGTransferRelation
           valuesMap.put(curState, new ArrayList<>(valuesMap.get(newState)));
         }
 
-        final List<Pair<SMGRegion, SMGSymbolicValue>> curValues = valuesMap.get(curState);
+        final List<Pair<SMGRegion, SMGValue>> curValues = valuesMap.get(curState);
         assert curValues.size() == i : "evaluation of parameters out of order";
         curValues.add(i, Pair.of(paramObj, value));
 
         // Check that previous values are not merged with new one
         if (newStateWithExpVal.getSecond() != null) {
           for (int j = i - 1; j >= 0; j--) {
-            Pair<SMGRegion, SMGSymbolicValue> lhsCheckValuePair = curValues.get(j);
-            SMGSymbolicValue symbolicValue = lhsCheckValuePair.getSecond();
+            Pair<SMGRegion, SMGValue> lhsCheckValuePair = curValues.get(j);
+            SMGValue symbolicValue = lhsCheckValuePair.getSecond();
             if (newStateWithExpVal.getSecond().equals(symbolicValue)) {
               // Previous value was merged, replace with new value
               curValues.set(j, Pair.of(lhsCheckValuePair.getFirst(), value));
@@ -477,7 +453,7 @@ public class SMGTransferRelation
   private void assignParameterValues(
       CFunctionCallEdge callEdge,
       List<CParameterDeclaration> paramDecl,
-      List<Pair<SMGRegion, SMGSymbolicValue>> values,
+      List<Pair<SMGRegion, SMGValue>> values,
       SMGState newState)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
@@ -496,7 +472,7 @@ public class SMGTransferRelation
       }
 
       SMGRegion newObject = values.get(i).getFirst();
-      SMGSymbolicValue symbolicValue = values.get(i).getSecond();
+      SMGValue symbolicValue = values.get(i).getSecond();
       int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
 
       newState.addLocalVariable(typeSize, varName, newObject);
@@ -543,7 +519,7 @@ public class SMGTransferRelation
     List<SMGState> result = new ArrayList<>();
     for (SMGValueAndState valueAndState : expression.accept(visitor)) {
 
-      SMGSymbolicValue value = valueAndState.getObject();
+      SMGValue value = valueAndState.getObject();
       state = valueAndState.getSmgState();
 
       if (!value.isUnknown()) {
@@ -578,8 +554,8 @@ public class SMGTransferRelation
     boolean impliesEqOn = visitor.impliesEqOn(truthValue, state);
     boolean impliesNeqOn = visitor.impliesNeqOn(truthValue, state);
 
-    SMGSymbolicValue val1ImpliesOn;
-    SMGSymbolicValue val2ImpliesOn;
+    SMGValue val1ImpliesOn;
+    SMGValue val2ImpliesOn;
 
     if(impliesEqOn || impliesNeqOn ) {
       val1ImpliesOn = visitor.impliesVal1(state);
@@ -614,8 +590,7 @@ public class SMGTransferRelation
         }
 
         newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
-        PredRelation pathPredicateRelation = newState.getPathPredicateRelation();
-        BooleanFormula predicateFormula = smgPredicateManager.getPredicateFormula(pathPredicateRelation);
+        BooleanFormula predicateFormula = smgPredicateManager.getPathPredicateFormula(newState);
         try {
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
             result.add(newState);
@@ -803,7 +778,7 @@ public class SMGTransferRelation
     List<SMGValueAndState> resultValueAndStates = new ArrayList<>();
     for (SMGValueAndState valueAndState :
         expressionEvaluator.evaluateExpressionValue(pNewState, cfaEdge, rValue)) {
-      SMGSymbolicValue value = valueAndState.getObject();
+      SMGValue value = valueAndState.getObject();
 
       if (value.isUnknown()) {
         value = SMGKnownSymValue.of();
@@ -821,37 +796,63 @@ public class SMGTransferRelation
 
     List<SMGState> result = new ArrayList<>(4);
     CType rValueType = TypeUtils.getRealExpressionType(rValue);
-    for (SMGValueAndState valueAndState : readValueToBeAssiged(pNewState, cfaEdge, rValue)) {
-      SMGSymbolicValue value = valueAndState.getObject();
-      SMGState newState = valueAndState.getSmgState();
 
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+    for (SMGExplicitValueAndState expValueAndState :
+        expEvaluator.evaluateExplicitValue(pNewState, cfaEdge, rValue)) {
+      SMGExplicitValue expValue = expValueAndState.getObject();
+      SMGState newState = expValueAndState.getSmgState();
       //TODO (  cast expression)
 
       //6.5.16.1 right operand is converted to type of assignment expression
       // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
       rValueType = pLFieldType;
 
-      for (Pair<SMGState, SMGKnownSymbolicValue> currentNewStateWithMergedValue :
-          assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue)) {
-        result.add(
-            expressionEvaluator.assignFieldToState(
-                currentNewStateWithMergedValue.getFirst(),
-                cfaEdge,
-                memoryOfField,
-                fieldOffset,
-                value,
-                rValueType));
+      if (!expValue.isUnknown()) {
+        SMGSymbolicValue symbolicValue = newState.getSymbolicOfExplicit(expValue);
+        if (symbolicValue != null) {
+
+          result.add(
+              expressionEvaluator.assignFieldToState(
+                  newState, cfaEdge, memoryOfField, fieldOffset, symbolicValue, rValueType));
+        } else {
+          for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
+            SMGValue value = valueAndState.getObject();
+            SMGState curState = valueAndState.getSmgState();
+
+            curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+            result.add(
+                expressionEvaluator.assignFieldToState(
+                    curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
+          }
+        }
+      } else {
+        for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
+          SMGValue value = valueAndState.getObject();
+          SMGState curState = valueAndState.getSmgState();
+
+          // TODO (  cast expression)
+
+          // 6.5.16.1 right operand is converted to type of assignment expression
+          // 6.5.26 The type of an assignment expression is the type the left operand would have
+          // after lvalue conversion.
+          rValueType = pLFieldType;
+
+          result.add(
+              expressionEvaluator.assignFieldToState(
+                  curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
+        }
       }
     }
+
 
     return result;
   }
 
   // Assign symbolic value to the explicit value calculated from pRvalue
   private List<Pair<SMGState, SMGKnownSymbolicValue>> assignExplicitValueToSymbolicValue(
-      SMGState pNewState, CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
+      SMGState pNewState, CFAEdge pCfaEdge, SMGValue value, CRightHandSide pRValue)
       throws CPATransferException {
-
 
     List<Pair<SMGState, SMGKnownSymbolicValue>> result = new ArrayList<>();
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
@@ -962,8 +963,15 @@ public class SMGTransferRelation
 
     //string literal handling
     if (pInitializer instanceof CInitializerExpression && ((CInitializerExpression) pInitializer).getExpression() instanceof CStringLiteralExpression){
-      return handleStringInitializer(pNewState,pVarDecl , pEdge, pNewObject,
-          pOffset, pInitializer.getFileLocation(), (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pInitializer.getFileLocation(),
+          (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
 
     } else if (pInitializer instanceof CInitializerExpression) {
         return assignFieldToState(pNewState, pEdge, pNewObject,
@@ -991,8 +999,10 @@ public class SMGTransferRelation
       return ImmutableList.of(pNewState);
 
     } else if (pInitializer instanceof CDesignatedInitializer) {
-      throw new AssertionError("Error in handling initializer, designated Initializer " + pInitializer.toASTString()
-          + " should not appear at this point.");
+      throw new AssertionError(
+          "Error in handling initializer, designated Initializer "
+              + pInitializer.toASTString()
+              + " should not appear at this point.");
 
     } else {
       throw new UnrecognizedCodeException("Did not recognize Initializer", pInitializer);
@@ -1008,8 +1018,16 @@ public class SMGTransferRelation
    * else
    *  - create char array from string and call list init for given region
    */
-  private List<SMGState> handleStringInitializer(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge, SMGObject pNewObject,
-      long pOffset,FileLocation pFileLocation, CStringLiteralExpression pExpression) throws CPATransferException {
+  private List<SMGState> handleStringInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      FileLocation pFileLocation,
+      CStringLiteralExpression pExpression)
+      throws CPATransferException {
     CType realCType = TypeUtils.getRealExpressionType(pVarDecl);
     if(realCType instanceof CArrayType){
       realCType = ((CArrayType) realCType).getType();
@@ -1017,8 +1035,8 @@ public class SMGTransferRelation
       realCType = ((CPointerType) realCType).getType();
     }
 
-    //handle string initializer nested in struct type
-    if (realCType instanceof CCompositeType ) {
+    // handle string initializer nested in struct type or assign string to pointer
+    if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
       // create a new region for string expression
       SMGRegion region =
           pNewState

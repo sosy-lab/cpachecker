@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -102,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -142,6 +128,7 @@ public class CtoFormulaConverter {
           "free",
           "kfree",
           "fprintf",
+          "memcmp",
           "printf",
           "puts",
           "printk",
@@ -158,7 +145,12 @@ public class CtoFormulaConverter {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
-      ImmutableMap.of("fesetround", "floating-point rounding modes");
+      ImmutableMap.of(
+          "fesetround", "floating-point rounding modes",
+          // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/664
+          "memcpy", "memcpy",
+          "memmove", "memmove",
+          "memset", "memset");
 
   //names for special variables needed to deal with functions
   @Deprecated
@@ -323,6 +315,24 @@ public class CtoFormulaConverter {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
+          if (simpleType.isLong()) {
+            if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
+              // architecture without extended precision format
+              return FormulaType.getDoublePrecisionFloatingPointType();
+            } else if (machineModel == MachineModel.LINUX32
+                || machineModel == MachineModel.LINUX64) {
+              // gcc uses the x87 extended precision for long double on x86
+              // https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html (search for
+              // -m96bit-long-double)
+              // https://en.wikipedia.org/wiki/Long_double#Implementations
+              // The x87 extended precision has 15+63 bits:
+              // https://en.wikipedia.org/wiki/Extended_precision#x86_extended_precision_format
+              return FormulaType.getFloatingPointType(15, 63);
+            } else {
+              throw new AssertionError(
+                  "Missing implementation of long double for machine model " + machineModel);
+            }
+          }
           return FormulaType.getDoublePrecisionFloatingPointType();
         case FLOAT128:
           return FormulaType.getFloatingPointType(15, 112);
@@ -547,7 +557,10 @@ public class CtoFormulaConverter {
 
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
-    Formula newVariable = makeFreshVariable(name, type, ssa);
+    final int index = makeFreshIndex(name, type, ssa);
+    Formula newVariable =
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+
     if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
@@ -845,9 +858,9 @@ public class CtoFormulaConverter {
       if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
           || (pToCType instanceof CBitFieldType
               && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
-        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
-        Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
-        Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
+        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0L);
+        Formula zeroToSize = efmgr.makeBitvector(toSize, 0L);
+        Formula oneToSize = efmgr.makeBitvector(toSize, 1L);
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
@@ -1565,7 +1578,11 @@ public class CtoFormulaConverter {
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
-  /** @throws InterruptedException may be thrown in subclasses */
+  /**
+   * Create a formula that represents a predicate, e.g., a condition of an assume edge.
+   *
+   * @throws InterruptedException may be thrown in subclasses
+   */
   protected BooleanFormula makePredicate(
       CExpression exp,
       boolean isTrue,
@@ -1613,7 +1630,7 @@ public class CtoFormulaConverter {
    * @throws InterruptedException may be thrown in subclasses
    */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMapBuilder ssa)
       throws InterruptedException {
     return MergeResult.trivial(pts1, bfmgr);
   }
@@ -1779,13 +1796,23 @@ public class CtoFormulaConverter {
     }
   }
 
-  static String isUnsupportedFunction(String functionName) {
+  String isUnsupportedFunction(String functionName) {
+    String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-      return UNSUPPORTED_FUNCTIONS.get(functionName);
+      result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
-      return "atomic operations";
+      result = "atomic operations";
+    } 
+    
+    if (result != null && options.isAllowedUnsupportedFunction(functionName)) {
+      logger.logfOnce(
+          Level.WARNING,
+          "Program contains calls to unsupported function %s, result may be wrong.",
+          functionName);
+      return null;
     }
-    return null;
+
+    return result;
   }
 
   /**

@@ -1,19 +1,27 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 include: /build/gitlab-ci.yml
 
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 0c4e9686d53f4c681a74d06e73d180837af38d33
+  REFASTER_REPO_REVISION: 673d65a54133408a2936656271aa67b9aa4035fe
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.3.4
+  REFASTER_VERSION: 2.4.0
+  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
 
-
-build:jdk-13:
-  variables:
-    # https://github.com/google/error-prone/issues/1106
-    ANT_PROPS_BUILD: "-Divy.disable=true -Derrorprone.disable=true"
-
+.pip-cache: &pip-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".cache/pip"
 
 .binary_check: &binary_check
   stage: checks
@@ -26,6 +34,8 @@ build:jdk-13:
       - "ConfigurationChecks.html"
       - "hs_err_pid*.log"
     when: always
+    reports:
+      junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
 configuration-checks:jdk-11:
   <<: *configuration-checks
@@ -37,15 +47,15 @@ configuration-checks:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-configuration-checks:jdk-13:
+configuration-checks:jdk-14:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-13
+    - build:jdk-14
   needs:
     - build-dependencies
-    - build:jdk-13
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+    - build:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 configuration-documentation:
@@ -70,9 +80,21 @@ configuration-plot:
     - "scripts/configViz.py > ConfigurationPlot.dot"
     - "dot -Tsvg ConfigurationPlot.dot -O"
   dependencies: []
+  needs: []
   artifacts:
     paths:
       - "ConfigurationPlot.dot.svg"
+
+
+forbidden-apis:
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS forbiddenapis"
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  needs:
+    - build-dependencies
+    - build:jdk-11
 
 
 .python-unit-tests: &python-unit-tests
@@ -89,21 +111,21 @@ python-unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-python-unit-tests:jdk-13:
+python-unit-tests:jdk-14:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-13
+    - build:jdk-14
   needs:
     - build-dependencies
-    - build:jdk-13
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+    - build:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 javascript-unit-tests:
   stage: checks
   dependencies: []
-  image: node:8.10.0 # This version is also provided by Ubuntu 18.04
+  image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
@@ -122,7 +144,21 @@ build-docker:test:java-node:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
-    IMAGE: test:java-node
+    IMAGE: /test:java-node
+
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.node
+    IMAGE: /test:node
+
+build-docker:release:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.release
+    IMAGE: ":1.9.1"
+    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
+
 
 javascript-e2e-tests:
   stage: checks
@@ -135,7 +171,7 @@ javascript-e2e-tests:
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - "./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show chromium-browser)"
@@ -149,36 +185,74 @@ javascript-e2e-tests:
       - output/Counterexample.1.html
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
     when: always
-  allow_failure: true # tests are currently racy (cf. #520)
 
 
 # Checks for Python code
 check-format-python:
   stage: checks
   dependencies: []
+  needs: []
   image: python
   before_script:
     - pip install black
   script:
     - black . --check --diff
+  <<: *pip-cache
 
 flake8:
   stage: checks
   dependencies: []
-  image: python
+  needs: []
+  image: python:3.8
   before_script:
     - pip install flake8-awesome
   script:
     - flake8
-  allow_failure: true # need to fix existing code first
+  <<: *pip-cache
+
+
+build-tar:
+  stage: checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  needs:
+    - build-dependencies
+    - build:jdk-11
+  script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
+  artifacts:
+    paths:
+      - "cpachecker.tar.bz2"
+  only:
+    refs:
+      - trunk
+
+deploy-docker:
+  stage: deploy
+  dependencies:
+    - build-tar
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.dev
+    IMAGE: ":dev"
+    EXTRA_ARGS: "--context dir://."
+  only:
+    refs:
+      - trunk
 
 
 # No coverage is computed for CPAchecker
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-13:
+unit-tests:jdk-14:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
 
 
 # Disable some checks because they are not used for CPAchecker

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -41,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -207,7 +193,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       TerminationState loopHeadState, Precision pPrecision, CFANode loopHead)
       throws CPATransferException, InterruptedException {
     Collection<TerminationState> resultingSuccessors = new ArrayList<>(4);
-    String functionName = loopHead.getFunctionName();
+    AFunctionDeclaration functionName = loopHead.getFunction();
 
     logger.logf(
         FINEST,
@@ -392,7 +378,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
   }
 
   private CDeclarationEdge createTmpVarDeclaration(CFANode predecessor, CFANode successor) {
-    String function = predecessor.getFunctionName();
+    AFunctionDeclaration function = predecessor.getFunction();
     CVariableDeclaration declaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
@@ -409,7 +395,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     return edge;
   }
 
-  private CFANode createCfaNode(String functionName) {
+  private CFANode createCfaNode(AFunctionDeclaration functionName) {
     return new CFANode(functionName);
   }
 

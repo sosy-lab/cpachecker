@@ -1,0 +1,17 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '1.0'
+
+input_files: 'weekdays.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true
+  - property_file: ../../config/properties/termination.prp
+    expected_verdict: true

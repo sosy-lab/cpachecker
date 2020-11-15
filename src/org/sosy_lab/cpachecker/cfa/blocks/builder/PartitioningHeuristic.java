@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
 import java.util.ArrayDeque;
@@ -37,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
 
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
@@ -56,9 +40,11 @@ public abstract class PartitioningHeuristic {
   protected final LogManager logger;
 
   /**
-   * @param pConfig configuration can be used and injected in subclasses.
+   * Create instance.
+   *
+   * @param pConfig unused, but can be used and injected in subclasses.
    */
-  public PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
+  protected PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
     cfa = pCfa;
     logger = pLogger;
   }

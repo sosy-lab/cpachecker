@@ -1,36 +1,22 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
+import com.google.common.base.Equivalence;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.common.time.Timer;
+import java.util.concurrent.atomic.LongAdder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,7 +26,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -51,15 +40,17 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
-  public final Timer pathFormulaComputationTimer = new Timer();
-  public int pathFormulaCacheHits = 0;
+  public final ThreadSafeTimerContainer pathFormulaComputationTimer =
+      new ThreadSafeTimerContainer(null);
+  public LongAdder pathFormulaCacheHits = new LongAdder();
 
   public final PathFormulaManager delegate;
 
-  private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaWithConditionsCache
-            = new HashMap<>();
-  private final Map<Pair<CFAEdge, PathFormula>, PathFormula> andFormulaCache
-            = new HashMap<>();
+  private final Map<
+          Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, Pair<PathFormula, ErrorConditions>>
+      andFormulaWithConditionsCache = new HashMap<>();
+  private final Map<Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, PathFormula> andFormulaCache =
+      new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
             = new HashMap<>();
@@ -74,40 +65,52 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     emptyFormula = delegate.makeEmptyPathFormula();
   }
 
-  @Override
-  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+  /**
+   * Returns a cache key for the specified path formula and edge. Uses {@link Equivalence#identity}
+   * as an equivalence wrapper for the edge.
+   */
+  private Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> createFormulaCacheKey(
+      PathFormula pOldFormula, CFAEdge pEdge) {
+    return Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
+  }
 
-    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+  @Override
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(
+      PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+    final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
+        createFormulaCacheKey(pOldFormula, pEdge);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
-      pathFormulaComputationTimer.start();
+      TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
+      t.start();
       // compute new pathFormula with the operation on the edge
       result = delegate.makeAndWithErrorConditions(pOldFormula, pEdge);
-      pathFormulaComputationTimer.stop();
+      t.stop();
       andFormulaWithConditionsCache.put(formulaCacheKey, result);
 
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
-    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+    final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
+        createFormulaCacheKey(pOldFormula, pEdge);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
+      TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
       try {
-      pathFormulaComputationTimer.start();
-      // compute new pathFormula with the operation on the edge
+        t.start(); // compute new pathFormula with the operation on the edge
       result = delegate.makeAnd(pOldFormula, pEdge);
       andFormulaCache.put(formulaCacheKey, result);
       } finally {
-        pathFormulaComputationTimer.stop();
+        t.stop();
       }
 
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -126,7 +129,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeOr(pF1, pF2);
       orFormulaCache.put(formulaCacheKey, result);
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -143,7 +146,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeEmptyPathFormula(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -225,7 +228,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    int cacheHits = this.pathFormulaCacheHits;
+    int cacheHits = this.pathFormulaCacheHits.intValue();
     int totalPathFormulaComputations =
         this.pathFormulaComputationTimer.getNumberOfIntervals() + cacheHits;
     out.println(
@@ -262,9 +265,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PointerTargetSet
-      mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
-          throws InterruptedException {
+  public PointerTargetSet mergePts(
+      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
+      throws InterruptedException {
     return delegate.mergePts(pPts1, pPts2, pSSA);
   }
 

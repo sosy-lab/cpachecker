@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -29,8 +14,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
  * This class represents a simple Pair of an object and a state.
@@ -60,9 +45,12 @@ public abstract class SMGAbstractObjectAndState<T> {
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
+    private final SMGValue symbolicValue;
 
-    private SMGAddressValueAndState(SMGState pState, SMGAddressValue pValue) {
+    private SMGAddressValueAndState(
+        SMGState pState, SMGAddressValue pValue, SMGValue pSymbolicValue) {
       super(pState, pValue);
+      symbolicValue = pSymbolicValue;
     }
 
     @Override
@@ -70,16 +58,25 @@ public abstract class SMGAbstractObjectAndState<T> {
       return (SMGAddressValue) super.getObject();
     }
 
+    public SMGValue getValue() {
+      return symbolicValue;
+    }
+
     public static SMGAddressValueAndState of(SMGState pState, SMGAddressValue pValue) {
-      return new SMGAddressValueAndState(pState, pValue);
+      return new SMGAddressValueAndState(pState, pValue, pValue);
     }
 
     public static SMGAddressValueAndState of(SMGState pState) {
       return of(pState, SMGUnknownValue.INSTANCE);
     }
 
+    public static SMGAddressValueAndState of(SMGState pState, SMGValue pValue) {
+      return new SMGAddressValueAndState(pState, SMGUnknownValue.INSTANCE, pValue);
+    }
+
     public static SMGAddressValueAndState of(SMGState pState, SMGEdgePointsTo pAddressValue) {
-      return of(pState, SMGKnownAddressValue.valueOf(pAddressValue));
+      return new SMGAddressValueAndState(
+          pState, SMGKnownAddressValue.valueOf(pAddressValue), pAddressValue.getValue());
     }
   }
 
@@ -98,9 +95,9 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
   }
 
-  public static class SMGValueAndState extends SMGAbstractObjectAndState<SMGSymbolicValue> {
+  public static class SMGValueAndState extends SMGAbstractObjectAndState<SMGValue> {
 
-    private SMGValueAndState(SMGState pState, SMGSymbolicValue pValue) {
+    private SMGValueAndState(SMGState pState, SMGValue pValue) {
       super(pState, pValue);
     }
 
@@ -108,7 +105,7 @@ public abstract class SMGAbstractObjectAndState<T> {
       return of(pState, SMGUnknownValue.INSTANCE);
     }
 
-    public static SMGValueAndState of(SMGState pState, SMGSymbolicValue pValue) {
+    public static SMGValueAndState of(SMGState pState, SMGValue pValue) {
       return new SMGValueAndState(pState, pValue);
     }
   }

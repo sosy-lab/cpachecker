@@ -1,0 +1,17 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '1.0'
+
+# old file name: undefSignedCharIndex_false-valid-deref.c
+input_files: 'undefSignedCharIndex-2.c'
+
+properties:
+  - property_file: ../../config/properties/valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-deref

@@ -1,32 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +19,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -47,7 +31,7 @@ public class MutableCFA implements CFA {
 
   private final MachineModel machineModel;
   private final NavigableMap<String, FunctionEntryNode> functions;
-  private final SortedSetMultimap<String, CFANode> allNodes;
+  private final TreeMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final List<Path> fileNames;
   private final Language language;
@@ -57,7 +41,7 @@ public class MutableCFA implements CFA {
   public MutableCFA(
       MachineModel pMachineModel,
       NavigableMap<String, FunctionEntryNode> pFunctions,
-      SortedSetMultimap<String, CFANode> pAllNodes,
+      TreeMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       List<Path> pFileNames,
       Language pLanguage) {
@@ -84,7 +68,7 @@ public class MutableCFA implements CFA {
   }
 
   public void removeNode(CFANode pNode) {
-    SortedSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
+    NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
     functionNodes.remove(pNode);
 
@@ -128,8 +112,8 @@ public class MutableCFA implements CFA {
     return Collections.unmodifiableNavigableMap(functions);
   }
 
-  public SortedSet<CFANode> getFunctionNodes(String pName) {
-    return Collections.unmodifiableSortedSet(allNodes.get(pName));
+  public NavigableSet<CFANode> getFunctionNodes(String pName) {
+    return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
   @Override

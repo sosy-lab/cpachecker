@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableSet;
@@ -39,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -56,6 +40,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -71,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -98,8 +85,20 @@ public class PredicateCPA
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
-  @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
-      description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
+  @Option(
+    secure = true,
+    name = "merge.mergeAbstractionStatesWithSamePredecessor",
+    description = "merge two abstraction states if their preceeding abstraction states are the same")
+  private boolean mergeAbstractionStates = false;
+
+  @Option(
+    secure = true,
+    name = "stop",
+    values = {"SEP", "SEPPCC", "SEPNAA"},
+    toUppercase = true,
+    description = "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
+        + "SEPNAA works the same as SEP, except that it Never stops At Abstraction states. "
+        + "SEPNAA is used in bmc-IMC.properties for config bmc-incremental-ABEl to keep exploring covered states.")
   private String stopType = "SEP";
 
   @Option(secure=true, description="Direction of the analysis?")
@@ -119,7 +118,6 @@ public class PredicateCPA
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
-  private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
@@ -130,6 +128,11 @@ public class PredicateCPA
   private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
+  private final PredicateAbstractionManagerOptions abstractionOptions;
+  private final WeakeningOptions weakeningOptions;
+  private final PredicateAbstractionsStorage abstractionStorage;
+  private final PredicateAbstractionStatistics abstractionStats =
+      new PredicateAbstractionStatistics();
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -185,17 +188,14 @@ public class PredicateCPA
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
 
-    predicateManager =
-        new PredicateAbstractionManager(
-            abstractionManager,
-            pathFormulaManager,
-            solver,
-            config,
+    abstractionOptions = new PredicateAbstractionManagerOptions(config);
+    abstractionStorage =
+        new PredicateAbstractionsStorage(
+            abstractionOptions.getReuseAbstractionsFrom(),
             logger,
-            pShutdownNotifier,
-            invariantsManager.appendToAbstractionFormula()
-                ? invariantsManager
-                : TrivialInvariantSupplier.INSTANCE);
+            solver.getFormulaManager(),
+            null);
+    weakeningOptions = new WeakeningOptions(config);
 
     statistics = new PredicateStatistics();
     options = new PredicateCpaOptions(config);
@@ -206,15 +206,14 @@ public class PredicateCPA
             cfa,
             abstractionManager,
             formulaManager,
-            specification,
             shutdownNotifier,
             pathFormulaManager,
-            predicateManager);
+            getPredicateManager());
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     predicateProvider =
-        new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
+        new PredicateProvider(config, pCfa, logger, formulaManager, getPredicateManager());
 
     stats =
         new PredicateCPAStatistics(
@@ -226,13 +225,13 @@ public class PredicateCPA
             blk,
             regionManager,
             abstractionManager,
-            predicateManager,
+            abstractionStats,
             statistics);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PredicateAbstractDomain(predicateManager, symbolicCoverageCheck, statistics);
+    return new PredicateAbstractDomain(getPredicateManager(), symbolicCoverageCheck, statistics);
   }
 
   @Override
@@ -243,7 +242,7 @@ public class PredicateCPA
         formulaManager,
         pathFormulaManager,
         blk,
-        predicateManager,
+        getPredicateManager(),
         statistics,
         options);
   }
@@ -254,7 +253,8 @@ public class PredicateCPA
       case "SEP":
         return MergeSepOperator.getInstance();
       case "ABE":
-        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+        return new PredicateMergeOperator(
+            logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
       default:
         throw new InternalError("Update list of allowed merge operators");
     }
@@ -266,14 +266,28 @@ public class PredicateCPA
       case "SEP":
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
+        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager());
+      case "SEPNAA":
+        return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
         throw new InternalError("Update list of allowed stop operators");
     }
   }
 
   public PredicateAbstractionManager getPredicateManager() {
-    return predicateManager;
+    return new PredicateAbstractionManager(
+        abstractionManager,
+        pathFormulaManager,
+        solver,
+        abstractionOptions,
+        weakeningOptions,
+        abstractionStorage,
+        logger,
+        shutdownNotifier,
+        abstractionStats,
+        invariantsManager.appendToAbstractionFormula()
+            ? invariantsManager
+            : TrivialInvariantSupplier.INSTANCE);
   }
 
   public PathFormulaManager getPathFormulaManager() {
@@ -300,7 +314,7 @@ public class PredicateCPA
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
-        predicateManager.makeTrueAbstractionFormula(null),
+        getPredicateManager().makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.of());
   }
 
@@ -316,7 +330,7 @@ public class PredicateCPA
         formulaManager,
         pathFormulaManager,
         blk,
-        predicateManager,
+        getPredicateManager(),
         invariantsManager,
         predicateProvider,
         statistics);
@@ -353,11 +367,11 @@ public class PredicateCPA
 
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
       try {
-        return predicateManager.checkCoverage(
-            e1.getAbstractionFormula(),
-            pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
-            e2.getAbstractionFormula()
-        );
+        return getPredicateManager()
+            .checkCoverage(
+                e1.getAbstractionFormula(),
+                pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+                e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);
       }

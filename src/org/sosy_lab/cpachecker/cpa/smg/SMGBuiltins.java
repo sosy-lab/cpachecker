@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableList;
@@ -37,10 +22,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -49,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -176,7 +162,7 @@ public class SMGBuiltins {
       CFAEdge cfaEdge,
       SMGAddressValue bufferAddress,
       SMGExplicitValue countValue,
-      SMGSymbolicValue ch,
+      SMGValue ch,
       SMGExplicitValue expValue)
       throws CPATransferException {
 
@@ -320,8 +306,9 @@ public class SMGBuiltins {
 
         if (valueAndStates.size() != 1) {
           throw new SMGInconsistentException(
-            "Found abstraction where non should exist,due to the expression " + sizeExpr.toASTString()
-                + "already being evaluated once in this transferrelation step.");
+              "Found abstraction where non should exist,due to the expression "
+                  + sizeExpr.toASTString()
+                  + "already being evaluated once in this transferrelation step.");
          }
 
         SMGExplicitValueAndState valueAndState = valueAndStates.get(0);
@@ -439,9 +426,11 @@ public class SMGBuiltins {
           currentState = forcedValueAndState.getSmgState();
           List<SMGExplicitValueAndState> forcedvalueAndStates = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
 
-          if (forcedvalueAndStates.size() != 1) { throw new SMGInconsistentException(
-              "Found abstraction where non should exist,due to the expression " + sizeExpr.toASTString()
-                  + "already being evaluated once in this transferrelation step.");
+          if (forcedvalueAndStates.size() != 1) {
+            throw new SMGInconsistentException(
+                "Found abstraction where non should exist,due to the expression "
+                    + sizeExpr.toASTString()
+                    + "already being evaluated once in this transferrelation step.");
           }
 
           resultValueAndState = forcedvalueAndStates.get(0);
@@ -547,7 +536,8 @@ public class SMGBuiltins {
                 .withErrorDescription(
                     "Free on expression "
                         + pointerExp.toASTString()
-                        + " is invalid, because the target of the address could not be calculated.");
+                        + " is invalid, because the target of the address could not be"
+                        + " calculated.");
         resultStates.add(invalidFreeState);
         continue;
       }
@@ -642,12 +632,13 @@ public class SMGBuiltins {
           SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
 
           if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
-            int symbolicValueSize =
-                expressionEvaluator.getBitSizeof(
-                    pCfaEdge, sizeExpr.getExpressionType(), currentState);
+            CType expressionType = sizeExpr.getExpressionType();
+            SMGType symbolicValueSMGType =
+                SMGType.constructSMGType(
+                    expressionType, currentState, pCfaEdge, expressionEvaluator);
             for (SMGValueAndState sizeSymbolicValueAndState :
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
-              SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
+              SMGValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
               int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
               int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
@@ -659,12 +650,18 @@ public class SMGBuiltins {
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
                 if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {
-                  currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                      .valueOf(availableSource), symbolicValueSize, pCfaEdge);
+                  currentState.addErrorPredicate(
+                      symbolicValue,
+                      symbolicValueSMGType,
+                      SMGKnownExpValue.valueOf(availableSource),
+                      pCfaEdge);
                 }
                 if (!currentState.getHeap().isObjectExternallyAllocated(targetObject.getObject())) {
-                  currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                      .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                  currentState.addErrorPredicate(
+                      symbolicValue,
+                      symbolicValueSMGType,
+                      SMGKnownExpValue.valueOf(availableTarget),
+                      pCfaEdge);
                 }
               }
             }
@@ -866,8 +863,8 @@ public class SMGBuiltins {
           symFirstValueAndState
               .getSmgState()
               .readValue(secondRegion, offset, machineModel.getSizeofCharInBits());
-      SMGSymbolicValue symFirstValue = symFirstValueAndState.getObject();
-      SMGSymbolicValue symSecondValue = symSecondValueAndState.getObject();
+      SMGValue symFirstValue = symFirstValueAndState.getObject();
+      SMGValue symSecondValue = symSecondValueAndState.getObject();
       state = symSecondValueAndState.getSmgState();
       if (!bothValuesAreDefined(symFirstValue, symSecondValue)) {
         return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);

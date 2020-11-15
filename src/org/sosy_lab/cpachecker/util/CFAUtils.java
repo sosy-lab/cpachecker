@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -43,9 +28,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -403,16 +388,16 @@ public class CFAUtils {
   }
 
   /**
-   * This method allows to select from a set of variables
-   * all local variables from a given function.
-   * This requires that the given set contains the qualified names of each variable
-   * as returned by {@link AbstractSimpleDeclaration#getQualifiedName()}.
+   * This method allows to select from a set of variables all local variables from a given function.
+   * This requires that the given set contains the qualified names of each variable as returned by
+   * {@link AbstractSimpleDeclaration#getQualifiedName()}.
    *
    * @param variables Set of qualified names of variables.
    * @param function A function name.
    * @return A subset of "variables".
    */
-  public static SortedSet<String> filterVariablesOfFunction(SortedSet<String> variables, String function) {
+  public static NavigableSet<String> filterVariablesOfFunction(
+      NavigableSet<String> variables, String function) {
     // TODO: Currently the format of the qualified name is not defined.
     // In theory, frontends could use different formats.
     // The best would be to eliminate all uses of this method
