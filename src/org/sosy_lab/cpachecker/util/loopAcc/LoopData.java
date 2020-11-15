@@ -568,7 +568,7 @@ public class LoopData implements Comparable<LoopData> {
                   .getLeavingEdge(VALID_STATE)
                   .getEdgeType()
                   .equals(CFAEdgeType.AssumeEdge)
-              && loopNodes.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
+              && !loopNodes.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
 
             tempNodes.add(tempNode.getLeavingEdge(i).getSuccessor());
           }

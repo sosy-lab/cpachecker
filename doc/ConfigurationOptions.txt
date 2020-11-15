@@ -161,7 +161,7 @@ solver.z3.usePhantomReferences = false
 # Get information about all the loops
 LoopInfo.generateLoopInformation = false
 
-# Dump LoopInformation to a file.
+# Dumps infos about the loops in the tested program to a file.
 LoopInfo.logfile = "LoopInformation.log"
 
 # Refiner that SlicingDelegatingRefiner should delegate to
@@ -804,7 +804,7 @@ cfa.moveDeclarationsToFunctionStart = false
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
-cfa.pixelGraphicFile = no default value
+cfa.pixelGraphicFile = "cfaPixel"
 
 # export CFA as .ser file (dump Java objects)
 cfa.serialize = false
@@ -3505,8 +3505,8 @@ loopacc.loopabstractionheader.onlyAccelerableLoops = true
 loopacc.loopabstractionheader.pathForFile = "../abstractLoops/"
 
 # AbstractLoops to be able to process them
-loopacc.loopabstractionheader.shouldAbstract = "naiv"
-  allowed values: [naiv, advanced, none]
+loopacc.loopabstractionheader.shouldAbstract = "none"
+  allowed values: [naive, advanced, none]
 
 # When checking for memory cleanup properties, use this configuration file
 # instead of the current one.
