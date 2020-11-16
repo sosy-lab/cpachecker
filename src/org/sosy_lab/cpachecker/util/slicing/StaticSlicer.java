@@ -80,6 +80,28 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
   }
 
+  private static Set<CFAEdge> getAbortCallEdges(CFA pCfa) {
+
+    Set<CFAEdge> abortCallEdges = new HashSet<>();
+
+    for (CFANode node : pCfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (edge instanceof CStatementEdge) {
+          CStatement statement = ((CStatementEdge) edge).getStatement();
+          if (statement instanceof CFunctionCallStatement) {
+            CFunctionDeclaration declaration =
+                ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
+            if (declaration != null && declaration.getQualifiedName().equals("abort")) {
+              abortCallEdges.add(edge);
+            }
+          }
+        }
+      }
+    }
+
+    return abortCallEdges;
+  }
+
   @Override
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
@@ -96,20 +118,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     // TODO: make this configurable
     if (!criteriaEdges.isEmpty()) {
-      for (CFANode node : pCfa.getAllNodes()) {
-        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-          if (edge instanceof CStatementEdge) {
-            CStatement statement = ((CStatementEdge) edge).getStatement();
-            if (statement instanceof CFunctionCallStatement) {
-              CFunctionDeclaration declaration =
-                  ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
-              if (declaration != null && declaration.getQualifiedName().equals("abort")) {
-                criteriaEdges.add(edge);
-              }
-            }
-          }
-        }
-      }
+      criteriaEdges.addAll(getAbortCallEdges(pCfa));
     }
 
     try {
