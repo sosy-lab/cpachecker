@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -62,7 +63,7 @@ public class UsageDelta implements Delta<List<CompatibleState>> {
   }
 
   @Override
-  public boolean equals(Delta<List<CompatibleState>> pDelta) {
+  public boolean equals(Object pDelta) {
     assert pDelta instanceof UsageDelta;
     UsageDelta pOther = (UsageDelta) pDelta;
     assert nestedDeltas.size() == pOther.nestedDeltas.size();
@@ -73,6 +74,16 @@ public class UsageDelta implements Delta<List<CompatibleState>> {
       }
     }
     return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = 7;
+    final int prime = 31;
+    for (int i = 0; i < this.nestedDeltas.size(); i++) {
+      result = prime * result + Objects.hash(nestedDeltas.hashCode());
+    }
+    return result;
   }
 
   public static UsageDelta

@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ThreadIdProvider;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
+import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ThreadState
@@ -193,6 +195,24 @@ public class ThreadState
 
   public ThreadState copyWith(String pCurrent, Map<String, ThreadStatus> tSet) {
     return new ThreadState(pCurrent, tSet, this.removedSet);
+  }
+
+  @Override
+  public Delta<CompatibleState> getDeltaBetween(CompatibleState pOther) {
+    Map<String, ThreadStatus> newSet = new TreeMap<>();
+    ThreadState pState = (ThreadState) pOther;
+    Map<String, ThreadStatus> expanded = pState.getThreadSet();
+    for (Entry<String, ThreadStatus> entry : expanded.entrySet()) {
+      if (threadSet.containsKey(entry.getKey())) {
+        if (!threadSet.get(entry.getKey()).equals(entry.getValue())) {
+          throw new UnsupportedOperationException(
+              "Statuses for thread " + entry.getKey() + " differs");
+        }
+      } else {
+        newSet.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return new ThreadDelta(newSet);
   }
 
   @Override

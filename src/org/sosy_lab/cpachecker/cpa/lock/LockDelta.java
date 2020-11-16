@@ -39,12 +39,6 @@ public class LockDelta extends ArrayList<LockEffect> implements Delta<Compatible
   }
 
   @Override
-  public boolean equals(Delta<CompatibleState> pDelta) {
-    LockDelta lDelta = (LockDelta) pDelta;
-    return super.equals(lDelta);
-  }
-
-  @Override
   public Delta<CompatibleState> add(Delta<CompatibleState> pDelta) {
     LockDelta lDelta = (LockDelta) pDelta;
     if (lDelta.isEmpty()) {

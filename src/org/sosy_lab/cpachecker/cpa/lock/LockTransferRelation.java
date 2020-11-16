@@ -375,7 +375,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
               LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
               int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
               AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
-              return Collections.singletonList(e);
+              return ImmutableList.of(e);
             }
           }
         }

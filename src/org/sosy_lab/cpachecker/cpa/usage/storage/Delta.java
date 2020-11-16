@@ -13,7 +13,11 @@ public interface Delta<T> {
 
   public boolean covers(Delta<T> pDelta);
 
-  public boolean equals(Delta<T> pDelta);
+  @Override
+  public boolean equals(Object pDelta);
+
+  @Override
+  public int hashCode();
 
   public Delta<T> add(Delta<T> pDelta);
 

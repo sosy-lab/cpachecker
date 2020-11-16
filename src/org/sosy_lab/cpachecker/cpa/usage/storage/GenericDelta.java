@@ -28,7 +28,7 @@ public class GenericDelta implements Delta<CompatibleState> {
   }
 
   @Override
-  public boolean equals(Delta<CompatibleState> pDelta) {
+  public boolean equals(Object pDelta) {
     return pDelta == instance;
   }
 
@@ -39,6 +39,11 @@ public class GenericDelta implements Delta<CompatibleState> {
   @Override
   public Delta<CompatibleState> add(Delta<CompatibleState> pDelta) {
     return instance;
+  }
+
+  @Override
+  public int hashCode() {
+    return 31;
   }
 
 }
