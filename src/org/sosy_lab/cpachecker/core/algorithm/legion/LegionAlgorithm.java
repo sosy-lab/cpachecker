@@ -119,7 +119,13 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
         this.init_fuzzer =
-                new Fuzzer("init", logger, valueCpa, this.outputWriter, pShutdownNotifier, pConfig);
+                new Fuzzer(
+                        "init",
+                        logger,
+                        valueCpa,
+                        this.outputWriter,
+                        pShutdownNotifier,
+                        pConfig);
         this.fuzzer =
                 new Fuzzer(
                         "fuzzer",
@@ -135,7 +141,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             throws CPAException, InterruptedException,
             CPAEnabledAnalysisPropertyViolationException {
         logger.log(Level.INFO, "Running legion.");
-        AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+        AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
         // Before asking a solver for path constraints, one initial pass through the program
         // has to be done to provide an initial set of states. This initial discovery
@@ -145,7 +151,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             reachedSet = init_fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
         } catch (PropertyViolationException ex) {
             logger.log(Level.WARNING, "Found violated property at preload.");
-            return AlgorithmStatus.SOUND_AND_PRECISE;
+            return status;
         } finally {
             outputWriter.writeTestCases(reachedSet);
         }
@@ -205,7 +211,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
             } catch (PropertyViolationException ex) {
                 logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
-                status = AlgorithmStatus.SOUND_AND_PRECISE;
                 break;
             } finally {
                 valueCpa.getTransferRelation().clearKnownValues();

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -103,12 +103,16 @@ public class OutputWriter {
     /**
      * Handles writing of all testcases necessary for the given reachedSet.
      */
-    public void writeTestCases(ReachedSet pReachedSet) {
+    public void writeTestCases(UnmodifiableReachedSet pReachedSet) {
 
+        int reached_size = pReachedSet.size();
         // Write output only if new states have been reached
-        if (previousSetSize > pReachedSet.size()) {
+        if (previousSetSize == reached_size) {
             return;
         }
+        logger.log(
+                Level.INFO,
+                "Searching through arg(" + Integer.toString(reached_size) + ") for testcases");
 
         // Get starting point for search
         AbstractState first = pReachedSet.getFirstState();
@@ -124,13 +128,14 @@ public class OutputWriter {
             violation_str = "_error";
         }
         String filename = String.format("/testcase_%s%s.xml", this.testCaseNumber, violation_str);
-        
+
         // Get content
         String inputs = writeVariablesToTestcase(values);
         if (inputs.length() < 1) {
+            this.previousSetSize = reached_size;
             return;
         }
-        
+
         logger.log(Level.WARNING, "Writing testcase ", filename);
         try (Writer testcase =
                 Files.newBufferedWriter(
@@ -153,7 +158,7 @@ public class OutputWriter {
             logger.log(Level.SEVERE, "Could not write test output", exc);
         } finally {
             this.testCaseNumber += 1;
-            this.previousSetSize = pReachedSet.size();
+            this.previousSetSize = reached_size;
         }
 
     }
@@ -210,7 +215,7 @@ public class OutputWriter {
         // If not, search in largest_child
         try {
             searchTestCase(largest_child, values);
-        } catch (StackOverflowError e){
+        } catch (StackOverflowError e) {
             return;
         }
     }
