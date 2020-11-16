@@ -170,8 +170,8 @@ final class SliceToCfaConverter {
       return newNode;
     }
 
-    var functionDeclaration = (CFunctionDeclaration) pNode.getFunction();
-    var declarationEdge = declarationEdges.get(functionDeclaration);
+    CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) pNode.getFunction();
+    CDeclarationEdge declarationEdge = declarationEdges.get(functionDeclaration);
 
     if (declarationEdge != null) {
       functionDeclaration = cloneFunctionDeclaration(functionDeclaration);
@@ -192,9 +192,9 @@ final class SliceToCfaConverter {
 
     } else if (pNode instanceof CFunctionEntryNode) {
 
-      var originalFunctionEntryNode = (CFunctionEntryNode) pNode;
+      CFunctionEntryNode originalFunctionEntryNode = (CFunctionEntryNode) pNode;
 
-      var relevantFunctionExitNode =
+      FunctionExitNode relevantFunctionExitNode =
           (FunctionExitNode) cloneNode(originalFunctionEntryNode.getExitNode(), pNodeMap);
 
       if (functionDeclaration.getType().getReturnType().equals(CVoidType.VOID)) {
@@ -250,8 +250,8 @@ final class SliceToCfaConverter {
   private CFunctionCallEdge cloneFunctionCall(
       CFunctionCallEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {
 
-    var originalFunctionSummaryEdge = pEdge.getSummaryEdge();
-    var originalFunctionEntryNode = pEdge.getSuccessor();
+    CFunctionSummaryEdge originalFunctionSummaryEdge = pEdge.getSummaryEdge();
+    CFunctionEntryNode originalFunctionEntryNode = pEdge.getSuccessor();
 
     CFunctionReturnEdge originalFunctionReturnEdge = null;
     for (CFAEdge edge : CFAUtils.enteringEdges(originalFunctionSummaryEdge.getSuccessor())) {
@@ -260,7 +260,7 @@ final class SliceToCfaConverter {
       }
     }
 
-    var relevantFunctionDeclaration =
+    CFunctionDeclaration relevantFunctionDeclaration =
         cloneFunctionDeclaration(originalFunctionEntryNode.getFunctionDefinition());
     Optional<CVariableDeclaration> optionalReturnVariable =
         originalFunctionEntryNode.getReturnVariable().toJavaUtil();
@@ -269,22 +269,23 @@ final class SliceToCfaConverter {
       optionalReturnVariable = Optional.empty();
     }
 
-    var relevantFunctionExitNode = new FunctionExitNode(relevantFunctionDeclaration);
-    var relevantFunctionEntryNode =
+    FunctionExitNode relevantFunctionExitNode = new FunctionExitNode(relevantFunctionDeclaration);
+    CFunctionEntryNode relevantFunctionEntryNode =
         new CFunctionEntryNode(
             pEdge.getFileLocation(),
             relevantFunctionDeclaration,
             relevantFunctionExitNode,
             com.google.common.base.Optional.fromJavaUtil(optionalReturnVariable));
 
-    var originalFunctionCall = originalFunctionSummaryEdge.getExpression();
-    var originalFunctionCallExpression = originalFunctionCall.getFunctionCallExpression();
+    CFunctionCall originalFunctionCall = originalFunctionSummaryEdge.getExpression();
+    CFunctionCallExpression originalFunctionCallExpression =
+        originalFunctionCall.getFunctionCallExpression();
     List<CExpression> relevantParameterExpressions =
         filterByRelevantParams(
             originalFunctionCallExpression.getParameterExpressions(),
             originalFunctionEntryNode.getFunctionDefinition());
 
-    var relevantFunctionCallExpression =
+    CFunctionCallExpression relevantFunctionCallExpression =
         new CFunctionCallExpression(
             pEdge.getFileLocation(),
             relevantFunctionDeclaration.getType().getReturnType(),
@@ -338,7 +339,7 @@ final class SliceToCfaConverter {
       throw new AssertionError("Unknown function call type: " + originalFunctionCall);
     }
 
-    var relevantFunctionSummaryEdge =
+    CFunctionSummaryEdge relevantFunctionSummaryEdge =
         new CFunctionSummaryEdge(
             originalFunctionSummaryEdge.getRawStatement(),
             originalFunctionSummaryEdge.getFileLocation(),
