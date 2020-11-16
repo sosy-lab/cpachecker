@@ -213,12 +213,6 @@ final class SliceToCfaConverter {
                 originalFunctionEntryNode.getReturnVariable());
       }
 
-      newNode =
-          new CFunctionEntryNode(
-              originalFunctionEntryNode.getFileLocation(),
-              functionDeclaration,
-              relevantFunctionExitNode,
-              originalFunctionEntryNode.getReturnVariable());
       relevantFunctionExitNode.setEntryNode((CFunctionEntryNode) newNode);
 
     } else {
