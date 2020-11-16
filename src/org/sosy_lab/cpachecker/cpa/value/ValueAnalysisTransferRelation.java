@@ -717,7 +717,6 @@ public class ValueAnalysisTransferRelation
     }
 
     if (initialValue.isUnknown()) {
-      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
       if (options.isUnknownToRangeLimits()) {
         if (declarationType instanceof JSimpleType) {
           JBasicType basicType = ((JSimpleType) declarationType).getType();
@@ -746,9 +745,12 @@ public class ValueAnalysisTransferRelation
             default:
               break;
           }
+        } else {
+          newElement.assignConstant(memoryLocation, new NumericValue(2147483647), declarationType);
+          newElement.assignConstant(memoryLocation, new NumericValue(-2147483647), declarationType);
         }
-
       }
+      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
@@ -1059,7 +1061,6 @@ public class ValueAnalysisTransferRelation
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
-        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
         if (options.isUnknownToRangeLimits()) {
           if (lType instanceof JSimpleType) {
             JBasicType basicType = ((JSimpleType) lType).getType();
@@ -1088,8 +1089,12 @@ public class ValueAnalysisTransferRelation
               default:
                 break;
             }
+          } else {
+            newElement.assignConstant(assignedVar, new NumericValue(2147483647), lType);
+            newElement.assignConstant(assignedVar, new NumericValue(-2147483647), lType);
           }
-        }
+        } 
+        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
       } else {
         newElement.assignConstant(assignedVar, value, lType);
       }
