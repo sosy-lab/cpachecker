@@ -415,8 +415,7 @@ public final class DependenceGraph implements Serializable {
           if (reachable.containsKey(cfaEdge)) {
             optionalCauses = combine(reachable.get(cfaEdge), optionalCauseSet);
           } else if (optionalCauseSet.isPresent()) {
-            Set<MemoryLocation> mutableCauseSet = new HashSet<>();
-            mutableCauseSet.addAll(optionalCauseSet.orElseThrow());
+            Set<MemoryLocation> mutableCauseSet = new HashSet<>(optionalCauseSet.orElseThrow());
             optionalCauses = Optional.of(mutableCauseSet);
           } else {
             optionalCauses = Optional.empty();
