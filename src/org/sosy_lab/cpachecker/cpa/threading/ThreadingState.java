@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
 
   private static final String PROPERTY_DEADLOCK = "deadlock";
+  private static final String PROPERTY_DATA_RACE = "data-race";
 
   final static int MIN_THREAD_NUM = 0;
 
@@ -72,35 +73,44 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
+  @Nullable private final DataRaceTracker tracker;
+
   public ThreadingState() {
     this.threads = PathCopyingPersistentTreeMap.of();
     this.locks = PathCopyingPersistentTreeMap.of();
     this.activeThread = null;
     this.threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    tracker = null;
   }
 
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
       String pActiveThread,
-      PersistentMap<String, Integer> pThreadIdsForWitness) {
+      PersistentMap<String, Integer> pThreadIdsForWitness,
+      DataRaceTracker pTracker) {
     this.threads = pThreads;
     this.locks = pLocks;
     this.activeThread = pActiveThread;
     this.threadIdsForWitness = pThreadIdsForWitness;
+    tracker = pTracker;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
-    return new ThreadingState(pThreads, locks, activeThread, threadIdsForWitness);
+    return new ThreadingState(pThreads, locks, activeThread, threadIdsForWitness, tracker);
   }
 
   private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
-    return new ThreadingState(threads, pLocks, activeThread, threadIdsForWitness);
+    return new ThreadingState(threads, pLocks, activeThread, threadIdsForWitness, tracker);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, pThreadIdsForWitness);
+    return new ThreadingState(threads, locks, activeThread, pThreadIdsForWitness, tracker);
+  }
+
+  private ThreadingState withDataRaceTracker(DataRaceTracker pTracker) {
+    return new ThreadingState(threads, locks, activeThread, threadIdsForWitness, pTracker);
   }
 
   public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
@@ -120,6 +130,31 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     Preconditions.checkNotNull(id);
     checkState(threads.containsKey(id), "leaving non-existing thread: %s", id);
     return withThreads(threads.removeAndCopy(id));
+  }
+
+  public boolean hasDataRaceTracker() {
+    return tracker != null;
+  }
+
+  public ThreadingState setDataRaceTracker(DataRaceTracker pTracker) {
+    Preconditions.checkNotNull(pTracker);
+    checkState(!hasDataRaceTracker(), "already tracking data races, no need to update externally");
+    return withDataRaceTracker(pTracker);
+  }
+
+  public ThreadingState updateDataRaceTracker(CFAEdge edge, String pActiveThread) {
+    if (getThreadIds().size() < 2) {
+      return this;
+    }
+    if (hasLockForThread(pActiveThread)) {
+      // TODO: Are locks for all memory locations?
+      //  -> If not there could still be a data race
+      return this;
+    }
+    assert hasDataRaceTracker();
+    DataRaceTracker newTracker =
+        tracker.update(threads.keySet(), pActiveThread, edge);
+    return withDataRaceTracker(newTracker);
   }
 
   public Set<String> getThreadIds() {
@@ -275,6 +310,11 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
       } catch (UnrecognizedCodeException e) {
         throw new InvalidQueryException("deadlock-check had a problem", e);
       }
+    } else if (PROPERTY_DATA_RACE.equals(pProperty)) {
+      if (hasDataRaceTracker()) {
+        return tracker.hasDataRace();
+      }
+      return false;
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
@@ -394,7 +434,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   /** See {@link #activeThread}. */
   public ThreadingState withActiveThread(String pActiveThread) {
-    return new ThreadingState(threads, locks, pActiveThread, threadIdsForWitness);
+    return new ThreadingState(threads, locks, pActiveThread, threadIdsForWitness, tracker);
   }
 
   String getActiveThread() {

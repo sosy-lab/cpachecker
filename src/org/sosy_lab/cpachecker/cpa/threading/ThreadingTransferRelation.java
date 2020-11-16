@@ -54,6 +54,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -94,6 +97,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     secure = true
   )
   private boolean useAllPossibleClones = false;
+
+  @Option(description = "enable data race detection", secure = true)
+  private boolean trackDataRaces = false;
 
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
@@ -154,6 +160,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       if (threadingState == null) {
         return ImmutableSet.of();
       }
+    }
+
+    if (trackDataRaces && globalAccessChecker.hasGlobalAccess(cfaEdge)) {
+      if (!threadingState.hasDataRaceTracker()) {
+        CompoundIntervalManagerFactory compoundIntervalManagerFactory =
+            CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
+        EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, cfa.getMachineModel());
+        DataRaceTracker dataRaceTracker = new DataRaceTracker(edgeAnalyzer);
+        threadingState = threadingState.setDataRaceTracker(dataRaceTracker);
+      }
+      threadingState = threadingState.updateDataRaceTracker(cfaEdge, activeThread);
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
