@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -1303,6 +1304,14 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof ThreadingState) {
+        result.clear();
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
@@ -1570,6 +1579,18 @@ public class ValueAnalysisTransferRelation
     } else {
       return Collections.singleton(newState);
     }
+  }
+
+  private @NonNull ValueAnalysisState strengthenWithThreads(
+      ThreadingState pThreadingState, ValueAnalysisState pState) throws CPATransferException {
+    final FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    final FunctionEntryNode succ = function.getSuccessor();
+    final String calledFunctionName = succ.getFunctionName();
+    return handleFunctionCallEdge(
+        function, function.getArguments(), succ.getFunctionParameters(), calledFunctionName);
   }
 
   private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {

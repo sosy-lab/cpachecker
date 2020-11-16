@@ -40,7 +40,7 @@ import java.util.function.Function;
  * <p>Implementation detail: the dominance tree and dominance frontier computation algorithms are
  * from "A Simple, Fast Dominance Algorithm" (Cooper et al.).
  */
-public final class Dominance {
+final class Dominance {
 
   /** Undefined ID. */
   public static final int UNDEFINED = -1;

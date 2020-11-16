@@ -3286,7 +3286,7 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # closer to the static program slicing based on control-flow graphs (CFGs),
 # where branching is represented by a single assumption (with true- and
 # false-edges)
-dependencegraph.controldeps.considerInverseAssumption = false
+dependencegraph.controldeps.considerInverseAssumption = true
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
