@@ -152,7 +152,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                 return depReachedSet.contains(pEdge, pMemoryLocation);
               }
 
-              return false;
+              return true;
             }
           };
       slicingTime.stop();
