@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -196,21 +197,20 @@ final class SliceToCfaConverter {
       FunctionExitNode relevantFunctionExitNode =
           (FunctionExitNode) cloneNode(originalFunctionEntryNode.getExitNode(), pNodeMap);
 
+      Optional<CVariableDeclaration> relevantReturnVariable;
+
       if (functionDeclaration.getType().getReturnType().equals(CVoidType.VOID)) {
-        newNode =
-            new CFunctionEntryNode(
-                originalFunctionEntryNode.getFileLocation(),
-                functionDeclaration,
-                relevantFunctionExitNode,
-                Optional.absent());
+        relevantReturnVariable = Optional.absent();
       } else {
-        newNode =
-            new CFunctionEntryNode(
-                originalFunctionEntryNode.getFileLocation(),
-                functionDeclaration,
-                relevantFunctionExitNode,
-                originalFunctionEntryNode.getReturnVariable());
+        relevantReturnVariable = originalFunctionEntryNode.getReturnVariable();
       }
+
+      newNode =
+          new CFunctionEntryNode(
+              originalFunctionEntryNode.getFileLocation(),
+              functionDeclaration,
+              relevantFunctionExitNode,
+              relevantReturnVariable);
 
       relevantFunctionExitNode.setEntryNode((CFunctionEntryNode) newNode);
 
@@ -362,22 +362,20 @@ final class SliceToCfaConverter {
   private CFAEdge cloneEdge(CFAEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {
 
     CFAEdgeType type = pEdge.getEdgeType();
+    String rawStatement = pEdge.getRawStatement();
+    FileLocation fileLocation = pEdge.getFileLocation();
+    String description = pEdge.getDescription();
 
     if (type == CFAEdgeType.BlankEdge) {
 
-      return new BlankEdge(
-          pEdge.getRawStatement(),
-          pEdge.getFileLocation(),
-          pPredecessor,
-          pSuccessor,
-          pEdge.getDescription());
+      return new BlankEdge(rawStatement, fileLocation, pPredecessor, pSuccessor, description);
 
     } else if (type == CFAEdgeType.AssumeEdge && pEdge instanceof CAssumeEdge) {
 
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
       return new CAssumeEdge(
-          assumeEdge.getRawStatement(),
-          assumeEdge.getFileLocation(),
+          rawStatement,
+          fileLocation,
           pPredecessor,
           pSuccessor,
           assumeEdge.getRawAST().get(),
@@ -389,9 +387,9 @@ final class SliceToCfaConverter {
 
       CFunctionSummaryStatementEdge statementEdge = (CFunctionSummaryStatementEdge) pEdge;
       return new CFunctionSummaryStatementEdge(
-          statementEdge.getRawStatement(),
+          rawStatement,
           statementEdge.getStatement(),
-          statementEdge.getFileLocation(),
+          fileLocation,
           pPredecessor,
           pSuccessor,
           statementEdge.getFunctionCall(),
@@ -401,11 +399,7 @@ final class SliceToCfaConverter {
 
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
       return new CStatementEdge(
-          statementEdge.getRawStatement(),
-          statementEdge.getStatement(),
-          statementEdge.getFileLocation(),
-          pPredecessor,
-          pSuccessor);
+          rawStatement, statementEdge.getStatement(), fileLocation, pPredecessor, pSuccessor);
 
     } else if (type == CFAEdgeType.DeclarationEdge && pEdge instanceof CDeclarationEdge) {
 
@@ -418,19 +412,15 @@ final class SliceToCfaConverter {
       }
 
       return new CDeclarationEdge(
-          declarationEdge.getRawStatement(),
-          declarationEdge.getFileLocation(),
-          pPredecessor,
-          pSuccessor,
-          relevantDeclaration);
+          rawStatement, fileLocation, pPredecessor, pSuccessor, relevantDeclaration);
 
     } else if (type == CFAEdgeType.ReturnStatementEdge && pEdge instanceof CReturnStatementEdge) {
 
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
       return new CReturnStatementEdge(
-          returnStatementEdge.getRawStatement(),
+          rawStatement,
           returnStatementEdge.getRawAST().get(),
-          returnStatementEdge.getFileLocation(),
+          fileLocation,
           pPredecessor,
           (FunctionExitNode) pSuccessor);
 
