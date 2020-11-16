@@ -43,6 +43,31 @@ final class ControlDependenceBuilder {
         .filter(edge -> !ignoreFunctionEdge(edge));
   }
 
+  private static Set<CFAEdge> getFunctionCallDependentEdges(
+      Set<ControlDependency> pDependencies, Set<CFAEdge> pCallEdges) {
+
+    Set<CFAEdge> functionCallDependent = new HashSet<>();
+    boolean changed = true;
+    while (changed) {
+
+      changed = false;
+
+      for (ControlDependency dependency : pDependencies) {
+
+        CFAEdge controlEdge = dependency.getControlEdge();
+        CFAEdge dependentEdge = dependency.getDependentEdge();
+
+        if (pCallEdges.contains(controlEdge) || functionCallDependent.contains(controlEdge)) {
+          if (functionCallDependent.add(dependentEdge)) {
+            changed = true;
+          }
+        }
+      }
+    }
+
+    return functionCallDependent;
+  }
+
   static void compute(
       MutableCFA pCfa,
       FunctionEntryNode pEntryNode,
@@ -133,24 +158,10 @@ final class ControlDependenceBuilder {
       }
     }
 
-    Set<CFAEdge> functionCallDependent = new HashSet<>();
-    boolean changed = true;
-    while (changed) {
+    // Check whether all CFAEdges are, directly or indirectly, control dependent on the function's
+    // entering call edges. If such a dependency doesn't already exist, it's subsequently added.
 
-      changed = false;
-
-      for (ControlDependency dependency : dependencies) {
-
-        CFAEdge controlEdge = dependency.getControlEdge();
-        CFAEdge dependentEdge = dependency.getDependentEdge();
-
-        if (callEdges.contains(controlEdge) || functionCallDependent.contains(controlEdge)) {
-          if (functionCallDependent.add(dependentEdge)) {
-            changed = true;
-          }
-        }
-      }
-    }
+    Set<CFAEdge> functionCallDependent = getFunctionCallDependentEdges(dependencies, callEdges);
 
     for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
       if (!functionCallDependent.contains(edge)) {
