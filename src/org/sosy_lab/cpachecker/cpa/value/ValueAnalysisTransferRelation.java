@@ -96,7 +96,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation2;
+import org.sosy_lab.cpachecker.core.defaults.StatefulCFAEdgeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -109,6 +110,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueAnalysisCFAEdgeVisitor.FieldAccessExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -121,12 +123,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
+import org.sosy_lab.cpachecker.util.CFAEdgeVisitor;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class ValueAnalysisTransferRelation
-    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
+    extends ForwardingTransferRelation2<
+        ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
@@ -289,10 +293,9 @@ public class ValueAnalysisTransferRelation
     return super.postProcessing(successor, edge);
   }
 
-
   @Override
-  protected void setInfo(AbstractState pAbstractState,
-      Precision pAbstractPrecision, CFAEdge pCfaEdge) {
+  protected CFAEdgeVisitor<ValueAnalysisState> setInfo(
+      AbstractState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {
     super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
     // More than 5 function parameters is sufficiently seldom.
     // For any other cfaEdge we need only a list of length 1.
@@ -304,10 +307,18 @@ public class ValueAnalysisTransferRelation
     if (stats != null) {
       stats.incrementIterations();
     }
+    return new ValueAnalysisCFAEdgeVisitor((ValueAnalysisState)pAbstractState, pAbstractPrecision, pCfaEdge);
   }
 
+  public class ValueAnalysisCFAEdgeVisitor extends StatefulCFAEdgeVisitor<ValueAnalysisState> {
+
+    public ValueAnalysisCFAEdgeVisitor(
+        ValueAnalysisState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {
+      super(pAbstractState, pAbstractPrecision, pCfaEdge);
+    }
+
   @Override
-  protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
+  public ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCodeException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
@@ -356,7 +367,7 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
+  public ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);
@@ -367,7 +378,7 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
+  public ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
       throws UnrecognizedCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
@@ -412,7 +423,7 @@ public class ValueAnalysisTransferRelation
    * @return new abstract state
    */
   @Override
-  protected ValueAnalysisState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
+  public ValueAnalysisState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
       FunctionSummaryEdge summaryEdge, AFunctionCall exprOnSummary, String callerFunctionName)
     throws UnrecognizedCodeException {
 
@@ -546,7 +557,7 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+  public ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
     AFunctionCall functionCall  = cfaEdge.getExpression();
 
@@ -567,7 +578,7 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleAssumption(
+  public ValueAnalysisState handleAssumption(
       AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
     return handleAssumption(expression, truthValue);
@@ -580,7 +591,8 @@ public class ValueAnalysisTransferRelation
       stats.incrementAssumptions();
     }
 
-    Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
+      Pair<AExpression, Boolean> simplifiedExpression =
+          CFAEdgeVisitor.simplifyAssumption(expression, truthValue);
     expression = simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
@@ -649,33 +661,8 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  /*
-   *  returns 'true' if the given value represents the specified boolean bool.
-   *  A return of 'false' does not necessarily mean that the given value represents !bool,
-   *  but only that it does not represent bool.
-   *
-   *  For example:
-   *    * representsTrue(BooleanValue.valueOf(true), true)  = true
-   *    * representsTrue(BooleanValue.valueOf(false), true) = false
-   *  but:
-   *    * representsTrue(NullValue.getInstance(), true)     = false
-   *    * representsTrue(NullValue.getInstance(), false)    = false
-   *
-   */
-  private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue) {
-      return ((BooleanValue) value).isTrue() == bool;
-
-    } else if (value.isNumericValue()) {
-      return value.equals(new NumericValue(bool ? 1L : 0L));
-
-    } else {
-      return false;
-    }
-  }
-
   @Override
-  protected ValueAnalysisState handleDeclarationEdge(
+  public ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
@@ -794,7 +781,7 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
+  public ValueAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
     throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCall) {
@@ -966,7 +953,7 @@ public class ValueAnalysisTransferRelation
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
     String varName = pIdExpression.getName();
 
-    if (isGlobal(pIdExpression)) {
+    if (CFAEdgeVisitor.isGlobal(pIdExpression)) {
       return MemoryLocation.valueOf(varName);
     } else {
       return MemoryLocation.valueOf(functionName, varName);
@@ -1193,7 +1180,7 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
+  protected class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
     public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
@@ -1256,6 +1243,32 @@ public class ValueAnalysisTransferRelation
       throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
   }
+  }
+
+  /*
+   *  returns 'true' if the given value represents the specified boolean bool.
+   *  A return of 'false' does not necessarily mean that the given value represents !bool,
+   *  but only that it does not represent bool.
+   *
+   *  For example:
+   *    * representsTrue(BooleanValue.valueOf(true), true)  = true
+   *    * representsTrue(BooleanValue.valueOf(false), true) = false
+   *  but:
+   *    * representsTrue(NullValue.getInstance(), true)     = false
+   *    * representsTrue(NullValue.getInstance(), false)    = false
+   *
+   */
+  private static boolean representsBoolean(Value value, boolean bool) {
+    if (value instanceof BooleanValue) {
+      return ((BooleanValue) value).isTrue() == bool;
+
+    } else if (value.isNumericValue()) {
+      return value.equals(new NumericValue(bool ? 1L : 0L));
+
+    } else {
+      return false;
+    }
+  }
 
   @Override
   public Collection<? extends AbstractState> strengthen(
@@ -1291,7 +1304,8 @@ public class ValueAnalysisTransferRelation
           super.setInfo(pElement, pPrecision, pCfaEdge);
           AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
           result.addAll(
-              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
+              strengthenWithAssumptions(
+                  stateWithAssumptions, pPrecision, stateToStrengthen, pCfaEdge));
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
@@ -1349,8 +1363,8 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    super.resetInfo();
-    oldState = null;
+    // super.resetInfo();
+    // FOODOoldState = null;
 
     return postProcessedResult;
   }
@@ -1402,19 +1416,19 @@ public class ValueAnalysisTransferRelation
                 final BigDecimal integralPartValue;
                 switch (paramType.getType()) {
                   case FLOAT:
-                    integralPartValue = BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
+                    integralPartValue =
+                        BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
                     break;
                   case DOUBLE:
-                    integralPartValue = BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
+                    integralPartValue =
+                        BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
                     break;
                   default:
                     throw new AssertionError("Unsupported float type: " + paramType);
                 }
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
-                        functionCallExpression.getFileLocation(),
-                        paramType,
-                        integralPartValue);
+                        functionCallExpression.getFileLocation(), paramType, integralPartValue);
                 newState =
                     strengthenWithPointerInformation(
                         newState,
@@ -1541,6 +1555,7 @@ public class ValueAnalysisTransferRelation
 
   private @NonNull Collection<ValueAnalysisState> strengthenWithAssumptions(
       AbstractStateWithAssumptions pStateWithAssumptions,
+      Precision pPrecision,
       ValueAnalysisState pState,
       CFAEdge pCfaEdge)
       throws CPATransferException {
@@ -1548,12 +1563,12 @@ public class ValueAnalysisTransferRelation
     ValueAnalysisState newState = pState;
 
     for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
-      newState = handleAssumption(assumption, true);
+      newState =
+          new ValueAnalysisCFAEdgeVisitor(newState, pPrecision, pCfaEdge)
+              .handleAssumption(assumption, true);
 
       if (newState == null) {
         break;
-      } else {
-        setInfo(newState, precision, pCfaEdge);
       }
     }
 
