@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -300,6 +302,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
+        if (lElement instanceof ThreadingState) {
+          element = strengthen(element, (ThreadingState) lElement);
+        }
+
         /*
          * Add additional assumptions from an automaton state.
          */
@@ -399,6 +405,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), fmgr.parse(asmpt));
 
     return replacePathFormula(pElement, pf);
+  }
+
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pState, ThreadingState pThreadingState)
+      throws CPATransferException, InterruptedException {
+    FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    PathFormula pathFormula = convertEdgeToPathFormula(pState.getPathFormula(), function);
+    return replacePathFormula(pState, pathFormula);
   }
 
   private PredicateAbstractState strengthen(
