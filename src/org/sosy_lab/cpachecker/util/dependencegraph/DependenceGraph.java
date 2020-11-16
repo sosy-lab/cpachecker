@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -234,7 +235,7 @@ public final class DependenceGraph implements Serializable {
       }
     }
 
-    return new ReachedSet(reachable);
+    return ReachedSet.fromMutable(reachable);
   }
 
   private Collection<DGNode> getAdjacentNeighbors(
@@ -357,21 +358,76 @@ public final class DependenceGraph implements Serializable {
 
     private final ImmutableMap<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> reachable;
 
-    private ReachedSet(Map<CFAEdge, Optional<Set<MemoryLocation>>> pReachable) {
+    private ReachedSet(ImmutableMap<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> pReachable) {
+      reachable = pReachable;
+    }
+
+    private static ReachedSet fromMutable(Map<CFAEdge, Optional<Set<MemoryLocation>>> pReachable) {
 
       ImmutableMap.Builder<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> builder =
           ImmutableMap.builderWithExpectedSize(pReachable.size());
 
-      pReachable.forEach(
-          (key, value) -> {
-            if (value.isPresent()) {
-              builder.put(key, Optional.of(ImmutableSet.copyOf(value.orElseThrow())));
-            } else {
-              builder.put(key, Optional.empty());
-            }
-          });
+      for (Map.Entry<CFAEdge, Optional<Set<MemoryLocation>>> entry : pReachable.entrySet()) {
 
-      reachable = builder.build();
+        CFAEdge cfaEdge = entry.getKey();
+        Optional<Set<MemoryLocation>> optionalCauseSet = entry.getValue();
+
+        if (optionalCauseSet.isPresent()) {
+          Set<MemoryLocation> causeSet = optionalCauseSet.orElseThrow();
+          builder.put(cfaEdge, Optional.of(ImmutableSet.copyOf(causeSet)));
+        } else {
+          builder.put(cfaEdge, Optional.empty());
+        }
+      }
+
+      return new ReachedSet(builder.build());
+    }
+
+    private static Optional<Set<MemoryLocation>> combine(
+        Optional<Set<MemoryLocation>> pMutableCauseSet,
+        Optional<ImmutableSet<MemoryLocation>> pImmutableCauseSet) {
+
+      if (pMutableCauseSet.isPresent() && pImmutableCauseSet.isPresent()) {
+        Set<MemoryLocation> mutableCauseSet = pMutableCauseSet.orElseThrow();
+        mutableCauseSet.addAll(pImmutableCauseSet.orElseThrow());
+        return Optional.of(mutableCauseSet);
+      } else {
+        return Optional.empty();
+      }
+    }
+
+    public static ReachedSet empty() {
+      return new ReachedSet(ImmutableMap.of());
+    }
+
+    public static ReachedSet combine(ReachedSet pSomeReachedSet, ReachedSet pOtherReachedSet) {
+
+      Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
+
+      for (ReachedSet reachedSet : List.of(pSomeReachedSet, pOtherReachedSet)) {
+        for (Map.Entry<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> entry :
+            reachedSet.reachable.entrySet()) {
+
+          CFAEdge cfaEdge = entry.getKey();
+          Optional<ImmutableSet<MemoryLocation>> optionalCauseSet = entry.getValue();
+
+          Optional<Set<MemoryLocation>> optionalCauses;
+
+          if (reachable.containsKey(cfaEdge)) {
+            optionalCauses = combine(reachable.get(cfaEdge), optionalCauseSet);
+          } else if (optionalCauseSet.isPresent()) {
+            Set<MemoryLocation> mutableCauseSet = new HashSet<>();
+            mutableCauseSet.addAll(optionalCauseSet.orElseThrow());
+            optionalCauses = Optional.of(mutableCauseSet);
+          } else {
+            optionalCauses = Optional.empty();
+          }
+
+          reachable.put(cfaEdge, optionalCauses);
+        }
+      }
+
+      return fromMutable(reachable);
     }
 
     public ImmutableSet<CFAEdge> getReachedCfaEdges() {

@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -112,7 +110,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
-    List<DependenceGraph.ReachedSet> depReachedSets = new ArrayList<>();
+    DependenceGraph.ReachedSet depReachedSet = DependenceGraph.ReachedSet.empty();
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -139,10 +137,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           realSlices++;
         }
 
-        DependenceGraph.ReachedSet reachedSet =
-            depGraph.getReachable(g, TraversalDirection.BACKWARD);
-        depReachedSets.add(reachedSet);
-        relevantEdges.addAll(reachedSet.getReachedCfaEdges());
+        DependenceGraph.ReachedSet.combine(
+            depReachedSet, depGraph.getReachable(g, TraversalDirection.BACKWARD));
+        relevantEdges.addAll(depReachedSet.getReachedCfaEdges());
       }
 
       final Slice slice =
@@ -152,12 +149,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
             public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
 
               if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
-
-                for (DependenceGraph.ReachedSet reachedSet : depReachedSets) {
-                  if (reachedSet.contains(pEdge, pMemoryLocation)) {
-                    return true;
-                  }
-                }
+                return depReachedSet.contains(pEdge, pMemoryLocation);
               }
 
               return false;
