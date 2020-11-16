@@ -341,12 +341,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      DepCounter flowDepCounter = new DepCounter();
+      StatCounter flowDepCounter = new StatCounter("Flow Dependency Counter");
 
       CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
       for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
         addFlowDependence(funcDeclEdge, Optional.empty(), callEdge, Optional.empty());
-        flowDepCounter.increment();
+        flowDepCounter.inc();
       }
 
       DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
@@ -410,7 +410,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                   .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
                   .contains(cause)) {
                 addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
-                flowDepCounter.increment();
+                flowDepCounter.inc();
               }
 
               for (int index = 0; index < params.size(); index++) {
@@ -422,12 +422,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 if (defUseData.getUses().contains(cause)
                     || !defUseData.getPointeeUses().isEmpty()) {
                   addFlowDependence(defEdge, defEdgeCause, useEdge, paramUseCause);
-                  flowDepCounter.increment();
+                  flowDepCounter.inc();
                 }
               }
             } else {
               addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
-              flowDepCounter.increment();
+              flowDepCounter.inc();
             }
           };
 
@@ -444,7 +444,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               dependenceConsumer)
           .run();
 
-      flowDependenceNumber.setNextValue(flowDepCounter.get());
+      flowDependenceNumber.setNextValue((int) flowDepCounter.getValue());
     }
   }
 
@@ -452,7 +452,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      DepCounter controlDepCounter = new DepCounter();
+      StatCounter controlDepCounter = new StatCounter("Control Dependency Counter");
 
       ControlDependencyConsumer depConsumer =
           (controlEdge, dependentEdge) -> {
@@ -460,12 +460,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 getDGNode(controlEdge, Optional.empty()),
                 getDGNode(dependentEdge, Optional.empty()),
                 DependenceType.CONTROL);
-            controlDepCounter.increment();
+            controlDepCounter.inc();
           };
 
       ControlDependenceBuilder.compute(cfa, entryNode, depConsumer, controlDepsTakeBothAssumptions);
 
-      controlDependenceNumber.setNextValue(controlDepCounter.get());
+      controlDependenceNumber.setNextValue((int) controlDepCounter.getValue());
     }
   }
 
@@ -713,19 +713,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               + pState.toString();
 
       return s;
-    }
-  }
-
-  private static final class DepCounter {
-
-    private int value = 0;
-
-    private int get() {
-      return value;
-    }
-
-    private void increment() {
-      value++;
     }
   }
 }
