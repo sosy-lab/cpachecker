@@ -743,7 +743,8 @@ public class ValueAnalysisTransferRelation
             case UNSPECIFIED:
             case BOOLEAN:
             default:
-              break;
+              newElement.assignConstant(memoryLocation, new NumericValue(2147483647), declarationType);
+              newElement.assignConstant(memoryLocation, new NumericValue(-2147483647), declarationType);
           }
         } else {
           newElement.assignConstant(memoryLocation, new NumericValue(2147483647), declarationType);
@@ -1087,7 +1088,8 @@ public class ValueAnalysisTransferRelation
               case UNSPECIFIED:
               case BOOLEAN:
               default:
-                break;
+                newElement.assignConstant(assignedVar, new NumericValue(2147483647), lType);
+                newElement.assignConstant(assignedVar, new NumericValue(-2147483647), lType);
             }
           } else {
             newElement.assignConstant(assignedVar, new NumericValue(2147483647), lType);
