@@ -309,7 +309,8 @@ public class ValueAnalysisTransferRelation
     return new ValueAnalysisCFAEdgeVisitor((ValueAnalysisState)pAbstractState, pAbstractPrecision, pCfaEdge);
   }
 
-  public class ValueAnalysisCFAEdgeVisitor extends StatefulCFAEdgeVisitor<ValueAnalysisState> {
+  public class ValueAnalysisCFAEdgeVisitor
+      extends StatefulCFAEdgeVisitor<ValueAnalysisState, Precision> {
 
     public ValueAnalysisCFAEdgeVisitor(
         ValueAnalysisState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {

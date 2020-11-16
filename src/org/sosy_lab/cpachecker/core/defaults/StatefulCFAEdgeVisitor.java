@@ -11,16 +11,15 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAEdgeVisitor;
 
-public class StatefulCFAEdgeVisitor<S> implements CFAEdgeVisitor<S> {
+public class StatefulCFAEdgeVisitor<S, P> implements CFAEdgeVisitor<S> {
 
   /** the given state, casted to correct type, for local access */
   protected S state;
 
   /** the given precision, casted to correct type, for local access */
-  protected Precision precision;
+  protected P precision;
 
   /** the function BEFORE the current edge */
   protected String functionName;
@@ -29,7 +28,7 @@ public class StatefulCFAEdgeVisitor<S> implements CFAEdgeVisitor<S> {
     return checkNotNull(state);
   }
 
-  protected Precision getPrecision() {
+  protected P getPrecision() {
     return checkNotNull(precision);
   }
 
@@ -38,7 +37,7 @@ public class StatefulCFAEdgeVisitor<S> implements CFAEdgeVisitor<S> {
   }
 
   public StatefulCFAEdgeVisitor(
-      final S pAbstractState, final Precision abstractPrecision, final CFAEdge cfaEdge) {
+      final S pAbstractState, final P abstractPrecision, final CFAEdge cfaEdge) {
     state = pAbstractState;
     precision = abstractPrecision;
     functionName = getFunctionName(cfaEdge);
