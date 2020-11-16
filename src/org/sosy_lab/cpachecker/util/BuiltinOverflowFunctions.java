@@ -12,12 +12,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -36,8 +33,6 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class BuiltinOverflowFunctions {
   private enum BuiltinOverflowFunction {
@@ -98,7 +93,7 @@ public class BuiltinOverflowFunctions {
       }
     }
 
-    private static String getDataTypePrefix(@Nullable CSimpleType pType) {
+    private static String getDataTypePrefix(CSimpleType pType) {
       if(pType == null) {
         return "";
       }
@@ -110,7 +105,7 @@ public class BuiltinOverflowFunctions {
       return "u";
     }
 
-    private static String getDataTypeSuffix(@Nullable CSimpleType pType) {
+    private static String getDataTypeSuffix(CSimpleType pType) {
       if (pType == null) {
         return "";
       }
@@ -224,7 +219,7 @@ public class BuiltinOverflowFunctions {
   }
 
   /*
-   * Calcualtes the result of a builtin overflow function. The arguments are converted to respective
+   * Calcualtes the result of a builtin overflow function (e.g. for value analysis). The arguments are converted to respective
    * types (if necessary), the result of the operation is computed with infinite precision, and the
    * overflow is determined by casting to the type of the third parameter.
    */
@@ -290,7 +285,7 @@ public class BuiltinOverflowFunctions {
                 break;
               default:
                 throw new UnrecognizedCodeException(
-                    "Can not determined operator of function " + nameOfCalledFunc, null, null);
+                    "Can not determine operator of function " + nameOfCalledFunc, null, null);
             }
 
             // cast result type of third parameter

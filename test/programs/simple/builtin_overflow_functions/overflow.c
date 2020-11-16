@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include <limits.h>
 
 // macro simplifies test code
@@ -27,16 +35,6 @@ int main()
         shouldBeFalse(__builtin_add_overflow(x, y, &c))
         x = INT_MAX, y = INT_MAX;
         shouldBeTrue(__builtin_add_overflow(x, y, &a))
-    }
-
-    // __builtin_add_overflow_p
-    {
-        // calculations are done with infinite precision (parameters are not casted to another type):
-        int a; long long c;
-        shouldBeTrue(__builtin_add_overflow_p(INT_MAX + 1l, INT_MAX, a))
-        shouldBeFalse(__builtin_add_overflow_p(INT_MAX + 1l, -100, a))
-        shouldBeFalse(__builtin_add_overflow_p(INT_MAX, 1, c))
-        shouldBeTrue(__builtin_add_overflow_p(INT_MAX, 1, (int)c))
     }
 
     // __builtin_sadd_overflow
@@ -122,15 +120,6 @@ int main()
         shouldBeFalse(__builtin_sub_overflow(INT_MIN, 1, &c))
     }
 
-    // __builtin_sub_overflow_p
-    {
-        // calculations are done with infinite precision (parameters are not casted to another type):
-        int a; long long c;
-        shouldBeTrue(__builtin_sub_overflow_p(INT_MIN - 1l, INT_MAX, a))
-        shouldBeFalse(__builtin_sub_overflow_p(INT_MIN - 1l, -100, a))
-        shouldBeFalse(__builtin_sub_overflow_p(INT_MIN, 1, c))
-    }
-
     // __builtin_ssub_overflow
     {
         int a;
@@ -201,14 +190,6 @@ int main()
         shouldBeTrue(__builtin_mul_overflow(INT_MAX + 1l, 1, &a))
         shouldBeTrue(__builtin_mul_overflow(INT_MIN - 1l, -1, &a))
         shouldBeFalse(__builtin_mul_overflow(INT_MAX, 2, &c))
-    }
-
-    // __builtin_mul_overflow_p
-    {
-        int a; long long c;
-        shouldBeTrue(__builtin_mul_overflow_p(INT_MAX + 1l, 1, a))
-        shouldBeTrue(__builtin_mul_overflow_p(INT_MIN - 1l, -1, a))
-        shouldBeFalse(__builtin_mul_overflow_p(INT_MAX, 2, c))
     }
 
     // __builtin_smul_overflow
