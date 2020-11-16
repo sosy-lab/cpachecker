@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,11 +47,12 @@ public class ThreadCPA extends AbstractCPA
   @Option(secure = true, description = "Use specific mode for thread analysis")
   private ThreadMode mode = ThreadMode.BASE;
 
+  @Option(secure = true, description = "Use aggressive reduction mode")
+  private boolean useAggressiveReduction = false;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);
   }
-
-  private final ThreadReducer reducer;
 
   public ThreadCPA(Configuration pConfig) throws InvalidConfigurationException {
     super(
@@ -59,7 +61,6 @@ public class ThreadCPA extends AbstractCPA
         DelegateAbstractDomain.<ThreadState>getInstance(),
         new ThreadTransferRelation(pConfig));
     pConfig.inject(this);
-    reducer = new ThreadReducer();
   }
 
   @Override
@@ -89,7 +90,11 @@ public class ThreadCPA extends AbstractCPA
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    if (useAggressiveReduction) {
+      return new AgressiveThreadReducer();
+    } else {
+      return NoOpReducer.getInstance();
+    }
   }
 
   @Override

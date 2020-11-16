@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -16,20 +17,35 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 
-public class ThreadReducer implements Reducer {
+public class AgressiveThreadReducer implements Reducer {
 
-  public ThreadReducer() {}
+  public AgressiveThreadReducer() {}
 
   @Override
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext,
       CFANode pCallNode) throws InterruptedException {
-    return pExpandedState;
+    ThreadState tState = (ThreadState) pExpandedState;
+    return reduce(tState);
+  }
+
+  private ThreadState reduce(ThreadState state) {
+    if (state.threadSet.isEmpty()) {
+      return state;
+    } else {
+      return state.copyWith(new TreeMap<>());
+    }
   }
 
   @Override
   public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) throws InterruptedException {
-    return pReducedState;
+
+    ThreadState root = (ThreadState) pRootState;
+    ThreadState reduced = (ThreadState) pReducedState;
+    ThreadState reducedRoot = reduce(root);
+
+    ThreadDelta delta = (ThreadDelta) reducedRoot.getDeltaBetween(root);
+    return delta.apply(reduced);
   }
 
   @Override

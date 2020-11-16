@@ -26,6 +26,9 @@ public class ThreadDelta implements Delta<CompatibleState> {
 
   @Override
   public CompatibleState apply(CompatibleState pState) {
+    if (threadSet.isEmpty()) {
+      return pState;
+    }
     ThreadState pOther = (ThreadState) pState;
     Map<String, ThreadStatus> newSet = new TreeMap<>(threadSet);
     Map<String, ThreadStatus> reduced = pOther.getThreadSet();
@@ -36,7 +39,7 @@ public class ThreadDelta implements Delta<CompatibleState> {
       }
       newSet.put(entry.getKey(), entry.getValue());
     }
-    return pOther.copyWith(pOther.getCurrentThread(), newSet);
+    return pOther.copyWith(newSet);
   }
 
   @Override
@@ -49,6 +52,12 @@ public class ThreadDelta implements Delta<CompatibleState> {
   @Override
   public Delta<CompatibleState> add(Delta<CompatibleState> pDelta) {
     ThreadDelta pOther = (ThreadDelta) pDelta;
+    if (pOther.threadSet.isEmpty()) {
+      return this;
+    }
+    if (threadSet.isEmpty()) {
+      return pDelta;
+    }
     Map<String, ThreadStatus> newSet = new TreeMap<>(threadSet);
     for (Entry<String, ThreadStatus> entry : pOther.threadSet.entrySet()) {
       if (newSet.containsKey(entry.getKey())) {

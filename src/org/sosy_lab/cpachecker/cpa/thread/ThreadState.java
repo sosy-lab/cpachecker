@@ -197,6 +197,10 @@ public class ThreadState
     return new ThreadState(pCurrent, tSet, this.removedSet);
   }
 
+  public ThreadState copyWith(Map<String, ThreadStatus> tSet) {
+    return new ThreadState(this.currentThread, tSet, this.removedSet);
+  }
+
   @Override
   public Delta<CompatibleState> getDeltaBetween(CompatibleState pOther) {
     Map<String, ThreadStatus> newSet = new TreeMap<>();

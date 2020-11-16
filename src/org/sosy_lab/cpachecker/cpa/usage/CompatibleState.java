@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
 import org.sosy_lab.cpachecker.cpa.usage.storage.GenericDelta;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public interface CompatibleState extends Comparable<CompatibleState> {
+public interface CompatibleState extends Comparable<CompatibleState>, AbstractState {
 
   public default boolean isCompatibleWith(@SuppressWarnings("unused") CompatibleState state) {
     return true;
