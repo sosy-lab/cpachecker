@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
@@ -137,24 +139,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           realSlices++;
         }
 
-        DependenceGraph.ReachedSet.combine(
-            depReachedSet, depGraph.getReachable(g, TraversalDirection.BACKWARD));
+        depReachedSet =
+            DependenceGraph.ReachedSet.combine(
+                depReachedSet, depGraph.getReachable(g, TraversalDirection.BACKWARD));
         relevantEdges.addAll(depReachedSet.getReachedCfaEdges());
       }
 
       final Slice slice =
-          new AbstractSlice(pCfa, relevantEdges, pSlicingCriteria) {
-
-            @Override
-            public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
-
-              if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
-                return depReachedSet.contains(pEdge, pMemoryLocation);
-              }
-
-              return true;
-            }
-          };
+          new StaticSlicerSlice(pCfa, ImmutableSet.copyOf(criteriaEdges), depReachedSet);
       slicingTime.stop();
 
       sliceEdgesNumber.setNextValue(relevantEdges.size());
@@ -210,5 +202,46 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
             return StaticSlicer.class.getSimpleName();
           }
         });
+  }
+
+  private static final class StaticSlicerSlice implements Slice {
+
+    private final CFA originalCfa;
+    private final ImmutableCollection<CFAEdge> criteriaEdges;
+    private final DependenceGraph.ReachedSet reachedSet;
+
+    private StaticSlicerSlice(
+        CFA pOriginalCfa,
+        ImmutableCollection<CFAEdge> pCriteriaEdges,
+        DependenceGraph.ReachedSet pReachedSet) {
+      originalCfa = pOriginalCfa;
+      criteriaEdges = pCriteriaEdges;
+      reachedSet = pReachedSet;
+    }
+
+    @Override
+    public CFA getOriginalCfa() {
+      return originalCfa;
+    }
+
+    @Override
+    public ImmutableCollection<CFAEdge> getUsedCriteria() {
+      return criteriaEdges;
+    }
+
+    @Override
+    public ImmutableSet<CFAEdge> getRelevantEdges() {
+      return reachedSet.getReachedCfaEdges();
+    }
+
+    @Override
+    public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+      if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
+        return reachedSet.contains(pEdge, pMemoryLocation);
+      }
+
+      return true;
+    }
   }
 }
