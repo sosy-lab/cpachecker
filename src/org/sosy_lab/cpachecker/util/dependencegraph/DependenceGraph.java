@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -404,7 +403,7 @@ public final class DependenceGraph implements Serializable {
 
       Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
 
-      for (ReachedSet reachedSet : List.of(pSomeReachedSet, pOtherReachedSet)) {
+      for (ReachedSet reachedSet : ImmutableList.of(pSomeReachedSet, pOtherReachedSet)) {
         for (Map.Entry<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> entry :
             reachedSet.reachable.entrySet()) {
 
