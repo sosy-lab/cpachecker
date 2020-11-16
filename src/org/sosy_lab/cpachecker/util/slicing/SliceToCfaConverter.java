@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -20,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
@@ -135,11 +135,10 @@ final class SliceToCfaConverter {
 
     CType relevantReturnType = originalFunctionType.getReturnType();
     Optional<? extends AVariableDeclaration> optRetVar =
-        originalFunctionEntryNode.getReturnVariable().toJavaUtil();
+        originalFunctionEntryNode.getReturnVariable();
 
     if (optRetVar.isPresent()) {
-      MemoryLocation memoryLocation =
-          MemoryLocation.valueOf(optRetVar.orElseThrow().getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
       if (!relevantMemoryLocations.get(originalDeclarationEdge).contains(memoryLocation)) {
         relevantReturnType = CVoidType.VOID;
       }
@@ -203,7 +202,7 @@ final class SliceToCfaConverter {
                 originalFunctionEntryNode.getFileLocation(),
                 functionDeclaration,
                 relevantFunctionExitNode,
-                com.google.common.base.Optional.absent());
+                Optional.absent());
       } else {
         newNode =
             new CFunctionEntryNode(
@@ -257,10 +256,10 @@ final class SliceToCfaConverter {
     CFunctionDeclaration relevantFunctionDeclaration =
         cloneFunctionDeclaration(originalFunctionEntryNode.getFunctionDefinition());
     Optional<CVariableDeclaration> optionalReturnVariable =
-        originalFunctionEntryNode.getReturnVariable().toJavaUtil();
+        originalFunctionEntryNode.getReturnVariable();
 
     if (relevantFunctionDeclaration.getType().getReturnType().equals(CVoidType.VOID)) {
-      optionalReturnVariable = Optional.empty();
+      optionalReturnVariable = Optional.absent();
     }
 
     FunctionExitNode relevantFunctionExitNode = new FunctionExitNode(relevantFunctionDeclaration);
@@ -269,7 +268,7 @@ final class SliceToCfaConverter {
             pEdge.getFileLocation(),
             relevantFunctionDeclaration,
             relevantFunctionExitNode,
-            com.google.common.base.Optional.fromJavaUtil(optionalReturnVariable));
+            optionalReturnVariable);
 
     CFunctionCall originalFunctionCall = originalFunctionSummaryEdge.getExpression();
     CFunctionCallExpression originalFunctionCallExpression =
@@ -303,7 +302,7 @@ final class SliceToCfaConverter {
 
       if (optionalReturnVariable.isPresent()) {
 
-        String returnVariableName = optionalReturnVariable.orElseThrow().getQualifiedName();
+        String returnVariableName = optionalReturnVariable.get().getQualifiedName();
         Set<MemoryLocation> memoryLocations =
             relevantMemoryLocations.get(originalFunctionReturnEdge);
 
@@ -565,9 +564,9 @@ final class SliceToCfaConverter {
         }
 
         Optional<? extends AVariableDeclaration> optionalReturnVariable =
-            entryNode.getReturnVariable().toJavaUtil();
+            entryNode.getReturnVariable();
         if (optionalReturnVariable.isPresent()) {
-          String qualifiedName = optionalReturnVariable.orElseThrow().getQualifiedName();
+          String qualifiedName = optionalReturnVariable.get().getQualifiedName();
           memoryLocations.add(MemoryLocation.valueOf(qualifiedName));
         }
       }
