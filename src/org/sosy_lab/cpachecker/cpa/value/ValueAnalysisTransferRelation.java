@@ -1710,8 +1710,4 @@ public class ValueAnalysisTransferRelation
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }
   }
-
-  private ExpressionValueVisitor getVisitor() {
-    return getVisitor(state, functionName);
-  }
 }
