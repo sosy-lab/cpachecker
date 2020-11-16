@@ -110,7 +110,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueAnalysisCFAEdgeVisitor.FieldAccessExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -443,7 +442,8 @@ public class ValueAnalysisTransferRelation
 
       // we expect left hand side of the expression to be a variable
 
-      ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
+      ExpressionValueVisitor v =
+          ValueAnalysisTransferRelation.this.getVisitor(newElement, callerFunctionName);
 
       Value newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
@@ -1180,10 +1180,40 @@ public class ValueAnalysisTransferRelation
     }
   }
 
+    private Value getExpressionValue(
+        AExpression expression, final Type type, ExpressionValueVisitor evv)
+        throws UnrecognizedCodeException {
+      if (!isTrackedType(type)) {
+        return UnknownValue.getInstance();
+      }
+
+      if (expression instanceof JRightHandSide) {
+
+        final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
+
+        if (evv.hasMissingFieldAccessInformation()) {
+          missingInformationRightJExpression = (JRightHandSide) expression;
+          return Value.UnknownValue.getInstance();
+        } else {
+          return value;
+        }
+      } else if (expression instanceof CRightHandSide) {
+        return evv.evaluate((CRightHandSide) expression, (CType) type);
+      } else {
+        throw new AssertionError("unhandled righthandside-expression: " + expression);
+      }
+    }
+
+    private ExpressionValueVisitor getVisitor() {
+      return ValueAnalysisTransferRelation.this.getVisitor(state, functionName);
+    }
+  }
+
   protected class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
+    public FieldAccessExpressionValueVisitor(
+        RTTState pJortState, ValueAnalysisState pState, String functionName) {
       super(pState, functionName, machineModel, logger);
       jortState = pJortState;
     }
@@ -1202,9 +1232,9 @@ public class ValueAnalysisTransferRelation
       }
 
       NameProvider nameProvider = NameProvider.getInstance();
-      String objectScope = nameProvider.getObjectScope(jortState, functionName, expr);
+      String objectScope = nameProvider.getObjectScope(jortState, getFunctionName(), expr);
 
-      return nameProvider.getScopedVariableName(decl, functionName, objectScope);
+      return nameProvider.getScopedVariableName(decl, getFunctionName(), objectScope);
     }
 
     @Override
@@ -1218,31 +1248,6 @@ public class ValueAnalysisTransferRelation
         return Value.UnknownValue.getInstance();
       }
     }
-  }
-
-  private Value getExpressionValue(
-      AExpression expression, final Type type, ExpressionValueVisitor evv)
-      throws UnrecognizedCodeException {
-    if (!isTrackedType(type)) {
-      return UnknownValue.getInstance();
-    }
-
-    if (expression instanceof JRightHandSide) {
-
-      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
-
-      if (evv.hasMissingFieldAccessInformation()) {
-        missingInformationRightJExpression = (JRightHandSide) expression;
-        return Value.UnknownValue.getInstance();
-      } else {
-        return value;
-      }
-    } else if (expression instanceof CRightHandSide) {
-      return evv.evaluate((CRightHandSide) expression, (CType) type);
-    } else {
-      throw new AssertionError("unhandled righthandside-expression: " + expression);
-    }
-  }
   }
 
   /*
@@ -1283,6 +1288,7 @@ public class ValueAnalysisTransferRelation
     List<ValueAnalysisState> result = new ArrayList<>();
     toStrengthen.add((ValueAnalysisState) pElement);
     result.add((ValueAnalysisState) pElement);
+    String functionName = StatefulCFAEdgeVisitor.getFunctionName(pCfaEdge);
 
     for (AbstractState ae : pElements) {
       if (ae instanceof RTTState) {
@@ -1342,7 +1348,7 @@ public class ValueAnalysisTransferRelation
           ValueAnalysisState newState =
               strengthenWithPointerInformation(stateToStrengthen, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
 
-          newState = handleModf(rightHandSide, pointerState, newState);
+          newState = handleModf(rightHandSide, pointerState, newState, functionName);
 
           result.add(newState);
         }
@@ -1376,11 +1382,15 @@ public class ValueAnalysisTransferRelation
    * @param pRightHandSide the right-hand side of an assignment edge.
    * @param pPointerState the current pointer-alias information.
    * @param pState the state to strengthen.
+   * @param pFunctionName the name of the current function (before the edge)
    * @return the strengthened state.
    * @throws UnrecognizedCodeException if the C code involved is not recognized.
    */
   private ValueAnalysisState handleModf(
-      ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
+      ARightHandSide pRightHandSide,
+      PointerState pPointerState,
+      ValueAnalysisState pState,
+      String pFunctionName)
       throws UnrecognizedCodeException, AssertionError {
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression) {
@@ -1398,7 +1408,7 @@ public class ValueAnalysisTransferRelation
                     targetPointer.getFileLocation(),
                     targetPointer.getExpressionType(),
                     targetPointer);
-            ExpressionValueVisitor evv = getVisitor();
+            ExpressionValueVisitor evv = getVisitor(pState, pFunctionName);
             Value value;
             if (exp instanceof JRightHandSide) {
               value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
@@ -1582,6 +1592,7 @@ public class ValueAnalysisTransferRelation
   private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
+    final String functionName = StatefulCFAEdgeVisitor.getFunctionName(edge);
 
     if (missingFieldVariableObject) {
       newElement.assignConstant(getRTTScopedVariableName(
@@ -1595,7 +1606,7 @@ public class ValueAnalysisTransferRelation
 
     } else if (missingScopedFieldName) {
 
-      newElement = handleNotScopedVariable(rttState, newElement);
+      newElement = handleNotScopedVariable(rttState, newElement, functionName);
       missingScopedFieldName = false;
       notScopedField = null;
       notScopedFieldValue = null;
@@ -1608,7 +1619,7 @@ public class ValueAnalysisTransferRelation
       }
     } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
 
-      Value value = handleMissingInformationRightJExpression(rttState);
+      Value value = handleMissingInformationRightJExpression(rttState, functionName);
 
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
@@ -1623,7 +1634,7 @@ public class ValueAnalysisTransferRelation
       }
     } else if (missingInformationRightJExpression != null) {
 
-      Value value = handleMissingInformationRightJExpression(rttState);
+      Value value = handleMissingInformationRightJExpression(rttState, functionName);
 
       if (!value.isUnknown()) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1646,12 +1657,13 @@ public class ValueAnalysisTransferRelation
     return  uniqueObject + "::"+ fieldName;
   }
 
-  private Value handleMissingInformationRightJExpression(RTTState pJortState) {
+  private Value handleMissingInformationRightJExpression(RTTState pJortState, String functionName) {
     return missingInformationRightJExpression.accept(
-        new FieldAccessExpressionValueVisitor(pJortState, oldState));
+        new FieldAccessExpressionValueVisitor(pJortState, oldState, functionName));
   }
 
-  private ValueAnalysisState handleNotScopedVariable(RTTState rttState, ValueAnalysisState newElement) {
+  private ValueAnalysisState handleNotScopedVariable(
+      RTTState rttState, ValueAnalysisState newElement, String functionName) {
 
    String objectScope = NameProvider.getInstance()
                                     .getObjectScope(rttState, functionName, notScopedField);
@@ -1662,7 +1674,7 @@ public class ValueAnalysisTransferRelation
 
      Value value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
-       value = handleMissingInformationRightJExpression(rttState);
+        value = handleMissingInformationRightJExpression(rttState, functionName);
      }
 
      if (!value.isUnknown()) {
