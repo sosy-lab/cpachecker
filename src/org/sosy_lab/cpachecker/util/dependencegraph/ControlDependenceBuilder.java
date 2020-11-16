@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import java.util.HashSet;
@@ -68,11 +69,8 @@ final class ControlDependenceBuilder {
     return functionCallDependent;
   }
 
-  static void compute(
-      MutableCFA pCfa,
-      FunctionEntryNode pEntryNode,
-      ControlDependencyConsumer pDepConsumer,
-      boolean pDependOnBothAssumptions) {
+  static ImmutableSet<ControlDependency> computeControlDependencies(
+      MutableCFA pCfa, FunctionEntryNode pEntryNode, boolean pDependOnBothAssumptions) {
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
     Set<CFANode> postDomTreeNodes = new HashSet<>();
@@ -80,6 +78,8 @@ final class ControlDependenceBuilder {
 
     Set<ControlDependency> dependencies = new HashSet<>();
     Set<CFAEdge> dependentEdges = new HashSet<>();
+
+    // Compute control dependencies by using dominance frontiers created from the post-DomTree.
 
     DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
     for (CFANode dependentNode : postDomTree) {
@@ -93,7 +93,6 @@ final class ControlDependenceBuilder {
                 || postDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
-                  pDepConsumer.accept(assumeEdge, dependentEdge);
                   dependencies.add(new ControlDependency(assumeEdge, dependentEdge));
                   dependentEdges.add(dependentEdge);
                 }
@@ -131,7 +130,6 @@ final class ControlDependenceBuilder {
       if (!ignoreFunctionEdge(dependentEdge)) {
         for (CFAEdge assumeEdge : assumeEdgesWithoutDominator) {
           if (!assumeEdge.equals(dependentEdge)) {
-            pDepConsumer.accept(assumeEdge, dependentEdge);
             dependencies.add(new ControlDependency(assumeEdge, dependentEdge));
             dependentEdges.add(dependentEdge);
           }
@@ -139,21 +137,20 @@ final class ControlDependenceBuilder {
       }
     }
 
-    // add dependencies on function call and summary edges
+    // Add dependencies between all CFAEdges not dependent on any other CFAEdge and all function
+    // call edges entering the function.
 
     Set<CFAEdge> callEdges = new HashSet<>();
     for (CFAEdge callEdge : CFAUtils.enteringEdges(pEntryNode)) {
       if (callEdge instanceof CFunctionCallEdge) {
-        CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
         callEdges.add(callEdge);
-        pDepConsumer.accept(summaryEdge, callEdge);
       }
     }
 
     for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
       if (!dependentEdges.contains(edge)) {
         for (CFAEdge callEdge : callEdges) {
-          pDepConsumer.accept(callEdge, edge);
+          dependencies.add(new ControlDependency(callEdge, edge));
         }
       }
     }
@@ -166,18 +163,25 @@ final class ControlDependenceBuilder {
     for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
       if (!functionCallDependent.contains(edge)) {
         for (CFAEdge callEdge : callEdges) {
-          pDepConsumer.accept(callEdge, edge);
+          dependencies.add(new ControlDependency(callEdge, edge));
         }
       }
     }
+
+    // Add dependencies between the function's entering call edges and their corresponding summary
+    // edges.
+
+    for (CFAEdge callEdge : callEdges) {
+      if (callEdge instanceof CFunctionCallEdge) {
+        CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
+        dependencies.add(new ControlDependency(summaryEdge, callEdge));
+      }
+    }
+
+    return ImmutableSet.copyOf(dependencies);
   }
 
-  @FunctionalInterface
-  interface ControlDependencyConsumer {
-    void accept(CFAEdge pControlEdge, CFAEdge pDependentEdge);
-  }
-
-  private static final class ControlDependency {
+  static final class ControlDependency {
 
     private final CFAEdge controlEdge;
     private final CFAEdge dependentEdge;
@@ -187,11 +191,11 @@ final class ControlDependenceBuilder {
       dependentEdge = pDependentEdge;
     }
 
-    private CFAEdge getControlEdge() {
+    CFAEdge getControlEdge() {
       return controlEdge;
     }
 
-    private CFAEdge getDependentEdge() {
+    CFAEdge getDependentEdge() {
       return dependentEdge;
     }
 

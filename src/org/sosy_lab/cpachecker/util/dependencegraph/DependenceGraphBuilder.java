@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -83,7 +84,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependencyConsumer;
+import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
@@ -452,20 +453,20 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      StatCounter controlDepCounter = new StatCounter("Control Dependency Counter");
+      int controlDepCounter = 0;
+      ImmutableSet<ControlDependency> controlDependencies =
+          ControlDependenceBuilder.computeControlDependencies(
+              cfa, entryNode, controlDepsTakeBothAssumptions);
 
-      ControlDependencyConsumer depConsumer =
-          (controlEdge, dependentEdge) -> {
-            addDependence(
-                getDGNode(controlEdge, Optional.empty()),
-                getDGNode(dependentEdge, Optional.empty()),
-                DependenceType.CONTROL);
-            controlDepCounter.inc();
-          };
+      for (ControlDependency controlDependency : controlDependencies) {
+        addDependence(
+            getDGNode(controlDependency.getControlEdge(), Optional.empty()),
+            getDGNode(controlDependency.getDependentEdge(), Optional.empty()),
+            DependenceType.CONTROL);
+        controlDepCounter++;
+      }
 
-      ControlDependenceBuilder.compute(cfa, entryNode, depConsumer, controlDepsTakeBothAssumptions);
-
-      controlDependenceNumber.setNextValue((int) controlDepCounter.getValue());
+      controlDependenceNumber.setNextValue(controlDepCounter);
     }
   }
 
