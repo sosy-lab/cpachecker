@@ -96,13 +96,13 @@ public class Fuzzer {
 
         for (int i = 0; i < this.passes; i++) {
             this.stats.start();
-            logger.log(Level.INFO, "Fuzzing pass", i + 1);
+            logger.log(Level.FINE, "Fuzzing pass", i + 1);
 
             // Preload values if they exist
             int size = pPreLoadedValues.size();
             if (size > 0) {
                 int j = i % size;
-                logger.log(Level.FINE, "pPreLoadedValues at", j, "/", size);
+                logger.log(Level.FINER, "pPreLoadedValues at", j, "/", size);
                 preloadValues(pPreLoadedValues.get(j));
             }
             try {

@@ -16,6 +16,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-stack">32M</option>
   <option name="-config">config/legion.properties</option>
   <option name="-benchmark"/>
+  <option name="-timelimit">160</option>
 
   <rundefinition name="legion"></rundefinition>
   <resultfiles>**.xml*</resultfiles>

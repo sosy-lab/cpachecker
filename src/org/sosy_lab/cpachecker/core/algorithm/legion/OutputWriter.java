@@ -189,13 +189,24 @@ public class OutputWriter {
             // Check if assignment is for a nondeterministic variable
             if (assignment.getRightHandSide().toString().startsWith("__VERIFIER_nondet_")) {
                 String function_name = ls.getLocationNode().getFunctionName();
-                String identifier = ((CIdExpression) assignment.getLeftHandSide()).getName();
+                String identifier;
+                try {
+                    identifier = ((CIdExpression) assignment.getLeftHandSide()).getName();
+                } catch (ClassCastException ex) {
+                    // identifier ist just for visuals
+                    // just don't compute it, when not possible
+                    identifier = "";
+                }
                 @Nullable
                 ValueAnalysisState vs =
                         AbstractStates.extractStateByType(state, ValueAnalysisState.class);
                 Entry<MemoryLocation, ValueAndType> vt =
                         getValueTypeFromState(function_name, identifier, vs);
-                values.add(vt);
+                if (vt != null){
+                    values.add(vt);
+                } else {
+                    logger.log(Level.WARNING, "No values to write, propably `MemoryLocation forgotten`");
+                }
             }
         }
 

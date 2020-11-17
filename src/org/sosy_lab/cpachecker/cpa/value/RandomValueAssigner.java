@@ -138,49 +138,62 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     CBasicType basicType = ((CSimpleType) pType).getType();
     Value value;
 
-    switch (basicType) {
-      case UNSPECIFIED:
-        // If value is inspecified, forget it.
-        pState.forget(pMemLocation);
-        return;
-      case BOOL:
-        value = BooleanValue.valueOf(this.rnd.nextBoolean());
-        pPreviousState.nonDeterministicMark = true;
-        break;
-      case CHAR:
-        // Generate randInt with char value range
-        value = new NumericValue(this.rnd.nextInt(65536));
-        pPreviousState.nonDeterministicMark = true;
-        break;
-      case INT:
-        int v = this.rnd.nextInt();
+    // Just try to generate the integer, fallback to other types otherwise.
+    try {
+      value = generateInteger((CSimpleType) pType);
+    } catch (IllegalArgumentException ex) {
 
-        // if unsigned, generate positive
-        if (pType.toString().equals("unsigned int")) {
-          while (v <= 0) {
-            v = this.rnd.nextInt();
-          }
-        }
+      switch (basicType) {
+        case UNSPECIFIED:
+          // If value is inspecified, forget it.
+          pState.forget(pMemLocation);
+          return;
+        case BOOL:
+          value = BooleanValue.valueOf(this.rnd.nextBoolean());
+          pPreviousState.nonDeterministicMark = true;
+          break;
+        case FLOAT:
+          value = new NumericValue(this.rnd.nextFloat());
+          pPreviousState.nonDeterministicMark = true;
+          break;
+        case DOUBLE:
+          value = new NumericValue(this.rnd.nextDouble());
+          pPreviousState.nonDeterministicMark = true;
+          break;
 
-        value = new NumericValue(v);
-        pPreviousState.nonDeterministicMark = true;
-        this.logger.log(
-            Level.FINE,
-            "Assigned random value " + value + " to memory location " + pMemLocation);
-        break;
-      case FLOAT:
-        value = new NumericValue(this.rnd.nextFloat());
-        pPreviousState.nonDeterministicMark = true;
-        break;
-      case DOUBLE:
-        value = new NumericValue(this.rnd.nextDouble());
-        pPreviousState.nonDeterministicMark = true;
-        break;
-
-      default:
-        throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
+        default:
+          throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
+      }
     }
+    logger.log(Level.FINE, "Assigning simple value: ", value.toString());
     pState.assignConstant(pMemLocation, value, pType);
+  }
+
+  private NumericValue generateInteger(CSimpleType pType) {
+    int bitsize;
+
+    if (pType.getType() == CBasicType.CHAR) {
+      bitsize = 8;
+    } else if (pType.isShort()) {
+      bitsize = 16;
+    } else if (pType.isLong()) {
+      bitsize = 32;
+    } else if (pType.getType() == CBasicType.INT) {
+      bitsize = 16;
+    } else if (pType.isLongLong()) {
+      bitsize = 64;
+    } else {
+      throw new IllegalArgumentException("No matching integer found");
+    }
+
+    long total_numbers = (long) Math.pow(2, bitsize);
+    long random = (long) (this.rnd.nextDouble() * total_numbers);
+
+    if (pType.isSigned()) {
+      random = random - (total_numbers / 2);
+    }
+
+    return new NumericValue(random);
   }
 
   /**
@@ -208,10 +221,8 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       arraySizeValue = arraySizeExpression.accept(pValueVisitor);
       if (!arraySizeValue.isExplicitlyKnown()) {
         arraySize = defaultArraySize;
-
       } else {
         assert arraySizeValue instanceof NumericValue;
-
         arraySize = ((NumericValue) arraySizeValue).longValue();
       }
     }

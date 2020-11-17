@@ -127,8 +127,8 @@ public class TargetSolver {
     private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
             throws InterruptedException, SolverException {
 
-        logger.log(Level.INFO, "Solve path constraints. ");
-        logger.log(Level.FINE, "Formula is ", target.toString());
+        logger.log(Level.FINE, "Solve path constraints. ");
+        logger.log(Level.FINER, "Formula is ", target.toString());
         pProver.push(target);
         boolean isUnsat = pProver.isUnsat();
         if (isUnsat){

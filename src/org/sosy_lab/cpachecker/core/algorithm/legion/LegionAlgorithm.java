@@ -140,12 +140,12 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     public AlgorithmStatus run(ReachedSet reachedSet)
             throws CPAException, InterruptedException,
             CPAEnabledAnalysisPropertyViolationException {
-        logger.log(Level.INFO, "Running legion.");
         AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
         // Before asking a solver for path constraints, one initial pass through the program
         // has to be done to provide an initial set of states. This initial discovery
         // is meant to be cheap in resources and tries to establish easy to reach states.
+        logger.log(Level.INFO, "Initial fuzzing ...");
         ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
         try {
             reachedSet = init_fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
@@ -169,6 +169,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
             // Phase Selection: Select non-deterministic variables for path solving
             PathFormula target;
+            logger.log(Level.INFO, "Selection ...");
             try {
                 target = selectionStrategy.select(reachedSet);
             } catch (IllegalArgumentException e) {
@@ -191,11 +192,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             // Phase Targetting: Solve for the target and produce a number of values
             // needed as input to reach this target.
             ArrayList<ArrayList<ValueAssignment>> previousLoadedValues = preloadedValues;
+            logger.log(Level.INFO, "Targetting ...");
             try {
                 preloadedValues = this.targetSolver.target(target);
             } catch (SolverException ex) {
                 // Re-Run with previous preloaded Values
-                logger.log(Level.WARNING, "Running with previous preloaded values");
                 preloadedValues = previousLoadedValues;
             }
 
@@ -206,6 +207,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
             // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
             // new paths through the program.
+            logger.log(Level.INFO, "Fuzzing ...");
             fuzzer.computePasses(preloadedValues.size());
             try {
                 reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
