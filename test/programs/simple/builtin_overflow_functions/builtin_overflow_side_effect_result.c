@@ -15,6 +15,7 @@
         goto ERROR;     \
     }
 
+// Test whether the side effect (=third parameter) is calculated correctly
 int main()
 {
     // __builtin_add_overflow

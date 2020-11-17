@@ -21,6 +21,7 @@
         goto ERROR;     \
     }
 
+// Tests whether overflow (=return of function) is caluclated correctly
 int main()
 {
     // __builtin_add_overflow
