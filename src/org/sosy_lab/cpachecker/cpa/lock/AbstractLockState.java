@@ -17,7 +17,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
@@ -66,7 +66,7 @@ public abstract class AbstractLockState
 
   public abstract AbstractLockStateBuilder builder();
 
-  public abstract Multiset<LockEffect> getDifference(AbstractLockState other);
+  public abstract Multiset<LockEffectWithId> getDifference(AbstractLockState other);
 
   @Override
   public boolean isLessOrEqual(AbstractLockState other) {

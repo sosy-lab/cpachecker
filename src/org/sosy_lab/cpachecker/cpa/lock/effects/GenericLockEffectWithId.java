@@ -12,7 +12,7 @@ import java.util.function.BiConsumer;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-public class GenericLockEffectWithId extends LockEffect {
+public class GenericLockEffectWithId extends LockEffectWithId {
 
   public final static GenericLockEffectWithId RELEASE =
       new GenericLockEffectWithId("Release", (b, l) -> b.free(l), null);

@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-public abstract class LockEffect implements AbstractLockEffect {
+public abstract class LockEffectWithId implements AbstractLockEffect {
 
   protected final LockIdentifier target;
 
-  LockEffect(LockIdentifier id) {
+  LockEffectWithId(LockIdentifier id) {
     target = id;
   }
 
-  LockEffect() {
+  LockEffectWithId() {
     this(null);
   }
 
@@ -48,10 +48,10 @@ public abstract class LockEffect implements AbstractLockEffect {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof LockEffect)) {
+    if (!(obj instanceof LockEffectWithId)) {
       return false;
     }
-    LockEffect other = (LockEffect) obj;
+    LockEffectWithId other = (LockEffectWithId) obj;
     return Objects.equals(target, other.target) &&
            Objects.equals(getAction(), other.getAction());
   }

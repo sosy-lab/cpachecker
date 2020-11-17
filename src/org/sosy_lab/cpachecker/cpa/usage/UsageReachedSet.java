@@ -169,6 +169,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
           ARGState argState = (ARGState) stateWaitlist.poll();
           if (argState.isCovered()) {
             // Covered states has no children, we can not determine usages
+            stateWaitlist.add(argState.getCoveringState());
             continue;
           }
           List<UsageInfo> expandedUsages =
@@ -182,9 +183,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
             stateToUsage.put(argState, expandedUsages);
           }
           stateWaitlist.addAll(argState.getSuccessors());
-          if (argState.isCovered()) {
-            stateWaitlist.add(argState.getCoveringState());
-          }
 
           // Search state in the BAM cache
           if (manager != null && manager.hasInitialState(argState)) {
@@ -235,12 +233,10 @@ public class UsageReachedSet extends PartitionedReachedSet {
     List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
 
     usageExpandingTimer.start();
-    for (UsageInfo uinfo : usages) {
-      UsageInfo expandedUsage = uinfo.expand(currentEffects);
-      if (expandedUsage.isRelevant()) {
-        expandedUsages.add(expandedUsage);
-      }
-    }
+    usages.stream()
+        .map(u -> u.expand(currentEffects))
+        .filter(UsageInfo::isRelevant)
+        .forEach(expandedUsages::add);
     usageExpandingTimer.stop();
 
     return expandedUsages;
@@ -272,15 +268,11 @@ public class UsageReachedSet extends PartitionedReachedSet {
       shouldContinue(
           Collection<UsageDelta> processed,
           UsageDelta currentDifference) {
+
     if (processCoveredUsages) {
       return !processed.contains(currentDifference);
     } else {
-      for (UsageDelta delta : processed) {
-        if (delta.covers(currentDifference)) {
-          return false;
-        }
-      }
-      return true;
+      return !processed.stream().anyMatch(d -> d.covers(currentDifference));
     }
   }
 

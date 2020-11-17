@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
 
-public class LockDelta extends ArrayList<LockEffect> implements Delta<CompatibleState> {
+public class LockDelta extends ArrayList<LockEffectWithId> implements Delta<CompatibleState> {
 
   private static final long serialVersionUID = -7138385491813901478L;
 
-  public LockDelta(List<LockEffect> pEffects) {
+  public LockDelta(List<LockEffectWithId> pEffects) {
     super(pEffects);
   }
 

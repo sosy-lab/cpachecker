@@ -20,7 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
@@ -284,7 +284,7 @@ public final class DeadLockState extends AbstractLockState {
   }
 
   @Override
-  public Multiset<LockEffect> getDifference(AbstractLockState other) {
+  public Multiset<LockEffectWithId> getDifference(AbstractLockState other) {
     // Return the effect, which shows, what should we do to transform from this state to the other
     throw new UnsupportedOperationException("Effects are not supported for dead lock detection");
   }

@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockPrecision;
 import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -194,8 +194,8 @@ public class LockRefiner
   private LockIdentifier
       getInconsistentLockId(AbstractLockState pRealState, AbstractLockState pLastState) {
     Collection<LockIdentifier> ids =
-        from(pRealState.getDifference(pLastState)).filter(LockEffect.class)
-            .transform(LockEffect::getAffectedLock)
+        from(pRealState.getDifference(pLastState)).filter(LockEffectWithId.class)
+            .transform(LockEffectWithId::getAffectedLock)
             .toList();
 
     if (!ids.isEmpty()) {
@@ -248,8 +248,8 @@ public class LockRefiner
       if (pId != null) {
         boolean valuable = false;
         for (AbstractLockEffect e : effects) {
-          if (e instanceof LockEffect) {
-            if (((LockEffect) e).getAffectedLock().equals(pId)) {
+          if (e instanceof LockEffectWithId) {
+            if (((LockEffectWithId) e).getAffectedLock().equals(pId)) {
               valuable = true;
               break;
             }

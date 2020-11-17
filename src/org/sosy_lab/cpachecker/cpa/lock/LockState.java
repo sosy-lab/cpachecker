@@ -24,7 +24,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.GenericLockEffectWithId;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
@@ -346,11 +346,11 @@ public final class LockState extends AbstractLockState {
   }
 
   @Override
-  public Multiset<LockEffect> getDifference(AbstractLockState pOther) {
+  public Multiset<LockEffectWithId> getDifference(AbstractLockState pOther) {
     // Return the effect, which shows, what should we do to transform from this state to the other
     LockState other = (LockState) pOther;
 
-    Multiset<LockEffect> result = HashMultiset.create();
+    Multiset<LockEffectWithId> result = HashMultiset.create();
     Set<LockIdentifier> processedLocks = new TreeSet<>();
 
     for (Entry<LockIdentifier, Integer> entry : locks.entrySet()) {

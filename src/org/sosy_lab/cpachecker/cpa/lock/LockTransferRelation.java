@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.CheckLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.GenericLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.GenericLockEffectWithId;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -186,12 +186,12 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public Set<LockIdentifier> getAffectedLocks(CFAEdge cfaEdge) {
-    return getLockEffects(cfaEdge).transform(LockEffect::getAffectedLock).toSet();
+    return getLockEffects(cfaEdge).transform(LockEffectWithId::getAffectedLock).toSet();
   }
 
-  public FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
+  public FluentIterable<LockEffectWithId> getLockEffects(CFAEdge cfaEdge) {
     try {
-      return from(determineOperations(cfaEdge)).filter(LockEffect.class);
+      return from(determineOperations(cfaEdge)).filter(LockEffectWithId.class);
     } catch (UnrecognizedCodeException e) {
       logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
       return FluentIterable.of();

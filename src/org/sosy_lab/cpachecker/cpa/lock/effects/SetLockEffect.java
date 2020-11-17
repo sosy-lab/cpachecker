@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-public final class SetLockEffect extends LockEffect {
+public final class SetLockEffect extends LockEffectWithId {
 
   private final static SetLockEffect instance = new SetLockEffect();
 
