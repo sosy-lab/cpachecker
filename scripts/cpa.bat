@@ -59,6 +59,16 @@ IF NOT [%1]==[] (
     SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
   ) ELSE IF [%1]==[-disable-java-assertions] (
     SET JAVA_ASSERTIONS=-da
+  ) ELSE IF [%1]==[-setprop] (
+    IF ["%~2"]==[%2] (
+      REM if option is already quoted, we do not need to restore it
+      SET "OPTIONS=%OPTIONS% %1 %2"
+    ) ELSE (
+      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      SET "OPTIONS=%OPTIONS% %1 %2^=%3"
+      SHIFT
+    )
+    SHIFT
   ) ELSE (
     SET "OPTIONS=%OPTIONS% %1"
   )
