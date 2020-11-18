@@ -14,6 +14,17 @@ Changes since CPAchecker 1.9.1
   We now bundle binaries of SMT solvers like MathSAT and Z3 for Windows,
   such that most configurations of CPAchecker work on Windows out of the box.
 
+* REUSE compliance  
+  CPAchecker now follows the [licensing best practices](https://reuse.software/)
+  of the FSFE and is [REUSE compliant](https://api.reuse.software/info/gitlab.com/sosy-lab/software/cpachecker),
+  i.e., everything in the repository is labeled with machine-readable
+  headers that include copyright and license information.
+  This makes it easy to check the licenses of all CPAchecker-internal and
+  third-party components and ensure that all requirements such as bundling
+  license texts and copyright notices are fulfilled
+  when redistributing CPAchecker.
+  More information about the license status can be found in [README.md](README.md).
+
 
 Changes from CPAchecker 1.9 to CPAchecker 1.9.1
 -----------------------------------------------
