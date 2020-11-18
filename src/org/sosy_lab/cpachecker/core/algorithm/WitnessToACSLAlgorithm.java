@@ -125,27 +125,15 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
       List<Integer> sortedLocations = new ArrayList<>(locationsToInvariants.keySet());
       Collections.sort(sortedLocations);
-      Iterator<Integer> iterator = sortedLocations.iterator();
+      Iterator<Integer> invariantLocationsIterator = sortedLocations.iterator();
       Integer currentLocation;
-      if (iterator.hasNext()) {
-        currentLocation = iterator.next();
+      if (invariantLocationsIterator.hasNext()) {
+        currentLocation = invariantLocationsIterator.next();
       } else {
         currentLocation = null;
       }
 
       List<String> output = new ArrayList<>();
-
-      while (currentLocation != null && currentLocation == 0) {
-        for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-          String annotation = makeACSLAnnotation(inv);
-          output.add(annotation);
-        }
-        if (iterator.hasNext()) {
-          currentLocation = iterator.next();
-        } else {
-          currentLocation = null;
-        }
-      }
 
       List<String> splitContent = Splitter.onPattern("\\r?\\n").splitToList(fileContent);
       for (int i = 0; i < splitContent.size(); i++) {
@@ -153,17 +141,26 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         while (currentLocation != null && currentLocation == i) {
           for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
             String annotation = makeACSLAnnotation(inv);
-            String indentation = getIndentation(splitContent.get(i - 1));
+            String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
             output.add(indentation.concat(annotation));
           }
-          if (iterator.hasNext()) {
-            currentLocation = iterator.next();
+          if (invariantLocationsIterator.hasNext()) {
+            currentLocation = invariantLocationsIterator.next();
           } else {
             currentLocation = null;
           }
         }
         output.add(splitContent.get(i));
       }
+
+      while (invariantLocationsIterator.hasNext()) {
+        currentLocation = invariantLocationsIterator.next();
+        for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+          String annotation = makeACSLAnnotation(inv);
+          output.add(annotation);
+        }
+      }
+
       try {
         writeToFile(file, output);
       } catch (IOException pE) {
