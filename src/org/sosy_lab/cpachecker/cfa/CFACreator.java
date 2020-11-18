@@ -401,7 +401,12 @@ public class CFACreator {
   public CFA parseSourceAndCreateCFA(String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
-    stats.totalTime.start();
+    boolean flag = false;
+    CFA result = null;
+    if (!loopIsAutomated || automateAbstractLoopParser) {
+      stats.totalTime.start();
+    }
+
     CFA cfa = null;
     try {
       ParseResult parseResult = parseToCFAs(program);
@@ -409,17 +414,32 @@ public class CFACreator {
       assert mainFunction != null : "program lacks main function.";
 
       cfa = createCFA(parseResult, mainFunction);
+      if (!automateAbstractLoopParser) {
+        result = createCFA(parseResult, mainFunction);
+      } else {
+        flag = true;
+        cfa = createCFA(parseResult, mainFunction);
+        LoopInformation builder = new LoopInformation(config, logger, cfa);
+        builder.collectStatistics(stats.statisticsCollection);
+        LoopAbstractionHeader loopAbstraction =
+            new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
+        loopAbstraction.collectStatistics(stats.statisticsCollection);
+        automateAbstractLoopParser = false;
+        result = parseSourceAndCreateCFA(program);
+      }
 
       return cfa;
     } finally {
-      stats.totalTime.stop();
-      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-          || ((exportFunctionCallsFile != null) && exportFunctionCalls)
-          || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
-          || ((serializeCfaFile != null) && serializeCfa)
-          || (exportCfaPixelFile != null)
-          || (exportCfaToCFile != null && exportCfaToC)) {
-        exportCFAAsync(cfa);
+      if (flag || !loopIsAutomated) {
+        stats.totalTime.stop();
+        if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+            || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+            || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
+            || ((serializeCfaFile != null) && serializeCfa)
+            || (exportCfaPixelFile != null)
+            || (exportCfaToCFile != null && exportCfaToC)) {
+          exportCFAAsync(result);
+        }
       }
     }
   }
