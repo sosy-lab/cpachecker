@@ -6,14 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-# 1 "overflow.c"
+# 1 "builtin_overflow.c"
 # 1 "<built-in>"
 # 1 "<command-line>"
 # 31 "<command-line>"
 # 1 "/usr/include/stdc-predef.h" 1 3 4
 # 32 "<command-line>" 2
-# 1 "overflow.c"
-# 9 "overflow.c"
+# 1 "builtin_overflow.c"
+# 9 "builtin_overflow.c"
 # 1 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/limits.h" 1 3 4
 # 34 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/limits.h" 3 4
 # 1 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/syslimits.h" 1 3 4
@@ -27,52 +27,57 @@
 # 194 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/limits.h" 3 4
 # 1 "/usr/include/limits.h" 1 3 4
 # 26 "/usr/include/limits.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h" 1 3 4
-# 33 "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h" 3 4
+# 1 "/usr/include/bits/libc-header-start.h" 1 3 4
+# 33 "/usr/include/bits/libc-header-start.h" 3 4
 # 1 "/usr/include/features.h" 1 3 4
 # 424 "/usr/include/features.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 1 3 4
-# 427 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/wordsize.h" 1 3 4
-# 428 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 2 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/long-double.h" 1 3 4
-# 429 "/usr/include/x86_64-linux-gnu/sys/cdefs.h" 2 3 4
+# 1 "/usr/include/sys/cdefs.h" 1 3 4
+# 427 "/usr/include/sys/cdefs.h" 3 4
+# 1 "/usr/include/bits/wordsize.h" 1 3 4
+# 428 "/usr/include/sys/cdefs.h" 2 3 4
+# 1 "/usr/include/bits/long-double.h" 1 3 4
+# 429 "/usr/include/sys/cdefs.h" 2 3 4
 # 425 "/usr/include/features.h" 2 3 4
 # 448 "/usr/include/features.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/gnu/stubs.h" 1 3 4
-# 10 "/usr/include/x86_64-linux-gnu/gnu/stubs.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/gnu/stubs-64.h" 1 3 4
-# 11 "/usr/include/x86_64-linux-gnu/gnu/stubs.h" 2 3 4
+# 1 "/usr/include/gnu/stubs.h" 1 3 4
+
+
+
+
+
+
+# 1 "/usr/include/gnu/stubs-32.h" 1 3 4
+# 8 "/usr/include/gnu/stubs.h" 2 3 4
 # 449 "/usr/include/features.h" 2 3 4
-# 34 "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h" 2 3 4
+# 34 "/usr/include/bits/libc-header-start.h" 2 3 4
 # 27 "/usr/include/limits.h" 2 3 4
 # 183 "/usr/include/limits.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/posix1_lim.h" 1 3 4
-# 160 "/usr/include/x86_64-linux-gnu/bits/posix1_lim.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/local_lim.h" 1 3 4
-# 38 "/usr/include/x86_64-linux-gnu/bits/local_lim.h" 3 4
+# 1 "/usr/include/bits/posix1_lim.h" 1 3 4
+# 160 "/usr/include/bits/posix1_lim.h" 3 4
+# 1 "/usr/include/bits/local_lim.h" 1 3 4
+# 38 "/usr/include/bits/local_lim.h" 3 4
 # 1 "/usr/include/linux/limits.h" 1 3 4
-# 39 "/usr/include/x86_64-linux-gnu/bits/local_lim.h" 2 3 4
-# 161 "/usr/include/x86_64-linux-gnu/bits/posix1_lim.h" 2 3 4
+# 39 "/usr/include/bits/local_lim.h" 2 3 4
+# 161 "/usr/include/bits/posix1_lim.h" 2 3 4
 # 184 "/usr/include/limits.h" 2 3 4
 
 
 
-# 1 "/usr/include/x86_64-linux-gnu/bits/posix2_lim.h" 1 3 4
+# 1 "/usr/include/bits/posix2_lim.h" 1 3 4
 # 188 "/usr/include/limits.h" 2 3 4
 # 195 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/limits.h" 2 3 4
 # 8 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/syslimits.h" 2 3 4
 # 35 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed/limits.h" 2 3 4
-# 10 "overflow.c" 2
-# 24 "overflow.c"
+# 10 "builtin_overflow.c" 2
+# 25 "builtin_overflow.c"
 int main()
 {
 
     {
 
         int a; long long c;
-        if (!(__builtin_add_overflow(0x7fffffff + 1l, 0x7fffffff, &a))) { goto ERROR; }
-        if ((__builtin_add_overflow(0x7fffffff + 1l, -100, &a))) { goto ERROR; }
+        if (!(__builtin_add_overflow(0x7fffffff + 1ll, 0x7fffffff, &a))) { goto ERROR; }
+        if ((__builtin_add_overflow(0x7fffffff + 1ll, -100, &a))) { goto ERROR; }
         if ((__builtin_add_overflow(0x7fffffff, 1, &c))) { goto ERROR; }
 
         int x = 0x7fffffff, y = 1;
@@ -84,60 +89,60 @@ int main()
 
     {
         int a;
-        if ((__builtin_sadd_overflow(0x7fffffff - 1, 1, &a))) { goto ERROR; }
+        if ((__builtin_sadd_overflow(0x7fffffff - 1ll, 1, &a))) { goto ERROR; }
         if ((__builtin_sadd_overflow(
-# 44 "overflow.c" 3 4
+# 45 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1) 
-# 44 "overflow.c"
-       + 1, -1, &a))) { goto ERROR; }
+# 45 "builtin_overflow.c"
+       + 1ll, -1, &a))) { goto ERROR; }
         if (!(__builtin_sadd_overflow(0x7fffffff, 1, &a))) { goto ERROR; }
         if (!(__builtin_sadd_overflow(
-# 46 "overflow.c" 3 4
+# 47 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1)
-# 46 "overflow.c"
+# 47 "builtin_overflow.c"
        , -1, &a))) { goto ERROR; }
 
         long long int c;
         if (!(__builtin_sadd_overflow(0x7fffffff, 1, &c))) { goto ERROR; }
 
 
-        if ((__builtin_sadd_overflow(0x7fffffff + 1l, 0x7fffffff, &a))) { goto ERROR; }
+        if ((__builtin_sadd_overflow(0x7fffffff + 1ll, 0x7fffffff, &a))) { goto ERROR; }
         if ((__builtin_sadd_overflow(
-# 53 "overflow.c" 3 4
+# 54 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U)
-# 53 "overflow.c"
+# 54 "builtin_overflow.c"
        , 0x7fffffff, &a))) { goto ERROR; }
-        if (!(__builtin_sadd_overflow(0x7fffffff + 1l, -100, &a))) { goto ERROR; }
+        if (!(__builtin_sadd_overflow(0x7fffffff + 1ll, -100, &a))) { goto ERROR; }
 
     }
 
 
     {
         long a;
-        if ((__builtin_saddl_overflow(0x7fffffffffffffffL - 1l, 1l, &a))) { goto ERROR; }
+        if ((__builtin_saddl_overflow(0x7fffffffL - 1ll, 1l, &a))) { goto ERROR; }
         if ((__builtin_saddl_overflow(
-# 62 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L) 
-# 62 "overflow.c"
-       + 1l, -1l, &a))) { goto ERROR; }
-        if (!(__builtin_saddl_overflow(0x7fffffffffffffffL, 1l, &a))) { goto ERROR; }
+# 63 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L) 
+# 63 "builtin_overflow.c"
+       + 1ll, -1l, &a))) { goto ERROR; }
+        if (!(__builtin_saddl_overflow(0x7fffffffL, 1l, &a))) { goto ERROR; }
         if (!(__builtin_saddl_overflow(
-# 64 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L)
-# 64 "overflow.c"
+# 65 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L)
+# 65 "builtin_overflow.c"
        , -1l, &a))) { goto ERROR; }
 
-        int c;
-        if ((__builtin_saddl_overflow(0x7fffffff, 1l, &c))) { goto ERROR; }
+        short c;
+        if ((__builtin_saddl_overflow(0x7fff, 1l, &c))) { goto ERROR; }
 
 
-        if ((__builtin_saddl_overflow(0x7fffffffffffffffL + 1LL, 0x7fffffffffffffffL, &a))) { goto ERROR; }
+        if ((__builtin_saddl_overflow(0x7fffffffL + 1LL, 0x7fffffffL, &a))) { goto ERROR; }
         if ((__builtin_saddl_overflow(
-# 71 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL)
-# 71 "overflow.c"
-       , 0x7fffffffffffffffL, &a))) { goto ERROR; }
-        if (!(__builtin_saddl_overflow(0x7fffffffffffffffL + 1LL, -100l, &a))) { goto ERROR; }
+# 72 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL)
+# 72 "builtin_overflow.c"
+       , 0x7fffffffL, &a))) { goto ERROR; }
+        if (!(__builtin_saddl_overflow(0x7fffffffL + 1LL, -100l, &a))) { goto ERROR; }
     }
 
 
@@ -145,15 +150,15 @@ int main()
         long long a;
         if ((__builtin_saddll_overflow(0x7fffffffffffffffLL - 1LL, 1LL, &a))) { goto ERROR; }
         if ((__builtin_saddll_overflow(
-# 79 "overflow.c" 3 4
+# 80 "builtin_overflow.c" 3 4
        (-0x7fffffffffffffffLL - 1LL) 
-# 79 "overflow.c"
+# 80 "builtin_overflow.c"
        + 1LL, -1LL, &a))) { goto ERROR; }
         if (!(__builtin_saddll_overflow(0x7fffffffffffffffLL, 1LL, &a))) { goto ERROR; }
         if (!(__builtin_saddll_overflow(
-# 81 "overflow.c" 3 4
+# 82 "builtin_overflow.c" 3 4
        (-0x7fffffffffffffffLL - 1LL)
-# 81 "overflow.c"
+# 82 "builtin_overflow.c"
        , -1LL, &a))) { goto ERROR; }
     }
 
@@ -161,22 +166,22 @@ int main()
     {
         unsigned int a;
         if ((__builtin_uadd_overflow(
-# 87 "overflow.c" 3 4
+# 88 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U) 
-# 87 "overflow.c"
-       - 1u, 1u, &a))) { goto ERROR; }
+# 88 "builtin_overflow.c"
+       - 1ull, 1u, &a))) { goto ERROR; }
         if (!(__builtin_uadd_overflow(
-# 88 "overflow.c" 3 4
+# 89 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U)
-# 88 "overflow.c"
+# 89 "builtin_overflow.c"
        , 1u, &a))) { goto ERROR; }
 
 
         if ((__builtin_uadd_overflow(
-# 91 "overflow.c" 3 4
+# 92 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U) 
-# 91 "overflow.c"
-       + 1ul, 1u, &a))) { goto ERROR; }
+# 92 "builtin_overflow.c"
+       + 1ull, 1u, &a))) { goto ERROR; }
         if (!(__builtin_uadd_overflow(-0x7fffffff, 0x7fffffff, &a))) { goto ERROR; }
     }
 
@@ -184,23 +189,23 @@ int main()
     {
         unsigned long a;
         if ((__builtin_uaddl_overflow(
-# 98 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL) 
-# 98 "overflow.c"
-       - 1ul, 1ul, &a))) { goto ERROR; }
+# 99 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL) 
+# 99 "builtin_overflow.c"
+       - 1ull, 1ul, &a))) { goto ERROR; }
         if (!(__builtin_uaddl_overflow(
-# 99 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL)
-# 99 "overflow.c"
+# 100 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL)
+# 100 "builtin_overflow.c"
        , 1ul, &a))) { goto ERROR; }
 
 
         if ((__builtin_uadd_overflow(
-# 102 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL) 
-# 102 "overflow.c"
+# 103 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL) 
+# 103 "builtin_overflow.c"
        + 1uLL, 1ul, &a))) { goto ERROR; }
-        if (!(__builtin_uadd_overflow(-0x7fffffffffffffffL, 0x7fffffffffffffffL, &a))) { goto ERROR; }
+        if (!(__builtin_uadd_overflow(-0x7fffffffL, 0x7fffffffL, &a))) { goto ERROR; }
     }
 
 
@@ -208,14 +213,14 @@ int main()
     {
         unsigned long long a;
         if ((__builtin_uaddll_overflow(
-# 110 "overflow.c" 3 4
+# 111 "builtin_overflow.c" 3 4
        (0x7fffffffffffffffLL * 2ULL + 1ULL) 
-# 110 "overflow.c"
+# 111 "builtin_overflow.c"
        - 1uLL, 1uLL, &a))) { goto ERROR; }
         if (!(__builtin_uaddll_overflow(
-# 111 "overflow.c" 3 4
+# 112 "builtin_overflow.c" 3 4
        (0x7fffffffffffffffLL * 2ULL + 1ULL)
-# 111 "overflow.c"
+# 112 "builtin_overflow.c"
        , 1uLL, &a))) { goto ERROR; }
     }
 
@@ -224,19 +229,19 @@ int main()
 
         int a; long long c;
         if (!(__builtin_sub_overflow(
-# 118 "overflow.c" 3 4
+# 119 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1) 
-# 118 "overflow.c"
-       - 1l, 0x7fffffff, &a))) { goto ERROR; }
+# 119 "builtin_overflow.c"
+       - 1ll, 0x7fffffff, &a))) { goto ERROR; }
         if ((__builtin_sub_overflow(
-# 119 "overflow.c" 3 4
+# 120 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1) 
-# 119 "overflow.c"
-       - 1l, -100, &a))) { goto ERROR; }
+# 120 "builtin_overflow.c"
+       - 1ll, -100, &a))) { goto ERROR; }
         if ((__builtin_sub_overflow(
-# 120 "overflow.c" 3 4
+# 121 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1)
-# 120 "overflow.c"
+# 121 "builtin_overflow.c"
        , 1, &c))) { goto ERROR; }
     }
 
@@ -245,67 +250,67 @@ int main()
         int a;
         if ((__builtin_ssub_overflow(0x7fffffff - 1, -1, &a))) { goto ERROR; }
         if ((__builtin_ssub_overflow(
-# 127 "overflow.c" 3 4
+# 128 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1) 
-# 127 "overflow.c"
+# 128 "builtin_overflow.c"
        + 1, 1, &a))) { goto ERROR; }
         if (!(__builtin_ssub_overflow(0x7fffffff, -1, &a))) { goto ERROR; }
         if (!(__builtin_ssub_overflow(
-# 129 "overflow.c" 3 4
+# 130 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1)
-# 129 "overflow.c"
+# 130 "builtin_overflow.c"
        , 1, &a))) { goto ERROR; }
 
 
-        if ((__builtin_ssub_overflow(0x7fffffff + 1l, 
-# 132 "overflow.c" 3 4
+        if ((__builtin_ssub_overflow(0x7fffffff + 1ll, 
+# 133 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1)
-# 132 "overflow.c"
+# 133 "builtin_overflow.c"
        , &a))) { goto ERROR; }
         if ((__builtin_ssub_overflow(
-# 133 "overflow.c" 3 4
+# 134 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U)
-# 133 "overflow.c"
+# 134 "builtin_overflow.c"
        , 
-# 133 "overflow.c" 3 4
+# 134 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1)
-# 133 "overflow.c"
+# 134 "builtin_overflow.c"
        , &a))) { goto ERROR; }
-        if (!(__builtin_ssub_overflow(0x7fffffff + 1l, 100, &a))) { goto ERROR; }
+        if (!(__builtin_ssub_overflow(0x7fffffff + 1ll, 100, &a))) { goto ERROR; }
     }
 
 
     {
         long a;
-        if ((__builtin_ssubl_overflow(0x7fffffffffffffffL - 1l, -1l, &a))) { goto ERROR; }
+        if ((__builtin_ssubl_overflow(0x7fffffffL - 1ll, -1l, &a))) { goto ERROR; }
         if ((__builtin_ssubl_overflow(
-# 141 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L) 
-# 141 "overflow.c"
-       + 1l, 1l, &a))) { goto ERROR; }
-        if (!(__builtin_ssubl_overflow(0x7fffffffffffffffL, -1l, &a))) { goto ERROR; }
+# 142 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L) 
+# 142 "builtin_overflow.c"
+       + 1ll, 1l, &a))) { goto ERROR; }
+        if (!(__builtin_ssubl_overflow(0x7fffffffL, -1l, &a))) { goto ERROR; }
         if (!(__builtin_ssubl_overflow(
-# 143 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L)
-# 143 "overflow.c"
+# 144 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L)
+# 144 "builtin_overflow.c"
        , 1l, &a))) { goto ERROR; }
 
 
-        if ((__builtin_ssubl_overflow(0x7fffffffffffffffL + 1LL, 
-# 146 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L)
-# 146 "overflow.c"
+        if ((__builtin_ssubl_overflow(0x7fffffffL + 1LL, 
+# 147 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L)
+# 147 "builtin_overflow.c"
        , &a))) { goto ERROR; }
         if ((__builtin_ssubl_overflow(
-# 147 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL)
-# 147 "overflow.c"
+# 148 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL)
+# 148 "builtin_overflow.c"
        , 
-# 147 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L)
-# 147 "overflow.c"
+# 148 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L)
+# 148 "builtin_overflow.c"
        , &a))) { goto ERROR; }
-        if (!(__builtin_ssubl_overflow(0x7fffffffffffffffL + 1LL, 100l, &a))) { goto ERROR; }
+        if (!(__builtin_ssubl_overflow(0x7fffffffL + 1LL, 100l, &a))) { goto ERROR; }
     }
 
 
@@ -313,15 +318,15 @@ int main()
         long long a;
         if ((__builtin_ssubll_overflow(0x7fffffffffffffffLL - 1LL, -1LL, &a))) { goto ERROR; }
         if ((__builtin_ssubll_overflow(
-# 155 "overflow.c" 3 4
+# 156 "builtin_overflow.c" 3 4
        (-0x7fffffffffffffffLL - 1LL) 
-# 155 "overflow.c"
+# 156 "builtin_overflow.c"
        + 1LL, 1LL, &a))) { goto ERROR; }
         if (!(__builtin_ssubll_overflow(0x7fffffffffffffffLL, -1LL, &a))) { goto ERROR; }
         if (!(__builtin_ssubll_overflow(
-# 157 "overflow.c" 3 4
+# 158 "builtin_overflow.c" 3 4
        (-0x7fffffffffffffffLL - 1LL)
-# 157 "overflow.c"
+# 158 "builtin_overflow.c"
        , 1LL, &a))) { goto ERROR; }
     }
 
@@ -333,10 +338,10 @@ int main()
 
 
         if (!(__builtin_usub_overflow(
-# 167 "overflow.c" 3 4
+# 168 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U) 
-# 167 "overflow.c"
-       + 1ul, 1u, &a))) { goto ERROR; }
+# 168 "builtin_overflow.c"
+       + 1ull, 1u, &a))) { goto ERROR; }
     }
 
 
@@ -347,9 +352,9 @@ int main()
 
 
         if (!(__builtin_usub_overflow(
-# 177 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL) 
-# 177 "overflow.c"
+# 178 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL) 
+# 178 "builtin_overflow.c"
        + 1uLL, 1ul, &a))) { goto ERROR; }
     }
 
@@ -363,12 +368,12 @@ int main()
 
     {
         int a; long long c;
-        if (!(__builtin_mul_overflow(0x7fffffff + 1l, 1, &a))) { goto ERROR; }
+        if (!(__builtin_mul_overflow(0x7fffffff + 1ll, 1, &a))) { goto ERROR; }
         if (!(__builtin_mul_overflow(
-# 191 "overflow.c" 3 4
+# 192 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1) 
-# 191 "overflow.c"
-       - 1l, -1, &a))) { goto ERROR; }
+# 192 "builtin_overflow.c"
+       - 1ll, -1, &a))) { goto ERROR; }
         if ((__builtin_mul_overflow(0x7fffffff, 2, &c))) { goto ERROR; }
     }
 
@@ -377,41 +382,41 @@ int main()
         int a;
         if ((__builtin_smul_overflow(0x7fffffff >> 1, 2, &a))) { goto ERROR; }
         if ((__builtin_smul_overflow(
-# 199 "overflow.c" 3 4
+# 200 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1) 
-# 199 "overflow.c"
+# 200 "builtin_overflow.c"
        >> 1, 2, &a))) { goto ERROR; }
         if (!(__builtin_smul_overflow(0x7fffffff, 2, &a))) { goto ERROR; }
         if (!(__builtin_smul_overflow(
-# 201 "overflow.c" 3 4
+# 202 "builtin_overflow.c" 3 4
        (-0x7fffffff - 1)
-# 201 "overflow.c"
+# 202 "builtin_overflow.c"
        , 2, &a))) { goto ERROR; }
 
 
-        if ((__builtin_smul_overflow(0x7fffffff + 1l, 1, &a))) { goto ERROR; }
-        if ((__builtin_smul_overflow(1, 0x7fffffff + 1l, &a))) { goto ERROR; }
+        if ((__builtin_smul_overflow(0x7fffffff + 1ll, 1, &a))) { goto ERROR; }
+        if ((__builtin_smul_overflow(1, 0x7fffffff + 1ll, &a))) { goto ERROR; }
     }
 
 
     {
         long a;
-        if ((__builtin_smull_overflow(0x7fffffffffffffffL >> 1, 2, &a))) { goto ERROR; }
+        if ((__builtin_smull_overflow(0x7fffffffL >> 1, 2, &a))) { goto ERROR; }
         if ((__builtin_smull_overflow(
-# 212 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L) 
-# 212 "overflow.c"
+# 213 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L) 
+# 213 "builtin_overflow.c"
        >> 1, 2, &a))) { goto ERROR; }
-        if (!(__builtin_smull_overflow(0x7fffffffffffffffL, 2, &a))) { goto ERROR; }
+        if (!(__builtin_smull_overflow(0x7fffffffL, 2, &a))) { goto ERROR; }
         if (!(__builtin_smull_overflow(
-# 214 "overflow.c" 3 4
-       (-0x7fffffffffffffffL - 1L)
-# 214 "overflow.c"
+# 215 "builtin_overflow.c" 3 4
+       (-0x7fffffffL - 1L)
+# 215 "builtin_overflow.c"
        , 2, &a))) { goto ERROR; }
 
 
-        if ((__builtin_smull_overflow(0x7fffffffffffffffL + 1ll, 1, &a))) { goto ERROR; }
-        if ((__builtin_smull_overflow(1, 0x7fffffffffffffffL + 1ll, &a))) { goto ERROR; }
+        if ((__builtin_smull_overflow(0x7fffffffL + 1ll, 1, &a))) { goto ERROR; }
+        if ((__builtin_smull_overflow(1, 0x7fffffffL + 1ll, &a))) { goto ERROR; }
     }
 
 
@@ -419,15 +424,15 @@ int main()
         long long a;
         if ((__builtin_smulll_overflow(0x7fffffffffffffffLL >> 1, 2, &a))) { goto ERROR; }
         if ((__builtin_smulll_overflow(
-# 225 "overflow.c" 3 4
+# 226 "builtin_overflow.c" 3 4
        (-0x7fffffffffffffffLL - 1LL) 
-# 225 "overflow.c"
+# 226 "builtin_overflow.c"
        >> 1, 2, &a))) { goto ERROR; }
         if (!(__builtin_smulll_overflow(0x7fffffffffffffffLL, 2, &a))) { goto ERROR; }
         if (!(__builtin_smulll_overflow(
-# 227 "overflow.c" 3 4
+# 228 "builtin_overflow.c" 3 4
        (-0x7fffffffffffffffLL - 1LL)
-# 227 "overflow.c"
+# 228 "builtin_overflow.c"
        , 2, &a))) { goto ERROR; }
 
 
@@ -439,53 +444,53 @@ int main()
     {
         unsigned int a;
         if ((__builtin_umul_overflow(
-# 237 "overflow.c" 3 4
+# 238 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U) 
-# 237 "overflow.c"
+# 238 "builtin_overflow.c"
        >> 1, 2, &a))) { goto ERROR; }
         if (!(__builtin_umul_overflow(
-# 238 "overflow.c" 3 4
+# 239 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U)
-# 238 "overflow.c"
+# 239 "builtin_overflow.c"
        , 2, &a))) { goto ERROR; }
 
 
         if ((__builtin_umul_overflow(
-# 241 "overflow.c" 3 4
+# 242 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U) 
-# 241 "overflow.c"
-       + 1ul, 1, &a))) { goto ERROR; }
+# 242 "builtin_overflow.c"
+       + 1ull, 1, &a))) { goto ERROR; }
         if ((__builtin_umul_overflow(1, 
-# 242 "overflow.c" 3 4
+# 243 "builtin_overflow.c" 3 4
        (0x7fffffff * 2U + 1U) 
-# 242 "overflow.c"
-       + 1ul, &a))) { goto ERROR; }
+# 243 "builtin_overflow.c"
+       + 1ull, &a))) { goto ERROR; }
     }
 
 
     {
         unsigned long a;
         if ((__builtin_umull_overflow(
-# 248 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL) 
-# 248 "overflow.c"
+# 249 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL) 
+# 249 "builtin_overflow.c"
        >> 1, 2, &a))) { goto ERROR; }
         if (!(__builtin_umull_overflow(
-# 249 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL)
-# 249 "overflow.c"
+# 250 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL)
+# 250 "builtin_overflow.c"
        , 2, &a))) { goto ERROR; }
 
 
         if ((__builtin_umull_overflow(
-# 252 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL) 
-# 252 "overflow.c"
+# 253 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL) 
+# 253 "builtin_overflow.c"
        + 1ull, 1, &a))) { goto ERROR; }
         if ((__builtin_umull_overflow(1, 
-# 253 "overflow.c" 3 4
-       (0x7fffffffffffffffL * 2UL + 1UL) 
-# 253 "overflow.c"
+# 254 "builtin_overflow.c" 3 4
+       (0x7fffffffL * 2UL + 1UL) 
+# 254 "builtin_overflow.c"
        + 1ull, &a))) { goto ERROR; }
     }
 
@@ -493,26 +498,26 @@ int main()
     {
         unsigned long long a;
         if ((__builtin_umulll_overflow(
-# 259 "overflow.c" 3 4
+# 260 "builtin_overflow.c" 3 4
        (0x7fffffffffffffffLL * 2ULL + 1ULL) 
-# 259 "overflow.c"
+# 260 "builtin_overflow.c"
        >> 1, 2, &a))) { goto ERROR; }
         if (!(__builtin_umulll_overflow(
-# 260 "overflow.c" 3 4
+# 261 "builtin_overflow.c" 3 4
        (0x7fffffffffffffffLL * 2ULL + 1ULL)
-# 260 "overflow.c"
+# 261 "builtin_overflow.c"
        , 2, &a))) { goto ERROR; }
 
 
         if ((__builtin_umulll_overflow(
-# 263 "overflow.c" 3 4
+# 264 "builtin_overflow.c" 3 4
        (0x7fffffffffffffffLL * 2ULL + 1ULL) 
-# 263 "overflow.c"
+# 264 "builtin_overflow.c"
        + 1uLL, 1, &a))) { goto ERROR; }
         if ((__builtin_umulll_overflow(1, 
-# 264 "overflow.c" 3 4
+# 265 "builtin_overflow.c" 3 4
        (0x7fffffffffffffffLL * 2ULL + 1ULL) 
-# 264 "overflow.c"
+# 265 "builtin_overflow.c"
        + 1uLL, &a))) { goto ERROR; }
     }
 

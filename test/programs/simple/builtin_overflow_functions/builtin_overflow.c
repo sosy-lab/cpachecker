@@ -28,8 +28,8 @@ int main()
     {
         // calculations are done with infinite precision (parameters are not casted to another type):
         int a; long long c;
-        shouldBeTrue(__builtin_add_overflow(INT_MAX + 1l, INT_MAX, &a))
-        shouldBeFalse(__builtin_add_overflow(INT_MAX + 1l, -100, &a))
+        shouldBeTrue(__builtin_add_overflow(INT_MAX + 1ll, INT_MAX, &a))
+        shouldBeFalse(__builtin_add_overflow(INT_MAX + 1ll, -100, &a))
         shouldBeFalse(__builtin_add_overflow(INT_MAX, 1, &c))
 
         int x = INT_MAX, y = 1;
@@ -41,8 +41,8 @@ int main()
     // __builtin_sadd_overflow
     {
         int a;
-        shouldBeFalse(__builtin_sadd_overflow(INT_MAX - 1, 1, &a))
-        shouldBeFalse(__builtin_sadd_overflow(INT_MIN + 1, -1, &a))
+        shouldBeFalse(__builtin_sadd_overflow(INT_MAX - 1ll, 1, &a))
+        shouldBeFalse(__builtin_sadd_overflow(INT_MIN + 1ll, -1, &a))
         shouldBeTrue(__builtin_sadd_overflow(INT_MAX, 1, &a))
         shouldBeTrue(__builtin_sadd_overflow(INT_MIN, -1, &a))
         
@@ -50,22 +50,22 @@ int main()
         shouldBeTrue(__builtin_sadd_overflow(INT_MAX, 1, &c))
 
         // check proper type conversion of arguments
-        shouldBeFalse(__builtin_sadd_overflow(INT_MAX + 1l, INT_MAX, &a))
+        shouldBeFalse(__builtin_sadd_overflow(INT_MAX + 1ll, INT_MAX, &a))
         shouldBeFalse(__builtin_sadd_overflow(UINT_MAX, INT_MAX, &a))
-        shouldBeTrue(__builtin_sadd_overflow(INT_MAX + 1l, -100, &a))
+        shouldBeTrue(__builtin_sadd_overflow(INT_MAX + 1ll, -100, &a))
 
     }
 
     // __builtin_saddl_overflow
     {
         long a;
-        shouldBeFalse(__builtin_saddl_overflow(LONG_MAX - 1l, 1l, &a))
-        shouldBeFalse(__builtin_saddl_overflow(LONG_MIN + 1l, -1l, &a))
+        shouldBeFalse(__builtin_saddl_overflow(LONG_MAX - 1ll, 1l, &a))
+        shouldBeFalse(__builtin_saddl_overflow(LONG_MIN + 1ll, -1l, &a))
         shouldBeTrue(__builtin_saddl_overflow(LONG_MAX, 1l, &a))
         shouldBeTrue(__builtin_saddl_overflow(LONG_MIN, -1l, &a))
         
-        int c;
-        shouldBeFalse(__builtin_saddl_overflow(INT_MAX, 1l, &c))
+        short c;
+        shouldBeFalse(__builtin_saddl_overflow(SHRT_MAX, 1l, &c))
 
         // check proper type conversion of arguments
         shouldBeFalse(__builtin_saddl_overflow(LONG_MAX + 1LL, LONG_MAX, &a))
@@ -85,18 +85,18 @@ int main()
     // __builtin_uadd_overflow
     {
         unsigned int a;
-        shouldBeFalse(__builtin_uadd_overflow(UINT_MAX - 1u, 1u, &a))
+        shouldBeFalse(__builtin_uadd_overflow(UINT_MAX - 1ull, 1u, &a))
         shouldBeTrue(__builtin_uadd_overflow(UINT_MAX, 1u, &a))
 
         // check proper type conversion of arguments
-        shouldBeFalse(__builtin_uadd_overflow(UINT_MAX + 1ul, 1u, &a))
+        shouldBeFalse(__builtin_uadd_overflow(UINT_MAX + 1ull, 1u, &a))
         shouldBeTrue(__builtin_uadd_overflow(-INT_MAX, INT_MAX, &a))
     }
 
     // __builtin_uaddl_overflow
     {
         unsigned long a;
-        shouldBeFalse(__builtin_uaddl_overflow(ULONG_MAX - 1ul, 1ul, &a))
+        shouldBeFalse(__builtin_uaddl_overflow(ULONG_MAX - 1ull, 1ul, &a))
         shouldBeTrue(__builtin_uaddl_overflow(ULONG_MAX, 1ul, &a))
 
         // check proper type conversion of arguments
@@ -116,8 +116,8 @@ int main()
     {
         // calculations are done with infinite precision (parameters are not casted to another type):
         int a; long long c;
-        shouldBeTrue(__builtin_sub_overflow(INT_MIN - 1l, INT_MAX, &a))
-        shouldBeFalse(__builtin_sub_overflow(INT_MIN - 1l, -100, &a))
+        shouldBeTrue(__builtin_sub_overflow(INT_MIN - 1ll, INT_MAX, &a))
+        shouldBeFalse(__builtin_sub_overflow(INT_MIN - 1ll, -100, &a))
         shouldBeFalse(__builtin_sub_overflow(INT_MIN, 1, &c))
     }
 
@@ -130,16 +130,16 @@ int main()
         shouldBeTrue(__builtin_ssub_overflow(INT_MIN, 1, &a))
 
         // check proper type conversion of arguments
-        shouldBeFalse(__builtin_ssub_overflow(INT_MAX + 1l, INT_MIN, &a))
+        shouldBeFalse(__builtin_ssub_overflow(INT_MAX + 1ll, INT_MIN, &a))
         shouldBeFalse(__builtin_ssub_overflow(UINT_MAX, INT_MIN, &a))
-        shouldBeTrue(__builtin_ssub_overflow(INT_MAX + 1l, 100, &a))
+        shouldBeTrue(__builtin_ssub_overflow(INT_MAX + 1ll, 100, &a))
     }
     
     // __builtin_ssubl_overflow
     {
         long a;
-        shouldBeFalse(__builtin_ssubl_overflow(LONG_MAX - 1l, -1l, &a))
-        shouldBeFalse(__builtin_ssubl_overflow(LONG_MIN + 1l, 1l, &a))
+        shouldBeFalse(__builtin_ssubl_overflow(LONG_MAX - 1ll, -1l, &a))
+        shouldBeFalse(__builtin_ssubl_overflow(LONG_MIN + 1ll, 1l, &a))
         shouldBeTrue(__builtin_ssubl_overflow(LONG_MAX, -1l, &a))
         shouldBeTrue(__builtin_ssubl_overflow(LONG_MIN, 1l, &a))
 
@@ -165,7 +165,7 @@ int main()
         shouldBeTrue(__builtin_usub_overflow(0u, 1u, &a))
 
         // check proper type conversion of arguments
-        shouldBeTrue(__builtin_usub_overflow(UINT_MAX + 1ul, 1u, &a))
+        shouldBeTrue(__builtin_usub_overflow(UINT_MAX + 1ull, 1u, &a))
     }
 
     // __builtin_usubl_overflow
@@ -188,8 +188,8 @@ int main()
     // __builtin_mul_overflow
     {
         int a; long long c;
-        shouldBeTrue(__builtin_mul_overflow(INT_MAX + 1l, 1, &a))
-        shouldBeTrue(__builtin_mul_overflow(INT_MIN - 1l, -1, &a))
+        shouldBeTrue(__builtin_mul_overflow(INT_MAX + 1ll, 1, &a))
+        shouldBeTrue(__builtin_mul_overflow(INT_MIN - 1ll, -1, &a))
         shouldBeFalse(__builtin_mul_overflow(INT_MAX, 2, &c))
     }
 
@@ -202,8 +202,8 @@ int main()
         shouldBeTrue(__builtin_smul_overflow(INT_MIN, 2, &a))
 
         // check proper type conversion of arguments
-        shouldBeFalse(__builtin_smul_overflow(INT_MAX + 1l, 1, &a))
-        shouldBeFalse(__builtin_smul_overflow(1, INT_MAX + 1l, &a))
+        shouldBeFalse(__builtin_smul_overflow(INT_MAX + 1ll, 1, &a))
+        shouldBeFalse(__builtin_smul_overflow(1, INT_MAX + 1ll, &a))
     }
 
     // __builtin_smull_overflow
@@ -239,8 +239,8 @@ int main()
         shouldBeTrue(__builtin_umul_overflow(UINT_MAX, 2, &a))
 
         // check proper type conversion of arguments
-        shouldBeFalse(__builtin_umul_overflow(UINT_MAX + 1ul, 1, &a))
-        shouldBeFalse(__builtin_umul_overflow(1, UINT_MAX + 1ul, &a))
+        shouldBeFalse(__builtin_umul_overflow(UINT_MAX + 1ull, 1, &a))
+        shouldBeFalse(__builtin_umul_overflow(1, UINT_MAX + 1ull, &a))
     }
 
     // __builtin_umull_overflow

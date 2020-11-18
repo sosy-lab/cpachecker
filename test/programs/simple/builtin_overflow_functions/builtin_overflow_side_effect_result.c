@@ -34,11 +34,11 @@ int main()
         shouldBeTrue(a == INT_MIN)
     }
 
-    // __builtin_sadd_overflow
+    // // __builtin_sadd_overflow
     {
         int a;
         // no overflow
-        __builtin_sadd_overflow(INT_MAX-1, 1, &a);
+        __builtin_sadd_overflow(INT_MAX-1ll, 1, &a);
         shouldBeTrue(a == INT_MAX)
 
         // overflow
@@ -46,19 +46,15 @@ int main()
         shouldBeTrue(a == INT_MIN+3)
 
         // overflow during parameter conversion and calculation
-        __builtin_sadd_overflow(INT_MAX + 1l, -100, &a);
+        __builtin_sadd_overflow(INT_MAX + 1ll, -100, &a);
         shouldBeTrue(a == INT_MAX - 99)
     }
 
     // __builtin_saddl_overflow
     {
         long a;
-        __builtin_saddl_overflow(LONG_MAX - 1l, 1l, &a);
+        __builtin_saddl_overflow(LONG_MAX - 1ll, 1l, &a);
         shouldBeTrue(a == LONG_MAX)
-        
-        int c;
-        __builtin_saddl_overflow(LONG_MAX - 1l, 1l, &c);
-        shouldBeTrue(c == -1) // type conversion when writing to c
 
         __builtin_saddl_overflow(LONG_MAX, 4l, &a);
         shouldBeTrue(a == LONG_MIN + 3l)
@@ -73,20 +69,24 @@ int main()
         __builtin_saddll_overflow(LLONG_MAX - 1LL, 1LL, &a);
         shouldBeTrue(a == LLONG_MAX)
 
+        long c;
+        __builtin_saddll_overflow(LLONG_MAX - 1ll, 1l, &c);
+        shouldBeTrue(c == -1) // type conversion when writing to c
+
         __builtin_saddll_overflow(LLONG_MAX, 4LL, &a);
-        shouldBeTrue(a == LONG_MIN + 3LL)
+        shouldBeTrue(a == LLONG_MIN + 3LL)
     }
 
     // __builtin_uadd_overflow
     {
         unsigned int a;
-        __builtin_uadd_overflow(UINT_MAX - 1u, 1u, &a);
+        __builtin_uadd_overflow(UINT_MAX - 1ull, 1u, &a);
         shouldBeTrue(a == UINT_MAX)
 
         __builtin_uadd_overflow(UINT_MAX, 4u, &a);
         shouldBeTrue(a == 3u)
 
-        __builtin_uadd_overflow(UINT_MAX + 1ul, -100u, &a);
+        __builtin_uadd_overflow(UINT_MAX + 1ull, -100u, &a);
         shouldBeTrue(a == UINT_MAX - 99u)
 
     }
@@ -94,7 +94,7 @@ int main()
     // __builtin_uaddl_overflow
     {
         unsigned long a;
-        __builtin_uaddl_overflow(ULONG_MAX - 1ul, 1ul, &a);
+        __builtin_uaddl_overflow(ULONG_MAX - 1ull, 1ul, &a);
         shouldBeTrue(a == ULONG_MAX)
 
         __builtin_uaddl_overflow(ULONG_MAX, 4ul, &a);
@@ -130,20 +130,20 @@ int main()
     // __builtin_ssub_overflow
     {
         int a;
-        __builtin_ssub_overflow(INT_MIN + 1, 1, &a);
+        __builtin_ssub_overflow(INT_MIN + 1ll, 1, &a);
         shouldBeTrue(a == INT_MIN)
 
         __builtin_ssub_overflow(INT_MIN, 4, &a);
         shouldBeTrue(a == INT_MAX - 3)
 
-        __builtin_ssub_overflow(INT_MAX + 1l, 100, &a);
+        __builtin_ssub_overflow(INT_MAX + 1ll, 100, &a);
         shouldBeTrue(a == INT_MAX - 99)
     }
     
     // __builtin_ssubl_overflow
     {
         long a;
-        __builtin_ssubl_overflow(LONG_MIN + 1l, 1l, &a);
+        __builtin_ssubl_overflow(LONG_MIN + 1ll, 1l, &a);
         shouldBeTrue(a == LONG_MIN)
 
         __builtin_ssubl_overflow(LONG_MIN, 4l, &a);
@@ -172,7 +172,7 @@ int main()
         __builtin_usub_overflow(0u, 4u, &a);
         shouldBeTrue(a == UINT_MAX - 3u)
 
-        __builtin_usub_overflow(UINT_MAX + 1ul, 100u, &a);
+        __builtin_usub_overflow(UINT_MAX + 1ull, 100u, &a);
         shouldBeTrue(a == UINT_MAX - 99u)
     }
 
