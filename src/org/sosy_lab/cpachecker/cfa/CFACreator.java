@@ -494,6 +494,11 @@ public class CFACreator {
         CFA cfa = createCFA(c, mainFunction);
         LoopInformation builder = new LoopInformation(config, logger, cfa);
         builder.collectStatistics(stats.statisticsCollection);
+
+        while (builder.getLoopData().isEmpty()) {
+          Thread.sleep(10);
+        }
+
         LoopAbstractionHeader loopAbstraction =
             new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
         loopAbstraction.collectStatistics(stats.statisticsCollection);
