@@ -53,6 +53,10 @@ public class BuiltinFunctions {
       return BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
     }
 
+    if(BuiltinOverflowFunctions.isBuiltinOverflowFunction(pFunctionName)) {
+      return BuiltinOverflowFunctions.getType(pFunctionName);
+    }
+
     return UNSPECIFIED_TYPE;
   }
 

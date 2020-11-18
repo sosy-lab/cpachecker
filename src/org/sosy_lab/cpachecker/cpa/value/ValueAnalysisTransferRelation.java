@@ -121,6 +121,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -167,15 +168,17 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "If 'ignoreFunctionValue' is set to true, this option allows "
-                + "to provide a fixed set of values in the TestComp format. It is used for "
-                + "function-calls to calls of VERIFIER_nondet_*. The file is provided via the option functionValuesForRandom ")
+            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
+                + " values in the TestComp format. It is used for function-calls to calls of"
+                + " VERIFIER_nondet_*. The file is provided via the option"
+                + " functionValuesForRandom ")
     private boolean ignoreFunctionValueExceptRandom = false;
 
     @Option(
         secure = true,
         description =
-            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if ignoreFunctionValueExceptRandom is enabled ")
+            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled ")
     @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
     private Path functionValuesForRandom = null;
 
@@ -811,6 +814,10 @@ public class ValueAnalysisTransferRelation
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
+            throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+          }
         } else if (expression instanceof CFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
@@ -952,7 +959,8 @@ public class ValueAnalysisTransferRelation
         }
       }
     } else {
-      throw new UnrecognizedCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
+      throw new UnrecognizedCodeException(
+          "left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
     return state; // the default return-value is the old state
