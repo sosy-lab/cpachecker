@@ -8,6 +8,13 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 1.9.1
+------------------------------
+* Better support for Windows  
+  We now bundle binaries of SMT solvers like MathSAT and Z3 for Windows,
+  such that most configurations of CPAchecker work on Windows out of the box.
+
+
 Changes from CPAchecker 1.9 to CPAchecker 1.9.1
 -----------------------------------------------
 CPAchecker 1.9.1 celebrates our SVN revision 33333,
