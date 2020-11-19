@@ -65,11 +65,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
     @Option(
         secure = true,
-        description = "How many total iterations of [select, target, fuzz] to perform.")
-    private int maxIterations = 5;
-
-    @Option(
-        secure = true,
         description = "The maximum number of times to ask the solver for a solution per iteration.")
     private int maxSolverAsks = 5;
 
@@ -159,7 +154,8 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         // In it's main iterations, ask the solver for new solutions every time.
         // This is done until a resource limit is reached or no new target states
         // are available.
-        for (int i = 0; i < maxIterations; i++) {
+        int i = 0;
+        while (true) {
             logger.log(Level.INFO, "Iteration", i + 1);
 
             // Check whether to shut down

@@ -29,9 +29,9 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -164,6 +164,21 @@ public class OutputWriter {
     }
 
     /**
+     * Extract the variable name from the left hand side.
+     * 
+     * In case of a regular CIdExpression this is easy, just get the name. But with arrays, this is
+     * apparently `different`.
+     */
+    String getLeftHandName(ALeftHandSide left) {
+        if (left instanceof CIdExpression) {
+            return ((CIdExpression) left).getName();
+        } else if (left instanceof CArraySubscriptExpression) {
+            return ((CArraySubscriptExpression) left).getArrayExpression().toString();
+        }
+        return "";
+    }
+
+    /**
      * Search through connected states starting from the state given and return their MemoryLocation
      * and ValueType.
      * 
@@ -189,24 +204,20 @@ public class OutputWriter {
             // Check if assignment is for a nondeterministic variable
             if (assignment.getRightHandSide().toString().startsWith("__VERIFIER_nondet_")) {
                 String function_name = ls.getLocationNode().getFunctionName();
-                String identifier;
-                try {
-                    identifier = ((CIdExpression) assignment.getLeftHandSide()).getName();
-                } catch (ClassCastException ex) {
-                    // identifier ist just for visuals
-                    // just don't compute it, when not possible
-                    identifier = "";
-                }
-                @Nullable
+                String identifier = getLeftHandName(assignment.getLeftHandSide());
+
                 ValueAnalysisState vs =
                         AbstractStates.extractStateByType(state, ValueAnalysisState.class);
                 Entry<MemoryLocation, ValueAndType> vt =
                         getValueTypeFromState(function_name, identifier, vs);
-                if (vt != null){
+                if (vt != null) {
                     values.add(vt);
                 } else {
-                    logger.log(Level.WARNING, "No values to write, propably `MemoryLocation forgotten`");
+                    logger.log(
+                            Level.WARNING,
+                            "No values to write, propably `MemoryLocation forgotten`");
                 }
+
             }
         }
 
@@ -286,8 +297,22 @@ public class OutputWriter {
             ValueAnalysisState state) {
         for (Entry<MemoryLocation, ValueAndType> entry : state.getConstants()) {
             MemoryLocation loc = entry.getKey();
-            if (loc.getFunctionName().equals(function_name)
-                    && loc.getIdentifier().equals(identifier)) {
+
+            String fn_name = "";
+            String ident = "";
+            try {
+                fn_name = loc.getFunctionName();
+            } catch (NullPointerException exc) {
+                continue;
+            }
+
+            try {
+                ident = loc.getIdentifier();
+            } catch (NullPointerException exc) {
+                continue;
+            }
+
+            if (fn_name.equals(function_name) && ident.equals(identifier)) {
                 return entry;
             }
         }

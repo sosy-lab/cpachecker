@@ -119,11 +119,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       return;
     }
 
-    throw new IllegalArgumentException(
-        "Unknown value was not of simple c type, was "
-            + pType.toString()
-            + " "
-            + pType.getClass().toString());
+    pState.forget(pMemLocation);
   }
 
   /**
