@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
@@ -119,13 +120,16 @@ public class SSAMap implements Serializable {
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
-      type = type.getCanonicalType();
-      assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
-      CType oldType = varTypes.get(name);
-      if (oldType != null) {
-        TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
-      } else {
-        varTypes = varTypes.putAndCopy(name, type);
+      // Disables sanity checks for single byte array heaps
+      if (!TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+        type = type.getCanonicalType();
+        assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
+        CType oldType = varTypes.get(name);
+        if (oldType != null) {
+          TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
+        } else {
+          varTypes = varTypes.putAndCopy(name, type);
+        }
       }
 
       if (idx > oldIdx || idx == ssa.defaultValue) {

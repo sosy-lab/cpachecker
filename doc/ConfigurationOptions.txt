@@ -2579,6 +2579,11 @@ cpa.predicate.useArraysForHeap = true
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# Use SMT byte array for encoding heap memory instead of uninterpreted
+# function. This is more close to c heap implementation but may be to
+# expensive.
+cpa.predicate.useByteArrayForHeap = false
+
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
 
