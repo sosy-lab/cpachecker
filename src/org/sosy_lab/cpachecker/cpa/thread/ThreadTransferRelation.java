@@ -183,7 +183,7 @@ public class ThreadTransferRelation implements TransferRelation {
     if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
       Map<String, ThreadStatus> newSet = new TreeMap<>(tSet);
       newSet.remove(var);
-      return state.copyWith(state.getCurrentThread(), newSet);
+      return state.copyWith(newSet);
     }
     return state;
   }

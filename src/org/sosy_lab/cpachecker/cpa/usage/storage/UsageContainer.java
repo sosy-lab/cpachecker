@@ -51,7 +51,7 @@ public class UsageContainer {
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
   private final StatTimer searchingInCachesTimer = new StatTimer("Time for searching in caches");
-  private final StatTimer addingToSetTimer = new StatTimer("Time for adding ti usage point set");
+  private final StatTimer addingToSetTimer = new StatTimer("Time for adding to usage point set");
   private final StatCounter sharedVariables =
       new StatCounter("Number of detected shared variables");
 

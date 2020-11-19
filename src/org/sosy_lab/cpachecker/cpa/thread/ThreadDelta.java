@@ -30,8 +30,12 @@ public class ThreadDelta implements Delta<CompatibleState> {
       return pState;
     }
     ThreadState pOther = (ThreadState) pState;
-    Map<String, ThreadStatus> newSet = new TreeMap<>(threadSet);
     Map<String, ThreadStatus> reduced = pOther.getThreadSet();
+    if (reduced.isEmpty()) {
+      return pOther.copyWith(threadSet);
+    }
+
+    Map<String, ThreadStatus> newSet = new TreeMap<>(threadSet);
     for (Entry<String, ThreadStatus> entry : reduced.entrySet()) {
       if (newSet.containsKey(entry.getKey())) {
         throw new UnsupportedOperationException(
@@ -46,7 +50,7 @@ public class ThreadDelta implements Delta<CompatibleState> {
   public boolean covers(Delta<CompatibleState> pDelta) {
     ThreadDelta pOther = (ThreadDelta) pDelta;
     // TODO contains?
-    return threadSet.equals(pOther.threadSet);
+    return threadSet.entrySet().containsAll(pOther.threadSet.entrySet());
   }
 
   @Override

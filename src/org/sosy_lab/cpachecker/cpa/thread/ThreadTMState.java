@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class ThreadTMState extends ThreadState {
 
-  public ThreadTMState(
+  protected ThreadTMState(
       String pCurrent,
       Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset) {

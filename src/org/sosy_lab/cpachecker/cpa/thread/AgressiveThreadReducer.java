@@ -44,6 +44,9 @@ public class AgressiveThreadReducer implements Reducer {
     ThreadState reduced = (ThreadState) pReducedState;
     ThreadState reducedRoot = reduce(root);
 
+    if (reducedRoot == root) {
+      return reduced;
+    }
     ThreadDelta delta = (ThreadDelta) reducedRoot.getDeltaBetween(root);
     return delta.apply(reduced);
   }

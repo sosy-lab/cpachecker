@@ -167,9 +167,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
         // Waitlist to be sure in order (not start from the middle point)
         while (!stateWaitlist.isEmpty()) {
           ARGState argState = (ARGState) stateWaitlist.poll();
-          if (argState.isCovered()) {
-            // Covered states has no children, we can not determine usages
-            stateWaitlist.add(argState.getCoveringState());
+          if (stateToUsage.containsKey(argState)) {
             continue;
           }
           List<UsageInfo> expandedUsages =
@@ -233,10 +231,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
     List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
 
     usageExpandingTimer.start();
-    usages.stream()
-        .map(u -> u.expand(currentEffects))
-        .filter(UsageInfo::isRelevant)
-        .forEach(expandedUsages::add);
+    for (UsageInfo usage : usages) {
+      UsageInfo expanded = usage.expand(currentEffects);
+      if (expanded.isRelevant()) {
+        expandedUsages.add(expanded);
+      }
+    }
     usageExpandingTimer.stop();
 
     return expandedUsages;
@@ -254,13 +254,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
     UsageDelta newDiff = UsageDelta.constructDeltaBetween(reducedState, rootState);
     UsageDelta difference = currentEffects.add(newDiff);
 
-    AbstractState firstState = innerReached.getFirstState();
     Pair<AbstractState, UsageDelta> newPair =
         Pair.of(innerReached.getFirstState(), difference);
 
-    if (shouldContinue(processedSets.get(firstState), difference)) {
+    if (shouldContinue(processedSets.get(reducedState), difference)) {
       waitlist.add(newPair);
-      processedSets.put(firstState, difference);
+      processedSets.put(reducedState, difference);
     }
   }
 

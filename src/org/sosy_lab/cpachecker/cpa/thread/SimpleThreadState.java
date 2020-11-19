@@ -27,7 +27,8 @@ import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
 public class SimpleThreadState extends ThreadState {
 
-  public SimpleThreadState(String pCurrent,
+  protected SimpleThreadState(
+      String pCurrent,
       @SuppressWarnings("unused") Map<String, ThreadStatus> Tset,
       @SuppressWarnings("unused") ImmutableMap<ThreadLabel, ThreadStatus> Rset) {
     super(pCurrent, Tset, Rset);

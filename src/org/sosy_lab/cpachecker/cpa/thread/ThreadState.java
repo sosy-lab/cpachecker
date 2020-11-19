@@ -46,7 +46,7 @@ public class ThreadState
 
   protected final static String mainThread = "main";
 
-  public ThreadState(
+  protected ThreadState(
       String pCurrent,
       Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset) {
@@ -80,6 +80,10 @@ public class ThreadState
 
     if (result != 0) {
       return result;
+    }
+
+    if (threadSet == other.threadSet) {
+      return 0;
     }
 
     Iterator<Entry<String, ThreadStatus>> thisIterator = this.threadSet.entrySet().iterator();
@@ -168,6 +172,12 @@ public class ThreadState
     if (b && pOther.threadSet == threadSet) {
       return true;
     }
+    if (threadSet == pOther.threadSet) {
+      return true;
+    }
+    if (threadSet.size() > pOther.threadSet.size()) {
+      return false;
+    }
     return pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
   }
 
@@ -198,22 +208,28 @@ public class ThreadState
   }
 
   public ThreadState copyWith(Map<String, ThreadStatus> tSet) {
-    return new ThreadState(this.currentThread, tSet, this.removedSet);
+    return copyWith(this.currentThread, tSet);
   }
 
   @Override
   public Delta<CompatibleState> getDeltaBetween(CompatibleState pOther) {
-    Map<String, ThreadStatus> newSet = new TreeMap<>();
     ThreadState pState = (ThreadState) pOther;
     Map<String, ThreadStatus> expanded = pState.getThreadSet();
-    for (Entry<String, ThreadStatus> entry : expanded.entrySet()) {
-      if (threadSet.containsKey(entry.getKey())) {
-        if (!threadSet.get(entry.getKey()).equals(entry.getValue())) {
-          throw new UnsupportedOperationException(
-              "Statuses for thread " + entry.getKey() + " differs");
+    Map<String, ThreadStatus> newSet;
+
+    if (threadSet.isEmpty()) {
+      newSet = expanded;
+    } else {
+      newSet = new TreeMap<>();
+      for (Entry<String, ThreadStatus> entry : expanded.entrySet()) {
+        if (threadSet.containsKey(entry.getKey())) {
+          if (!threadSet.get(entry.getKey()).equals(entry.getValue())) {
+            throw new UnsupportedOperationException(
+                "Statuses for thread " + entry.getKey() + " differs");
+          }
+        } else {
+          newSet.put(entry.getKey(), entry.getValue());
         }
-      } else {
-        newSet.put(entry.getKey(), entry.getValue());
       }
     }
     return new ThreadDelta(newSet);

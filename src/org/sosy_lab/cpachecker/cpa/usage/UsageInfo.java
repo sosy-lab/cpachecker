@@ -253,6 +253,9 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     if (newStates.isEmpty()) {
       return IRRELEVANT_USAGE;
     }
+    if (newStates == compatibleStates) {
+      return this;
+    }
     return copy(newStates);
   }
 }
