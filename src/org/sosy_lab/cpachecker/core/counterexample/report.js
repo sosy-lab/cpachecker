@@ -343,7 +343,7 @@ with considerably less effort */
 					if (!$.isEmptyObject(newValues)) {
 						$.extend(errPathElem.valDict, newValues);
 					}
-					for (key in errPathElem.valDict) {
+					for (var key in errPathElem.valDict) {
 						errPathElem.valString += key + ":  " + errPathElem.valDict[key] + "\n";
 					}
 					// add indentation
@@ -1099,7 +1099,7 @@ function init() {
 		// Prepare Error Path array to be used in edge class decider
 		function prepareCfaErrorPath() {
 			var returnedEdges = {};
-			for (key in functionCallEdges) {
+			for (var key in functionCallEdges) {
 				returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
 			}
 			json.errorPath.forEach(function (errPathElem) {
