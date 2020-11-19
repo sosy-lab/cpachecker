@@ -499,6 +499,8 @@ public class CFACreator {
         loopAbstraction.collectStatistics(stats.statisticsCollection);
         List<String> abstractedSourceFiles = new ArrayList<>();
         abstractedSourceFiles.add(loopAbstraction.getFileName());
+
+        logger.log(Level.FINE, "Program got changed to" + loopAbstraction.getFileName());
         automateAbstractLoopParser = false;
         result = parseFileAndCreateCFA(abstractedSourceFiles);
       }
