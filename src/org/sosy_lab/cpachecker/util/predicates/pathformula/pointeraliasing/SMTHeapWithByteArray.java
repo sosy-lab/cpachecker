@@ -118,7 +118,7 @@ class SMTHeapWithByteArray implements SMTHeap {
               address, formulaManager.makeNumber(formulaManager.getFormulaType(address), ++offset));
       BitvectorFormula nextBVPart = afmgr.select(arrayFormula, addressWithOffset);
       result =
-          (endianness == ByteOrder.LITTLE_ENDIAN)
+          (endianness == ByteOrder.BIG_ENDIAN)
               ? bfmgr.concat(result, nextBVPart)
               : bfmgr.concat(nextBVPart, result);
     }
@@ -161,7 +161,6 @@ class SMTHeapWithByteArray implements SMTHeap {
       builder.add(bfmgr.extract(oldVector, offset + 7, offset, true));
       offset = offset + 8;
     }
-    // TODO check whether this can also be used for words > 64 bit
-    return (endianness == ByteOrder.LITTLE_ENDIAN) ? builder.build().reverse() : builder.build();
+    return (endianness == ByteOrder.BIG_ENDIAN) ? builder.build().reverse() : builder.build();
   }
 }
