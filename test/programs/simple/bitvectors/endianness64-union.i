@@ -528,8 +528,8 @@ int main() {
     union test {
         __uint128_t x;
         struct {
-            u_int64_t a;
-            u_int64_t b;
+            __uint64_t a;
+            __uint64_t b;
         };
         unsigned char c[sizeof(__uint128_t)];
     } t;

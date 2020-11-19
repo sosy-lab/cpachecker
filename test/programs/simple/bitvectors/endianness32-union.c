@@ -28,10 +28,10 @@ static void print_bytes(unsigned char *buf, size_t size) {
 
 int main() {
     union test {
-        u_int64_t x;
+        __uint64_t x;
         struct {
-            u_int32_t a;
-            u_int32_t b;
+            __uint32_t a;
+            __uint32_t b;
         };
         unsigned char c[sizeof(__uint64_t)];
     } t;

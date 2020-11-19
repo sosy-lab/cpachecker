@@ -27,8 +27,8 @@ static void print_bytes(unsigned char *buf, size_t size) {
 }
 
 int main() {
-    u_int64_t x = 0x7766554433221100ULL;
-    u_int32_t *a = (u_int32_t *)&x;
+    __uint64_t x = 0x7766554433221100ULL;
+    __uint32_t *a = (__uint32_t *)&x;
     unsigned char *c = (unsigned char *)&x;
     // print_bytes(c, sizeof(x));
 

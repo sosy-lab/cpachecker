@@ -526,7 +526,7 @@ extern int getloadavg (double __loadavg[], int __nelem)
 
 int main() {
     __uint128_t x = 0x7766554433221100ULL | ((__uint128_t)0xFFEEDDCCBBAA9988ULL << 64);
-    u_int64_t *a = (u_int64_t *)&x;
+    __uint64_t *a = (__uint64_t *)&x;
     unsigned char *c = (unsigned char *)&x;
     ((void) sizeof ((c[0] == 0x00) ? 1 : 0), __extension__ ({ if (c[0] == 0x00) ; else __assert_fail ("c[0] == 0x00", "endianness64-pointer.c", 19, __extension__ __PRETTY_FUNCTION__); }));
     ((void) sizeof ((c[1] == 0x11) ? 1 : 0), __extension__ ({ if (c[1] == 0x11) ; else __assert_fail ("c[1] == 0x11", "endianness64-pointer.c", 20, __extension__ __PRETTY_FUNCTION__); }));
