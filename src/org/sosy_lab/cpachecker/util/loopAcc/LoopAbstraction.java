@@ -33,6 +33,7 @@ public class LoopAbstraction {
   private int lineNumber = 1;
   private final Timer totalTime;
   private TimeSpan timeToAbstract;
+  private String fName;
 
   public LoopAbstraction() {
     totalTime = new Timer();
@@ -527,7 +528,7 @@ public class LoopAbstraction {
       logger.logUserException(
           Level.WARNING, e, "Something is not working with the file you try to import");
     }
-    printFile(loopInfo, content, pathForNewFile, logger, automate);
+    printFile(content, pathForNewFile, logger);
     totalTime.stop();
     timeToAbstract = totalTime.getLengthOfLastInterval();
   }
@@ -847,21 +848,16 @@ public class LoopAbstraction {
     return ifCaseC;
   }
 
-  private void printFile(
-      LoopInformation loopInfo,
-      String content,
-      String pathForNewFile,
-      LogManager logger,
-      boolean automate) {
+  private void printFile(String content, String pathForNewFile, LogManager logger) {
 
-    String fileName;
+    String fileName = "";
 
-    if (automate) {
-      fileName = pathForNewFile;
-    } else {
-      fileName =
-          pathForNewFile + "abstract" + loopInfo.getCFA().getFileNames().get(0).getFileName();
+    if (pathForNewFile.endsWith("c")) {
+      fileName = pathForNewFile.split("[.]")[0] + "Abstract.c";
+    } else if (pathForNewFile.endsWith("i")) {
+      fileName = pathForNewFile.split("[.]")[0] + "Abstract.i";
     }
+    setFileName(fileName);
 
     File file = new File(fileName);
     try {
@@ -904,5 +900,13 @@ public class LoopAbstraction {
 
   public TimeSpan getTimeToAbstract() {
     return timeToAbstract;
+  }
+
+  private void setFileName(String fileName) {
+    fName = fileName;
+  }
+
+  public String getFileName() {
+    return fName;
   }
 }
