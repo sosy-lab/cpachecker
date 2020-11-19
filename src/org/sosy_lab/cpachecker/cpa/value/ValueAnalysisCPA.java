@@ -189,7 +189,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       case INTRODUCE_SYMBOLIC:
         return new SymbolicValueAssigner(config);
       case RANDOM_VALUE:
-        return new RandomValueAssigner(this.logger, config);
+        return new RandomValueAssigner(this.logger, config, cfa.getMachineModel());
       default:
         throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
     }

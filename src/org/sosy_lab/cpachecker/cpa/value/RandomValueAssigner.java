@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -34,6 +35,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -64,17 +66,12 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   @Option(description = "Default size of arrays whose length can't be determined.")
   private int defaultArraySize = 20;
+  private MachineModel machineModel;
 
-  public RandomValueAssigner(LogManager logger, long seed, Configuration pConfig)
+  public RandomValueAssigner(LogManager logger, Configuration pConfig, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     this.logger = logger;
-    this.rnd = new Random(seed);
-    pConfig.inject(this);
-  }
-
-  public RandomValueAssigner(LogManager logger, Configuration pConfig)
-      throws InvalidConfigurationException {
-    this.logger = logger;
+    this.machineModel = pMachineModel;
     this.rnd = new Random(random_seed);
     pConfig.inject(this);
   }
@@ -134,11 +131,9 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     CBasicType basicType = ((CSimpleType) pType).getType();
     Value value;
 
-    // Just try to generate the integer, fallback to other types otherwise.
-    try {
+    if (basicType.isIntegerType()){
       value = generateInteger((CSimpleType) pType);
-    } catch (IllegalArgumentException ex) {
-
+    } else {
       switch (basicType) {
         case UNSPECIFIED:
           // If value is inspecified, forget it.
@@ -165,30 +160,13 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     pState.assignConstant(pMemLocation, value, pType);
   }
 
+  /**
+   * Return a random integer in the correct range for this type.
+   */
   private NumericValue generateInteger(CSimpleType pType) {
-    int bitsize;
-
-    if (pType.getType() == CBasicType.CHAR) {
-      bitsize = 8;
-    } else if (pType.isShort()) {
-      bitsize = 16;
-    } else if (pType.isLong()) {
-      bitsize = 32;
-    } else if (pType.getType() == CBasicType.INT) {
-      bitsize = 16;
-    } else if (pType.isLongLong()) {
-      bitsize = 64;
-    } else {
-      throw new IllegalArgumentException("No matching integer found");
-    }
-
-    long total_numbers = (long) Math.pow(2, bitsize);
-    long random = (long) (this.rnd.nextDouble() * total_numbers);
-
-    if (pType.isSigned()) {
-      random = random - (total_numbers / 2);
-    }
-
+    long min = this.machineModel.getMinimalIntegerValue(pType).longValue();
+    long max = this.machineModel.getMaximalIntegerValue(pType).longValue();
+    long random = (long)((Math.random() * (max - min)) + min);
     return new NumericValue(random);
   }
 
