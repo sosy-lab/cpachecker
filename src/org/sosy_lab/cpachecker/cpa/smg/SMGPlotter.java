@@ -326,16 +326,23 @@ public final class SMGPlotter {
   private static String smgValueAsDot(
       SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String explicitValue = "";
+    String color = "red";
+    String object = "";
     if (explicitValues.containsKey(value)) {
       explicitValue = " : " + explicitValues.get(value).getAsLong();
+      color = "black";
     }
-    String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue;
     if (value instanceof SMGKnownAddressValue) {
-      SMGKnownAddressValue kav = (SMGKnownAddressValue) value;
-      return prefix + "\\n" + kav.getObject() + "\"];";
-    } else {
-      return prefix + "\"];";
+      object = "\\n" + ((SMGKnownAddressValue) value).getObject();
+      color = "blue";
     }
+    return String.format(
+        "value_%s[color=%s label=\"#%s%s%s\"];",
+        value.asDotId(),
+        color,
+        value.asDotId(),
+        explicitValue,
+        object);
   }
 
   private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
