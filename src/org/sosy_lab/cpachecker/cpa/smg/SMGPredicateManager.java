@@ -176,6 +176,15 @@ public class SMGPredicateManager {
       formulaTwo = getCastedValue(pRelation.getSecondValue(), secondValSMGType);
     }
 
+    //FIXME: require calculate cast on integer promotions
+    if (firstCastedSize > secondCastedSize) {
+      formulaTwo = cast(formulaTwo, secondValSMGType, firstValSMGType);
+    }
+
+    if (secondCastedSize > firstCastedSize) {
+      formulaOne = cast(formulaOne, firstValSMGType, secondValSMGType);
+    }
+
     BinaryOperator op = pRelation.getOperator();
     BooleanFormula result = createBooleanFormula(formulaOne, formulaTwo, op);
     if (conjunction) {

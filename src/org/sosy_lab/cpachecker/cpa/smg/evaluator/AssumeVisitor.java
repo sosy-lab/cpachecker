@@ -106,6 +106,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                         rightSideOriginType, newState, edge, smgExpressionEvaluator);
                 rightSideSMGType = new SMGType(leftSideSMGType, rightSideOriginSMGType);
               }
+
+              //FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
                   leftSideVal,
                   leftSideSMGType,
