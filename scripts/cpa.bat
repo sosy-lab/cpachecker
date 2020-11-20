@@ -8,8 +8,8 @@ REM SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 REM
 REM SPDX-License-Identifier: Apache-2.0
 
-IF "%JAVA%"=="" (
-  IF NOT "%JAVA_HOME%"=="" (
+IF [%JAVA%]==[] (
+  IF NOT [%JAVA_HOME%]==[] (
     SET JAVA=%JAVA_HOME%\bin\java
   ) ELSE (
     SET JAVA=java
@@ -25,7 +25,7 @@ REM From here on you should not need to change anything
 REM ------------------------------------------------------------------------------
 
 SET SCRIPT=%~dp0
-IF "%PATH_TO_CPACHECKER%"=="" (
+IF [%PATH_TO_CPACHECKER%]==[] (
   REM normalize the PATH_TO_CPACHECKER
   for %%i in ("%SCRIPT%..\") do SET "PATH_TO_CPACHECKER=%%~fi"
 )
@@ -44,21 +44,31 @@ SET OPTIONS=
 SET JAVA_ASSERTIONS=-ea
 
 :loop
-IF NOT "%1"=="" (
-  IF "%1"=="-benchmark" (
+IF NOT [%1]==[] (
+  IF [%1]==[-benchmark] (
     SET JAVA_ASSERTIONS=-da
     SET DEFAULT_HEAP_SIZE=xxxx
     SET "OPTIONS=%OPTIONS% %1"
-  ) ELSE IF "%1"=="-heap" (
+  ) ELSE IF [%1]==[-heap] (
     SET JAVA_HEAP_SIZE=%2
     SHIFT
-  ) ELSE IF "%1"=="-stack" (
+  ) ELSE IF [%1]==[-stack] (
     SET JAVA_STACK_SIZE=%2
     SHIFT
-  ) ELSE IF "%1"=="-debug" (
+  ) ELSE IF [%1]==[-debug] (
     SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
-  ) ELSE IF "%1"=="-disable-java-assertions" (
+  ) ELSE IF [%1]==[-disable-java-assertions] (
     SET JAVA_ASSERTIONS=-da
+  ) ELSE IF [%1]==[-setprop] (
+    IF ["%~2"]==[%2] (
+      REM if option is already quoted, we do not need to restore it
+      SET "OPTIONS=%OPTIONS% %1 %2"
+    ) ELSE (
+      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      SET "OPTIONS=%OPTIONS% %1 %2^=%3"
+      SHIFT
+    )
+    SHIFT
   ) ELSE (
     SET "OPTIONS=%OPTIONS% %1"
   )
@@ -66,12 +76,12 @@ IF NOT "%1"=="" (
   GOTO :loop
 )
 
-IF NOT "%TMPDIR%"=="" (
-  SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir=%TMPDIR%"
-) ELSE IF NOT "%TEMP%"=="" (
-  SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir=%TEMP%"
-) ELSE IF NOT "%TMP%"=="" (
-  SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir=%TMP%"
+IF NOT [%TMPDIR%]==[] (
+  SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TMPDIR%"
+) ELSE IF NOT [%TEMP%]==[] (
+  SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TEMP%"
+) ELSE IF NOT [%TMP%]==[] (
+  SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Djava.io.tmpdir^=%TMP%"
 )
 
 IF NOT "%JAVA_HEAP_SIZE%"=="" (
