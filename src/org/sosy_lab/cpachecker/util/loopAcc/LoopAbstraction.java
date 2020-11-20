@@ -557,8 +557,7 @@ public class LoopAbstraction {
     for (LoopVariables x : variables) {
       if (x.getIsArray()) {
         String tempString = x.getVariableType();
-        if (x.getInitializationLine() >= lineNumber
-            && !preUsedVariables.contains(x.getVariableName())) {
+        if (x.getInitializationLine() >= lineNumber && !preUsedVariables.contains(x)) {
           tmp +=
               tempString
                   + " "
