@@ -85,7 +85,7 @@ public class LoopAbstraction {
       }
     }
 
-    String fileLocation = "../cpachecker/" + loopInfo.getCFA().getFileNames().get(0).toString();
+    String fileLocation = loopInfo.getCFA().getFileNames().get(0).toString();
 
     String content =
         "extern void __VERIFIER_error() __attribute__ ((__noreturn__));" + System.lineSeparator();
