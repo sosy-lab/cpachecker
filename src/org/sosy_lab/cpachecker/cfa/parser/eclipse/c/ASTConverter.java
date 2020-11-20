@@ -31,6 +31,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
+import org.eclipse.cdt.core.dom.ast.IASTAttribute;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
@@ -1912,6 +1913,11 @@ class ASTConverter {
       return convert((IASTFunctionDeclarator)d, specifier, false);
 
     } else {
+      // First, we handle __attribute__ because this can override the type of the declaration.
+      if (d != null) {
+        specifier = handleDeclaratorAttributes(d, specifier);
+      }
+
       // Parsing type declarations in C is complex.
       // For example, array modifiers and pointer operators are declared in the
       // "wrong" way:
@@ -2096,6 +2102,105 @@ class ASTConverter {
       }
       return Triple.of(type, initializer, name);
     }
+  }
+
+  /**
+   * Handle <code>__attribute__</code> attached to a declaration. Documentation:
+   * https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html
+   *
+   * @param d The declarator of the declaration.
+   * @param type The specified type of the declaration.
+   * @return The actual type of the declaration (may be changed due to attributes).
+   */
+  private CType handleDeclaratorAttributes(IASTDeclarator d, CType type) {
+    for (IASTAttribute attribute : d.getAttributes()) {
+      String name = getAttributeString(attribute.getName());
+      if (name.equals("mode")) {
+        type = type.getCanonicalType();
+        if (!(type instanceof CSimpleType)) {
+          throw parseContext.parseError("Mode attribute unsupported for type " + type, d);
+        }
+        String mode = getAttributeString(attribute.getArgumentClause().getTokenCharImage());
+        type = handleModeAttribute((CSimpleType) type, mode, d);
+      }
+    }
+    return type;
+  }
+
+  /** Return normalized string for a name etc. in an attribute context. */
+  private static String getAttributeString(char[] chars) {
+    String s = String.valueOf(chars);
+    if (s.startsWith("__") && s.endsWith("__")) {
+      // For attribute names and parameters, foo may also be written as __foo__.
+      // Cf. https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html
+      return s.substring(2, s.length() - 2);
+    }
+    return s;
+  }
+
+  /**
+   * Handle <code>__attribute__(mode(...))</code> for declarations, which changes the type of the
+   * declaration: In code like <code>
+   * typedef unsigned int u_int8_t __attribute__ ((__mode__ (__QI__)));</code> the type is not
+   * <code>unsigned int</code>, but actually an (unsigned) "quarter integer", cf. "mode" in the list
+   * on https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html Modes are documented at
+   * https://gcc.gnu.org/onlinedocs/gccint/Machine-Modes.html
+   *
+   * <p>So far this handles only a minimal set of cases (a subset of modes and type needs to be
+   * int), but only these seem common in headers.
+   *
+   * @param type The given type of the declaration.
+   * @param mode The argument of <code>mode(...)</code>.
+   * @return The actual type of the declaration.
+   */
+  private CSimpleType handleModeAttribute(CSimpleType type, String mode, IASTNode context) {
+    if (type.getType() != CBasicType.INT || type.isComplex() || type.isImaginary()) {
+      throw parseContext.parseError("Mode attribute unsupported for type " + type, context);
+    }
+
+    CSimpleType newType;
+    switch (mode) {
+      case "word": // assume that pointers have word size, which is the case on our platforms
+        newType = machinemodel.getPointerEquivalentSimpleType();
+        break;
+      case "byte":
+      case "QI": // quarter integer
+        newType = CNumericTypes.CHAR;
+        break;
+      case "HI": // half integer
+        assert machinemodel.getSizeofShort() == 2; // not guaranteed by C, but on our platforms
+        newType = CNumericTypes.SHORT_INT;
+        break;
+      case "SI": // single integer
+        assert machinemodel.getSizeofInt() == 4; // not guaranteed by C, but on our platforms
+        newType = CNumericTypes.INT;
+        break;
+      case "DI": // double integer
+        if (machinemodel.getSizeofLongInt() == 8) {
+          newType = CNumericTypes.LONG_INT;
+        } else if (machinemodel.getSizeofLongLongInt() == 8) {
+          newType = CNumericTypes.LONG_LONG_INT;
+        } else {
+          // could occur, but not on our platforms
+          throw new AssertionError("unexpected machine model");
+        }
+        break;
+      default:
+        throw parseContext.parseError("Unsupported mode " + mode, context);
+    }
+
+    // Copy const, volatile, and signedness from original type, rest from newType
+    return new CSimpleType(
+        type.isConst(),
+        type.isVolatile(),
+        newType.getType(),
+        newType.isLong(),
+        newType.isShort(),
+        type.isSigned(),
+        type.isUnsigned(),
+        false, // checked above
+        false, // checked above
+        newType.isLongLong());
   }
 
   private CType convert(IASTArrayModifier am, CType type) {
