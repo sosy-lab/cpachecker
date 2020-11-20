@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.math.BigInteger;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
@@ -200,7 +199,7 @@ public class OverflowAssumptionManager {
       CLiteralExpression pUpperLimit)
       throws UnrecognizedCodeException {
 
-    Builder<CExpression> result = ImmutableSet.builder();
+    ImmutableSet.Builder<CExpression> result = ImmutableSet.builder();
     for (boolean operand1isFirstOperand : new boolean[] {false, true}) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
       CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
