@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -165,6 +166,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
@@ -1001,7 +1003,8 @@ class ASTConverter {
     // fields inside the current struct
     for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
       CType memberType = member.getType().getCanonicalType();
-      if (memberType instanceof CCompositeType && member.getName().contains("__anon_type_member_")) {
+      if (memberType instanceof CCompositeType
+          && member.getName().contains("__anon_type_member_")) {
         List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
         tmp.add(Pair.of(member.getName(), member.getType()));
         tmp = getWayToInnerField((CCompositeType)memberType, fieldName, loc, tmp);
@@ -1016,12 +1019,13 @@ class ASTConverter {
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
 
-    CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
+    CExpression functionNameExpression =
+        convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
     final FileLocation loc = getLocation(e);
 
-    if (functionName instanceof CIdExpression) {
-      if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionName).getName())) {
+    if (functionNameExpression instanceof CIdExpression) {
+      if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionNameExpression).getName())) {
         sideAssignmentStack.enterBlock();
         List<CExpression> params = new ArrayList<>();
         for (IASTInitializerClause i : e.getArguments()) {
@@ -1046,12 +1050,12 @@ class ASTConverter {
       params.add(convertExpressionWithoutSideEffects(toExpression(i)));
     }
 
-    if (functionName instanceof CIdExpression) {
+    if (functionNameExpression instanceof CIdExpression) {
       // this function is a gcc extension which checks if the given parameter is
       // a constant value. We can easily provide this functionality by checking
       // if the parameter is a literal expression.
       // We only do check it if the function is not declared.
-      if (((CIdExpression) functionName).getName().equals(FUNC_CONSTANT)
+      if (((CIdExpression) functionNameExpression).getName().equals(FUNC_CONSTANT)
           && params.size() == 1
           && scope.lookupFunction(FUNC_CONSTANT) == null) {
         if (params.get(0) instanceof CLiteralExpression) {
@@ -1060,7 +1064,7 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
-      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF)
+      if (((CIdExpression) functionNameExpression).getName().equals(FUNC_OFFSETOF)
           && params.size() == 1
           && params.get(0) instanceof CFieldReference) {
         CFieldReference exp = (CFieldReference) params.get(0);
@@ -1074,14 +1078,14 @@ class ASTConverter {
 
       }
 
-      CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
+      CSimpleDeclaration d = ((CIdExpression) functionNameExpression).getDeclaration();
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
         declaration = (CFunctionDeclaration)d;
       }
 
       if ((declaration == null)
-          && FUNC_EXPECT.equals(((CIdExpression) functionName).getName())
+          && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
           && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c)
@@ -1094,7 +1098,7 @@ class ASTConverter {
 
     // just unwrap typedefs, we do not want to put a canonical type into the CPointerExpression,
     // but the original type
-    CType functionNameType = functionName.getExpressionType();
+    CType functionNameType = functionNameExpression.getExpressionType();
     while (functionNameType instanceof CTypedefType) {
       functionNameType = ((CTypedefType) functionNameType).getRealType();
     }
@@ -1104,8 +1108,19 @@ class ASTConverter {
       // Function pointers can be called either via "*fp" or simply "fp".
       // We add the dereference operator, if it is missing.
 
-      functionName = new CPointerExpression(functionName.getFileLocation(),
-          ((CPointerType)functionNameType).getType(), functionName);
+      functionNameExpression =
+          new CPointerExpression(
+              functionNameExpression.getFileLocation(),
+              ((CPointerType) functionNameType).getType(),
+              functionNameExpression);
+    }
+
+    if (functionNameExpression instanceof CIdExpression
+        && BuiltinOverflowFunctions.isBuiltinOverflowFunction(
+            ((CIdExpression) functionNameExpression).getName())) {
+      CType returnType = CNumericTypes.BOOL;
+      return new CFunctionCallExpression(
+          loc, returnType, functionNameExpression, params, declaration);
     }
 
     CType returnType = typeConverter.convert(e.getExpressionType());
@@ -1117,7 +1132,7 @@ class ASTConverter {
             "Replacing return type", returnType, "of function call", e.getRawSignature(),
             "with", returnType);
       } else {
-        final CType functionType = functionName.getExpressionType().getCanonicalType();
+        final CType functionType = functionNameExpression.getExpressionType().getCanonicalType();
         if (functionType instanceof CFunctionType) {
           returnType = ((CFunctionType) functionType).getReturnType();
           logger.log(Level.FINE, loc + ":",
@@ -1127,16 +1142,22 @@ class ASTConverter {
       }
     }
 
-    if (declaration == null && functionName instanceof CIdExpression
+    if (declaration == null
+        && functionNameExpression instanceof CIdExpression
         && returnType instanceof CVoidType) {
       // Undeclared functions are a problem for analysis that need precise types.
       // We can at least set the return type to "int" as the standard says.
-      logger.log(Level.FINE, loc + ":",
-          "Setting return type of of undeclared function", functionName, "to int.");
+      logger.log(
+          Level.FINE,
+          loc + ":",
+          "Setting return type of of undeclared function",
+          functionNameExpression,
+          "to int.");
       returnType = CNumericTypes.INT;
     }
 
-    return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
+    return new CFunctionCallExpression(
+        loc, returnType, functionNameExpression, params, declaration);
   }
 
   private BigInteger
@@ -1220,6 +1241,17 @@ class ASTConverter {
     }
     if (declaration == null) {
       declaration = scope.lookupFunction(name);
+    }
+
+    if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(name)) {
+      var parameterTypes = BuiltinOverflowFunctions.getParameterTypes(name);
+      CFunctionType functionType = new CFunctionType(CNumericTypes.BOOL, parameterTypes, false);
+      var parameterDeclarations =
+          transformedImmutableListCopy(
+              parameterTypes,
+              paramType -> new CParameterDeclaration(FileLocation.DUMMY, paramType, "p"));
+      declaration =
+          new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, parameterDeclarations);
     }
 
     // declaration may still be null here,
@@ -1535,7 +1567,8 @@ class ASTConverter {
       if (returnExp.isPresent()) {
         rhs = returnExp.get();
       } else {
-        logger.log(Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
+        logger.log(
+            Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
         CInitializer defaultValue = CDefaults.forType(returnVariableDeclaration.get().getType(), loc);
         if (defaultValue instanceof CInitializerExpression) {
           rhs = ((CInitializerExpression)defaultValue).getExpression();
@@ -1549,7 +1582,12 @@ class ASTConverter {
 
     } else {
       if (returnExp.isPresent()) {
-        logger.log(Level.WARNING, loc + ":", "Return statement with expression", returnExp.get(), "in void function.");
+        logger.log(
+            Level.WARNING,
+            loc + ":",
+            "Return statement with expression",
+            returnExp.get(),
+            "in void function.");
       }
       returnAssignment = Optional.absent();
     }
@@ -1897,7 +1935,8 @@ class ASTConverter {
 
         if (currentDecl instanceof IASTFieldDeclarator) {
           if (bitFieldSize != null) {
-            throw parseContext.parseError("Unsupported declaration with two bitfield descriptions", d);
+            throw parseContext.parseError(
+                "Unsupported declaration with two bitfield descriptions", d);
           }
 
           IASTExpression bitField = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
