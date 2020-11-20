@@ -853,9 +853,9 @@ public class LoopAbstraction {
     String fileName = "";
 
     if (pathForNewFile.endsWith("c")) {
-      fileName = pathForNewFile.split("[.]")[0] + "Abstract.c";
+      fileName = Iterables.get(Splitter.onPattern("[.]").split(pathForNewFile), 0) + "Abstract.c";
     } else if (pathForNewFile.endsWith("i")) {
-      fileName = pathForNewFile.split("[.]")[0] + "Abstract.i";
+      fileName = Iterables.get(Splitter.onPattern("[.]").split(pathForNewFile), 0) + "Abstract.i";
     }
     setFileName(fileName);
 
