@@ -203,6 +203,9 @@ public class SMGPredicateManager {
 
   private BooleanFormula getExplicitFormulaFromState(UnmodifiableSMGState pState) {
     BooleanFormula result = bfmgr.makeBoolean(true);
+    if (!verifyPredicates) {
+      return result;
+    }
     SMGPredicateRelation errorPredicateRelation = pState.getErrorPredicateRelation();
     SMGPredicateRelation pathPredicateRelation = pState.getPathPredicateRelation();
     for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> expValueEntry :
