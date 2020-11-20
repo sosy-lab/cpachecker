@@ -53,7 +53,7 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.guava" name="guava" rev="30.0-jre"
                     conf="runtime->default; contrib->sources"/>
 
-        <dependency org="org.sosy_lab" name="llvm-j" rev="0.4"
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.6"
                     conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
