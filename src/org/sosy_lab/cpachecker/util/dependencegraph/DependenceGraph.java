@@ -37,7 +37,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Dependence graph that describes flow dependence and control dependence between expressions and
@@ -85,14 +84,12 @@ public final class DependenceGraph implements Serializable {
   }
 
   public static DependenceGraphBuilder builder(
-      final MutableCFA pCfa,
-      final Optional<VariableClassification> pVarClassification,
+      final CFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new DependenceGraphBuilder(
-        pCfa, pVarClassification, pConfig, pLogger, pShutdownNotifier);
+    return new DependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
   }
 
   Table<DGNode, DGNode, DependenceType> getMatrix() {

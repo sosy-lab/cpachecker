@@ -549,7 +549,7 @@ public class CFACreator {
                 + "to improve dependence graph construction.");
       }
       final DependenceGraphBuilder depGraphBuilder =
-          DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
+          DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
       try {
         depGraph = Optional.of(depGraphBuilder.build());
       } catch (CPAException pE) {
