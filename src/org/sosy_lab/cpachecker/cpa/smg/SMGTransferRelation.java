@@ -144,7 +144,10 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
-    plotWhenConfigured(pSuccessors, edge.getDescription(), SMGExportLevel.INTERESTING);
+    plotWhenConfigured(
+        pSuccessors,
+        "Line " + edge.getLineNumber() + ": " + edge.getDescription(),
+        SMGExportLevel.INTERESTING);
     List<SMGState> successors = new ArrayList<>();
     for (SMGState s : pSuccessors) {
       for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {

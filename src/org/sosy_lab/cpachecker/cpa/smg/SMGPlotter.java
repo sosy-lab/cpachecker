@@ -164,7 +164,7 @@ public final class SMGPlotter {
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
     offset += 2;
-    sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
+    sb.append(newLineWithOffset("label = \"" + location.replace("\"", "\\\"") + "\";"));
     sb.append(newLineWithOffset("rankdir=LR;"));
 
     addStackSubgraph(smg, sb);
@@ -259,7 +259,9 @@ public final class SMGPlotter {
   }
 
   private void addStackItemSubgraph(CLangStackFrame pStackFrame, StringBuilder pSb, int pIndex) {
-    pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + "{"));
+    pSb.append(
+        newLineWithOffset(
+            "subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + " {"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
@@ -290,8 +292,8 @@ public final class SMGPlotter {
       objectIndex.put(obj, new SMGObjectNode("struct" + structId + ":item_" + key));
     }
     return String.format(
-        "struct%s [shape=record, height=%d, label=\"%s\"];%n",
-        structId, nodes.size(), Joiner.on(" | ").join(nodes));
+        "struct%s [shape=record, height=%.2f, label=\"%s\"];%n",
+        structId, .5 * nodes.size(), Joiner.on(" | ").join(nodes));
   }
 
   private void addGlobalObjectSubgraph(UnmodifiableCLangSMG pSmg, StringBuilder pSb) {
