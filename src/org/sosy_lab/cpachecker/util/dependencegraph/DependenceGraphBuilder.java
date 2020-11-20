@@ -456,7 +456,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       int controlDepCounter = 0;
       ImmutableSet<ControlDependency> controlDependencies =
           ControlDependenceBuilder.computeControlDependencies(
-              cfa, entryNode, controlDepsTakeBothAssumptions);
+              entryNode, controlDepsTakeBothAssumptions);
 
       for (ControlDependency controlDependency : controlDependencies) {
         addDependence(

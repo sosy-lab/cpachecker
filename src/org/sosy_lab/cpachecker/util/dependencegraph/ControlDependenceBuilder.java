@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -24,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
@@ -37,9 +38,9 @@ final class ControlDependenceBuilder {
     return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
 
-  private static Iterable<CFAEdge> functionEdges(MutableCFA pCfa, FunctionEntryNode pEntryNode) {
+  private static Iterable<CFAEdge> functionEdges(Set<CFANode> pFunctionNodes) {
 
-    return FluentIterable.from(pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName()))
+    return FluentIterable.from(pFunctionNodes)
         .transformAndConcat(CFAUtils::allLeavingEdges)
         .filter(edge -> !ignoreFunctionEdge(edge));
   }
@@ -70,7 +71,7 @@ final class ControlDependenceBuilder {
   }
 
   static ImmutableSet<ControlDependency> computeControlDependencies(
-      MutableCFA pCfa, FunctionEntryNode pEntryNode, boolean pDependOnBothAssumptions) {
+      FunctionEntryNode pEntryNode, boolean pDependOnBothAssumptions) {
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
     Set<CFANode> postDomTreeNodes = new HashSet<>();
@@ -103,6 +104,11 @@ final class ControlDependenceBuilder {
       }
     }
 
+    // Collect all CFANodes in the pEntryNode function.
+
+    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
+
     // Some function nodes are missing from the post-DomTree. This happens when a path from the node
     // to the function exit node does not exist. These nodes are handled the following way:
     //   1. Edges directly connected to these nodes are collected, resulting in set E.
@@ -110,7 +116,7 @@ final class ControlDependenceBuilder {
     //   3. The following dependencies are added: { e depends on c | e in E, c in C, e != c }
 
     Set<CFAEdge> edgesWithoutDominator = new HashSet<>();
-    for (CFANode node : pCfa.getFunctionNodes(pEntryNode.getFunction().getQualifiedName())) {
+    for (CFANode node : nodeCollector.getVisitedNodes()) {
       if (!(node instanceof FunctionExitNode)) {
         if (!postDomTreeNodes.contains(node) || !postDomTree.hasParent(postDomTree.getId(node))) {
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allEnteringEdges(node));
@@ -147,7 +153,7 @@ final class ControlDependenceBuilder {
       }
     }
 
-    for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
+    for (CFAEdge edge : functionEdges(nodeCollector.getVisitedNodes())) {
       if (!dependentEdges.contains(edge)) {
         for (CFAEdge callEdge : callEdges) {
           dependencies.add(new ControlDependency(callEdge, edge));
@@ -160,7 +166,7 @@ final class ControlDependenceBuilder {
 
     Set<CFAEdge> functionCallDependent = getFunctionCallDependentEdges(dependencies, callEdges);
 
-    for (CFAEdge edge : functionEdges(pCfa, pEntryNode)) {
+    for (CFAEdge edge : functionEdges(nodeCollector.getVisitedNodes())) {
       if (!functionCallDependent.contains(edge)) {
         for (CFAEdge callEdge : callEdges) {
           dependencies.add(new ControlDependency(callEdge, edge));
