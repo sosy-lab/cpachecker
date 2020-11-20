@@ -161,7 +161,7 @@ public class BuiltinOverflowFunctions {
 
   public static List<CType> getParameterTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
-    var type = functions.get(pFunctionName).type;
+    Optional<CSimpleType> type = functions.get(pFunctionName).type;
 
     if (type.isPresent()) {
       return ImmutableList.of(type.get(), type.get(), new CPointerType(false, false, type.get()));
