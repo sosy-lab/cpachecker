@@ -526,8 +526,11 @@ public class LoopAbstraction {
       }
     } catch (IOException e) {
       logger.logUserException(
-          Level.WARNING, e, "Something is not working with the file you try to import");
+          Level.WARNING,
+          e,
+          "LoopAbstraction: Something is not working with the file you try to import");
     }
+    logger.log(Level.INFO, content);
     printFile(content, pathForNewFile, logger);
     totalTime.stop();
     timeToAbstract = totalTime.getLengthOfLastInterval();
