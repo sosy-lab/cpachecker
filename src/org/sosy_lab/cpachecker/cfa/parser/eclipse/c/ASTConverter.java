@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -1021,12 +1021,11 @@ class ASTConverter {
 
     CExpression functionNameExpression =
         convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    String functionName = ((CIdExpression) functionNameExpression).getName();
     CFunctionDeclaration declaration = null;
     final FileLocation loc = getLocation(e);
 
     if (functionNameExpression instanceof CIdExpression) {
-      if (FUNC_TYPES_COMPATIBLE.equals(functionName)) {
+      if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionNameExpression).getName())) {
         sideAssignmentStack.enterBlock();
         List<CExpression> params = new ArrayList<>();
         for (IASTInitializerClause i : e.getArguments()) {
@@ -1056,7 +1055,7 @@ class ASTConverter {
       // a constant value. We can easily provide this functionality by checking
       // if the parameter is a literal expression.
       // We only do check it if the function is not declared.
-      if (functionName.equals(FUNC_CONSTANT)
+      if (((CIdExpression) functionNameExpression).getName().equals(FUNC_CONSTANT)
           && params.size() == 1
           && scope.lookupFunction(FUNC_CONSTANT) == null) {
         if (params.get(0) instanceof CLiteralExpression) {
@@ -1065,7 +1064,7 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
-      if (functionName.equals(FUNC_OFFSETOF)
+      if (((CIdExpression) functionNameExpression).getName().equals(FUNC_OFFSETOF)
           && params.size() == 1
           && params.get(0) instanceof CFieldReference) {
         CFieldReference exp = (CFieldReference) params.get(0);
@@ -1085,7 +1084,9 @@ class ASTConverter {
         declaration = (CFunctionDeclaration)d;
       }
 
-      if ((declaration == null) && FUNC_EXPECT.equals(functionName) && params.size() == 2) {
+      if ((declaration == null)
+          && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
+          && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c)
         // that behaves like (exp == c).
@@ -1114,7 +1115,9 @@ class ASTConverter {
               functionNameExpression);
     }
 
-    if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+    if (functionNameExpression instanceof CIdExpression
+        && BuiltinOverflowFunctions.isBuiltinOverflowFunction(
+            ((CIdExpression) functionNameExpression).getName())) {
       CType returnType = CNumericTypes.BOOL;
       return new CFunctionCallExpression(
           loc, returnType, functionNameExpression, params, declaration);
@@ -1244,9 +1247,9 @@ class ASTConverter {
       var parameterTypes = BuiltinOverflowFunctions.getParameterTypes(name);
       CFunctionType functionType = new CFunctionType(CNumericTypes.BOOL, parameterTypes, false);
       var parameterDeclarations =
-          from(parameterTypes)
-              .transform(paramType -> new CParameterDeclaration(FileLocation.DUMMY, paramType, "p"))
-              .toList();
+          transformedImmutableListCopy(
+              parameterTypes,
+              paramType -> new CParameterDeclaration(FileLocation.DUMMY, paramType, "p"));
       declaration =
           new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, parameterDeclarations);
     }
