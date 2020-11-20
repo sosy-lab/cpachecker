@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ProgramSlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -203,6 +204,9 @@ public class CoreComponentsFactory {
           "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
               + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(secure = true, name = "useProgramSlicing", description = "Use program slicing")
+  private boolean useProgramSlicing = false;
 
   @Option(
       secure = true,
@@ -461,8 +465,9 @@ public class CoreComponentsFactory {
           shutdownNotifier,
           specification,
           cfa);
-    }
-    else {
+    } else if (useProgramSlicing) {
+      algorithm = new ProgramSlicingAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (constructResidualProgram) {
@@ -641,7 +646,8 @@ public class CoreComponentsFactory {
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
-        || useExplainer) {
+        || useExplainer
+        || useProgramSlicing) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -672,7 +678,7 @@ public class CoreComponentsFactory {
         || useUndefinedFunctionCollector
         || constructProgramSlice
         || useExplainer
-    ) {
+        || useProgramSlicing) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

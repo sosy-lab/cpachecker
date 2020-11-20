@@ -493,6 +493,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     return super.createAlgorithm(
         singleConfigFileName,
+        cfa,
         mainFunction,
         singleShutdownManager,
         aggregateReached,

@@ -93,8 +93,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -255,13 +253,6 @@ public class CFACreator {
               + " computed for each edge of the cfa. Live means that their value"
               + " is read later on.")
   private boolean findLiveVariables = false;
-
-  @Option(
-    secure = true,
-    name = "cfa.createDependenceGraph",
-    description = "Whether to create dependence graph for the CFA of the program"
-  )
-  private boolean createDependenceGraph = false;
 
   @Option(
       secure = true,
@@ -540,30 +531,9 @@ public class CFACreator {
                                                 config));
     }
 
-    Optional<DependenceGraph> depGraph;
-    if (createDependenceGraph) {
-      if (!varClassification.isPresent()) {
-        logger.log(
-            Level.WARNING,
-            "Variable Classification not present. Consider turning this on "
-                + "to improve dependence graph construction.");
-      }
-      final DependenceGraphBuilder depGraphBuilder =
-          DependenceGraph.builder(cfa, config, logger, shutdownNotifier);
-      try {
-        depGraph = Optional.of(depGraphBuilder.build());
-      } catch (CPAException pE) {
-        throw new CParserException(pE);
-      } finally {
-        depGraphBuilder.collectStatistics(stats.statisticsCollection);
-      }
-    } else {
-      depGraph = Optional.empty();
-    }
-
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, depGraph);
+    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, Optional.empty());
 
     // check the super CFA starting at the main function
     stats.checkTime.start();

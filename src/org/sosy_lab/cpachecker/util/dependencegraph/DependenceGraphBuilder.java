@@ -157,14 +157,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-  }
-
-  public DependenceGraph build()
-      throws InvalidConfigurationException, InterruptedException, CPAException {
-    dependenceGraphConstructionTimer.start();
-    nodes = new NodeMap();
-    adjacencyMatrix = HashBasedTable.create();
-
+    
     // If you add additional types of dependencies, they should probably be added to this check,
     // as well
     if (!considerFlowDeps && !considerControlDeps) {
@@ -172,6 +165,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           "At least one kind of dependency is required"
               + " to build a meaningful dependence graph");
     }
+  }
+
+  public DependenceGraph build() throws InterruptedException, CPAException {
+
+    dependenceGraphConstructionTimer.start();
+    nodes = new NodeMap();
+    adjacencyMatrix = HashBasedTable.create();
 
     if (considerFlowDeps) {
       flowDependenceTimer.start();

@@ -480,6 +480,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
     return super.createAlgorithm(
         singleConfigFileName,
+        cfa,
         mainFunction,
         singleShutdownManager,
         aggregateReached,
