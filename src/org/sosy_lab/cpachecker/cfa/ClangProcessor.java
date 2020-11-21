@@ -100,6 +100,7 @@ public class ClangProcessor {
     return result;
   }
 
+  @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
   private String preprocess0(String file) throws CParserException, InterruptedException {
     // create command line
     List<String> argList =
