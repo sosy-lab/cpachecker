@@ -40,7 +40,10 @@ public class TargetSolver {
     private LogManager logger;
     private Solver solver;
     private int maxSolverAsks;
-    public LegionPhaseStatistics stats;
+    private int successfull_primary_solves = 0;
+    private int successfull_secondary_solves = 0;
+    private int unsuccessfull_solves = 0;
+    private LegionPhaseStatistics stats;
 
     /**
      * @param pLogger        The logging instance to use.
@@ -78,7 +81,9 @@ public class TargetSolver {
             // Ask solver for the first set of Values
             try (Model constraints = solvePathConstrains(pTarget.getFormula(), prover)) {
                 preloadedValues.add(computePreloadValues(constraints));
+                this.successfull_primary_solves += 1;
             } catch (SolverException ex) {
+                this.unsuccessfull_solves += 1;
                 this.logger.log(Level.WARNING, "Could not solve even once formula.");
                 this.stats.finish();
                 throw ex;
@@ -102,10 +107,12 @@ public class TargetSolver {
                     }
                     try (Model constraints = prover.getModel()){
                         preloadedValues.add(computePreloadValues(constraints));
+                        this.successfull_secondary_solves += 1;
                     }
                     
                 } catch (SolverException ex) {
                     // If this is not solvable, just skip
+                    this.unsuccessfull_solves += 1;
                     this.logger.log(Level.INFO, "Could not solve for more solutions.");
                     continue;
                 } finally {
@@ -156,5 +163,13 @@ public class TargetSolver {
             values.add(assignment);
         }
         return values;
+    }
+
+    public LegionPhaseStatistics getStats(){
+        this.stats.set_other("successfull_primary_solves", (double)this.successfull_primary_solves);
+        this.stats.set_other("successfull_secondary_solves", (double)this.successfull_secondary_solves);
+        this.stats.set_other("unsuccessfull_solves", (double)this.unsuccessfull_solves);
+
+        return this.stats;
     }
 }

@@ -199,6 +199,7 @@ public class UnvisitedEdgesStrategy implements Selector {
 
     @Override
     public LegionPhaseStatistics getStats() {
+        this.stats.set_other("blacklisted", (double)this.blacklisted.size());
         return this.stats;
     }
 

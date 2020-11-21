@@ -21,6 +21,8 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 public class LegionPhaseStatistics {
     private String name;
@@ -29,11 +31,14 @@ public class LegionPhaseStatistics {
     private Instant now;
 
     private int iterations;
+    private HashMap<String, Double> others;
 
     public LegionPhaseStatistics(String pName) {
         this.name = pName;
         this.execution_time = Duration.ZERO;
         this.iterations = 0;
+        this.others = new HashMap<>();
+        
     }
 
     public void start() {
@@ -52,7 +57,21 @@ public class LegionPhaseStatistics {
         buff.append("\n    exec_time: " + String.format("%.3fs", (float) this.execution_time.toMillis() / 1000));
         buff.append("\n    iterations: " + this.iterations);
 
+        StringBuilder other_buff = new StringBuilder();
+        for (Entry<String, Double> entry: this.others.entrySet()){
+            other_buff.append("\n      " + entry.getKey() + ": " + entry.getValue());
+        }
+
+        if (other_buff.length() > 0){
+            buff.append("\n    others:");
+            buff.append(other_buff);
+        }
+
         return buff.toString();
+    }
+
+    public void set_other(String key, Double value){
+        this.others.put(key, value);
     }
 
 }

@@ -247,7 +247,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
         pOut.println(this.init_fuzzer.stats.collect());
         pOut.println(this.selectionStrategy.getStats().collect());
-        pOut.println(this.targetSolver.stats.collect());
+        pOut.println(this.targetSolver.getStats().collect());
         pOut.println(this.fuzzer.stats.collect());
     }
 
