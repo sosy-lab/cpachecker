@@ -20,14 +20,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.legion.LegionPhaseStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -41,6 +43,7 @@ public class RandomSelectionStrategy implements Selector {
     private LogManager logger;
     private Random random;
     private LegionPhaseStatistics stats;
+    private Set<PathFormula> blacklisted;
 
     private static long random_seed = 1200709844L;
     
@@ -49,38 +52,65 @@ public class RandomSelectionStrategy implements Selector {
 
         this.random = new Random(random_seed);
         this.stats = new LegionPhaseStatistics("selection");
+
+        this.blacklisted = new HashSet<>();
     }
 
     @Override
     public PathFormula select(ReachedSet reachedSet) {
         this.stats.start();
-        ArrayList<AbstractState> nonDetStates = getNondetStates(reachedSet);
-        int rnd = random.nextInt(nonDetStates.size());
-        AbstractState target = nonDetStates.get(rnd);
-        logger.log(
-                Level.INFO,
-                "Target: ",
-                AbstractStates.extractStateByType(target, LocationState.class));
-        PredicateAbstractState ps =
-                AbstractStates.extractStateByType(target, PredicateAbstractState.class);
+        ArrayList<ARGState> nonDetStates = getNondetStates(reachedSet);
+        PathFormula target;
+        while (true) {
+            ARGState state = nonDetStates.remove(this.random.nextInt(nonDetStates.size()));
+            PredicateAbstractState ps =
+                AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+            target = ps.getPathFormula();
+
+            // If the just selected target is the last one,
+            // No choice but to return it.
+            if (nonDetStates.size() == 0){
+                break;
+            }
+
+            // Otherwhise, check if it's blacklisted
+            if (this.blacklisted.contains(target)){
+                continue;
+            } else {
+                break;
+            }
+
+        }
         this.stats.finish();
-        return ps.getPathFormula();
+        return target;
     }
 
     /**
      * Find all nondet-marked states from the reachedSet
      */
-    ArrayList<AbstractState> getNondetStates(ReachedSet reachedSet) {
-        ArrayList<AbstractState> nonDetStates = new ArrayList<>();
+    ArrayList<ARGState> getNondetStates(ReachedSet reachedSet) {
+        ArrayList<ARGState> nonDetStates = new ArrayList<>();
         for (AbstractState state : reachedSet.asCollection()) {
             ValueAnalysisState vs =
                     AbstractStates.extractStateByType(state, ValueAnalysisState.class);
             if (vs.nonDeterministicMark) {
                 logger.log(Level.FINE, "Nondet state", vs.getConstants().toString());
-                nonDetStates.add(state);
+                nonDetStates.add((ARGState)state);
             }
         }
         return nonDetStates;
+    }
+
+    /**
+     * The random selector just blacklists states with a weight below zero.
+     * Selection will then try to select a state not blacklisted, only
+     * when there is no other choice it will return one.
+     */
+    @Override
+    public void feedback(PathFormula pState, int pWeight) {
+        if (pWeight < 0){
+            this.blacklisted.add(pState);
+        }
     }
 
     @Override

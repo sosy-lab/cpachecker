@@ -144,9 +144,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
         try {
             reachedSet = init_fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
-        } catch (PropertyViolationException ex) {
-            logger.log(Level.WARNING, "Found violated property at preload.");
-            return status;
         } finally {
             outputWriter.writeTestCases(reachedSet);
         }
@@ -157,6 +154,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         int i = 0;
         while (true) {
             logger.log(Level.INFO, "Iteration", i + 1);
+            i += 1;
 
             // Check whether to shut down
             if (this.shutdownNotifier.shouldShutdown()) {
@@ -186,15 +184,20 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             }
 
             // Phase Targetting: Solve for the target and produce a number of values
-            // needed as input to reach this target.
+            // needed as input to reach this target as well as give feedback to selection.
             ArrayList<ArrayList<ValueAssignment>> previousLoadedValues = preloadedValues;
             logger.log(Level.INFO, "Targetting ...");
+            int weight;
             try {
                 preloadedValues = this.targetSolver.target(target);
+                weight = preloadedValues.size();
             } catch (SolverException ex) {
                 // Re-Run with previous preloaded Values
                 preloadedValues = previousLoadedValues;
+                weight = -1;
             }
+            // Give feedback to selection
+            selectionStrategy.feedback(target, weight);
 
             // Check whether to shut down
             if (this.shutdownNotifier.shouldShutdown()) {
@@ -207,9 +210,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             fuzzer.computePasses(preloadedValues.size());
             try {
                 reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
-            } catch (PropertyViolationException ex) {
-                logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
-                break;
             } finally {
                 valueCpa.getTransferRelation().clearKnownValues();
             }

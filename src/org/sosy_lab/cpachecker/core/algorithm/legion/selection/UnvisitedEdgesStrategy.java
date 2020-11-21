@@ -21,8 +21,10 @@ package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -36,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 
@@ -45,12 +46,14 @@ public class UnvisitedEdgesStrategy implements Selector {
     final LogManager logger;
     final PathFormulaManager formulaManager;
     private LegionPhaseStatistics stats;
-    private Random rnd;
+    private Random random;
+    private Set<PathFormula> blacklisted;
 
     public UnvisitedEdgesStrategy(LogManager logger, PathFormulaManager formulaManager) {
         this.logger = logger;
         this.formulaManager = formulaManager;
-        this.rnd = new Random(1636672210L);
+        this.random = new Random(1636672210L);
+        this.blacklisted = new HashSet<>();
 
         this.stats = new LegionPhaseStatistics("selection");
     }
@@ -59,36 +62,77 @@ public class UnvisitedEdgesStrategy implements Selector {
     public PathFormula select(ReachedSet pReachedSet) throws InterruptedException {
         this.stats.start();
         ARGState first = (ARGState) pReachedSet.getFirstState();
-        ArrayList<Pair<ARGState, CFAEdge>> found_states = new ArrayList<>();
+        ArrayList<PathFormula> found_states = new ArrayList<>();
         
         // Search through the arg
         depthSearch(first, found_states);
 
         // Select a state at random
-        Pair<ARGState, CFAEdge> selected = found_states.get(this.rnd.nextInt(found_states.size()));
+        PathFormula selected = considerWeights(found_states);
 
-        // Extract needed formula
+        this.stats.finish();
+        return selected;
+    }
+
+    /**
+     * Take the found_states and try to retrieve one by considering the blacklist.
+     */
+    PathFormula considerWeights(ArrayList<PathFormula> found_states) {
+        // Select a state at random
+        PathFormula selected;
+        while (true) {
+            selected = found_states.remove(this.random.nextInt(found_states.size()));
+
+            // If the just selected target is the last one,
+            // No choice but to return it.
+            if (found_states.size() == 0){
+                break;
+            }
+
+            // Otherwhise, check if it's blacklisted
+            if (this.blacklisted.contains(selected)){
+                continue;
+            } else {
+                break;
+            }
+        }
+        return selected;
+    }
+
+    PathFormula makeFormula(ARGState pState, CFAEdge pEdge) throws InterruptedException,
+            CPATransferException {
         PredicateAbstractState ps =
                 AbstractStates
-                        .extractStateByType(selected.getFirst(), PredicateAbstractState.class);
+                        .extractStateByType(pState, PredicateAbstractState.class);
 
-        PathFormula f = null;
-        try {
-            f = formulaManager.makeAnd(ps.getPathFormula(), selected.getSecond());
-        } catch (CPATransferException ex) {
-            logger.log(Level.SEVERE, "Could not do formula makeAnd", ex);
+        return formulaManager.makeAnd(ps.getPathFormula(), pEdge);
+    }
+
+    /**
+     * The random selector just blacklists states with a weight below zero.
+     * Selection will then try to select a state not blacklisted, only
+     * when there is no other choice it will return one.
+     */
+    @Override
+    public void feedback(PathFormula pPathFormula, int pWeight) {
+        if (pWeight < 0){
+            this.blacklisted.add(pPathFormula);
         }
-        this.stats.finish();
-        return f;
     }
 
     /**
      * Search through the states referenced by state in a depth-first manor in order to find the
      * first unvisited CFAEdge.
      */
-    void depthSearch(ARGState state, List<Pair<ARGState, CFAEdge>> found_edges) {
+    void depthSearch(ARGState state, List<PathFormula> found_edges)
+            throws InterruptedException {
         for (CFAEdge unvisitedEdge : getUnvisitedEdges(state)){
-            found_edges.add(Pair.of(state, unvisitedEdge));
+            try {
+                found_edges.add(this.makeFormula(state, unvisitedEdge));
+            } catch (CPATransferException exc){
+                logger.log(Level.SEVERE, "Could not do formula makeAnd", exc);
+                continue;
+            }
         }
         
         // If there are children, search them for unvisited Edge
@@ -150,6 +194,8 @@ public class UnvisitedEdgesStrategy implements Selector {
         }
         return found_edges;
     }
+
+    
 
     @Override
     public LegionPhaseStatistics getStats() {

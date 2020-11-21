@@ -91,8 +91,7 @@ public class Fuzzer {
             ReachedSet pReachedSet,
             Algorithm pAlgorithm,
             ArrayList<ArrayList<ValueAssignment>> pPreLoadedValues)
-            throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
-            PropertyViolationException {
+            throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
         for (int i = 0; i < this.passes; i++) {
             this.stats.start();
