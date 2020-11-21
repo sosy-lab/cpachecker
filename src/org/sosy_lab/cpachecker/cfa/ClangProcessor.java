@@ -1,26 +1,12 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// Copyright (C) 2007-2014  Dirk Beyer
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.CharMatcher;
@@ -93,7 +79,8 @@ public class ClangProcessor {
       } else {
         logger.logf(
             Level.WARNING,
-            "Cannot dump result of preprocessing file %s, because path is outside the current directory and the result would end up outside the output directory.",
+            "Cannot dump result of preprocessing file %s, because path is outside the current"
+                + " directory and the result would end up outside the output directory.",
             file);
       }
       return dumpFile;
@@ -133,7 +120,9 @@ public class ClangProcessor {
       }
 
       if (executor.errorOutputCount > 0) {
-        logger.log(Level.WARNING, "Clang returned successfully, but printed warnings. Please check the log above!");
+        logger.log(
+            Level.WARNING,
+            "Clang returned successfully, but printed warnings. Please check the log above!");
       }
 
       if (executor.buffer == null) {
