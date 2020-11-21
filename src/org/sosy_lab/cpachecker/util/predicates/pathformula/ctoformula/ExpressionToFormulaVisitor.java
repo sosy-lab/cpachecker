@@ -1228,7 +1228,7 @@ public class ExpressionToFormulaVisitor
         BitvectorFormula result = bvMgrv.makeBitvector(bvReturnType, 0);
         while (offset < bvParamType.getSize()){
           BitvectorFormula bitAtOffset = bvMgrv.extract(bvParameter, offset, offset++, false);
-          BitvectorFormula bitAtOffsetAsBV = bvMgrv.concat(bvMgrv.makeBitvector(bvReturnType.getSize()-1, 0), bitAtOffset);
+          BitvectorFormula bitAtOffsetAsBV = bvMgrv.extend(bitAtOffset, bvReturnType.getSize()-1,  false);
           result = bvMgrv.add(result, bitAtOffsetAsBV);
         }
         return result;
