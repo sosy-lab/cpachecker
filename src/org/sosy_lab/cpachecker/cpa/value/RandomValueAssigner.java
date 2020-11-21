@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -166,7 +165,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   private NumericValue generateInteger(CSimpleType pType) {
     long min = this.machineModel.getMinimalIntegerValue(pType).longValue();
     long max = this.machineModel.getMaximalIntegerValue(pType).longValue();
-    long random = (long)((Math.random() * (max - min)) + min);
+    long random = (long)((this.rnd.nextDouble() * (max - min)) + min);
     return new NumericValue(random);
   }
 

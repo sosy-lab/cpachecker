@@ -19,7 +19,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -42,25 +45,27 @@ public class UnvisitedEdgesStrategy implements Selector {
     final LogManager logger;
     final PathFormulaManager formulaManager;
     private LegionPhaseStatistics stats;
+    private Random rnd;
 
     public UnvisitedEdgesStrategy(LogManager logger, PathFormulaManager formulaManager) {
         this.logger = logger;
         this.formulaManager = formulaManager;
+        this.rnd = new Random(1636672210L);
 
         this.stats = new LegionPhaseStatistics("selection");
     }
 
     @Override
     public PathFormula select(ReachedSet pReachedSet) throws InterruptedException {
-        // Perform search
         this.stats.start();
         ARGState first = (ARGState) pReachedSet.getFirstState();
-        Pair<ARGState, CFAEdge> selected = depthSearch(first);
+        ArrayList<Pair<ARGState, CFAEdge>> found_states = new ArrayList<>();
+        
+        // Search through the arg
+        depthSearch(first, found_states);
 
-        if (selected.getSecond() == null) {
-            this.stats.finish();
-            return null;
-        }
+        // Select a state at random
+        Pair<ARGState, CFAEdge> selected = found_states.get(this.rnd.nextInt(found_states.size()));
 
         // Extract needed formula
         PredicateAbstractState ps =
@@ -81,44 +86,22 @@ public class UnvisitedEdgesStrategy implements Selector {
      * Search through the states referenced by state in a depth-first manor in order to find the
      * first unvisited CFAEdge.
      */
-    Pair<ARGState, CFAEdge> depthSearch(ARGState state) {
-
-        CFAEdge unvisitedEdge = getUnvisitedEdge(state);
-        Collection<ARGState> children = state.getChildren();
-
-        // If there is an unvisited edge, return it
-        if (unvisitedEdge != null) {
-            return Pair.of(state, unvisitedEdge);
+    void depthSearch(ARGState state, List<Pair<ARGState, CFAEdge>> found_edges) {
+        for (CFAEdge unvisitedEdge : getUnvisitedEdges(state)){
+            found_edges.add(Pair.of(state, unvisitedEdge));
         }
-
-        // If there are no children and no edges => null
-        if (children.size() == 0) {
-            return Pair.of(state, null);
-        }
-
+        
         // If there are children, search them for unvisited Edge
+        Collection<ARGState> children = state.getChildren();
         for (ARGState child : children) {
 
-            Pair<ARGState, CFAEdge> searched;
             try {
-                searched = depthSearch(child);
-            } catch (StackOverflowError e){
+                depthSearch(child, found_edges);
+            } catch (StackOverflowError e) {
                 // If the stack is too deep, opt out of this path
-                return Pair.of(state, null);
-            }
-
-            // If the child has a CFAEddge, return the found combination
-            // If not, search continues!
-            if (searched.getSecond() != null) {
-                return searched;
-            } else {
-                continue;
+                return;
             }
         }
-
-        // If there are no unvisited edges remaining and no children had
-        // unvisited children, this node does not have any unvisited edges.
-        return Pair.of(state, null);
     }
 
     /**
@@ -129,14 +112,16 @@ public class UnvisitedEdgesStrategy implements Selector {
      * 
      * @return null if no unvisited edges, the first unvisited edge otherwise
      */
-    CFAEdge getUnvisitedEdge(ARGState current_state) {
+    ArrayList<CFAEdge> getUnvisitedEdges(ARGState current_state) {
 
         LocationState current_ls =
                 AbstractStates.extractStateByType(current_state, LocationState.class);
         Iterable<CFAEdge> current_edges = current_ls.getOutgoingEdges();
+        ArrayList<CFAEdge> found_edges = new ArrayList<>();
 
+        // Check each edge
         for (CFAEdge edge : current_edges) {
-            // The next cfa node this edge would lead to
+            // Get the next cfa node this edge would lead to
             CFANode target_node = edge.getSuccessor();
 
             // If the edge is anything other than a conditional edge, the fuzzer
@@ -160,10 +145,10 @@ public class UnvisitedEdgesStrategy implements Selector {
             }
 
             if (!found) {
-                return edge;
+                found_edges.add(edge);
             }
         }
-        return null;
+        return found_edges;
     }
 
     @Override
