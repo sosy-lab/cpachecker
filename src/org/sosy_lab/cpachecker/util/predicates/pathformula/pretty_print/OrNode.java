@@ -52,11 +52,11 @@ public class OrNode implements FormulaNode {
   }
 
   @Override
-  public boolean equivalent(FormulaNode node) {
+  public boolean logicallyEquivalentTo(FormulaNode node) {
     if (node instanceof OrNode) {
       OrNode orNode = (OrNode) node;
-      if ((orNode.left.equivalent(left) && orNode.right.equivalent(right)) ||
-          (orNode.left.equivalent(right) && orNode.right.equivalent(left))) {
+      if ((orNode.left.logicallyEquivalentTo(left) && orNode.right.logicallyEquivalentTo(right)) ||
+          (orNode.left.logicallyEquivalentTo(right) && orNode.right.logicallyEquivalentTo(left))) {
         return true;
       }
     }

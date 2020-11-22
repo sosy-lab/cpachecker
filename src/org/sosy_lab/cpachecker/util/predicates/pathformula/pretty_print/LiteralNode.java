@@ -46,7 +46,7 @@ public class LiteralNode implements FormulaNode {
   }
 
   @Override
-  public boolean equivalent(FormulaNode node) {
+  public boolean logicallyEquivalentTo(FormulaNode node) {
     if (node instanceof LiteralNode) {
       return ((LiteralNode)node).literal.equals(literal);
     }

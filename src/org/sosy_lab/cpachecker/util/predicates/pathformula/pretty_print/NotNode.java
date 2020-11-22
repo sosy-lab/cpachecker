@@ -49,8 +49,8 @@ public class NotNode implements FormulaNode {
   }
 
   @Override
-  public boolean equivalent(FormulaNode input) {
-    return input.equivalent(node);
+  public boolean logicallyEquivalentTo(FormulaNode input) {
+    return input.logicallyEquivalentTo(node);
   }
 
   @Override

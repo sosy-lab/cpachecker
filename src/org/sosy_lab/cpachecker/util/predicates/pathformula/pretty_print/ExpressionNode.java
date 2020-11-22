@@ -31,14 +31,14 @@ public class ExpressionNode implements FormulaNode {
   }
 
   @Override
-  public boolean equivalent(FormulaNode node) {
+  public boolean logicallyEquivalentTo(FormulaNode node) {
     if (node instanceof ExpressionNode) {
       ExpressionNode expNode = (ExpressionNode) node;
       if (expNode.operator.equals(operator) && operands.size() == expNode.operands.size()) {
         List<FormulaNode> copy = new ArrayList<>(expNode.operands);
         for (FormulaNode operand: operands) {
           for (int i = 0; i < copy.size(); i++) {
-            if (operand.equivalent(copy.get(i))) {
+            if (operand.logicallyEquivalentTo(copy.get(i))) {
               copy.remove(i);
               break;
             }

@@ -16,7 +16,7 @@ public interface FormulaNode {
     AndNode, OrNode, LiteralNode, ExpressionNode, NotNode
   }
 
-  boolean equivalent(FormulaNode node);
+  boolean logicallyEquivalentTo(FormulaNode node);
 
   List<FormulaNode> getSuccessors();
 

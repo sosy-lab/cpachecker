@@ -116,7 +116,7 @@ public class TraceFormulaTest {
   private void assertNodesEquivalent(FormulaNode node1, FormulaNode node2) {
     // equivalent is not the same as equal since "a and b" is equivalent to "b and a" but not equal
     // (Object#equal)
-    if (!node1.equivalent(node2)) {
+    if (!node1.logicallyEquivalentTo(node2)) {
       throw new AssertionError("Node " + node1 + " is not equivalent to " + node2);
     }
   }
