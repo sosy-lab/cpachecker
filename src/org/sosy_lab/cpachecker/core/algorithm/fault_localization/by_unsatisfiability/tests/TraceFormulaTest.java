@@ -52,7 +52,7 @@ public class TraceFormulaTest {
       String name, FLAlgorithm algorithm, Map<String, String> additionalOptions) throws Exception {
     final Configuration config =
         TestDataTools.configurationForTest()
-            .loadFromResource(TraceFormulaTest.class, "predicateAnalysis.properties")
+            .loadFromResource(TraceFormulaTest.class, "predicateAnalysisWithFaultLocalization.properties")
             .setOption("faultLocalization.by_traceformula.type", algorithm.name())
             .setOptions(additionalOptions)
             .build();
