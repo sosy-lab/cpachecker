@@ -91,7 +91,9 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     }
     Preconditions.checkState(
         pValue instanceof SMGKnownSymbolicValue,
-        "known value '" + pValue + "' has invalid type '" + pValue.getClass() + "'");
+        "known value '%s' has invalid type '%s'",
+        pValue,
+        pValue.getClass());
     if (!getState().isExplicit((SMGKnownSymbolicValue) pValue)) {
       return SMGUnknownValue.INSTANCE;
     }
