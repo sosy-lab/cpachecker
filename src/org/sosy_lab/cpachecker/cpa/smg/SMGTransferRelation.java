@@ -583,12 +583,25 @@ public class SMGTransferRelation
         SMGState newState = explicitSmgState.copyOf();
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
+
+          // convert explicit values to symbolic ones,
+          // this avoids crashes when identifying un/equal values
+          // TODO why is this needed?
+          if (val1ImpliesOn instanceof SMGKnownExpValue) {
+            val1ImpliesOn = newState.getSymbolicOfExplicit((SMGKnownExpValue) val1ImpliesOn);
+          }
+          if (val2ImpliesOn instanceof SMGKnownExpValue) {
+            val2ImpliesOn = newState.getSymbolicOfExplicit((SMGKnownExpValue) val2ImpliesOn);
+          }
+          if (val1ImpliesOn != null && val2ImpliesOn != null) {
+
           if (impliesEqOn) {
             newState.identifyEqualValues(
                 (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
           } else if (impliesNeqOn) {
             newState.identifyNonEqualValues(
                 (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
+          }
           }
         }
 

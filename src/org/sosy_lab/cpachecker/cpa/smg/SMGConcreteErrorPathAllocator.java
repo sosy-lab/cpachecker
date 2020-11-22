@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -175,7 +176,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
     for (SMGEdgeHasValue hvEdge : ImmutableSet.copyOf(symbolicValues)) {
 
-      SMGKnownSymbolicValue symbolicValue = (SMGKnownSymbolicValue) hvEdge.getValue();
+      SMGValue symbolicValue = hvEdge.getValue();
       BigInteger value = null;
 
       if (symbolicValue.isZero()) {
@@ -185,8 +186,11 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
         //TODO ugly, use common representation
         value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
-      } else if (pSMGState.isExplicit(symbolicValue)) {
-        value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
+      } else if (symbolicValue instanceof SMGKnownSymbolicValue
+          && pSMGState.isExplicit((SMGKnownSymbolicValue) symbolicValue)) {
+        value =
+            BigInteger
+                .valueOf(pSMGState.getExplicit((SMGKnownSymbolicValue) symbolicValue).getAsLong());
       } else {
         continue;
       }

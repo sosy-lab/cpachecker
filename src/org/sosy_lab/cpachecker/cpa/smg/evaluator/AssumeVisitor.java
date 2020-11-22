@@ -72,7 +72,16 @@ public class AssumeVisitor extends ExpressionValueVisitor {
           for (SMGValueAndState rightSideValAndState :
               smgExpressionEvaluator.evaluateExpressionValue(newState, edge, rightSideExpression)) {
             SMGValue rightSideVal = rightSideValAndState.getObject();
-          newState = rightSideValAndState.getSmgState();
+            newState = rightSideValAndState.getSmgState();
+
+            // if we already know the value, we should use it.
+            // TODO why does the visitor above create the symbolic value in the first place?
+            if (rightSideVal instanceof SMGKnownSymbolicValue) {
+              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) rightSideVal;
+              if (newState.isExplicit(expValue)) {
+                rightSideVal = newState.getExplicit(expValue);
+              }
+            }
 
             for (SMGValueAndState resultValueAndState :
                 evaluateBinaryAssumption(newState, binaryOperator, leftSideVal, rightSideVal)) {

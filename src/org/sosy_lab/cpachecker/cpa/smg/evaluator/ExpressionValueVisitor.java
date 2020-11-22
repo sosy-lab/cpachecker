@@ -50,6 +50,8 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
@@ -334,7 +336,8 @@ class ExpressionValueVisitor
           continue;
         }
 
-        result.addAll(evaluateBinaryExpression(lVal, rVal, binaryOperator, newState));
+        result.addAll(
+            evaluateBinaryExpression(lVal, rVal, lVarInBinaryExp, binaryOperator, newState));
       }
     }
 
@@ -342,7 +345,11 @@ class ExpressionValueVisitor
   }
 
   private List<? extends SMGValueAndState> evaluateBinaryExpression(
-      SMGValue lVal, SMGValue rVal, BinaryOperator binaryOperator, SMGState newState)
+      SMGValue lVal,
+      SMGValue rVal,
+      CExpression lVarInBinaryExp,
+      BinaryOperator binaryOperator,
+      SMGState newState)
       throws SMGInconsistentException {
 
     if (lVal.equals(SMGUnknownValue.INSTANCE) || rVal.equals(SMGUnknownValue.INSTANCE)) {
@@ -374,6 +381,29 @@ class ExpressionValueVisitor
               return singletonList(SMGValueAndState.of(newState, val));
 
           case MINUS:
+            if (lVal instanceof SMGKnownAddressValue && rVal instanceof SMGKnownAddressValue) {
+              SMGKnownAddressValue lValAddress = (SMGKnownAddressValue) lVal;
+              SMGKnownAddressValue rValAddress = (SMGKnownAddressValue) rVal;
+              if (lValAddress.getObject().equals(rValAddress.getObject())) {
+                CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+                BigInteger sizeOfLVal;
+                if (lVarType instanceof CPointerType) {
+                  sizeOfLVal =
+                      smgExpressionEvaluator.machineModel
+                          .getSizeofInBits(((CPointerType) lVarType).getType());
+                } else {
+                  throw new AssertionError("unhandled type for pointer comparison: " + lVarType);
+                }
+                SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
+                diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
+                return singletonList(SMGValueAndState.of(newState, diff));
+              }
+            }
+            // else
+            isZero = lVal.equals(rVal);
+            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            return singletonList(SMGValueAndState.of(newState, val));
+
           case MODULO:
               isZero = lVal.equals(rVal);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
