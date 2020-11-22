@@ -39,6 +39,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public abstract class TraceFormula {
 
   protected FormulaContext context;
+  protected final Selector.Factory selectorFactory;
 
   protected BooleanFormulaManager bmgr;
   protected BooleanFormula postcondition;
@@ -121,6 +122,7 @@ public abstract class TraceFormula {
   private TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
       throws CPAException, InterruptedException, SolverException {
     entries = new FormulaEntryList();
+    selectorFactory = new Selector.Factory();
     edges = pEdges;
     options = pOptions;
     context = pContext;
@@ -186,6 +188,10 @@ public abstract class TraceFormula {
       entries.addEntry(0, new FormulaEntryList.PreconditionEntry(SSAMap.emptySSAMap()));
     }
     return precond;
+  }
+
+  public Selector.Factory getSelectorFactory() {
+    return selectorFactory;
   }
 
   /**
@@ -277,7 +283,7 @@ public abstract class TraceFormula {
       if (options.reduceSelectors && foundSelectors.containsKey(selectorIdentifier)) {
         selector = foundSelectors.get(selectorIdentifier);
       } else {
-        selector = Selector.makeSelector(context, currentAtom, e);
+        selector = selectorFactory.makeSelector(context, currentAtom, e);
         foundSelectors.put(selectorIdentifier, selector);
       }
       entries.addEntry(i, current.getSsa(), selector, currentAtom);
@@ -289,13 +295,13 @@ public abstract class TraceFormula {
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.toAtomList().get(i).toString();
         Selector selector = entries.toSelectorList().get(i);
-        for (String dable : disabled) {
-          if (dable.contains("::")) {
-            if (formulaString.contains(dable)) {
+        for (String disable : disabled) {
+          if (disable.contains("::")) {
+            if (formulaString.contains(disable)) {
               selector.disable();
             }
           } else {
-            if (formulaString.contains("::" + dable)) {
+            if (formulaString.contains("::" + disable)) {
               selector.disable();
             }
           }

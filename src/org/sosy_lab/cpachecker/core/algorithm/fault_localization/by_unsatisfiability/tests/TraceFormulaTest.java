@@ -29,6 +29,10 @@ public class TraceFormulaTest {
 
   private final Level logLevel = Level.FINEST;
 
+  enum FLAlgorithm {
+    MAXSAT, ERRINV
+  }
+
   enum LogKeys {
     TFTRACE,
     TFPRECONDITION,
@@ -45,13 +49,11 @@ public class TraceFormulaTest {
   }
 
   private TestResults runFaultLocalization(
-      String name, String algorithm, Map<String, String> additionalOptions) throws Exception {
+      String name, FLAlgorithm algorithm, Map<String, String> additionalOptions) throws Exception {
     final Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(TraceFormulaTest.class, "predicateAnalysis.properties")
-            .setOption("analysis.alwaysStoreCounterexamples", "true")
-            .setOption("analysis.algorithm.faultLocalization.by_traceformula", "true")
-            .setOption("faultLocalization.by_traceformula.type", algorithm)
+            .setOption("faultLocalization.by_traceformula.type", algorithm.name())
             .setOptions(additionalOptions)
             .build();
 
@@ -90,9 +92,9 @@ public class TraceFormulaTest {
 
   private void test0(
       String program,
-      String algorithm,
+      FLAlgorithm algorithm,
       Map<String, String> options,
-      ExpectMap<LogKeys, Object> expected)
+      Map<LogKeys, Object> expected)
       throws Exception {
     TestResults test = runFaultLocalization(program, algorithm, options);
     Map<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
@@ -122,68 +124,66 @@ public class TraceFormulaTest {
   @Test
   public void testCorrectConditions() throws Exception {
     // test if calculating post condition influences the precondition
-    test0(
-        "primefactors.c",
-        "ERRINV",
-        ImmutableMap.of(),
-        new ExpectMap<LogKeys, Object>()
-            .expect(
-                LogKeys.TFPRECONDITION,
-                BooleanFormulaParser.parse("(`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ 4_32)"))
-            .expect(
-                LogKeys.TFPOSTCONDITION,
-                BooleanFormulaParser.parse(
-                    "(`=_<BitVec, 32, >` main::copyForCheck@2 main::test@3)")));
+    Map<LogKeys, Object> expected = new HashMap<>();
+    expected.put(LogKeys.TFPRECONDITION, BooleanFormulaParser.parse("(`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ 4_32)"));
+    expected.put(LogKeys.TFPOSTCONDITION, BooleanFormulaParser.parse("(`=_<BitVec, 32, >` main::copyForCheck@2 main::test@3)"));
+
+    test0("primefactors.c",
+            FLAlgorithm.ERRINV,
+            ImmutableMap.of(),
+            expected);
   }
 
   @Test
   public void testFlowSensitive() throws Exception {
     // test if calculating post condition influences the precondition
+    Map<LogKeys, Object> expected = new HashMap<>();
+    expected.put(LogKeys.TFTRACE,
+            BooleanFormulaParser.parse(
+                    "(`and` (`and` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) "
+                            + "(`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@)) "
+                            + "(`or` (`bvslt_32` 0_32 main::y@2) (`=_<BitVec, 32, >` main::x@3 0_32)))"));
+
     test0(
         "unit_test.c",
-        "ERRINV",
+        FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        new ExpectMap<LogKeys, Object>()
-            .expect(
-                LogKeys.TFTRACE,
-                BooleanFormulaParser.parse(
-                    "(`and` (`and` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) "
-                        + "(`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@)) "
-                        + "(`or` (`bvslt_32` 0_32 main::y@2) (`=_<BitVec, 32, >` main::x@3 0_32)))")));
+        expected);
   }
 
   @Test
   public void testDefaultTrace() throws Exception {
     // test if calculating post condition influences the precondition
+    Map<LogKeys, Object> expected = new HashMap<>();
+    expected.put(LogKeys.TFTRACE,
+            BooleanFormulaParser.parse(
+                    "(`and` (`and` (`and` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) "
+                            + "(`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@)) "
+                            + "(`not` (`bvslt_32` 0_32 main::y@2))) "
+                            + "(`=_<BitVec, 32, >` main::x@3 0_32))\n"));
     test0(
         "unit_test.c",
-        "ERRINV",
+        FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
-        new ExpectMap<LogKeys, Object>()
-            .expect(
-                LogKeys.TFTRACE,
-                BooleanFormulaParser.parse(
-                    "(`and` (`and` (`and` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) "
-                        + "(`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@)) "
-                        + "(`not` (`bvslt_32` 0_32 main::y@2))) "
-                        + "(`=_<BitVec, 32, >` main::x@3 0_32))\n")));
+        expected);
   }
 
   @Test
   public void testSelectorTrace() throws Exception {
     // test if calculating post condition influences the precondition
+    Map<LogKeys, Object> expected = new HashMap<>();
+    expected.put(LogKeys.TFTRACE,
+            BooleanFormulaParser.parse(
+                    "(`and` (`and` (`and` "
+                            + "(`or` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) (`not` S0)) "
+                            + "(`or` (`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@) (`not` S1))) "
+                            + "(`or` (`not` (`bvslt_32` 0_32 main::y@2)) (`not` S2))) "
+                            + "(`or` (`=_<BitVec, 32, >` main::x@3 0_32) (`not` S3)))"));
+
     test0(
         "unit_test.c",
-        "MAXSAT",
+        FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
-        new ExpectMap<LogKeys, Object>()
-            .expect(
-                LogKeys.TFTRACE,
-                BooleanFormulaParser.parse(
-                    "(`and` (`and` (`and` "
-                        + "(`or` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) (`not` S0)) "
-                        + "(`or` (`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@) (`not` S1))) "
-                        + "(`or` (`not` (`bvslt_32` 0_32 main::y@2)) (`not` S2))) "
-                        + "(`or` (`=_<BitVec, 32, >` main::x@3 0_32) (`not` S3)))")));
+        expected);
   }
 }

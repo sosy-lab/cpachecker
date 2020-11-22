@@ -103,7 +103,7 @@ public class AlternativePrecondition {
             toMerge = toMerge.builder().deleteVariable(variable).build();
           }
         }
-        // merge the maps to obtain a SSAMap that represents the inital state (pre-condition)
+        // merge the maps to obtain a SSAMap that represents the initial state (pre-condition)
         preConditionMap =
             SSAMap.merge(
                 preConditionMap,

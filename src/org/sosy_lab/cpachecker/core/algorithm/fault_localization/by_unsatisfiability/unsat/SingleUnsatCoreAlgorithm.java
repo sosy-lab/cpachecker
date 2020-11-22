@@ -43,6 +43,7 @@ public class SingleUnsatCoreAlgorithm
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
 
+    Selector.Factory selectorFactory = tf.getSelectorFactory();
     Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     stats.totalTime.start();
@@ -56,8 +57,8 @@ public class SingleUnsatCoreAlgorithm
     // calculate an arbitrary UNSAT-core and filter the ones with selectors
     List<Selector> unsatCore =
         solver.unsatCore(toVerify).stream()
-            .filter(l -> Selector.of(l).isPresent())
-            .map(l -> Selector.of(l).orElseThrow())
+            .filter(l -> selectorFactory.selectorOf(l).isPresent())
+            .map(l -> selectorFactory.selectorOf(l).orElseThrow())
             .collect(Collectors.toList());
 
     stats.totalTime.stop();

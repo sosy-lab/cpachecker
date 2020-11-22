@@ -193,11 +193,6 @@ public class FaultLocalizationWithTraceFormula
                   .filter(ARGState.class)
                   .transform(ARGState::getCounterexampleInformation));
 
-      /* Not necessary for correctness of a run but it ensures same
-       * preconditions for every test run with CPATestRunner. (unit tests)
-       * Otherwise the selectors have different ids due to static id count. */
-      Selector.reset();
-
       // run algorithm for every error
       logger.log(Level.INFO, "Starting fault localization...");
       for (CounterexampleInfo info : counterExamples) {
