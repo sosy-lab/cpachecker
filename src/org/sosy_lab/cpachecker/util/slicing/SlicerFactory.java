@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -85,23 +84,17 @@ public class SlicerFactory implements StatisticsProvider {
 
   private DependenceGraph createDependenceGraph(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InterruptedException, InvalidConfigurationException {
 
     final DependenceGraphBuilder depGraphBuilder =
         DependenceGraph.builder(pCfa, pConfig, pLogger, pShutdownNotifier);
     try {
       return depGraphBuilder.build();
-    } catch (InterruptedException ex) {
-      pLogger.log(
-          Level.WARNING,
-          "DependenceGraph construction interrupted, so the IdentitySlicer is used.");
     } catch (CPAException ex) {
       throw new AssertionError("DependenceGraph construction failed: " + ex);
     } finally {
       depGraphBuilder.collectStatistics(stats);
     }
-
-    return null;
   }
 
   /**
@@ -111,7 +104,7 @@ public class SlicerFactory implements StatisticsProvider {
    */
   public Slicer create(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InterruptedException, InvalidConfigurationException {
     SlicerOptions options = new SlicerOptions(pConfig);
 
     final SlicingCriteriaExtractor extractor;
