@@ -14,14 +14,17 @@ import com.google.common.collect.ImmutableList;
 import java.nio.ByteOrder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** SMT heap representation with one huge byte array. */
 class SMTHeapWithByteArray implements SMTHeap {
@@ -52,8 +55,14 @@ class SMTHeapWithByteArray implements SMTHeap {
       int newIndex,
       I address,
       E value) {
+    if (pTargetType.isFloatingPointType()) {
+      FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
+      BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
+      FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
+      BitvectorFormula bvValue = floatMgr.toIeeeBitvector((FloatingPointFormula) value);
+      return makePointerAssignment(targetName, bvType, oldIndex, newIndex, address, bvValue);
 
-    if (pTargetType.isBitvectorType()) {
+    } else if (pTargetType.isBitvectorType()) {
 
       BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(value);
       checkArgument(pTargetType.equals(targetType));
@@ -72,9 +81,18 @@ class SMTHeapWithByteArray implements SMTHeap {
   @Override
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
-    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(pointerType.equals(addressType));
-    if (targetType.isBitvectorType()) {
+    if (targetType.isFloatingPointType()) {
+      FloatingPointType floatType = (FloatingPointType) targetType;
+      BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatType.getTotalSize());
+      BitvectorFormula bvFormula = makePointerDereference(targetName, bvType, address);
+      FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
+      @SuppressWarnings("unchecked")
+      E floatFormula = (E) floatMgr.fromIeeeBitvector(bvFormula, floatType);
+      return floatFormula;
+
+    } else if (targetType.isBitvectorType()) {
+      final FormulaType<I> addressType = formulaManager.getFormulaType(address);
+      checkArgument(pointerType.equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
 
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
@@ -91,7 +109,16 @@ class SMTHeapWithByteArray implements SMTHeap {
   @Override
   public <I extends Formula, V extends Formula> V makePointerDereference(
       String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
-    if (targetType.isBitvectorType()) {
+    if (targetType.isFloatingPointType()) {
+      FloatingPointType floatType = (FloatingPointType)targetType;
+      BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatType.getTotalSize());
+      BitvectorFormula bvFormula = makePointerDereference(targetName, bvType, ssaIndex, address);
+      FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
+      @SuppressWarnings("unchecked")
+      V floatFormula = (V) floatMgr.fromIeeeBitvector(bvFormula, floatType);
+      return floatFormula;
+
+    } else if (targetType.isBitvectorType()) {
       final FormulaType<I> addressType = formulaManager.getFormulaType(address);
       checkArgument(pointerType.equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;

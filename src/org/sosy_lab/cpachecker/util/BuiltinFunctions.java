@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -23,6 +24,8 @@ public class BuiltinFunctions {
 
   private static final String FREE = "free";
   private static final String STRLEN = "strlen";
+  private static final String POPCOUNT = "popcount";
+
 
   private static final CType UNSPECIFIED_TYPE = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
       false, false, false, false, false, false, false);
@@ -57,10 +60,40 @@ public class BuiltinFunctions {
       return BuiltinOverflowFunctions.getType(pFunctionName);
     }
 
+    if (isPopcountFunction(pFunctionName)) {
+      return new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+    }
+
     return UNSPECIFIED_TYPE;
   }
 
   public static boolean matchesStrlen(String pFunctionName) {
     return pFunctionName.equals(STRLEN);
   }
+  public static boolean isPopcountFunction(String pFunctionName) {
+    return pFunctionName.contains(POPCOUNT);
+  }
+
+  /**
+   * Get the parameter type of a builtin popcount function.
+   *
+   * @param pFunctionName A function name for which
+   *                      {@link #isPopcountFunction(String)} returns true.
+   * @throws IllegalArgumentException For unhandled functions.
+   */
+  public static CSimpleType getParameterTypeOfBuiltinPopcountFunction(String pFunctionName) {
+    if (isPopcountFunction(pFunctionName)) {
+      if(pFunctionName.endsWith(POPCOUNT+"ll")) {
+        return CNumericTypes.LONG_LONG_INT;
+      } else if (pFunctionName.endsWith(POPCOUNT+"l")) {
+        return CNumericTypes.LONG_INT;
+      } else if (pFunctionName.endsWith(POPCOUNT)) {
+        return CNumericTypes.INT;
+      } else {
+        throw new IllegalArgumentException("Builtin function '" + pFunctionName + "' with unknown suffix '" + pFunctionName.substring(pFunctionName.length()) + "'");
+      }
+    }
+    throw new IllegalArgumentException("Builtin function '" + pFunctionName + "' is not a popcount function'");
+  }
+
 }

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
@@ -119,6 +120,7 @@ public class BuiltinOverflowFunctions {
       return "";
     }
   }
+  
   private static final Map<String, BuiltinOverflowFunction> functions; 
   static { 
     functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
@@ -157,6 +159,17 @@ public class BuiltinOverflowFunctions {
     return functions.get(pFunctionName).hasNoSideEffects;
   }
 
+  public static List<CType> getParameterTypes(String pFunctionName) {
+    checkState(functions.containsKey(pFunctionName));
+    Optional<CSimpleType> type = functions.get(pFunctionName).type;
+
+    if (type.isPresent()) {
+      return ImmutableList.of(type.get(), type.get(), new CPointerType(false, false, type.get()));
+    } else {
+      return ImmutableList.of();
+    }
+  }
+
   /**
    * This method returns a {@link CExpression} that represents the truth value of checking whether
    * an arithmetic operation performed on the input expressions var1 and var1 overflows.
@@ -179,13 +192,18 @@ public class BuiltinOverflowFunctions {
       castedVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
       castedVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
     }
+
+    CExpression result;
     if (operator == BinaryOperator.MULTIPLY) {
-      return ofmgr.getConjunctionOfMultiplicationAssumptions(
-          castedVar1, castedVar2, targetType, true);
+      result =
+          ofmgr.getConjunctionOfMultiplicationAssumptions(castedVar1, castedVar2, targetType, true);
     } else {
-      return ofmgr.getConjunctionOfAdditiveAssumptions(
-          castedVar1, castedVar2, operator, targetType, true);
+      result =
+          ofmgr.getConjunctionOfAdditiveAssumptions(
+              castedVar1, castedVar2, operator, targetType, true);
     }
+
+    return new CCastExpression(FileLocation.DUMMY, CNumericTypes.BOOL, result);
   }
 
   public static CExpression handleOverflowSideeffects(

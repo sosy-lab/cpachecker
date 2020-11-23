@@ -144,7 +144,10 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
-    plotWhenConfigured(pSuccessors, edge.getDescription(), SMGExportLevel.INTERESTING);
+    plotWhenConfigured(
+        pSuccessors,
+        "Line " + edge.getLineNumber() + ": " + edge.getDescription(),
+        SMGExportLevel.INTERESTING);
     List<SMGState> successors = new ArrayList<>();
     for (SMGState s : pSuccessors) {
       for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
@@ -580,12 +583,29 @@ public class SMGTransferRelation
         SMGState newState = explicitSmgState.copyOf();
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
-          if (impliesEqOn) {
-            newState.identifyEqualValues(
-                (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
-          } else if (impliesNeqOn) {
-            newState.identifyNonEqualValues(
-                (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
+
+          final SMGKnownSymbolicValue val1;
+          final SMGKnownSymbolicValue val2;
+
+          // convert explicit values to symbolic ones,
+          // this avoids crashes when identifying un/equal values
+          // TODO why is this needed?
+          if (val1ImpliesOn instanceof SMGKnownExpValue) {
+            val1 = newState.getSymbolicOfExplicit((SMGKnownExpValue) val1ImpliesOn);
+          } else {
+            val1 = (SMGKnownSymbolicValue) val1ImpliesOn;
+          }
+          if (val2ImpliesOn instanceof SMGKnownExpValue) {
+            val2 = newState.getSymbolicOfExplicit((SMGKnownExpValue) val2ImpliesOn);
+          } else {
+            val2 = (SMGKnownSymbolicValue) val2ImpliesOn;
+          }
+          if (val1 != null && val2 != null) {
+            if (impliesEqOn) {
+              newState.identifyEqualValues(val1, val2);
+            } else if (impliesNeqOn) {
+              newState.identifyNonEqualValues(val1, val2);
+            }
           }
         }
 

@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -80,11 +80,10 @@ public class OverflowAssumptionManager {
   public CExpression getConjunctionOfMultiplicationAssumptions(
       CExpression operand1, CExpression operand2, CSimpleType type, boolean negate)
       throws UnrecognizedCodeException {
-    var assumptions = new HashSet<CExpression>();
-    addMultiplicationAssumptions(
-        operand1, operand2, getLowerBound(type), getUpperBound(type), assumptions);
+    Set<CExpression> assumptions =
+        addMultiplicationAssumptions(operand1, operand2, getLowerBound(type), getUpperBound(type));
     CExpression result = from(assumptions).get(0);
-    for (var assumption : from(assumptions).skip(1)) {
+    for (CExpression assumption : from(assumptions).skip(1)) {
       result =
           cBinaryExpressionBuilder.buildBinaryExpression(
               assumption, result, BinaryOperator.BINARY_AND);
@@ -192,16 +191,15 @@ public class OverflowAssumptionManager {
    *     of the expression
    * @param pUpperLimit the {@link CLiteralExpression} representing the overflow bound for the type
    *     of the expression
-   * @param result the set to which the generated assumptions are added
    */
-  public void addMultiplicationAssumptions(
+  public Set<CExpression> addMultiplicationAssumptions(
       CExpression operand1,
       CExpression operand2,
       CLiteralExpression pLowerLimit,
-      CLiteralExpression pUpperLimit,
-      Set<CExpression> result)
+      CLiteralExpression pUpperLimit)
       throws UnrecognizedCodeException {
 
+    ImmutableSet.Builder<CExpression> result = ImmutableSet.builder();
     for (boolean operand1isFirstOperand : new boolean[] {false, true}) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
       CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
@@ -244,6 +242,8 @@ public class OverflowAssumptionManager {
         result.add(assumption);
       }
     }
+
+    return result.build();
   }
 
   /**
