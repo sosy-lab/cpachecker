@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -286,24 +287,24 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
     String pIdName = usage.getId().getName();
-    boolean warningIsPrinted = false;
+    List<Element> warnings = new ArrayList<>();
 
     while (iterator.hasNext()) {
       CFAEdge pEdge = iterator.next();
 
       Element edge = printEdge(builder, pEdge);
 
-      if (!warningIsPrinted
-          && Objects.equals(pEdge.getSuccessor(), usage.getCFANode())
-          && containsId(pEdge, pIdName)) {
-        warningIsPrinted = true;
-        builder.addDataElementChild(edge, KeyDef.WARNING, usage.toString());
-      } else if (!warningIsPrinted && !iterator.hasNext()) {
-        String extra = " for " + pIdName + usage.getCFANode().describeFileLocation();
-        logger.log(Level.WARNING, "Can not determine an unsafe edge for " + pIdName);
-        potentialAliases.inc();
-        builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE + extra);
+      if (Objects.equals(pEdge.getSuccessor(), usage.getCFANode())) {
+        warnings.add(edge);
       }
+    }
+
+    if (warnings.isEmpty()) {
+      logger.log(Level.WARNING, "Can not determine an unsafe edge for " + pIdName);
+      potentialAliases.inc();
+    } else {
+      Element warningEdge = warnings.get(warnings.size() - 1);
+      builder.addDataElementChild(warningEdge, KeyDef.WARNING, usage.toString());
     }
   }
 
