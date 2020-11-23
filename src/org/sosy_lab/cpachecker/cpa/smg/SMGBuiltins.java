@@ -923,7 +923,7 @@ public class SMGBuiltins {
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the "
-                      + "cpa.smg.handleUnknownFunctions or cpa.smg.option.safeUnknownFunctions",
+                      + "cpa.smg.handleUnknownFunctions or cpa.smg.safeUnknownFunctions",
                   calledFunctionName));
         }
         // $FALL-THROUGH$ // for safe functions
