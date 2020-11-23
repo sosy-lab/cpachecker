@@ -4012,9 +4012,6 @@ slicing.extractor = ALL
 slicing.type = STATIC
   enum:     [STATIC, IDENTITY]
 
-# Whether a dependence graph should be used for slicing.
-slicing.useDependenceGraph = false
-
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
 

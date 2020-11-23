@@ -64,12 +64,6 @@ public class SlicerFactory implements StatisticsProvider {
     @Option(secure = true, name = "type", description = "what kind of slicing to use")
     private SlicingType slicingType = SlicingType.STATIC;
 
-    @Option(
-        secure = true,
-        name = "useDependenceGraph",
-        description = "Whether a dependence graph should be used for slicing.")
-    private boolean useDependenceGraph = false;
-
     public SlicerOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -81,16 +75,33 @@ public class SlicerFactory implements StatisticsProvider {
     public SlicingType getSlicingType() {
       return slicingType;
     }
-
-    public boolean useDependenceGraph() {
-      return useDependenceGraph;
-    }
   }
 
   private final Collection<Statistics> stats;
 
   public SlicerFactory() {
     stats = new ArrayList<>();
+  }
+
+  private DependenceGraph createDependenceGraph(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
+      throws InvalidConfigurationException {
+
+    final DependenceGraphBuilder depGraphBuilder =
+        DependenceGraph.builder(pCfa, pConfig, pLogger, pShutdownNotifier);
+    try {
+      return depGraphBuilder.build();
+    } catch (InterruptedException ex) {
+      pLogger.log(
+          Level.WARNING,
+          "DependenceGraph construction interrupted, so the IdentitySlicer is used.");
+    } catch (CPAException ex) {
+      throw new AssertionError("DependenceGraph construction failed: " + ex);
+    } finally {
+      depGraphBuilder.collectStatistics(stats);
+    }
+
+    return null;
   }
 
   /**
@@ -119,27 +130,11 @@ public class SlicerFactory implements StatisticsProvider {
         throw new AssertionError("Unhandled criterion extractor type " + extractorType);
     }
 
-    DependenceGraph dependenceGraph = null;
-    if (options.useDependenceGraph()) {
-      final DependenceGraphBuilder depGraphBuilder =
-          DependenceGraph.builder(pCfa, pConfig, pLogger, pShutdownNotifier);
-      try {
-        dependenceGraph = depGraphBuilder.build();
-      } catch (InterruptedException ex) {
-        pLogger.log(
-            Level.WARNING,
-            "DependenceGraph construction interrupted, so the IdentitySlicer is used.");
-        return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
-      } catch (CPAException ex) {
-        throw new AssertionError("DependenceGraph construction failed: " + ex);
-      } finally {
-        depGraphBuilder.collectStatistics(stats);
-      }
-    }
-
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {
       case STATIC:
+        DependenceGraph dependenceGraph =
+            createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
         return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, dependenceGraph);
       case IDENTITY:
         return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
