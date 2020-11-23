@@ -533,7 +533,7 @@ public class CFACreator {
 
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, Optional.empty());
+    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
     // check the super CFA starting at the main function
     stats.checkTime.start();

@@ -752,9 +752,6 @@ cfa.checkNullPointers = false
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
 
-# Whether to create dependence graph for the CFA of the program
-cfa.createDependenceGraph = false
-
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
@@ -4014,6 +4011,9 @@ slicing.extractor = ALL
 # what kind of slicing to use
 slicing.type = STATIC
   enum:     [STATIC, IDENTITY]
+
+# Whether a dependence graph should be used for slicing.
+slicing.useDependenceGraph = false
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true

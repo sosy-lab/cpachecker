@@ -69,15 +69,15 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      CFA pCfa)
+      DependenceGraph pDependenceGraph)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
-    depGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
+    if (pDependenceGraph == null) {
+      throw new InvalidConfigurationException("Dependence graph required, but missing");
+    }
 
+    depGraph = pDependenceGraph;
   }
 
   private static Set<CFAEdge> getAbortCallEdges(CFA pCfa) {

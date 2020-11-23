@@ -62,6 +62,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   private final CFA cfa;
   private final Specification spec;
 
+  private final SlicerFactory slicerFactory;
   private final Slicer slicer;
 
   private TransferRelation transferRelation;
@@ -99,7 +100,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
 
-    slicer = new SlicerFactory().create(logger, shutdownNotifier, config, pCfa);
+    slicerFactory = new SlicerFactory();
+    slicer = slicerFactory.create(logger, shutdownNotifier, config, pCfa);
   }
 
   @Override
@@ -169,6 +171,9 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+
+    slicerFactory.collectStatistics(pStatsCollection);
+
     if (slicer instanceof StatisticsProvider) {
       ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
     }
