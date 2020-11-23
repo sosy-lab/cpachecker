@@ -120,7 +120,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               newState.addPredicateRelation(
                   leftSideVal,
                   leftSideSMGType,
-                  rightSideVal,
+                  // next line: use the symbolic value here and not the potential explicit one.
+                  rightSideValAndState.getObject(),
                   rightSideSMGType,
                   binaryOperator,
                   edge);
