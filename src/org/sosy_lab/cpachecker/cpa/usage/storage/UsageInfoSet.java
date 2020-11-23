@@ -8,28 +8,28 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import com.google.common.collect.ForwardingSet;
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
-import java.util.NavigableSet;
-import java.util.TreeSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 
-@SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
-public class UsageInfoSet extends TreeSet<UsageInfo> {
-
-  private static final long serialVersionUID = -5057827815596702715L;
+public class UsageInfoSet extends ForwardingSet<UsageInfo> {
+  private final Set<UsageInfo> usageSet;
 
   public UsageInfoSet() {
+    usageSet = new ConcurrentSkipListSet<>();
   }
 
-  private UsageInfoSet(NavigableSet<UsageInfo> pSet) {
-    super(pSet);
+  private UsageInfoSet(Set<UsageInfo> pSet) {
+    usageSet = new ConcurrentSkipListSet<>(pSet);
   }
 
   public boolean remove(UsageState pUstate) {
-    Iterator<UsageInfo> iterator = this.iterator();
+    Iterator<UsageInfo> iterator = usageSet.iterator();
     boolean changed = false;
     while (iterator.hasNext()) {
       UsageInfo uinfo = iterator.next();
@@ -44,11 +44,16 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
   }
 
   public UsageInfo getOneExample() {
-    return Iterables.get(this, 0);
+    return Iterables.get(usageSet, 0);
   }
 
   public UsageInfoSet copy() {
     // For avoiding concurrent modification in refinement
-    return new UsageInfoSet(this);
+    return new UsageInfoSet(usageSet);
+  }
+
+  @Override
+  protected Set<UsageInfo> delegate() {
+    return usageSet;
   }
 }

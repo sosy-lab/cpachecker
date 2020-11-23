@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageProcessor;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
@@ -46,6 +46,12 @@ public class ConcurrentUsageExtractor {
   static class ConcurrentStatistics {
     final ThreadSafeTimerContainer usageExpandingTimer =
         new ThreadSafeTimerContainer("Time for usage expanding");
+
+    final ThreadSafeTimerContainer usageProcessingTimer =
+        new ThreadSafeTimerContainer("Time for usage calculation");
+
+    final ThreadSafeTimerContainer addingToContainerTimer =
+        new ThreadSafeTimerContainer("Time for adding to container");
   }
 
   private final LogManager logger;
@@ -55,13 +61,11 @@ public class ConcurrentUsageExtractor {
   private final boolean processCoveredUsages;
 
   private final StatTimer totalTimer = new StatTimer("Time for extracting usages");
-  private final StatTimer addingToContainerTimer = new StatTimer("Time for adding to container");
-  private final StatCounter processingSteps =
-      new StatCounter("Number of different reached sets with lock effects");
+  private final AtomicInteger processingSteps;
+  private final AtomicInteger numberOfActiveTasks;
 
   private final ConcurrentStatistics stats = new ConcurrentStatistics();
 
-  private int numberOfActiveTasks = 0;
 
   public ConcurrentUsageExtractor(
       ConfigurableProgramAnalysis pCpa,
@@ -78,6 +82,8 @@ public class ConcurrentUsageExtractor {
     }
     UsageCPA usageCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
     usageProcessor = usageCpa.getUsageProcessor();
+    processingSteps = new AtomicInteger();
+    numberOfActiveTasks = new AtomicInteger();
   }
 
   public void extractUsages(AbstractState firstState) {
@@ -92,14 +98,14 @@ public class ConcurrentUsageExtractor {
     processedSets.put(firstState, emptyDelta);
     usageProcessor.updateRedundantUnsafes(container.getNotInterestingUnsafes());
 
-    numberOfActiveTasks = 1;
+    numberOfActiveTasks.incrementAndGet();
     ExecutorService service =
         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     service.submit(new ReachedSetExecutor(firstState, emptyDelta, processedSets, service));
 
     try {
-      synchronized (service) {
-        while (numberOfActiveTasks != processingSteps.getValue()) {
+      while (numberOfActiveTasks.get() != processingSteps.get()) {
+        synchronized (service) {
           service.wait(10000);
         }
       }
@@ -112,12 +118,14 @@ public class ConcurrentUsageExtractor {
   }
 
   public void printStatistics(StatisticsWriter pWriter) {
-    StatisticsWriter writer = pWriter.spacer().put(totalTimer).beginLevel();
+    StatisticsWriter writer =
+        pWriter.spacer().put(totalTimer).beginLevel().put(stats.usageProcessingTimer).beginLevel();
     usageProcessor.printStatistics(writer);
-    writer.put(addingToContainerTimer)
+    writer.endLevel()
+        .put(stats.addingToContainerTimer)
         .put(stats.usageExpandingTimer)
         .endLevel()
-        .put(processingSteps);
+        .put("Number of different reached sets with lock effects", processingSteps);
   }
 
   private class ReachedSetExecutor implements Runnable {
@@ -126,8 +134,11 @@ public class ConcurrentUsageExtractor {
     private final AbstractState firstState;
     private final Multimap<AbstractState, UsageDelta> processedSets;
     private final ExecutorService service;
-    private final TimerWrapper expandingTimer;
     private final Map<AbstractState, List<UsageInfo>> stateToUsage;
+
+    private final TimerWrapper expandingTimer;
+    private final TimerWrapper processingTimer;
+    private final TimerWrapper addingTimer;
 
     ReachedSetExecutor(
         AbstractState pState,
@@ -140,6 +151,8 @@ public class ConcurrentUsageExtractor {
       processedSets = pSets;
       service = pService;
       expandingTimer = stats.usageExpandingTimer.getNewTimer();
+      processingTimer = stats.usageProcessingTimer.getNewTimer();
+      addingTimer = stats.addingToContainerTimer.getNewTimer();
       stateToUsage = new HashMap<>();
     }
 
@@ -155,14 +168,13 @@ public class ConcurrentUsageExtractor {
         if (stateToUsage.containsKey(argState)) {
           continue;
         }
+
         List<UsageInfo> expandedUsages = expandUsagesAndAdd(argState);
 
         if (needToDumpUsages(argState)) {
-          synchronized (container) {
-            addingToContainerTimer.start();
-            expandedUsages.forEach(container::add);
-            addingToContainerTimer.stop();
-          }
+          addingTimer.start();
+          expandedUsages.forEach(container::add);
+          addingTimer.stop();
         } else {
           stateToUsage.put(argState, expandedUsages);
         }
@@ -183,11 +195,8 @@ public class ConcurrentUsageExtractor {
         }
       }
 
-      synchronized (service) {
-        processingSteps.inc();
-        if (processingSteps.getValue() == numberOfActiveTasks) {
-          service.notify();
-        }
+      if (processingSteps.incrementAndGet() == numberOfActiveTasks.get()) {
+        service.notify();
       }
     }
 
@@ -211,7 +220,9 @@ public class ConcurrentUsageExtractor {
         expandedUsages.addAll(stateToUsage.getOrDefault(parent, ImmutableList.of()));
       }
 
+      processingTimer.start();
       List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
+      processingTimer.stop();
 
       expandingTimer.start();
       for (UsageInfo usage : usages) {
@@ -236,7 +247,7 @@ public class ConcurrentUsageExtractor {
 
       synchronized (service) {
         if (shouldContinue(processedSets.get(reducedState), difference)) {
-          numberOfActiveTasks++;
+          numberOfActiveTasks.incrementAndGet();
           processedSets.put(reducedState, difference);
           service.submit(new ReachedSetExecutor(reducedState, difference, processedSets, service));
         }

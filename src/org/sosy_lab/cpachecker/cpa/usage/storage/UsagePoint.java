@@ -31,17 +31,19 @@ public final class UsagePoint implements Comparable<UsagePoint> {
   }
 
   public boolean addCoveredUsage(UsagePoint newChild) {
-    if (!coveredUsages.contains(newChild)) {
+    synchronized (this) {
+      if (!coveredUsages.contains(newChild)) {
 
-      for (UsagePoint point : coveredUsages) {
-        if (point.covers(newChild)) {
-          assert !point.equals(newChild);
-          return point.addCoveredUsage(newChild);
+        for (UsagePoint point : coveredUsages) {
+          if (point.covers(newChild)) {
+            assert !point.equals(newChild);
+            return point.addCoveredUsage(newChild);
+          }
         }
+        return coveredUsages.add(newChild);
       }
-      return coveredUsages.add(newChild);
+      return false;
     }
-    return false;
   }
 
   public Set<UsagePoint> getCoveredUsages() {

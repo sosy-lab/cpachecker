@@ -20,6 +20,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -59,7 +60,7 @@ public class UsageContainer {
   private boolean oneTotalIteration = false;
 
   public UsageContainer(UsageConfiguration pConfig, LogManager l) {
-    unrefinedIds = new TreeMap<>();
+    unrefinedIds = new ConcurrentSkipListMap<>();
     refinedIds = new TreeMap<>();
     falseUnsafes = new TreeSet<>();
     logger = l;
@@ -68,17 +69,17 @@ public class UsageContainer {
 
   public void add(UsageInfo pUsage) {
     SingleIdentifier id = pUsage.getId();
-    searchingInCachesTimer.start();
     if (id instanceof StructureIdentifier) {
       id = ((StructureIdentifier) id).toStructureFieldIdentifier();
     }
+
+    UnrefinedUsagePointSet uset;
+
+    // searchingInCachesTimer.start();
     if (oneTotalIteration && !unrefinedIds.containsKey(id)) {
-      searchingInCachesTimer.stop();
+      // searchingInCachesTimer.stop();
       return;
     }
-
-    assert (!falseUnsafes.contains(id) || !refinedIds.containsKey(id));
-    UnrefinedUsagePointSet uset;
 
     if (!unrefinedIds.containsKey(id)) {
       uset = new UnrefinedUsagePointSet();
@@ -86,11 +87,11 @@ public class UsageContainer {
     } else {
       uset = unrefinedIds.get(id);
     }
-    searchingInCachesTimer.stop();
+    // searchingInCachesTimer.stop();
 
-    addingToSetTimer.start();
+    // addingToSetTimer.start();
     uset.add(pUsage);
-    addingToSetTimer.stop();
+    // addingToSetTimer.stop();
   }
 
   private void calculateUnsafesIfNecessary() {

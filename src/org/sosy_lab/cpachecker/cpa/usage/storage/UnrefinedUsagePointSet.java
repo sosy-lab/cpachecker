@@ -11,8 +11,9 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 
@@ -21,8 +22,8 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   private final Map<UsagePoint, UsageInfoSet> usageInfoSets;
 
   public UnrefinedUsagePointSet() {
-    topUsages = new TreeSet<>();
-    usageInfoSets = new TreeMap<>();
+    topUsages = new ConcurrentSkipListSet<>();
+    usageInfoSets = new ConcurrentSkipListMap<>();
   }
 
   public void add(UsageInfo newInfo) {
@@ -40,7 +41,7 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
 
   private void add(UsagePoint newPoint) {
     if (!topUsages.contains(newPoint)) {
-      //Put newPoint in the right place in tree
+      // Put newPoint in the right place in tree
       Iterator<UsagePoint> iterator = topUsages.iterator();
       while (iterator.hasNext()) {
         UsagePoint point = iterator.next();
