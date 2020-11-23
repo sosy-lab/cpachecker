@@ -193,7 +193,7 @@ public final class SMGPlotter {
       if (!value.isZero()) {
         for (SMGValue neqValue : smg.getNeqsForValue(value)) {
           if (! processed.contains(neqValue)) {
-            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
+            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue, explicitValues)));
           }
         }
         processed.add(value);
@@ -345,16 +345,23 @@ public final class SMGPlotter {
         object);
   }
 
-  private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
-    String targetNode;
-    String returnString = "";
+  private static String neqRelationAsDot(
+      SMGValue v1,
+      SMGValue v2,
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+    String toNodeStr, toNode;
     if (v2.isZero()) {
-      targetNode = newNullLabel();
-      returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
+      toNodeStr = newNullLabel();
+      toNode = toNodeStr + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
     } else {
-      targetNode = "value_" + v2.asDotId();
+      toNodeStr = smgValueAsDot(v2, explicitValues);
+      toNode = "value_" + v2.asDotId();
     }
-    return returnString + "value_" + v1.asDotId() + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
+    return String.format(
+        "%s\n  value_%s -> %s [color=\"red\", fontcolor=\"red\", label=\"neq\"];",
+        toNodeStr,
+        v1.asDotId(),
+        toNode);
   }
 
   private String newLineWithOffset(String pLine) {
