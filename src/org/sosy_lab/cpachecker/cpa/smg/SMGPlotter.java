@@ -358,7 +358,7 @@ public final class SMGPlotter {
       toNode = "value_" + v2.asDotId();
     }
     return String.format(
-        "%s\n  value_%s -> %s [color=\"red\", fontcolor=\"red\", label=\"neq\"];",
+        "%s%n  value_%s -> %s [color=\"red\", fontcolor=\"red\", label=\"neq\"];",
         toNodeStr,
         v1.asDotId(),
         toNode);
