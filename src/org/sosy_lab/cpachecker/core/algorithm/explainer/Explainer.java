@@ -272,7 +272,6 @@ public class Explainer extends NestingAlgorithm {
     }
     return super.createAlgorithm(
         singleConfigFileName,
-        cfa,
         mainFunction,
         singleShutdownManager,
         aggregateReached,
