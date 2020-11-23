@@ -91,11 +91,6 @@ public class ThreadTMState extends ThreadState {
   }
 
   @Override
-  public ThreadState prepareToStore() {
-    return new ThreadTMState(this.currentThread, this.threadSet, ImmutableMap.of());
-  }
-
-  @Override
   public boolean isLessOrEqual(ThreadState pOther) {
     return Objects.equals(currentThread, ((ThreadTMState) pOther).currentThread)
         && Objects.equals(removedSet, pOther.removedSet)

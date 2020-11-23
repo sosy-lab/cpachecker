@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 
-public class GenericDelta implements Delta<CompatibleState> {
+public class GenericDelta implements Delta<CompatibleNode> {
 
   private final static GenericDelta instance = new GenericDelta();
 
@@ -18,12 +18,12 @@ public class GenericDelta implements Delta<CompatibleState> {
   }
 
   @Override
-  public CompatibleState apply(CompatibleState pState) {
+  public CompatibleNode apply(CompatibleNode pState) {
     return pState;
   }
 
   @Override
-  public boolean covers(Delta<CompatibleState> pDelta) {
+  public boolean covers(Delta<CompatibleNode> pDelta) {
     return pDelta == instance;
   }
 
@@ -37,7 +37,7 @@ public class GenericDelta implements Delta<CompatibleState> {
   }
 
   @Override
-  public Delta<CompatibleState> add(Delta<CompatibleState> pDelta) {
+  public Delta<CompatibleNode> add(Delta<CompatibleNode> pDelta) {
     return instance;
   }
 

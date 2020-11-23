@@ -137,11 +137,6 @@ public class ThreadState
     return false;
   }
 
-  @Override
-  public ThreadState prepareToStore() {
-    return new ThreadState(currentThread, this.threadSet, ImmutableMap.of());
-  }
-
   public static ThreadState emptyState() {
     return new ThreadState(mainThread, ImmutableMap.of(), ImmutableMap.of());
   }
@@ -212,7 +207,7 @@ public class ThreadState
   }
 
   @Override
-  public Delta<CompatibleState> getDeltaBetween(CompatibleState pOther) {
+  public Delta<CompatibleNode> getDeltaBetween(CompatibleNode pOther) {
     ThreadState pState = (ThreadState) pOther;
     Map<String, ThreadStatus> expanded = pState.getThreadSet();
     Map<String, ThreadStatus> newSet;

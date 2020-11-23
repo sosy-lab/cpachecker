@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
+import org.sosy_lab.cpachecker.cpa.usage.storage.GenericDelta;
+
 public interface CompatibleNode extends CompatibleState {
 
   public boolean cover(CompatibleNode node);
@@ -19,5 +22,9 @@ public interface CompatibleNode extends CompatibleState {
   @Override
   public default CompatibleNode getCompatibleNode() {
     return this;
+  }
+
+  public default Delta<CompatibleNode> getDeltaBetween(CompatibleNode pOther) {
+    return GenericDelta.getInstance();
   }
 }

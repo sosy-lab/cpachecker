@@ -63,9 +63,4 @@ public class SimpleThreadState extends ThreadState {
   public ThreadState copyWith(String pCurrent, Map<String, ThreadStatus> tSet) {
     return new SimpleThreadState(pCurrent, tSet, this.removedSet);
   }
-
-  @Override
-  public ThreadState prepareToStore() {
-    return new SimpleThreadState(currentThread, this.threadSet, ImmutableMap.of());
-  }
 }

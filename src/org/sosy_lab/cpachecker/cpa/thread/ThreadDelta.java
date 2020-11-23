@@ -12,10 +12,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStatus;
-import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
 
-public class ThreadDelta implements Delta<CompatibleState> {
+public class ThreadDelta implements Delta<CompatibleNode> {
 
   protected final Map<String, ThreadStatus> threadSet;
   // Do not support rSet now
@@ -25,7 +25,7 @@ public class ThreadDelta implements Delta<CompatibleState> {
   }
 
   @Override
-  public CompatibleState apply(CompatibleState pState) {
+  public CompatibleNode apply(CompatibleNode pState) {
     if (threadSet.isEmpty()) {
       return pState;
     }
@@ -47,14 +47,14 @@ public class ThreadDelta implements Delta<CompatibleState> {
   }
 
   @Override
-  public boolean covers(Delta<CompatibleState> pDelta) {
+  public boolean covers(Delta<CompatibleNode> pDelta) {
     ThreadDelta pOther = (ThreadDelta) pDelta;
     // TODO contains?
     return threadSet.entrySet().containsAll(pOther.threadSet.entrySet());
   }
 
   @Override
-  public Delta<CompatibleState> add(Delta<CompatibleState> pDelta) {
+  public Delta<CompatibleNode> add(Delta<CompatibleNode> pDelta) {
     ThreadDelta pOther = (ThreadDelta) pDelta;
     if (pOther.threadSet.isEmpty()) {
       return this;

@@ -135,4 +135,8 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     }
     return null;
   }
+
+  public List<CompatibleNode> getCompatibleNodes() {
+    return compatibleNodes;
+  }
 }

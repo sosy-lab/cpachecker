@@ -13,26 +13,27 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class UsageDelta implements Delta<List<CompatibleState>> {
+public class UsageDelta implements Delta<List<CompatibleNode>> {
 
-  private final List<Delta<CompatibleState>> nestedDeltas;
+  private final List<Delta<CompatibleNode>> nestedDeltas;
 
-  public UsageDelta(List<Delta<CompatibleState>> pList) {
+  public UsageDelta(List<Delta<CompatibleNode>> pList) {
     nestedDeltas = pList;
   }
 
   @Override
-  public ImmutableList<CompatibleState> apply(List<CompatibleState> pState) {
-    ImmutableList.Builder<CompatibleState> result = ImmutableList.builder();
+  public ImmutableList<CompatibleNode> apply(List<CompatibleNode> pState) {
+    ImmutableList.Builder<CompatibleNode> result = ImmutableList.builder();
     assert nestedDeltas.size() == pState.size();
     boolean changed = false;
 
     for (int i = 0; i < nestedDeltas.size(); i++) {
-      CompatibleState oldState = pState.get(i);
-      CompatibleState newState = nestedDeltas.get(i).apply(oldState);
+      CompatibleNode oldState = pState.get(i);
+      CompatibleNode newState = nestedDeltas.get(i).apply(oldState);
       if (newState != oldState) {
         changed = true;
       } else if (newState == null) {
@@ -44,12 +45,12 @@ public class UsageDelta implements Delta<List<CompatibleState>> {
     if (changed) {
       return result.build();
     } else {
-      return (ImmutableList<CompatibleState>) pState;
+      return (ImmutableList<CompatibleNode>) pState;
     }
   }
 
   @Override
-  public boolean covers(Delta<List<CompatibleState>> pDelta) {
+  public boolean covers(Delta<List<CompatibleNode>> pDelta) {
     assert pDelta instanceof UsageDelta;
     UsageDelta pOther = (UsageDelta) pDelta;
     assert nestedDeltas.size() == pOther.nestedDeltas.size();
@@ -89,18 +90,22 @@ public class UsageDelta implements Delta<List<CompatibleState>> {
   public static UsageDelta
       constructDeltaBetween(AbstractState reducedState, AbstractState rootState) {
 
-    ImmutableList.Builder<Delta<CompatibleState>> storedStates = ImmutableList.builder();
+    ImmutableList.Builder<Delta<CompatibleNode>> storedStates = ImmutableList.builder();
 
-    FluentIterable<CompatibleState> reducedStates =
-        AbstractStates.asIterable(reducedState).filter(CompatibleState.class);
-    FluentIterable<CompatibleState> rootStates =
-        AbstractStates.asIterable(rootState).filter(CompatibleState.class);
+    FluentIterable<CompatibleNode> reducedStates =
+        AbstractStates.asIterable(reducedState)
+            .filter(CompatibleState.class)
+            .transform(CompatibleState::getCompatibleNode);
+    FluentIterable<CompatibleNode> rootStates =
+        AbstractStates.asIterable(rootState)
+            .filter(CompatibleState.class)
+            .transform(CompatibleState::getCompatibleNode);
 
     assert reducedStates.size() == rootStates.size();
 
     for (int i = 0; i < reducedStates.size(); i++) {
-      CompatibleState nestedReducedState = reducedStates.get(i);
-      CompatibleState nestedRootState = rootStates.get(i);
+      CompatibleNode nestedReducedState = reducedStates.get(i);
+      CompatibleNode nestedRootState = rootStates.get(i);
 
       storedStates.add(nestedReducedState.getDeltaBetween(nestedRootState));
     }
@@ -109,15 +114,15 @@ public class UsageDelta implements Delta<List<CompatibleState>> {
   }
 
   @Override
-  public UsageDelta add(Delta<List<CompatibleState>> pDelta) {
+  public UsageDelta add(Delta<List<CompatibleNode>> pDelta) {
     UsageDelta pOther = (UsageDelta) pDelta;
-    ImmutableList.Builder<Delta<CompatibleState>> result = ImmutableList.builder();
+    ImmutableList.Builder<Delta<CompatibleNode>> result = ImmutableList.builder();
     assert nestedDeltas.size() == pOther.nestedDeltas.size();
     boolean changed = false;
 
     for (int i = 0; i < nestedDeltas.size(); i++) {
-      Delta<CompatibleState> oldDelta = nestedDeltas.get(i);
-      Delta<CompatibleState> newDelta = oldDelta.add(pOther.nestedDeltas.get(i));
+      Delta<CompatibleNode> oldDelta = nestedDeltas.get(i);
+      Delta<CompatibleNode> newDelta = oldDelta.add(pOther.nestedDeltas.get(i));
       if (oldDelta != newDelta) {
         changed = true;
       }

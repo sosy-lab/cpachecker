@@ -14,7 +14,6 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,6 +37,10 @@ public final class LockState extends AbstractLockState {
 
     public LockTreeNode(Set<LockIdentifier> locks) {
       super(locks);
+    }
+
+    public LockTreeNode() {
+      super();
     }
 
     @Override
@@ -81,6 +84,22 @@ public final class LockState extends AbstractLockState {
     @Override
     public boolean hasEmptyLockSet() {
       return isEmpty();
+    }
+
+    @Override
+    public Delta<CompatibleNode> getDeltaBetween(CompatibleNode pOther) {
+      LockTreeNode pState = (LockTreeNode) pOther;
+      // TODO more deterministic
+      if (isEmpty()) {
+        return new LockNodeDelta(pState);
+      }
+      LockTreeNode diff = new LockTreeNode();
+      for (LockIdentifier lock : pState) {
+        if (!contains(lock)) {
+          diff.add(lock);
+        }
+      }
+      return new LockNodeDelta(diff);
     }
   }
 
@@ -377,18 +396,6 @@ public final class LockState extends AbstractLockState {
       }
     }
     return result;
-  }
-
-  @Override
-  public Delta<CompatibleState> getDeltaBetween(CompatibleState pOther) {
-    LockState pState = (LockState) pOther;
-    // TODO more deterministic
-    return new LockDelta(new ArrayList<>(getDifference(pState)));
-  }
-
-  @Override
-  public CompatibleState prepareToStore() {
-    return this;
   }
 
   @Override

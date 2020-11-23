@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -45,7 +46,8 @@ public class PathPairIterator extends
   private StatCounter numberOfRepeatedConstructedPaths = new StatCounter("Number of repeated path computed");
   //private int numberOfrepeatedPaths = 0;
 
-  private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
+  // A state may be related to several usages due to expansion
+  private Map<AbstractState, List<ExtendedARGPath>> computedPathsForState = new IdentityHashMap<>();
   private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
   // Not set, hash is changed
   private List<ExtendedARGPath> missedPaths = new ArrayList<>();
@@ -123,8 +125,8 @@ public class PathPairIterator extends
   }
 
   private boolean checkIsUsageUnreachable(UsageInfo pInput) {
-    return !computedPathsForUsage.containsKey(pInput)
-        || computedPathsForUsage.get(pInput).isEmpty();
+    return !computedPathsForState.containsKey(pInput.getKeyState())
+        || computedPathsForState.get(pInput.getKeyState()).isEmpty();
   }
 
   @SuppressWarnings("unchecked")
@@ -166,7 +168,7 @@ public class PathPairIterator extends
       firstPath = null;
       handleAffectedStates(firstAffectedStates);
     }
-    if (secondExtendedPath.isUnreachable()) {
+    if (secondExtendedPath.isUnreachable() && secondExtendedPath != firstExtendedPath) {
       handleAffectedStates(secondAffectedStates);
     }
     updateTheComputedSet(firstExtendedPath);
@@ -211,9 +213,9 @@ public class PathPairIterator extends
       refinedStates.clear();
       targetToPathIterator.clear();
       firstPath = null;
+      computedPathsForState.clear();
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();
-      computedPathsForUsage.clear();
       skippedUsages.clear();
       assert missedPaths.isEmpty();
     }
@@ -221,23 +223,24 @@ public class PathPairIterator extends
 
   private void updateTheComputedSet(ExtendedARGPath path) {
     UsageInfo usage = path.getUsageInfo();
+    AbstractState keyState = usage.getKeyState();
 
-    boolean alreadyComputed = computedPathsForUsage.containsKey(usage);
+    boolean alreadyComputed = computedPathsForState.containsKey(keyState);
     missedPaths.remove(path);
 
     if (!path.isUnreachable()) {
       List<ExtendedARGPath> alreadyComputedPaths;
       if (!alreadyComputed) {
         alreadyComputedPaths = new ArrayList<>();
-        computedPathsForUsage.put(usage, alreadyComputedPaths);
+        computedPathsForState.put(keyState, alreadyComputedPaths);
       } else {
-        alreadyComputedPaths = computedPathsForUsage.get(usage);
+        alreadyComputedPaths = computedPathsForState.get(keyState);
       }
       if (!alreadyComputedPaths.contains(path)) {
         alreadyComputedPaths.add(path);
       }
     } else if (path.isUnreachable() && alreadyComputed) {
-      List<ExtendedARGPath> alreadyComputedPaths = computedPathsForUsage.get(usage);
+      List<ExtendedARGPath> alreadyComputedPaths = computedPathsForState.get(keyState);
       if (alreadyComputedPaths.contains(path)) {
         //We should reset iterator to avoid ConcurrentModificationException
         alreadyComputedPaths.remove(path);
@@ -247,13 +250,14 @@ public class PathPairIterator extends
 
   private ExtendedARGPath getNextPath(UsageInfo info, int usageNumber) {
     ARGPath currentPath;
+    AbstractState keyState = info.getKeyState();
     // Start from already computed set (it is partially refined)
     numberOfPathCalculated.inc();
     Iterator<ExtendedARGPath> iterator = currentIterators.get(info);
-    if (iterator == null && computedPathsForUsage.containsKey(info)) {
+    if (iterator == null && computedPathsForState.containsKey(keyState)) {
       // first call
       // Clone the set to avoid concurrent modification
-      iterator = new ArrayList<>(computedPathsForUsage.get(info)).iterator();
+      iterator = new ArrayList<>(computedPathsForState.get(keyState)).iterator();
       currentIterators.put(info, iterator);
     }
 
@@ -281,7 +285,8 @@ public class PathPairIterator extends
 
     if (currentPath == null) {
       // no path to iterate, finishing
-      if (!computedPathsForUsage.containsKey(info) || computedPathsForUsage.get(info).size() == 0) {
+      if (!computedPathsForState.containsKey(keyState)
+          || computedPathsForState.get(keyState).size() == 0) {
         skippedUsages.add(info);
       }
       return null;

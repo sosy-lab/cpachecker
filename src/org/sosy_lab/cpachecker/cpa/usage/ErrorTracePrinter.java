@@ -62,7 +62,7 @@ public abstract class ErrorTracePrinter {
     private final List<CompatibleNode> compatibleNodes;
 
     private TraceCore(UsageInfo pTmpUsage) {
-      compatibleNodes = pTmpUsage.getCompatibleNodes();
+      compatibleNodes = pTmpUsage.getUsagePoint().getCompatibleNodes();
       function = pTmpUsage.getCFANode().getFunctionName();
     }
 
@@ -213,7 +213,7 @@ public abstract class ErrorTracePrinter {
         continue;
       }
 
-      if (uinfo1.getLockState().getSize() == 0 && uinfo2.getLockState().getSize() == 0) {
+      if (uinfo1.getLockNode().size() == 0 && uinfo2.getLockNode().size() == 0) {
         if (printEmptyLockStates) {
           emptyLockSetUnsafes.inc();
         } else {

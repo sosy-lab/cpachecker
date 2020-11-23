@@ -27,7 +27,7 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
 
   public void add(UsageInfo newInfo) {
     UsageInfoSet targetSet;
-    UsagePoint newPoint = newInfo.createUsagePoint();
+    UsagePoint newPoint = newInfo.getUsagePoint();
     if (usageInfoSets.containsKey(newPoint)) {
       targetSet = usageInfoSets.get(newPoint);
     } else {
