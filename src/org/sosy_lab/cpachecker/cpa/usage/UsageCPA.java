@@ -76,7 +76,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Option(
     description = "use sound regions as identifiers",
-    name = "usage.useSoundRegions",
+    name = "cpa.usage.useSoundRegions",
     secure = true)
   private boolean useSoundRegions = false;
 
