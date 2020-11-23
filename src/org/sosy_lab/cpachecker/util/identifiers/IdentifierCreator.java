@@ -69,15 +69,6 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     }
   }
 
-  public AbstractIdentifier
-      createIdentifier(CExpression expression, int pDereference, String pFunction) {
-    Preconditions.checkNotNull(expression);
-    setCurrentFunction(pFunction);
-
-    dereference = pDereference;
-    return expression.accept(this);
-  }
-
   public AbstractIdentifier createIdentifier(CExpression expression, int pDereference) {
     Preconditions.checkNotNull(expression);
 
@@ -200,5 +191,9 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   @Override
   protected AbstractIdentifier visitDefault(CExpression pExp) {
     return new ConstantIdentifier(pExp.toASTString(), dereference);
+  }
+
+  public IdentifierCreator copy() {
+    return new IdentifierCreator();
   }
 }

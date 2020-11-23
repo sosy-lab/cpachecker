@@ -20,6 +20,8 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Optional;
 import java.util.Set;
@@ -68,6 +70,15 @@ public class RegionBasedIdentifierCreator extends IdentifierCreator {
     }
   }
 
+  private RegionBasedIdentifierCreator(
+      String pFunc,
+      Set<String> pVars,
+      Multimap<CCompositeType, String> pFields) {
+    super(pFunc);
+    addressedVariables = pVars;
+    addressedFields = pFields;
+  }
+
   @Override
   public AbstractIdentifier createIdentifier(CSimpleDeclaration decl, int pDereference) {
     Preconditions.checkNotNull(decl);
@@ -107,16 +118,17 @@ public class RegionBasedIdentifierCreator extends IdentifierCreator {
     String fieldName = expression.getFieldName();
 
     CType structType = owner.getExpressionType();
-    if (structType instanceof CPointerType) {
-      structType = ((CPointerType) structType).getType();
+    while (!(structType instanceof CCompositeType)) {
+      if (structType instanceof CPointerType) {
+        structType = ((CPointerType) structType).getType();
+      } else if (structType instanceof CTypedefType) {
+        structType = ((CTypedefType) structType).getRealType();
+      } else if (structType instanceof CElaboratedType) {
+        structType = ((CElaboratedType) structType).getRealType();
+      } else {
+        throw new UnsupportedOperationException("Unknown CType: " + structType.toASTString(""));
+      }
     }
-    if (structType instanceof CTypedefType) {
-      structType = ((CTypedefType) structType).getRealType();
-    }
-    if (structType instanceof CElaboratedType) {
-      structType = ((CElaboratedType) structType).getRealType();
-    }
-    assert structType instanceof CCompositeType;
     String typeName = ((CCompositeType) structType).getQualifiedName();
 
     if (dereference > 0 || addressedFields.get((CCompositeType) structType).contains(fieldName)) {
@@ -141,5 +153,13 @@ public class RegionBasedIdentifierCreator extends IdentifierCreator {
     } else {
       return createIdentifier(decl, dereference);
     }
+  }
+
+  @Override
+  public IdentifierCreator copy() {
+    return new RegionBasedIdentifierCreator(
+        function,
+        ImmutableSet.copyOf(addressedVariables),
+        LinkedHashMultimap.create(addressedFields));
   }
 }
