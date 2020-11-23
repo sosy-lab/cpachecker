@@ -80,13 +80,11 @@ public class UsageProcessor {
 
   private Map<CFANode, Map<GeneralIdentifier, DataType>> precision;
   private Map<CFAEdge, Collection<Pair<AbstractIdentifier, Access>>> usages;
-  // Not a set, as usage.equals do not consider id
-  private List<UsageInfo> result;
 
   private Collection<CFANode> uselessNodes;
   private Collection<SingleIdentifier> redundantIds;
 
-  private final IdentifierCreator creator;
+  private IdentifierCreator creator;
 
   StatTimer totalTimer = new StatTimer("Total time for usage processing");
   StatTimer localTimer = new StatTimer("Time for sharedness check");
@@ -117,15 +115,19 @@ public class UsageProcessor {
 
   public List<UsageInfo> getUsagesForState(AbstractState pState) {
 
-    totalTimer.start();
+    // Not a set, as usage.equals do not consider id
+    List<UsageInfo> result;
+    // totalTimer.start();
     result = new ArrayList<>();
 
     ARGState argState = (ARGState) pState;
     CFANode node = AbstractStates.extractLocation(argState);
 
-    if (uselessNodes.contains(node)) {
-      totalTimer.stop();
-      return result;
+    synchronized (uselessNodes) {
+      if (uselessNodes.contains(node)) {
+        // totalTimer.stop();
+        return result;
+      }
     }
     boolean resultComputed = false;
 
@@ -139,28 +141,31 @@ public class UsageProcessor {
         CFAEdge edge = node.getEdgeTo(childNode);
         Collection<Pair<AbstractIdentifier, Access>> ids;
 
-        if (usages.containsKey(edge)) {
-          ids = usages.get(edge);
-        } else {
-          ids = getUsagesForEdge(child, edge);
-          if (!ids.isEmpty()) {
-            usages.put(edge, ids);
+        synchronized (usages) {
+          if (usages.containsKey(edge)) {
+            ids = usages.get(edge);
+          } else {
+            ids = getUsagesForEdge(child, edge);
+            if (!ids.isEmpty()) {
+              usages.put(edge, ids);
+            }
           }
         }
 
-        usagePreparationTimer.start();
+        // usagePreparationTimer.start();
         for (Pair<AbstractIdentifier, Access> pair : ids) {
           AbstractIdentifier id = pair.getFirst();
           // Links will be extracted as aliases later
 
-          searchingCacheTimer.start();
-          boolean b = redundantIds.contains(id);
-          searchingCacheTimer.stop();
+          // searchingCacheTimer.start();
+          boolean b = false;
+          b = redundantIds.contains(id);
+          // searchingCacheTimer.stop();
           if (!b) {
-            createUsages(id, node, child, pair.getSecond());
+            createUsages(id, node, child, pair.getSecond(), result);
           }
         }
-        usagePreparationTimer.stop();
+        // usagePreparationTimer.stop();
 
       } else {
         // No edge, for example, due to BAM
@@ -169,13 +174,17 @@ public class UsageProcessor {
     }
 
     if (resultComputed && result.isEmpty()) {
-      uselessNodes.add(node);
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge e = node.getLeavingEdge(i);
-        usages.remove(e);
+      synchronized (uselessNodes) {
+        uselessNodes.add(node);
+      }
+      synchronized (usages) {
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge e = node.getLeavingEdge(i);
+          usages.remove(e);
+        }
       }
     }
-    totalTimer.stop();
+    // totalTimer.stop();
     return result;
   }
 
@@ -340,15 +349,23 @@ public class UsageProcessor {
       final CExpression expression,
       final Access access) {
     String fName = getCurrentFunction(pChild);
-    ExpressionHandler handler =
-        new ExpressionHandler(access, fName, varSkipper, getIdentifierCreator(fName));
+
+    // To avoid synchronization
+    IdentifierCreator localCreator = creator.copy();
+    localCreator.setCurrentFunction(fName);
+    ExpressionHandler handler = new ExpressionHandler(access, fName, varSkipper, localCreator);
     expression.accept(handler);
 
     return handler.getProcessedExpressions();
   }
 
   private void
-      createUsages(AbstractIdentifier pId, CFANode pNode, AbstractState pChild, Access pAccess) {
+      createUsages(
+          AbstractIdentifier pId,
+          CFANode pNode,
+          AbstractState pChild,
+          Access pAccess,
+          List<UsageInfo> result) {
 
     // TODO looks like a hack
     if (pId instanceof SingleIdentifier) {
@@ -375,7 +392,7 @@ public class UsageProcessor {
     }
 
     for (AbstractIdentifier aliasId : aliases) {
-      createUsageAndAdd(aliasId, pNode, pChild, pAccess);
+      createUsageAndAdd(aliasId, pNode, pChild, pAccess, result);
     }
   }
 
@@ -383,22 +400,23 @@ public class UsageProcessor {
       AbstractIdentifier pId,
       CFANode pNode,
       AbstractState pChild,
-      Access pAccess) {
+      Access pAccess,
+      List<UsageInfo> result) {
 
     if (pId instanceof LocalVariableIdentifier && !pId.isDereferenced()) {
       return;
     }
 
-    usageCreationTimer.start();
+    // usageCreationTimer.start();
     UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pChild, pId);
-    usageCreationTimer.stop();
+    // usageCreationTimer.stop();
 
     // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
       return;
     }
 
-    localTimer.start();
+    // localTimer.start();
     Map<GeneralIdentifier, DataType> localInfo = precision.get(pNode);
     if (localInfo == null) {
       // No preset info, but there may be runtime info
@@ -411,7 +429,7 @@ public class UsageProcessor {
       logger.log(
           Level.FINER,
           singleId + " is considered to be local, so it wasn't add to statistics");
-      localTimer.stop();
+      // localTimer.stop();
       return;
     } else {
 
@@ -443,12 +461,12 @@ public class UsageProcessor {
         logger.log(
             Level.FINER,
             singleId + " is supposed to be local, so it wasn't add to statistics");
-        localTimer.stop();
+        // localTimer.stop();
         return;
       }
     }
 
-    localTimer.stop();
+    // localTimer.stop();
     logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");
 
     result.add(usage);
@@ -469,10 +487,5 @@ public class UsageProcessor {
         .endLevel()
         .put("Number of useless nodes", uselessNodes.size())
         .put("Number of cached edges", usages.size());
-  }
-
-  private IdentifierCreator getIdentifierCreator(String functionName) {
-    creator.setCurrentFunction(functionName);
-    return creator;
   }
 }
