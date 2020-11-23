@@ -31,7 +31,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.legion.LegionPhaseStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.legion.LegionComponentStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -45,7 +45,7 @@ public class UnvisitedEdgesStrategy implements Selector {
 
     final LogManager logger;
     final PathFormulaManager formulaManager;
-    private LegionPhaseStatistics stats;
+    private LegionComponentStatistics stats;
     private Random random;
     private Set<PathFormula> blacklisted;
 
@@ -55,7 +55,7 @@ public class UnvisitedEdgesStrategy implements Selector {
         this.random = new Random(1636672210L);
         this.blacklisted = new HashSet<>();
 
-        this.stats = new LegionPhaseStatistics("selection");
+        this.stats = new LegionComponentStatistics("selection");
     }
 
     @Override
@@ -194,11 +194,10 @@ public class UnvisitedEdgesStrategy implements Selector {
         }
         return found_edges;
     }
-
     
 
     @Override
-    public LegionPhaseStatistics getStats() {
+    public LegionComponentStatistics getStats() {
         this.stats.set_other("blacklisted", (double)this.blacklisted.size());
         return this.stats;
     }

@@ -19,7 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
-import org.sosy_lab.cpachecker.core.algorithm.legion.LegionPhaseStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.legion.LegionComponentStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -46,5 +46,5 @@ public interface Selector {
         return;
     }
     
-    LegionPhaseStatistics getStats();
+    LegionComponentStatistics getStats();
 }

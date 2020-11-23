@@ -43,7 +43,7 @@ public class TargetSolver {
     private int successfull_primary_solves = 0;
     private int successfull_secondary_solves = 0;
     private int unsuccessfull_solves = 0;
-    private LegionPhaseStatistics stats;
+    private LegionComponentStatistics stats;
 
     /**
      * @param pLogger        The logging instance to use.
@@ -55,12 +55,12 @@ public class TargetSolver {
         solver = pSolver;
         maxSolverAsks = pMaxSolverAsks;
 
-        this.stats = new LegionPhaseStatistics("targetting");
+        this.stats = new LegionComponentStatistics("targeting");
     }
 
 
     /**
-     * Phase targetting Solve for the given targets and return matching values.
+     * Phase targeting Solve for the given targets and return matching values.
      * 
      * @param pTarget The target formula to solve for.
      */
@@ -165,7 +165,7 @@ public class TargetSolver {
         return values;
     }
 
-    public LegionPhaseStatistics getStats(){
+    public LegionComponentStatistics getStats(){
         this.stats.set_other("successfull_primary_solves", (double)this.successfull_primary_solves);
         this.stats.set_other("successfull_secondary_solves", (double)this.successfull_secondary_solves);
         this.stats.set_other("unsuccessfull_solves", (double)this.unsuccessfull_solves);

@@ -24,7 +24,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-public class LegionPhaseStatistics {
+public class LegionComponentStatistics {
     private String name;
 
     private Duration execution_time;
@@ -33,7 +33,7 @@ public class LegionPhaseStatistics {
     private int iterations;
     private HashMap<String, Double> others;
 
-    public LegionPhaseStatistics(String pName) {
+    public LegionComponentStatistics(String pName) {
         this.name = pName;
         this.execution_time = Duration.ZERO;
         this.iterations = 0;

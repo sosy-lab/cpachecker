@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.legion.LegionPhaseStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.legion.LegionComponentStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -42,7 +42,7 @@ public class RandomSelectionStrategy implements Selector {
 
     private LogManager logger;
     private Random random;
-    private LegionPhaseStatistics stats;
+    private LegionComponentStatistics stats;
     private Set<PathFormula> blacklisted;
 
     private static long random_seed = 1200709844L;
@@ -51,7 +51,7 @@ public class RandomSelectionStrategy implements Selector {
         this.logger = logger;
 
         this.random = new Random(random_seed);
-        this.stats = new LegionPhaseStatistics("selection");
+        this.stats = new LegionComponentStatistics("selection");
 
         this.blacklisted = new HashSet<>();
     }
@@ -115,7 +115,7 @@ public class RandomSelectionStrategy implements Selector {
     }
 
     @Override
-    public LegionPhaseStatistics getStats() {
+    public LegionComponentStatistics getStats() {
         return this.stats;
     }
 

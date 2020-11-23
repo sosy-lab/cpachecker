@@ -25,6 +25,8 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -59,6 +61,11 @@ public class OutputWriter {
 
     private int testCaseNumber;
     private int previousSetSize;
+    private Instant zero;
+
+    // Stats
+    private LegionComponentStatistics stats;
+    int successfull_writes = 0;
 
     /**
      * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
@@ -73,6 +80,9 @@ public class OutputWriter {
 
         this.testCaseNumber = 0;
         this.previousSetSize = 0;
+
+        this.zero = Instant.now();
+        this.stats = new LegionComponentStatistics("output_writer");
 
         initOutDir(path);
         writeTestMetadata();
@@ -89,6 +99,7 @@ public class OutputWriter {
      * This only needs to be done once and does not contain testcase specific information.
      */
     private void writeTestMetadata() {
+        this.stats.start();
         try (Writer metadata =
                 Files.newBufferedWriter(
                         Paths.get(this.path + "/metadata.xml"),
@@ -97,7 +108,11 @@ public class OutputWriter {
             metadata.flush();
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write metadata file", exc);
+        } finally {
+            this.stats.finish();
+            this.successfull_writes += 1;
         }
+
     }
 
     /**
@@ -105,6 +120,7 @@ public class OutputWriter {
      */
     public void writeTestCases(UnmodifiableReachedSet pReachedSet) {
 
+        this.stats.start();
         int reached_size = pReachedSet.size();
         // Write output only if new states have been reached
         if (previousSetSize == reached_size) {
@@ -127,12 +143,19 @@ public class OutputWriter {
         if (pReachedSet.hasViolatedProperties()) {
             violation_str = "_error";
         }
-        String filename = String.format("/testcase_%s%s.xml", this.testCaseNumber, violation_str);
+        Duration since_zero = Duration.between(this.zero, Instant.now());
+        String filename =
+                String.format(
+                        "/testcase_%09d_%s%s.xml",
+                        since_zero.toNanos(),
+                        this.testCaseNumber,
+                        violation_str);
 
         // Get content
         String inputs = writeVariablesToTestcase(values);
         if (inputs.length() < 1) {
             this.previousSetSize = reached_size;
+            this.stats.finish();
             return;
         }
 
@@ -154,11 +177,13 @@ public class OutputWriter {
             // Footer and flush
             testcase.write("</testcase>\n");
             testcase.flush();
+            this.successfull_writes += 1;
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write test output", exc);
         } finally {
             this.testCaseNumber += 1;
             this.previousSetSize = reached_size;
+            this.stats.finish();
         }
 
     }
@@ -317,5 +342,11 @@ public class OutputWriter {
             }
         }
         return null;
+    }
+
+    public LegionComponentStatistics getStats() {
+        this.stats.set_other("successfull_writes", (double)this.successfull_writes);
+
+        return this.stats;
     }
 }

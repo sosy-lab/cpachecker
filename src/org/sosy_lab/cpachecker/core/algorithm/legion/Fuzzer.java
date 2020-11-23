@@ -56,7 +56,7 @@ public class Fuzzer {
     private final ValueAnalysisCPA valueCpa;
     private OutputWriter outputWriter;
     private ShutdownNotifier shutdownNotifier;
-    LegionPhaseStatistics stats;
+    LegionComponentStatistics stats;
     private int passes;
 
     public Fuzzer(
@@ -75,7 +75,7 @@ public class Fuzzer {
         this.valueCpa = pValueCPA;
 
         this.outputWriter = pOutputWriter;
-        this.stats = new LegionPhaseStatistics(pName);
+        this.stats = new LegionComponentStatistics(pName);
 
         this.passes = initialPasses;
 

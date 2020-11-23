@@ -183,10 +183,10 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 break;
             }
 
-            // Phase Targetting: Solve for the target and produce a number of values
+            // Phase Targeting: Solve for the target and produce a number of values
             // needed as input to reach this target as well as give feedback to selection.
             ArrayList<ArrayList<ValueAssignment>> previousLoadedValues = preloadedValues;
-            logger.log(Level.INFO, "Targetting ...");
+            logger.log(Level.INFO, "Targeting ...");
             int weight;
             try {
                 preloadedValues = this.targetSolver.target(target);
@@ -243,12 +243,13 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         pOut.println("settings:");
         pOut.println("  selection_strategy: " + selectionStrategyOption);
 
-        pOut.println("phases:");
+        pOut.println("components:");
 
         pOut.println(this.init_fuzzer.stats.collect());
         pOut.println(this.selectionStrategy.getStats().collect());
         pOut.println(this.targetSolver.getStats().collect());
         pOut.println(this.fuzzer.stats.collect());
+        pOut.println(this.outputWriter.getStats().collect());
     }
 
     @Override
