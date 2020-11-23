@@ -461,8 +461,7 @@ public class CoreComponentsFactory {
           shutdownNotifier,
           specification,
           cfa);
-    }
-    else {
+    } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (constructResidualProgram) {
@@ -671,8 +670,7 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useExplainer
-    ) {
+        || useExplainer) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

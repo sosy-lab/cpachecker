@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -96,14 +95,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependencegraph")
 public class DependenceGraphBuilder implements StatisticsProvider {
 
-  private final MutableCFA cfa;
-  private final Optional<VariableClassification> varClassification;
+  private final CFA cfa;
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -150,8 +147,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private boolean considerFlowDeps = true;
 
   public DependenceGraphBuilder(
-      final MutableCFA pCfa,
-      final Optional<VariableClassification> pVarClassification,
+      final CFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
@@ -161,15 +157,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    varClassification = pVarClassification;
-  }
-
-  public DependenceGraph build()
-      throws InvalidConfigurationException, InterruptedException, CPAException {
-    dependenceGraphConstructionTimer.start();
-    nodes = new NodeMap();
-    adjacencyMatrix = HashBasedTable.create();
-
+    
     // If you add additional types of dependencies, they should probably be added to this check,
     // as well
     if (!considerFlowDeps && !considerControlDeps) {
@@ -177,6 +165,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           "At least one kind of dependency is required"
               + " to build a meaningful dependence graph");
     }
+  }
+
+  public DependenceGraph build() throws InterruptedException, CPAException {
+
+    dependenceGraphConstructionTimer.start();
+    nodes = new NodeMap();
+    adjacencyMatrix = HashBasedTable.create();
 
     if (considerFlowDeps) {
       flowDependenceTimer.start();
@@ -456,7 +451,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       int controlDepCounter = 0;
       ImmutableSet<ControlDependency> controlDependencies =
           ControlDependenceBuilder.computeControlDependencies(
-              cfa, entryNode, controlDepsTakeBothAssumptions);
+              entryNode, controlDepsTakeBothAssumptions);
 
       for (ControlDependency controlDependency : controlDependencies) {
         addDependence(
@@ -473,8 +468,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   @SuppressWarnings("unused") // old method for computing flow dependences
   private void addFlowDependences()
       throws InvalidConfigurationException, InterruptedException, CPAException {
-    FlowDependences flowDependences =
-        FlowDependences.create(cfa, varClassification, config, logger, shutdownNotifier);
+    FlowDependences flowDependences = FlowDependences.create(cfa, config, logger, shutdownNotifier);
     for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> c : flowDependences.cellSet()) {
       CFAEdge edgeDepending = checkNotNull(c.getRowKey());
       Optional<MemoryLocation> specificDefAtEdge = checkNotNull(c.getColumnKey());
@@ -624,18 +618,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
 
     public static FlowDependences create(
-        final MutableCFA pCfa,
-        final Optional<VariableClassification> pVariableClassification,
+        final CFA pCfa,
         final Configuration pConfig,
         final LogManager pLogger,
         final ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException, CPAException, InterruptedException {
-      CFA cfa = pCfa;
-      if (pVariableClassification.isPresent()) {
-        cfa = pCfa.makeImmutableCFA(pVariableClassification, Optional.empty());
-      }
 
-      return createDependences(cfa, pConfig, pLogger, pShutdownNotifier);
+      return createDependences(pCfa, pConfig, pLogger, pShutdownNotifier);
     }
 
     private static FlowDependences createDependences(
