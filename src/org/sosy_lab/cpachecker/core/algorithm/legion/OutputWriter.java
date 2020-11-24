@@ -146,7 +146,7 @@ public class OutputWriter {
         Duration since_zero = Duration.between(this.zero, Instant.now());
         String filename =
                 String.format(
-                        "/testcase_%09d_%s%s.xml",
+                        "/testcase_%016d_%s%s.xml",
                         since_zero.toNanos(),
                         this.testCaseNumber,
                         violation_str);
