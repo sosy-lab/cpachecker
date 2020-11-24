@@ -112,7 +112,7 @@ public class AutomatonGraphmlCommon {
     private final String name;
 
     AssumeCase(String pName) {
-      this.name = pName;
+      name = pName;
     }
 
     public String getName() {
@@ -176,23 +176,23 @@ public class AutomatonGraphmlCommon {
     /** The defaultValue is non-null, iff existent. */
     @Nullable public final String defaultValue;
 
-    KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
-      this(id, pKeyFor, attrName, attrType, null);
+    KeyDef(String pId, ElementType pKeyFor, String pAttrName, String pAttrType) {
+      this(pId, pKeyFor, pAttrName, pAttrType, null);
     }
 
     // because of https://github.com/spotbugs/spotbugs/issues/616
     @SuppressFBWarnings("NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
     KeyDef(
-        String id,
+        String pId,
         ElementType pKeyFor,
-        String attrName,
-        String attrType,
-        @Nullable Object defaultValue) {
-      this.id = Preconditions.checkNotNull(id);
-      this.keyFor = Preconditions.checkNotNull(pKeyFor);
-      this.attrName = Preconditions.checkNotNull(attrName);
-      this.attrType = Preconditions.checkNotNull(attrType);
-      this.defaultValue = defaultValue == null ? null : defaultValue.toString();
+        String pAttrName,
+        String pAttrType,
+        @Nullable Object pDefaultValue) {
+      id = Preconditions.checkNotNull(pId);
+      keyFor = Preconditions.checkNotNull(pKeyFor);
+      attrName = Preconditions.checkNotNull(pAttrName);
+      attrType = Preconditions.checkNotNull(pAttrType);
+      defaultValue = pDefaultValue == null ? null : pDefaultValue.toString();
     }
 
     @Override
@@ -225,8 +225,8 @@ public class AutomatonGraphmlCommon {
 
     public final KeyDef key;
 
-    NodeFlag(KeyDef key) {
-      this.key = key;
+    NodeFlag(KeyDef pKey) {
+      key = pKey;
     }
 
     private static final Map<String, NodeFlag> stringToFlagMap = new HashMap<>();
@@ -249,8 +249,8 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    WitnessType(String text) {
-      this.text = text;
+    WitnessType(String pText) {
+      text = pText;
     }
 
     @Override
@@ -283,8 +283,8 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    NodeType(String text) {
-      this.text = text;
+    NodeType(String pText) {
+      text = pText;
     }
 
     @Override
@@ -309,8 +309,8 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    GraphMLTag(String text) {
-      this.text = text;
+    GraphMLTag(String pText) {
+      text = pText;
     }
 
     @Override
@@ -346,7 +346,7 @@ public class AutomatonGraphmlCommon {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
-      this.doc = docBuilder.newDocument();
+      doc = docBuilder.newDocument();
       Element root = doc.createElement("graphml");
       doc.appendChild(root);
       root.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
