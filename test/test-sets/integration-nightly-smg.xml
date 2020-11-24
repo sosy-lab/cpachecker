@@ -61,7 +61,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="SoftwareSystems-BusyBox-MemSafety">
