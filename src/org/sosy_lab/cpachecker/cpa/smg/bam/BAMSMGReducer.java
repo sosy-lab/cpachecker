@@ -18,18 +18,17 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 
 public class BAMSMGReducer implements Reducer {
 
-
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState expandedState, Block context, CFANode callNode)
-      throws InterruptedException {
+      AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
     SMGState expandedBAMSMGState = (SMGState) expandedState;
     return expandedBAMSMGState.prepareForBam();
   }
 
   @Override
-  public AbstractState
-  getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState) throws InterruptedException {
+  public AbstractState getVariableExpandedState(
+      AbstractState rootState, Block reducedContext, AbstractState reducedState)
+      throws InterruptedException {
     SMGState reducedBAMSMGState = (SMGState) reducedState;
     var baseState = ((SMGState) rootState);
     return (SMGState.expandBAM(reducedBAMSMGState, baseState));
@@ -41,14 +40,13 @@ public class BAMSMGReducer implements Reducer {
   }
 
   @Override
-  public Precision
-  getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+  public Precision getVariableExpandedPrecision(
+      Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     return reducedPrecision;
   }
 
   @Override
-  public Object
-  getHashCodeForState(AbstractState stateKey, Precision precisionKey) {
+  public Object getHashCodeForState(AbstractState stateKey, Precision precisionKey) {
     return null;
   }
 
@@ -60,6 +58,4 @@ public class BAMSMGReducer implements Reducer {
       FunctionExitNode exitLocation) {
     return null;
   }
-
-
 }

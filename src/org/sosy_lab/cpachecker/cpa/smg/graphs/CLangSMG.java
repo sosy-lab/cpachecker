@@ -86,7 +86,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return CLangSMG.perform_checks;
   }
 
-  public void setStackFrames(PersistentStack<CLangStackFrame> frames){
+  public void setStackFrames(PersistentStack<CLangStackFrame> frames) {
     stack_objects = frames;
   }
 

@@ -83,18 +83,21 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*"
-              + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not"
+              + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
+              + " machine because of missing libraries \\(no optimathsat5j in"
+              + " java\\.library\\.path.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
       Pattern.compile(
-          "The following configuration options were specified but are not used:.*"
-              + "|MathSAT5 is available for research and evaluation purposes only.*"
-              + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
-              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
-              + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+          "The following configuration options were specified but are not used:.*|MathSAT5 is"
+              + " available for research and evaluation purposes only.*|Using unsound"
+              + " approximation of (ints with (unbounded integers|rationals))?( and )?(floats with"
+              + " (unbounded integers|rationals))? for encoding program semantics.|Handling of"
+              + " pointer aliasing is disabled, analysis is unsound if aliased pointers"
+              + " exist.|Finding target locations was interrupted.*|.*One of the parallel analyses"
+              + " has finished successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -104,12 +107,14 @@ public class ConfigurationFileChecks {
 
   private static final Pattern MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS =
       Pattern.compile(
-          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but could not find it in PATH)",
+          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but"
+              + " could not find it in PATH)",
           Pattern.DOTALL);
 
   private static final Pattern UNMAINTAINED_CPA_WARNING =
       Pattern.compile(
-          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
+          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work"
+              + " correctly\\.");
 
   private static final ImmutableSet<String> UNUSED_OPTIONS =
       ImmutableSet.of(
@@ -318,7 +323,8 @@ public class ConfigurationFileChecks {
     if (config.hasProperty(option)) {
       expect
           .withMessage(
-              "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+              "Configuration has value for option %s with value '%s', which should usually not be"
+                  + " present in config files",
               option, config.getProperty(option))
           .fail();
     }

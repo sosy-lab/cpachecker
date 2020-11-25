@@ -21,13 +21,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 
 @Options(prefix = "cpa.smg.bam")
-public class BAMSMGCPA extends SMGCPA implements ConfigurableProgramAnalysisWithBAM{
+public class BAMSMGCPA extends SMGCPA implements ConfigurableProgramAnalysisWithBAM {
 
   private final BAMSMGReducer reducer;
 
   protected BAMSMGCPA(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa) throws InvalidConfigurationException{
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCfa);
     reducer = new BAMSMGReducer();
     pConfig.inject(this, SMGCPA.class);
@@ -41,6 +41,4 @@ public class BAMSMGCPA extends SMGCPA implements ConfigurableProgramAnalysisWith
   public Reducer getReducer() throws InvalidConfigurationException {
     return reducer;
   }
-
-
 }

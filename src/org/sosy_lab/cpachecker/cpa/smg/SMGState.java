@@ -161,7 +161,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       Map<SMGKnownSymbolicValue, SMGKnownExpValue> pMergedExplicitValues) {
     this(pLogger, pOptions, pHeap, pPredId, pMergedExplicitValues, SMGErrorInfo.of(), false);
   }
-  public LogManager getLogger(){
+
+  public LogManager getLogger() {
     return logger;
   }
   /** Copy constructor. */
@@ -245,7 +246,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return new_object;
   }
 
-  public SMGState prepareForBam(){
+  public SMGState prepareForBam() {
     var copy = copyOf();
     PersistentStack<CLangStackFrame> clearedStack = PersistentStack.of();
     clearedStack = clearedStack.pushAndCopy(heap.getStackFrames().peek());
@@ -254,12 +255,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return copy;
   }
 
-  public static SMGState expandBAM(SMGState reduced, SMGState expanded){
+  public static SMGState expandBAM(SMGState reduced, SMGState expanded) {
     /*therefore reducing makes a copy we can here commit changes straight to reduced*/
-    try{
+    try {
       return expanded.copyWith(reduced.getHeap().copyOf(), reduced.explicitValues);
 
-    } catch (Exception e){
+    } catch (Exception e) {
       return expanded;
     }
   }
