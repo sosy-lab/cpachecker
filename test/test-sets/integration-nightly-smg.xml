@@ -62,6 +62,8 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- Juliet tasks call external functions like "time" which are irrelevant for the task itself -->
+    <option name="-setprop">cpa.smg.handleUnknownFunctions=ASSUME_SAFE</option>
   </tasks>
 
   <tasks name="SoftwareSystems-BusyBox-MemSafety">
