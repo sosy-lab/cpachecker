@@ -253,7 +253,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         // TODO: can we do something here?
       }
     }
-    return state;
+    return currentState;
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;".
