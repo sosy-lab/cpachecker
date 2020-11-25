@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -160,7 +161,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       Map<SMGKnownSymbolicValue, SMGKnownExpValue> pMergedExplicitValues) {
     this(pLogger, pOptions, pHeap, pPredId, pMergedExplicitValues, SMGErrorInfo.of(), false);
   }
-
+  public LogManager getLogger(){
+    return logger;
+  }
   /** Copy constructor. */
   private SMGState(
       LogManager pLogger,
@@ -289,6 +292,23 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addStackObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return Optional.of(new_object);
+  }
+
+  public SMGState prepareForBam() throws SMGInconsistentException {
+    var copy = copyOf();
+    PersistentStack<CLangStackFrame> clearedStack = PersistentStack.of();
+    clearedStack = clearedStack.pushAndCopy(heap.getStackFrames().peek());
+    copy.heap.setStackFrames(clearedStack);
+    copy.heap.pruneUnreachable();
+
+
+    /*int frameCount = copy.heap.getStackFrames().size();
+    for(int i = 0; i < frameCount; i++) {
+      copy.heap.dropStackFrame();
+    }
+    copy.*/
+
+    return copy;
   }
 
 
@@ -422,7 +442,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
       if (obj.isAbstract()) {
         performConsistencyCheck(SMGRuntimeCheck.HALF);
-        return handleMaterilisation(addressValue, ((SMGAbstractObject) obj));
+        return handleMaterialisation(addressValue, ((SMGAbstractObject) obj));
       }
 
       return Collections.singletonList(SMGAddressValueAndState.of(this, addressValue));
@@ -431,7 +451,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
   }
 
-  private List<SMGAddressValueAndState> handleMaterilisation(
+  private List<SMGAddressValueAndState> handleMaterialisation(
       SMGEdgePointsTo pointerToAbstractObject, SMGAbstractObject pSmgAbstractObject)
       throws SMGInconsistentException {
 

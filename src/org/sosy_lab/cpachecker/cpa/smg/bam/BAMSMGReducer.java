@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public class BAMSMGReducer implements Reducer {
@@ -21,17 +23,23 @@ public class BAMSMGReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
+      AbstractState expandedState, Block context, CFANode callNode)
+      throws InterruptedException {
     BAMSMGState expandedBAMSMGState = (BAMSMGState) expandedState;
-    return new BAMSMGState(CLangSMG.prepareForBAM(expandedBAMSMGState.getWrappedState()));
+    try{
+      return new BAMSMGState(BAMSMGState.prepareForBAM(expandedBAMSMGState.getWrappedState()));
+    }
+    catch (SMGInconsistentException e){
+      throw new InterruptedException();
+    }
   }
 
   @Override
   public AbstractState
   getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState) throws InterruptedException {
     BAMSMGState reducedBAMSMGState = (BAMSMGState) reducedState;
-    CLangSMG baseState = ((BAMSMGState) rootState).getWrappedState();
-    return (AbstractState) CLangSMG.expandBAM(reducedBAMSMGState.getWrappedState(), baseState);
+    var baseState = ((BAMSMGState) rootState).getWrappedState();
+    return BAMSMGState.expandBAM(reducedBAMSMGState.getWrappedState(), baseState);
   }
 
   @Override

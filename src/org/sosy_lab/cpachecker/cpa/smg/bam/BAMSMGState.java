@@ -8,20 +8,42 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.bam;
 
+import com.google.common.collect.BiMap;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 
 public class BAMSMGState implements AbstractState {
-  private final CLangSMG wrappedState;
+  private final SMGState wrappedState;
 
-  public BAMSMGState(CLangSMG pWrappedState) {
+  public BAMSMGState(SMGState pWrappedState) {
     wrappedState = pWrappedState;
   }
 
-  CLangSMG getWrappedState(){
+  SMGState getWrappedState(){
     return wrappedState;
+  }
+
+  static SMGState prepareForBAM(SMGState pState) throws SMGInconsistentException {
+    return pState.prepareForBam();
+  }
+
+  static SMGState expandBAM(SMGState reduced, SMGState expanded){
+    /*therefore reducing makes a copy we can here commit changes straight to reduced*/
+    try{
+      return expanded.copyWith(reduced.getHeap().copyOf(),  (BiMap<SMGKnownSymbolicValue, SMGKnownExpValue>) reduced.getExplicitValues());
+
+    } catch (Exception e){
+      return expanded;
+    }
   }
 
   @Override
@@ -29,7 +51,7 @@ public class BAMSMGState implements AbstractState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || !(pO instanceof BAMSMGState)) {
+    if (!(pO instanceof BAMSMGState)) {
       return false;
     }
     BAMSMGState bamSMGState = (BAMSMGState) pO;
