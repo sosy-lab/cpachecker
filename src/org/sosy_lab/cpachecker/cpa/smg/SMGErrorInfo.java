@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  *
  * <p>This class is immutable.
  */
-class SMGErrorInfo {
+public class SMGErrorInfo {
 
   private final boolean invalidWrite;
   private final boolean invalidRead;
@@ -50,7 +50,7 @@ class SMGErrorInfo {
     currentChain = pCurrentChain;
   }
 
-  static SMGErrorInfo of() {
+  public static SMGErrorInfo of() {
     return new SMGErrorInfo(
         false, false, false, false, "", PersistentLinkedList.of(), PersistentLinkedList.of());
   }

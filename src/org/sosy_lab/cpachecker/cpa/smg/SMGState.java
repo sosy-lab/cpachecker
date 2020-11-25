@@ -94,19 +94,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
   // TODO remove to avoid problems?
   private static final UniqueIdGenerator ID_COUNTER = new UniqueIdGenerator();
-  private final int predecessorId;
-  private final int id;
+  protected final int predecessorId;
+  protected final int id;
 
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues =
+  protected final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues =
       HashBiMap.create(ImmutableMap.of(SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE));
-  private final CLangSMG heap;
+  protected final CLangSMG heap;
 
   private final boolean blockEnded;
 
   private SMGErrorInfo errorInfo;
 
   private final LogManager logger;
-  private final SMGOptions options;
+  protected final SMGOptions options;
   private final long sizeOfVoidPointerInBits;
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
@@ -165,7 +165,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return logger;
   }
   /** Copy constructor. */
-  private SMGState(
+  protected SMGState(
       LogManager pLogger,
       SMGOptions pOptions,
       CLangSMG pHeap,
@@ -245,6 +245,25 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return new_object;
   }
 
+  public SMGState prepareForBam(){
+    var copy = copyOf();
+    PersistentStack<CLangStackFrame> clearedStack = PersistentStack.of();
+    clearedStack = clearedStack.pushAndCopy(heap.getStackFrames().peek());
+    copy.heap.setStackFrames(clearedStack);
+    copy.heap.pruneUnreachable();
+    return copy;
+  }
+
+  public static SMGState expandBAM(SMGState reduced, SMGState expanded){
+    /*therefore reducing makes a copy we can here commit changes straight to reduced*/
+    try{
+      return expanded.copyWith(reduced.getHeap().copyOf(), reduced.explicitValues);
+
+    } catch (Exception e){
+      return expanded;
+    }
+  }
+
   /**
    * Makes SMGState create a new object and put it into the current stack
    * frame.
@@ -294,22 +313,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return Optional.of(new_object);
   }
 
-  public SMGState prepareForBam() throws SMGInconsistentException {
-    var copy = copyOf();
-    PersistentStack<CLangStackFrame> clearedStack = PersistentStack.of();
-    clearedStack = clearedStack.pushAndCopy(heap.getStackFrames().peek());
-    copy.heap.setStackFrames(clearedStack);
-    copy.heap.pruneUnreachable();
-
-
-    /*int frameCount = copy.heap.getStackFrames().size();
-    for(int i = 0; i < frameCount; i++) {
-      copy.heap.dropStackFrame();
-    }
-    copy.*/
-
-    return copy;
-  }
 
 
 

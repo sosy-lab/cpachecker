@@ -68,9 +68,9 @@ public class SMGCPA
       description="which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 
-  private final SMGPredicateManager smgPredicateManager;
+  protected final SMGPredicateManager smgPredicateManager;
   private final BlockOperator blockOperator;
-  private final MachineModel machineModel;
+  protected final MachineModel machineModel;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -79,11 +79,11 @@ public class SMGCPA
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final SMGOptions options;
-  private final SMGExportDotOption exportOptions;
+  protected final SMGExportDotOption exportOptions;
   private final SMGStatistics stats = new SMGStatistics();
 
   // flag whether we perform CEGAR or static analysis.
-  private SMGTransferRelationKind kind = SMGTransferRelationKind.STATIC;
+  protected SMGTransferRelationKind kind = SMGTransferRelationKind.STATIC;
 
   private SMGPrecision precision;
 
