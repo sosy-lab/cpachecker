@@ -39,7 +39,7 @@ public class BAMSMGReducer implements Reducer {
   getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState) throws InterruptedException {
     BAMSMGState reducedBAMSMGState = (BAMSMGState) reducedState;
     var baseState = ((BAMSMGState) rootState).getWrappedState();
-    return BAMSMGState.expandBAM(reducedBAMSMGState.getWrappedState(), baseState);
+    return new BAMSMGState(BAMSMGState.expandBAM(reducedBAMSMGState.getWrappedState(), baseState));
   }
 
   @Override

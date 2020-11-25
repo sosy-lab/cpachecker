@@ -14,6 +14,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
@@ -28,6 +30,9 @@ public class BAMSMGCPA extends SMGCPA implements ConfigurableProgramAnalysisWith
       CFA pCfa) throws InvalidConfigurationException{
     super(pConfig, pLogger, pShutdownNotifier, pCfa);
     reducer = new BAMSMGReducer();
+  }
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(BAMSMGCPA.class);
   }
 
   @Override
