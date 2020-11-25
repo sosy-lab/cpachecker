@@ -30,10 +30,9 @@ public class BAMSMGCPA extends SMGCPA implements ConfigurableProgramAnalysisWith
       CFA pCfa) throws InvalidConfigurationException{
     super(pConfig, pLogger, pShutdownNotifier, pCfa);
     reducer = new BAMSMGReducer();
-
-
-
+    pConfig.inject(this, SMGCPA.class);
   }
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMSMGCPA.class);
   }
