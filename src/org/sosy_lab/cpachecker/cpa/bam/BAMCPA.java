@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
-import javax.annotation.Nonnull;
-import org.jetbrains.annotations.Contract;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

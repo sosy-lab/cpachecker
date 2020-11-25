@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * An interface which is provided by a configurable program analysis using
@@ -116,7 +115,7 @@ public interface Reducer {
    * }</pre>
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-      AbstractState expandedState, FunctionExitNode exitLocation) ;
+      AbstractState expandedState, FunctionExitNode exitLocation);
 
   /**
    * See option bam.useDynamicAdjustment

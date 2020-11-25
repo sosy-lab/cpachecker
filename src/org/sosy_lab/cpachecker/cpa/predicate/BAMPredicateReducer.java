@@ -72,10 +72,10 @@ public class BAMPredicateReducer
    *  so, (at least now) there should not be used a single option for switching to NoOpReducer.
    */
   @Option(description = "Enable/disable precision reduction at the BAM block entry", secure = true)
-  private final boolean usePrecisionReduction = true;
+  private boolean usePrecisionReduction = true;
 
   @Option(description = "Enable/disable abstraction reduction at the BAM block entry", secure = true)
-  private final boolean useAbstractionReduction = true;
+  private boolean useAbstractionReduction = true;
 
   public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {

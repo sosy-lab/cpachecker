@@ -29,7 +29,7 @@ public class BamState implements AbstractState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (pO == null || !(pO instanceof BamState)) {
       return false;
     }
     BamState bamState = (BamState) pO;

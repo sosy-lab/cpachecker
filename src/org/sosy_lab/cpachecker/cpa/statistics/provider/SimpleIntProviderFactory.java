@@ -200,7 +200,7 @@ public class SimpleIntProviderFactory {
   }
 
   public static SimpleIntProvider getLoopCountProvider(CFA cfa, MergeOption option) {
-    final ImmutableSet<CFANode> loopHeads = cfa.getAllLoopHeads().orElseThrow(null);
+    final ImmutableSet<CFANode> loopHeads = cfa.getAllLoopHeads().orElseThrow();
     return new SimpleIntProvider(new SimpleIntProviderImplementation() {
       @Override
       public String getPropertyName() {

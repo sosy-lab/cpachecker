@@ -105,7 +105,6 @@ public enum MachineModel {
   ),
 
   /** Machine model representing an ARM machine with alignment: */
-  /** ARM64: Am i a joke to you?*/
   ARM(
       // numeric types
       2, // short
