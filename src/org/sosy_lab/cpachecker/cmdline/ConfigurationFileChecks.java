@@ -424,7 +424,7 @@ public class ConfigurationFileChecks {
         "cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA")) {
       assertThat(spec)
           .isAnyOf("specification/multiPropertyCex.spc", "../specification/default.spc");
-    } else if (cpas.contains("cpa.smg.SMGCPA")) {
+    } else if (cpas.contains("cpa.smg.SMGCPA") || cpas.contains("cpa.smg.bam.BAMSMGCPA")) {
       if (isSvcompConfig) {
         assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {
