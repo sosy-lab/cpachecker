@@ -6,17 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.cpa.smg.bam;
 
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
-public class BamState implements AbstractState {
+public class BAMSMGState implements AbstractState {
   private final CLangSMG wrappedState;
 
-  public BamState(CLangSMG pWrappedState) {
+  public BAMSMGState(CLangSMG pWrappedState) {
     wrappedState = pWrappedState;
   }
 
@@ -29,11 +29,11 @@ public class BamState implements AbstractState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || !(pO instanceof BamState)) {
+    if (pO == null || !(pO instanceof BAMSMGState)) {
       return false;
     }
-    BamState bamState = (BamState) pO;
-    return Objects.equals(wrappedState, bamState.wrappedState);
+    BAMSMGState bamSMGState = (BAMSMGState) pO;
+    return Objects.equals(wrappedState, bamSMGState.wrappedState);
   }
 
   @Override

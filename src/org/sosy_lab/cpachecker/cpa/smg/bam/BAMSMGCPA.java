@@ -6,25 +6,29 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.cpa.smg.bam;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 
+@Options(prefix = "cpa.smg.bam")
 public class BAMSMGCPA extends SMGCPA implements ConfigurableProgramAnalysisWithBAM {
+
+  private final BAMSMGReducer reducer;
+
   protected BAMSMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException{
     super(pConfig, pLogger, pShutdownNotifier, pCfa);
-    reducer = new BAMReducer();
+    reducer = new BAMSMGReducer();
   }
-  private final BAMReducer reducer;
 
   @Override
   public Reducer getReducer() throws InvalidConfigurationException {

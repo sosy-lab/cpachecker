@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.cpa.smg.bam;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -16,22 +16,22 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
-public class BAMReducer implements Reducer {
+public class BAMSMGReducer implements Reducer {
 
 
   @Override
   public AbstractState getVariableReducedState(
       AbstractState expandedState, Block context, CFANode callNode) throws InterruptedException {
-    BamState expandedBamState = (BamState)expandedState;
-    return new BamState(CLangSMG.prepareForBAM(expandedBamState.getWrappedState()));
+    BAMSMGState expandedBAMSMGState = (BAMSMGState) expandedState;
+    return new BAMSMGState(CLangSMG.prepareForBAM(expandedBAMSMGState.getWrappedState()));
   }
 
   @Override
   public AbstractState
   getVariableExpandedState(AbstractState rootState, Block reducedContext, AbstractState reducedState) throws InterruptedException {
-    BamState reducedBamState = (BamState)reducedState;
-    CLangSMG baseState = ((BamState) rootState).getWrappedState();
-    return (AbstractState)CLangSMG.expandBAM(reducedBamState.getWrappedState(), baseState);
+    BAMSMGState reducedBAMSMGState = (BAMSMGState) reducedState;
+    CLangSMG baseState = ((BAMSMGState) rootState).getWrappedState();
+    return (AbstractState) CLangSMG.expandBAM(reducedBAMSMGState.getWrappedState(), baseState);
   }
 
   @Override
