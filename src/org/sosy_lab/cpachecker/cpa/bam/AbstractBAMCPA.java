@@ -163,10 +163,8 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     return logger;
   }
 
-  @SuppressWarnings("FIXME: replace with BAM Reducer")
   TimedReducer getReducer() {
     try {
-      // TODO: replace with {@link BamReducer}
       return new TimedReducer(reducerStatistics, getWrappedCpa().getReducer());
     } catch (InvalidConfigurationException e) {
       // exception would already appear before, see constructor above

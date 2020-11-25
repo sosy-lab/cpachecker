@@ -68,10 +68,13 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       throws CPATransferException, InterruptedException {
     try {
 
-      // assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
+      final Collection<? extends AbstractState> successors =
+          getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+
+      //assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
       //    : "target-state should be returned as single-element-collection";
 
-      return getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
+      return successors;
 
     } catch (CPAException e) {
       throw new RecursiveAnalysisFailedException(e);
