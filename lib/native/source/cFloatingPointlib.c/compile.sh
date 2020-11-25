@@ -10,5 +10,5 @@
 
 gcc -std='c11' -shared -fpic -o 'libFloatingPoints.so' \
  	-I"$JAVA_HOME/include/" \
-	-I"$JAVA_HOME/include/linux/" \
+	-I"$JAVA_HOME/include/darwin/" \
 	floatingPoints.c

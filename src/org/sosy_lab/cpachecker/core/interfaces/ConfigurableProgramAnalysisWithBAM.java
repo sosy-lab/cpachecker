@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReducer;
+
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -21,11 +23,12 @@ public interface ConfigurableProgramAnalysisWithBAM extends
   /**
    * Get the reduce operator for BAM.
    *
-   * @see Reducer
    * @throws InvalidConfigurationException can be thrown from subclasses
+   * @see Reducer
    */
+  //TODO:(Implement)
   default Reducer getReducer() throws InvalidConfigurationException {
-    return NoOpReducer.getInstance();
+    return null;
   }
 
   /**

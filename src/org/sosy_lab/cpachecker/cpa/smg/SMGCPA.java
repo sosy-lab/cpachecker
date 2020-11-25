@@ -88,7 +88,7 @@ public class SMGCPA
   private SMGPrecision precision;
 
 
-  private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+  protected SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
     pConfig.inject(this);
 

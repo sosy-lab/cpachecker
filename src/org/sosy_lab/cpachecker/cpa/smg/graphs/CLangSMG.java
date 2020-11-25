@@ -121,6 +121,29 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return new CLangSMG(this);
   }
 
+  public static CLangSMG prepareForBAM(CLangSMG pState){
+    /*WARNING: CHECK FOR SIDE EFFECTS IN BASE CLASS*/
+    CLangSMG copy = pState.copyOf();
+    copy.stack_objects = PersistentStack.of();
+    if(!pState.stack_objects.isEmpty()){
+      //has one stack frame at least
+      pState.stack_objects = pState.stack_objects.popAndCopy();
+      copy.stack_objects = copy.stack_objects.pushAndCopy(pState.stack_objects.peek());
+
+    }
+    copy.heap_objects = PersistentSet.of();
+    return copy;
+  }
+
+  public static CLangSMG expandBAM(CLangSMG reduced, CLangSMG expanded){
+      /*therefore reducing makes a copy we can here commit changes straight to reduced*/
+    for(SMGObject heapObject: expanded.heap_objects){
+      reduced.addHeapObject(heapObject);
+    }
+    reduced.stack_objects = expanded.stack_objects.pushAndCopy(reduced.stack_objects.peek());
+    return reduced;
+  }
+
   /**
    * Add a object to the heap.
    *

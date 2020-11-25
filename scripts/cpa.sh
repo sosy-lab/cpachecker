@@ -34,6 +34,7 @@ if [ $result -ne 0 ]; then
   echo "Please make sure you are able to execute Java processes by running \"$JAVA\"."
   exit 1
 fi
+# shellcheck disable=SC2006
 java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | cut -f1 -d.`"
 if [ -z "$java_version" ] || [ "$java_version" -lt 11 ] ; then
   echo "Your Java version is too old, please install Java 11 or newer." 1>&2
@@ -43,6 +44,7 @@ if [ -z "$java_version" ] || [ "$java_version" -lt 11 ] ; then
   exit 1
 fi
 
+# shellcheck disable=SC2006
 platform="`uname -s`"
 
 # where the project directory is, relative to the location of this script

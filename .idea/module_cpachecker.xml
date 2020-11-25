@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_cpachecker" default="compile.module.cpachecker">
+  <dirname property="module.cpachecker.basedir" file="${ant.file.module_cpachecker}"/>
+  
+  <property name="module.jdk.home.cpachecker" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.cpachecker" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.cpachecker" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.cpachecker" value="-encoding UTF-8 -source 11 -target 11 ${compiler.args}"/>
+  
+  <property name="cpachecker.output.dir" value="${module.cpachecker.basedir}/../bin"/>
+  <property name="cpachecker.testoutput.dir" value="${module.cpachecker.basedir}/../bin"/>
+  
+  <path id="cpachecker.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="cpachecker.module.production.classpath">
+    <path refid="${module.jdk.classpath.cpachecker}"/>
+    <fileset dir="${basedir}/lib/java/runtime">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <fileset dir="${basedir}/lib/java/test">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <pathelement location="${basedir}/lib/java/build/error_prone_annotations.jar"/>
+    <fileset dir="${basedir}/lib">
+      <patternset refid="library.patterns"/>
+    </fileset>
+  </path>
+  
+  <path id="cpachecker.runtime.production.module.classpath">
+    <pathelement location="${cpachecker.output.dir}"/>
+    <fileset dir="${basedir}/lib/java/runtime">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <fileset dir="${basedir}/lib/java/test">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <pathelement location="${basedir}/lib/java/build/error_prone_annotations.jar"/>
+    <fileset dir="${basedir}/lib">
+      <patternset refid="library.patterns"/>
+    </fileset>
+  </path>
+  
+  <path id="cpachecker.module.classpath">
+    <path refid="${module.jdk.classpath.cpachecker}"/>
+    <pathelement location="${cpachecker.output.dir}"/>
+    <fileset dir="${basedir}/lib/java/runtime">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <fileset dir="${basedir}/lib/java/test">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <pathelement location="${basedir}/lib/java/build/error_prone_annotations.jar"/>
+    <fileset dir="${basedir}/lib">
+      <patternset refid="library.patterns"/>
+    </fileset>
+  </path>
+  
+  <path id="cpachecker.runtime.module.classpath">
+    <pathelement location="${cpachecker.output.dir}"/>
+    <fileset dir="${basedir}/lib/java/runtime">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <fileset dir="${basedir}/lib/java/test">
+      <patternset refid="library.patterns"/>
+    </fileset>
+    <pathelement location="${basedir}/lib/java/build/error_prone_annotations.jar"/>
+    <fileset dir="${basedir}/lib">
+      <patternset refid="library.patterns"/>
+    </fileset>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.cpachecker">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.cpachecker">
+    <patternset refid="excluded.from.module.cpachecker"/>
+  </patternset>
+  
+  <path id="cpachecker.module.sourcepath">
+    <dirset dir="${module.cpachecker.basedir}/../../cpachecker">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.cpachecker" depends="compile.module.cpachecker.production,compile.module.cpachecker.tests" description="Compile module CPAchecker"/>
+  
+  <target name="compile.module.cpachecker.production" depends="register.custom.compilers" description="Compile module CPAchecker; production classes">
+    <mkdir dir="${cpachecker.output.dir}"/>
+    <javac2 destdir="${cpachecker.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.cpachecker}/javac">
+      <compilerarg line="${compiler.args.cpachecker}"/>
+      <bootclasspath refid="cpachecker.module.bootclasspath"/>
+      <classpath refid="cpachecker.module.production.classpath"/>
+      <src refid="cpachecker.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.cpachecker"/>
+    </javac2>
+    
+    <copy todir="${cpachecker.output.dir}">
+      <fileset dir="${module.cpachecker.basedir}/../src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.cpachecker.tests" depends="register.custom.compilers,compile.module.cpachecker.production" description="compile module CPAchecker; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.cpachecker" description="cleanup module">
+    <delete dir="${cpachecker.output.dir}"/>
+    <delete dir="${cpachecker.testoutput.dir}"/>
+  </target>
+</project>

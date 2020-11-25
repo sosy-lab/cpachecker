@@ -75,7 +75,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
     // path.getFirstState();
     //  assert relevantCallStates.size() >= 1
     //      : "at least the main-function should be open at the target-state";
-    // TODO add element's block, if necessary?
+    // TODO: add element's block, if necessary?
 
     if (pMainReachedSet.asReachedSet().contains(cutPointAsArgState)) {
       assert relevantCallStates.isEmpty();
