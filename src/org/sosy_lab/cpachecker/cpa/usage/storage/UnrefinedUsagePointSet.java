@@ -40,21 +40,24 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   }
 
   private void add(UsagePoint newPoint) {
-    if (!topUsages.contains(newPoint)) {
-      // Put newPoint in the right place in tree
-      Iterator<UsagePoint> iterator = topUsages.iterator();
-      while (iterator.hasNext()) {
-        UsagePoint point = iterator.next();
-        if (newPoint.covers(point)) {
-          iterator.remove();
-          newPoint.addCoveredUsage(point);
-        } else if (point.covers(newPoint)) {
-          point.addCoveredUsage(newPoint);
-          return;
-        }
+    // Put newPoint in the right place in tree
+    Iterator<UsagePoint> iterator = topUsages.iterator();
+    while (iterator.hasNext()) {
+      UsagePoint point = iterator.next();
+      if (point.equals(newPoint)) {
+        // Unknown problem with contains:
+        // for skipList it somehow returns false for an element in the set
+        return;
       }
-      topUsages.add(newPoint);
+      if (newPoint.covers(point)) {
+        iterator.remove();
+        newPoint.addCoveredUsage(point);
+      } else if (point.covers(newPoint)) {
+        point.addCoveredUsage(newPoint);
+        return;
+      }
     }
+    topUsages.add(newPoint);
   }
 
   public UsageInfoSet getUsageInfo(UsagePoint point) {

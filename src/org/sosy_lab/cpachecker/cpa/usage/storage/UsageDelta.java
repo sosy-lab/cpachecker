@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
-import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class UsageDelta implements Delta<List<CompatibleNode>> {
@@ -51,7 +50,6 @@ public class UsageDelta implements Delta<List<CompatibleNode>> {
 
   @Override
   public boolean covers(Delta<List<CompatibleNode>> pDelta) {
-    assert pDelta instanceof UsageDelta;
     UsageDelta pOther = (UsageDelta) pDelta;
     assert nestedDeltas.size() == pOther.nestedDeltas.size();
 
@@ -65,7 +63,6 @@ public class UsageDelta implements Delta<List<CompatibleNode>> {
 
   @Override
   public boolean equals(Object pDelta) {
-    assert pDelta instanceof UsageDelta;
     UsageDelta pOther = (UsageDelta) pDelta;
     assert nestedDeltas.size() == pOther.nestedDeltas.size();
 
@@ -94,12 +91,10 @@ public class UsageDelta implements Delta<List<CompatibleNode>> {
 
     FluentIterable<CompatibleNode> reducedStates =
         AbstractStates.asIterable(reducedState)
-            .filter(CompatibleState.class)
-            .transform(CompatibleState::getCompatibleNode);
+            .filter(CompatibleNode.class);
     FluentIterable<CompatibleNode> rootStates =
         AbstractStates.asIterable(rootState)
-            .filter(CompatibleState.class)
-            .transform(CompatibleState::getCompatibleNode);
+            .filter(CompatibleNode.class);
 
     assert reducedStates.size() == rootStates.size();
 
