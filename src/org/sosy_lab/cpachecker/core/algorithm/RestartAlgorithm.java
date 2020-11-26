@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -23,9 +22,7 @@ import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Writer;
 import java.nio.channels.ClosedByInterruptException;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -49,7 +46,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -72,16 +68,12 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options(prefix = "restartAlgorithm")
@@ -357,7 +349,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               && !status.isPrecise())) {
 
             if (!(alwaysRestart && configFilesIterator.hasNext())) {
-              dumpSubcoverage(currentReached, currentCpa);
               // sound analysis and completely finished, terminate
               return status;
             }
@@ -475,26 +466,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return status;
-  }
-
-  private void dumpSubcoverage(ReachedSet reached, ConfigurableProgramAnalysis currentCpa) {
-
-     if (currentCpa instanceof AbstractBAMCPA) {
-      if (subcoverageFile != null) {
-        FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
-        Collection<ReachedSet> otherReachedSets =
-            ((AbstractBAMCPA) currentCpa).getData().getCache().getAllCachedReachedStates();
-        reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
-
-        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);
-
-         try (Writer gcovOut = IO.openOutputFile(subcoverageFile, Charset.defaultCharset())) {
-           CoverageReportGcov.write(infosPerFile, gcovOut);
-         } catch (IOException e) {
-           logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
-         }
-       }
-     }
   }
 
   @SuppressFBWarnings(

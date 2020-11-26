@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ThreadModularReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
@@ -325,6 +327,20 @@ class MainCPAStatistics implements Statistics {
         Collection<ReachedSet> otherReachedSets =
             ((AbstractBAMCPA) cpa).getData().getCache().getAllCachedReachedStates();
         reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
+      } else
+
+      // Evil hack for races, as we use Restart algorithm
+      if (reached instanceof ForwardingReachedSet) {
+        ReachedSet delegate = ((ForwardingReachedSet) reached).getDelegate();
+        if (delegate instanceof UsageReachedSet) {
+          BAMDataManager manager = ((UsageReachedSet) delegate).getBAMDataManager();
+          if (manager != null) {
+            // Mabe a launch without BAM
+            Collection<ReachedSet> otherReachedSets =
+                manager.getCache().getAllCachedReachedStates();
+            reachedStates = reachedStates.append(FluentIterable.concat(otherReachedSets));
+          }
+        }
       }
 
       CoverageData infosPerFile = CoverageCollector.fromReachedSet(reachedStates, cfa);

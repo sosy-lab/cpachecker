@@ -39,8 +39,8 @@ public class Klever3ErrorTracePrinter extends KleverErrorTracePrinter {
 
   @Override
   protected void printWarningTo(GraphMlBuilder builder, Element element, String message) {
-    String warning = "level=\"0\" hide=\"false\" value=\"" + message + "\"";
-    builder.addDataElementChild(element, KeyDef.NOTE, escapeQuotes(warning));
+    String warning = "level=\"0\" hide=\"false\" value=\"" + escapeQuotes(message) + "\"";
+    builder.addDataElementChild(element, KeyDef.NOTE, warning);
   }
 
   @Override

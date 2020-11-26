@@ -132,6 +132,10 @@ public class ConcurrentUsageExtractor {
         .put("Number of different reached sets with lock effects", processingSteps);
   }
 
+  public BAMDataManager getManager() {
+    return manager;
+  }
+
   private class ReachedSetExecutor implements Runnable {
 
     private final UsageDelta currentDelta;

@@ -808,6 +808,9 @@ cfa.simplifyConstExpressions = true
 # rightHandSide
 cfa.simplifyPointerExpressions = false
 
+# Add assumptions about successfull thread create
+cfa.threads.addAssumptions = true
+
 # A name of thread_create function
 cfa.threads.threadCreate = {"pthread_create"}
 
@@ -1786,6 +1789,7 @@ cpa.lock.reduceUselessLocks = false
 cpa.lock.refinement = false
 
 # stop path exploration if a lock limit is reached
+cpa.lock.stopAfterLockLimit = true
 cpa.lock.stopAfterLockLimit = false
 
 # Consider or not special cases with empty lock sets
@@ -2994,6 +2998,9 @@ cpa.thread.skipTheSameThread = false
 # may try to support it with self-parallelizm.
 cpa.thread.supportSelfCreation = false
 
+# Use aggressive reduction mode
+cpa.thread.useAggressiveReduction = false
+
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
 cpa.threading.allowMultipleLHS = false
@@ -3071,7 +3078,7 @@ cpa.usage.output = "unsafe_rawdata"
 
 # all variables should be printed to the one file or to the different
 cpa.usage.outputType = KLEVER
-  enum:     [ETV, KLEVER, KLEVER_OLD]
+  enum:     [ETV, KLEVER, KLEVER3, KLEVER_OLD]
 
 # The value of marked unsafes, after which the precision should be cleaned
 cpa.usage.precisionReset = Integer.MAX_VALUE
@@ -3143,6 +3150,9 @@ cpa.usage.unsafedetector.intLock = no default value
 # defines what is unsafe
 cpa.usage.unsafedetector.unsafeMode = RACE
   enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
+
+# use sound regions as identifiers
+cpa.usage.useSoundRegions = false
 
 # functions, which are marked as write access
 cpa.usage.writeAccessFunctions = {}
@@ -4327,9 +4337,6 @@ undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 
 # export undefined functions as C file
 undefinedFunctionsCollector.stubsFile = "stubs.c"
-
-# use sound regions as identifiers
-usage.useSoundRegions = false
 
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false

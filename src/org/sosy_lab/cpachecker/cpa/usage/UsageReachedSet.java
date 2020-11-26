@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.usage.storage.ConcurrentUsageExtractor;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
@@ -118,6 +119,10 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   public void printStatistics(StatisticsWriter pWriter) {
     extractor.printStatistics(pWriter);
+  }
+
+  public BAMDataManager getBAMDataManager() {
+    return extractor.getManager();
   }
 
 }
