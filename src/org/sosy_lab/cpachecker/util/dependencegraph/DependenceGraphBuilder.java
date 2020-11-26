@@ -454,7 +454,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               foreignDefUseData,
               declarationEdges,
               dependenceConsumer,
-              true)
+              considerPointees)
           .run();
 
       flowDependenceNumber.setNextValue((int) flowDepCounter.getValue());
