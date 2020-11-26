@@ -106,7 +106,7 @@ public class ConcurrentUsageExtractor {
     try {
       while (numberOfActiveTasks.get() != processingSteps.get()) {
         synchronized (service) {
-          service.wait(10000);
+          service.wait(1000);
         }
       }
       logger.log(Level.INFO, "Usage extraction is finished");

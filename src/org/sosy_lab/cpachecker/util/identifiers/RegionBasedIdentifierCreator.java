@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -135,23 +134,6 @@ public class RegionBasedIdentifierCreator extends IdentifierCreator {
       return new RegionIdentifier(typeName, structType);
     } else {
       return new RegionIdentifier(fieldName, structType);
-    }
-  }
-
-  @Override
-  public AbstractIdentifier visit(CIdExpression expression) {
-    CSimpleDeclaration decl = expression.getDeclaration();
-
-    if (decl == null) {
-      // In our cil-file it means, that we have function pointer
-      // This data can't be shared (we wouldn't write)
-      return new LocalVariableIdentifier(
-          expression.getName(),
-          expression.getExpressionType(),
-          function,
-          dereference);
-    } else {
-      return createIdentifier(decl, dereference);
     }
   }
 

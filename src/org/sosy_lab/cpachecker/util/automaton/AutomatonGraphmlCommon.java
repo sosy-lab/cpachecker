@@ -167,8 +167,9 @@ public class AutomatonGraphmlCommon {
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
     WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
     INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string"),
-    DECLARATION("declaration", ElementType.GRAPH, "declaration", "string"),
+    VAR_DECLARATION("declaration", ElementType.GRAPH, "declaration", "string"),
     REFINEMENT_STATUS("refinement-status", ElementType.GRAPH, "refinement-status", "string"),
+    DECLARATION("declaration", ElementType.EDGE, "declaration", "boolean", false),
     NOTE("note", ElementType.EDGE, "note", "string"),
     WARNING("warning", ElementType.EDGE, "warning", "string");
 
@@ -344,7 +345,7 @@ public class AutomatonGraphmlCommon {
         String pStatus)
         throws ParserConfigurationException, DOMException, IOException {
       super(pGraphType, pDefaultSourceFileName, pCfa, pVerificationTaskMetaData);
-      Element result = createDataElement(KeyDef.DECLARATION, pIdentifier);
+      Element result = createDataElement(KeyDef.VAR_DECLARATION, pIdentifier);
       result.setAttribute("compare", "true");
       result.setAttribute("associate", "false");
       result.setAttribute("klever-attrs", "true");

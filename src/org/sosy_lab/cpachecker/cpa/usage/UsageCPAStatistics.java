@@ -35,6 +35,7 @@ public class UsageCPAStatistics implements Statistics {
   public enum OutputFileType {
     ETV,
     KLEVER,
+    KLEVER3,
     KLEVER_OLD
   }
 
@@ -124,6 +125,9 @@ public class UsageCPAStatistics implements Statistics {
       printUnsafesTimer.start();
       try {
         switch (outputFileType) {
+          case KLEVER3:
+            errPrinter = new Klever3ErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            break;
           case KLEVER:
             errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
             break;

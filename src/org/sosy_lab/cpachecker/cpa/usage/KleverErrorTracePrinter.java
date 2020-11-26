@@ -73,8 +73,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
 
-  private static final String WARNING_MESSAGE = "Access was not found";
-
   String defaultSourcefileName;
 
   private static class ThreadIterator implements Iterator<Integer> {
@@ -198,8 +196,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
             .log(Level.WARNING, "No thread create found, likely, you need another WitnessPrinter");
         return;
       }
-      // commonIndex is index of threadCreate, need to stop one edge before
-      for (int i = 0; i < commonIndex - 1; i++) {
+      for (int i = 0; i < commonIndex; i++) {
         printEdge(builder, firstEdge);
 
         firstEdge = firstIterator.next();
@@ -210,7 +207,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       printEdge(builder, firstEdge);
       printPath(firstUsage, firstIterator, builder);
 
-      if (forkThread != threadIterator.currentThread) {
+      if (forkThread != threadIterator.currentThread || isThreadCreateFunction(secondEdge)) {
         threadIterator.setCurrentThread(forkThread);
         printEdge(builder, secondEdge);
       } else {
@@ -304,11 +301,16 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       potentialAliases.inc();
     } else {
       Element warningEdge = warnings.get(warnings.size() - 1);
-      builder.addDataElementChild(warningEdge, KeyDef.WARNING, usage.toString());
+      printWarningTo(builder, warningEdge, usage.toString());
     }
   }
 
-  private Element printEdge(GraphMlBuilder builder, CFAEdge edge) {
+  // Overrided in subclass
+  protected void printWarningTo(GraphMlBuilder builder, Element element, String message) {
+    builder.addDataElementChild(element, KeyDef.WARNING, message);
+  }
+
+  protected Element printEdge(GraphMlBuilder builder, CFAEdge edge) {
 
     if (handleAsEpsilonEdge0(edge)) {
       return null;
@@ -323,13 +325,19 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     return printEdge(builder, edge, getCurrentId(), getNextId());
   }
 
+  // Overrided in subclass
+  protected String formatNote(String value) {
+    return value;
+  }
+
   private Element printEdge(GraphMlBuilder builder, CFAEdge edge, String currentId, String nextId) {
     Element result = builder.createEdgeElement(currentId, nextId);
     dumpCommonInfoForEdge(builder, result, edge);
 
     String note = getNoteFor(edge);
     if (note != null && !note.isEmpty()) {
-      builder.addDataElementChild(result, KeyDef.NOTE, note);
+      String formatted = formatNote(note);
+      builder.addDataElementChild(result, KeyDef.NOTE, formatted);
     }
     currentNode = builder.createNodeElement(nextId, NodeType.ONPATH);
     return result;
@@ -411,18 +419,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       }
     }
     return null;
-  }
-
-  private boolean containsId(CFAEdge edge, String pIdName) {
-    if (edge.toString().contains(pIdName)) {
-      return true;
-    } else if (edge instanceof CFunctionCallEdge) {
-      // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
-      if (((CFunctionCallEdge) edge).getSummaryEdge().getRawStatement().contains(pIdName)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   @Override
