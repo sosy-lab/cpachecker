@@ -139,28 +139,45 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<I> addressType,
       BitvectorType targetType) {
     final int bitLength = targetType.getSize();
-    checkArgument(bitLength % 8 == 0, "Bitvector size %s is not a multiple of 8!", bitLength);
     BitvectorFormula result = afmgr.select(arrayFormula, address);
 
-    // result starts with first byte, loop appends the other bytes
-    for (int byteOffset = 1; byteOffset < bitLength / 8; byteOffset++) {
-      I addressWithOffset =
-          formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset));
-      BitvectorFormula nextBVPart = afmgr.select(arrayFormula, addressWithOffset);
-      result =
-          (endianness == ByteOrder.BIG_ENDIAN)
-              ? bfmgr.concat(result, nextBVPart)
-              : bfmgr.concat(nextBVPart, result);
+    if (bitLength < 8) {
+      return bfmgr.extract(result, bitLength - 1, 0, false);
+    } else if (bitLength == 8) {
+      return result;
+    } else {
+      checkArgument(bitLength % 8 == 0, "Bitvector size %s is not a multiple of 8!", bitLength);
+
+      // result starts with first byte, loop appends the other bytes
+      for (int byteOffset = 1; byteOffset < bitLength / 8; byteOffset++) {
+        I addressWithOffset =
+            formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset));
+        BitvectorFormula nextBVPart = afmgr.select(arrayFormula, addressWithOffset);
+        result =
+            (endianness == ByteOrder.BIG_ENDIAN)
+                ? bfmgr.concat(result, nextBVPart)
+                : bfmgr.concat(nextBVPart, result);
+      }
+      return result;
     }
-    return result;
   }
 
   private <I extends Formula> BooleanFormula handleBitvectorAssignment(
       int oldIndex, int newIndex, I address, FormulaType<I> addressType, BitvectorFormula value) {
     ArrayFormula<I, BitvectorFormula> oldFormula =
         afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, oldIndex, addressType, BYTE_TYPE);
+    final int bitLength = bfmgr.getLength(value);
 
-    ImmutableList<BitvectorFormula> bytes = splitBitvectorToBytes(value);
+    ImmutableList<BitvectorFormula> bytes;
+    if (bitLength < 8) {
+      BitvectorFormula remainingBits =
+          bfmgr.extract(afmgr.select(oldFormula, address), 7, bitLength, false);
+      bytes = ImmutableList.of(bfmgr.concat(remainingBits, value));
+    } else if (bitLength == 8) {
+      bytes = ImmutableList.of(value);
+    } else {
+      bytes = splitBitvectorToBytes(value);
+    }
     int byteOffset = 0;
     for (BitvectorFormula formula : bytes) {
       I addressWithOffset =

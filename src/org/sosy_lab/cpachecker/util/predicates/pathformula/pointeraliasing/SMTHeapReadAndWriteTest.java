@@ -75,6 +75,16 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
   }
 
   @Test
+  public void test1BitVector() throws InterruptedException, SolverException {
+    testWrittenValueIsEquisatisfiableToReadValue(1, 0b1L);
+  }
+
+  @Test
+  public void test3BitVector() throws InterruptedException, SolverException {
+    testWrittenValueIsEquisatisfiableToReadValue(3, 0b101L);
+  }
+
+  @Test
   public void test8BitVector() throws InterruptedException, SolverException {
     testWrittenValueIsEquisatisfiableToReadValue(8, 0x11L);
   }
@@ -100,6 +110,34 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     testWrittenValueIsEquisatisfiableToReadValue(16, 0x1122L);
     testWrittenValueIsEquisatisfiableToReadValue(32, 0x112233L);
     testWrittenValueIsEquisatisfiableToReadValue(64, 0x1122334455667788L);
+  }
+
+  @Test
+  public void testReadPrefix() throws InterruptedException, SolverException {
+    // Simulates storing a byte and then retrieving the first 3 bits with a bit-field union
+    requireSingleByteArrayHeap();
+    BooleanFormula wroteArrayFormula = storeBitVector(bvmgr.makeBitvector(8, 0b00100101L));
+    final BooleanFormula readResultFormula = readBitVector(3);
+    BooleanFormula atom =
+        mgrv.assignment(
+            bvmgr.makeVariable(3, TEST_VAR_NAME_PRE + 3), bvmgr.makeBitvector(3, 0b101L));
+    this.assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula))
+        .isEquisatisfiableTo(atom);
+  }
+
+  @Test
+  public void testOverwritePrefix() throws InterruptedException, SolverException {
+    // Simulates storing a byte, overwriting the first 4 bits with a bit-field union, then reading
+    // the whole byte again
+    requireSingleByteArrayHeap();
+    BooleanFormula wroteArrayFormula = storeBitVector(bvmgr.makeBitvector(8, 0b10101001L));
+    BooleanFormula wroteArrayFormula2 = storeBitVector(bvmgr.makeBitvector(4, 0b0110L));
+    final BooleanFormula readResultFormula = readBitVector(8);
+    BooleanFormula atom =
+        mgrv.assignment(
+            bvmgr.makeVariable(8, TEST_VAR_NAME_PRE + 8), bvmgr.makeBitvector(8, 0b10100110L));
+    this.assertThatFormula(bmgr.and(wroteArrayFormula, wroteArrayFormula2, readResultFormula))
+        .isEquisatisfiableTo(atom);
   }
 
   /**
