@@ -105,18 +105,27 @@ final class EdgeDefUseData {
     return partialDefs;
   }
 
-  private static EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
+  private static EdgeDefUseData createEdgeDefUseData(
+      Collector pCollector, boolean pConsiderPointees) {
 
     ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
     ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(pCollector.uses);
 
-    ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
-    ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+    ImmutableSet<CExpression> pointeeDefs;
+    ImmutableSet<CExpression> pointeeUses;
+
+    if (pConsiderPointees) {
+      pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
+      pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+    } else {
+      pointeeDefs = ImmutableSet.of();
+      pointeeUses = ImmutableSet.of();
+    }
 
     return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses, pCollector.partialDefs);
   }
 
-  public static EdgeDefUseData extract(CFAEdge pEdge) {
+  public static EdgeDefUseData extract(CFAEdge pEdge, boolean pConsiderPointees) {
 
     Optional<? extends AAstNode> optAstNode = pEdge.getRawAST().toJavaUtil();
 
@@ -127,10 +136,10 @@ final class EdgeDefUseData {
       if (astNode instanceof CAstNode) {
 
         CAstNode cAstNode = (CAstNode) astNode;
-        Collector collector = new Collector();
+        Collector collector = new Collector(pConsiderPointees);
         cAstNode.accept(collector);
 
-        return createEdgeDefUseData(collector);
+        return createEdgeDefUseData(collector, pConsiderPointees);
       }
     }
 
@@ -138,12 +147,20 @@ final class EdgeDefUseData {
         ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
   }
 
-  public static EdgeDefUseData extract(CExpression pExpression) {
+  public static EdgeDefUseData extract(CFAEdge pEdge) {
+    return extract(pEdge, true);
+  }
 
-    Collector collector = new Collector();
+  public static EdgeDefUseData extract(CExpression pExpression, boolean pConsiderPointees) {
+
+    Collector collector = new Collector(pConsiderPointees);
     pExpression.accept(collector);
 
-    return createEdgeDefUseData(collector);
+    return createEdgeDefUseData(collector, pConsiderPointees);
+  }
+
+  public static EdgeDefUseData extract(CExpression pExpression) {
+    return extract(pExpression, true);
   }
 
   @Override
@@ -160,6 +177,8 @@ final class EdgeDefUseData {
 
   private static class Collector implements CAstNodeVisitor<Void, EdgeDefUseDataException> {
 
+    private final boolean considerPointees;
+
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
 
@@ -170,7 +189,9 @@ final class EdgeDefUseData {
 
     private Mode mode;
 
-    private Collector() {
+    private Collector(boolean pConsiderPointees) {
+
+      considerPointees = pConsiderPointees;
 
       partialDefs = false;
 
@@ -179,8 +200,13 @@ final class EdgeDefUseData {
       defs = new HashSet<>();
       uses = new HashSet<>();
 
-      pointeeDefs = new HashSet<>();
-      pointeeUses = new HashSet<>();
+      if (considerPointees) {
+        pointeeDefs = new HashSet<>();
+        pointeeUses = new HashSet<>();
+      } else {
+        pointeeDefs = null;
+        pointeeUses = null;
+      }
     }
 
     @Override
@@ -348,8 +374,10 @@ final class EdgeDefUseData {
 
         mode = prev;
 
-        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-        pointeeSet.add(pIastFieldReference);
+        if (considerPointees) {
+          Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+          pointeeSet.add(pIastFieldReference);
+        }
 
       } else {
         pIastFieldReference.getFieldOwner().accept(this);
@@ -400,8 +428,10 @@ final class EdgeDefUseData {
 
       mode = prev;
 
-      Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-      pointeeSet.add(pPointerExpression);
+      if (considerPointees) {
+        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+        pointeeSet.add(pPointerExpression);
+      }
 
       return null;
     }
