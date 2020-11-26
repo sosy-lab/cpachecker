@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
@@ -43,13 +44,16 @@ public class ARGPathRestorator implements PathRestorator {
   }
 
   @Override
-  public ARGPath computePath(ARGState pLastElement) {
+  public ARGPath computePath(ARGState pLastElement, List<AbstractState> pStack) {
     // Temporary implementation
-    return computePath(pLastElement, ImmutableSet.of());
+    return computePath(pLastElement, ImmutableSet.of(), pStack);
   }
 
   @Override
-  public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+  public ARGPath computePath(
+      ARGState pLastElement,
+      Set<List<Integer>> pRefinedStates,
+      List<AbstractState> pStack) {
     Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
 
     for (List<Integer> newList : pRefinedStates) {
@@ -138,17 +142,19 @@ public class ARGPathRestorator implements PathRestorator {
   }
 
   @Override
-  public PathIterator iterator(ARGState pTarget) {
-    return new DummyPathIterator(pTarget);
+  public PathIterator iterator(ARGState pTarget, List<AbstractState> pStack) {
+    return new DummyPathIterator(pTarget, pStack);
   }
 
   class DummyPathIterator implements PathIterator {
     final ARGState target;
     boolean computeOnePath;
+    List<AbstractState> stack;
 
-    DummyPathIterator(ARGState pTarget) {
+    DummyPathIterator(ARGState pTarget, List<AbstractState> pStack) {
       target = pTarget;
       computeOnePath = false;
+      stack = pStack;
     }
 
     @Override
@@ -157,7 +163,7 @@ public class ARGPathRestorator implements PathRestorator {
         return null;
       } else {
         computeOnePath = true;
-        return ARGPathRestorator.this.computePath(target, pRefinedStatesIds);
+        return ARGPathRestorator.this.computePath(target, pRefinedStatesIds, stack);
       }
     }
 

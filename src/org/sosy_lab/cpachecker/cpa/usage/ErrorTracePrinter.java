@@ -307,7 +307,7 @@ public abstract class ErrorTracePrinter {
       ARGPath aPath;
       if (subgraphComputer != null) {
         // BAM: we need to update target state considering BAM caches
-        aPath = subgraphComputer.computePath(target);
+        aPath = subgraphComputer.computePath(target, usage.getExpandedStack());
       } else {
         aPath = ARGUtils.getOnePathTo(target);
       }

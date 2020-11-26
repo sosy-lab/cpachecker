@@ -272,7 +272,7 @@ public class PathPairIterator extends
       pathIterator = targetToPathIterator.get(info);
     } else {
       ARGState target = (ARGState) info.getKeyState();
-      pathIterator = subgraphComputer.iterator(target);
+      pathIterator = subgraphComputer.iterator(target, info.getExpandedStack());
       targetToPathIterator.put(info, pathIterator);
     }
     if (pathCalculated[usageNumber] < iterationLimit) {

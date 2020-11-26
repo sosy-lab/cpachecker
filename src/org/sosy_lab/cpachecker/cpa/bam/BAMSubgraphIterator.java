@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
@@ -37,14 +38,19 @@ public class BAMSubgraphIterator implements PathIterator {
   //Iterators for branching points
   private Map<ARGState, Iterator<ARGState>> toCallerStatesIterator = new HashMap<>();
   private boolean hasNextPath;
+  private final List<AbstractState> expandedStack;
 
   BAMSubgraphIterator(
-      ARGState pTargetState, BAMMultipleCEXSubgraphComputer sComputer, BAMDataManager pData) {
+      ARGState pTargetState,
+      BAMMultipleCEXSubgraphComputer sComputer,
+      BAMDataManager pData,
+      List<AbstractState> pExpandedStack) {
     targetState = pTargetState;
     subgraphComputer = sComputer;
     data = pData;
     firstState = null;
     hasNextPath = true;
+    expandedStack = pExpandedStack;
   }
 
   //Actually it is possible to implement an optimization,
@@ -96,7 +102,9 @@ public class BAMSubgraphIterator implements PathIterator {
       BackwardARGState nextBranchingParentOnPath = new BackwardARGState(nextParent);
       rootOfTheClonedPath.addParent(nextBranchingParentOnPath);
       // Restore the new path from branching point
-      newPath = subgraphComputer.restorePathFrom(nextBranchingParentOnPath, pRefinedStates);
+      newPath =
+          subgraphComputer
+              .restorePathFrom(nextBranchingParentOnPath, pRefinedStates, expandedStack);
 
     } while (newPath == null);
 
@@ -219,7 +227,10 @@ public class BAMSubgraphIterator implements PathIterator {
       if (firstState == null) {
         // The first time, we have no path to iterate
         path =
-            subgraphComputer.restorePathFrom(new BackwardARGState(targetState), pRefinedStatesIds);
+            subgraphComputer.restorePathFrom(
+                new BackwardARGState(targetState),
+                pRefinedStatesIds,
+                expandedStack);
       } else {
         path = computeNextPath(firstState, pRefinedStatesIds);
       }

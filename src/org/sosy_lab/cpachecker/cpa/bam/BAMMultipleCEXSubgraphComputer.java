@@ -14,6 +14,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -49,11 +50,16 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
   }
 
 
-  private ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates) throws InterruptedException, MissingBlockException {
+  private ARGState findPath(
+      BackwardARGState newTreeTarget,
+      Set<List<Integer>> pProcessedStates,
+      List<AbstractState> expandedStack)
+      throws InterruptedException, MissingBlockException {
 
     Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
     ARGState root = null;
     boolean inCallstackFunction = false;
+    List<AbstractState> localExpandedStack = new ArrayList<>(expandedStack);
 
     //Deep clone to be patient about modification
     remainingStates.clear();
@@ -94,6 +100,15 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
         // Find correct expanded state
         Collection<AbstractState> expandedStates =
             new TreeSet<>(data.getNonReducedInitialStates(currentState));
+
+        // If we have an expanded stack, use the hint
+        if (!localExpandedStack.isEmpty()) {
+          AbstractState rightExpanded = localExpandedStack.get(localExpandedStack.size() - 1);
+          if (expandedStates.contains(rightExpanded)) {
+            expandedStates = ImmutableSet.of(rightExpanded);
+            localExpandedStack.remove(localExpandedStack.size() - 1);
+          }
+        }
 
         if (expandedStates.isEmpty()) {
           // children are a normal successors -> create an connection from parent to children
@@ -181,14 +196,17 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
     return false;
   }
 
-  ARGPath restorePathFrom(BackwardARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+  ARGPath restorePathFrom(
+      BackwardARGState pLastElement,
+      Set<List<Integer>> pRefinedStates,
+      List<AbstractState> pStack) {
     //Note pLastElement may not be the last indeed
     //The path may be recomputed from the middle
 
     assert (pLastElement != null && !pLastElement.isDestroyed());
 
     try {
-      ARGState rootOfSubgraph = findPath(pLastElement, pRefinedStates);
+      ARGState rootOfSubgraph = findPath(pLastElement, pRefinedStates, pStack);
       assert (rootOfSubgraph != null);
       if (rootOfSubgraph.equals(BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE)) {
         return null;
@@ -204,13 +222,14 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
   }
 
   @Override
-  public ARGPath computePath(ARGState pLastElement) {
-    return computePath(pLastElement, ImmutableSet.of());
+  public ARGPath computePath(ARGState pLastElement, List<AbstractState> pStack) {
+    return computePath(pLastElement, ImmutableSet.of(), pStack);
   }
 
   @Override
-  public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {
-    return restorePathFrom(new BackwardARGState(pLastElement), pRefinedStates);
+  public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates,
+      List<AbstractState> pStack) {
+    return restorePathFrom(new BackwardARGState(pLastElement), pRefinedStates, pStack);
   }
 
   boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
@@ -231,7 +250,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer implemen
    */
 
   @Override
-  public BAMSubgraphIterator iterator(ARGState target) {
-    return new BAMSubgraphIterator(target, this, data);
+  public BAMSubgraphIterator iterator(ARGState target, List<AbstractState> pStack) {
+    return new BAMSubgraphIterator(target, this, data, pStack);
   }
 }

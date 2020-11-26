@@ -100,7 +100,8 @@ public class ConcurrentUsageExtractor {
     numberOfActiveTasks.incrementAndGet();
     ExecutorService service =
         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    service.submit(new ReachedSetExecutor(firstState, emptyDelta, processedSets, service));
+    service.submit(
+        new ReachedSetExecutor(firstState, emptyDelta, processedSets, service, ImmutableList.of()));
 
     try {
       while (numberOfActiveTasks.get() != processingSteps.get()) {
@@ -138,6 +139,7 @@ public class ConcurrentUsageExtractor {
     private final Multimap<AbstractState, UsageDelta> processedSets;
     private final ExecutorService service;
     private final Map<AbstractState, List<UsageInfo>> stateToUsage;
+    private final List<AbstractState> expandedStack;
 
     private final TimerWrapper expandingTimer;
     private final TimerWrapper processingTimer;
@@ -147,7 +149,8 @@ public class ConcurrentUsageExtractor {
         AbstractState pState,
         UsageDelta pDelta,
         Multimap<AbstractState, UsageDelta> pSets,
-        ExecutorService pService) {
+        ExecutorService pService,
+        List<AbstractState> pExpandedStack) {
 
       currentDelta = pDelta;
       firstState = pState;
@@ -157,6 +160,7 @@ public class ConcurrentUsageExtractor {
       processingTimer = usageProcessingTimer.getNewTimer();
       addingTimer = addingToContainerTimer.getNewTimer();
       stateToUsage = new HashMap<>();
+      expandedStack = pExpandedStack;
     }
 
     @Override
@@ -177,7 +181,9 @@ public class ConcurrentUsageExtractor {
 
           if (needToDumpUsages(argState)) {
             addingTimer.start();
-            expandedUsages.forEach(container::add);
+            for (UsageInfo usage : expandedUsages) {
+              container.add(usage);
+            }
             addingTimer.stop();
           } else {
             stateToUsage.put(argState, expandedUsages);
@@ -240,7 +246,7 @@ public class ConcurrentUsageExtractor {
 
       expandingTimer.start();
       for (UsageInfo usage : usages) {
-        UsageInfo expanded = usage.expand(currentDelta);
+        UsageInfo expanded = usage.expand(currentDelta, expandedStack);
         if (expanded.isRelevant()) {
           expandedUsages.add(expanded);
         }
@@ -263,7 +269,10 @@ public class ConcurrentUsageExtractor {
         if (shouldContinue(processedSets.get(reducedState), difference)) {
           numberOfActiveTasks.incrementAndGet();
           processedSets.put(reducedState, difference);
-          service.submit(new ReachedSetExecutor(reducedState, difference, processedSets, service));
+          List<AbstractState> newStack = new ArrayList<>(expandedStack);
+          newStack.add(rootState);
+          service.submit(
+              new ReachedSetExecutor(reducedState, difference, processedSets, service, newStack));
         }
       }
     }

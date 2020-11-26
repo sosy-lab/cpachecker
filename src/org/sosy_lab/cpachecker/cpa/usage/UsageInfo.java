@@ -53,10 +53,12 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   private final UsageCore core;
   private final UsagePoint point;
+  private final List<AbstractState> expandedStack;
 
   private UsageInfo() {
     core = null;
     point = null;
+    expandedStack = null;
   }
 
   private UsageInfo(
@@ -64,12 +66,13 @@ public final class UsageInfo implements Comparable<UsageInfo> {
       @Nonnull CFANode n,
       SingleIdentifier ident,
       ImmutableList<CompatibleNode> pStates) {
-    this(new UsageCore(atype, n, ident), new UsagePoint(pStates, atype));
+    this(new UsageCore(atype, n, ident), new UsagePoint(pStates, atype), null);
   }
 
-  private UsageInfo(UsageCore pCore, UsagePoint pPoint) {
+  private UsageInfo(UsageCore pCore, UsagePoint pPoint, List<AbstractState> pStack) {
     core = pCore;
     point = pPoint;
+    expandedStack = pStack;
   }
 
   public static UsageInfo createUsageInfo(
@@ -204,11 +207,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public UsageInfo copy() {
-    return copy(point);
-  }
-
-  private UsageInfo copy(UsagePoint newPoint) {
-    return new UsageInfo(core, newPoint);
+    return new UsageInfo(core, point, expandedStack);
   }
 
   public AbstractLockState getLockState() {
@@ -223,7 +222,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     return point;
   }
 
-  public UsageInfo expand(UsageDelta pDelta) {
+  public UsageInfo expand(UsageDelta pDelta, List<AbstractState> pExpandedStack) {
     List<CompatibleNode> old = point.getCompatibleNodes();
     ImmutableList<CompatibleNode> newStates = pDelta.apply(old);
     if (newStates.isEmpty()) {
@@ -232,6 +231,10 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     if (newStates == old) {
       return this;
     }
-    return copy(new UsagePoint(newStates, core.accessType));
+    return new UsageInfo(core, new UsagePoint(newStates, core.accessType), pExpandedStack);
+  }
+
+  public List<AbstractState> getExpandedStack() {
+    return expandedStack == null ? ImmutableList.of() : expandedStack;
   }
 }
