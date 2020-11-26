@@ -9,8 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -92,18 +93,18 @@ public class TestTargetCPA extends AbstractCPA {
 
   private Set<CFAEdge> findTargetEdge(final CFA pCfa) {
     Preconditions.checkNotNull(targetEdge);
-    String[] components = targetEdge.split("#");
-    if (components.length > 1) {
+    List<String> components = Splitter.on('#').splitToList(targetEdge);
+    if (components.size() > 1) {
       try {
-        int predNum = Integer.parseInt(components[0]);
-        int edgeID = Integer.parseInt(components[1]);
+        int predNum = Integer.parseInt(components.get(0));
+        int edgeID = Integer.parseInt(components.get(1));
         Optional<CFANode> pred =
             pCfa.getAllNodes()
                 .stream()
                 .filter(node -> (node.getNodeNumber() == predNum))
                 .findFirst();
         if (pred.isPresent()) {
-          for (CFAEdge edge : CFAUtils.allLeavingEdges(pred.get())) {
+          for (CFAEdge edge : CFAUtils.allLeavingEdges(pred.orElseThrow())) {
             if (System.identityHashCode(edge) == edgeID) {
               return ImmutableSet.of(edge);
             }
@@ -115,7 +116,7 @@ public class TestTargetCPA extends AbstractCPA {
       }
     }
 
-    return Collections.emptySet();
+    return ImmutableSet.of();
 
   }
 
