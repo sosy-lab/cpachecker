@@ -112,7 +112,7 @@ public class TestTargetCPA extends AbstractCPA {
         }
 
       } catch (NumberFormatException e) {
-
+        return ImmutableSet.of();
       }
     }
 
