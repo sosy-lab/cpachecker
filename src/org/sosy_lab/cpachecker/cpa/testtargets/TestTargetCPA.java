@@ -8,11 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -21,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix="testcase")
 public class TestTargetCPA extends AbstractCPA {
@@ -55,6 +62,12 @@ public class TestTargetCPA extends AbstractCPA {
   )
   private TestTargetAdaption targetOptimization = TestTargetAdaption.NONE;
 
+  @Option(
+    secure = true,
+    name = "targets.edge",
+    description = "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
+  private String targetEdge = null;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
@@ -71,9 +84,39 @@ public class TestTargetCPA extends AbstractCPA {
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
     transferRelation =
-        new TestTargetTransferRelation(
+        new TestTargetTransferRelation(targetEdge == null ?
             TestTargetProvider
-                .getTestTargets(pCfa, runParallel, targetType, targetFun, targetOptimization));
+                .getTestTargets(pCfa, runParallel, targetType, targetFun, targetOptimization)
+            : findTargetEdge(pCfa));
+  }
+
+  private Set<CFAEdge> findTargetEdge(final CFA pCfa) {
+    Preconditions.checkNotNull(targetEdge);
+    String[] components = targetEdge.split("#");
+    if (components.length > 1) {
+      try {
+        int predNum = Integer.parseInt(components[0]);
+        int edgeID = Integer.parseInt(components[1]);
+        Optional<CFANode> pred =
+            pCfa.getAllNodes()
+                .stream()
+                .filter(node -> (node.getNodeNumber() == predNum))
+                .findFirst();
+        if (pred.isPresent()) {
+          for (CFAEdge edge : CFAUtils.allLeavingEdges(pred.get())) {
+            if (System.identityHashCode(edge) == edgeID) {
+              return ImmutableSet.of(edge);
+            }
+          }
+        }
+
+      } catch (NumberFormatException e) {
+
+      }
+    }
+
+    return Collections.emptySet();
+
   }
 
   @Override

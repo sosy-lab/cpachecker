@@ -4189,6 +4189,10 @@ testcase.progress = RELATIVE_TOTAL
 # property specification
 testcase.reportCoveredErrorCallAsError = false
 
+# CFA edge if only a specific edge should be considered, e.g., in
+# counterexample check
+testcase.targets.edge = no default value
+
 # Name of target function if target type is FUN_CALL
 testcase.targets.funName = no default value
 
