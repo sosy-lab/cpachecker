@@ -36,7 +36,7 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
 
   private static final String TEST_TARGET_PRE = "testTarget";
   private static final String TEST_VAR_NAME_PRE = "var";
-  private static final int TEST_ADDRESS_PRE = 1234;
+  private static final int TEST_ADDRESS = 1234;
 
   @Parameter(0)
   public Solvers solverUnderTest;
@@ -115,8 +115,8 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     BooleanFormula atom =
         mgrv.assignment(bvmgr.makeVariable(length, TEST_VAR_NAME_PRE + length), value);
     BooleanFormula wroteArrayFormula = storeBitVector(value);
-    final BooleanFormula readResultFormula = readBitVector(length, wroteArrayFormula);
-    this.assertThatFormula(readResultFormula)
+    final BooleanFormula readResultFormula = readBitVector(length);
+    this.assertThatFormula(bmgr.and(wroteArrayFormula, readResultFormula))
         .isEquisatisfiableTo(atom); // =and(result, not(atom)).isUnsatisfiable()
   }
 
@@ -124,21 +124,17 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     int length = bvmgr.getLength(value);
     final String targetName = TEST_TARGET_PRE + length;
     final FormulaType<BitvectorFormula> pTargetType = FormulaType.getBitvectorTypeWithSize(length);
-    final BitvectorFormula address =
-        bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS_PRE + length);
+    final BitvectorFormula address = bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS);
     return heap.makePointerAssignment(targetName, pTargetType, index, ++index, address, value);
   }
 
-  private BooleanFormula readBitVector(int length, BooleanFormula contextBF) {
+  private BooleanFormula readBitVector(int length) {
     final String targetName = TEST_TARGET_PRE + length;
     final FormulaType<BitvectorFormula> pTargetType = FormulaType.getBitvectorTypeWithSize(length);
-    final BitvectorFormula address =
-        bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS_PRE + length);
+    final BitvectorFormula address = bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS);
     final BitvectorFormula valueFormula =
         heap.makePointerDereference(targetName, pTargetType, index, address);
-    final BooleanFormula booleanFormula =
-        mgrv.assignment(bvmgr.makeVariable(length, TEST_VAR_NAME_PRE + length), valueFormula);
-    return mgrv.makeAnd(booleanFormula, contextBF);
+    return mgrv.assignment(bvmgr.makeVariable(length, TEST_VAR_NAME_PRE + length), valueFormula);
   }
 
   @Override
