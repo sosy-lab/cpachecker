@@ -25,6 +25,9 @@ Changes since CPAchecker 1.9.1
   when redistributing CPAchecker.
   More information about the license status can be found in [README.md](README.md).
 
+* Interpolation-based Model Checking (IMC)  
+  A new reachability-safety analysis (config `-bmc-interpolation`), which adopts a state-of-the-art verification algorithm for hardware proposed by McMillan (cf. "Interpolation and SAT-Based Model Checking". K. L. McMillan. In Proc. CAV, Springer, 2003) to software, has been added to CPAchecker.
+
 
 Changes from CPAchecker 1.9 to CPAchecker 1.9.1
 -----------------------------------------------
