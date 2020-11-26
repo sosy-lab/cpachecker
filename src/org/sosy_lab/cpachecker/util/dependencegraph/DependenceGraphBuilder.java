@@ -146,6 +146,16 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
 
+  @Option(
+      secure = true,
+      name = "considerPointees",
+      description =
+          "Whether to consider pointees. Only if this option is set to true, a pointer analysis is"
+              + " run during dependence graph construction. If this option is set to false,"
+              + " pointers are ignored and the resulting dependence graph misses all dependencies"
+              + " where pointers are involved in.")
+  private boolean considerPointees = true;
+
   public DependenceGraphBuilder(
       final CFA pCfa,
       final Configuration pConfig,
@@ -268,8 +278,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
   private void addFlowDependencesNew() throws InterruptedException, CPAException {
 
-    GlobalPointerState pointerState =
-        GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
+    GlobalPointerState pointerState;
+    if (considerPointees) {
+      pointerState = GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
+    } else {
+      pointerState = GlobalPointerState.EMPTY;
+    }
 
     boolean unknownPointer = false;
 
@@ -277,7 +291,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
 
-        EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(edge);
+        EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(edge, considerPointees);
 
         for (CExpression expression :
             Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
@@ -316,7 +330,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       return;
     }
 
-    ForeignDefUseData foreignDefUseData = ForeignDefUseData.extract(cfa, pointerState);
+    ForeignDefUseData foreignDefUseData =
+        ForeignDefUseData.extract(cfa, pointerState, considerPointees);
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
     Map<String, CFAEdge> declarationEdges = new HashMap<>();
@@ -374,7 +389,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                     .equals(defEdgeCause)) {
 
               CFunctionCallEdge callEdge = getCallEdge((CFunctionSummaryEdge) useEdge);
-              EdgeDefUseData defUseData = EdgeDefUseData.extract(callEdge);
+              EdgeDefUseData defUseData = EdgeDefUseData.extract(callEdge, considerPointees);
 
               for (MemoryLocation summaryEdgeDef : defUseData.getDefs()) {
                 addFlowDependence(defEdge, defEdgeCause, useEdge, Optional.of(summaryEdgeDef));
@@ -395,7 +410,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               if (functionCall instanceof CFunctionCallAssignmentStatement) {
                 CLeftHandSide lhs =
                     ((CFunctionCallAssignmentStatement) functionCall).getLeftHandSide();
-                EdgeDefUseData defUseData = EdgeDefUseData.extract(lhs);
+                EdgeDefUseData defUseData = EdgeDefUseData.extract(lhs, considerPointees);
                 if (defUseData.getUses().contains(cause)
                     || !defUseData.getPointeeUses().isEmpty()) {
                   addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
@@ -411,7 +426,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
               for (int index = 0; index < params.size(); index++) {
 
-                EdgeDefUseData defUseData = EdgeDefUseData.extract(expressions.get(index));
+                EdgeDefUseData defUseData =
+                    EdgeDefUseData.extract(expressions.get(index), considerPointees);
                 Optional<MemoryLocation> paramUseCause =
                     Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
 
@@ -437,7 +453,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               pointerState,
               foreignDefUseData,
               declarationEdges,
-              dependenceConsumer)
+              dependenceConsumer,
+              true)
           .run();
 
       flowDependenceNumber.setNextValue((int) flowDepCounter.getValue());

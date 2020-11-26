@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CFAEdge> {
 
+  private final boolean considerPointees;
+
   private final FunctionEntryNode entryNode;
   private final List<CFAEdge> globalEdges;
 
@@ -62,9 +64,12 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
       Map<String, CFAEdge> pDeclarationEdges,
-      DependenceConsumer pDependenceConsumer) {
+      DependenceConsumer pDependenceConsumer,
+      boolean pConsiderPointees) {
 
     super(SingleFunctionGraph.INSTANCE, pDomTree, pDomFrontiers);
+
+    considerPointees = pConsiderPointees;
 
     entryNode = pEntryNode;
     globalEdges = pGlobalEdges;
@@ -110,7 +115,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     AFunctionDeclaration function = pSummaryEdge.getFunctionEntry().getFunction();
     CFunctionCallEdge callEdge = getFunctionCallEdge(pSummaryEdge);
-    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(callEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(callEdge, considerPointees);
 
     defs.addAll(edgeDefUseData.getDefs());
     defs.addAll(foreignDefUseData.getForeignDefs(function));
@@ -137,7 +142,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     AFunctionDeclaration function = pSummaryEdge.getFunctionEntry().getFunction();
     CFunctionCallEdge callEdge = getFunctionCallEdge(pSummaryEdge);
-    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(callEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(callEdge, considerPointees);
 
     uses.addAll(edgeDefUseData.getUses());
     uses.addAll(foreignDefUseData.getForeignUses(function));
@@ -155,7 +160,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private Set<MemoryLocation> getOtherEdgeDefs(CFAEdge pEdge) {
 
     Set<MemoryLocation> defs = new HashSet<>();
-    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(pEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(pEdge, considerPointees);
 
     defs.addAll(edgeDefUseData.getDefs());
 
@@ -176,7 +181,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private Set<MemoryLocation> getOtherEdgeUses(CFAEdge pEdge) {
 
     Set<MemoryLocation> uses = new HashSet<>();
-    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(pEdge);
+    EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(pEdge, considerPointees);
 
     uses.addAll(edgeDefUseData.getUses());
 
@@ -227,7 +232,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
         CFAEdge edge = optEdge.orElseThrow();
         if (!maybeDefs.get(edge).contains(pVariable)
-            && !EdgeDefUseData.extract(edge).hasPartialDefs()) {
+            && !EdgeDefUseData.extract(edge, considerPointees).hasPartialDefs()) {
           break;
         }
 

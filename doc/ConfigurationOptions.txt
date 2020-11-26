@@ -3283,6 +3283,12 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to consider pointees. Only if this option is set to true, a pointer
+# analysis is run during dependence graph construction. If this option is set
+# to false, pointers are ignored and the resulting dependence graph misses
+# all dependencies where pointers are involved in.
+dependencegraph.considerPointees = true
+
 # Whether to take an assumption edge 'p' as control dependence if edge 'not
 # p' is a control dependence. This creates a larger slice, but may reduce the
 # size of the state space for deterministic programs. This behavior is also

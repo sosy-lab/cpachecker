@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerDomain;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 abstract class GlobalPointerState {
+
+  public static final GlobalPointerState EMPTY = new EmptyPointerState();
 
   public abstract Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression);
 
@@ -238,6 +240,14 @@ abstract class GlobalPointerState {
       }
 
       return new FlowSensitivePointerState(pointerStates);
+    }
+  }
+
+  private static final class EmptyPointerState extends GlobalPointerState {
+
+    @Override
+    public Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
+      return ImmutableSet.of();
     }
   }
 }
