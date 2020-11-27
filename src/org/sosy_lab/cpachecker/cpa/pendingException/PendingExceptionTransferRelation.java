@@ -136,15 +136,32 @@ public class PendingExceptionTransferRelation
 
     JArraySubscriptExpression currentJArraySubscriptExpression = pJArraySubscriptExpression;
     for (BigInteger dimensionOfArray : Lists.reverse(dimensionsOfArray)) {
+      JExpression subscriptExpression = currentJArraySubscriptExpression.getSubscriptExpression();
+      if (subscriptExpression instanceof JIdExpression) {
+        JVariableDeclaration declaration =
+            (JVariableDeclaration) ((JIdExpression) subscriptExpression).getDeclaration();
+        if (declaration == null || declaration.getInitializer() == null) {
+          return true;
+        }
+        AInitializer initializer = declaration.getInitializer();
+        subscriptExpression = ((JInitializerExpression) initializer).getExpression();
+      }
+      if (subscriptExpression instanceof JIdExpression) { // Not defined value
+        return true;
+      }
       JIntegerLiteralExpression currentSubscriptExpression =
-          (JIntegerLiteralExpression) currentJArraySubscriptExpression.getSubscriptExpression();
+          (JIntegerLiteralExpression) subscriptExpression;
       int sizeOfArray = dimensionOfArray.intValue();
       int access = currentSubscriptExpression.getValue().intValue();
       if (access >= sizeOfArray) {
         return true;
       }
-      currentJArraySubscriptExpression =
-          (JArraySubscriptExpression) currentJArraySubscriptExpression.getArrayExpression();
+      JExpression nextArrayExpression = currentJArraySubscriptExpression.getArrayExpression();
+      if (nextArrayExpression instanceof JArraySubscriptExpression) {
+        currentJArraySubscriptExpression = (JArraySubscriptExpression) nextArrayExpression;
+      } else {
+        break;
+      }
     }
     return false;
   }
