@@ -234,9 +234,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      if (!options.useMemoryRegions() && !options.useByteArrayForHeap()) {
+      if (!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
@@ -256,13 +255,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final int pOldIndex,
       final int pNewIndex) {
 
-    final FormulaType<?> returnFormulaType;
-    if (options.useByteArrayForHeap()) {
-      // 8-bit vector type for byte array heap
-      returnFormulaType = FormulaType.getBitvectorTypeWithSize(8);
-    } else {
-      returnFormulaType = getFormulaTypeFromCType(pReturnType);
-    }
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(pReturnType);
     final ArrayFormula<?, ?> newArray =
         afmgr.makeArray(pFunctionName, pNewIndex, voidPointerFormulaType, returnFormulaType);
     final ArrayFormula<?, ?> oldArray =
