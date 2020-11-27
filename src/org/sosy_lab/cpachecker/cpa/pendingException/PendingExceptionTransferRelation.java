@@ -56,9 +56,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class PendingExceptionTransferRelation
     extends ForwardingTransferRelation<PendingExceptionState, PendingExceptionState, Precision> {
 
-  // Keep in sync with CFAMethodBuilder
-  private static final String EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE = "Enter first catch clause";
-
   @Override
   protected PendingExceptionState handleDeclarationEdge(
       JDeclarationEdge cfaEdge, JDeclaration decl) {
@@ -90,7 +87,7 @@ public class PendingExceptionTransferRelation
     // Check array name and size
     else if (initializer instanceof JInitializerExpression
         && ((JInitializerExpression) initializer).getExpression()
-        instanceof JArraySubscriptExpression) {
+            instanceof JArraySubscriptExpression) {
 
       String nameOfArray = getNameOfArrayFromInitializer((JInitializerExpression) initializer);
       List<BigInteger> dimensions =
@@ -100,21 +97,7 @@ public class PendingExceptionTransferRelation
               (JArraySubscriptExpression) ((JInitializerExpression) initializer).getExpression(),
               dimensions);
       if (arrayAccessOutOfBounds) {
-        state
-            .getPendingExceptions()
-            .put(
-                PendingExceptionState.PENDING_EXCEPTION,
-                "java.lang.ArrayIndexOutOfBoundsException");
-        state.increaseCounterExceptionsCaught();
-      }
-    } else if (initializer instanceof JInitializerExpression
-        && ((JInitializerExpression) initializer).getExpression() instanceof JFieldAccess) {
-      String name =
-          ((JFieldAccess) ((JInitializerExpression) initializer).getExpression())
-              .getReferencedVariable()
-              .getName();
-      if (!state.getArrays().containsKey(getScopedVariableName(functionName, name))) {
-        addNullPointerExceptionToState(state);
+        addArrayIndexOutOfBoundsExceptionToState(state);
       }
     }
 
@@ -135,6 +118,9 @@ public class PendingExceptionTransferRelation
       JArraySubscriptExpression pJArraySubscriptExpression, List<BigInteger> dimensionsOfArray) {
 
     JArraySubscriptExpression currentJArraySubscriptExpression = pJArraySubscriptExpression;
+    if (dimensionsOfArray == null) {
+      return false;
+    }
     for (BigInteger dimensionOfArray : Lists.reverse(dimensionsOfArray)) {
       JExpression subscriptExpression = currentJArraySubscriptExpression.getSubscriptExpression();
       if (subscriptExpression instanceof JIdExpression) {
@@ -194,7 +180,7 @@ public class PendingExceptionTransferRelation
       }
     }
 
-    return state; // TODO
+    return state;
   }
 
   @Override
@@ -223,20 +209,19 @@ public class PendingExceptionTransferRelation
         state.getPendingExceptions().put(variableName, "");
         state.increaseCounterExceptionsCaught();
       } else if (leftHandSide instanceof JArraySubscriptExpression) {
-        String name =
-            ((JIdExpression) ((JArraySubscriptExpression) leftHandSide).getArrayExpression())
-                .getName();
+        JExpression arrayExpression =
+            ((JArraySubscriptExpression) leftHandSide).getArrayExpression();
+        while (arrayExpression instanceof JArraySubscriptExpression) {
+          arrayExpression = ((JArraySubscriptExpression) arrayExpression).getArrayExpression();
+        }
+        String name = ((JIdExpression) arrayExpression).getName();
         String scopedVariableName = getScopedVariableName(functionName, name);
         boolean arrayAccessOutOfBounds =
             isArrayAccessOutOfBounds(
                 (JArraySubscriptExpression) leftHandSide,
                 state.getArrays().get(scopedVariableName));
         if (arrayAccessOutOfBounds) {
-          state
-              .getPendingExceptions()
-              .put(
-                  PendingExceptionState.PENDING_EXCEPTION,
-                  "java.lang.ArrayIndexOutOfBoundsException");
+          addArrayIndexOutOfBoundsExceptionToState(state);
           state.increaseCounterExceptionsCaught();
         }
       }
@@ -256,10 +241,23 @@ public class PendingExceptionTransferRelation
     } catch (ClassNotFoundException e) {
       return;
     }
+    addExceptionFromClassToState(pState, cls);
+  }
+
+  private static void addArrayIndexOutOfBoundsExceptionToState(PendingExceptionState pState) {
+    Class<?> cls;
+    try {
+      cls = Class.forName("java.lang.ArrayIndexOutOfBoundsException");
+    } catch (ClassNotFoundException e) {
+      return;
+    }
+    addExceptionFromClassToState(pState, cls);
+  }
+
+  private static void addExceptionFromClassToState(PendingExceptionState pState, Class<?> pCls) {
     Map<String, String> pendingExceptions = pState.getPendingExceptions();
-    pendingExceptions.put(
-        PendingExceptionState.PENDING_EXCEPTION, "java.lang.NullPointerException");
-    Class<?> parent = cls.getSuperclass();
+    pendingExceptions.put(PendingExceptionState.PENDING_EXCEPTION, pCls.getName());
+    Class<?> parent = pCls.getSuperclass();
     int counter = 1;
     do {
       pendingExceptions.put(PendingExceptionState.PENDING_EXCEPTION + counter, parent.getName());
@@ -324,6 +322,30 @@ public class PendingExceptionTransferRelation
           checkForMethodInvocationOnNullObject(
               (PendingExceptionState) pState, (RTTState) abstractState);
         }
+        if (pCfaEdge instanceof JDeclarationEdge) {
+          AInitializer initializer = null;
+          JDeclaration decl = ((JDeclarationEdge) pCfaEdge).getDeclaration();
+          if (decl instanceof JVariableDeclaration) {
+            initializer = ((JVariableDeclaration) decl).getInitializer();
+          }
+          if (initializer instanceof JInitializerExpression
+              && ((JInitializerExpression) initializer).getExpression() instanceof JFieldAccess) {
+            String name =
+                ((JFieldAccess) ((JInitializerExpression) initializer).getExpression())
+                    .getReferencedVariable()
+                    .getName();
+            int i = decl.getQualifiedName().indexOf(":");
+            String localFunctionName = decl.getQualifiedName().substring(0, i);
+            String value =
+                ((RTTState) abstractState)
+                    .getConstantsMap()
+                    .get(getScopedVariableName(localFunctionName, name));
+            if ("null".equals(value)) {
+              addNullPointerExceptionToState((PendingExceptionState) pState);
+            }
+          }
+        }
+
         for (String variableName :
             ((PendingExceptionState) pState).getPendingExceptions().keySet()) {
           if (((RTTState) abstractState).getConstantsMap().containsKey(variableName)) {

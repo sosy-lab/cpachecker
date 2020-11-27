@@ -144,7 +144,6 @@ class CFAMethodBuilder extends ASTVisitor {
       "go to end of try after caught exception";
   private final static String EDGE_DESCRIPTION_AFTER_LAST_CATCH_CLAUSE =
       "go to end of try after last catch clause";
-  // Keep in sync with PendingExceptionTransferRelation
   private static final String EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE = "Enter first catch clause";
 
   // Data structures for label , continue , break
