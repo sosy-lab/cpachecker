@@ -55,7 +55,7 @@ public class UsageDelta implements Delta<List<CompatibleNode>> {
     assert nestedDeltas.size() == pOther.nestedDeltas.size();
 
     for (int i = 0; i < this.nestedDeltas.size(); i++) {
-      if (!(nestedDeltas.get(i).covers(pOther.nestedDeltas.get(i)))) {
+      if (!nestedDeltas.get(i).covers(pOther.nestedDeltas.get(i))) {
         return false;
       }
     }
@@ -64,15 +64,18 @@ public class UsageDelta implements Delta<List<CompatibleNode>> {
 
   @Override
   public boolean equals(Object pDelta) {
-    UsageDelta pOther = (UsageDelta) pDelta;
-    assert nestedDeltas.size() == pOther.nestedDeltas.size();
+    if (pDelta instanceof UsageDelta) {
+      UsageDelta pOther = (UsageDelta) pDelta;
+      assert nestedDeltas.size() == pOther.nestedDeltas.size();
 
-    for (int i = 0; i < this.nestedDeltas.size(); i++) {
-      if (!(nestedDeltas.get(i).equals(pOther.nestedDeltas.get(i)))) {
-        return false;
+      for (int i = 0; i < this.nestedDeltas.size(); i++) {
+        if (!nestedDeltas.get(i).equals(pOther.nestedDeltas.get(i))) {
+          return false;
+        }
       }
+      return true;
     }
-    return true;
+    return false;
   }
 
   @Override
