@@ -404,8 +404,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               List<CExpression> expressions =
                   summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
 
-              assert params.size() == expressions.size();
-
               CFunctionCall functionCall = summaryEdge.getExpression();
               if (functionCall instanceof CFunctionCallAssignmentStatement) {
                 CLeftHandSide lhs =
@@ -424,7 +422,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 flowDepCounter.inc();
               }
 
-              for (int index = 0; index < params.size(); index++) {
+              for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
                 EdgeDefUseData defUseData =
                     EdgeDefUseData.extract(expressions.get(index), considerPointees);
