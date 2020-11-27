@@ -160,19 +160,31 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
 
   private BooleanFormula storeBitVector(BitvectorFormula value) {
     int length = bvmgr.getLength(value);
-    final String targetName = TEST_TARGET_PRE + length;
+    final String targetName = getHeapSymbolName(length);
     final FormulaType<BitvectorFormula> pTargetType = FormulaType.getBitvectorTypeWithSize(length);
     final BitvectorFormula address = bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS);
     return heap.makePointerAssignment(targetName, pTargetType, index, ++index, address, value);
   }
 
   private BooleanFormula readBitVector(int length) {
-    final String targetName = TEST_TARGET_PRE + length;
+    final String targetName = getHeapSymbolName(length);
     final FormulaType<BitvectorFormula> pTargetType = FormulaType.getBitvectorTypeWithSize(length);
     final BitvectorFormula address = bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS);
     final BitvectorFormula valueFormula =
         heap.makePointerDereference(targetName, pTargetType, index, address);
     return mgrv.assignment(bvmgr.makeVariable(length, TEST_VAR_NAME_PRE + length), valueFormula);
+  }
+
+  private String getHeapSymbolName(int length) {
+    switch (heapToUse) {
+      case SINGLE_BYTE_ARRAY:
+        return TEST_TARGET_PRE + model.getSizeofPtrInBits();
+      case ARRAYS:
+      case UF:
+        return TEST_TARGET_PRE + model.getSizeofPtrInBits() + "_" + length;
+      default:
+        throw new AssertionError();
+    }
   }
 
   @Override
