@@ -2568,8 +2568,9 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
-# Use SMT arrays for encoding heap memory instead of uninterpreted function.
-# This is more precise but may lead to interpolation failures.
+# Use SMT arrays for encoding heap memory instead of uninterpreted function
+# (ignored if useByteArrayForHeap=true). This is more precise but may lead to
+# interpolation failures.
 cpa.predicate.useArraysForHeap = true
 
 # try to add some useful static-learning-like axioms for bitwise operations

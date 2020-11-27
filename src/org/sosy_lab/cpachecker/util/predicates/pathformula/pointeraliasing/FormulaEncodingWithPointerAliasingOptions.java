@@ -46,11 +46,11 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private int defaultAllocationSize = 4;
 
   @Option(
-    secure = true,
-    description =
-        "Use SMT arrays for encoding heap memory instead of uninterpreted function."
-            + " This is more precise but may lead to interpolation failures."
-  )
+      secure = true,
+      description =
+          "Use SMT arrays for encoding heap memory instead of uninterpreted function"
+              + " (ignored if useByteArrayForHeap=true)."
+              + " This is more precise but may lead to interpolation failures.")
   private boolean useArraysForHeap = true;
 
   @Option(
@@ -109,6 +109,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
+
+    if (useByteArrayForHeap) {
+      useArraysForHeap = true;
+    }
 
     if (maxArrayLength == -1) {
       maxArrayLength = Integer.MAX_VALUE;
@@ -172,6 +176,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return defaultAllocationSize;
   }
 
+  /**
+   * Return whether the heap is modeled using SMT arrays (either byte-wise or word-wise). Use {@link
+   * #useByteArrayForHeap()} to distinguish between the latter options.
+   */
   public boolean useArraysForHeap() {
     return useArraysForHeap;
   }
