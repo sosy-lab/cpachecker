@@ -839,8 +839,12 @@ public class SMGTransferRelation
           for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
             SMGValue value = valueAndState.getObject();
             SMGState curState = valueAndState.getSmgState();
-
-            curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+            if (value instanceof SMGKnownSymbolicValue) {
+              // TODO we should decide whether to return explicit or symbolic values consistently.
+              // currently some methods return explicit values, others return symbolic one
+              // and then check whether there is a registered explicit value.
+              curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+            }
             result.add(
                 expressionEvaluator.assignFieldToState(
                     curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
