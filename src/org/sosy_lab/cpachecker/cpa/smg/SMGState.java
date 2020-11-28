@@ -1181,7 +1181,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGHasValueEdges matchingEdgesOffsetZero = heap.getHVEdges(filterOffsetZero);
     for (SMGEdgeHasValue object_edge : matchingEdgesOffsetZero) {
       if (pOffset >= object_edge.getOffset()
-          && pOffset + pSizeInBits <= object_edge.getSizeInBits()) {
+          && pOffset + pSizeInBits <= object_edge.getOffset() + object_edge.getSizeInBits()) {
         SMGValue symValue = object_edge.getValue();
         if (symValue instanceof SMGKnownSymbolicValue
             && isExplicit((SMGKnownSymbolicValue) symValue)) {
@@ -1190,7 +1190,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
           // extract the important bits
           // TODO we depend on little or big endian here, query this info from machinemodel?
-          value = value.shiftRight((int) pOffset); // remove the lower part
+
+          // remove the lower part
+          value = value.shiftRight((int) (pOffset - object_edge.getOffset()));
           for (int i = (int) pSizeInBits; i < value.bitLength(); i++) {
             value = value.clearBit(i); // remove the upper part
           }
