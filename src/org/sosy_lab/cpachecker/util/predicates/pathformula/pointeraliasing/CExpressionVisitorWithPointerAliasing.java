@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -711,7 +712,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
         }
         return Value.ofValue(f);
+
+      } else if (functionName.equals("memcmp")
+          || functionName.equals("strcmp")
+          || functionName.equals("strncmp")) {
+        return handleCmpFunction(functionName, e);
       }
+
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
         List<CExpression> parameters = e.getParameterExpressions();
         assert parameters.size() == 3;
@@ -758,6 +765,110 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     // Delegate
     return Value.ofValue(delegate.visit(e));
+  }
+
+  /** This method provides approximations of the builtin functions memcmp, strcmp, and strncmp. */
+  private Value handleCmpFunction(final String functionName, final CFunctionCallExpression e)
+      throws UnrecognizedCodeException {
+    final List<CExpression> parameters = e.getParameterExpressions();
+    assert parameters.size() == 2 || parameters.size() == 3;
+    final CExpression s1 = parameters.get(0);
+    final CExpression s2 = parameters.get(1);
+    final CSimpleType returnType = (CSimpleType) e.getExpressionType().getCanonicalType();
+
+    // These functions treat all chars in s1 and s2 as unsigned.
+    final boolean signed = false;
+    final CSimpleType uChar = CNumericTypes.UNSIGNED_CHAR;
+
+    // Prepare for variants (with bounds check, with string-end check, or both)
+    final boolean checkStringEnd = functionName.startsWith("str");
+    final boolean hasBounds = parameters.size() == 3;
+    final CType sizeType;
+    Formula sizeFormula;
+    long maxIndex = conv.options.maxPreciseStrFunctionSize();
+    if (hasBounds) {
+      CExpression size = parameters.get(2);
+      if (size instanceof CIntegerLiteralExpression) {
+        maxIndex = Math.min(maxIndex, ((CIntegerLiteralExpression) size).asLong());
+      }
+      sizeType = e.getDeclaration().getParameters().get(2).getType().getCanonicalType();
+      sizeFormula = asValueFormula(size.accept(this), sizeType);
+      sizeFormula =
+          conv.makeCast(size.getExpressionType(), sizeType, sizeFormula, constraints, edge);
+    } else {
+      sizeType = conv.machineModel.getPointerEquivalentSimpleType(); // should be size_t actually
+      sizeFormula = null;
+    }
+    final Formula stringTerminator =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, uChar));
+
+    // As result, we use a nondeterministic value. Furthermore, we add constraints that force this
+    // value to be >0 or <0 depending on whether s1>s2 or s1<s2 (and implicitly, force the value to
+    // be 0 if s1==s2.
+    // These constraints have recursive form and simulate "if comparison at first char determines
+    // the result, then ... else (if comparison at second char determines the result, then ... else
+    // ...)". Furthermore, additional clauses at each recursive step check for the string end
+    // (in case of strcmp/strncmp) or "cut off" the chain if the bound is reached (in case of
+    // strncmp/memcmp).
+    // Creating these constraints is done starting with the inner-most term (with highest index).
+    // We also need a base case for the recursive constraints, and this needs to make our bounded
+    // approximation sound: if the strings are longer than our approximation bound and equal up to
+    // the approximation bound, we need to make both constraints have nondeterministic value.
+    // We do this by initializing them with resultIsPos and resultIsNeg, respectively, so there is
+    // a cyclic condition and the solver can choose nondeterministic values for
+    // resultIsPos/resultIsNeg as long as the other constraints do not force a value.
+    // Note that our approximation bound and the strncmp/memcmp bound are different, but we can
+    // simply use the minimum of both (which is maxIndex).
+
+    final Formula result = conv.makeNondet(functionName, returnType, ssa, constraints);
+    final Formula zero =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, returnType));
+    final BooleanFormula resultIsPos = conv.fmgr.makeGreaterThan(result, zero, true);
+    final BooleanFormula resultIsNeg = conv.fmgr.makeLessThan(result, zero, true);
+
+    BooleanFormula isGreater = resultIsPos; // constraint for s1 > s2
+    BooleanFormula isLess = resultIsNeg; // constraint for s1 < s2
+
+    for (long index = maxIndex; index >= 0; index--) {
+      CIntegerLiteralExpression indexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(index, sizeType);
+
+      CArraySubscriptExpression s1AtIndexExp =
+          new CArraySubscriptExpression(FileLocation.DUMMY, uChar, s1, indexLiteral);
+      CArraySubscriptExpression s2AtIndexExp =
+          new CArraySubscriptExpression(FileLocation.DUMMY, uChar, s2, indexLiteral);
+      Formula s1AtIndex = asValueFormula(this.visit(s1AtIndexExp), uChar);
+      Formula s2AtIndex = asValueFormula(this.visit(s2AtIndexExp), uChar);
+
+      BooleanFormula isEqualAtIndex = conv.fmgr.makeEqual(s1AtIndex, s2AtIndex);
+      BooleanFormula isLessAtIndex = conv.fmgr.makeLessThan(s1AtIndex, s2AtIndex, signed);
+      BooleanFormula isGreaterAtIndex = conv.fmgr.makeGreaterThan(s1AtIndex, s2AtIndex, signed);
+
+      if (checkStringEnd) {
+        // Equality is only relevant if not at string end.
+        // Because this check becomes part of the recursive conjunctions below,
+        // it also "cuts off" any comparisons beyond the string end.
+        BooleanFormula isStringEnd = conv.fmgr.makeEqual(s1AtIndex, stringTerminator);
+        // need to check only s1 because it gets conjuncted with s1AtIndex==s2AtIndex
+        isEqualAtIndex = conv.bfmgr.and(isEqualAtIndex, conv.bfmgr.not(isStringEnd));
+      }
+
+      isLess = conv.bfmgr.or(isLessAtIndex, conv.bfmgr.and(isEqualAtIndex, isLess));
+      isGreater = conv.bfmgr.or(isGreaterAtIndex, conv.bfmgr.and(isEqualAtIndex, isGreater));
+
+      if (hasBounds) {
+        // Comparisons are only relevant if not beyond bound.
+        Formula indexFormula = asValueFormula(this.visit(indexLiteral), sizeType);
+        BooleanFormula boundNotReached = conv.fmgr.makeLessThan(indexFormula, sizeFormula, false);
+        isLess = conv.bfmgr.and(isLess, boundNotReached);
+        isGreater = conv.bfmgr.and(isGreater, boundNotReached);
+      }
+    }
+
+    constraints.addConstraint(conv.bfmgr.equivalence(resultIsPos, isGreater));
+    constraints.addConstraint(conv.bfmgr.equivalence(resultIsNeg, isLess));
+
+    return Value.ofValue(result);
   }
 
   /**
