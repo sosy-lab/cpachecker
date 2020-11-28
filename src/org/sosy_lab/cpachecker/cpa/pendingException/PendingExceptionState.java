@@ -76,12 +76,12 @@ public class PendingExceptionState extends AbstractAppender
   @Override
   public PendingExceptionState join(PendingExceptionState other)
       throws CPAException, InterruptedException {
-    return null;
+    return this; // TODO
   }
 
   @Override
   public boolean isLessOrEqual(PendingExceptionState other)
       throws CPAException, InterruptedException {
-    return false;
+    return true; // TODO
   }
 }
