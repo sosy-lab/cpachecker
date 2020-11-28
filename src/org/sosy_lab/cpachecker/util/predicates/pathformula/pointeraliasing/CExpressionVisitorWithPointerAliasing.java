@@ -698,7 +698,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       if (BuiltinFunctions.matchesStrlen(functionName)) {
         // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
         // terminating 0 of a string.
-        final int maxIndex = conv.options.maxPreciseStrlenSize();
+        final int maxIndex = conv.options.maxPreciseStrFunctionSize();
         List<CExpression> parameters = e.getParameterExpressions();
         assert parameters.size() == 1;
         CExpression parameter = parameters.get(0);

@@ -86,11 +86,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private boolean handleStringLiteralInitializers = false;
 
   @Option(
+      deprecatedName = "maxPreciseStrlenSize",
       secure = true,
       description =
-          "When then builtin strlen is called, approximate it up to length set by this option."
-              + "If the string passed to strlen is longer, the return value will be overapproximated via nondet.")
-  private int maxPreciseStrlenSize = 100;
+          "When builtin functions like memcmp/strlen/etc. are called, unroll them up to this bound."
+              + "If the passed arguments are longer, the return value will be overapproximated.")
+  private int maxPreciseStrFunctionSize = 100;
 
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
@@ -204,8 +205,8 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return handleStringLiteralInitializers;
   }
 
-  int maxPreciseStrlenSize() {
-    return maxPreciseStrlenSize;
+  int maxPreciseStrFunctionSize() {
+    return maxPreciseStrFunctionSize;
   }
 
   boolean handleImplicitInitialization() {
