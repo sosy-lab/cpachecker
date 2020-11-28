@@ -426,6 +426,18 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     if (cachedReturnStates == null) {
       logger.log(Level.FINEST, "there was no cache-entry for result-states.");
       resultStatesChanged = true;
+    } else {
+      // this is the result from a previous analysis of a recursive function-call
+      // now we check, if we really get new states or if all new states (= reducedResult) are
+      final Collection<AbstractState> newStates = getStatesNotCoveredBy(reducedResult, cachedReturnStates);
+      if (newStates.isEmpty()) {
+        // analysis of recursive function did not produce more states.
+        logger.log(Level.FINEST, "all previous return-states are covering the current new states, no new states found.");
+      } else {
+        // new states found, set flag for fixpoint-analysis and return (and later update the cache).
+        logger.log(Level.FINEST, "some cached result-states are not covered. returning new result-states.");
+        resultStatesChanged = true;
+      }
     }
     return super.filterResultStatesForFurtherAnalysis(reducedResult, cachedReturnStates);
   }
