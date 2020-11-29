@@ -147,10 +147,6 @@ final class EdgeDefUseData {
         ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
   }
 
-  public static EdgeDefUseData extract(CFAEdge pEdge) {
-    return extract(pEdge, true);
-  }
-
   public static EdgeDefUseData extract(CExpression pExpression, boolean pConsiderPointees) {
 
     Collector collector = new Collector(pConsiderPointees);
@@ -159,8 +155,20 @@ final class EdgeDefUseData {
     return createEdgeDefUseData(collector, pConsiderPointees);
   }
 
-  public static EdgeDefUseData extract(CExpression pExpression) {
-    return extract(pExpression, true);
+  public static EdgeDefUseData.Extractor createExtractor(boolean pConsiderPointees) {
+
+    return new Extractor() {
+
+      @Override
+      public EdgeDefUseData extract(CFAEdge pEdge) {
+        return EdgeDefUseData.extract(pEdge, pConsiderPointees);
+      }
+
+      @Override
+      public EdgeDefUseData extract(CExpression pExpression) {
+        return EdgeDefUseData.extract(pExpression, pConsiderPointees);
+      }
+    };
   }
 
   @Override
@@ -169,6 +177,13 @@ final class EdgeDefUseData {
     return String.format(
         "[defs: %s, uses: %s, pointee-defs: %s, pointee-uses: %s]",
         defs.toString(), uses.toString(), pointeeDefs.toString(), pointeeUses.toString());
+  }
+
+  public interface Extractor {
+
+    public EdgeDefUseData extract(CFAEdge pEdge);
+
+    public EdgeDefUseData extract(CExpression pExpression);
   }
 
   private static final class EdgeDefUseDataException extends RuntimeException {
