@@ -30,14 +30,10 @@ public class LlvmParserWithClang extends LlvmParser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename) throws ParserException {
-    try {
-      Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename);
-      return super.parseFile(dumpedFile.toString());
-    } catch (InterruptedException ex) {
-      // TODO;
-    }
-    return null;
+  public ParseResult parseFile(final String pFilename)
+      throws ParserException, InterruptedException {
+    Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename);
+    return super.parseFile(dumpedFile.toString());
   }
 
   @Override
