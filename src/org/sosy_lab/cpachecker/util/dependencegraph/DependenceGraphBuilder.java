@@ -104,6 +104,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final EdgeDefUseData.Extractor defUseExtractor;
   private NodeMap nodes;
   private Table<DGNode, DGNode, DependenceType> adjacencyMatrix;
 
@@ -167,7 +168,9 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    
+
+    defUseExtractor = EdgeDefUseData.createExtractor(considerPointees);
+
     // If you add additional types of dependencies, they should probably be added to this check,
     // as well
     if (!considerFlowDeps && !considerControlDeps) {
@@ -291,7 +294,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
 
-        EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(edge, considerPointees);
+        EdgeDefUseData edgeDefUseData = defUseExtractor.extract(edge);
 
         for (CExpression expression :
             Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
@@ -331,7 +334,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
 
     ForeignDefUseData foreignDefUseData =
-        ForeignDefUseData.extract(cfa, pointerState, considerPointees);
+        ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
     Map<String, CFAEdge> declarationEdges = new HashMap<>();
@@ -389,7 +392,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                     .equals(defEdgeCause)) {
 
               CFunctionCallEdge callEdge = getCallEdge((CFunctionSummaryEdge) useEdge);
-              EdgeDefUseData defUseData = EdgeDefUseData.extract(callEdge, considerPointees);
+              EdgeDefUseData defUseData = defUseExtractor.extract(callEdge);
 
               for (MemoryLocation summaryEdgeDef : defUseData.getDefs()) {
                 addFlowDependence(defEdge, defEdgeCause, useEdge, Optional.of(summaryEdgeDef));
@@ -408,7 +411,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               if (functionCall instanceof CFunctionCallAssignmentStatement) {
                 CLeftHandSide lhs =
                     ((CFunctionCallAssignmentStatement) functionCall).getLeftHandSide();
-                EdgeDefUseData defUseData = EdgeDefUseData.extract(lhs, considerPointees);
+                EdgeDefUseData defUseData = defUseExtractor.extract(lhs);
                 if (defUseData.getUses().contains(cause)
                     || !defUseData.getPointeeUses().isEmpty()) {
                   addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
@@ -424,8 +427,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
               for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
-                EdgeDefUseData defUseData =
-                    EdgeDefUseData.extract(expressions.get(index), considerPointees);
+                EdgeDefUseData defUseData = defUseExtractor.extract(expressions.get(index));
                 Optional<MemoryLocation> paramUseCause =
                     Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
 
@@ -448,11 +450,11 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               Dominance.createDomFrontiers(domTree),
               entryNode,
               isMain ? ImmutableList.of() : globalEdges,
+              defUseExtractor,
               pointerState,
               foreignDefUseData,
               declarationEdges,
-              dependenceConsumer,
-              considerPointees)
+              dependenceConsumer)
           .run();
 
       flowDependenceNumber.setNextValue((int) flowDepCounter.getValue());
