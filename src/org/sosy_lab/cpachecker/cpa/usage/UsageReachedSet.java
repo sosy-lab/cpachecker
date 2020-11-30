@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
-import java.util.List;
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -49,7 +48,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private ConcurrentUsageExtractor extractor = null;
 
   private final UsageContainer container;
-  private List<Pair<UsageInfo, UsageInfo>> stableUnsafes = ImmutableList.of();
 
   public UsageReachedSet(
       WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
@@ -86,9 +84,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
     if (!usagesExtracted) {
       extractor.extractUsages(getFirstState());
       usagesExtracted = true;
-      stableUnsafes = container.calculateStableUnsafes();
     }
-    return !stableUnsafes.isEmpty();
+    return container.hasUnsafes();
   }
 
   @Override
@@ -104,8 +101,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
     return container;
   }
 
-  public List<Pair<UsageInfo, UsageInfo>> getUnsafes() {
-    return stableUnsafes;
+  public Collection<Pair<UsageInfo, UsageInfo>> getUnsafes() {
+    return container.getStableUnsafes();
   }
 
   private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {

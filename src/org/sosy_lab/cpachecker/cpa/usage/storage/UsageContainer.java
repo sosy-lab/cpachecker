@@ -12,9 +12,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class UsageContainer {
   private final NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
   private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
+
+  private Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> stableUnsafes = new TreeMap<>();
 
   private final UnsafeDetector detector;
 
@@ -198,6 +200,9 @@ public class UsageContainer {
     RefinedUsagePointSet rSet = RefinedUsagePointSet.create(firstUsage, secondUsage);
     refinedIds.put(id, rSet);
     unrefinedIds.remove(id);
+    // We need to update it here, as we may finish this iteration (even without timeout) and output
+    // the old value
+    stableUnsafes.put(id, Pair.of(firstUsage, secondUsage));
   }
 
   public void printUsagesStatistics(StatisticsWriter out) {
@@ -266,23 +271,28 @@ public class UsageContainer {
     return new TreeSet<>(Sets.union(falseUnsafes, refinedIds.keySet()));
   }
 
-  public List<Pair<UsageInfo, UsageInfo>> calculateStableUnsafes() {
+  private void saveStableUnsafes() {
     calculateUnsafesIfNecessary();
-    List<Pair<UsageInfo, UsageInfo>> result = new ArrayList<>();
 
-    addUnsafesFrom(refinedIds, result);
-    addUnsafesFrom(unrefinedIds, result);
-    return result;
+    addUnsafesFrom(refinedIds);
+    addUnsafesFrom(unrefinedIds);
   }
 
   private void addUnsafesFrom(
-      NavigableMap<SingleIdentifier, ? extends AbstractUsagePointSet> storage,
-      List<Pair<UsageInfo, UsageInfo>> pResult) {
+      NavigableMap<SingleIdentifier, ? extends AbstractUsagePointSet> storage) {
 
     for (Entry<SingleIdentifier, ? extends AbstractUsagePointSet> entry : storage.entrySet()) {
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(entry.getValue());
-      assert tmpPair != null;
-      pResult.add(tmpPair);
+      stableUnsafes.put(entry.getKey(), tmpPair);
     }
+  }
+
+  public boolean hasUnsafes() {
+    saveStableUnsafes();
+    return !stableUnsafes.isEmpty();
+  }
+
+  public Collection<Pair<UsageInfo, UsageInfo>> getStableUnsafes() {
+    return stableUnsafes.values();
   }
 }

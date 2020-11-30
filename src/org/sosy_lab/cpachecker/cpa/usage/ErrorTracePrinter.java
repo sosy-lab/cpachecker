@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -185,7 +186,7 @@ public abstract class ErrorTracePrinter {
     preparationTimer.start();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
-    List<Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
+    Collection<Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
 
     if (unsafes == null) {
       // Means that there are no stable unsafes, nothing to print, but warn
