@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageProcessor;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
@@ -85,15 +84,13 @@ public class ConcurrentUsageExtractor {
     notifier = usageCpa.getNotifier();
   }
 
+  @SuppressWarnings("FutureReturnValueIgnored")
   public void extractUsages(AbstractState firstState) {
     totalTimer.start();
     logger.log(Level.INFO, "Analysis is finished, start usage extraction");
-    Deque<Pair<AbstractState, UsageDelta>> waitlist = new ArrayDeque<>();
     Multimap<AbstractState, UsageDelta> processedSets = ArrayListMultimap.create();
 
     UsageDelta emptyDelta = UsageDelta.constructDeltaBetween(firstState, firstState);
-    Pair<AbstractState, UsageDelta> currentPair = Pair.of(firstState, emptyDelta);
-    waitlist.add(currentPair);
     processedSets.put(firstState, emptyDelta);
     usageProcessor.updateRedundantUnsafes(container.getNotInterestingUnsafes());
 
@@ -260,6 +257,7 @@ public class ConcurrentUsageExtractor {
       return expandedUsages;
     }
 
+    @SuppressWarnings("FutureReturnValueIgnored")
     private void processReachedSet(
         AbstractState rootState,
         ReachedSet innerReached) {

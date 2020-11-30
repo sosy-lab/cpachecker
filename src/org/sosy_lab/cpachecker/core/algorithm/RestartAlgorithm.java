@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -141,10 +140,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
-
-  @Option(secure = true, description = "Evil hack for printing coverage with BAM")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path subcoverageFile = Paths.get("subcoverage.info");
 
   @Option(
     secure = true,

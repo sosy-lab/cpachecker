@@ -21,7 +21,7 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
     String newName = var.replaceAll("\\(", "");
     newName = newName.replaceAll("\\)", "");
     newName = newName.replaceAll("___\\d*", "");
-    varName = var;
+    varName = newName;
   }
 
   @Override
