@@ -154,27 +154,25 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
      * @param pEdge the edge which corresponds to the selector
      * @return unique selector for edge pEdge
      */
-    public Selector makeSelector(
-            FormulaContext pContext, BooleanFormula pFormula, CFAEdge pEdge) {
+    public Selector makeSelector(FormulaContext pContext, BooleanFormula pFormula, CFAEdge pEdge) {
       Selector selector = selectors.get(pFormula.toString());
       if (selector != null) {
         return selector;
       }
 
       selector =
-              new Selector(
-                      maxIndex,
-                      pContext
-                              .getSolver()
-                              .getFormulaManager()
-                              .makeVariable(FormulaType.BooleanType, "S" + maxIndex),
-                      pFormula,
-                      pEdge,
-                      pContext);
+          new Selector(
+              maxIndex,
+              pContext
+                  .getSolver()
+                  .getFormulaManager()
+                  .makeVariable(FormulaType.BooleanType, "S" + maxIndex),
+              pFormula,
+              pEdge,
+              pContext);
       selectors.put(pFormula.toString(), selector);
       maxIndex++;
       return selector;
     }
-
   }
 }
