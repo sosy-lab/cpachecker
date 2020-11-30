@@ -16,19 +16,21 @@ SPDX-License-Identifier: Apache-2.0
 - Erkan Keremoglu (2008 - 2011), SFU, Canada
 
 # Developers/Contributors
+- Schindar Ali (since 2020), LMU Munich, Germany
 - Niklas Amslgruber (since 2020), LMU Munich, Germany
 - Pavel Andrianov (since 2014), ISP RAS, Russia
 - Moritz Beck (since 2019), LMU Munich, Germany
 - Thomas Bunk (since 2018), LMU Munich, Germany
-- Marek Chalupa (since 2018), Masaryk University, Czechia
-- Matthias Dangl (since 2012), LMU Munich, Germany
 - Karlheinz Friedberger (since 2011), LMU Munich, Germany
+- Jan Haltermann (since 2019), University of Paderborn, Germany
 - Stephan Holzner (since 2019), LMU Munich, Germany
 - Marie-Christine Jakobs (since 2012), TU Darmstadt, Germany
+- Angelos Kafounis (since 2020), LMU Munich, Germany
 - Matthias Kettl (since 2019), LMU Munich, Germany
+- Michael Lachner (since 2020), LMU Munich, Germany
+- Nian-Ze Lee (since 2020), National Taiwan University, Taiwan
 - Thomas Lemberger (since 2014), LMU Munich, Germany
 - Grigory Markin (since 2017), University of Lübeck, Germany
-- Vitaly Mordan (since 2014), ISP RAS, Russia
 - Vadim Mutilin (since 2012), ISP RAS, Russia
 - Valentin Port (since 2019), LMU Munich, Germany
 - Balthasar Schüss (since 2019), LMU Munich, Germany
@@ -37,7 +39,6 @@ SPDX-License-Identifier: Apache-2.0
 - Sarita Sridharan (since 2019), LMU Munich, Germany
 - Sven Umbricht (since 2020), LMU Munich, Germany
 - Anton Vasilyev (since 2015), ISP RAS, Russia
-- Anton Volkov (since 2015), ISP RAS, Russia
 - Nico Weise (since 2019), LMU Munich, Germany
 
 # Former Developers/Contributors
@@ -50,9 +51,11 @@ SPDX-License-Identifier: Apache-2.0
 - Moritz Buhl (2018), LMU Munich, Germany
 - Johannes Bürdek (2014 - 2018), TU Darmstadt, Germany
 - Rodrigo Castaño (2017 - 2018), University of Buenos Aires, Argentina
+- Marek Chalupa (2018 - 2019), Masaryk University, Czechia
 - Mike Czech (2013 - 2014), University of Paderborn, Germany
 - Przemislaw Daca (2011 - 2012), Technical University of Denmark, Denmark
 - Peter Dahlberg (2013 - 2016), University of Passau, Germany
+- Matthias Dangl (2012 - 2019), LMU Munich, Germany
 - Matthias Dittrich (2013), University of Passau, Germany
 - Andreas Donig (2010 - 2013), University of Passau, Germany
 - Georg Dresler (2013 - 2014), University of Passau, Germany
@@ -85,6 +88,7 @@ SPDX-License-Identifier: Apache-2.0
 - Michael Maier (2017 - 2019), LMU Munich, Germany
 - Mikhail Mandrykin (2013 - 2017), ISP RAS, Russia
 - Alexander Maringer (2010), University of Passau, Germany
+- Vitaly Mordan (2014 - 2018), ISP RAS, Russia
 - Petr Muller (2012 - 2014), Brno University of Technology, Czechia
 - Magdalena Murr (2015), University of Passau, Germany
 - Lokesh Nandanwar (2018), National Institute of Technology Durgapur, India
@@ -107,6 +111,7 @@ SPDX-License-Identifier: Apache-2.0
 - Manuel Töws (2016), University of Paderborn, Germany
 - Tanja Tornede (2014 - 2016), University of Paderborn, Germany
 - Mirjam Trapp (2018 - 2019), LMU Munich, Germany
+- Anton Volkov (2015 - 2018), ISP RAS, Russia
 - Max Wiesholler (2018 - 2019), LMU Munich, Germany
 - Katharina Winter (2018 - 2019), LMU Munich, Germany
 - Christoph Woller (2014 - 2015), University of Passau, Germany
