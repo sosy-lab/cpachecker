@@ -69,8 +69,9 @@ public class RefinementResult {
     if (firstUsage == secondUsage) {
       secondUsage = secondUsage.copy();
     }
-    firstUsage.setRefinedPath(firstPath.getInnerEdges());
-    secondUsage.setRefinedPath(secondPath.getInnerEdges());
+    // Full path, as inner edges does not contain thread effects
+    firstUsage.setRefinedPath(firstPath.getFullPath());
+    secondUsage.setRefinedPath(secondPath.getFullPath());
     return new RefinementResult(RefinementStatus.TRUE, firstUsage, secondUsage);
   }
 
