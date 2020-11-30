@@ -193,10 +193,10 @@ public class FaultReportWriter {
     for (CFAEdge e : pEdges) {
       int codeLineNumber = e.getFileLocation().getStartingLineInOrigin();
       String description = e.getDescription();
-      checkState(
+      /*checkState(
           !statements.containsKey(codeLineNumber)
-              || statements.get(codeLineNumber).equals(description));
-      statements.put(codeLineNumber, description);
+              || statements.get(codeLineNumber).equals(description));*/
+      statements.merge(codeLineNumber, description, (s1, s2) -> s1 + ", " + s2);
     }
     return statements;
   }

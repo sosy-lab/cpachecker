@@ -9,9 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
 import com.google.common.base.VerifyException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
@@ -71,6 +74,17 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       }
     }
     stats.totalTime.stop();
+    pContext
+        .getLogger()
+        .log(
+            Level.FINEST,
+            "tfresult="
+                + Arrays.toString(
+                    hard.stream()
+                        .flatMap(Collection::stream)
+                        .map(fc -> ((Selector) fc).getIndex())
+                        .collect(Collectors.toSet())
+                        .toArray()));
     return hard;
   }
 

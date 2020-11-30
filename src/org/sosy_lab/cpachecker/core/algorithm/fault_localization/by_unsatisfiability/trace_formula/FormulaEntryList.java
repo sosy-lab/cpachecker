@@ -41,8 +41,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     entries.add(new FormulaEntry(pAtomId, pSSAMap, pSelector, pAtom));
   }
 
-  public void addEntry(
-      int pos, FormulaEntry entry) {
+  public void addEntry(int pos, FormulaEntry entry) {
     entries.add(pos, entry);
   }
 
@@ -89,10 +88,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
-    return entries.stream()
-        .map(mapping::apply)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+    return entries.stream().map(mapping).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   @Override
@@ -167,6 +163,5 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     public PreconditionEntry(SSAMap pSSAMap) {
       super(-1, pSSAMap, null, null);
     }
-
   }
 }

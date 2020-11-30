@@ -132,9 +132,7 @@ public abstract class TraceFormula {
     postcondition = calculatePostCondition();
     trace = calculateTrace();
     // logs for unit tests
-    context.getLogger().log(Level.FINEST, "tfprecondition=" + precondition);
     context.getLogger().log(Level.FINEST, "tftrace=" + trace);
-    context.getLogger().log(Level.FINEST, "tfpostcondition=" + postcondition);
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
@@ -175,6 +173,7 @@ public abstract class TraceFormula {
       prover.push(bmgr.and(entries.toAtomList()));
       Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+        context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment.getValue());
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
         if (formula.toString().contains("__VERIFIER_nondet")) {
           precond = bmgr.and(precond, formula);
@@ -221,6 +220,11 @@ public abstract class TraceFormula {
                   entries.removeExtract(
                       entry -> entry.getAtomId() == currI, FormulaEntryList.FormulaEntry::getAtom));
           postCond = bmgr.and(postCond, formula);
+          context
+              .getLogger()
+              .log(
+                  Level.FINEST,
+                  "tfpostcondition=line " + curr.getFileLocation().getStartingLineInOrigin());
           postConditionOffset = i;
         } else {
           // as soon as curr is on another line or the edge type changes, break. Otherwise add to
@@ -238,6 +242,11 @@ public abstract class TraceFormula {
                           return entry.getSelector().getEdge().equals(curr);
                         },
                         FormulaEntryList.FormulaEntry::getAtom));
+            context
+                .getLogger()
+                .log(
+                    Level.FINEST,
+                    "tfpostcondition=line " + curr.getFileLocation().getStartingLineInOrigin());
             postCond = bmgr.and(postCond, formula);
             postConditionOffset = i;
           }
@@ -308,7 +317,6 @@ public abstract class TraceFormula {
         }
       }
     }
-
   }
 
   /**

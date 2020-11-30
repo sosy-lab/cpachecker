@@ -8,19 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.tests;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.FormulaNode;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -30,11 +27,12 @@ public class TraceFormulaTest {
   private final Level logLevel = Level.FINEST;
 
   enum FLAlgorithm {
-    MAXSAT, ERRINV
+    MAXSAT,
+    ERRINV
   }
 
   enum LogKeys {
-    TFTRACE,
+    TFRESULT,
     TFPRECONDITION,
     TFPOSTCONDITION;
 
@@ -52,7 +50,8 @@ public class TraceFormulaTest {
       String name, FLAlgorithm algorithm, Map<String, String> additionalOptions) throws Exception {
     final Configuration config =
         TestDataTools.configurationForTest()
-            .loadFromResource(TraceFormulaTest.class, "predicateAnalysisWithFaultLocalization.properties")
+            .loadFromResource(
+                TraceFormulaTest.class, "predicateAnalysisWithFaultLocalization.properties")
             .setOption("faultLocalization.by_traceformula.type", algorithm.name())
             .setOptions(additionalOptions)
             .build();
@@ -63,8 +62,8 @@ public class TraceFormulaTest {
     return CPATestRunner.run(config, program.toString(), logLevel);
   }
 
-  private Map<LogKeys, Object> findFLPatterns(String log, Set<LogKeys> keywords) {
-    Map<LogKeys, Object> entries = new HashMap<>();
+  private Map<LogKeys, String> findFLPatterns(String log, Set<LogKeys> keywords) {
+    Map<LogKeys, String> entries = new HashMap<>();
     Splitter.on("\n")
         .split(log)
         .forEach(
@@ -72,18 +71,9 @@ public class TraceFormulaTest {
               List<String> result = Splitter.on("=").limit(2).splitToList(line);
               if (result.size() == 2 && LogKeys.containsKey(result.get(0))) {
                 LogKeys key = LogKeys.valueOf(result.get(0).toUpperCase());
-                String value =
-                    result.get(1).replace(" (TraceFormula.<init>, " + logLevel + ")", "");
+                String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
                 if (keywords.contains(key)) {
-                  switch (key) {
-                    case TFTRACE:
-                    case TFPRECONDITION:
-                    case TFPOSTCONDITION:
-                      entries.put(key, BooleanFormulaParser.parse(value));
-                      break;
-                    default:
-                      throw new AssertionError("Unknown key: " + key);
-                  }
+                  entries.merge(key, value, (val1, val2) -> val1 + ", " + val2);
                 }
               }
             });
@@ -94,96 +84,58 @@ public class TraceFormulaTest {
       String program,
       FLAlgorithm algorithm,
       Map<String, String> options,
-      Map<LogKeys, Object> expected)
+      Map<LogKeys, String> expected)
       throws Exception {
     TestResults test = runFaultLocalization(program, algorithm, options);
-    Map<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
+    Map<LogKeys, String> found = findFLPatterns(test.getLog(), expected.keySet());
     expected.forEach(
         (key, value) -> {
-          Object compare = found.get(key);
-          switch (key) {
-            case TFTRACE:
-            case TFPRECONDITION:
-            case TFPOSTCONDITION:
-              assertNodesEquivalent((FormulaNode) value, (FormulaNode) compare);
-              break;
-            default:
-              throw new AssertionError("Unknown key: " + key);
-          }
+          String compare = found.get(key);
+          assertThat(compare).isEqualTo(value);
         });
-  }
-
-  private void assertNodesEquivalent(FormulaNode node1, FormulaNode node2) {
-    // equivalent is not the same as equal since "a and b" is equivalent to "b and a" but not equal
-    // (Object#equal)
-    if (!node1.logicallyEquivalentTo(node2)) {
-      throw new AssertionError("Node " + node1 + " is not equivalent to " + node2);
-    }
   }
 
   @Test
   public void testCorrectConditions() throws Exception {
     // test if calculating post condition influences the precondition
-    Map<LogKeys, Object> expected = new HashMap<>();
-    expected.put(LogKeys.TFPRECONDITION, BooleanFormulaParser.parse("(`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ 4_32)"));
-    expected.put(LogKeys.TFPOSTCONDITION, BooleanFormulaParser.parse("(`=_<BitVec, 32, >` main::copyForCheck@2 main::test@3)"));
 
-    test0("primefactors.c",
-            FLAlgorithm.ERRINV,
-            ImmutableMap.of(),
-            expected);
+    test0(
+        "unit_test_2.c",
+        FLAlgorithm.ERRINV,
+        ImmutableMap.of(),
+        ImmutableMap.<LogKeys, String>builder()
+            .put(LogKeys.TFPRECONDITION, "4, 4, 4, 1, 2, 2, 2, 1, 1, 2, 2, 2, 3")
+            .put(LogKeys.TFPOSTCONDITION, "line 47")
+            .build());
   }
 
   @Test
   public void testFlowSensitive() throws Exception {
     // test if calculating post condition influences the precondition
-    Map<LogKeys, Object> expected = new HashMap<>();
-    expected.put(LogKeys.TFTRACE,
-            BooleanFormulaParser.parse(
-                    "(`and` (`and` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) "
-                            + "(`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@)) "
-                            + "(`or` (`bvslt_32` 0_32 main::y@2) (`=_<BitVec, 32, >` main::x@3 0_32)))"));
-
     test0(
-        "unit_test.c",
+        "unit_test_1.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        expected);
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, "[1, 3]").build());
   }
 
   @Test
   public void testDefaultTrace() throws Exception {
     // test if calculating post condition influences the precondition
-    Map<LogKeys, Object> expected = new HashMap<>();
-    expected.put(LogKeys.TFTRACE,
-            BooleanFormulaParser.parse(
-                    "(`and` (`and` (`and` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) "
-                            + "(`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@)) "
-                            + "(`not` (`bvslt_32` 0_32 main::y@2))) "
-                            + "(`=_<BitVec, 32, >` main::x@3 0_32))\n"));
     test0(
-        "unit_test.c",
+        "unit_test_1.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
-        expected);
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, "[3]").build());
   }
 
   @Test
   public void testSelectorTrace() throws Exception {
     // test if calculating post condition influences the precondition
-    Map<LogKeys, Object> expected = new HashMap<>();
-    expected.put(LogKeys.TFTRACE,
-            BooleanFormulaParser.parse(
-                    "(`and` (`and` (`and` "
-                            + "(`or` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::x@2) (`not` S0)) "
-                            + "(`or` (`=_<BitVec, 32, >` main::y@2 __VERIFIER_nondet_int!3@) (`not` S1))) "
-                            + "(`or` (`not` (`bvslt_32` 0_32 main::y@2)) (`not` S2))) "
-                            + "(`or` (`=_<BitVec, 32, >` main::x@3 0_32) (`not` S3)))"));
-
     test0(
-        "unit_test.c",
+        "unit_test_1.c",
         FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
-        expected);
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, "[0, 1, 2, 3]").build());
   }
 }
