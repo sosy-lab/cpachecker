@@ -274,6 +274,7 @@ public class UsageContainer {
   private void saveStableUnsafes() {
     calculateUnsafesIfNecessary();
 
+    stableUnsafes.clear();
     addUnsafesFrom(refinedIds);
     addUnsafesFrom(unrefinedIds);
   }

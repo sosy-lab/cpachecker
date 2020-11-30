@@ -81,7 +81,7 @@ public class UsageProcessor {
   private Map<CFANode, Map<GeneralIdentifier, DataType>> precision;
   private Map<CFAEdge, Collection<Pair<AbstractIdentifier, Access>>> usages;
 
-  private Collection<CFANode> uselessNodes;
+  private final Collection<CFANode> uselessNodes;
   private Collection<SingleIdentifier> redundantIds;
 
   private IdentifierCreator creator;
@@ -113,6 +113,7 @@ public class UsageProcessor {
     redundantIds = set;
   }
 
+  @SuppressWarnings("SynchronizeOnNonFinalField")
   public List<UsageInfo> getUsagesForState(AbstractState pState) {
 
     // Not a set, as usage.equals do not consider id
@@ -158,10 +159,8 @@ public class UsageProcessor {
           // Links will be extracted as aliases later
 
           // searchingCacheTimer.start();
-          boolean b = false;
-          b = redundantIds.contains(id);
           // searchingCacheTimer.stop();
-          if (!b) {
+          if (!redundantIds.contains(id)) {
             createUsages(id, node, child, pair.getSecond(), result);
           }
         }
