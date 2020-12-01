@@ -128,7 +128,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               // This might clearly be a bug, but I could currently not find a better way to solve this.
               // The code works well for expressions that are not nested, like "a==b" or "a!=b",
               // but is invalid for "(a==b)==c".
-              // There exists code in SMTTransferRelation.strenghtening
+              // There exists code in SMGTransferRelation.strenghten
               // that even needs to negate an edge to get correct results.
 
               //FIXME: require calculate cast on integer promotions
