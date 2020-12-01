@@ -45,7 +45,7 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-442-ge6ac6c3"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-457-g2465cf3"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
