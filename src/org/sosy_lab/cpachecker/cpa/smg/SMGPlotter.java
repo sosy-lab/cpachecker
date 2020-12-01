@@ -346,8 +346,9 @@ public final class SMGPlotter {
       Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String toNodeStr, toNode;
     if (v2.isZero()) {
-      toNodeStr = newNullLabel();
-      toNode = toNodeStr + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
+      final String newLabel = newNullLabel();
+      toNode = newLabel;
+      toNodeStr = newLabel + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];";
     } else {
       toNodeStr = smgValueAsDot(v2, explicitValues);
       toNode = "value_" + v2.asDotId();
