@@ -122,6 +122,15 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                 rightSideSMGType = new SMGType(leftSideSMGType, rightSideOriginSMGType);
               }
 
+              // TODO
+              // The following predicate relation is a completely unsound assumption,
+              // because we know nothing about the calling context, not even, if we are in a negated (!) expression.
+              // This might clearly be a bug, but I could currently not find a better way to solve this.
+              // The code works well for expressions that are not nested, like "a==b" or "a!=b",
+              // but is invalid for "(a==b)==c".
+              // There exists code in SMTTransferRelation.strenghtening
+              // that even needs to negate an edge to get correct results.
+
               //FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
                   // next line: use the symbolic value here and not the potential explicit one.
