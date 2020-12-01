@@ -76,6 +76,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
             // if we already know the value, we should use it.
             // TODO why does the visitor above create the symbolic value in the first place?
+            if (leftSideVal instanceof SMGKnownSymbolicValue) {
+              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) leftSideVal;
+              if (newState.isExplicit(expValue)) {
+                leftSideVal = newState.getExplicit(expValue);
+              }
+            }
             if (rightSideVal instanceof SMGKnownSymbolicValue) {
               SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) rightSideVal;
               if (newState.isExplicit(expValue)) {
@@ -118,7 +124,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
               //FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
-                  leftSideVal,
+                  // next line: use the symbolic value here and not the potential explicit one.
+                  leftSideValAndState.getObject(),
                   leftSideSMGType,
                   // next line: use the symbolic value here and not the potential explicit one.
                   rightSideValAndState.getObject(),
