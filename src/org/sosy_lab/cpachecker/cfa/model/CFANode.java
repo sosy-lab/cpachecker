@@ -1,31 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -35,8 +22,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 public class CFANode implements Comparable<CFANode>, Serializable {
 
@@ -55,7 +45,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   private boolean isLoopStart = false;
 
   // in which function is that node?
-  private final String functionName;
+  private final AFunctionDeclaration function;
 
   // set of variables out of scope after this node.
   // lazy initialization: first null, then final set
@@ -68,10 +58,19 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  public CFANode(String pFunctionName) {
-    assert !pFunctionName.isEmpty();
+  /** This method provides a simple way to generate a function. */
+  @VisibleForTesting
+  public static CFANode newDummyCFANode(String dummyName) {
+    return new CFANode(
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            CFunctionType.NO_ARGS_VOID_FUNCTION,
+            dummyName,
+            ImmutableList.of()));
+  }
 
-    functionName = pFunctionName;
+  public CFANode(AFunctionDeclaration pFunction) {
+    function = pFunction;
     nodeNumber = idGenerator.getFreshId();
   }
 
@@ -88,8 +87,11 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void addLeavingEdge(CFAEdge pNewLeavingEdge) {
-    checkArgument(pNewLeavingEdge.getPredecessor() == this,
-        "Cannot add edge \"%s\" to node %s as leaving edge", pNewLeavingEdge, this);
+    checkArgument(
+        pNewLeavingEdge.getPredecessor().equals(this),
+        "Cannot add edge \"%s\" to node %s as leaving edge",
+        pNewLeavingEdge,
+        this);
     leavingEdges.add(pNewLeavingEdge);
   }
 
@@ -108,8 +110,11 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void addEnteringEdge(CFAEdge pEnteringEdge) {
-    checkArgument(pEnteringEdge.getSuccessor() == this,
-        "Cannot add edge \"%s\" to node %s as entering edge", pEnteringEdge, this);
+    checkArgument(
+        pEnteringEdge.getSuccessor().equals(this),
+        "Cannot add edge \"%s\" to node %s as entering edge",
+        pEnteringEdge,
+        this);
     enteringEdges.add(pEnteringEdge);
   }
 
@@ -129,7 +134,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   public CFAEdge getEdgeTo(CFANode pOther) {
     for (CFAEdge edge : leavingEdges) {
-      if (edge.getSuccessor() == pOther) {
+      if (edge.getSuccessor().equals(pOther)) {
         return edge;
       }
     }
@@ -140,7 +145,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   public boolean hasEdgeTo(CFANode pOther) {
     boolean hasEdge = false;
     for (CFAEdge edge : leavingEdges) {
-      if (edge.getSuccessor() == pOther) {
+      if (edge.getSuccessor().equals(pOther)) {
         hasEdge = true;
         break;
       }
@@ -157,8 +162,19 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     return isLoopStart;
   }
 
+  /**
+   * return the function name where this node belongs to.
+   *
+   * <p>This might not be the name from the source file. For the original function declaration,
+   * please use {@link #getFunction()}.
+   */
   public String getFunctionName() {
-    return functionName;
+    return function.getName();
+  }
+
+  /** return the function scope where this node belongs to. */
+  public AFunctionDeclaration getFunction() {
+    return function;
   }
 
   public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
@@ -168,8 +184,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkState(leavingSummaryEdge == null,
-        "Cannot add two leaving summary edges to node %s", this);
+    checkState(leavingSummaryEdge == null, "Cannot add two leaving summary edges to node %s", this);
     leavingSummaryEdge = pEdge;
   }
 
@@ -182,14 +197,20 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   }
 
   public void removeEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkArgument(enteringSummaryEdge == pEdge,
-        "Cannot remove non-existing entering summary edge \"%s\" from node \"%s\"", pEdge, this);
+    checkArgument(
+        enteringSummaryEdge.equals(pEdge),
+        "Cannot remove non-existing entering summary edge \"%s\" from node \"%s\"",
+        pEdge,
+        this);
     enteringSummaryEdge = null;
   }
 
   public void removeLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
-    checkArgument(leavingSummaryEdge == pEdge,
-        "Cannot remove non-existing leaving summary edge \"%s\" from node \"%s\"", pEdge, this);
+    checkArgument(
+        leavingSummaryEdge.equals(pEdge),
+        "Cannot remove non-existing leaving summary edge \"%s\" from node \"%s\"",
+        pEdge,
+        this);
     leavingSummaryEdge = null;
   }
 

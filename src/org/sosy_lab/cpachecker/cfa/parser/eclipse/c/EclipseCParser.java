@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -58,12 +43,12 @@ import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.FileContent;
 import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
 import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
@@ -82,23 +67,29 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
  */
 class EclipseCParser implements CParser {
 
-  protected final ILanguage language;
+  private final ILanguage language;
 
-  protected final IParserLogService parserLog = ParserFactory.createDefaultLogService();
+  private final IParserLogService parserLog;
 
   private final MachineModel machine;
-
   private final LogManager logger;
   private final EclipseCParserOptions options;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  public EclipseCParser(LogManager pLogger, EclipseCParserOptions pOptions, MachineModel pMachine) {
+  public EclipseCParser(
+      LogManager pLogger,
+      EclipseCParserOptions pOptions,
+      MachineModel pMachine,
+      ShutdownNotifier pShutdownNotifier) {
 
-    this.logger = pLogger;
-    this.machine = pMachine;
-    this.options = pOptions;
+    logger = pLogger;
+    machine = pMachine;
+    options = pOptions;
+    shutdownNotifier = pShutdownNotifier;
+    parserLog = new ShutdownNotifierLogAdapter(pShutdownNotifier);
 
     switch (pOptions.getDialect()) {
     case C99:
@@ -143,7 +134,7 @@ class EclipseCParser implements CParser {
       CSourceOriginMapping pSourceOriginMapping,
       CProgramScope scope,
       FileParseWrapper pWrapperFunction)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     Preconditions.checkNotNull(pInput);
     Preconditions.checkNotNull(pSourceOriginMapping);
@@ -174,7 +165,8 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException {
+  public ParseResult parseFile(List<String> pFilenames)
+      throws CParserException, InterruptedException {
 
     return parseSomething(
         Lists.transform(pFilenames, FileToParse::new),
@@ -186,7 +178,7 @@ class EclipseCParser implements CParser {
   @Override
   public ParseResult parseString(
       List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     return parseSomething(
         pCodeFragments,
@@ -201,7 +193,8 @@ class EclipseCParser implements CParser {
 
   /** This method parses a single file where no prefix for static variables is needed. */
   @Override
-  public ParseResult parseFile(String pFileName) throws CParserException, IOException {
+  public ParseResult parseFile(String pFileName)
+      throws CParserException, IOException, InterruptedException {
 
     return parseFile(ImmutableList.of(pFileName));
   }
@@ -210,7 +203,7 @@ class EclipseCParser implements CParser {
   @Override
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
@@ -222,7 +215,8 @@ class EclipseCParser implements CParser {
         });
   }
 
-  private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {
+  private IASTStatement[] parseCodeFragmentReturnBody(String pCode)
+      throws CParserException, InterruptedException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode), ParseContext.dummy());
 
@@ -260,7 +254,8 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode, Scope scope)
+      throws CParserException, InterruptedException {
 
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
@@ -277,7 +272,8 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException {
+  public List<CAstNode> parseStatements(String pCode, Scope scope)
+      throws CParserException, InterruptedException {
 
     IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
     ASTConverter converter = prepareTemporaryConverter(scope);
@@ -305,7 +301,7 @@ class EclipseCParser implements CParser {
   protected static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
   private IASTTranslationUnit parse(FileContent codeReader, ParseContext parseContext)
-      throws CParserException {
+      throws CParserException, InterruptedException {
     parseTimer.start();
     try {
       IASTTranslationUnit result = getASTTranslationUnit(codeReader);
@@ -339,14 +335,18 @@ class EclipseCParser implements CParser {
   }
 
   private IASTTranslationUnit getASTTranslationUnit(FileContent pCode)
-      throws CFAGenerationRuntimeException, CoreException {
-
-    return language.getASTTranslationUnit(pCode,
-                                          StubScannerInfo.instance,
-                                          FileContentProvider.instance,
-                                          null,
-                                          PARSER_OPTIONS,
-                                          parserLog);
+      throws CFAGenerationRuntimeException, CoreException, InterruptedException {
+    try {
+      return language.getASTTranslationUnit(
+          pCode,
+          StubScannerInfo.instance,
+          FileContentProvider.instance,
+          null,
+          PARSER_OPTIONS,
+          parserLog);
+    } finally {
+      shutdownNotifier.shutdownIfNecessary();
+    }
   }
 
   /**
@@ -358,13 +358,13 @@ class EclipseCParser implements CParser {
    */
   private ParseResult buildCFA(
       List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
     try {
-      CFABuilder builder = new CFABuilder(options, logger, parseContext, machine);
+      CFABuilder builder = new CFABuilder(options, logger, shutdownNotifier, parseContext, machine);
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
@@ -497,20 +497,29 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
       macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
       macrosBuilder.put("__offsetof__", "__offsetof__");
-
+      macrosBuilder.put("__builtin_offsetof(t,f)", "__builtin_offsetof(((t){}).f)");
       macrosBuilder.put("__func__", "\"__func__\"");
       macrosBuilder.put("__FUNCTION__", "\"__FUNCTION__\"");
       macrosBuilder.put("__PRETTY_FUNCTION__", "\"__PRETTY_FUNCTION__\"");
 
-      // Eclipse CDT 8.1.1 has problems with more complex attributes
-      macrosBuilder.put("__attribute__(a)", "");
-
-      // There are some interesting macros available at
-      // http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
-      macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))"); // at least size of smallest addressable unit
-      //macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
-      macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
+      // For vararg handling there are some interesting macros that we could use available at
+      // https://web.archive.org/web/20160801170919/http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
+      // However, without proper support in the analysis, these just make things worse.
+      // Cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/711
+      // We need size of smallest addressable unit:
+      // macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))");
+      // macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
+      // macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) -
+      // _INTSIZEOF(t))");
       // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
+
+      // But for now we just make sure that code with varargs can be parsed
+      macrosBuilder.put("__builtin_va_arg(ap,t)", "(t)__builtin_va_arg(ap)");
+
+      // specifying a GCC version >= 4.7 enables handling of 128-bit types in
+      // GCCScannerExtensionConfiguration
+      macrosBuilder.put("__GNUC__", "4");
+      macrosBuilder.put("__GNUC_MINOR__", "7");
 
       MACROS = macrosBuilder.build();
     }
@@ -577,6 +586,11 @@ class EclipseCParser implements CParser {
         result = result.withFileName(pAnalysisFile);
       }
       return result;
+    }
+
+    @Override
+    public boolean isMappingToIdenticalLineNumbers() {
+      return delegate.isMappingToIdenticalLineNumbers();
     }
   }
 }

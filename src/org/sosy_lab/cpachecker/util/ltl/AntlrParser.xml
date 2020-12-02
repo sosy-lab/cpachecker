@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
 <project name="Antlr4 parser generation" default="generate-antlr4-grammar" basedir="./../../../../../../">
 	<!-- basedir should be the "CPAchecker" directory -->
@@ -73,7 +84,8 @@
 				<path refid="classpath.antlr4" />
 			</classpath>
 		</java>
-		<property name="annotation" value="@javax.annotation.Generated(&quot;Antlr&quot;)${line.separator}"/>
+		<property name="annotation" value="@javax.annotation.processing.Generated(&quot;Antlr&quot;)${line.separator}"/>
+		<replace file="${ltl.generated.dir}/${lexer.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
 		<replace file="${ltl.generated.dir}/${parser.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
 		<echo message="Generated parser-files in ${ltl.generated.dir}/*" level="info" />
 	</target>

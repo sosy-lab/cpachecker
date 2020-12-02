@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -51,6 +36,8 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   private final int startingLineInOrigin;
   private final int endingLineInOrigin;
 
+  private final boolean offsetRelatedToOrigin;
+
   public FileLocation(
       String pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
     this(
@@ -61,7 +48,8 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         pStartingLine,
         pEndingLine,
         pStartingLine,
-        pEndingLine);
+        pEndingLine,
+        true);
   }
 
   public FileLocation(
@@ -72,7 +60,8 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       int pStartingLine,
       int pEndingLine,
       int pStartingLineInOrigin,
-      int pEndingLineInOrigin) {
+      int pEndingLineInOrigin,
+      boolean pOffsetRelatedToOrigin) {
     fileName = checkNotNull(pFileName);
     niceFileName = checkNotNull(pNiceFileName);
     offset = pOffset;
@@ -81,6 +70,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     endingLine = pEndingLine;
     startingLineInOrigin = pStartingLineInOrigin;
     endingLineInOrigin = pEndingLineInOrigin;
+    offsetRelatedToOrigin = pOffsetRelatedToOrigin;
   }
 
   public static final FileLocation DUMMY =
@@ -114,8 +104,9 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     int endingLine = Integer.MIN_VALUE;
     int endingLineInOrigin = Integer.MIN_VALUE;
     int endOffset = Integer.MIN_VALUE;
+    boolean offsetRelatedToOrigin = true;
     for (FileLocation loc : locations) {
-      if (loc == DUMMY) {
+      if (DUMMY.equals(loc)) {
         continue;
       }
       if (fileName == null) {
@@ -131,6 +122,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       endingLine = Math.max(endingLine, loc.getEndingLineNumber());
       endingLineInOrigin = Math.max(endingLineInOrigin, loc.getEndingLineInOrigin());
       endOffset = Math.max(endOffset, loc.getNodeOffset() + loc.getNodeLength());
+      offsetRelatedToOrigin &= loc.offsetRelatedToOrigin;
     }
 
     if (fileName == null) {
@@ -145,7 +137,8 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         startingLine,
         endingLine,
         startingLineInOrigin,
-        endingLineInOrigin);
+        endingLineInOrigin,
+        offsetRelatedToOrigin);
   }
 
   public String getFileName() {
@@ -181,9 +174,10 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     return endingLineInOrigin;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
+  public boolean isOffsetRelatedToOrigin() {
+    return offsetRelatedToOrigin;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -196,9 +190,6 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import com.google.common.base.Joiner;
@@ -409,11 +394,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((entry == null) ? 0 : entry.hashCode());
-      result = prime * result + ((exit == null) ? 0 : exit.hashCode());
-      return result;
+      return Objects.hash(entry, exit);
     }
 
     @Override
@@ -421,28 +402,11 @@ public class ReachingDefState implements AbstractState, Serializable,
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof ProgramDefinitionPoint)) {
         return false;
       }
       ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
-      if (entry == null) {
-        if (other.entry != null) {
-          return false;
-        }
-      } else if (!entry.equals(other.entry)) {
-        return false;
-      }
-      if (exit == null) {
-        if (other.exit != null) {
-          return false;
-        }
-      } else if (!exit.equals(other.exit)) {
-        return false;
-      }
-      return true;
+      return Objects.equals(entry, other.entry) && Objects.equals(exit, other.exit);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -453,7 +417,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     @SuppressWarnings("UnusedVariable") // parameter is required by API
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);

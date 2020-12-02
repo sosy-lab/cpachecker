@@ -1,31 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -65,7 +50,19 @@ public class PredicateManager {
   @Option(secure=true, description = "declare vars partitionwise")
   private boolean initPartitions = true;
 
+  protected static final String TMP_VARIABLE_PREFIX = "__CPAchecker_tmp_var_";
+
+  @Option(
+    secure = true,
+    description = "add some additional variables (with prefix) for each variable "
+        + "that can be used for more complex BDD operations later. "
+        + "In the ordering, we declare them as narrow as possible to the original variable, "
+        + "such that the overhead for using them stays small. "
+        + "A value 0 disables this feature.")
+  private int initAdditionalVariables = 0;
+
   protected static final String TMP_VARIABLE = "__CPAchecker_tmp_var";
+
   private final ImmutableMap<Partition, String> varsToTmpVar;
 
   /**
@@ -115,20 +112,24 @@ public class PredicateManager {
       partitions = d.getOrderedPartitions();
     } else {
       assert cfa.getVarClassification().isPresent();
-      partitions = cfa.getVarClassification().get().getPartitions(); // may be unsorted
+      partitions = cfa.getVarClassification().orElseThrow().getPartitions(); // may be unsorted
     }
 
-    Map<Partition, String> partitionToTmpVar = new HashMap<>();
-    MachineModel machineModel = cfa.getMachineModel();
+    Map<Partition, String> partitionToTmpVar = new LinkedHashMap<>();
+    int bitsize = getMaxBitsize(cfa.getMachineModel());
     for (Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not
       // matter.
       createPredicates(
           partition,
-          machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits(),
+          bitsize,
           partitionToTmpVar);
     }
     return ImmutableMap.copyOf(partitionToTmpVar);
+  }
+
+  static int getMaxBitsize(MachineModel machineModel) {
+    return machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits();
   }
 
   /**
@@ -185,9 +186,25 @@ public class PredicateManager {
     }
   }
 
-  /** This function returns a region for a variable.
-   * This function does not track any statistics. */
-  private Region createPredicateDirectly(final String varName, final int index) {
+  private void createPredicateDirectly(final String varName, final int index) {
+    createPredicateDirectly0(varName, index);
+    for (int i = 0; i < initAdditionalVariables; i++) {
+      createPredicateDirectly0(getAdditionalVariableWithIndex(varName, i), index);
+    }
+  }
+
+  int getNumberOfAdditionalVariables() {
+    return initAdditionalVariables;
+  }
+
+  String getAdditionalVariableWithIndex(final String varName, int i) {
+    return TMP_VARIABLE_PREFIX + i + "__" + varName;
+  }
+
+  /**
+   * This function returns a region for a variable. This function does not track any statistics.
+   */
+  private Region createPredicateDirectly0(final String varName, final int index) {
     return rmgr.createPredicate(varName + "@" + index);
   }
 
@@ -214,7 +231,7 @@ public class PredicateManager {
     final Region[] newRegions = new Region[size];
     for (int i = size - 1; i >= 0; i--) {
       // inverse order should be faster, because 'most changing bits' are at bottom position in BDDs.
-      newRegions[i] = createPredicateDirectly(varName, i);
+      newRegions[i] = createPredicateDirectly0(varName, i);
     }
     return newRegions;
   }

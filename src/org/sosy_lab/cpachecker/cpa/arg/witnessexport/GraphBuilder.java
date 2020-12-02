@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Joiner;
@@ -35,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -114,12 +100,12 @@ enum GraphBuilder {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(s);
-              assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(innerEdge));
+              boolean isAssumptionAvailableForEdge =
+                  Iterables.any(pValueMap.get(s), a -> a.getCFAEdge().equals(innerEdge));
               Optional<Collection<ARGState>> absentStates =
-                  Iterables.isEmpty(assumptions)
-                      ? Optional.empty()
-                      : Optional.of(Collections.singleton(s));
+                  isAssumptionAvailableForEdge
+                      ? Optional.of(Collections.singleton(s))
+                      : Optional.empty();
               pEdgeAppender.appendNewEdge(
                   prevStateId,
                   pseudoStateId,
@@ -134,8 +120,7 @@ enum GraphBuilder {
             edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
           }
 
-          Optional<Collection<ARGState>> state =
-              Optional.<Collection<ARGState>>of(Collections.singleton(s));
+          Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));
 
           // Only proceed with this state if the path states contain the child
           if (pPathStates.apply(child) && pIsRelevantEdge.test(s, child)) {
@@ -153,7 +138,7 @@ enum GraphBuilder {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
-                if (sibling != child
+                if (!Objects.equals(sibling, child)
                     && siblingEdge.equals(s.getEdgeToChild(sibling))
                     && pIsRelevantEdge.test(s, sibling)) {
                   addArtificialSinkEdge = false;
@@ -177,6 +162,7 @@ enum GraphBuilder {
 
   },
 
+  @Deprecated
   CFA_FROM_ARG {
 
     @Override
@@ -187,7 +173,7 @@ enum GraphBuilder {
     @Override
     public void buildGraph(
         ARGState pRootState,
-        final Predicate<? super ARGState> pPathStates,
+        final Predicate<? super ARGState> pIsRelevantState,
         final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
@@ -204,9 +190,8 @@ enum GraphBuilder {
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is
-          // relevant
-          if (pPathStates.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
+          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
             for (CFANode location : AbstractStates.extractLocations(target)) {
               subProgramNodes.add(location);
               states.put(location, target);
@@ -251,7 +236,7 @@ enum GraphBuilder {
     @Override
     public void buildGraph(
         ARGState pRootState,
-        final Predicate<? super ARGState> pPathStates,
+        final Predicate<? super ARGState> pIsRelevantState,
         final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
@@ -268,9 +253,8 @@ enum GraphBuilder {
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is
-          // relevant
-          if (pPathStates.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
+          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
             for (CFANode location : AbstractStates.extractLocations(target)) {
               subProgramNodes.add(location);
               states.put(location, target);
@@ -342,7 +326,7 @@ enum GraphBuilder {
 
   public abstract void buildGraph(
       ARGState pRootState,
-      Predicate<? super ARGState> pPathStates,
+      Predicate<? super ARGState> pIsRelevantState,
       BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,

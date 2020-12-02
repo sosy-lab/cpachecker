@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
@@ -87,7 +72,8 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, IOException {
+  public ParseResult parseFile(String pFilename)
+      throws ParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
     String tokenizedCode = tokenizeSourcefile(pFilename, sourceOriginMapping);
     return realParser.parseString(
@@ -199,7 +185,7 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseString(
       String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException {
+      throws CParserException, InterruptedException {
     String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
 
     return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
@@ -216,7 +202,8 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) throws CParserException, IOException {
+  public ParseResult parseFile(List<String> pFilenames)
+      throws CParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
@@ -233,7 +220,7 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseString(
       List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException {
+      throws CParserException, InterruptedException {
 
     List<FileContentToParse> tokenizedFragments = new ArrayList<>(pCode.size());
     for (FileContentToParse f : pCode) {
@@ -248,12 +235,14 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope pScope) throws CParserException {
+  public CAstNode parseSingleStatement(String pCode, Scope pScope)
+      throws CParserException, InterruptedException {
     return realParser.parseSingleStatement(pCode, pScope);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope pScope) throws CParserException {
+  public List<CAstNode> parseStatements(String pCode, Scope pScope)
+      throws CParserException, InterruptedException {
     return realParser.parseStatements(pCode, pScope);
   }
 }

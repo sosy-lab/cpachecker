@@ -1,48 +1,26 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLinkedListShape> {
 
-  private final CType nfoType;
+  private final long nfoSize;
 
-  public SMGSingleLinkedListCandidate(SMGObject pStartObject, long pNfo, long pHfo, CType pNfoType,
-      MachineModel pModel) {
+  public SMGSingleLinkedListCandidate(
+      SMGObject pStartObject, long pNfo, long pHfo, long pNfoSize, MachineModel pModel) {
     super(pStartObject, pModel, new SMGSingleLinkedListShape(pHfo, pNfo));
-    nfoType = pNfoType;
-  }
-
-  @Override
-  public boolean hasRecursiveFields() {
-    return SMGUtils.isRecursiveOnOffset(nfoType, getShape().getNfo(), model);
+    nfoSize = pNfoSize;
   }
 
   @Override
@@ -53,7 +31,7 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
 
   @Override
   public int hashCode() {
-    return super.hashCode() * 13 + nfoType.hashCode();
+    return super.hashCode() * 13 + Long.hashCode(nfoSize);
   }
 
   @Override
@@ -62,6 +40,6 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
       return false;
     }
     SMGSingleLinkedListCandidate other = (SMGSingleLinkedListCandidate) o;
-    return super.equals(other) && Objects.equals(nfoType, other.nfoType);
+    return super.equals(other) && Objects.equals(nfoSize, other.nfoSize);
   }
 }

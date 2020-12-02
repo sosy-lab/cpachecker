@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 Benchmarking CPAchecker
 =======================
 
@@ -17,14 +27,13 @@ For benchmarking, it is recommended to use
 [BenchExec](https://github.com/sosy-lab/benchexec).
 An extended version of BenchExec is bundled with CPAchecker
 and usable by calling `scripts/benchmark.py`.
-This script should run with any Python version >= 3.2.
+This script should run with any Python version >= 3.4.
 This script takes as input one or more XML files which specify the tool,
 the resource limits, the tool configuration, the input programs
 and the columns that should appear in the output table.
 The script puts all the results into the test/results/ directory.
 Commented examples for these XML files are given in the BenchExec 
-[documentation](https://github.com/sosy-lab/benchexec/blob/master/doc/INDEX.md)
-and in `./examples/benchmark*.xml`.
+[documentation](https://github.com/sosy-lab/benchexec/blob/master/doc/INDEX.md).
 The file [./examples/benchmark-cpachecker.xml](./examples/benchmark-cpachecker.xml)
 can be used as base for own benchmarks.
 Several useful benchmark configurations are in `test/test-sets/*.xml`.
@@ -42,11 +51,7 @@ The specification is given in a property file (`.prp`) just like in the SV-COMP.
 There are examples for such files in `test/programs/benchmarks/property*.prp`.
 To specify them in the benchmark, use the `<propertyfiles>` tag.
 It can occur either in global scope or inside a `<tasks>` tag.
-You can use the variables that will be resolved by the benchmark scripts
-like in other tags, for example:
-`<propertyfile>${inputfile_path}/ALL.prp</propertyfile>`
-This will verify each source file against the specification ALL.prp
-in the same directory.
+We provide common program properties in `config/properties`.
 You do not need to specify a separate command-line option
 with the specification for the verifier,
 as the script will automatically add it to the command line.

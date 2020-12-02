@@ -1,20 +1,21 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
+
+# This file is part of SoSy-Lab Java-Project Template,
+# a collection of common files and build definitions for Java projects:
+# https://gitlab.com/sosy-lab/software/java-project-template
+#
+# SPDX-FileCopyrightText: 2015-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: Google
+# SPDX-FileCopyrightText: LLVM Team
+#
+# SPDX-License-Identifier: NCSA
+
 # Script taken from https://github.com/google/google-java-format
 # Changed to use jar file as command.
 
 # DO NOT EDIT LOCALLY!
 # Keep this file synchronized with
 # https://gitlab.com/sosy-lab/software/java-project-template
-
-#
-#===- google-java-format-diff.py - google-java-format Diff Reformatter -----===#
-#
-#                     The LLVM Compiler Infrastructure
-#
-# This file is distributed under the University of Illinois Open Source
-# License. See LICENSE.TXT for details.
-#
-#===------------------------------------------------------------------------===#
 
 """
 google-java-format Diff Reformatter
@@ -32,11 +33,11 @@ Example usage for git/svn users:
 import argparse
 import difflib
 import glob
+import io
 import os
 import re
 import string
 import subprocess
-import StringIO
 import sys
 
 CMD = ['java',
@@ -97,9 +98,9 @@ def main():
           ['-lines', str(start_line) + ':' + str(end_line)])
 
   # Reformat files containing changes in place.
-  for filename, lines in lines_by_file.iteritems():
+  for filename, lines in lines_by_file.items():
     if args.i and args.verbose:
-      print 'Formatting', filename
+      print('Formatting', filename)
     command = list(CMD)
     if args.i:
       command.append('-i')
@@ -114,7 +115,7 @@ def main():
     if not args.i:
       with open(filename) as f:
         code = f.readlines()
-      formatted_code = StringIO.StringIO(stdout).readlines()
+      formatted_code = io.StringIO(stdout).readlines()
       diff = difflib.unified_diff(code, formatted_code,
                                   filename, filename,
                                   '(before formatting)', '(after formatting)')

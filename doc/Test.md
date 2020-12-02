@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 Integration Tests
 -----------------
 
@@ -7,6 +17,9 @@ You can also execute these tests directly with BenchExec.
 All major projects and configurations within CPAchecker should be part of this test suite.
 To add tests for your project or configuration,
 please contact the maintainers on the developer mailing list.
+Be aware that the integration tests expect that the folder `c`
+of the [sv-benchmarks repository](https://github.com/sosy-lab/sv-benchmarks)
+is linked/copied to `../test/programs/benchmarks`.
 
 Unit Tests
 ----------
@@ -66,21 +79,11 @@ Other utilities may be found in the package `util.test`.
   because you will get unhelpful failure messages such as `expected result was 'true', but is 'false'`
   instead of for example `expected that string '...' contains '...'`.
 
-- For tests that expect an exception to be thrown, it is often better to use the ExpectedException Rule of JUnit
-  instead of writing `@Test(expected=...Exception.class)`.
-  To do this, add
-  ```
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
-  ```
-  to your test class and write
-  ```
-    thrown.expect(...Exception.class);
-  ```
-  in the test method directly before the statement that should throw.
-  This will ensure that it will be detected if a different statement in the test
-  happens to throw the same exception although it should not.
-  ExpectedException can also be used to check whether the thrown exception has a specific cause or message.
+- For tests that expect an exception to be thrown,
+  use JUnit's `org.junit.Assert.assertThrows`
+  (statically import this to avoid the Checkstyle warning).
+  This method returns the thrown exception,
+  so any further checks on the condition can be done with Truth's `assertThat`.
 
 - Sometimes there are tests that make sense to be executed with different values of one or more parameters,
   for example if you have code that depends on the MachineModel and should work with any instance of MachineModel.

@@ -1,27 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.usage.storage;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -34,16 +21,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
@@ -59,11 +42,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.usage")
 public class UsageContainer {
-  private final SortedMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
-  private final SortedMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
-  private final SortedMap<SingleIdentifier, RefinedUsagePointSet> failedIds;
+  private final NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
+  private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
+  private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> failedIds;
 
   private final UnsafeDetector detector;
 
@@ -75,6 +57,7 @@ public class UsageContainer {
   private int initialUsages;
 
   private final LogManager logger;
+  private final UsageConfiguration config;
 
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
   private final StatTimer copyTimer = new StatTimer("Time for filling global container");
@@ -83,28 +66,31 @@ public class UsageContainer {
   int unsafeUsages = -1;
   int totalIds = 0;
 
-  @Option(description="output only true unsafes",
-      secure = true)
-  private boolean printOnlyTrueUnsafes = false;
-
-  public UsageContainer(Configuration config, LogManager l) throws InvalidConfigurationException {
-    this(new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
+  public UsageContainer(UsageConfiguration config, LogManager l, UnsafeDetector unsafeDetector) {
+    this(
+        new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
         new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
         new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeSet<SingleIdentifier>(), l, new UnsafeDetector(config));
-    config.inject(this);
+        new TreeSet<SingleIdentifier>(),
+        l,
+        config,
+        unsafeDetector);
   }
 
-  private UsageContainer(SortedMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
-      SortedMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
-      SortedMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
-      Set<SingleIdentifier> pFalseUnsafes, LogManager pLogger,
+  private UsageContainer(
+      NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
+      NavigableMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
+      NavigableMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
+      Set<SingleIdentifier> pFalseUnsafes,
+      LogManager pLogger,
+      UsageConfiguration pConfig,
       UnsafeDetector pDetector) {
     unrefinedIds = pUnrefinedStat;
     refinedIds = pRefinedStat;
     failedIds = failedStat;
     falseUnsafes = pFalseUnsafes;
     logger = pLogger;
+    config = pConfig;
     detector = pDetector;
   }
 
@@ -152,7 +138,7 @@ public class UsageContainer {
 
   private void copyUsages(AbstractUsageStorage storage) {
     emptyEffectsTimer.start();
-    for (Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : storage.entrySet()) {
+    for (Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : storage.entrySet()) {
       SingleIdentifier id = entry.getKey();
 
       if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
@@ -175,7 +161,7 @@ public class UsageContainer {
     } else {
       Map<LockState, LockState> reduceToExpand = new HashMap<>();
 
-      for (Map.Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : storage.entrySet()) {
+      for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : storage.entrySet()) {
         SingleIdentifier id = entry.getKey();
 
         if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
@@ -264,7 +250,7 @@ public class UsageContainer {
   }
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
-    if (printOnlyTrueUnsafes) {
+    if (config.printOnlyTrueUnsafes()) {
       return getTrueUnsafeIterator();
     } else {
       return getAllUnsafes().iterator();
@@ -281,14 +267,15 @@ public class UsageContainer {
     return getKeySetIterator(refinedIds);
   }
 
-  private Iterator<SingleIdentifier> getKeySetIterator(SortedMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
+  private Iterator<SingleIdentifier> getKeySetIterator(
+      NavigableMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
     Set<SingleIdentifier> result = new TreeSet<>(map.keySet());
     return result.iterator();
   }
 
   public int getUnsafeSize() {
     calculateUnsafesIfNecessary();
-    if (printOnlyTrueUnsafes) {
+    if (config.printOnlyTrueUnsafes()) {
       return refinedIds.size();
     } else {
       return getTotalUnsafeSize();
@@ -338,7 +325,10 @@ public class UsageContainer {
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
     Preconditions.checkArgument(result.isTrue(), "Result is not true, can not set the set as refined");
-    Preconditions.checkArgument(detector.isUnsafe(getUsages(id)), "Refinement is successful, but the unsafe is absent for identifier " + id);
+    checkArgument(
+        detector.isUnsafe(getUsages(id)),
+        "Refinement is successful, but the unsafe is absent for identifier %s",
+        id);
 
     setAsRefined(id, result.getTrueRace().getFirst(), result.getTrueRace().getSecond());
   }

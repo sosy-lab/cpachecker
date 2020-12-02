@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import com.google.common.base.Preconditions;
@@ -31,12 +16,11 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 interface LoopIterationState {
 
-  LoopIterationState visitLoopHead(LoopEntry pLoopEntry);
+  LoopIterationState visitLoopHead(Loop pLoop);
 
   int getMaxIterationCount();
 
@@ -46,7 +30,7 @@ interface LoopIterationState {
 
   boolean isEntryKnown();
 
-  LoopEntry getLoopEntry();
+  Loop getLoop();
 
   boolean isLoopCounterAbstracted();
 
@@ -75,12 +59,11 @@ interface LoopIterationState {
     }
 
     @Override
-    public LoopIterationState visitLoopHead(LoopEntry pLoopEntry) {
-      Loop loop = pLoopEntry.getLoop();
-      LoopIteration storedIteration = iterations.getOrDefault(
-          loop,
-          new LoopIteration(pLoopEntry.getEntryPoint(), 0));
-      if (storedIteration.getLoopEntryPoint().equals(pLoopEntry.getEntryPoint())) {
+    public LoopIterationState visitLoopHead(Loop pLoop) {
+      Loop loop = pLoop;
+      LoopIteration storedIteration =
+          iterations.getOrDefault(loop, new LoopIteration(pLoop, 0));
+      if (loop.equals(storedIteration.getLoop())) {
         storedIteration = storedIteration.increment();
         return new UndeterminedLoopIterationState(
             iterations.putAndCopy(loop, storedIteration),
@@ -125,8 +108,8 @@ interface LoopIterationState {
     }
 
     @Override
-    public LoopEntry getLoopEntry() {
-      throw new IllegalStateException("Loop entry is unknown.");
+    public Loop getLoop() {
+      throw new IllegalStateException("Loop is unknown.");
     }
 
     @Override
@@ -170,7 +153,7 @@ interface LoopIterationState {
               iters.putAndCopy(
                   loop,
                   new LoopIteration(
-                      oldIterationCount.getLoopEntryPoint(), pLoopIterationsBeforeAbstraction));
+                      oldIterationCount.getLoop(), pLoopIterationsBeforeAbstraction));
         }
       }
       return new UndeterminedLoopIterationState(iters, pLoopIterationsBeforeAbstraction, true);
@@ -182,18 +165,18 @@ interface LoopIterationState {
 
     private static class LoopIteration {
 
-      private final CFANode loopEntryPoint;
+      private final Loop loop;
 
       private final int iteration;
 
-      public LoopIteration(CFANode pLoopEntryPoint, int pIteration) {
-        loopEntryPoint = Objects.requireNonNull(pLoopEntryPoint);
+      public LoopIteration(Loop pLoop, int pIteration) {
+        loop = Objects.requireNonNull(pLoop);
         Preconditions.checkArgument(pIteration >= 0);
         iteration = pIteration;
       }
 
-      public CFANode getLoopEntryPoint() {
-        return loopEntryPoint;
+      public Loop getLoop() {
+        return loop;
       }
 
       public int getCount() {
@@ -201,17 +184,17 @@ interface LoopIterationState {
       }
 
       public LoopIteration increment() {
-        return new LoopIteration(loopEntryPoint, getCount() + 1);
+        return new LoopIteration(loop, getCount() + 1);
       }
 
       @Override
       public String toString() {
-        return String.format("%d through %s", iteration, loopEntryPoint);
+        return String.format("%d through %s", iteration, loop);
       }
 
       @Override
       public int hashCode() {
-        return Objects.hash(iteration, loopEntryPoint);
+        return Objects.hash(iteration, loop);
       }
 
       @Override
@@ -222,7 +205,7 @@ interface LoopIterationState {
         if (pObj instanceof LoopIteration) {
           LoopIteration other = (LoopIteration) pObj;
           return iteration == other.iteration
-              && loopEntryPoint.equals(other.loopEntryPoint);
+              && loop.equals(other.loop);
         }
         return false;
       }
@@ -232,18 +215,19 @@ interface LoopIterationState {
 
   public static class DeterminedLoopIterationState implements LoopIterationState {
 
-    private final LoopEntry loopEntry;
+    private final Loop loop;
 
     private final int iteration;
 
     private final boolean loopCounterAbstracted;
 
-    private DeterminedLoopIterationState(LoopEntry pLoopEntry) {
-      this(pLoopEntry, 0, false);
+    private DeterminedLoopIterationState(Loop pLoop) {
+      this(pLoop, 0, false);
     }
 
-    private DeterminedLoopIterationState(LoopEntry pLoopEntry, int pIteration, boolean pLoopCounterAbstracted) {
-      loopEntry = Objects.requireNonNull(pLoopEntry);
+    private DeterminedLoopIterationState(
+        Loop pLoop, int pIteration, boolean pLoopCounterAbstracted) {
+      loop = Objects.requireNonNull(pLoop);
       Preconditions.checkArgument(pIteration >= 0);
       iteration = pIteration;
       loopCounterAbstracted = pLoopCounterAbstracted;
@@ -251,7 +235,7 @@ interface LoopIterationState {
 
     @Override
     public String toString() {
-      return loopEntry + " in iteration " + getMaxIterationCount();
+      return loop + " in iteration " + getMaxIterationCount();
     }
 
     @Override
@@ -263,22 +247,22 @@ interface LoopIterationState {
         DeterminedLoopIterationState other = (DeterminedLoopIterationState) pObj;
         return loopCounterAbstracted == other.loopCounterAbstracted
             && iteration == other.iteration
-            && loopEntry.equals(other.loopEntry);
+            && loop.equals(other.loop);
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(loopCounterAbstracted, iteration, loopEntry);
+      return Objects.hash(loopCounterAbstracted, iteration, loop);
     }
 
     @Override
-    public LoopIterationState visitLoopHead(LoopEntry pLoopEntry) {
-      if (!getLoopEntry().equals(loopEntry)) {
+    public LoopIterationState visitLoopHead(Loop pLoop) {
+      if (!getLoop().equals(loop)) {
         return this;
       }
-      return new DeterminedLoopIterationState(loopEntry, iteration + 1, loopCounterAbstracted);
+      return new DeterminedLoopIterationState(loop, iteration + 1, loopCounterAbstracted);
     }
 
     @Override
@@ -292,22 +276,22 @@ interface LoopIterationState {
     }
 
     @Override
-    public LoopEntry getLoopEntry() {
-      return loopEntry;
+    public Loop getLoop() {
+      return loop;
     }
 
     @Override
     public int getLoopIterationCount(Loop pLoop) {
-      return loopEntry.getLoop().equals(pLoop) ? iteration : 0;
+      return loop.equals(pLoop) ? iteration : 0;
     }
 
     @Override
     public Set<Loop> getDeepestIterationLoops() {
-      return Collections.singleton(loopEntry.getLoop());
+      return Collections.singleton(loop);
     }
 
-    public static LoopIterationState newState(LoopEntry pLoopEntry) {
-      return new DeterminedLoopIterationState(pLoopEntry);
+    public static LoopIterationState newState(Loop pLoop) {
+      return new DeterminedLoopIterationState(pLoop);
     }
 
     @Override
@@ -320,7 +304,7 @@ interface LoopIterationState {
       if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      return new DeterminedLoopIterationState(loopEntry, pLoopIterationsBeforeAbstraction, true);
+      return new DeterminedLoopIterationState(loop, pLoopIterationsBeforeAbstraction, true);
     }
 
   }

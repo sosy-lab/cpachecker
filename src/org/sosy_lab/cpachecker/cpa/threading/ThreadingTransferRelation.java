@@ -1,45 +1,31 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -52,6 +38,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -59,7 +49,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -71,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
@@ -183,9 +175,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     results = getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
 
-    results = setActiveThread(activeThread, results);
+    // Store the active thread in the given states, cf. JavaDoc of activeThread
+    results = Collections2.transform(results, ts -> ts.withActiveThread(activeThread));
 
-    return results;
+    return ImmutableList.copyOf(results);
   }
 
   /** Search for the thread, where the current edge is available.
@@ -230,7 +223,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           final String functionName = ((AIdExpression)functionNameExp).getName();
           switch(functionName) {
           case THREAD_START:
-            return startNewThread(threadingState, statement, results);
+                return startNewThread(threadingState, statement, results, cfaEdge);
           case THREAD_MUTEX_LOCK:
             return addLock(threadingState, activeThread, extractLockId(statement), results);
           case THREAD_MUTEX_UNLOCK:
@@ -359,7 +352,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
+    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {
@@ -386,7 +379,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private Collection<ThreadingState> startNewThread(
       final ThreadingState threadingState, final AStatement statement,
-      final Collection<ThreadingState> results) throws UnrecognizedCodeException, InterruptedException {
+      final Collection<ThreadingState> results,
+      final CFAEdge cfaEdge)
+      throws UnrecognizedCodeException, InterruptedException {
 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params = ((AFunctionCall)statement).getFunctionCallExpression().getParameterExpressions();
@@ -404,17 +399,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(expr2 instanceof CIdExpression)) {
       throw new UnrecognizedCodeException("unsupported thread function call", expr2);
     }
+    if (!(params.get(3) instanceof CExpression)) {
+      throw new UnrecognizedCodeException("unsupported thread function argument", params.get(3));
+    }
 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
-    String functionName = ((CIdExpression) expr2).getName();
-
-    if (callstackCPA
-        .getOptions()
-        .getUnsupportedFunctions()
-        .contains(CFACloner.extractFunctionName(functionName))) {
-      throw new UnsupportedCodeException(functionName, null);
-    }
+    CIdExpression function = (CIdExpression) expr2;
+    CExpression threadArg = (CExpression) params.get(3);
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,
@@ -423,7 +415,15 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       Set<Integer> usedNumbers = threadingState.getThreadNums();
       for (int i = ThreadingState.MIN_THREAD_NUM; i < maxNumberOfThreads; i++) {
         if (!usedNumbers.contains(i)) {
-          newResults.addAll(createThreadWithNumber(threadingState, id, functionName, i, results));
+          newResults.addAll(
+              createThreadWithNumber(
+                  threadingState,
+                  id,
+                  cfaEdge,
+                  function,
+                  threadArg,
+                  i,
+                  results));
         }
       }
       return newResults;
@@ -431,17 +431,28 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     } else {
       // a default reachability analysis can determine the thread-number on its own.
       int newThreadNum = threadingState.getSmallestMissingThreadNum();
-      return createThreadWithNumber(threadingState, id, functionName, newThreadNum, results);
+      return createThreadWithNumber(
+          threadingState,
+          id,
+          cfaEdge,
+          function,
+          threadArg,
+          newThreadNum,
+          results);
     }
   }
 
   private Collection<ThreadingState> createThreadWithNumber(
       final ThreadingState threadingState,
-      CIdExpression id,
-      String functionName,
-      int newThreadNum,
+      final CIdExpression id,
+      final CFAEdge cfaEdge,
+      final CIdExpression function,
+      final CExpression threadArg,
+      final int newThreadNum,
       final Collection<ThreadingState> results)
       throws UnrecognizedCodeException, InterruptedException {
+
+    String functionName = function.getName();
     if (useClonedFunctions) {
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
@@ -453,10 +464,61 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     for (ThreadingState ts : results) {
       ThreadingState newThreadingState = addNewThread(ts, threadId, newThreadNum, functionName);
       if (null != newThreadingState) {
-        newResults.add(newThreadingState);
+        // create a function call for the thread creation
+        CFunctionCallEdge functionCall =
+            createThreadEntryFunctionCall(
+                cfaEdge,
+                function.getExpressionType(),
+                functionName,
+                threadArg);
+        newResults.add(newThreadingState.withEntryFunction(functionCall));
       }
     }
     return newResults;
+  }
+
+  /**
+   * Create a functioncall expression for the thread creation.
+   *
+   * <p>
+   * For `pthread_create(t, ?, foo, arg)` with we return `foo(arg)`.
+   *
+   * @param cfaEdge where pthread_create was called
+   * @param type return-type of the called function
+   * @param functionName the (maybe indexed) name of the called function
+   * @param arg the argument given to the called function
+   */
+  private CFunctionCallEdge createThreadEntryFunctionCall(
+      final CFAEdge cfaEdge,
+      final CType type,
+      final String functionName,
+      final CExpression arg) {
+    CFunctionEntryNode functioncallNode =
+        (CFunctionEntryNode) Preconditions.checkNotNull(
+            cfa.getFunctionHead(functionName),
+            "Function '" + functionName + "' was not found. Please enable cloning for the CFA!");
+    CFunctionDeclaration functionDeclaration =
+        (CFunctionDeclaration) functioncallNode.getFunction();
+    CIdExpression functionId =
+        new CIdExpression(cfaEdge.getFileLocation(), type, functionName, functionDeclaration);
+    CFunctionCallExpression functionCallExpr =
+        new CFunctionCallExpression(
+            cfaEdge.getFileLocation(),
+            type,
+            functionId,
+            ImmutableList.of(arg),
+            functionDeclaration);
+    CFunctionCall functionCall =
+        new CFunctionCallStatement(cfaEdge.getFileLocation(), functionCallExpr);
+    CFunctionCallEdge edge =
+        new CFunctionCallEdge(
+            functionCallExpr.toASTString(),
+            cfaEdge.getFileLocation(),
+            cfaEdge.getSuccessor(),
+            functioncallNode,
+            functionCall,
+            null);
+    return edge;
   }
 
   /**
@@ -626,16 +688,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  /**
-   * Store the active thread in the given states.
-   *
-   * @see ThreadingState#setActiveThread
-   */
-  private Collection<ThreadingState> setActiveThread(
-      @Nullable String activeThread, Collection<ThreadingState> results) {
-    return transform(results, ts -> ts.setActiveThread(activeThread));
-  }
-
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
@@ -643,19 +695,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    Collection<ThreadingState> results = Collections.singleton((ThreadingState) state);
+    Optional<ThreadingState> results = Optional.of((ThreadingState) state);
 
     for (AutomatonState automatonState :
         AbstractStates.projectToType(otherStates, AutomatonState.class)) {
       if ("WitnessAutomaton".equals(automatonState.getOwningAutomatonName())) {
-        results = transform(results, ts -> handleWitnessAutomaton(ts, automatonState));
-        results = Collections2.filter(results, Predicates.notNull());
+        results = results.map(ts -> handleWitnessAutomaton(ts, automatonState));
       }
     }
 
-    assert !results.contains(null);
-
-    return setActiveThread(null, results);
+    // delete temporary information from the state, cf. JavaDoc of the called methods
+    return Optionals.asSet(results.map(ts -> ts.withActiveThread(null).withEntryFunction(null)));
   }
 
   private @Nullable ThreadingState handleWitnessAutomaton(
@@ -715,6 +765,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         }
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 }

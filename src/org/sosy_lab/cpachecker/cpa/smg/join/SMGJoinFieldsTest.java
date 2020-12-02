@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -33,10 +18,9 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -53,8 +37,6 @@ public class SMGJoinFieldsTest {
 
   private static final int mockType4bSize = 32;
   private static final int mockType8bSize = 64;
-  private final CType mockType4b = TypeUtils.createTypeWithLength(mockType4bSize);
-  private final CType mockType8b = TypeUtils.createTypeWithLength(mockType8bSize);
 
   private SMG smg1;
   private SMG smg2;
@@ -70,11 +52,11 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void joinNulliefiedAndUndefinedFieldsTest() {
-    SMGRegion obj1 = new SMGRegion(128, "1");
-    SMGRegion obj2 = new SMGRegion(128, "1");
+    SMGRegion obj1 = new SMGRegion(128, "obj1");
+    SMGRegion obj2 = new SMGRegion(128, "obj2");
 
-    SMGRegion oth1 = new SMGRegion(128, "1");
-    SMGRegion oth2 = new SMGRegion(128, "1");
+    SMGRegion oth1 = new SMGRegion(128, "oth1");
+    SMGRegion oth2 = new SMGRegion(128, "oth2");
     SMGValue value100 = SMGKnownExpValue.valueOf(100);
 
     SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(40, 0, obj1, SMGZeroValue.INSTANCE);
@@ -125,15 +107,12 @@ public class SMGJoinFieldsTest {
     Map<Long, Pair<SMGValue, Integer>> fieldMap1 = new HashMap<>();
     Map<Long, Pair<SMGValue, Integer>> fieldMap2 = new HashMap<>();
 
-    fieldMap1.put(0L, Pair.of(SMGZeroValue.INSTANCE, 32));
-    fieldMap1.put(32L, Pair.of(SMGZeroValue.INSTANCE, 8));
-    fieldMap1.put(64L, Pair.of(SMGKnownExpValue.valueOf(-1), 64));
+    fieldMap1.put(0L, Pair.of(SMGZeroValue.INSTANCE, 40));
     fieldMap1.put(72L, Pair.of(value1, 56));
 
     fieldMap2.put(0L, Pair.of(value100, 32));
     fieldMap2.put(32L, Pair.of(SMGZeroValue.INSTANCE, 8));
     fieldMap2.put(64L, Pair.of(value2, 64));
-    fieldMap2.put(72L, Pair.of(SMGKnownExpValue.valueOf(-1), 56));
 
     checkFields(join.getSMG1(), fieldMap1, obj1);
     checkFields(join.getSMG2(), fieldMap2, obj2);
@@ -143,7 +122,7 @@ public class SMGJoinFieldsTest {
       UnmodifiableSMG pSmg, Map<Long, Pair<SMGValue, Integer>> pFieldMap, SMGObject pObj) {
 
     SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
-    Set<SMGEdgeHasValue> edges = pSmg.getHVEdges(filterOnSMG);
+    SMGHasValueEdges edges = pSmg.getHVEdges(filterOnSMG);
 
     assertThat(edges).hasSize(pFieldMap.keySet().size());
 
@@ -177,7 +156,7 @@ public class SMGJoinFieldsTest {
     smg2.addValue(value2);
 
     SMGEdgeHasValue nullifyObj1 = new SMGEdgeHasValue(64, 0, obj1, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue nonPointer = new SMGEdgeHasValue(mockType4b, mockType4bSize, 16, obj2, value2);
+    SMGEdgeHasValue nonPointer = new SMGEdgeHasValue(mockType4bSize, 16, obj2, value2);
 
     smg1.addHasValueEdge(nullifyObj1);
     smg2.addHasValueEdge(nonPointer);
@@ -196,7 +175,6 @@ public class SMGJoinFieldsTest {
       assertThat(hv.getObject()).isSameInstanceAs(obj1);
       assertThat(hv.getSizeInBits()).isEqualTo(32);
       assertThat(hv.getOffset()).isEqualTo(16);
-      assertThat(hv.isCompatibleField(nonPointer)).isTrue();
     }
   }
 
@@ -204,18 +182,15 @@ public class SMGJoinFieldsTest {
   public void getHVSetOfCommonNullValuesTest() {
     SMGRegion obj1 = new SMGRegion(176, "1");
 
-    SMGEdgeHasValue smg1at4 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue smg2at8 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 64, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg1at4 = new SMGEdgeHasValue(mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg2at8 = new SMGEdgeHasValue(mockType4bSize, 64, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue smg1at14 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 112, obj1, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue smg2at12 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 96, obj1, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 112, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg2at12 = new SMGEdgeHasValue(mockType4bSize, 96, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue smg1at18 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 144, obj1, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 144, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue smg2at18 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 144, obj1, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 144, obj1, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(smg1at18);
     smg1.addHasValueEdge(smg1at14);
@@ -250,30 +225,28 @@ public class SMGJoinFieldsTest {
     smg2.addValue(value1);
 
     SMGEdgeHasValue hv0for4at0in1 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 0, obj, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv0for4at0in2 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 0, obj, SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValue hv0for4at5in1 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 40, obj, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 40, obj, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv0for4at7in2 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 56, obj, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 56, obj, SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValue hv0for4at12in1 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 96, obj, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 96, obj, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv0for4at16in2 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 128, obj, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 128, obj, SMGZeroValue.INSTANCE);
 
     SMGEdgeHasValue hv0for4at20in1 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 160, obj, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue hv666for4at20in2 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 160, obj, value1);
+        new SMGEdgeHasValue(mockType4bSize, 160, obj, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv666for4at20in2 = new SMGEdgeHasValue(mockType4bSize, 160, obj, value1);
 
-    SMGEdgeHasValue hv666for4at28in2 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 224, obj, value1);
+    SMGEdgeHasValue hv666for4at28in2 = new SMGEdgeHasValue(mockType4bSize, 224, obj, value1);
 
     SMGEdgeHasValue diffObjectNullValue =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, differentObject, SMGZeroValue.INSTANCE);
+        new SMGEdgeHasValue(mockType4bSize, 0, differentObject, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(hv0for4at0in1);
     smg1.addHasValueEdge(hv0for4at5in1);
@@ -302,23 +275,21 @@ public class SMGJoinFieldsTest {
     values.add(value2);
 
     SMGRegion object = new SMGRegion(128, "Object");
-    SMGEdgeHasValue smg1_4bFrom0ToV1 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, object, value1);
-    SMGEdgeHasValue smg1_4bFrom2ToV2 =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 16, object, value2);
-    SMGEdgeHasValue smg1_4bFrom4ToNull =
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg1_4bFrom0ToV1 = new SMGEdgeHasValue(mockType4bSize, 0, object, value1);
+    SMGEdgeHasValue smg1_4bFrom4ToV2 = new SMGEdgeHasValue(mockType4bSize, 32, object, value2);
+    SMGEdgeHasValue smg1_4bFrom8ToNull =
+        new SMGEdgeHasValue(mockType4bSize, 64, object, SMGZeroValue.INSTANCE);
 
     smg1.addObject(object);
     smg1.addValue(value1);
     smg1.addValue(value2);
-    smg1.addHasValueEdge(smg1_4bFrom4ToNull);
-    smg1.addHasValueEdge(smg1_4bFrom2ToV2);
+    smg1.addHasValueEdge(smg1_4bFrom8ToNull);
+    smg1.addHasValueEdge(smg1_4bFrom4ToV2);
     smg1.addHasValueEdge(smg1_4bFrom0ToV1);
 
     smg2.addObject(object);
 
-    Set<SMGEdgeHasValue> hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
+    SMGHasValueEdges hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
     assertThat(hvSet).hasSize(2);
 
     boolean seenZero = false;
@@ -328,11 +299,11 @@ public class SMGJoinFieldsTest {
     for (SMGEdgeHasValue edge : filter.filter(hvSet)) {
       if (edge.getOffset() == 0) {
         seenZero = true;
-      } else if (edge.getOffset() == 16) {
+      } else if (edge.getOffset() == 32) {
         seenTwo = true;
       }
-      assertThat(edge.getOffset()).isAnyOf(0L, 16L);
-      assertThat(edge.getType()).isEqualTo(mockType4b);
+      assertThat(edge.getOffset()).isAnyOf(0L, 32L);
+      assertThat(edge.getSizeInBits()).isEqualTo(mockType4bSize);
       assertThat(values).doesNotContain(edge.getValue());
       values.add(edge.getValue());
     }
@@ -354,19 +325,19 @@ public class SMGJoinFieldsTest {
 
     SMGValue value3 = SMGKnownSymValue.of();
     smg1.addValue(value3);
-    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, value3));
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, value3));
 
     SMGJoinFields jf = new SMGJoinFields(smg1.copyOf(), smg2.copyOf(), obj1, obj2);
     UnmodifiableSMG resultSMG = jf.getSMG2();
 
-    Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    assertThat(edges.size()).isGreaterThan(0);
+    SMGHasValueEdges edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
+    assertThat(edges.isEmpty()).isFalse();
 
     jf = new SMGJoinFields(smg2.copyOf(), smg1.copyOf(), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    assertThat(edges.size()).isGreaterThan(0);
+    assertThat(edges.isEmpty()).isFalse();
   }
 
   @Test
@@ -380,15 +351,15 @@ public class SMGJoinFieldsTest {
     SMG smg0_0B_8B = smg1.copyOf();
 
     smg0_0B_4B.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, object, SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 0, object, SMGZeroValue.INSTANCE));
     smg0_2B_6B.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 16, object, SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 16, object, SMGZeroValue.INSTANCE));
     smg0_4B_8B.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, object, SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 32, object, SMGZeroValue.INSTANCE));
     smg0_0B_8B.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, object, SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 0, object, SMGZeroValue.INSTANCE));
     smg0_0B_8B.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, object, SMGZeroValue.INSTANCE));
+        new SMGEdgeHasValue(mockType4bSize, 32, object, SMGZeroValue.INSTANCE));
 
     // these test invalid inputs, so they are disabled now
     /*
@@ -458,38 +429,25 @@ public class SMGJoinFieldsTest {
     smg3.addValue(value3);
     smg4.addValue(value4);
 
-    SMGEdgeHasValue hvAt0in1 = new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, value3);
-    SMGEdgeHasValue hvAt0in2 = new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj2, value4);
+    SMGEdgeHasValue hvAt0in1 = new SMGEdgeHasValue(mockType4bSize, 0, obj1, value3);
+    SMGEdgeHasValue hvAt0in2 = new SMGEdgeHasValue(mockType4bSize, 0, obj2, value4);
     smg3.addHasValueEdge(hvAt0in1);
     smg4.addHasValueEdge(hvAt0in2);
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, obj2, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 32, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 64, obj1, SMGZeroValue.INSTANCE));
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 96, obj1, SMGZeroValue.INSTANCE));
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType8b, mockType8bSize, 64, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8bSize, 64, obj1, SMGZeroValue.INSTANCE));
 
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 64, obj2, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 96, obj2, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType8b, mockType8bSize, 64, obj2, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8bSize, 64, obj2, SMGZeroValue.INSTANCE));
 
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 128, obj1, value3));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 128, obj1, value3));
     smg3.addPointsToEdge(new SMGEdgePointsTo(value3, obj1, 0));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 128, obj2, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 128, obj2, value4));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -503,7 +461,7 @@ public class SMGJoinFieldsTest {
     SMGValue value3 = SMGKnownSymValue.of();
 
     smg3.addValue(value3);
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, value3));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, value3));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -515,10 +473,8 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType8b, mockType8bSize, 0, obj2, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8bSize, 0, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -530,12 +486,9 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType8b, mockType8bSize, 0, obj2, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 64, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8bSize, 0, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -546,20 +499,17 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
+    SMGValue value = SMGKnownSymValue.of();
+    smg3.addValue(value);
+    smg4.addValue(value);
 
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType8b, mockType8bSize, 0, obj2, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, value));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 32, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8bSize, 0, obj2, value));
 
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 64, obj2, SMGZeroValue.INSTANCE));
-    smg4.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 96, obj2, SMGZeroValue.INSTANCE));
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType8b, mockType8bSize, 64, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 64, obj2, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 96, obj2, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8bSize, 64, obj1, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -572,10 +522,9 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
     SMGValue value4 = SMGKnownSymValue.of();
-    smg3.addHasValueEdge(
-        new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, SMGZeroValue.INSTANCE));
     smg4.addValue(value4);
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj2, value4));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj2, value4));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -593,9 +542,9 @@ public class SMGJoinFieldsTest {
 
     smg3.addValue(value3);
     smg4.addValue(value4);
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj1, value3));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj2, value4));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, mockType4bSize, 0, obj3, value4));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj1, value3));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj2, value4));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 0, obj3, value4));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 

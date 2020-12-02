@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -44,6 +29,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -154,15 +140,21 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   private final ConfigurableProgramAnalysis cpa;
 
-  public AssumptionCollectorAlgorithm(Algorithm algo,
-                                      ConfigurableProgramAnalysis pCpa,
-                                      Configuration config,
-                                      LogManager logger,
-                                      CFA cfa) throws InvalidConfigurationException {
+  private final ShutdownNotifier shutdownNotifier;
+
+  public AssumptionCollectorAlgorithm(
+      Algorithm algo,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      LogManager logger,
+      CFA cfa,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
     this.innerAlgorithm = algo;
+    shutdownNotifier = pShutdownNotifier;
     AssumptionStorageCPA asCpa =
         CPAs.retrieveCPAOrFail(pCpa, AssumptionStorageCPA.class, AssumptionStorageCPA.class);
     if (exportAssumptions && assumptionAutomatonFile != null && !(pCpa instanceof ARGCPA)) {
@@ -342,7 +334,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     Scope scope = cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
-    List<Automaton> lst = AutomatonParser.parseAutomatonFile(assumptionAutomatonFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+    List<Automaton> lst =
+        AutomatonParser.parseAutomatonFile(
+            assumptionAutomatonFile,
+            config,
+            logger,
+            cfa.getMachineModel(),
+            scope,
+            cfa.getLanguage(),
+            shutdownNotifier);
 
     if (lst.isEmpty()) {
       throw new InvalidConfigurationException("Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());

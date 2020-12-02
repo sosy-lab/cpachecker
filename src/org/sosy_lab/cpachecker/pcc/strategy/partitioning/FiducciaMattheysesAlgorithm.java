@@ -1,26 +1,10 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specifi  c language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
@@ -113,10 +97,11 @@ public class FiducciaMattheysesAlgorithm {
       return bestV2Gain;
     }
     else {
-      if(bestV1Gain.get().getFirst() > bestV2Gain.get().getFirst() && isBalanced(v1.size()-1, v2.size()+1)) {
+      if (bestV1Gain.orElseThrow().getFirst() > bestV2Gain.orElseThrow().getFirst()
+          && isBalanced(v1.size() - 1, v2.size() + 1)) {
         return bestV1Gain;
-      }
-      else if(bestV1Gain.get().getFirst() <= bestV2Gain.get().getFirst() && isBalanced(v1.size()+1, v2.size()-1)) {
+      } else if (bestV1Gain.orElseThrow().getFirst() <= bestV2Gain.orElseThrow().getFirst()
+          && isBalanced(v1.size() + 1, v2.size() - 1)) {
         // TODO handling equal case separately can be favourable
         return bestV2Gain;
       } else {
@@ -195,8 +180,8 @@ public class FiducciaMattheysesAlgorithm {
       if(!gainAndBuckets.isPresent()) {
         break;
       }
-      long g = gainAndBuckets.get().getFirst();
-      int node = pollNodeFromBucketByGain(g, gainAndBuckets.get().getSecond());
+      long g = gainAndBuckets.orElseThrow().getFirst();
+      int node = pollNodeFromBucketByGain(g, gainAndBuckets.orElseThrow().getSecond());
       lock.put(node, true);
 
       updateNeighbors(node, v1Buckets, v2Buckets, gain, lock);

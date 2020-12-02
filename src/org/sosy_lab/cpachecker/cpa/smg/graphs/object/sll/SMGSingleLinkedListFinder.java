@@ -1,34 +1,19 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -36,7 +21,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -47,8 +33,8 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 
 public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
+  @VisibleForTesting
   public SMGSingleLinkedListFinder() {
-    super();
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,
@@ -58,7 +44,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      Set<SMGAbstractionBlock> pAbstractionBlocks)
       throws SMGInconsistentException {
     SMGJoinSllProgress pProgress = new SMGJoinSllProgress();
 
@@ -81,7 +69,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   private void startTraversal(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinSllProgress pProgress)
       throws SMGInconsistentException {
@@ -95,7 +83,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   private void createCandidatesOfObject(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSMGState,
       SMGJoinSllProgress pProgress)
       throws SMGInconsistentException {
@@ -145,25 +133,26 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      Set<CType> typesOfThisObject = new HashSet<>();
+      Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
-        Set<SMGEdgeHasValue> hves =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
+        SMGHasValueEdges hves =
+            pSmg.getHVEdges(
+                SMGEdgeHasValueFilter.valueFilter(edge.getValue())
+                    .filterBySize(pSmg.getSizeofPtrInBits()));
         for (SMGEdgeHasValue hve : hves) {
-          typesOfThisObject.add(hve.getType());
+          typeSizesOfThisObject.add(hve.getSizeInBits());
         }
       }
 
-      CType nextType = hveNext.getType();
+      long nextSize = hveNext.getSizeInBits();
 
-      if (!typesOfThisObject.contains(nextType)) {
+      if (!typeSizesOfThisObject.contains(nextSize)) {
         continue;
       }
 
       SMGSingleLinkedListCandidate candidate =
-          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextType,
-              pSmg.getMachineModel());
+          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextSize, pSmg.getMachineModel());
       pProgress.initializeCandidiate(candidate);
       continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
     }
@@ -172,7 +161,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
   private void continueTraversal(
       SMGValue pValue,
       SMGSingleLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinSllProgress pProgress)
       throws SMGInconsistentException {
@@ -208,10 +197,13 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      //TODO At the moment, we still demand that a value is found at prev or next.
+      // TODO At the moment, we still demand that a value is found at prev or next.
 
-      Set<SMGEdgeHasValue> nextObjectNextPointer =
-          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+      SMGHasValueEdges nextObjectNextPointer =
+          pSmg.getHVEdges(
+              SMGEdgeHasValueFilter.objectFilter(nextObject)
+                  .filterAtOffset(nfo)
+                  .filterBySize(pSmg.getSizeofPtrInBits()));
 
       if (nextObjectNextPointer.size() != 1) {
         return;
@@ -223,8 +215,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      candidate = new SMGSingleLinkedListCandidate(nextObject, nfo, hfo, nextEdge.getType(),
-          pSmg.getMachineModel());
+      candidate =
+          new SMGSingleLinkedListCandidate(
+              nextObject, nfo, hfo, nextEdge.getSizeInBits(), pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
 
     } else {
@@ -298,8 +291,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         /* Nothing besides the one link from the prev object pointer may
          * point to the next object in a sll
          */
-        Set<SMGEdgeHasValue> prevs =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
           return;

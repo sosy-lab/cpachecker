@@ -1,31 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -40,17 +27,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
-/**
- * Represents a C language stack frame.
- *
- * <p>This is an immutable class.
- */
+/** Represents a C language stack frame. */
+@Immutable
 public final class CLangStackFrame {
   public static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
-  /**
-   * Function to which this stack frame belongs
-   */
+  /** Function to which this stack frame belongs */
+  @SuppressWarnings("Immutable")
   private final CFunctionDeclaration stack_function;
 
   /** A mapping from variable names to a set of SMG objects, representing local variables. */
@@ -66,8 +49,8 @@ public final class CLangStackFrame {
       CFunctionDeclaration pDeclaration,
       PersistentMap<String, SMGRegion> pVariables,
       SMGRegion pReturnValueObject) {
-    stack_variables = pVariables;
-    stack_function = pDeclaration;
+    stack_variables = Preconditions.checkNotNull(pVariables);
+    stack_function = Preconditions.checkNotNull(pDeclaration);
     returnValueObject = pReturnValueObject;
   }
 
@@ -92,18 +75,6 @@ public final class CLangStackFrame {
   }
 
   /**
-   * Copy constructor.
-   *
-   * @param pFrame Original frame
-   */
-  public CLangStackFrame(CLangStackFrame pFrame) {
-    stack_function = pFrame.stack_function;
-    stack_variables = pFrame.stack_variables;
-    returnValueObject = pFrame.returnValueObject;
-  }
-
-
-  /**
    * Adds a SMG object pObj to a stack frame, representing variable pVariableName
    *
    * <p>Throws {@link IllegalArgumentException} when some object is already present with the name
@@ -125,12 +96,14 @@ public final class CLangStackFrame {
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
 
-  /**
-   * @return String representation of the stack frame
-   */
+  /** Return string representation of the stack frame */
   @Override
   public String toString() {
-    return "<" + Joiner.on(" ").join(stack_variables.values()) + ">";
+    Iterable<SMGRegion> values = stack_variables.values();
+    if (returnValueObject != null) {
+      values = Iterables.concat(values, ImmutableSet.of(returnValueObject));
+    }
+    return String.format("%s=[%s]", stack_function.getName(), Joiner.on(", ").join(values));
   }
 
   public CLangStackFrame removeVariable(String pName) {
@@ -167,8 +140,9 @@ public final class CLangStackFrame {
   }
 
   /**
+   * Returns true if variable pName is present, false otherwise.
+   *
    * @param pName Variable name
-   * @return True if variable pName is present, false otherwise
    */
   public boolean containsVariable(String pName) {
     if (pName.equals(RETVAL_LABEL)) {
@@ -178,23 +152,17 @@ public final class CLangStackFrame {
     }
   }
 
-  /**
-   * @return Declaration of a function corresponding to the frame
-   */
+  /** Returns declaration of a function corresponding to the frame. */
   public CFunctionDeclaration getFunctionDeclaration() {
     return stack_function;
   }
 
-  /**
-   * @return a mapping from variables name to SMGObjects
-   */
+  /** Returns a mapping from variables name to SMGObjects. */
   public Map<String, SMGRegion> getVariables() {
     return stack_variables;
   }
 
-  /**
-   * @return a set of all objects: return value object, variables, parameters
-   */
+  /** Returns a set of all objects: return value object, variables, parameters. */
   public Set<SMGObject> getAllObjects() {
     ImmutableSet.Builder<SMGObject> retset = ImmutableSet.builder();
     retset.addAll(stack_variables.values());
@@ -204,9 +172,7 @@ public final class CLangStackFrame {
     return retset.build();
   }
 
-  /**
-   * @return an {@link SMGObject} reserved for function return value
-   */
+  /** Returns an {@link SMGObject} reserved for function return value. */
   public SMGRegion getReturnObject() {
     return returnValueObject;
   }

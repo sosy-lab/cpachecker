@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -30,8 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
@@ -47,7 +30,6 @@ public class SMGTest {
 
   private SMG smg;
   private static final int mockTypeSize = 32;
-  private final CType mockType = TypeUtils.createTypeWithLength(mockTypeSize);
 
   SMGObject obj1 = new SMGRegion(64, "object-1");
   SMGObject obj2 = new SMGRegion(64, "object-2");
@@ -56,8 +38,8 @@ public class SMGTest {
   SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
-  SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockType, mockTypeSize, 0, obj2, val2);
-  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mockType, mockTypeSize, 32, obj2, val1);
+  SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockTypeSize, 0, obj2, val2);
+  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mockTypeSize, 32, obj2, val1);
 
   // obj1 = xxxxxxxx
   // obj2 = yyyyzzzz
@@ -90,12 +72,11 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg1 = getNewSMG64();
     smg1.addObject(obj1);
-    SMGEdgeHasValue hv =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 32, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockTypeSize, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
-    TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
-    assertThat(nullEdges).containsExactly(32L, 32);
+    TreeMap<Long, Long> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
+    assertThat(nullEdges).containsExactly(32L, 32L);
   }
 
   @Test
@@ -128,8 +109,7 @@ public class SMGTest {
     SMGValue third_value = SMGKnownExpValue.valueOf(3);
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value);
-    smg_copy.addHasValueEdge(
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, third_object, third_value));
+    smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockTypeSize, 0, third_object, third_value));
     smg_copy.addPointsToEdge(new SMGEdgePointsTo(third_value, third_object, 0));
 
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
@@ -156,8 +136,7 @@ public class SMGTest {
     SMG smg1 = getNewSMG64();
     SMGObject object = new SMGRegion(32, "object");
 
-    SMGEdgeHasValue hv =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockTypeSize, 0, object, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(hv);
     assertThat(smg1.getHVEdges()).contains(hv);
@@ -172,10 +151,8 @@ public class SMGTest {
     SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
-    SMGEdgeHasValue hv0 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue hv4 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 32, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockTypeSize, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockTypeSize, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg1.addValue(newValue);
@@ -187,8 +164,8 @@ public class SMGTest {
     assertThat(smg1.getObjects()).contains(object);
     smg1.removeObject(object);
     assertThat(smg1.getObjects()).doesNotContain(object);
-    assertThat(smg1.getHVEdges()).contains(hv0);
-    assertThat(smg1.getHVEdges()).contains(hv4);
+    assertThat(smg1.getHVEdges().contains(hv0)).isTrue();
+    assertThat(smg1.getHVEdges().contains(hv4)).isTrue();
     assertThat(smg1.getPTEdges()).contains(pt);
   }
 
@@ -198,10 +175,8 @@ public class SMGTest {
     SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
-    SMGEdgeHasValue hv0 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object, SMGZeroValue.INSTANCE);
-    SMGEdgeHasValue hv4 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 32, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockTypeSize, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockTypeSize, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg1.addValue(newValue);
@@ -211,11 +186,11 @@ public class SMGTest {
     smg1.addHasValueEdge(hv4);
 
     assertThat(smg1.getObjects()).contains(object);
-    smg1.removeObjectAndEdges(object);
-    assertThat(smg1.getObjects()).doesNotContain(object);
+    smg1.markObjectDeletedAndRemoveEdges(object);
+    assertThat(smg1.isObjectValid(object)).isFalse();
     assertThat(smg1.getHVEdges()).doesNotContain(hv0);
     assertThat(smg1.getHVEdges()).doesNotContain(hv4);
-    assertThat(smg1.getPTEdges()).doesNotContain(pt);
+    assertThat(smg1.getPTEdges()).contains(pt);
   }
 
   @Test
@@ -275,12 +250,10 @@ public class SMGTest {
     smg2.addValue(random_value);
 
     // Read 4 bytes (sizeof(mockType)) on offset 0 of 2b object -> out of bounds
-    SMGEdgeHasValue invalidHV1 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object_2b, random_value);
+    SMGEdgeHasValue invalidHV1 = new SMGEdgeHasValue(mockTypeSize, 0, object_2b, random_value);
 
     // Read 4 bytes (sizeof(mockType)) on offset 8 of 4b object -> out of bounds
-    SMGEdgeHasValue invalidHV2 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 64, object_4b, random_value);
+    SMGEdgeHasValue invalidHV2 = new SMGEdgeHasValue(mockTypeSize, 64, object_4b, random_value);
 
     smg1.addHasValueEdge(invalidHV1);
     smg2.addHasValueEdge(invalidHV2);
@@ -301,14 +274,10 @@ public class SMGTest {
 
     // 1, 3, 4 are consistent (different offsets or object)
     // 2 is inconsistent with 1 (same object and offset, different value)
-    SMGEdgeHasValue hv_edge1 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object_8b, first_value);
-    SMGEdgeHasValue hv_edge2 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object_8b, second_value);
-    SMGEdgeHasValue hv_edge3 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 32, object_8b, second_value);
-    SMGEdgeHasValue hv_edge4 =
-        new SMGEdgeHasValue(mockType, mockTypeSize, 0, object_16b, second_value);
+    SMGEdgeHasValue hv_edge1 = new SMGEdgeHasValue(mockTypeSize, 0, object_8b, first_value);
+    SMGEdgeHasValue hv_edge2 = new SMGEdgeHasValue(mockTypeSize, 0, object_8b, second_value);
+    SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(mockTypeSize, 32, object_8b, second_value);
+    SMGEdgeHasValue hv_edge4 = new SMGEdgeHasValue(mockTypeSize, 0, object_16b, second_value);
 
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
@@ -326,8 +295,13 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    smg1.addHasValueEdge(hv_edge2);
-    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
+    boolean thrown = false;
+    try {
+      smg1.addHasValueEdge(hv_edge2);
+    } catch (AssertionError pAssertionError) {
+      thrown = true;
+    }
+    assertThat(thrown).isTrue();
   }
 
   @Test

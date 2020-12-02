@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,7 +17,14 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -281,8 +273,62 @@ public class NamedRegionManager implements RegionManager {
     }
   }
 
+  /**
+   * Get a snapshot of the current variable ordering in the whole BDD library, limited to all named
+   * regions managed by this manager. .
+   *
+   * <p>This method also works if the delegated manager changed its ordering internally, as long as
+   * the ordering is not changed while running this method.
+   */
+  public List<String> getOrderedPredicates() {
+    synchronized (regionMap) {
+      // sort predicates according to BDD ordering.
+      // create small BDDs "AND(A,B)" and check which node is the root.
+      List<String> predicates = new ArrayList<>(regionMap.keySet());
+      Collections.sort(predicates, (a, b) -> {
+        Region ra = regionMap.get(a);
+        Region rb = regionMap.get(b);
+        Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
+        if (ra.equals(root)) {
+          return 1;
+        } else if (rb.equals(root)) {
+          return -1;
+        } else {
+          throw new AssertionError("should not happen, all predicates are unique");
+        }
+      });
+      return predicates;
+    }
+  }
+
+  /** Get the current variables in the BDD. */
+  public Set<String> getPredicatesFromRegion(Region region) {
+    synchronized (regionMap) {
+      Set<String> predicates = new LinkedHashSet<>();
+      Set<Region> finished = new HashSet<>();
+      Deque<Region> waitlist = new ArrayDeque<>();
+      waitlist.push(region);
+      while (!waitlist.isEmpty()) {
+        Region r = waitlist.pop();
+        if (r.isTrue() || r.isFalse() || !finished.add(r)) {
+          continue;
+        }
+        Triple<Region, Region, Region> t = getIfThenElse(r);
+        predicates.add(regionMap.inverse().get(t.getFirst()));
+        waitlist.add(t.getSecond());
+        waitlist.add(t.getThird());
+      }
+      return predicates;
+    }
+  }
+
   @Override
   public Region makeIte(Region pF1, Region pF2, Region pF3) {
     return delegate.makeIte(pF1, pF2, pF3);
+  }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
   }
 }

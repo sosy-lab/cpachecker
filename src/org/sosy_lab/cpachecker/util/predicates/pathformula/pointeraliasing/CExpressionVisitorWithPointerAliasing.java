@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -59,11 +44,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -174,6 +162,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     this.conv = cToFormulaConverter;
     this.typeHandler = cToFormulaConverter.typeHandler;
+    this.ofmgr = new OverflowAssumptionManager(conv.machineModel, conv.logger);
     this.edge = cfaEdge;
     this.ssa = ssa;
     this.constraints = constraints;
@@ -256,18 +245,19 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   /**
-   * Should be used whenever a location corresponding to a pointer dereference is required.
-   * This function properly handles the ambiguity arising from arrays vs. pointers.
-   * Consider {@code int *pa, a[]; int **ppa = &pa; *pa = 5; *a = 5;}.
-   * Here {@code *pa} should be encoded as <i>int (int*(ADDRESS_OF_pa))</i>, but
-   * {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while both {@code pa} and {@code a}
-   * will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and <i>ADDRESS_OF_a</i> respectively.
-   * So this function will add the additional dereference if necessary.
+   * Should be used whenever a location corresponding to a pointer dereference is required. This
+   * function properly handles the ambiguity arising from arrays vs. pointers. Consider {@code int
+   * *pa, a[]; int **ppa = & pa; *pa = 5; *a = 5;}. Here {@code *pa} should be encoded as <i>int
+   * (int*(ADDRESS_OF_pa))</i>, but {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while
+   * both {@code pa} and {@code a} will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and
+   * <i>ADDRESS_OF_a</i> respectively. So this function will add the additional dereference if
+   * necessary.
+   *
    * @param pE the source C expression form which the resulting {@code Expression} was obtained
    * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
-   *        should normally be a Location, but in case of a value the corresponding location is
-   *        returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
-   *        debugging in some cases)
+   *     should normally be a Location, but in case of a value the corresponding location is
+   *     returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
+   *     debugging in some cases)
    * @return the result AliasedLocation of the pointed value
    */
   private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
@@ -355,7 +345,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           return Value.nondetValue();
         }
         final Formula offset =
-            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.getAsLong());
+            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
         final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
@@ -545,9 +535,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             ssa,
             constraints,
             null);
-        if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
-          ssa.deleteVariable(base.getName());
-        }
         if (pts.isPreparedBase(base.getName())) {
           pts.shareBase(base.getName(), base.getType());
         } else {
@@ -712,7 +699,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       if (BuiltinFunctions.matchesStrlen(functionName)) {
         // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
         // terminating 0 of a string.
-        final int maxIndex = conv.options.maxPreciseStrlenSize();
+        final int maxIndex = conv.options.maxPreciseStrFunctionSize();
         List<CExpression> parameters = e.getParameterExpressions();
         assert parameters.size() == 1;
         CExpression parameter = parameters.get(0);
@@ -723,6 +710,44 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         // parameter[0]==0?0:(parameter[1]==0?1:nondet())
         for (long i = maxIndex; i >= 0; i--) {
           f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
+        }
+        return Value.ofValue(f);
+
+      } else if (functionName.equals("memcmp")
+          || functionName.equals("strcmp")
+          || functionName.equals("strncmp")) {
+        return handleCmpFunction(functionName, e);
+      }
+
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        List<CExpression> parameters = e.getParameterExpressions();
+        assert parameters.size() == 3;
+        CExpression var1 = parameters.get(0);
+        CExpression var2 = parameters.get(1);
+        CExpression var3 = parameters.get(2);
+        Expression overflows =
+            BuiltinOverflowFunctions.handleOverflow(ofmgr, var1, var2, var3, functionName)
+                .accept(this);
+        Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
+
+        if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(functionName)) {
+          CLeftHandSide lhs =
+              new CPointerExpression(
+                  FileLocation.DUMMY, ((CPointerType) var3.getExpressionType()).getType(), var3);
+          CRightHandSide rhs =
+              BuiltinOverflowFunctions.handleOverflowSideeffects(
+                  ofmgr, var1, var2, var3, functionName);
+
+          BooleanFormula form = null;
+          try {
+            form =
+                conv.makeAssignment(
+                    lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+          } catch (InterruptedException e1) {
+            CtoFormulaConverter.propagateInterruptedException(e1);
+          }
+
+          constraints.addConstraint(checkNotNull(form));
         }
         return Value.ofValue(f);
       }
@@ -740,6 +765,110 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     // Delegate
     return Value.ofValue(delegate.visit(e));
+  }
+
+  /** This method provides approximations of the builtin functions memcmp, strcmp, and strncmp. */
+  private Value handleCmpFunction(final String functionName, final CFunctionCallExpression e)
+      throws UnrecognizedCodeException {
+    final List<CExpression> parameters = e.getParameterExpressions();
+    assert parameters.size() == 2 || parameters.size() == 3;
+    final CExpression s1 = parameters.get(0);
+    final CExpression s2 = parameters.get(1);
+    final CSimpleType returnType = (CSimpleType) e.getExpressionType().getCanonicalType();
+
+    // These functions treat all chars in s1 and s2 as unsigned.
+    final boolean signed = false;
+    final CSimpleType uChar = CNumericTypes.UNSIGNED_CHAR;
+
+    // Prepare for variants (with bounds check, with string-end check, or both)
+    final boolean checkStringEnd = functionName.startsWith("str");
+    final boolean hasBounds = parameters.size() == 3;
+    final CType sizeType;
+    Formula sizeFormula;
+    long maxIndex = conv.options.maxPreciseStrFunctionSize();
+    if (hasBounds) {
+      CExpression size = parameters.get(2);
+      if (size instanceof CIntegerLiteralExpression) {
+        maxIndex = Math.min(maxIndex, ((CIntegerLiteralExpression) size).asLong());
+      }
+      sizeType = e.getDeclaration().getParameters().get(2).getType().getCanonicalType();
+      sizeFormula = asValueFormula(size.accept(this), sizeType);
+      sizeFormula =
+          conv.makeCast(size.getExpressionType(), sizeType, sizeFormula, constraints, edge);
+    } else {
+      sizeType = conv.machineModel.getPointerEquivalentSimpleType(); // should be size_t actually
+      sizeFormula = null;
+    }
+    final Formula stringTerminator =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, uChar));
+
+    // As result, we use a nondeterministic value. Furthermore, we add constraints that force this
+    // value to be >0 or <0 depending on whether s1>s2 or s1<s2 (and implicitly, force the value to
+    // be 0 if s1==s2.
+    // These constraints have recursive form and simulate "if comparison at first char determines
+    // the result, then ... else (if comparison at second char determines the result, then ... else
+    // ...)". Furthermore, additional clauses at each recursive step check for the string end
+    // (in case of strcmp/strncmp) or "cut off" the chain if the bound is reached (in case of
+    // strncmp/memcmp).
+    // Creating these constraints is done starting with the inner-most term (with highest index).
+    // We also need a base case for the recursive constraints, and this needs to make our bounded
+    // approximation sound: if the strings are longer than our approximation bound and equal up to
+    // the approximation bound, we need to make both constraints have nondeterministic value.
+    // We do this by initializing them with resultIsPos and resultIsNeg, respectively, so there is
+    // a cyclic condition and the solver can choose nondeterministic values for
+    // resultIsPos/resultIsNeg as long as the other constraints do not force a value.
+    // Note that our approximation bound and the strncmp/memcmp bound are different, but we can
+    // simply use the minimum of both (which is maxIndex).
+
+    final Formula result = conv.makeNondet(functionName, returnType, ssa, constraints);
+    final Formula zero =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, returnType));
+    final BooleanFormula resultIsPos = conv.fmgr.makeGreaterThan(result, zero, true);
+    final BooleanFormula resultIsNeg = conv.fmgr.makeLessThan(result, zero, true);
+
+    BooleanFormula isGreater = resultIsPos; // constraint for s1 > s2
+    BooleanFormula isLess = resultIsNeg; // constraint for s1 < s2
+
+    for (long index = maxIndex; index >= 0; index--) {
+      CIntegerLiteralExpression indexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(index, sizeType);
+
+      CArraySubscriptExpression s1AtIndexExp =
+          new CArraySubscriptExpression(FileLocation.DUMMY, uChar, s1, indexLiteral);
+      CArraySubscriptExpression s2AtIndexExp =
+          new CArraySubscriptExpression(FileLocation.DUMMY, uChar, s2, indexLiteral);
+      Formula s1AtIndex = asValueFormula(this.visit(s1AtIndexExp), uChar);
+      Formula s2AtIndex = asValueFormula(this.visit(s2AtIndexExp), uChar);
+
+      BooleanFormula isEqualAtIndex = conv.fmgr.makeEqual(s1AtIndex, s2AtIndex);
+      BooleanFormula isLessAtIndex = conv.fmgr.makeLessThan(s1AtIndex, s2AtIndex, signed);
+      BooleanFormula isGreaterAtIndex = conv.fmgr.makeGreaterThan(s1AtIndex, s2AtIndex, signed);
+
+      if (checkStringEnd) {
+        // Equality is only relevant if not at string end.
+        // Because this check becomes part of the recursive conjunctions below,
+        // it also "cuts off" any comparisons beyond the string end.
+        BooleanFormula isStringEnd = conv.fmgr.makeEqual(s1AtIndex, stringTerminator);
+        // need to check only s1 because it gets conjuncted with s1AtIndex==s2AtIndex
+        isEqualAtIndex = conv.bfmgr.and(isEqualAtIndex, conv.bfmgr.not(isStringEnd));
+      }
+
+      isLess = conv.bfmgr.or(isLessAtIndex, conv.bfmgr.and(isEqualAtIndex, isLess));
+      isGreater = conv.bfmgr.or(isGreaterAtIndex, conv.bfmgr.and(isEqualAtIndex, isGreater));
+
+      if (hasBounds) {
+        // Comparisons are only relevant if not beyond bound.
+        Formula indexFormula = asValueFormula(this.visit(indexLiteral), sizeType);
+        BooleanFormula boundNotReached = conv.fmgr.makeLessThan(indexFormula, sizeFormula, false);
+        isLess = conv.bfmgr.and(isLess, boundNotReached);
+        isGreater = conv.bfmgr.and(isGreater, boundNotReached);
+      }
+    }
+
+    constraints.addConstraint(conv.bfmgr.equivalence(resultIsPos, isGreater));
+    constraints.addConstraint(conv.bfmgr.equivalence(resultIsNeg, isLess));
+
+    return Value.ofValue(result);
   }
 
   /**
@@ -809,6 +938,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
+  private final OverflowAssumptionManager ofmgr;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSet;
@@ -61,12 +46,19 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private int defaultAllocationSize = 4;
 
   @Option(
-    secure = true,
-    description =
-        "Use SMT arrays for encoding heap memory instead of uninterpreted function."
-            + " This is more precise but may lead to interpolation failures."
-  )
+      secure = true,
+      description =
+          "Use SMT arrays for encoding heap memory instead of uninterpreted function"
+              + " (ignored if useByteArrayForHeap=true)."
+              + " This is more precise but may lead to interpolation failures.")
   private boolean useArraysForHeap = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Use SMT byte array for encoding heap memory instead of uninterpreted function."
+              + " This is more close to c heap implementation but may be to expensive.")
+  private boolean useByteArrayForHeap = false;
 
   @Option(secure = true, description = "The length for arrays we assume for variably-sized arrays.")
   private int defaultArrayLength = 20;
@@ -94,12 +86,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private boolean handleStringLiteralInitializers = false;
 
   @Option(
-    secure = true,
-    description =
-        "When then builtin strlen is called, approximate it up to length set by this option."
-            + "If the string passed to strlen is longer, the return value will be overapproximated via nondet."
-  )
-  private int maxPreciseStrlenSize = 3;
+      deprecatedName = "maxPreciseStrlenSize",
+      secure = true,
+      description =
+          "When builtin functions like memcmp/strlen/etc. are called, unroll them up to this bound."
+              + "If the passed arguments are longer, the return value will be overapproximated.")
+  private int maxPreciseStrFunctionSize = 100;
 
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
@@ -118,6 +110,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
+
+    if (useByteArrayForHeap) {
+      useArraysForHeap = true;
+    }
 
     if (maxArrayLength == -1) {
       maxArrayLength = Integer.MAX_VALUE;
@@ -181,6 +177,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return defaultAllocationSize;
   }
 
+  /**
+   * Return whether the heap is modeled using SMT arrays (either byte-wise or word-wise). Use {@link
+   * #useByteArrayForHeap()} to distinguish between the latter options.
+   */
   public boolean useArraysForHeap() {
     return useArraysForHeap;
   }
@@ -205,8 +205,8 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return handleStringLiteralInitializers;
   }
 
-  int maxPreciseStrlenSize() {
-    return maxPreciseStrlenSize;
+  int maxPreciseStrFunctionSize() {
+    return maxPreciseStrFunctionSize;
   }
 
   boolean handleImplicitInitialization() {
@@ -219,5 +219,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean useConstraintOptimization() {
     return useConstraintOptimization;
+  }
+
+  public boolean useByteArrayForHeap() {
+    return useByteArrayForHeap;
   }
 }

@@ -1,30 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.DOUBLE;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -63,7 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <li> the type of the result of the calculation.
  * </ul>
  *
- * <p>Example: <code>"short l = (char)4 < (long)5;"</code><p>
+ * <p>Example: <code>{@code "short l = (char)4 < (long)5;"}</code><p>
  *
  * <ul>
  * <li> The values 4 and 5 are used in the calculation as values of type
@@ -485,6 +471,13 @@ public class CBinaryExpressionBuilder {
     if (t1.getType() == FLOAT) { return t1; }
     if (t2.getType() == FLOAT) { return t2; }
 
+    if (t1.getType() == FLOAT128) {
+      return t1;
+    }
+    if (t2.getType() == FLOAT128) {
+      return t2;
+    }
+
     /* Otherwise, the integer promotions are performed on both operands. */
 
     return getLongestIntegerPromotion(t1, t2);
@@ -563,8 +556,7 @@ public class CBinaryExpressionBuilder {
     throw new AssertionError("unhandled type: " + t1 + " or " + t2);
   }
 
-
-  /** returns an index, so that:  BOOL < CHAR < SHORT < INT < LONG < LONGLONG. */
+  /** returns an index, so that: BOOL < CHAR < SHORT < INT < LONG < LONGLONG < INT128. */
   private static int getConversionRank(CSimpleType t) {
 
     CBasicType type = t.getType();
@@ -590,6 +582,9 @@ public class CBinaryExpressionBuilder {
       if (t.isLong()) { return 50; }
       if (t.isLongLong()) { return 60; }
       return 40;
+
+      case INT128:
+        return 70;
 
     default:
       throw new AssertionError("unhandled CSimpleType: " + t);

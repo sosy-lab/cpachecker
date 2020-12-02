@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 /**
  * use-after-free bug, found in Linux 2.6.14.3 in the infiniband drivers.
  * fixed with commit 2d6eac6c4fdaa69656d66c80754d267be233cc3f

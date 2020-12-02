@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: Stephane Bailliez <sbailliez@apache.org>
+
+SPDX-License-Identifier: LGPL-2.1-only
+-->
+
 <xsl:stylesheet	xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output method="html" indent="yes"/>
 <xsl:decimal-format decimal-separator="." grouping-separator="," />
@@ -5,7 +11,7 @@
 <xsl:key name="files" match="file" use="@name" />
 
 <!-- Checkstyle XML Style Sheet by Stephane Bailliez <sbailliez@apache.org>         -->
-<!-- Part of the Checkstyle distribution found at http://checkstyle.sourceforge.net -->
+<!-- Part of the Checkstyle distribution found at https://checkstyle.org -->
 <!-- Usage (generates checkstyle_report.html):                                      -->
 <!--    <checkstyle failonviolation="false" config="${check.config}">               -->
 <!--      <fileset dir="${src.dir}" includes="**/*.java"/>                          -->
@@ -83,7 +89,7 @@
     		<td class="text-align:right"><h2>CheckStyle Audit</h2></td>
     		</tr>
     		<tr>
-    		<td class="text-align:right">Designed for use with <a href='http://checkstyle.sourceforge.net/'>CheckStyle</a> and <a href='http://jakarta.apache.org'>Ant</a>.</td>
+    		<td class="text-align:right">Designed for use with <a href='https://checkstyle.org/'>CheckStyle</a> and <a href='http://jakarta.apache.org'>Ant</a>.</td>
     		</tr>
       </table>
     	<hr size="1"/>

@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import java.util.Objects;
@@ -31,7 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * {@link SymbolicExpression} that represents a single constant value of a specific type.
  */
-public class ConstantSymbolicExpression extends SymbolicExpression {
+public final class ConstantSymbolicExpression extends SymbolicExpression {
 
   private static final long serialVersionUID = 8720056661933193765L;
 
@@ -44,7 +29,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
    */
-  protected ConstantSymbolicExpression(Value pValue, Type pType) {
+  ConstantSymbolicExpression(Value pValue, Type pType) {
     value = pValue;
     type = pType;
   }
@@ -57,11 +42,8 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pType the type of the value of the new object
    * @param pRepresentedLocation the memory location this symbolic expression represents
    */
-  protected ConstantSymbolicExpression(
-      final Value pValue,
-      final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+  ConstantSymbolicExpression(
+      final Value pValue, final Type pType, final MemoryLocation pRepresentedLocation) {
     super(pRepresentedLocation);
     value = pValue;
     type = pType;
@@ -75,7 +57,7 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   @Override
   public String getRepresentation() {
     if (getRepresentedLocation().isPresent()) {
-      return getRepresentedLocation().get().toString();
+      return getRepresentedLocation().orElseThrow().toString();
     } else {
       return toString();
     }

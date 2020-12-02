@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -40,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -256,7 +242,7 @@ public class BlockedCFAReducer implements BlockComputer {
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
-        boolean isLoopHead = cfa.getAllLoopHeads().get().contains(pNode);
+        boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
         result = new ReducedNode(pNode, isLoopHead);
         result.setFunctionCallId(this.functionCallId);
         this.nodeMapping.put(pNode, result);
@@ -328,7 +314,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
           openEndpoints.add(callReturnTarget);
         } else {
-          if (e.getSuccessor() == pFunctionNode.getExitNode()) {
+          if (Objects.equals(e.getSuccessor(), pFunctionNode.getExitNode())) {
             result.addEdge(uSn, exitNode);
           } else {
             ReducedNode vSn = functionNodes.getWrapper(e.getSuccessor());

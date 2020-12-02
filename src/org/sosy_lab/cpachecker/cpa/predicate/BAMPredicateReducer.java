@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
@@ -75,6 +60,7 @@ public class BAMPredicateReducer
   private final BooleanFormulaManager bfmgr;
   private final RegionManager rmgr;
   private final ShutdownNotifier shutdownNotifier;
+  private final Set<String> addressedVariables;
 
   private final Map<BooleanFormula, Set<String>> variableCache = new HashMap<>();
 
@@ -101,6 +87,8 @@ public class BAMPredicateReducer
     this.rmgr = cpa.getAbstractionManager().getRegionCreator();
     this.logger = cpa.getLogger();
     this.shutdownNotifier = cpa.getShutdownNotifier();
+    this.addressedVariables =
+        cpa.getCfa().getVarClassification().orElseThrow().getAddressedVariables();
   }
 
   @Override
@@ -229,7 +217,7 @@ public class BAMPredicateReducer
 
   /** return whether any new variable is relevant for the existing variables. */
   private boolean isAnyVariableRelevant(Set<String> relevantVariables, Set<String> newVariables) {
-    for (String var : relevantVariables) {
+    for (String var : Sets.union(addressedVariables, relevantVariables)) {
 
       // short cut
       if (newVariables.contains(var)) {
@@ -282,7 +270,11 @@ public class BAMPredicateReducer
 
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
     PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
-    PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssa);
+
+    SSAMapBuilder ssaBuilder = ssa.builder();
+    PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssaBuilder);
+    ssa = ssaBuilder.build();
+
     pathFormula = pmgr.makeNewPathFormula(pathFormula, ssa, newPts);
 
     return PredicateAbstractState.mkAbstractionState(

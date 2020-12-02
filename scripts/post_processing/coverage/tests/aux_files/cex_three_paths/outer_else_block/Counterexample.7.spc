@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2017 Rodrigo Castano
+// SPDX-FileCopyrightText: 2017-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 CONTROL AUTOMATON ErrorPath7
 
 INITIAL STATE ARG0;
@@ -21,7 +30,7 @@ STATE USEFIRST ARG2_4_1 :
     TRUE -> STOP;
 
 STATE USEFIRST ARG2 :
-    MATCH "[i == 0]" -> GOTO ARG5;
+    MATCH "[!(i)]" -> GOTO ARG5;
     TRUE -> STOP;
 
 STATE USEFIRST ARG5 :

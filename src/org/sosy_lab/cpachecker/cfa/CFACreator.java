@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
@@ -108,8 +93,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -272,13 +255,6 @@ public class CFACreator {
   private boolean findLiveVariables = false;
 
   @Option(
-    secure = true,
-    name = "cfa.createDependenceGraph",
-    description = "Whether to create dependence graph for the CFA of the program"
-  )
-  private boolean createDependenceGraph = false;
-
-  @Option(
       secure = true,
       name = "cfa.addLabels",
       description = "Add custom labels to the CFA"
@@ -363,8 +339,9 @@ public class CFACreator {
       parser = Parsers.getJavaParser(logger, config);
       break;
     case C:
-      CParser outerParser =
-          CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machineModel);
+        CParser outerParser =
+            CParser.Factory.getParser(
+                logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
 
       outerParser =
           new CParserWithLocationMapper(
@@ -554,29 +531,9 @@ public class CFACreator {
                                                 config));
     }
 
-    Optional<DependenceGraph> depGraph;
-    if (createDependenceGraph) {
-      if (!varClassification.isPresent()) {
-        logger.log(
-            Level.WARNING,
-            "Variable Classification not present. Consider turning this on "
-                + "to improve dependence graph construction.");
-      }
-      try {
-        DependenceGraphBuilder depGraphBuilder =
-            DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
-        depGraph = Optional.of(depGraphBuilder.build());
-        depGraphBuilder.collectStatistics(stats.statisticsCollection);
-      } catch (CPAException pE) {
-        throw new CParserException(pE);
-      }
-    } else {
-      depGraph = Optional.empty();
-    }
-
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, depGraph);
+    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
@@ -616,7 +573,8 @@ public class CFACreator {
    * This method parses the program from the String and builds a CFA for each function. The
    * ParseResult is only a Wrapper for the CFAs of the functions and global declarations.
    */
-  private ParseResult parseToCFAs(final String program) throws ParserException {
+  private ParseResult parseToCFAs(final String program)
+      throws ParserException, InterruptedException {
     final ParseResult parseResult;
 
     parseResult = parser.parseString("test", program);
@@ -887,7 +845,7 @@ public class CFACreator {
     // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(firstNode.getFunctionName());
+    CFANode cur = new CFANode(firstNode.getFunction());
     cfa.addNode(cur);
     final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
@@ -898,7 +856,7 @@ public class CFACreator {
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
-      CFANode n = new CFANode(cur.getFunctionName());
+      CFANode n = new CFANode(cur.getFunction());
       cfa.addNode(n);
 
       final CFAEdge newEdge;
@@ -1016,7 +974,7 @@ v.addInitializer(initializer);
     // write the CFA to files (one file per function)
     if (exportCfaPerFunction && exportCfaFile != null) {
       try {
-        Path outdir = exportCfaFile.getParent();
+        Path outdir = exportCfaFile.getParent().resolve("cfa");
         new DOTBuilder2(cfa).writeGraphs(outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -1068,7 +1026,7 @@ v.addInitializer(initializer);
 
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
-        String code = new CFAToCTranslator().translateCfa(cfa);
+        String code = new CFAToCTranslator(config).translateCfa(cfa);
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }

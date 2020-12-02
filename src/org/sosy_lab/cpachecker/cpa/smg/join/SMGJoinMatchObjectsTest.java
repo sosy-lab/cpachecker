@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -28,8 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
@@ -40,8 +23,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 
 public class SMGJoinMatchObjectsTest {
-
-  static private final CType mockType2b = TypeUtils.createTypeWithLength(2);
 
   private SMG smg1;
   private SMG smg2;
@@ -145,12 +126,10 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     smg2.addObject(srcObj2);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 2, 0, srcObj1, SMGKnownSymValue.of());
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, 2, srcObj2, SMGKnownSymValue.of());
-    SMGEdgeHasValue hvMatching1 =
-        new SMGEdgeHasValue(mockType2b, 2, 4, srcObj1, SMGKnownSymValue.of());
-    SMGEdgeHasValue hvMatching2 =
-        new SMGEdgeHasValue(mockType2b, 2, 4, srcObj2, SMGKnownSymValue.of());
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(2, 0, srcObj1, SMGKnownSymValue.of());
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(2, 2, srcObj2, SMGKnownSymValue.of());
+    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(2, 4, srcObj1, SMGKnownSymValue.of());
+    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(2, 4, srcObj2, SMGKnownSymValue.of());
 
     smg1.addValue(hv1.getValue());
     smg1.addHasValueEdge(hv1);

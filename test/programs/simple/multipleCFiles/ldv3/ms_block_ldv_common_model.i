@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 # 1 "/work/ldvuser/mutilin/launch/work/current--X--drivers--X--defaultlinux-3.17-rc1.tar.xz--X--32_7a--X--cpachecker/linux-3.17-rc1.tar.xz/csd_deg_dscv/2246/dscv_tempdir/rule-instrumentor/32_7a/common-model/ldv_common_model.c"
 # 1 "<built-in>"
 # 1 "<command-line>"

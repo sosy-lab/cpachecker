@@ -1,33 +1,21 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.smt;
+
+import static com.google.common.truth.TruthJUnit.assume;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 /**
@@ -58,6 +46,24 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
       case PRINCESS:
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
         newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
+        break;
+      case BOOLECTOR:
+        assume()
+            .withMessage("Solver %s does not support the tested features", solverToUse())
+            .that(solverToUse())
+            .isNotEqualTo(Solvers.BOOLECTOR);
+        // newConfig.setOption("cpa.predicate.createFormulaEncodingEagerly", "false");
+        // newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
+        // newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
+        // newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
+        break;
+      case YICES2:
+        assume()
+            .withMessage(
+                "Solver %s is not available on all systems, disabling it for CPAchecker",
+                solverToUse())
+            .that(solverToUse())
+            .isNotEqualTo(Solvers.YICES2);
         break;
       default:
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");

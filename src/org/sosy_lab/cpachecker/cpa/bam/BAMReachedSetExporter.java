@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Predicates;
@@ -38,7 +23,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -77,18 +61,19 @@ class BAMReachedSetExporter implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path simplifiedArgFile = Paths.get("BlockedARGSimplified.dot");
 
-  private final BiPredicate<ARGState, ARGState> highlightSummaryEdge =
-      (firstState, secondState) ->
-          firstState.getEdgeToChild(secondState) instanceof FunctionSummaryEdge;
-
   private final LogManager logger;
   private final AbstractBAMCPA bamcpa;
+
 
   BAMReachedSetExporter(Configuration pConfig, LogManager pLogger, AbstractBAMCPA pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     bamcpa = pCpa;
+  }
+
+  private static boolean highlightSummaryEdge(ARGState firstState, ARGState secondState) {
+    return firstState.getEdgeToChild(secondState) instanceof FunctionSummaryEdge;
   }
 
   @Override
@@ -158,7 +143,7 @@ class BAMReachedSetExporter implements Statistics {
           connections,
           ARGState::getChildren,
           Predicates.alwaysTrue(),
-          highlightSummaryEdge);
+          BAMReachedSetExporter::highlightSummaryEdge);
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING, e, String.format("Could not write ARG to file: %s", file));

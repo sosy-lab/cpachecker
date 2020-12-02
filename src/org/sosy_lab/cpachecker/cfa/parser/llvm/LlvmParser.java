@@ -1,30 +1,15 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -75,31 +60,26 @@ public class LlvmParser implements Parser {
 
   private void addLlvmLookupDirs() {
     List<Path> libDirs = new ArrayList<>(3);
-    try {
-      Path nativeDir = NativeLibraries.getNativeLibraryPath();
-      libDirs.add(nativeDir);
+    Path nativeDir = NativeLibraries.getNativeLibraryPath();
+    libDirs.add(nativeDir);
 
-      // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
-      // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
-      // CPACHECKER/bin .
-      // In both cases, we strip the last part to get the CPAchecker base directory.
-      String encodedBasePath =
-          LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-      String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
+    // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
+    // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
+    // CPACHECKER/bin .
+    // In both cases, we strip the last part to get the CPAchecker base directory.
+    String encodedBasePath =
+        LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+    String decodedBasePath = URLDecoder.decode(encodedBasePath, StandardCharsets.UTF_8);
 
-      Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
-      if (cpacheckerDir != null) {
-        Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
-        libDirs.add(runtimeLibDir);
-      } else {
-        logger.logf(
-            Level.INFO,
-            "Base path %s of CPAchecker seems to have no parent directory",
-            decodedBasePath);
-      }
-
-    } catch (UnsupportedEncodingException e) {
-      throw new AssertionError(e);
+    Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
+    if (cpacheckerDir != null) {
+      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+      libDirs.add(runtimeLibDir);
+    } else {
+      logger.logf(
+          Level.INFO,
+          "Base path %s of CPAchecker seems to have no parent directory",
+          decodedBasePath);
     }
 
     for (Path p : libDirs) {

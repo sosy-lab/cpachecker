@@ -1,31 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.splitter;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -47,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class SplitterTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure = true, name = "heuristic", description = "Which program split heuristic to use")
-  @ClassOption(packagePrefix = {"org.sosy_lab.cpachecker.cpa.splitter.heuristics"})
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.splitter.heuristics")
   private SplitHeuristic.Factory factory = (pConfig, pLogger, pMaxSplits) -> new SplitAtAssumes();
 
   private final SplitHeuristic split;
@@ -87,7 +71,8 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
       int numParts = split.divideIntoHowManyParts(pCfaEdge);
       if (numParts > 1) {
         int start, end;
-        Collection<SplitInfoState> successors = new ArrayList<>(numParts);
+        ImmutableList.Builder<SplitInfoState> successors =
+            ImmutableList.builderWithExpectedSize(numParts);
         SplitInfoState successor;
         if (pCfaEdge instanceof AssumeEdge) {
           AssumeEdge assume = (AssumeEdge) pCfaEdge;
@@ -110,13 +95,14 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
           }
         }
 
-        if (!successors.isEmpty()) {
+        ImmutableList<SplitInfoState> result = successors.build();
+        if (!result.isEmpty()) {
           logger.log(Level.FINE, "Divided split indices.");
-          return successors;
+          return result;
         }
       }
     }
 
-    return Collections.singleton(splitState);
+    return ImmutableList.of(splitState);
   }
 }

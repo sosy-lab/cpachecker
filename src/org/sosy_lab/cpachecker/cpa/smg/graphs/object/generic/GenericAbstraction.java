@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
 import com.google.common.collect.ImmutableMap;
@@ -45,14 +30,14 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
    * represents concrete regions in the smg, map to a concrete pointer in the smg, that points
    * to/from the represented region.
    */
-  private final Map<SMGValue, SMGValue> abstractToConcretePointerMap;
+  private final ImmutableMap<SMGValue, SMGValue> abstractToConcretePointerMap;
 
   /**
    * This map contains as keys abstract pointers and as values a list of materialisation steps. The
    * abstract pointers represent concrete pointers in a smg, that point to a concrete region that
    * has yet to be materialized.
    */
-  private final Map<SMGValue, List<MaterlisationStep>> materlisationStepMap;
+  private final ImmutableMap<SMGValue, List<MaterlisationStep>> materlisationStepMap;
 
   protected GenericAbstraction(
       int pSize,
@@ -111,11 +96,11 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
     throw new AssertionError();
   }
 
-  public Map<SMGValue, List<MaterlisationStep>> getMaterlisationStepMap() {
+  public ImmutableMap<SMGValue, List<MaterlisationStep>> getMaterlisationStepMap() {
     return materlisationStepMap;
   }
 
-  public Map<SMGValue, SMGValue> getAbstractToConcretePointerMap() {
+  public ImmutableMap<SMGValue, SMGValue> getAbstractToConcretePointerMap() {
     return abstractToConcretePointerMap;
   }
 

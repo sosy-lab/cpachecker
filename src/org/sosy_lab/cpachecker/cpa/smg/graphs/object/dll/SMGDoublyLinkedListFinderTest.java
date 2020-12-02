@@ -1,39 +1,21 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -42,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -50,9 +33,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGDoublyLinkedListFinderTest {
 
-  private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation
-      .DUMMY, functionType, "main", ImmutableList.of());
   private CSimpleType intType = CNumericTypes.SIGNED_INT;
   private final MachineModel MM = MachineModel.LINUX32;
   private CType pointerType = new CPointerType(false, false, intType);
@@ -69,7 +49,7 @@ public class SMGDoublyLinkedListFinderTest {
   @Test
   public void simpleFindAbstractionCandidateTest() throws SMGInconsistentException {
 
-    smg1.addStackFrame(functionDeclaration3);
+    smg1.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
 
     for (int i = 0; i < 15; i++) {
       SMGCPA.getNewValue();
@@ -89,19 +69,19 @@ public class SMGDoublyLinkedListFinderTest {
     SMGValue value9 = SMGKnownExpValue.valueOf(9);
     SMGValue value10 = SMGKnownExpValue.valueOf(10);
 
-    SMGEdgeHasValue headfn = new SMGEdgeHasValue(pointerType, ptrSize, 0, head, value6);
-    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l1, value7);
-    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l2, value8);
-    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l3, value9);
-    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l4, value10);
-    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, ptrSize, 0, l5, value5);
+    SMGEdgeHasValue headfn = new SMGEdgeHasValue(ptrSize, 0, head, value6);
+    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(ptrSize, 0, l1, value7);
+    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(ptrSize, 0, l2, value8);
+    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(ptrSize, 0, l3, value9);
+    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(ptrSize, 0, l4, value10);
+    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(ptrSize, 0, l5, value5);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, ptrSize, 32, l1, value5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, ptrSize, 32, l2, value6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, ptrSize, 32, l3, value7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, ptrSize, 32, l4, value8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, ptrSize, 32, l5, value9);
-    SMGEdgeHasValue headfp = new SMGEdgeHasValue(pointerType, ptrSize, 32, head, value10);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 32, l1, value5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 32, l2, value6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 32, l3, value7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 32, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 32, l5, value9);
+    SMGEdgeHasValue headfp = new SMGEdgeHasValue(ptrSize, 32, head, value10);
 
     SMGEdgePointsTo lht = new SMGEdgePointsTo(value5, head, 0);
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(value6, l1, 0);
@@ -154,7 +134,7 @@ public class SMGDoublyLinkedListFinderTest {
 
     SMGDoublyLinkedListFinder f = new SMGDoublyLinkedListFinder();
 
-     Set<SMGAbstractionCandidate> s = f.traverse(smg1, null);
+     Set<SMGAbstractionCandidate> s = f.traverse(smg1, null, ImmutableSet.of());
 
     assertThat(s).isNotEmpty();
   }

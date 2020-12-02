@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.FluentIterable;
@@ -29,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -54,30 +38,23 @@ public class SlicingAbstractionsTest {
 
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";
-  private static final FileFilter CONFIG_FILTER =
-      new FileFilter() {
-        @Override
-        public boolean accept(File pPathname) {
+
+  private static final boolean isConfig(File pPathname) {
           return ((pPathname.getName().contains("Kojak")
                   || pPathname.getName().contains("SlicingAbstractions"))
               && !pPathname.getName().contains("overflow"));
-        }
-      };
-  private static final FileFilter SLAB_CONFIG_FILTER = new FileFilter() {
-    @Override
-    public boolean accept(File pPathname) {
+  }
+
+  private static final boolean isSlabConfig(File pPathname) {
       return pPathname.getName().contains("Slab");
-    }
-  };
-  private static final FileFilter OVERFLOW_CONFIG_FILTER =
-      new FileFilter() {
-        @Override
-        public boolean accept(File pPathname) {
+  }
+
+  private static final boolean isOverflowConfig(File pPathname) {
           return ((pPathname.getName().contains("Kojak")
                   || pPathname.getName().contains("SlicingAbstractions"))
               && pPathname.getName().contains("overflow"));
-        }
-      };
+  }
+
   private static final ImmutableMap<String, String> EMPTY_OPTIONS = ImmutableMap.of();
   private static final ImmutableMap<String, String> LINEAR_OPTIONS =
       ImmutableMap.of(
@@ -110,17 +87,17 @@ public class SlicingAbstractionsTest {
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
-        FluentIterable.from(configfolder.listFiles(CONFIG_FILTER))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isConfig))
             .<Object>transform(x -> x.getName())
             .toList();
 
     List<Object> slabConfigs =
-        FluentIterable.from(configfolder.listFiles(SLAB_CONFIG_FILTER))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isSlabConfig))
             .<Object>transform(x -> x.getName())
             .toList();
 
     List<Object> overflowConfigs =
-        FluentIterable.from(configfolder.listFiles(OVERFLOW_CONFIG_FILTER))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isOverflowConfig))
             .<Object>transform(x -> x.getName())
             .toList();
 
@@ -200,8 +177,9 @@ public class SlicingAbstractionsTest {
   @SuppressWarnings("unused")
   private static boolean filter(Object[] x) {
     String modeString = ((String) x[3]);
-    if (modeString
-        .matches(".*SlicingAbstractionsAbstractionRefiner.*unoptimized.*")) { return false; }
+    if (modeString.matches(".*SlicingAbstractionsAbstractionRefiner.*unoptimized.*")) {
+      return false;
+    }
     return true;
   }
 

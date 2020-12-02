@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -31,7 +16,6 @@ import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
@@ -265,8 +249,8 @@ public class PartitioningIOHelper {
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       if (numPartitions > 0 && partitions != null) {
-        pOut.format("Number of partitions: %d%n", numPartitions);
-        pOut.format("The following numbers are given in number of states.%n");
+        pOut.printf("Number of partitions: %d%n", numPartitions);
+        pOut.printf("The following numbers are given in number of states.%n");
         computeAndPrintDetailedPartitioningStats(pOut);
       }
 
@@ -298,14 +282,14 @@ public class PartitioningIOHelper {
         totalS+=current;
       }
 
-      pOut.format("Certificate size: %d %n", totalS);
-      pOut.format("Total overhead:  %d%n", totalO);
-      pOut.format(Locale.ENGLISH,"Avg. partition size:  %.2f%n", ((double)totalS)/numPartitions);
-      pOut.format(Locale.ENGLISH,"Avg. partition overhead: %.2f%n", ((double)totalO)/numPartitions);
-      pOut.format("Max partition size: %d%n", maxP);
-      pOut.format("Max partition overhead: %d%n", maxO);
-      pOut.format("Min partition size: %d%n", minP);
-      pOut.format("Min partition overhead: %d%n", minO);
+      pOut.printf("Certificate size: %d %n", totalS);
+      pOut.printf("Total overhead:  %d%n", totalO);
+      pOut.printf("Avg. partition size:  %.2f%n", ((double) totalS) / numPartitions);
+      pOut.printf("Avg. partition overhead: %.2f%n", ((double) totalO) / numPartitions);
+      pOut.printf("Max partition size: %d%n", maxP);
+      pOut.printf("Max partition overhead: %d%n", maxO);
+      pOut.printf("Min partition size: %d%n", minP);
+      pOut.printf("Min partition overhead: %d%n", minO);
     }
 
     @Override

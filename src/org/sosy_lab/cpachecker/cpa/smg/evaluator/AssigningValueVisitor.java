@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import java.util.List;
@@ -40,15 +25,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -60,6 +47,11 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
   private SMGState assignableState;
   private final boolean truthValue;
+
+  /**
+   * The edge should never be used to retrieve any information. It should only be used for logging
+   * and debugging, because we do not know the context of the caller.
+   */
   private final CFAEdge edge;
 
   public AssigningValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGState pSMGState, boolean pTruthvalue, CFAEdge pEdge) {
@@ -162,8 +154,10 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
       return;
     }
 
-    SMGSymbolicValue rSymValue = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
+    SMGValue rSymValue =
+        smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
+    CType lValueType = TypeUtils.getRealExpressionType(lValue);
     if(rSymValue.isUnknown()) {
 
       rSymValue = SMGKnownSymValue.of();
@@ -187,14 +181,13 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
               assignableState,
               addressOfField.getObject(),
               addressOfField.getOffset().getAsLong(),
-              TypeUtils.getRealExpressionType(lValue),
+              lValueType,
               rSymValue,
               edge);
     }
-    int size =
-        smgRightHandSideEvaluator.getBitSizeof(
-            edge, TypeUtils.getRealExpressionType(lValue), assignableState);
-    assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
+    SMGType symValueType =
+        SMGType.constructSMGType(lValueType, assignableState, edge, smgRightHandSideEvaluator);
+    assignableState.addPredicateRelation(rSymValue, symValueType, rValue, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {
         assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
@@ -253,7 +246,8 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // If this value is known, the assumption can be evaluated, therefore it should be unknown
     assert smgRightHandSideEvaluator.evaluateExplicitValueV2(assignableState, edge, lValue).isUnknown();
 
-    SMGSymbolicValue value = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
+    SMGValue value =
+        smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
     // This symbolic value should have been added when evaluating the assume
     assert !value.isUnknown();

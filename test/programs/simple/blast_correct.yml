@@ -1,0 +1,14 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '1.0'
+
+# old file name: blast_correct.c
+input_files: 'blast_correct.c'
+
+properties: []

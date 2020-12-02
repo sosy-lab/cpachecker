@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.export;
 
 import static com.google.common.base.Strings.nullToEmpty;
@@ -56,12 +41,12 @@ public final class DOTBuilder {
   // After this many characters the node shape changes to box.
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
-  private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
-      node -> "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
-
+  private static final String formatNode(CFANode node) {
+    return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
+  }
 
   public static void generateDOT(Appendable sb, CFA cfa) throws IOException {
-    generateDOT(sb, cfa, DEFAULT_NODE_FORMATTER);
+    generateDOT(sb, cfa, DOTBuilder::formatNode);
   }
 
   public static void generateDOT(Appendable sb, CFA cfa,
@@ -151,7 +136,7 @@ public final class DOTBuilder {
 
   static String formatNode(
       CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
-    return formatNode(node, loopHeads, DEFAULT_NODE_FORMATTER);
+    return formatNode(node, loopHeads, DOTBuilder::formatNode);
   }
 
   static String formatNode(
@@ -164,7 +149,7 @@ public final class DOTBuilder {
     if (nodeAnnotation.length() > NODE_SHAPE_CHANGE_CHAR_LIMIT) {
       shape = "box";
     } else {
-      if (loopHeads.isPresent() && loopHeads.get().contains(node)) {
+      if (loopHeads.isPresent() && loopHeads.orElseThrow().contains(node)) {
         shape = "doublecircle";
       } else if (node.isLoopStart()) {
         shape = "doubleoctagon";

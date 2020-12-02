@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -49,22 +34,18 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
   private static final long serialVersionUID = -3454798281550882095L;
 
   private final AutomatonState buechiState;
+  private final ImmutableList<AutomatonState> compositeStates;
+
   private final ImmutableList<AutomatonState> productStates;
 
-  private final ImmutableList<AutomatonState> compositeStates;
-  private ImmutableList<AExpression> predecessorStateBuechiAssumptions;
-
-  public DCAState(
-      AutomatonState pBuechiState,
-      List<AutomatonState> pCompositeStates,
-      ImmutableList<AExpression> pPredecessorBuechiAssumptions) {
+  public DCAState(AutomatonState pBuechiState, List<AutomatonState> pCompositeStates) {
     buechiState = checkNotNull(pBuechiState);
     compositeStates = ImmutableList.copyOf(pCompositeStates);
     productStates =
-        new ImmutableList.Builder<AutomatonState>().add(buechiState)
+        new ImmutableList.Builder<AutomatonState>()
+            .add(buechiState)
             .addAll(compositeStates)
             .build();
-    predecessorStateBuechiAssumptions = pPredecessorBuechiAssumptions;
   }
 
   @Override
@@ -75,7 +56,8 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     checkArgument(isTarget());
-    return productStates.stream()
+    return productStates
+        .stream()
         .flatMap(x -> x.getViolatedProperties().stream())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -95,7 +77,8 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public ImmutableList<AExpression> getAssumptions() {
-    return productStates.stream()
+    return productStates
+        .stream()
         .flatMap(x -> x.getAssumptions().stream())
         .distinct()
         .collect(ImmutableList.toImmutableList());
@@ -161,7 +144,7 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (predecessorStateBuechiAssumptions.isEmpty()) {
+    if (buechiState.getAssumptions().isEmpty()) {
       return true;
     }
 
@@ -171,5 +154,4 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
     return predecessorStateBuechiExpressions.equals(pProperty);
   }
-
 }

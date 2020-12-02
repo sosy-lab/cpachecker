@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.livevar;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,8 +15,8 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -136,7 +121,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     VariableClassification variableClassification;
     if (pLang == Language.C) {
-      variableClassification = pVarClass.get();
+      variableClassification = pVarClass.orElseThrow();
     } else {
       variableClassification = null;
     }
@@ -420,8 +405,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * @return a Multimap containing the variables that are live at each location
    */
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
-    ImmutableMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> builder =
-        ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> builder =
+        ImmutableListMultimap.builder();
     for (CFANode node : cfa.getAllNodes()) {
       builder.putAll(node, dataToVars(liveVariables.get(node)));
     }
@@ -591,8 +576,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   /**
-   * @return whether a leftHandSide variable is always live:
-   * anything on the LHS is addressed or global.
+   * Return whether a leftHandSide variable is always live: anything on the LHS is addressed or
+   * global.
    */
   private boolean isAlwaysLive(ALeftHandSide expression) {
     BitSet lhs = new BitSet(noVars);

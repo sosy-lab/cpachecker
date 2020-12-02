@@ -1,36 +1,20 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-
-import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,10 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -63,11 +43,8 @@ import org.sosy_lab.java_smt.api.Tactic;
  * This class operates on formulas, and should be orthogonal to
  * CFA- and CPA-specific concepts.
  */
-@Options(prefix="cpa.slicing")
 public class InductiveWeakeningManager implements StatisticsProvider {
 
-  @Option(description="Inductive weakening strategy", secure=true)
-  private WEAKENING_STRATEGY weakeningStrategy = CEX;
 
   /**
    * Possible weakening strategies.
@@ -90,6 +67,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     CEX
   }
 
+  private final WeakeningOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
 
@@ -104,22 +82,22 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
 
   public InductiveWeakeningManager(
-      Configuration config,
+      WeakeningOptions pOptions,
       Solver pSolver,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
+      ShutdownNotifier pShutdownNotifier) {
 
+    options = pOptions;
     statistics = new InductiveWeakeningStatistics();
     fmgr = pSolver.getFormulaManager();
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
-    destructiveWeakeningManager = new DestructiveWeakeningManager(pSolver,
-        fmgr, config, statistics);
+    destructiveWeakeningManager =
+        new DestructiveWeakeningManager(pSolver, fmgr, options, statistics);
     solver = pSolver;
-    cexWeakeningManager = new CEXWeakeningManager(
-        fmgr, pSolver, statistics, config, pShutdownNotifier);
+    cexWeakeningManager =
+        new CEXWeakeningManager(fmgr, pSolver, statistics, options, pShutdownNotifier);
   }
 
   /**
@@ -164,9 +142,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         startingSSA,
         fromStateLemmas);
 
-    Set<BooleanFormula> out =
-        Sets.filter(
-            toStateLemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
+    ImmutableSet<BooleanFormula> out =
+        from(toStateLemmas)
+            .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
+            .toSet();
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -209,8 +188,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         toStateLemmasAnnotated,
         startingSSA, lemmas);
 
-    Set<BooleanFormula> out =
-        Sets.filter(lemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
+    ImmutableSet<BooleanFormula> out =
+        from(lemmas)
+            .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
+            .toSet();
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 
@@ -254,7 +235,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       BooleanFormula toState,
       SSAMap fromSSA,
       Set<BooleanFormula> pFromStateLemmas) throws SolverException, InterruptedException {
-    switch (weakeningStrategy) {
+    switch (options.getWeakeningStrategy()) {
       case SYNTACTIC:
         return syntacticWeakeningManager.performWeakening(
             fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);

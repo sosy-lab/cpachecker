@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.BiMap;
@@ -32,6 +17,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -214,8 +200,7 @@ public final class SMGIntersectStates {
 
     SMGValue destValue = pMapping.get(value);
     SMGEdgeHasValue destHve =
-        new SMGEdgeHasValue(
-            pHve.getType(), pHve.getSizeInBits(), pHve.getOffset(), destObject, destValue);
+        new SMGEdgeHasValue(pHve.getSizeInBits(), pHve.getOffset(), destObject, destValue);
     destSMG.addHasValueEdge(destHve);
   }
 
@@ -233,7 +218,7 @@ public final class SMGIntersectStates {
 
     SMGKnownSymbolicValue symVal = (SMGKnownSymbolicValue) pValue;
     if (pSmgState.isExplicit(symVal)) {
-      destExplicitValues.put(symVal, (SMGKnownExpValue) pSmgState.getExplicit(symVal));
+      destExplicitValues.put(symVal, pSmgState.getExplicit(symVal));
     }
 
     if (pSmg.isPointer(pValue)) {
@@ -271,8 +256,8 @@ public final class SMGIntersectStates {
   private boolean intersectPairFields(
       SMGObject pObject1, SMGObject pObject2, SMGObject pDestObject) {
 
-    Set<SMGEdgeHasValue> hves1 = heap1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
-    Set<SMGEdgeHasValue> hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
+    SMGHasValueEdges hves1 = heap1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
+    SMGHasValueEdges hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
         FluentIterable.from(hves1).uniqueIndex(SMGEdgeHasValue::getOffset);
@@ -320,8 +305,7 @@ public final class SMGIntersectStates {
     SMGValue destValue = mapping1.get(value1);
 
     SMGEdgeHasValue destHveEdge =
-        new SMGEdgeHasValue(
-            pHve1.getType(), pHve1.getSizeInBits(), pHve1.getOffset(), pDestObject, destValue);
+        new SMGEdgeHasValue(pHve1.getSizeInBits(), pHve1.getOffset(), pDestObject, destValue);
     destSMG.addHasValueEdge(destHveEdge);
 
     return true;
@@ -563,7 +547,6 @@ public final class SMGIntersectStates {
         UnmodifiableSMGState pSmg2,
         UnmodifiableSMGState pJoinResult,
         boolean pDefined) {
-      super();
       smg1 = pSmg1;
       smg2 = pSmg2;
       combinationResult = pJoinResult;

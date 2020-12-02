@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -42,14 +27,12 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 /**
  * ConstraintsPrecision that uses the code constraints represent.
  *
- * <p>Example:
- * A ConstraintBasedConstraintsPrecision contains for location <code>N12</code> the precision
- * <code>'a > 5'</code>. The ConstraintsState to adjust at this location is
- * <code>'s1(a) > 5, s3(b) > 5'</code>.
- * After precision adjustment, the ConstraintsState only consists of <code>'s1(a) > 5'</code>.
- * </p>
+ * <p>Example: A ConstraintBasedConstraintsPrecision contains for location <code>N12</code> the
+ * precision <code>{@code 'a > 5'}</code>. The ConstraintsState to adjust at this location is <code>
+ * {@code 's1(a) > 5, s3(b) > 5'}</code>. After precision adjustment, the ConstraintsState only
+ * consists of <code>{@code 's1(a) > 5'}</code>.
  */
-class ConstraintBasedConstraintsPrecision
+final class ConstraintBasedConstraintsPrecision
     implements ConstraintsPrecision {
 
   private final static ConstraintBasedConstraintsPrecision

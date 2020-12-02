@@ -1,31 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
@@ -72,12 +55,15 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -95,20 +81,37 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="bmc")
+@Options
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
-  @Option(secure=true, description="Check reachability of target states after analysis "
-      + "(classical BMC). The alternative is to check the reachability "
-      + "as soon as the target states are discovered, which is done if "
-      + "cpa.predicate.targetStateSatCheck=true.")
+  @Option(
+      name = "bmc.checkTargetStates",
+      secure = true,
+      description =
+          "Check reachability of target states after analysis "
+              + "(classical BMC). The alternative is to check the reachability "
+              + "as soon as the target states are discovered, which is done if "
+              + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
-  @Option(secure=true, description="Export auxiliary invariants used for induction.")
+  // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
+  @Option(
+      name = "counterexample.export.allowImpreciseCounterexamples",
+      secure = true,
+      description =
+          "An imprecise counterexample of the Predicate CPA is usually a bug,"
+              + " but expected in some configurations. Should it be treated as a bug or accepted?")
+  private boolean allowImpreciseCounterexamples = false;
+
+  @Option(
+      name = "bmc.invariantsExport",
+      secure = true,
+      description = "Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   @Nullable
   private Path invariantsExport = null;
@@ -136,7 +139,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CFA pCFA,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(
         pAlgorithm,
         pCPA,
@@ -191,7 +194,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver,
+      final BasicProverEnvironment<?> pProver,
       CandidateInvariant pInductionProblem)
       throws CPATransferException, InterruptedException, SolverException {
     if (!checkTargetStates) {
@@ -201,28 +204,49 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return super.boundedModelCheck(pReachedSet, pProver, pInductionProblem);
   }
 
+  @Override
+  protected void analyzeCounterexample(
+      final BooleanFormula pCounterexampleFormula,
+      final ReachedSet pReachedSet,
+      final BasicProverEnvironment<?> pProver)
+      throws CPATransferException, InterruptedException {
+
+    analyzeCounterexample0(pCounterexampleFormula, pReachedSet, pProver)
+        .ifPresentOrElse(
+            cex -> cex.getTargetState().addCounterexampleInformation(cex),
+            () -> {
+              if (!allowImpreciseCounterexamples) {
+                throw new AssertionError(
+                    "Found imprecise counterexample with BMC. "
+                        + "If this is expected for this configuration "
+                        + "(e.g., because of UF-based heap encoding), "
+                        + "set counterexample.export.allowImpreciseCounterexamples=true. "
+                        + "Otherwise please report this as a bug.");
+              }
+            });
+  }
   /**
    * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
    * the solver for a satisfying assignment.
    */
   @SuppressWarnings("resource")
-  @Override
-  protected void analyzeCounterexample(
+  private Optional<CounterexampleInfo> analyzeCounterexample0(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver)
+      final BasicProverEnvironment<?> pProver)
       throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
-      return;
+      return Optional.empty();
     }
 
     stats.errorPathCreation.start();
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
+      Set<ARGState> targetStates =
+          from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
+      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
       redundantStates.forEach(state -> {
         state.removeFromARG();
       });
@@ -251,7 +275,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         if (bfmgr.isTrue(branchingFormula)) {
           logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
-          return;
+          return Optional.empty();
         }
 
         // add formula to solver environment
@@ -267,7 +291,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (!stillSatisfiable) {
           // should not occur
           logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
-          return;
+          return Optional.empty();
         }
 
         model = pProver.getModelAssignments();
@@ -275,7 +299,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);
-        return;
+        return Optional.empty();
 
       } finally {
         if (shouldCheckBranching) {
@@ -294,7 +318,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
-        return;
+        return Optional.empty();
       }
 
       BooleanFormula cexFormula = pCounterexampleFormula;
@@ -327,14 +351,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } catch (InvalidConfigurationException e) {
         // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-        return;
+        return Optional.empty();
       }
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
               ImmutableList.of(cexFormula), model, branchingInformation);
-      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
-      counterexample.getTargetState().addCounterexampleInformation(counterexample);
+      return Optional.of(pathChecker.createCounterexample(targetPath, cexInfo));
 
     } finally {
       stats.errorPathCreation.stop();
@@ -379,27 +402,26 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 }
               }
               final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
-
-              try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
-                argWitnessExporter.writeProofWitness(
-                    w,
-                    rootState,
-                    Predicates.alwaysTrue(),
-                    BiPredicates.alwaysTrue(),
-                    new InvariantProvider() {
-
-                      @Override
-                      public ExpressionTree<Object> provideInvariantFor(
-                          CFAEdge pCFAEdge,
-                          Optional<? extends Collection<? extends ARGState>> pStates) {
-                        CFANode node = pCFAEdge.getSuccessor();
-                        ExpressionTree<Object> result = expSup.getInvariantFor(node);
-                        if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
-                          return ExpressionTrees.getTrue();
+              final Witness generatedWitness =
+                  argWitnessExporter.generateProofWitness(
+                      rootState,
+                      Predicates.alwaysTrue(),
+                      BiPredicates.alwaysTrue(),
+                      new InvariantProvider() {
+                        @Override
+                        public ExpressionTree<Object> provideInvariantFor(
+                            CFAEdge pCFAEdge,
+                            Optional<? extends Collection<? extends ARGState>> pStates) {
+                          CFANode node = pCFAEdge.getSuccessor();
+                          ExpressionTree<Object> result = expSup.getInvariantFor(node);
+                          if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
+                            return ExpressionTrees.getTrue();
+                          }
+                          return result;
                         }
-                        return result;
-                      }
-                    });
+                      });
+              try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
+                WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, w);
               } catch (IOException e) {
                 logger.logUserException(
                     Level.WARNING, e, "Could not write invariants to file " + invariantsExport);

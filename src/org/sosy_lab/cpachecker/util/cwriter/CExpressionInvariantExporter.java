@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import com.google.common.collect.HashMultimap;
@@ -52,6 +37,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -82,9 +68,9 @@ public class CExpressionInvariantExporter {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);
-    inductiveWeakeningManager = new InductiveWeakeningManager(
-        pConfiguration,
-        solver, pLogManager, pShutdownNotifier);
+    inductiveWeakeningManager =
+        new InductiveWeakeningManager(
+            new WeakeningOptions(pConfiguration), solver, pLogManager, pShutdownNotifier);
   }
 
   /**
@@ -119,9 +105,7 @@ public class CExpressionInvariantExporter {
       while ((line = reader.readLine()) != null) {
         Optional<String> invariant = getInvariantForLine(lineNo, reporting);
         if (invariant.isPresent()) {
-          out.append("__VERIFIER_assume(")
-              .append(invariant.get())
-              .append(");\n");
+          out.append("__VERIFIER_assume(").append(invariant.orElseThrow()).append(");\n");
         }
         out.append(line)
             .append('\n');
@@ -142,12 +126,9 @@ public class CExpressionInvariantExporter {
     return Optional.of(formulaToCExpressionConverter.formulaToCExpression(formula));
   }
 
-  /**
-   * @return Mapping from line numbers to states associated with the given line.
-   */
+  /** Return mapping from line numbers to states associated with the given line. */
   private Map<Integer, BooleanFormula> getInvariantsForFile(
-      UnmodifiableReachedSet pReachedSet,
-      String filename) {
+      UnmodifiableReachedSet pReachedSet, String filename) {
 
     // One formula per reported state.
     Multimap<Integer, BooleanFormula> byState = HashMultimap.create();

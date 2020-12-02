@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.util.Collection;
@@ -31,6 +16,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -69,7 +55,7 @@ public abstract class EdgeReplacer {
   private final LogManager logger;
   private int instrumentedFunctions;
 
-  public EdgeReplacer(MutableCFA pCfa, Configuration config, LogManager pLogger)
+  protected EdgeReplacer(MutableCFA pCfa, Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
@@ -77,10 +63,9 @@ public abstract class EdgeReplacer {
     instrumentedFunctions = 0;
   }
 
-  /** @category helper */
-  private CFANode newCFANode(final String functionName) {
+  private CFANode newCFANode(final AFunctionDeclaration pFunction) {
     assert cfa != null;
-    CFANode nextNode = new CFANode(functionName);
+    CFANode nextNode = new CFANode(pFunction);
     cfa.addNode(nextNode);
     return nextNode;
   }
@@ -92,8 +77,6 @@ public abstract class EdgeReplacer {
   /**
    * This method adds 2 edges to the cfa: 1. trueEdge from rootNode to thenNode and 2. falseEdge
    * from rootNode to elseNode.
-   *
-   * @category conditions
    */
   private void addConditionEdges(
       CExpression nameExp,
@@ -170,8 +153,8 @@ public abstract class EdgeReplacer {
 
     CFANode rootNode = start;
     for (FunctionEntryNode fNode : funcs) {
-      CFANode thenNode = newCFANode(start.getFunctionName());
-      CFANode elseNode = newCFANode(start.getFunctionName());
+      CFANode thenNode = newCFANode(start.getFunction());
+      CFANode elseNode = newCFANode(start.getFunction());
 
       CIdExpression func =
           new CIdExpression(
@@ -185,7 +168,7 @@ public abstract class EdgeReplacer {
               new CPointerType(false, false, func.getExpressionType()),
               func,
               CUnaryExpression.UnaryOperator.AMPER);
-      CFANode retNode = newCFANode(start.getFunctionName());
+      CFANode retNode = newCFANode(start.getFunction());
 
       addConditionEdges(nameExp, amper, rootNode, thenNode, elseNode, fileLocation);
 
@@ -209,7 +192,7 @@ public abstract class EdgeReplacer {
     if (createUndefinedFunctionCall) {
       ae = createSummaryEdge(statement, rootNode, end);
     } else {
-      CFANode term = new CFATerminationNode(rootNode.getFunctionName());
+      CFANode term = new CFATerminationNode(rootNode.getFunction());
       cfa.addNode(term);
       ae = new BlankEdge("blank pointer call", fileLocation, rootNode, term, "blank pointer call");
     }

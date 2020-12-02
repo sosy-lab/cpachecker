@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -29,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -193,7 +179,7 @@ public class ARGState extends AbstractSingleWrapperState
     // multiedges, it is guaranteed that there is exactly one path and no other
     // leaving edges from the parent to the child
     if (singleEdge == null) {
-      List<CFAEdge> allEdges = new ArrayList<>();
+      ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
       CFANode currentLoc = AbstractStates.extractLocation(this);
       CFANode childLoc = AbstractStates.extractLocation(pChild);
 
@@ -209,15 +195,21 @@ public class ARGState extends AbstractSingleWrapperState
           currentLoc = leavingEdge.getSuccessor();
         }
       }
-      return allEdges;
+      return allEdges.build();
     } else {
       return Collections.singletonList(singleEdge);
     }
   }
 
-  public Set<ARGState> getSubgraph() {
+  /**
+   * Return a duplicate-free iterable over all states that are transitively reachable from this
+   * state via {@link #getChildren()}. The current state is included. The iterable always reflects
+   * the current state of the ARG. The behavior is undefined if the ARG is changed during iteration
+   * over it.
+   */
+  public FluentIterable<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
+    return from(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
   }
 
   // coverage
@@ -506,18 +498,18 @@ public class ARGState extends AbstractSingleWrapperState
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
-    assert !(this==replacement) : "Don't replace ARGState " + this + " with itself";
+    assert !this.equals(replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : children) {
-      assert (child.parents.contains(this)) : "Inconsistent ARG at " + this;
+      assert child.parents.contains(this) : "Inconsistent ARG at " + this;
       child.parents.remove(this);
       child.addParent(replacement);
     }
     children.clear();
 
     for (ARGState parent : parents) {
-      assert (parent.children.contains(this)) : "Inconsistent ARG at " + this;
+      assert parent.children.contains(this) : "Inconsistent ARG at " + this;
       parent.children.remove(this);
       replacement.addParent(parent);
     }
@@ -530,7 +522,7 @@ public class ARGState extends AbstractSingleWrapperState
       }
 
       for (ARGState covered : mCoveredByThis) {
-        assert covered.mCoveredBy == this : "Inconsistent coverage relation at " + this;
+        assert this.equals(covered.mCoveredBy) : "Inconsistent coverage relation at " + this;
         covered.mCoveredBy = replacement;
         replacement.mCoveredByThis.add(covered);
       }
@@ -542,9 +534,6 @@ public class ARGState extends AbstractSingleWrapperState
     destroyed = true;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.cpa.arg.Splitable#forkWithReplacements(java.util.List)
-   */
   @Override
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
     AbstractState wrappedState = this.getWrappedState();

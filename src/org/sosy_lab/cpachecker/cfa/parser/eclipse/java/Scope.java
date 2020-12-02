@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -337,10 +322,11 @@ class Scope {
 
   public void registerDeclarationOfThisClass(JSimpleDeclaration declaration) {
 
-    checkArgument(declaration instanceof JVariableDeclaration
-            || declaration instanceof JParameterDeclaration,
-        "Tried to register a declaration which does not define " +
-            "a name in the standard namespace: " + declaration);
+    checkArgument(
+        declaration instanceof JVariableDeclaration || declaration instanceof JParameterDeclaration,
+        "Tried to register a declaration which does not define "
+            + "a name in the standard namespace: %s",
+        declaration);
 
     checkArgument(!(declaration instanceof JFieldDeclaration),
         "Can't register a field declaration, it has to be updated within the type Hierarchy");

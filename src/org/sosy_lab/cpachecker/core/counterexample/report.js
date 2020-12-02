@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort */
 
@@ -12,9 +21,14 @@ with considerably less effort */
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
+
 		// hide tooltip after 5 seconds
+		var timeout;
 		$(document).on('shown.bs.tooltip', function (e) {
-			setTimeout(function () {
+			if (timeout) {
+				clearTimeout(timeout)
+			}
+			timeout = setTimeout(function () {
 				$(e.target).tooltip('hide');
 			}, 5000);
 		});
@@ -29,21 +43,21 @@ with considerably less effort */
 				],
 				iDisplayLength: -1, //Default display all entries
 				"columnDefs": [{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 0,
 					}, {
 						"orderable": false, //No Ordering
 						"targets": 1,
 					},
 					{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 2,
 					},
 				]
 			});
 		});
 
-		// Initialize Google pretiffy code 
+		// Initialize Google pretiffy code
 		$(document).ready(function () {
 			PR.prettyPrint();
 		});
@@ -169,7 +183,7 @@ with considerably less effort */
 						d3.select("#cfa-toolbar").style("width", "95%");
 					}
 				});
-			}
+			};
 
 			//Full screen mode function to view the report in full screen
 			$('#full_screen_mode').click(function () {
@@ -203,6 +217,7 @@ with considerably less effort */
 						d3.select("#arg-toolbar").style("visibility", "hidden");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-simplified-graph").style("visibility", "hidden");
+						d3.selectAll(".arg-reduced-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 						if (d3.select("#arg-container").classed("arg-content")) {
 							d3.select("#arg-container").classed("arg-content", false);
@@ -227,6 +242,7 @@ with considerably less effort */
 						d3.select("#arg-container").classed("arg-content", true);
 					}
 					d3.selectAll(".arg-simplified-graph").style("display", "none");
+					d3.selectAll(".arg-reduced-graph").style("display", "none");
 					if ($rootScope.displayedARG.indexOf("error") !== -1) {
 						d3.selectAll(".arg-error-graph").style("visibility", "visible");
 						if ($("#arg-container").scrollTop() === 0) {
@@ -251,6 +267,7 @@ with considerably less effort */
 						d3.select("#arg-toolbar").style("visibility", "hidden");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-simplified-graph").style("visibility", "hidden");
+						d3.selectAll(".arg-reduced-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 						if (d3.select("#arg-container").classed("arg-content")) {
 							d3.select("#arg-container").classed("arg-content", false);
@@ -272,6 +289,19 @@ with considerably less effort */
 	var errorpathController = app.controller("ErrorpathController", ['$rootScope', '$scope', function ($rootScope, $scope) {
 		$rootScope.errorPath = [];
 
+		//Fault Localization
+		function getLinesOfFault(fault) {
+			var lines = {};
+			for (var i = 0; i < fault["errPathIds"].length; i++) {
+				var errorPathIdx = fault["errPathIds"][i];
+				var errorPathElem = $rootScope.errorPath[errorPathIdx];
+				var line = {"line": errorPathElem["line"], "desc": errorPathElem["desc"]};
+				var line_key = line["line"] + line["desc"];
+				lines[line_key] = line;
+			}
+			return Object.values(lines);
+		};
+
 		function getValues(val, prevValDict) {
 			var values = {};
 			if (val != "") {
@@ -290,8 +320,9 @@ with considerably less effort */
 		};
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
-                var importantEdges = [];
-                var importantIndex = -1;
+		var importantEdges = [];
+		var importantIndex = -1;
+		var faultEdges = [];
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
@@ -310,9 +341,9 @@ with considerably less effort */
 					var newValues = getValues(errPathElem.val, previousValueDictionary);
 					errPathElem["newValDict"] = newValues;
 					if (!$.isEmptyObject(newValues)) {
-						$.extend(errPathElem.valDict, newValues)
+						$.extend(errPathElem.valDict, newValues);
 					}
-					for (key in errPathElem.valDict) {
+					for (var key in errPathElem.valDict) {
 						errPathElem.valString += key + ":  " + errPathElem.valDict[key] + "\n";
 					}
 					// add indentation
@@ -326,11 +357,30 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
+				if (errPathElem.faults !== undefined && errPathElem.faults.length > 0) {
+					errPathElem["importantindex"] = importantIndex;
+					errPathElem["bestrank"] = cfaJson.faults[errPathElem.faults[0]].rank;
+					errPathElem["bestreason"] = cfaJson.faults[errPathElem.faults[0]].reason;
+					if (errPathElem["additional"] !== undefined && errPathElem["additional"] !== "") {
+						errPathElem["bestreason"] = errPathElem["bestreason"] + errPathElem["additional"];
+					}
+					faultEdges.push(errPathElem);
+				}
+
 				// store the important edges
                                 if(errPathElem.importance == 1){
                                       importantEdges.push(importantIndex);
                                    }
 			}
+
+			function addFaultLocalizationInfo(){
+				if (faultEdges !== undefined && faultEdges.length > 0) {
+					for (var j = 0; j < faultEdges.length; j++) {
+						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
+					}
+					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
+				}
+			};
 
                         // this function puts the important edges into a CSS class that highlights them
 			function highlightEdges(impEdges){
@@ -340,11 +390,53 @@ with considerably less effort */
                         };
 
                         angular.element(document).ready(function(){
-                            highlightEdges(importantEdges);
+				highlightEdges(importantEdges);
+				addFaultLocalizationInfo();
                         });
 
 
 		}
+
+		// make faults visible to angular
+		$rootScope.faults = [];
+		$rootScope.precondition = cfaJson.precondition === undefined ? "" : cfaJson.precondition["fl-precondition"];
+		$rootScope.hasPrecondition = $rootScope.precondition !== "";
+		if (cfaJson.faults !== undefined) {
+			for (var i = 0; i < cfaJson.faults.length; i++) {
+				var fault = cfaJson.faults[i];
+				var fInfo = Object.assign({}, fault);
+				// store all error-path elements related to this fault.
+				// we can't do  this in the Java backend because
+				// we can't be sure to have the full error-path elements in the FaultLocalizationInfo
+				// when the faults-code is generated.
+				fInfo["errPathIds"] = [];
+				for (var j = 0; j < $rootScope.errorPath.length; j++) {
+					var element = $rootScope.errorPath[j];
+					if (element.faults.includes(i)) {
+						fInfo["errPathIds"].push(j);
+						fInfo["valDict"] = element.valDict;
+					}
+					fInfo["lines"] = getLinesOfFault(fInfo);
+				}
+				$rootScope.faults.push(fInfo);
+			}
+		}
+
+
+		$scope.hideFaults = ($rootScope.faults == undefined || $rootScope.faults.length == 0);
+
+		$scope.faultClicked = function(){
+			$scope.hideErrorTable = !$scope.hideErrorTable;
+		};
+
+		$scope.clickedFaultLocElement = function ($event) {
+			d3.selectAll(".clickedFaultLocElement").classed("clickedFaultLocElement", false);
+			var clickedElement = d3.select($event.currentTarget);
+			clickedElement.classed("clickedFaultLocElement", true);
+			var faultElementIdx = clickedElement.attr("id").substring("fault-".length);
+			var faultElement = $rootScope.faults[faultElementIdx];
+			markErrorPathElementInTab(faultElement.errPathIds);
+		};
 
 		$scope.errPathPrevClicked = function ($event) {
 			var selection = d3.select("tr.clickedErrPathElement");
@@ -353,7 +445,7 @@ with considerably less effort */
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
 				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
-				markErrorPathElementInTab("Prev", prevId);
+				markErrorPathElementInTab(prevId);
 			}
 		};
 
@@ -361,7 +453,7 @@ with considerably less effort */
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			d3.select("#errpath-0").classed("clickedErrPathElement", true);
 			$("#value-assignment").scrollTop(0);
-			markErrorPathElementInTab("Start", 0);
+			markErrorPathElementInTab(0);
 		};
 
 		$scope.errPathNextClicked = function ($event) {
@@ -371,7 +463,7 @@ with considerably less effort */
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
 				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
-				markErrorPathElementInTab("Next", nextId);
+				markErrorPathElementInTab(nextId);
 			}
 		};
 
@@ -379,77 +471,43 @@ with considerably less effort */
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			var clickedElement = d3.select($event.currentTarget.parentNode);
 			clickedElement.classed("clickedErrPathElement", true);
-			markErrorPathElementInTab("", clickedElement.attr("id").substring("errpath-".length));
+			markErrorPathElementInTab(clickedElement.attr("id").substring("errpath-".length));
 		};
 
-		function markErrorPathElementInTab(buttonId, selectedErrPathElemId) {
-			if ($rootScope.errorPath[selectedErrPathElemId] === undefined) {
-				return;
-			}
+		function markErrorPathElementInTab(selectedErrPathElemId) {
 			var currentTab = $("#report-controller").scope().getTabSet();
-			// when the current tab is not one of CFA, ARG, source, set the tab to ARG
-			if (buttonId === "") {
-				handleErrorPathElemClick(currentTab, selectedErrPathElemId);
-			} else if (buttonId === "Start") {
-				handleStartButtonClick(currentTab);
-			} else if (buttonId === "Prev") {
-				handlePrevButtonClick(currentTab, selectedErrPathElemId);
-			} else { // "Next"
-				handleNextButtonClick(currentTab, selectedErrPathElemId);
+			if (!Array.isArray(selectedErrPathElemId)) {
+				selectedErrPathElemId = [selectedErrPathElemId];
+			}
+			unmarkEverything();
+			for (var i = 0; i < selectedErrPathElemId.length; i++) {
+				var id = selectedErrPathElemId[i];
+				if ($rootScope.errorPath[id] === undefined) {
+					return;
+				}
+				handleErrorPathElemClick(currentTab, id);
 			}
 		}
 
 		function handleErrorPathElemClick(currentTab, errPathElemIndex) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[errPathElemIndex]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[errPathElemIndex]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[errPathElemIndex]);
-			} else {
+			markCfaEdge($rootScope.errorPath[errPathElemIndex]);
+			markArgNode($rootScope.errorPath[errPathElemIndex]);
+			markSourceLine($rootScope.errorPath[errPathElemIndex]);
+			if (![1, 2, 3].includes(currentTab)) {
 				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[errPathElemIndex]);
 			}
 		}
 
-		function handleStartButtonClick(currentTab) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[0]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[0]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[0]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[0]);
-			}
+		function unmarkEverything() {
+			[
+				"marked-cfa-edge",
+				"marked-cfa-node",
+				"marked-cfa-node-label",
+				"marked-arg-node",
+				"marked-source-line",
+			].forEach(function (c) { d3.selectAll("." + c).classed(c, false) });
 		}
 
-		function handlePrevButtonClick(currentTab, elementId) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[elementId]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[elementId]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[elementId]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[elementId]);
-			}
-		}
-
-		function handleNextButtonClick(currentTab, elementId) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[elementId]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[elementId]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[elementId]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[elementId]);
-			}
-		}
 
 		function markCfaEdge(errPathEntry) {
 			var actualSourceAndTarget = getActualSourceAndTarget(errPathEntry);
@@ -460,7 +518,6 @@ with considerably less effort */
 				var boundingRect = selection.node().getBoundingClientRect();
 				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 300).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container"));
 				if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
-					d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 					selection.selectAll("tspan").each(function (d, i) {
 						if (d3.select(this).html().includes(errPathEntry.source)) {
 							d3.select(this).classed("marked-cfa-node-label", true);
@@ -469,11 +526,6 @@ with considerably less effort */
 				}
 				return;
 			}
-			if (!d3.select(".marked-cfa-edge").empty()) {
-				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
-			}
-			d3.selectAll(".marked-cfa-node").classed("marked-cfa-node", false);
-			d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
@@ -527,9 +579,6 @@ with considerably less effort */
 			if (errPathEntry.argelem === undefined) {
 				return;
 			}
-			if (!d3.select(".marked-arg-node").empty()) {
-				d3.select(".marked-arg-node").classed("marked-arg-node", false);
-			}
 			var idToSelect;
 			if (d3.select("#arg-graph0").style("display") !== "none")
 				idToSelect = "#arg-node";
@@ -542,9 +591,6 @@ with considerably less effort */
 		}
 
 		function markSourceLine(errPathEntry) {
-			if (!d3.select(".marked-source-line").empty()) {
-				d3.select(".marked-source-line").classed("marked-source-line", false);
-			}
 			if (errPathEntry.line === 0) {
 				errPathEntry.line = 1;
 			}
@@ -639,7 +685,7 @@ with considerably less effort */
 		}
 	}]);
 
-	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function ($rootScope, $scope) {
+	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$sce', '$scope', function ($rootScope, $sce, $scope) {
 		$scope.showValues = function ($event) {
 			var element = $event.currentTarget;
 			if (element.classList.contains("markedTableElement")) {
@@ -647,6 +693,10 @@ with considerably less effort */
 			} else {
 				element.classList.add("markedTableElement");
 			}
+		};
+
+		$scope.htmlTrusted = function(html) {
+			return $sce.trustAsHtml(html);
 		};
 	}]);
 
@@ -771,6 +821,9 @@ with considerably less effort */
 			if (relevantEdges !== undefined) {
                         	$scope.argSelections.push("simplified");
                         }
+			if (reducedEdges !== undefined) {
+				$scope.argSelections.push("witness");
+			}
 			$rootScope.displayedARG = $scope.argSelections[0];
 
 			$scope.displayARG = function () {
@@ -778,8 +831,11 @@ with considerably less effort */
 					if ($rootScope.displayedARG.indexOf("error") !== -1) {
 						d3.selectAll(".arg-graph").style("display", "none");
 						if (!d3.select(".arg-simplified-graph").empty()) {
-                                                         d3.selectAll(".arg-simplified-graph").style("display", "none");
-                                                }
+							d3.selectAll(".arg-simplified-graph").style("display", "none");
+						}
+						if (!d3.select(".arg-reduced-graph").empty()) {
+							d3.selectAll(".arg-reduced-graph").style("display", "none");
+						}
 						$("#arg-container").scrollTop(0).scrollLeft(0);
 						if (d3.select(".arg-error-graph").empty()) {
 							argWorker.postMessage({
@@ -790,6 +846,7 @@ with considerably less effort */
 						}
 					} else if ($rootScope.displayedARG.indexOf("simplified") !== -1) {
 					        d3.selectAll(".arg-graph").style("display", "none");
+					        d3.selectAll(".arg-reduced-graph").style("display", "none");
 					        $("#arg-container").scrollTop(0).scrollLeft(0);
 					        if (!d3.select(".arg-error-graph").empty()) {
                                                 	d3.selectAll(".arg-error-graph").style("display", "none");
@@ -801,6 +858,21 @@ with considerably less effort */
                                                 } else {
                                                         d3.selectAll(".arg-simplified-graph").style("display", "inline-block").style("visibility", "visible");
                                                 }
+					} else if ($rootScope.displayedARG.indexOf("witness") !== -1) {
+						console.log("reduced graph selected");
+						d3.selectAll(".arg-graph").style("display", "none");
+						d3.selectAll(".arg-simplified-graph").style("display", "none");
+						$("#arg-container").scrollTop(0).scrollLeft(0);
+						if (!d3.select(".arg-error-graph").empty()) {
+							d3.selectAll(".arg-error-graph").style("display", "none");
+						}
+						if (d3.select(".arg-reduced-graph").empty()) {
+							argWorker.postMessage({
+								"reducedGraph": true
+							});
+						} else {
+							d3.selectAll(".arg-reduced-graph").style("display", "inline-block").style("visibility", "visible");
+						}
 					} else {
 						if (!d3.select(".arg-error-graph").empty()) {
 							d3.selectAll(".arg-error-graph").style("display", "none");
@@ -808,6 +880,9 @@ with considerably less effort */
 						if (!d3.select(".arg-simplified-graph").empty()) {
                                                 	d3.selectAll(".arg-simplified-graph").style("display", "none");
                                                 }
+						if (!d3.select(".arg-reduced-graph").empty()) {
+							d3.selectAll(".arg-reduced-graph").style("display", "none");
+						}
 						d3.selectAll(".arg-graph").style("display", "inline-block").style("visibility", "visible");
 						$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width") / 4);
 					}
@@ -845,6 +920,7 @@ with considerably less effort */
 				}
 				d3.selectAll(".arg-graph").remove();
 				d3.selectAll(".arg-simplified-graph").remove();
+				d3.selectAll(".arg-reduced-graph").remove();
 				d3.selectAll(".arg-error-graph").remove();
 				if ($scope.zoomEnabled) {
 					$scope.argZoomControl();
@@ -870,7 +946,7 @@ with considerably less effort */
 				if (input % 1 !== 0) return false;
 				if (input < 500 || input > 900) return false;
 				return true;
-			}
+			};
 		}
 	]);
 
@@ -906,6 +982,10 @@ if (cfaJson.hasOwnProperty("errorPath")) {
 var relevantEdges;
 if (argJson.hasOwnProperty("relevantedges")) {
         relevantEdges = argJson.relevantedges;
+}
+var reducedEdges;
+if (argJson.hasOwnProperty("reducededges")) {
+        reducedEdges = argJson.reducededges;
 }
 var graphSplitThreshold = 700;
 var zoomEnabled = false;
@@ -945,7 +1025,7 @@ function init() {
 	// Display modal window containing current rendering state
 	$("#renderStateModal").modal("show");
 
-	// Setup section widths accordingly 
+	// Setup section widths accordingly
 	if (errorPath === undefined) {
 		d3.select("#errorpath_section").style("display", "none");
 		$("#toggle_button_error_path").hide();
@@ -1019,7 +1099,7 @@ function init() {
 		// Prepare Error Path array to be used in edge class decider
 		function prepareCfaErrorPath() {
 			var returnedEdges = {};
-			for (key in functionCallEdges) {
+			for (var key in functionCallEdges) {
 				returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
 			}
 			json.errorPath.forEach(function (errPathElem) {
@@ -1203,7 +1283,7 @@ function init() {
 						class: edgeClassDecider(edge, "" + source + target + sourceGraph, source),
 						arrowhead: "undirected",
 						style: "stroke-dasharray: 5, 5;"
-					})
+					});
 					graphMap[targetGraph].setNode("" + target + source + targetGraph, {
 						label: "",
 						class: "dummy",
@@ -1426,19 +1506,26 @@ function init() {
 			self.importScripts("https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js");
 			var json, nodes, edges, errorPath, relevantNodes, relevantEdges, errorGraphMap;
 			var graphSplitThreshold = 700;
-			var graphMap = [],
-				graphCounter = 0, simplifiedGraphMap, simplifiedGraphCounter = 0;
+			var graphMap = [], graphCounter = 0,
+			    simplifiedGraphMap, simplifiedGraphCounter = 0,
+			    reducedGraphMap, reducedGraphCounter = 0;
 			self.addEventListener("message", function (m) {
 				if (m.data.json !== undefined) {
 					json = JSON.parse(m.data.json);
 					nodes = json.nodes;
 					edges = json.edges;
-					buildGraphsAndPrepareResults(nodes, edges, false)
+					buildGraphsAndPrepareResults(nodes, edges, "default");
 					if(json.relevantedges !== undefined && json.relevantnodes !== undefined){
 					        relevantEdges = json.relevantedges;
 					        relevantNodes = json.relevantnodes;
 					        simplifiedGraphMap = [];
-					        buildGraphsAndPrepareResults(relevantNodes, relevantEdges, true);
+					        buildGraphsAndPrepareResults(relevantNodes, relevantEdges, "relevant");
+					}
+					if(json.reducededges !== undefined && json.reducednodes !== undefined){
+				        reducedEdges = json.reducededges;
+				        reducedNodes = json.reducednodes;
+				        reducedGraphMap = [];
+				        buildGraphsAndPrepareResults(reducedNodes, reducedEdges, "witness");
 					}
 				} else if (m.data.errorPath !== undefined) {
 					errorPath = [];
@@ -1468,6 +1555,15 @@ function init() {
 						        simplifiedGraphMap.shift();
 						        simplifiedGraphCounter++;
 						}
+						if (typeof reducedGraphMap !== 'undefined' && reducedGraphMap.length > 0) {
+					        self.postMessage({
+					              "graph": JSON.stringify(reducedGraphMap[0]),
+					              "id": reducedGraphCounter,
+					              "reducedGraph" : true
+					        });
+					        reducedGraphMap.shift();
+					        reducedGraphCounter++;
+						}
 						if (errorPath !== undefined) {
 							errorGraphMap = [];
 							graphCounter = 0;
@@ -1493,15 +1589,15 @@ function init() {
 				}
 			}, false);
 
-			function buildGraphsAndPrepareResults(nodes, edges, relevant) {
+			function buildGraphsAndPrepareResults(nodes, edges, graphLabel) {
 				if (nodes.length > graphSplitThreshold) {
-					buildMultipleGraphs(nodes, edges, relevant);
+					buildMultipleGraphs(nodes, edges, graphLabel);
 				} else {
-					buildSingleGraph(nodes, edges, relevant);
+					buildSingleGraph(nodes, edges, graphLabel);
 				}
 			}
 
-			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
+			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path
 			function prepareErrorGraph() {
 				var errorNodes = [],
 					errorEdges = [];
@@ -1525,19 +1621,21 @@ function init() {
 				}
 			}
 
-			function buildSingleGraph(nodes, edges, relevant) {
+			function buildSingleGraph(nodes, edges, graphLabel) {
 				var g = createGraph();
 				setGraphNodes(g, nodes);
 				setGraphEdges(g, edges, false);
-				if(relevant){
-				      simplifiedGraphMap.push(g);
+				if(graphLabel === "relevant"){
+					simplifiedGraphMap.push(g);
+				} else if (graphLabel === "witness") {
+					reducedGraphMap.push(g);
 				} else {
-			              graphMap.push(g);
+					graphMap.push(g);
 				}
 			}
 
 			// Split the ARG graph honoring the split threshold
-			function buildMultipleGraphs(nodes, edges, relevant) {
+			function buildMultipleGraphs(nodes, edges, graphLabel) {
 				nodes.sort(function (firstNode, secondNode) {
 					return firstNode.index - secondNode.index;
 				})
@@ -1556,8 +1654,10 @@ function init() {
 						}
 					}
 					var graph = createGraph();
-					if (relevant) {
-					        simplifiedGraphMap.push(graph);
+					if (graphLabel === "relevant") {
+					    simplifiedGraphMap.push(graph);
+					} else if (graphLabel === "witness") {
+						reducedGraphMap.push(graph);
 					} else {
 						graphMap.push(graph);
 					}
@@ -1654,7 +1754,7 @@ function init() {
 								arrowhead: "undirected",
 								style: "stroke-dasharray: 5, 5;",
 								class: edgeClassDecider(edge)
-							})
+							});
 							errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
 								label: "",
 								class: "dummy"
@@ -1706,7 +1806,7 @@ function init() {
 								arrowhead: "undirected",
 								style: "stroke-dasharray: 5, 5;",
 								class: edgeClassDecider(edge)
-							})
+							});
 							graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
 								label: "",
 								class: "dummy"
@@ -1768,7 +1868,7 @@ function init() {
 					return "arg-error-node" + node.index;
 			}
 
-			// Set the graph edges 
+			// Set the graph edges
 			function setGraphEdges(graph, edgesToSet, multigraph) {
 				edgesToSet.forEach(function (e) {
 					if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
@@ -1803,7 +1903,7 @@ function init() {
 
 	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
-	 * Create workers using blobs due to Chrome's default security policy and 
+	 * Create workers using blobs due to Chrome's default security policy and
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
@@ -1888,6 +1988,10 @@ function init() {
 				        id = "arg-simplified-graph" + m.data.id;
 				        argClass = "arg-simplified-graph";
 				}
+				if(m.data.reducedGraph !== undefined) {
+					id = "arg-reduced-graph" + m.data.id;
+					argClass = "arg-reduced-graph";
+				}
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
 				d3.select("#arg-container").append("div").attr("id", id).attr("class", argClass);
@@ -1902,7 +2006,7 @@ function init() {
 				d3.selectAll(".arg-node tspan").each(function (d, i) {
 					var transformation = d3.select(this.parentNode.parentNode).attr("transform")
 					d3.select(this).attr("dx", Math.abs(getTransformation(transformation).translateX));
-				})
+				});
 				if (m.data.errorGraph !== undefined) {
 					addEventsToArg();
 					$("#renderStateModal").hide();
@@ -1951,10 +2055,10 @@ function init() {
 		});
 	}
 
-	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed 
+	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed
 	function getTransformation(transform) {
 		// Create a dummy g for calculation purposes only. This will never
-		// be appended to the DOM and will be discarded once this function 
+		// be appended to the DOM and will be discarded once this function
 		// returns.
 		var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -1963,7 +2067,7 @@ function init() {
 
 		// consolidate the SVGTransformList containing all transformations
 		// to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
-		// its SVGMatrix. 
+		// its SVGMatrix.
 		var matrix = g.transform.baseVal.consolidate().matrix;
 
 		// Below calculations are taken and adapted from the private function
@@ -2071,7 +2175,7 @@ function init() {
 					edge = findCfaEdge({
 						v: thisEdgeData.split("-")[0],
 						w: thisEdgeData.split("-")[1]
-					})
+					});
 				}
 				$("#set-tab-3").click();
 				var line = edge.line;
@@ -2131,7 +2235,12 @@ function init() {
 		addPanEvent(".arg-svg");
 		d3.selectAll(".arg-node")
 			.on("mouseover", function (d) {
-				var node = argJson.nodes.find(function (it) {
+				var nodesArray = Array.prototype.concat(
+						argJson.nodes,
+						typeof argJson.relevantnodes === "undefined" ? [] : argJson.relevantnodes,
+						typeof argJson.reducednodes === "undefined" ? [] : argJson.reducednodes
+				);
+				var node = nodesArray.find(function (it) {
 					return it.index === parseInt(d);
 				})
 				var message = "<span class=\" bold \">function</span>: " + node.func + "<br>";
@@ -2173,11 +2282,22 @@ function init() {
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				var edge = argJson.edges.find(function (it) {
+				var edgeArray = Array.prototype.concat(
+						argJson.edges,
+						typeof argJson.relevantedges === "undefined" ? [] : argJson.relevantedges,
+						typeof argJson.reducededges === "undefined" ? [] : argJson.reducededges
+						);
+				var edge = edgeArray.find(function (it) {
 					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
 				})
+				var message = "";
+				Object.keys(edge).forEach(function(key,index) {
+					if ($.inArray(key,["target", "source", "label", "line"])==-1) {
+						message += "<span class=\" bold \">"+key+"<\span>: "+edge[key]+"<br>";
+					}
+				});
 				if (edge) {
-					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: " + edge.type);
+					showToolTipBox(d3.event, message);
 				} else {
 					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: graph connecting edge")
 				}

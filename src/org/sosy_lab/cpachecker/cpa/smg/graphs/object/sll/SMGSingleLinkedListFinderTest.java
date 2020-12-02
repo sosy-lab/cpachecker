@@ -1,30 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
@@ -34,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -50,7 +37,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 128, 64, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
-    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null, ImmutableSet.of());
     assertThat(!candidates.isEmpty()).isTrue();
     SMGAbstractionCandidate candidate = getBestCandidate(candidates);
     assertThat(candidate).isInstanceOf(SMGSingleLinkedListCandidateSequence.class);
@@ -81,7 +68,7 @@ public class SMGSingleLinkedListFinderTest {
     TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2,2,2);
-    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null, ImmutableSet.of());
     assertThat(candidates).hasSize(1);
   }
 
@@ -95,7 +82,6 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject inside = new SMGRegion(128, "pointed_at");
     SMGEdgeHasValue tailConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             64,
             inside,
@@ -106,7 +92,6 @@ public class SMGSingleLinkedListFinderTest {
     SMGRegion inboundPointer = new SMGRegion(64, "inbound_pointer");
     SMGEdgeHasValue inboundPointerConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             0,
             inboundPointer,
@@ -115,8 +100,11 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject lastFromHead = smg.getPointer(head.getValue()).getObject();
     SMGEdgeHasValue connection = null;
     do {
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(64);
-      Set<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(lastFromHead)
+              .filterAtOffset(64)
+              .filterBySize(smg.getSizeofPtrInBits());
+      SMGHasValueEdges connections = smg.getHVEdges(filter);
       connection = null;
       if (!connections.isEmpty()) {
         connection = Iterables.getOnlyElement(connections);
@@ -130,7 +118,6 @@ public class SMGSingleLinkedListFinderTest {
 
     SMGEdgeHasValue headConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             64,
             lastFromHead,
@@ -139,7 +126,6 @@ public class SMGSingleLinkedListFinderTest {
     SMGRegion tailPointer = new SMGRegion(64, "tail_pointer");
     SMGEdgeHasValue tailPointerConnection =
         new SMGEdgeHasValue(
-            CPointerType.POINTER_TO_VOID,
             smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
             0,
             tailPointer,
@@ -159,11 +145,11 @@ public class SMGSingleLinkedListFinderTest {
     smg.addHasValueEdge(headConnection);
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
-    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
+    Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null, ImmutableSet.of());
     assertThat(!candidates.isEmpty()).isTrue();
 
     for (SMGAbstractionCandidate candidate : candidates) {
-      assertThat(((SMGSingleLinkedListCandidateSequence) candidate).getLength() < 5).isTrue();
+      assertThat(candidate.getLength() < 5).isTrue();
     }
   }
 }

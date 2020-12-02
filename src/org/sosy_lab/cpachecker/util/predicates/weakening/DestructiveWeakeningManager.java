@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS;
@@ -31,10 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -48,22 +29,20 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Perform weakening by destructive iterations.
  */
-@Options(prefix="cpa.slicing")
 public class DestructiveWeakeningManager {
-  @Option(secure=true, description="Pre-run syntactic weakening")
-  private boolean preRunSyntacticWeakening = true;
 
   private final Solver solver;
   private final BooleanFormulaManager bfmgr;
   private final SyntacticWeakeningManager swmgr;
   private final InductiveWeakeningStatistics statistics;
+  private final WeakeningOptions options;
 
   public DestructiveWeakeningManager(
       Solver pSolver,
       FormulaManagerView pFmgr,
-      Configuration pConfiguration,
-      InductiveWeakeningStatistics pStatistics) throws InvalidConfigurationException {
-    pConfiguration.inject(this);
+      WeakeningOptions pOptions,
+      InductiveWeakeningStatistics pStatistics) {
+    options = pOptions;
 
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -71,19 +50,17 @@ public class DestructiveWeakeningManager {
     statistics = pStatistics;
   }
 
-  /**
-   * @return Set of selectors which should be abstracted.
-   */
+  /** Returns set of selectors which should be abstracted. */
   public Set<BooleanFormula> performWeakening(
       Map<BooleanFormula, BooleanFormula> selectionsVarsInfo,
       BooleanFormula fromState,
       PathFormula transition,
       BooleanFormula toState,
       SSAMap fromSSA,
-      Set<BooleanFormula> pFromStateLemmas
-  ) throws SolverException, InterruptedException {
+      Set<BooleanFormula> pFromStateLemmas)
+      throws SolverException, InterruptedException {
     Set<BooleanFormula> selectorsToAbstractOverApproximation;
-    if (preRunSyntacticWeakening) {
+    if (options.doPreRunSyntacticWeakening()) {
       selectorsToAbstractOverApproximation =
           swmgr.performWeakening(
               fromSSA, selectionsVarsInfo, transition.getSsa(), pFromStateLemmas);
@@ -147,7 +124,7 @@ public class DestructiveWeakeningManager {
 
       if (core.isPresent()) {
 
-        List<BooleanFormula> unsatCore = core.get();
+        List<BooleanFormula> unsatCore = core.orElseThrow();
         toWalk = new HashSet<>(unsatCore);
         toAbstract = new HashSet<>(unsatCore);
       } else {
@@ -171,7 +148,7 @@ public class DestructiveWeakeningManager {
 
         if (core.isPresent()) {
 
-          List<BooleanFormula> unsatCore = core.get();
+          List<BooleanFormula> unsatCore = core.orElseThrow();
           toWalk = new HashSet<>(unsatCore);
           toAbstract = new HashSet<>(unsatCore);
         } else {

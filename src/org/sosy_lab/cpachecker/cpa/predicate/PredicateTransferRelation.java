@@ -1,30 +1,15 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkInfeasibleDummyState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -37,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -45,6 +31,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -140,8 +128,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         throw new CPATransferException("Solver failed during successor generation", e);
       }
 
-      return Collections.singleton(
-          mkNonAbstractionStateWithNewPathFormula(pathFormula, element));
+      PredicateAbstractState successor;
+      if (element.isAbstractionState()) {
+        successor = mkNonAbstractionStateWithNewPathFormula(pathFormula, element, element);
+      } else {
+        successor =
+            mkNonAbstractionStateWithNewPathFormula(
+                pathFormula,
+                element,
+                element.getPreviousAbstractionState());
+      }
+      return Collections.singleton(successor);
 
     } finally {
       postTimer.stop();
@@ -183,7 +180,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     satCheckTimer.stop();
 
     if (unsat) {
-      statistics.numSatChecksFalse.setNextValue(1);
+      statistics.numSatChecksFalse.inc();
       logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
     }
 
@@ -305,13 +302,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
+        if (lElement instanceof ThreadingState) {
+          element = strengthen(element, (ThreadingState) lElement);
+        }
+
         /*
          * Add additional assumptions from an automaton state.
          */
         if (!options.ignoreStateAssumptions() && lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
-          if (element == null) {
-            return ImmutableSet.of();
+          if (element instanceof InfeasibleDummyState) {
+            return ImmutableSet.of(element);
           }
         }
 
@@ -350,43 +351,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     PathFormula pf = pElement.getPathFormula();
 
-    Collection<AbstractState> oldStates = pAssumeElement.getStatesForPreconditions();
-    com.google.common.base.Optional<PredicateAbstractState> optionalPreviousPredicateState =
-        AbstractStates.projectToType(oldStates, PredicateAbstractState.class).first();
-
-    if (optionalPreviousPredicateState.isPresent() && optionalPreviousPredicateState.get().getPathFormula() != null) {
-      assert !pElement.equals(optionalPreviousPredicateState.get())
-          : "Found current state as state for preconditions."
-              + " Most likely this means strengthen of the PredicateCPA is called after strengthen of the OverflowCPA!";
-      PathFormula previousPathFormula = optionalPreviousPredicateState.get().getPathFormula();
-      for (CExpression preconditionAssumption : from(pAssumeElement.getPreconditionAssumptions())
-          .filter(CExpression.class)) {
-        if (CFAUtils.getIdExpressionsOfExpression(preconditionAssumption)
-            .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
-          continue;
-        }
-        pathFormulaTimer.start();
-        try {
-          // compute a pathFormula where the SSAMap/ PointerTargetSet is set back to the previous state:
-          PathFormula temp = new PathFormula(
-              pf.getFormula(),
-              previousPathFormula.getSsa(),
-              previousPathFormula.getPointerTargetSet(),
-              previousPathFormula.getLength());
-          // add the assumption, which is now instantiated with the right indices:
-          temp = pathFormulaManager.makeAnd(temp, preconditionAssumption);
-          // add back the original SSAMap ant PointerTargetSet:
-          pf = new PathFormula(
-              temp.getFormula(),
-              pf.getSsa(),
-              pf.getPointerTargetSet(),
-              pf.getLength() + 1);
-        } finally {
-          pathFormulaTimer.stop();
-        }
-      }
-    }
-
     if (options.assumptionStrengtheningSatCheck()) {
       PathFormula f = pathFormulaManager.makeFormulaForPath(Collections.singletonList(pEdge));
       for (CExpression assumption :
@@ -395,18 +359,19 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
       AbstractionFormula dummy = formulaManager.makeTrueAbstractionFormula(f);
       if (formulaManager.unsat(dummy, f)) {
-        // if automaton has conflict with edge, do not return a successor
-        //        PredicateAbstractState.mkAbstractionState(f, pA, pAbstractionLocations);
-        return null;
+        // if automaton has conflict with edge, return a dummy-successor that can be used to further
+        // elaborate on it at a later stage
+        return mkInfeasibleDummyState(f, dummy, pElement.getAbstractionLocationsOnPath());
       }
     }
 
     for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
-      // assumptions do not contain compete type nor scope information
+      // assumptions do not contain complete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future
       if (CFAUtils.getIdExpressionsOfExpression(assumption)
-          .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
+              .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
+          || assumption.getExpressionType() instanceof CProblemType) {
         logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
         continue;
       }
@@ -440,6 +405,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), fmgr.parse(asmpt));
 
     return replacePathFormula(pElement, pf);
+  }
+
+  private PredicateAbstractState strengthen(
+      PredicateAbstractState pState, ThreadingState pThreadingState)
+      throws CPATransferException, InterruptedException {
+    FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    PathFormula pathFormula = convertEdgeToPathFormula(pState.getPathFormula(), function);
+    return replacePathFormula(pState, pathFormula);
   }
 
   private PredicateAbstractState strengthen(
@@ -478,7 +454,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenCheckTimer.stop();
 
     if (unsat) {
-      statistics.numStrengthenChecksFalse.setNextValue(1);
+      statistics.numStrengthenChecksFalse.inc();
       logger.log(Level.FINEST, "Path is infeasible.");
       return null;
     } else {

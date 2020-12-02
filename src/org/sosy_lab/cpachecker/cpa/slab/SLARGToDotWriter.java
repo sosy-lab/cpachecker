@@ -1,31 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.slab;
 
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -35,7 +21,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -69,13 +54,13 @@ public class SLARGToDotWriter {
 
     assert state instanceof SLARGState;
     EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(successorState);
-    Integer count;
-    count = edgeSet == null ? -1 : edgeSet.size();
     String label;
-    if (count == 1) {
+    if (edgeSet == null) {
+      label = "-1";
+    } else if (edgeSet.size() == 1) {
       label = edgeSet.choose().toString();
     } else {
-      label = count.toString();
+      label = String.valueOf(edgeSet.size());
     }
 
     if (state.getChildren().contains(successorState)) {
@@ -89,7 +74,7 @@ public class SLARGToDotWriter {
       builder.append("\"");
     }
 
-    builder.append(String.format("]%n"));
+    builder.append("]").append(System.lineSeparator());
     return builder.toString();
   }
 
@@ -104,11 +89,13 @@ public class SLARGToDotWriter {
     builder.append("label=\"").append(determineLabel(pState));
 
     Iterable<CFANode> locations = pState.getLocationNodes();
-    SortedSet<Integer> locationNumbers =
-        from(locations).transform(CFANode::getNodeNumber).toSortedSet(Comparator.naturalOrder());
+    Collection<Integer> locationNumbers =
+        from(locations).transform(CFANode::getNodeNumber).toList();
+    builder.append("@N");
     builder.append(generateLocationString(locationNumbers));
     builder.append("\" ");
-    builder.append("id=\"").append(pState.getStateId()).append(String.format("\"]%n"));
+    builder.append("id=\"").append(pState.getStateId());
+    builder.append("\"]").append(System.lineSeparator());
     return builder.toString();
   }
 
@@ -134,6 +121,8 @@ public class SLARGToDotWriter {
   }
 
   /**
+   * Write out the ranked abstractions in Graphviz format.
+   *
    * @param sb Where to write the ARG into
    * @param states States that should be written
    * @param label A text to be show in the top left of the graph
@@ -199,9 +188,15 @@ public class SLARGToDotWriter {
         pInteger, pInteger, state.getStateId());
   }
 
-  private static StringBuilder generateLocationString(SortedSet<Integer> locationNumbers) {
+  /*
+   * This method can be used to generate a compact String describing a set of integers.
+   * Continous ranges will be abbreviated by a dash, e.g. 1-5, non-continous integers will be separated by commas.
+   * Example: The integers {1,3,4,5,7} will be written as "1,3-5,7"
+   */
+  public static StringBuilder generateLocationString(Collection<Integer> pLocationNumbers) {
+    ImmutableSortedSet<Integer> locationNumbers =
+        from(pLocationNumbers).toSortedSet(Comparator.naturalOrder());
     StringBuilder builder = new StringBuilder();
-    builder.append("@N");
     int state = 0;
     int lastNumber = -1;
     String separator = ",";
@@ -212,7 +207,7 @@ public class SLARGToDotWriter {
           state = 1;
           break;
         case 1:
-          if (currentLocation != lastNumber + 1) {
+          if (currentLocation != lastNumber + 1 || currentLocation.equals(locationNumbers.last())) {
             builder.append(",").append(currentLocation);
             // stay in state 1
           } else {
@@ -230,18 +225,6 @@ public class SLARGToDotWriter {
           } else {
             separator = "-";
             // stay in state 2
-          }
-          break;
-        case 3:
-          assert false;
-          if (currentLocation != lastNumber + 1) {
-            builder.append("-").append(lastNumber).append(",").append(currentLocation);
-            state = 1;
-          } else if (currentLocation == locationNumbers.last()) {
-            builder.append("-").append(currentLocation);
-            state = -1; // we should be finished, next transition would lead to exception
-          } else {
-            // stay in state 3
           }
           break;
         default:
