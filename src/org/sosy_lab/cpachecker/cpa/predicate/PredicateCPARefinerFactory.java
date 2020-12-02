@@ -51,6 +51,9 @@ public class PredicateCPARefinerFactory {
   )
   private boolean performInitialStaticRefinement = false;
 
+  @Option(secure = true, description = "use paths to effects")
+  private boolean performThreadEffectRefinement = false;
+
   @Option(secure = true, description = "recompute block formula from ARG path edges")
   private boolean recomputeBlockFormulas = false;
 
@@ -166,6 +169,31 @@ public class PredicateCPARefinerFactory {
       } else {
         bfs = new BlockFormulaStrategy();
       }
+    }
+
+    if (performThreadEffectRefinement) {
+      // TODO
+      bfs = new ThreadEffectBlockFormulaStrategy(pfmgr, solver.getFormulaManager());
+      GlobalRefinementStrategy strategy =
+          new ThreadEffectRefinementStrategy(
+              config,
+              logger,
+              predicateCpa.getPredicateManager(),
+              solver);
+      return
+          new PredicateThreadEffectRefiner(
+              config,
+              logger,
+              loopStructure,
+              bfs,
+              solver,
+              pfmgr,
+              interpolationManager,
+              pathChecker,
+              prefixProvider,
+              prefixSelector,
+              invariantsManager,
+              strategy);
     }
 
     ARGBasedRefiner refiner =

@@ -77,7 +77,7 @@ public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefineme
   private boolean atomicPredicates = false;
 
   protected final LogManager logger;
-  private final FormulaManagerView fmgr;
+  protected final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
 

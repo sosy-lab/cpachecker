@@ -258,7 +258,9 @@ public class LocationApplyOperator implements ApplyOperator {
       CStatement stmnt = ((CStatementEdge) edge).getStatement();
       if (stmnt instanceof CAssignment) {
         CAssignment asgn = (CAssignment) stmnt;
-        return !asgn.getRightHandSide().accept(new GlobalExpressionVisitor());
+        // Not only right side, as the node may be an effect itself
+        return !asgn.getRightHandSide().accept(new GlobalExpressionVisitor())
+            && !asgn.getLeftHandSide().accept(new GlobalExpressionVisitor());
       } else if (stmnt instanceof CFunctionCallStatement) {
         // There may be a specific function, for example, locks, which strongly affect the
         // application

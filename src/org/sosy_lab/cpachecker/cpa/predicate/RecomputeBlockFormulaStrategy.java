@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
 
-  private final PathFormulaManager pfmgr;
+  protected final PathFormulaManager pfmgr;
 
   public RecomputeBlockFormulaStrategy(final PathFormulaManager pPathFormulaManager) {
     pfmgr = pPathFormulaManager;
