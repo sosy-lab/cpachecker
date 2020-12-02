@@ -52,8 +52,7 @@ output.disable = false
 # directory to put all output files in
 output.path = "output/"
 
-# base directory for all input & output files
-# (except for the configuration file itself)
+# base directory for all paths in default values
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
@@ -4161,7 +4160,7 @@ termination.violation.witness = "nontermination_witness.graphml"
 termination.violation.witness.dot = "nontermination_witness.dot"
 
 # Only genenerate for __VERIFIER_nondet calls
-testHarnessExport.onlyVerifierNondet = no default value
+testHarnessExport.onlyVerifierNondet = false
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true

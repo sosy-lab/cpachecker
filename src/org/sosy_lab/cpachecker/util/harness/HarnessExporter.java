@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -91,6 +92,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -398,6 +401,12 @@ public class HarnessExporter {
                   return handleCompositeCall(pPrevious, pChild, functionCallExpression);
                 }
                 return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
+              } else if (onlyVerifierNondet && name.startsWith("__VERIFIER_nondet")) {
+                Optional<ExpressionTestValue> defaultValue =
+                    getDefaultValue(functionDeclaration.getType().getReturnType());
+                if (defaultValue.isPresent()) {
+                  return Optional.of(new State(pChild, pPrevious.testVector.addInputValue(functionDeclaration, defaultValue.orElseThrow())));
+                }
               }
               return Optional.empty();
             }
@@ -801,6 +810,33 @@ public class HarnessExporter {
     }
     return new JInitializerExpression(
         FileLocation.DUMMY, new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO));
+  }
+
+  private static Optional<ExpressionTestValue> getDefaultValue(final Type pReturnType) {
+    if (pReturnType instanceof CType) {
+
+      CType returnType = ((CType) pReturnType).getCanonicalType();
+
+      if (returnType instanceof CSimpleType
+          && ((CSimpleType) returnType).getType() == CBasicType.CHAR) {
+        return Optional.of(
+            ExpressionTestValue
+                .of(new CCharLiteralExpression(FileLocation.DUMMY, returnType, ' ')));
+      }
+
+      if (!(returnType instanceof CCompositeType
+          || returnType instanceof CArrayType
+          || returnType instanceof CBitFieldType
+          || (returnType instanceof CElaboratedType
+              && ((CElaboratedType) returnType).getKind() != ComplexTypeKind.ENUM))) {
+
+        return Optional.of(
+            ExpressionTestValue.of(
+                ((CInitializerExpression) CDefaults.forType(returnType, FileLocation.DUMMY))
+                    .getExpression()));
+      }
+    }
+    return Optional.empty();
   }
 
   static boolean canInitialize(Type pType) {
