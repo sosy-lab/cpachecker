@@ -4160,6 +4160,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
+# Only genenerate for __VERIFIER_nondet calls
+testHarnessExport.onlyVerifierNondet = no default value
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 

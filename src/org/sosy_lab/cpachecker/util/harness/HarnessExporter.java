@@ -137,6 +137,9 @@ public class HarnessExporter {
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
 
+  @Option(secure = true, description = "Only genenerate for __VERIFIER_nondet calls")
+  private boolean onlyVerifierNondet = false;
+
   public HarnessExporter(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     cfa = pCFA;
@@ -369,7 +372,8 @@ public class HarnessExporter {
           ASimpleDeclaration declaration = idExpression.getDeclaration();
           if (declaration != null) {
             String name = declaration.getQualifiedName();
-            if (cfa.getFunctionHead(name) == null) {
+            if (cfa.getFunctionHead(name) == null
+                && (!onlyVerifierNondet || name.startsWith("__VERIFIER_nondet"))) {
               if (functionCall instanceof AFunctionCallStatement) {
                 return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
               }
