@@ -275,7 +275,7 @@ public class Explainer extends NestingAlgorithm {
         mainFunction,
         singleShutdownManager,
         aggregateReached,
-        ImmutableSet.of("analysis.useExplainer"),
+        ImmutableSet.of("analysis.algorithm.faultlocalization.by_distance"),
         stats.getSubStatistics());
   }
 

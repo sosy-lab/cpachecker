@@ -208,6 +208,9 @@ analysis.algorithm.faultLocalization.by_coverage = false
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
 
+# Use fault localization with distance metrics
+analysis.algorithm.faultlocalization.by_distance = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -477,9 +480,6 @@ analysis.unknownIfUnrestrictedProgram = false
 
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
-
-# Use explainer for fault localization with distance metrics 
-analysis.useExplainer = false
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
