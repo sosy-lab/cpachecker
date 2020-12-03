@@ -4324,6 +4324,9 @@ witness.useInvariantsAsAssumptions = true
 # of the current one.
 witness.validation.correctness.config = no default value
 
+# Use correctness witness as invariants specification automaton (ISA).
+witness.validation.correctness.isa = false
+
 # The witness to validate.
 witness.validation.file = no default value
 

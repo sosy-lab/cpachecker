@@ -654,6 +654,12 @@ public class CPAMain {
     )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path correctnessWitnessValidationConfig = null;
+
+    @Option(
+        secure = true,
+        name = "witness.validation.correctness.isa",
+        description = "Use correctness witness as invariants specification automaton (ISA).")
+    private boolean validateInvariantsSpecificationAutomaton = false;
   }
 
   private static Configuration handleWitnessOptions(
@@ -670,15 +676,16 @@ public class CPAMain {
     switch (witnessType) {
       case VIOLATION_WITNESS:
         validationConfigFile = options.violationWitnessValidationConfig;
-        String specs = overrideOptions.get(SPECIFICATION_OPTION);
-        String witnessSpec = options.witness.toString();
-        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec);
-        overrideOptions.put(SPECIFICATION_OPTION, specs);
+        appendWitnessToSpecificationOption(options, overrideOptions);
         break;
       case CORRECTNESS_WITNESS:
         validationConfigFile = options.correctnessWitnessValidationConfig;
+        if (options.validateInvariantsSpecificationAutomaton) {
+          appendWitnessToSpecificationOption(options, overrideOptions);
+        } else {
         overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
+        }
         break;
       default:
         throw new InvalidConfigurationException(
@@ -704,7 +711,15 @@ public class CPAMain {
     return configBuilder.build();
   }
 
-  @SuppressWarnings("resource")
+  private static void appendWitnessToSpecificationOption(
+      WitnessOptions pOptions, Map<String, String> pOverrideOptions) {
+    String specs = pOverrideOptions.get(SPECIFICATION_OPTION);
+    String witnessSpec = pOptions.witness.toString();
+    specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec.toString());
+    pOverrideOptions.put(SPECIFICATION_OPTION, specs);
+  }
+
+  @SuppressWarnings("deprecation")
   private static void printResultAndStatistics(
       CPAcheckerResult mResult,
       String outputDirectory,
