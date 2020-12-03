@@ -981,9 +981,6 @@ counterexample.export.compressWitness = true
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
 
-# export counterexample to file as Dot/Graphviz automaton
-counterexample.export.dot = "Counterexample.%d.dot"
-
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
@@ -1035,10 +1032,10 @@ counterexample.export.filters = no default value
 # is found
 counterexample.export.formula = "Counterexample.%d.smt2"
 
-# export counterexample as graph
+# export counterexample as Dot/Graphviz visualization
 counterexample.export.graph = "Counterexample.%d.dot"
 
-# export counterexample to file as GraphML automaton
+# export counterexample witness as GraphML automaton
 counterexample.export.graphml = "Counterexample.%d.graphml"
 
 # export test harness to file as code
@@ -1061,6 +1058,9 @@ counterexample.export.report = "Counterexample.%d.html"
 
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
+
+# export counterexample witness as Dot/Graphviz visualization
+counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
