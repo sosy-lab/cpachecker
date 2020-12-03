@@ -28,7 +28,7 @@ Changes since CPAchecker 1.9.1
 * Interpolation-based Model Checking (IMC)  
   A new reachability-safety analysis (config `-bmc-interpolation`), which adopts a state-of-the-art verification algorithm for hardware proposed by McMillan (cf. "Interpolation and SAT-Based Model Checking". K. L. McMillan. In Proc. CAV, Springer, 2003) to software, has been added to CPAchecker.
 
-* Automated Fault Localization
+* Automated Fault Localization  
   CPAchecker now supports multiple techniques for automatic fault-localization.
   If fault localization is enabled and CPAchecker finds a counterexample during
   analysis, CPAchecker will mark likely faults in the program that lead to that counterexample.
