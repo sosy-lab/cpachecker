@@ -42,6 +42,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -222,7 +223,7 @@ public class CPAchecker {
   private int cexLimit = 0;
 
   private final LogManager logger;
-  private final Configuration config;
+  private Configuration config;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
@@ -331,7 +332,6 @@ public class CPAchecker {
 
     try {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
-
       // create reached set, cpa, algorithm
       stats.creationTime.start();
       reached = factory.createReachedSet();
@@ -451,7 +451,27 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
+    CPAcheckerResult res =
+        new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
+
+    if (config.hasProperty("cfa.automateAbstractLoopParser")
+        && config.getProperty("cfa.automateAbstractLoopParser").contentEquals("true")
+        && result != Result.TRUE) {
+      ConfigurationBuilder singleConfigBuilder = Configuration.builder();
+      singleConfigBuilder.copyFrom(config);
+      singleConfigBuilder.clearOption("cfa.automateAbstractLoopParser");
+      singleConfigBuilder.clearOption("LoopInfo.generateLoopInformation");
+      singleConfigBuilder.clearOption("loopacc.loopabstractionheader.shouldAbstract");
+      try {
+        config = singleConfigBuilder.build();
+        config.inject(this);
+      } catch (InvalidConfigurationException e) { // TODO Auto-generated catch block
+        logger.log(Level.WARNING, e);
+      }
+      res = run(programDenotation, properties);
+    }
+
+    return res;
   }
 
   private Path checkIfOneValidFile(List<String> fileDenotation)
