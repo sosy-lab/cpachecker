@@ -253,7 +253,7 @@ public class CEXExporter {
     }
 
     writeErrorPathFile(
-        options.getGraphFile(),
+        options.getDotFile(),
         uniqueId,
         (Appender)
             pAppendable ->

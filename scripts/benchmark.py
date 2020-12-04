@@ -22,6 +22,7 @@ for egg in glob.glob(os.path.join(cpachecker_dir, "lib", "python-benchmark", "*.
 from benchexec import __version__
 import benchexec.benchexec
 import benchexec.model
+import benchexec.tooladapter
 import benchexec.tools
 import benchexec.util
 import benchmark.util
@@ -161,7 +162,10 @@ class Benchmark(benchexec.benchexec.BenchExec):
                     # This duplicates the logic from our tool-info module,
                     # but we cannot call it here.
                     # Note that base_dir can be different from cpachecker_dir!
-                    script = benchexec.util.find_executable("cpa.sh", "scripts/cpa.sh")
+                    tool_locator = benchexec.tooladapter.create_tool_locator(
+                        self.config
+                    )
+                    script = tool_locator.find_executable("cpa.sh", subdir="scripts")
                     base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
                     build_file = os.path.join(base_dir, "build.xml")
                     if os.path.exists(build_file) and subprocess.call(

@@ -115,6 +115,11 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>

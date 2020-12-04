@@ -47,7 +47,7 @@ public class OverallOccurrenceScoring implements FaultScoring {
     } else {
       for(Fault f: faults) {
         RankInfo info = scoreFault(f);
-        f.setScore(f.getScore()/sum);
+        info.setScore(info.getScore()/sum);
         f.addInfo(info);
       }
     }

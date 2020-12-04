@@ -67,4 +67,11 @@ public class SMGType {
   public boolean isOriginSigned() {
     return originSigned;
   }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "CAST from '%ssigned %d bit' to '%ssigned %d bit'",
+        originSigned ? "" : "un", originSize, castedSigned ? "" : "un", castedSize);
+  }
 }

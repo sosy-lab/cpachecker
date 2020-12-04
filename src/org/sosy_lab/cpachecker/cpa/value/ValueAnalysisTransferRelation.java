@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -120,6 +121,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -166,15 +168,17 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "If 'ignoreFunctionValue' is set to true, this option allows "
-                + "to provide a fixed set of values in the TestComp format. It is used for "
-                + "function-calls to calls of VERIFIER_nondet_*. The file is provided via the option functionValuesForRandom ")
+            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
+                + " values in the TestComp format. It is used for function-calls to calls of"
+                + " VERIFIER_nondet_*. The file is provided via the option"
+                + " functionValuesForRandom ")
     private boolean ignoreFunctionValueExceptRandom = false;
 
     @Option(
         secure = true,
         description =
-            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if ignoreFunctionValueExceptRandom is enabled ")
+            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled ")
     @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
     private Path functionValuesForRandom = null;
 
@@ -810,6 +814,10 @@ public class ValueAnalysisTransferRelation
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
+            throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+          }
         } else if (expression instanceof CFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
@@ -951,7 +959,8 @@ public class ValueAnalysisTransferRelation
         }
       }
     } else {
-      throw new UnrecognizedCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
+      throw new UnrecognizedCodeException(
+          "left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
     return state; // the default return-value is the old state
@@ -1295,6 +1304,14 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof ThreadingState) {
+        result.clear();
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
@@ -1562,6 +1579,18 @@ public class ValueAnalysisTransferRelation
     } else {
       return Collections.singleton(newState);
     }
+  }
+
+  private @NonNull ValueAnalysisState strengthenWithThreads(
+      ThreadingState pThreadingState, ValueAnalysisState pState) throws CPATransferException {
+    final FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    final FunctionEntryNode succ = function.getSuccessor();
+    final String calledFunctionName = succ.getFunctionName();
+    return handleFunctionCallEdge(
+        function, function.getArguments(), succ.getFunctionParameters(), calledFunctionName);
   }
 
   private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {

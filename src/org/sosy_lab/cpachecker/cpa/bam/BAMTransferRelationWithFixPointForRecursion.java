@@ -151,7 +151,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       }
 
       if (!resultStatesChanged) {
-        logger.log(Level.INFO, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
+        logger.log(
+            Level.INFO,
+            "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
 
         // the fixpoint algorithm should have coverage for all states and thus return zero new
         // states.
@@ -159,13 +161,15 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         // the CPA-algorithm.
         List<AbstractState> exitStates =
             new ArrayList<>(((ARGState) pHeadOfMainFunctionState).getChildren());
-        assert getStatesNotCoveredBy(resultStates, exitStates).isEmpty() : "there should not be any new state.";
+        assert getStatesNotCoveredBy(resultStates, exitStates).isEmpty()
+            : "there should not be any new state.";
         resultStates = exitStates;
 
         break;
       }
 
-      logger.log(Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
+      logger.log(
+          Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
 
       reAddStatesForFixPointIteration();
 
@@ -320,8 +324,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       // with current knowledge we would never abort unrolling the recursion.
       // lets skip the function and return only a short "summary" of the function.
       // this summary is the result of a previous analysis of this block from the cache.
-      logger.logf(Level.FINEST, "recursion will cause endless unrolling (with current precision), " +
-              "aborting call of function '%s' at state %s", node.getFunctionName(), reducedInitialState);
+      logger.logf(
+          Level.FINEST,
+          "recursion will cause endless unrolling (with current precision), "
+              + "aborting call of function '%s' at state %s",
+          node.getFunctionName(),
+          reducedInitialState);
 
       expandedFunctionReturnStates =
           analyseRecursiveBlockAndExpand(
@@ -385,12 +393,18 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     if (previousResult == null) {
       // outer block was not finished, abort recursion
       reducedResult = ImmutableSet.of();
-      logger.logf(Level.FINEST, "skipping recursive call with new empty result (root is %s)", reached.getFirstState());
+      logger.logf(
+          Level.FINEST,
+          "skipping recursive call with new empty result (root is %s)",
+          reached.getFirstState());
     } else {
       // use previously computed outer block as inner block,
       // this is equal to 'add one recursive step' in the recursion
       reducedResult = previousResult;
-      logger.logf(Level.FINEST, "skipping recursive call with cached result (root is %s)", reached.getFirstState());
+      logger.logf(
+          Level.FINEST,
+          "skipping recursive call with cached result (root is %s)",
+          reached.getFirstState());
     }
 
     registerInitalAndExitStates(initialState, reducedResult, reached);
@@ -409,12 +423,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   @Override
   protected Collection<AbstractState> filterResultStatesForFurtherAnalysis(final Collection<AbstractState> reducedResult,
       final Collection<AbstractState> cachedReturnStates) throws CPAException, InterruptedException {
-    final Collection<AbstractState> statesForFurtherAnalysis;
     if (cachedReturnStates == null) {
       logger.log(Level.FINEST, "there was no cache-entry for result-states.");
       resultStatesChanged = true;
-      statesForFurtherAnalysis = reducedResult;
-
     } else {
       // this is the result from a previous analysis of a recursive function-call
       // now we check, if we really get new states or if all new states (= reducedResult) are
@@ -427,14 +438,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         logger.log(Level.FINEST, "some cached result-states are not covered. returning new result-states.");
         resultStatesChanged = true;
       }
-
-      // we are in an the fixpoint-algorithm for recursion,
-      // we have already analyzed all covered states in the previous iteration,
-      // thus we only need to analyze the remaining states.
-      // this is an optimization,
-      statesForFurtherAnalysis = newStates;
     }
-    return statesForFurtherAnalysis;
+    return super.filterResultStatesForFurtherAnalysis(reducedResult, cachedReturnStates);
   }
 
   /** Reconstruct the resulting state from root-, entry- and expanded-state.

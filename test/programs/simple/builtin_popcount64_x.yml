@@ -6,9 +6,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Configuration which does not run any real analysis,
-# just the parsing and CFA generation part of CPAchecker.
-analysis.disable=true
+format_version: '2.0'
 
-cpa = cpa.location.LocationCPA
-cfa.createDependenceGraph=true
+input_files: 'builtin_popcount64_x.i'
+
+properties:
+  - property_file: ../../config/Assertion.spc
+    expected_verdict: true
+
+options:
+  language: C
+  data_model: LP64

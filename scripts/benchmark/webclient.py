@@ -791,6 +791,24 @@ class WebInterface:
                     ("option", "limits.time.cpu=" + str(rlimits["softtimelimit"]) + "s")
                 )
 
+            task_options = getattr(run, "task_options", None)
+            if isinstance(task_options, dict) and task_options.get("language") == "C":
+                data_model = task_options.get("data_model")
+                if data_model:
+                    data_model_option = {"ILP32": "Linux32", "LP64": "Linux64"}.get(
+                        data_model
+                    )
+                    if data_model_option:
+                        params.append(
+                            ("option", "analysis.machineModel=" + data_model_option)
+                        )
+                    else:
+                        raise WebClientError(
+                            "Unsupported data_model '{}' defined for task '{}'".format(
+                                data_model, run.identifier
+                            )
+                        )
+
         if run.options:
             i = iter(run.options)
             disableAssertions = False

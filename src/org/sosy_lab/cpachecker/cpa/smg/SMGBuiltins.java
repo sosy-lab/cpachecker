@@ -832,7 +832,7 @@ public class SMGBuiltins {
       SMGAddressValue firstSymbolic, SMGAddressValue secondSymbolic, SMGState pState)
       throws SMGInconsistentException {
     // resolve addresses and perform initial null and unknown check
-    if (!bothValuesAreDefined(firstSymbolic, secondSymbolic)) {
+    if (!allValuesAreDefined(firstSymbolic, secondSymbolic)) {
       return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
     }
 
@@ -866,7 +866,7 @@ public class SMGBuiltins {
       SMGValue symFirstValue = symFirstValueAndState.getObject();
       SMGValue symSecondValue = symSecondValueAndState.getObject();
       state = symSecondValueAndState.getSmgState();
-      if (!bothValuesAreDefined(symFirstValue, symSecondValue)) {
+      if (!allValuesAreDefined(symFirstValue, symSecondValue)) {
         return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);
       }
 
@@ -875,7 +875,7 @@ public class SMGBuiltins {
       SMGExplicitValue expFirstValue = state.getExplicit((SMGKnownSymbolicValue) symFirstValue);
       SMGExplicitValue expSecondValue = state.getExplicit((SMGKnownSymbolicValue) symSecondValue);
 
-      if (!bothValuesAreDefined(expFirstValue, expSecondValue)) {
+      if (!allValuesAreDefined(expFirstValue, expSecondValue)) {
         // in case evaluation for explicit values compare symbolic values
         // TODO does this happen?
         if (symFirstValue.equals(symSecondValue)) {
@@ -907,8 +907,13 @@ public class SMGBuiltins {
     return SMGValueAndState.of(resultState, symbolicResult);
   }
 
-  private boolean bothValuesAreDefined(SMGValue value1, SMGValue value2) {
-    return value1 != null && value2 != null && !value1.isUnknown() && !value2.isUnknown();
+  private boolean allValuesAreDefined(SMGValue... values) {
+    for (SMGValue value : values) {
+      if (value == null || value.isUnknown()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   List<SMGAddressValueAndState> handleUnknownFunction(
@@ -923,7 +928,7 @@ public class SMGBuiltins {
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the "
-                      + "cpa.smg.handleUnknownFunctions or cpa.smg.option.safeUnknownFunctions",
+                      + "cpa.smg.handleUnknownFunctions or cpa.smg.safeUnknownFunctions",
                   calledFunctionName));
         }
         // $FALL-THROUGH$ // for safe functions

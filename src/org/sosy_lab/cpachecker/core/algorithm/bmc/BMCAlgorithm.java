@@ -86,16 +86,32 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="bmc")
+@Options
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
-  @Option(secure=true, description="Check reachability of target states after analysis "
-      + "(classical BMC). The alternative is to check the reachability "
-      + "as soon as the target states are discovered, which is done if "
-      + "cpa.predicate.targetStateSatCheck=true.")
+  @Option(
+      name = "bmc.checkTargetStates",
+      secure = true,
+      description =
+          "Check reachability of target states after analysis "
+              + "(classical BMC). The alternative is to check the reachability "
+              + "as soon as the target states are discovered, which is done if "
+              + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
-  @Option(secure=true, description="Export auxiliary invariants used for induction.")
+  // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
+  @Option(
+      name = "counterexample.export.allowImpreciseCounterexamples",
+      secure = true,
+      description =
+          "An imprecise counterexample of the Predicate CPA is usually a bug,"
+              + " but expected in some configurations. Should it be treated as a bug or accepted?")
+  private boolean allowImpreciseCounterexamples = false;
+
+  @Option(
+      name = "bmc.invariantsExport",
+      secure = true,
+      description = "Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   @Nullable
   private Path invariantsExport = null;
@@ -188,20 +204,40 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return super.boundedModelCheck(pReachedSet, pProver, pInductionProblem);
   }
 
-  /**
-   * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
-   * the solver for a satisfying assignment.
-   */
-  @SuppressWarnings("resource")
   @Override
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
       throws CPATransferException, InterruptedException {
+
+    analyzeCounterexample0(pCounterexampleFormula, pReachedSet, pProver)
+        .ifPresentOrElse(
+            cex -> cex.getTargetState().addCounterexampleInformation(cex),
+            () -> {
+              if (!allowImpreciseCounterexamples) {
+                throw new AssertionError(
+                    "Found imprecise counterexample with BMC. "
+                        + "If this is expected for this configuration "
+                        + "(e.g., because of UF-based heap encoding), "
+                        + "set counterexample.export.allowImpreciseCounterexamples=true. "
+                        + "Otherwise please report this as a bug.");
+              }
+            });
+  }
+  /**
+   * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
+   * the solver for a satisfying assignment.
+   */
+  @SuppressWarnings("resource")
+  private Optional<CounterexampleInfo> analyzeCounterexample0(
+      final BooleanFormula pCounterexampleFormula,
+      final ReachedSet pReachedSet,
+      final BasicProverEnvironment<?> pProver)
+      throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
-      return;
+      return Optional.empty();
     }
 
     stats.errorPathCreation.start();
@@ -239,7 +275,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         if (bfmgr.isTrue(branchingFormula)) {
           logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
-          return;
+          return Optional.empty();
         }
 
         // add formula to solver environment
@@ -255,7 +291,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (!stillSatisfiable) {
           // should not occur
           logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
-          return;
+          return Optional.empty();
         }
 
         model = pProver.getModelAssignments();
@@ -263,7 +299,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);
-        return;
+        return Optional.empty();
 
       } finally {
         if (shouldCheckBranching) {
@@ -282,7 +318,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
-        return;
+        return Optional.empty();
       }
 
       BooleanFormula cexFormula = pCounterexampleFormula;
@@ -315,14 +351,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } catch (InvalidConfigurationException e) {
         // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-        return;
+        return Optional.empty();
       }
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
               ImmutableList.of(cexFormula), model, branchingInformation);
-      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
-      counterexample.getTargetState().addCounterexampleInformation(counterexample);
+      return Optional.of(pathChecker.createCounterexample(targetPath, cexInfo));
 
     } finally {
       stats.errorPathCreation.stop();

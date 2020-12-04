@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 
 /**
  * This Visitor implements an evaluation strategy
@@ -804,7 +805,10 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+        if(BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
+          return BuiltinOverflowFunctions.evaluateFunctionCall(
+              pIastFunctionCallExpression, this, machineModel, logger);
+        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
 
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
