@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.log.LogManager;
@@ -191,7 +190,7 @@ public class ACSLTermToCExpressionVisitor {
           new CIntegerLiteralExpression(
               FileLocation.DUMMY,
               CNumericTypes.INT,
-              BigInteger.valueOf(integerLiteral.getLiteral()));
+              integerLiteral.getLiteral());
       cache.put(integerLiteral, result);
     }
     return result;

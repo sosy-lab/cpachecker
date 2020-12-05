@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -341,7 +342,8 @@ parser code {:
         }
         for (CFAEdge edge : result) {
           cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
-          if (prev.getSuccessor().getLeavingEdge(0).getSuccessor().equals(edge.getSuccessor())) {
+          if (prev.getSuccessor().getNumLeavingEdges() > 0
+              && prev.getSuccessor().getLeavingEdge(0).getSuccessor().equals(edge.getSuccessor())) {
             // annotation is placed after if- or else-block
             cfaWithLocs.getEdgesToAnnotations().put(prev.getSuccessor().getLeavingEdge(0), annotation);
           }
@@ -488,7 +490,7 @@ terminal PLUS, MINUS, TIMES, DIVIDE, MOD, LSHIFT, RSHIFT;
 terminal LPAREN, RPAREN;
 terminal SEMI;
 terminal REQ, ENS, ASS;
-terminal Integer LITERAL;
+terminal BigInteger LITERAL;
 terminal String STRING_LITERAL;
 terminal String IDENTIFIER;
 terminal NEXTCONTRACT;

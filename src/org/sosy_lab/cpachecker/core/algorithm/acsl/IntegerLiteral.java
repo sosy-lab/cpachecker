@@ -9,21 +9,22 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class IntegerLiteral implements ACSLTerm {
 
-  private final Integer literal;
+  private final BigInteger literal;
 
-  public IntegerLiteral(Integer i) {
+  public IntegerLiteral(BigInteger i) {
     literal = i;
   }
 
   @Override
   public String toString() {
-    return String.valueOf(literal);
+    return literal.toString();
   }
 
   @Override
@@ -40,7 +41,7 @@ public class IntegerLiteral implements ACSLTerm {
     return 31 * literal.hashCode() * literal.hashCode() + 31;
   }
 
-  public Integer getLiteral() {
+  public BigInteger getLiteral() {
     return literal;
   }
 

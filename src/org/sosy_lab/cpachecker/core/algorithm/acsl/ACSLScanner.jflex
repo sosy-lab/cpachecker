@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import java_cup.runtime.*;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -60,7 +61,7 @@ import java.util.Queue;
 
 LineBreak   = \r|\n|\r\n
 Space       = \s|@
-DecInt      = 0 | [1-9][0-9]*
+DecInt      = (0 | [1-9][0-9]*)[uU]?[lL]?[lL]?
 String      = \".*\"
 Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 
@@ -135,8 +136,11 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
     ";"                 {return symbol(sym.SEMI);}
     "\\old"             {return symbol(sym.OLD);}
     "\\result"          {return symbol(sym.RETVAL);}
-    {DecInt}            {builder.setLength(0);
-                        return symbol(sym.LITERAL, Integer.valueOf(builder.append(yytext()).toString()));}
+    {DecInt}            {builder.setLength(0); String matched = yytext().toLowerCase();
+                        while (matched.endsWith("u") || matched.endsWith("l")) {
+                          matched = matched.substring(0, matched.length() - 1);
+                        }
+                        return symbol(sym.LITERAL, new BigInteger(builder.append(matched).toString()));}
     {Identifier}        {builder.setLength(0);
                         return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
     {String}            {builder.setLength(0);

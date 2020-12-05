@@ -402,6 +402,8 @@ class CFABuilder extends ASTVisitor {
         }
       }
     }
+    // TODO: One of these edges might be null if the annotation is placed at the beginning/end of
+    //  file, i.e., there are no statements before/after the annotation
     edgesForAnnotations.put(loc, Pair.of(prev, next));
   }
 
