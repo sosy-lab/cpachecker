@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
@@ -53,14 +54,17 @@ parser code {:
     // inside the function along with the node where the originating contract is annotated
     private final Multimap<String, Pair<Behavior, CFANode>> behaviors = LinkedHashMultimap.create();
     private CFAWithACSLAnnotationLocations cfa;
+    private LogManager logger;
     private List<IASTFileLocation> orderedLocs;
+    private final Set<Integer> annotationsToSkip = new HashSet<>();
 
     private ACSLParser(ACSLScanner pScanner, SymbolFactory sf, CFAWithACSLAnnotationLocations pCfa,
       List<IASTFileLocation> pOrderedLocs, LogManager pLogger) {
         super(pScanner, sf);
         scanner = pScanner;
         cfa = pCfa;
-        visitor = new ACSLTermToCExpressionVisitor(cfa, pLogger);
+        logger = pLogger;
+        visitor = new ACSLTermToCExpressionVisitor(cfa, logger);
         orderedLocs = pOrderedLocs;
     }
 
@@ -79,8 +83,14 @@ parser code {:
               new ArrayList<>(cfaWithLocs.getCommentPositions().keySet());
           orderedLocs.sort(locationComparator);
           orderedLocs = FluentIterable.from(orderedLocs).filter(x -> x.getFileName().equals(filename)).toList();
-          List<ACSLAnnotation> annotations = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs, logger).parseACSLAnnotations();
+          ACSLParser parser = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs, logger);
+          List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
+          int skipped = 0;
           for (int i = 0; i < orderedLocs.size(); i++) {
+            if (parser.shouldSkip(i)) {
+              skipped++;
+              continue;
+            }
             if (annotations.get(i) instanceof ACSLAssertion) {
               handleAssertion(cfaWithLocs, orderedLocs.get(i), (ACSLAssertion) annotations.get(i));
             } else {
@@ -91,6 +101,7 @@ parser code {:
                       annotations.get(i));
             }
           }
+          logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
 
           convertFunctionContractsIfNecessary(cfaWithLocs);
 
@@ -472,7 +483,15 @@ parser code {:
     }
 
     public void checkIdentifier(Identifier i) {
-      visitor.visit(i);
+      try {
+        visitor.visit(i);
+      } catch (AssertionError e) {
+        annotationsToSkip.add(scanner.getCurrentAnnotation());
+      }
+    }
+
+    public boolean shouldSkip(int i) {
+      return annotationsToSkip.contains(i);
     }
 :}
 
