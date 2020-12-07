@@ -193,6 +193,15 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         lConfigBuilder.copyOptionFromIfPresent(config, option);
       }
 
+      if (provideCEXInfoFromCEXCheck) {
+        CFAEdge targetEdge = pErrorState.getParents().iterator().next().getEdgeToChild(pErrorState);
+        lConfigBuilder.setOption(
+            "testcase.targets.edge",
+            targetEdge.getPredecessor().getNodeNumber()
+                + "#"
+                + System.identityHashCode(targetEdge));
+      }
+
       Configuration lConfig = lConfigBuilder.build();
       ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();

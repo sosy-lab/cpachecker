@@ -255,8 +255,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PathFormula blockFormula = predicateState.getAbstractionFormula().getBlockFormula();
 
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
-    Iterable<CFANode> locations = AbstractStates.extractLocations(interpolationPoint);
-    for (CFANode loc : locations) {
+    for (CFANode loc : AbstractStates.extractLocations(interpolationPoint)) {
       int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
       newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
     }
@@ -377,9 +376,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location
+      // or add "false" to each location of the combination of locations
       for (CFANode loc : extractLocations(pUnreachableState)) {
-        int locInstance = getPredicateState(pUnreachableState)
-            .getAbstractionLocationsOnPath().get(loc);
+        int locInstance =
+            getPredicateState(pUnreachableState).getAbstractionLocationsOnPath().get(loc);
         newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
       }
       pAffectedStates.add(pUnreachableState);

@@ -124,7 +124,7 @@ public class BitVectorInfo implements TypeInfo {
         if (!(cType instanceof CProblemType) && !cType.isIncomplete()) {
           size = pMachineModel.getSizeofInBits(cType).intValueExact();
         } else {
-          size = pMachineModel.getSizeofPtr() * pMachineModel.getSizeofCharInBits();
+          size = pMachineModel.getSizeofPtrInBits();
         }
       }
       assert size >= 0;

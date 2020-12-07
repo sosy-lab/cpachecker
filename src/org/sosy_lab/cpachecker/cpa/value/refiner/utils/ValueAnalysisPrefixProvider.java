@@ -13,9 +13,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisDelegatingRefiner;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 
 public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnalysisState> {
@@ -38,5 +41,16 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
         config,
         ValueAnalysisCPA.class,
         pShutdownNotifier);
+  }
+
+  public static ValueAnalysisPrefixProvider create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    ValueAnalysisCPA valueCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisDelegatingRefiner.class);
+    return new ValueAnalysisPrefixProvider(
+        valueCpa.getLogger(),
+        valueCpa.getCFA(),
+        valueCpa.getConfiguration(),
+        valueCpa.getShutdownNotifier());
   }
 }

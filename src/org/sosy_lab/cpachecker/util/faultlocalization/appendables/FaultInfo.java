@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization.appendables;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
 
 public abstract class FaultInfo implements Comparable<FaultInfo>{
@@ -19,8 +20,6 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
     REASON(0),
     /** Provides a possible fix */
     FIX(1),
-    /** Hints and explanations for the user */
-    HINT(2),
     /** Information provided by the rankings */
     RANK_INFO(3);
 
@@ -41,27 +40,24 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
   /**
    * Returns a possible fix for pSet. It may be a guess.
    * The set has to have size 1 because NoContextExplanation is designed to explain singletons only.
-   * @param pSet the singleton set to calculate the explanation for
+   * @param pFaultContribution find an explanation for this fault contribution
    * @return Explanation for pSet
    */
-  public static FaultInfo possibleFixFor(Fault pSet){
-    return new PotentialFix(InfoType.FIX, new NoContextExplanation().explanationFor(pSet));
+  public static FaultInfo possibleFixFor(FaultContribution pFaultContribution){
+    return new PotentialFix(
+        InfoType.FIX, new NoContextExplanation().explanationFor(new Fault(pFaultContribution)));
   }
 
-  public static FaultInfo fix(String pDescription){
+  public static PotentialFix fix(String pDescription){
     return new PotentialFix(InfoType.FIX, pDescription);
   }
 
-  public static FaultInfo rankInfo(String pDescription, double pLikelihood){
+  public static RankInfo rankInfo(String pDescription, double pLikelihood){
     return new RankInfo(InfoType.RANK_INFO, pDescription, pLikelihood);
   }
 
-  public static FaultInfo justify(String pDescription){
+  public static FaultReason justify(String pDescription){
     return new FaultReason(InfoType.REASON, pDescription);
-  }
-
-  public static FaultInfo hint(String pDescription){
-    return new Hint(InfoType.HINT, pDescription);
   }
 
   public double getScore(){

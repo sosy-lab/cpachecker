@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -73,12 +72,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 
-    //Möglicheweise sonder Bechandlung nötig für Threadstart
-    //Möglicheweise sonder Bechandlung nötig für Funktioncalls
-    String functionName = pEdge.getSuccessor().getFunctionName();
-    if (pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      functionName = pEdge.getPredecessor().getFunctionName();
-    }
+    String function = pEdge.getSuccessor().getFunctionName();
 
     BooleanFormula assumption = pAsmptStorageElem.getAssumption();
     BooleanFormula stopFormula = pAsmptStorageElem.getStopFormula();
@@ -96,9 +90,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       if (element instanceof AssumptionReportingState) {
         List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
         for (CExpression inv : assumptions) {
-          BooleanFormula
-              invFormula =
-              converter.makePredicate(inv, pEdge, functionName, SSAMap.emptySSAMap().builder());
+          BooleanFormula invFormula = converter.makePredicate(inv, pEdge, function, SSAMap.emptySSAMap().builder());
           assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
         }
       }

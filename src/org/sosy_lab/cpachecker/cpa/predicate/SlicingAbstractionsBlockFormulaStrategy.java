@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -31,9 +33,8 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
 
   @Option(
       secure = true,
-      description = "Enable/Disable adding partial state invariants into the PathFormulas"
-    )
-  private boolean includePartialInvariants = true;
+      description = "Enable/Disable adding partial state invariants into the PathFormulas")
+  private ImmutableSet<AbstractionPosition> includePartialInvariants = AbstractionPosition.BOTH;
 
   private PathFormulaManager pfmgr;
   private Solver solver;

@@ -23,6 +23,8 @@ public interface DGNode extends Serializable {
 
   public CFAEdge getCfaEdge();
 
+  public MemoryLocation getCause();
+
   public class EdgeNode implements DGNode {
     private static final long serialVersionUID = -3772112168117340401L;
 
@@ -42,6 +44,11 @@ public interface DGNode extends Serializable {
     @Override
     public CFAEdge getCfaEdge() {
       return cfaEdge;
+    }
+
+    @Override
+    public MemoryLocation getCause() {
+      return cause;
     }
 
     @Override
@@ -87,6 +94,11 @@ public interface DGNode extends Serializable {
 
     @Override
     public CFAEdge getCfaEdge() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public MemoryLocation getCause() {
       throw new UnsupportedOperationException();
     }
 

@@ -76,7 +76,7 @@ public class SMGAttachRegionToListTest {
     smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
 
     final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
+    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtrInBits();
 
     hfo = 0;
     nfo = 0;

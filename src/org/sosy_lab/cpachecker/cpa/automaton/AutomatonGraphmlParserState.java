@@ -8,29 +8,23 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class AutomatonGraphmlParserState {
@@ -76,19 +70,6 @@ public class AutomatonGraphmlParserState {
   private final Map<GraphMLTransition.GraphMLThread, Map<GraphMLState, Deque<String>>> stacks =
       new HashMap<>();
 
-  /** The names of all functions available in the CFA. */
-  private final Set<String> functionNames;
-
-  /**
-   * A mapping from function names to names of their copies (in the context of concurrency).
-   * Populated only on demand.
-   */
-  private final Multimap<String, FunctionInstance> functionCopies = TreeMultimap.create();
-
-  /** The functions currently occupied by each thread. */
-  private final Multimap<GraphMLTransition.GraphMLThread, FunctionInstance> occupiedFunctions =
-      TreeMultimap.create();
-
   /**
    * States (represented in the GraphML model) and the transitions leaving them (in our automaton
    * model).
@@ -114,7 +95,7 @@ public class AutomatonGraphmlParserState {
       ImmutableSet<GraphMLState> pStates,
       ImmutableListMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
       ImmutableListMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
-      ImmutableSet<String> pFunctionNames)
+      @SuppressWarnings("unused") ImmutableSet<String> pFunctionNames)
       throws WitnessParseException {
 
     automatonName = Objects.requireNonNull(pAutomatonName);
@@ -141,8 +122,6 @@ public class AutomatonGraphmlParserState {
             pEnteringTransitions,
             filterableStates.filter(GraphMLState::isViolationState),
             filterableStates.filter(GraphMLState::isSinkState));
-
-    functionNames = Objects.requireNonNull(pFunctionNames);
   }
 
   /**
@@ -366,115 +345,11 @@ public class AutomatonGraphmlParserState {
   }
 
   /**
-   * Tries to obtain (a copy of) the given function for the given thread.
-   *
-   * @param pThread the thread identifier and name.
-   * @param pDesiredFunctionName the original name of the desired function.
-   * @return (a copy of) the given function, or {@code Optional.absent()} if all existing copies of
-   *     this function are already occupied by other threads.
-   */
-  public Optional<String> getFunctionForThread(
-      GraphMLTransition.GraphMLThread pThread, String pDesiredFunctionName) {
-    // If the function does not exist, we cannot provide it to the caller anyway
-    if (!functionNames.contains(pDesiredFunctionName)) {
-      return Optional.empty();
-    }
-
-    // If we have not yet computed the equivalence classes, we can try if we can do without them
-    if (functionCopies.isEmpty()
-        && (occupiedFunctions.isEmpty() || occupiedFunctions.keySet().contains(pThread))) {
-      FunctionInstance originalFunction = new FunctionInstance(pDesiredFunctionName);
-
-      // If the thread already owns the function, we can trivially hand it out
-      if (occupiedFunctions.get(pThread).contains(originalFunction)) {
-        return Optional.of(pDesiredFunctionName);
-      }
-      // If the function is available, we mark it as occupied and hand it out
-      if (!occupiedFunctions.values().contains(originalFunction)) {
-        if (occupy(pThread, originalFunction)) {
-          return Optional.of(pDesiredFunctionName);
-        }
-      }
-
-    }
-
-    // If the previous checks were unsuccessful, we need the equivalence classes, so we can not
-    // delay computing them any longer
-    computeFunctionCloneEquivalenceClasses();
-
-    // Check the equivalence class of this function
-    for (FunctionInstance functionInstance : functionCopies.get(pDesiredFunctionName)) {
-      // If the thread already owns the instance, we can trivially hand it out
-      if (occupiedFunctions.get(pThread).contains(functionInstance)) {
-        return Optional.of(functionInstance.getCloneName());
-      }
-      // If the function instance is available, we mark it as occupied and hand it out
-      if (!occupiedFunctions.values().contains(functionInstance)) {
-        if (!occupy(pThread, functionInstance)) {
-          return Optional.empty();
-        }
-        return Optional.of(functionInstance.getCloneName());
-      }
-    }
-
-    // If the function is not available, we cannot hand it out
-    return Optional.empty();
-  }
-
-  private void computeFunctionCloneEquivalenceClasses() {
-    if (functionCopies.isEmpty()) {
-      for (String functionName : functionNames) {
-        FunctionInstance functionInstance = parseFunctionInstance(functionName);
-        functionCopies.put(functionInstance.originalName, functionInstance);
-      }
-      // If any function is already reserved for a thread, it must be the main
-      // thread; reserve all other "original" functions for it.
-      if (!occupiedFunctions.isEmpty()) {
-        assert occupiedFunctions.keySet().size() == 1;
-        GraphMLThread originalFunctionThread = occupiedFunctions.keySet().iterator().next();
-        for (String originalName : functionCopies.keySet()) {
-          FunctionInstance originalFunction = new FunctionInstance(originalName);
-          occupiedFunctions.put(originalFunctionThread, originalFunction);
-        }
-      }
-    }
-  }
-
-  private boolean occupy(GraphMLThread pThread, FunctionInstance pFunctionInstance) {
-    if (functionCopies.isEmpty()) {
-      occupiedFunctions.put(pThread, pFunctionInstance);
-      return true;
-    }
-    Collection<FunctionInstance> copies = new ArrayList<>(5);
-    boolean desiredInstanceAvailable = false;
-    for (String originalName : functionCopies.keySet()) {
-      FunctionInstance copy = new FunctionInstance(originalName, pFunctionInstance.cloneNumber);
-      if (functionCopies.containsEntry(originalName, copy)) {
-        if (!occupiedFunctions.get(pThread).contains(copy)
-            && occupiedFunctions.values().contains(copy)) {
-          return false;
-        }
-        if (copies.add(copy) && copy.equals(pFunctionInstance)) {
-          desiredInstanceAvailable = true;
-        }
-      }
-    }
-    if (!desiredInstanceAvailable) {
-      return false;
-    }
-    for (FunctionInstance copy : copies) {
-      occupiedFunctions.put(pThread, copy);
-    }
-    return true;
-  }
-
-  /**
    * Releases all functions occupied by the given thread.
    *
    * @param pThread the thread identifier and name.
    */
   public void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {
-    occupiedFunctions.removeAll(pThread);
   }
 
   /**
@@ -502,71 +377,5 @@ public class AutomatonGraphmlParserState {
    */
   public boolean isEntryConnectedToViolation() {
     return distances.get(getEntryState()) != null;
-  }
-
-  private static class FunctionInstance implements Comparable<FunctionInstance> {
-
-    private final String originalName;
-
-    private final int cloneNumber;
-
-    public FunctionInstance(String pOriginalName) {
-      this(pOriginalName, Integer.MIN_VALUE);
-    }
-
-    public FunctionInstance(String pOriginalName, int pCloneNumber) {
-      originalName = Objects.requireNonNull(pOriginalName);
-      cloneNumber = pCloneNumber;
-    }
-
-    public boolean isOriginal() {
-      return cloneNumber == Integer.MIN_VALUE;
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      if (pOther instanceof FunctionInstance) {
-        FunctionInstance other = (FunctionInstance) pOther;
-        return originalName.equals(other.originalName)
-            && cloneNumber == other.cloneNumber;
-      }
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(originalName, cloneNumber);
-    }
-
-    public String getCloneName() {
-      if (isOriginal()) {
-        return originalName;
-      }
-      return originalName + CLONED_FUNCTION_INFIX + cloneNumber;
-    }
-
-    @Override
-    public String toString() {
-      return getCloneName();
-    }
-
-    @Override
-    public int compareTo(FunctionInstance pOther) {
-      return ComparisonChain.start()
-          .compare(cloneNumber, pOther.cloneNumber)
-          .compare(originalName, pOther.originalName)
-          .result();
-    }
-  }
-
-  private static FunctionInstance parseFunctionInstance(String pFunctionName) {
-    Matcher matcher = CLONED_FUNCTION_NAME_PATTERN.matcher(pFunctionName);
-    if (!matcher.matches()) {
-      return new FunctionInstance(pFunctionName);
-    }
-    return new FunctionInstance(matcher.group(1), Integer.parseInt(matcher.group(3)));
   }
 }

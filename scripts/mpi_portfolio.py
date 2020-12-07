@@ -273,7 +273,7 @@ class MPIMain:
                 self.analysis_param[ANALYSIS],
             )
 
-            if not os.path.exists(self.analysis_param[OUTPUT_PATH]):
+            if not os.path.isdir(self.analysis_param[OUTPUT_PATH]):
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
             logger.info("Executing cmd: %s", cmdline)

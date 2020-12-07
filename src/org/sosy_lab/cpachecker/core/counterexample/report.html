@@ -141,6 +141,18 @@ with considerably less effort -->
             </td>
           </tr>
         </table>
+          <table class="fault-table" ng-show="hideErrorTable && hasPrecondition">
+            <tr>
+              <td class="fault-precond-header">
+                Precondition (initial variable assignment):
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p class="precondition">{{precondition}}</p>
+              </td>
+            </tr>
+          </table>
           <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
             <tr>
               <td class="fault-rank" data-toggle="tooltip" data-placement="bottom" title="Rank">
@@ -155,15 +167,22 @@ with considerably less effort -->
             </tr>
             <tr class="fault-details">
               <td colspan="3" html=true>
+                
                 <div ng-bind-html="htmlTrusted(fault.reason)"></div>
 
-                Relevant lines:
-                <ul class="fault-lines">
-                  <li ng-repeat="elem in fault.lines">
-                    <span class="line-number">{{elem.line}}</span>
-                    <span class="line-content">{{elem.desc}}</span>
-                  </li>
-                </ul>
+                <details>
+                  <summary>
+                    <strong>Current values:</strong>
+                  </summary>
+                  <table id="fault-values" class="value-table">
+                    <tr><th>Name</th><th>Value</th></tr>
+                    <tr ng-repeat="(variable,value) in fault.valDict">
+                      <td ng-bind-html="htmlTrusted(variable)"></td>
+                      <td ng-bind-html="htmlTrusted(value)"></td>
+                    </tr>
+                  </table>
+                </details>
+
               </td>
             </tr>
           </table>
@@ -213,7 +232,7 @@ with considerably less effort -->
       </ul>
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
-        <nav class="navbar navbar-light bg-light">
+        <nav class="navbar navbar-light bg-light">slid
           <div class="nav-item">
             <label>
               <strong>Displayed CFA</strong>
@@ -294,7 +313,7 @@ with considerably less effort -->
                 <a ng-click="setSourceFile($index)">{{file}}</a>
               </li>
             </ul>
-          </div>
+          </div>slid
           <label>
             <strong>{{sourceFiles[selectedSourceFile]}}</strong>
           </label>

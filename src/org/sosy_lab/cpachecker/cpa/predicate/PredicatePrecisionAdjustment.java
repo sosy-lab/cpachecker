@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -84,10 +86,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
-      // default number of locations is 1, for concurrent programs we can have multiple locations
-      final Iterable<CFANode> locations = AbstractStates.extractLocations(fullState);
 
+      // default number of locations is 1, for concurrent programs we can have multiple locations.
       // if any location wants to abstract, we compute the abstraction
+      final Collection<CFANode> locations =
+          ImmutableList.copyOf(AbstractStates.extractLocations(fullState));
       for (CFANode location : locations) {
         if (shouldComputeAbstraction(fullState, location, element)) {
           PredicatePrecision precision = (PredicatePrecision) pPrecision;
@@ -95,9 +98,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         }
       }
 
-      return Optional.of(PrecisionAdjustmentResult.create(element,
-          pPrecision,
-          PrecisionAdjustmentResult.Action.CONTINUE));
+        return Optional.of(PrecisionAdjustmentResult.create(
+            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
     } finally {
@@ -129,7 +132,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
       PredicateAbstractState element,
       PredicatePrecision precision,
-      Iterable<CFANode> locations,
+      Collection<CFANode> pLocations,
       AbstractState fullState)
       throws SolverException, CPAException, InterruptedException {
 
@@ -140,6 +143,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
     statistics.numAbstractions.inc();
+    logger.log(Level.FINEST, "Computing abstraction at node", pLocations, "in path.");
 
     statistics.blockSize.setNextValue(pathFormula.getLength());
 
@@ -147,13 +151,14 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // (we do only update global invariants (computed by a parallelalgorithm) here
     // as everything else can only be computed during refinement)
     this.invariants.updateGlobalInvariants();
-    List<BooleanFormula> invariantFormulas = new ArrayList<>();
 
-    for (CFANode loc : locations) {
+    final List<BooleanFormula> invariantFormulas = new ArrayList<>();
+    for (CFANode loc : pLocations) {
       if (this.invariants.appendToPathFormula()) {
         BooleanFormula invariant =
             fmgr.instantiate(
-                this.invariants.getInvariantFor(loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
+                this.invariants.getInvariantFor(
+                    loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
                 pathFormula.getSsa());
         invariantFormulas.add(invariant);
       }
@@ -173,7 +178,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
-      for (CFANode loc : locations) {
+      for (CFANode loc : pLocations) {
         Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
         additionalPredicates.addAll(precision.getPredicates(loc, newLocInstance));
         // update abstraction locations map
@@ -181,8 +186,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
 
       // compute a new abstraction with a precision based on `preds`
-      newAbstractionFormula = formulaManager.buildAbstraction(
-          locations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
+      newAbstractionFormula =
+          formulaManager.buildAbstraction(
+              pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
     } finally {
       computingAbstractionTime.stop();
     }

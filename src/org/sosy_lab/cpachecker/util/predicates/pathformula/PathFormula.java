@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -29,7 +28,8 @@ public final class PathFormula implements Serializable {
   private final int length;
   private final PointerTargetSet pts;
 
-  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
+  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
+      int pLength) {
     this.formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
@@ -78,12 +78,19 @@ public final class PathFormula implements Serializable {
     return (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
-        && pts.equals(other.pts);
+        && pts.equals(other.pts)
+        ;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(formula, length, pts, ssa);
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + formula.hashCode();
+    result = prime * result + length;
+    result = prime * result + pts.hashCode();
+    result = prime * result + ssa.hashCode();
+    return result;
   }
 
   private Object writeReplace() {

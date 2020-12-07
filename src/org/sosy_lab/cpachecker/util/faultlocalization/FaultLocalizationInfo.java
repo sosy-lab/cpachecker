@@ -13,16 +13,20 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
@@ -33,24 +37,98 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
+  private Optional<BooleanFormula> precondition;
+  private List<BooleanFormula> atoms;
+
   /**
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
-   * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
-   * After ranking the set of faults an instance of this class can be created.
+   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
+   * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
+   * why this edge is in this set. After ranking the set of faults an instance of this class can be
+   * created.
    *
-   * The class should be used to display information to the user.
+   * <p>The class should be used to display information to the user.
    *
-   * Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
+   * <p>Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
+   * rankings.
    *
-   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
-   * or simply call apply() on an instance of this class.
+   * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
+   * state by this or simply call {@link #apply()} on an instance of this class.
    *
    * @param pFaults Ranked list of faults obtained by a fault localization algorithm
    * @param pParent the counterexample info of the target state
    */
+  public FaultLocalizationInfo(List<Fault> pFaults, CounterexampleInfo pParent) {
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
+    rankedList = pFaults;
+    precondition = Optional.empty();
+    htmlWriter = new FaultReportWriter();
+    atoms = new ArrayList<>();
+  }
+
+  /**
+   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
+   * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
+   * why this edge is in this set. After ranking the set of faults an instance of this class can be
+   * created.
+   *
+   * <p>The class should be used to display information to the user.
+   *
+   * <p>Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
+   * rankings.
+   *
+   * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
+   * state by this or simply call {@link #apply()} on an instance of this class.
+   *
+   * @param pFaults set of faults obtained by a fault localization algorithm
+   * @param pRanking the ranking for pFaults
+   * @param pParent the counterexample info of the target state
+   */
   public FaultLocalizationInfo(
-      List<Fault> pFaults,
+      Set<Fault> pFaults, FaultScoring pRanking, CounterexampleInfo pParent) {
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
+    rankedList = FaultRankingUtils.rank(pRanking, pFaults);
+    precondition = Optional.empty();
+    htmlWriter = new FaultReportWriter();
+    atoms = new ArrayList<>();
+  }
+
+  /**
+   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
+   * fix a bug. Transforming it into a Set of Faults enables the possibility to attach reasons of
+   * why this edge is in this set. After ranking the set of faults an instance of this class can be
+   * created.
+   *
+   * <p>The class should be used to display information to the user.
+   *
+   * <p>Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple
+   * rankings.
+   *
+   * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
+   * state by this or simply call {@link #apply()} on an instance of this class.
+   *
+   * @param pFaults set of faults obtained by a fault localization algorithm
+   * @param pScoring how to calculate the scores of each fault
+   * @param pPrecondition the precondition of a trace formula
+   * @param pParent the counterexample info of the target state
+   */
+  public FaultLocalizationInfo(
+      Set<Fault> pFaults,
+      FaultScoring pScoring,
+      BooleanFormula pPrecondition,
+      List<BooleanFormula> pAtoms,
       CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),
@@ -58,59 +136,35 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    initialize(pFaults);
+    rankedList = FaultRankingUtils.rank(pScoring, pFaults);
+    precondition = Optional.of(pPrecondition);
+    atoms = pAtoms;
+    htmlWriter = new FaultReportWriter();
   }
 
   /**
-   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
-   * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
-   * After ranking the set of faults an instance of this class can be created.
-   *
-   * The class should be used to display information to the user.
-   *
-   * Note that there is no need to create multiple instances of this object if more than one
-   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
-   *
-   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
-   * or simply call apply() on an instance of this class.
-   *
-   * @param pFaults set of faults obtained by a fault localization algorithm
-   * @param pRanking the ranking for pFaults
-   * @param pParent the counterexample info of the target state
+   * Fills {@link FaultLocalizationInfo#mapEdgeToFaultContribution} and {@link FaultLocalizationInfo#mapEdgeToRankedFaultIndex}
+   * to ensure correct calls to {@link FaultLocalizationInfo#addAdditionalInfo(Map, CFAEdge)}.
+   * {@link org.sosy_lab.cpachecker.core.counterexample.ReportGenerator} calls this method when needed.
+   * After accessing this method {@link FaultLocalizationInfo#rankedList} must not be changed.
    */
-  public FaultLocalizationInfo(Set<Fault> pFaults, FaultRanking pRanking, CounterexampleInfo pParent){
-    super(
-        pParent.isSpurious(),
-        pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
-        pParent.isPreciseCounterExample(),
-        CFAPathWithAdditionalInfo.empty());
-    List<Fault> rankedFault = pRanking.rank(pFaults);
-    for (Fault fault : rankedFault) {
-      FaultRankingUtils.assignScoreTo(fault);
-      for (FaultContribution faultContribution : fault) {
-        FaultRankingUtils.assignScoreTo(faultContribution);
-      }
-    }
-    initialize(rankedFault);
-  }
-
-  private void initialize(List<Fault> pRankedFaults){
+  public final void prepare(){
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
-    for(int i = 0; i < pRankedFaults.size(); i++){
-      for (FaultContribution faultContribution : pRankedFaults.get(i)) {
+    for(int i = 0; i < rankedList.size(); i++){
+      for (FaultContribution faultContribution : rankedList.get(i)) {
         mapEdgeToRankedFaultIndex.put(faultContribution.correspondingEdge(), i);
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
     }
-
-    rankedList = pRankedFaults;
-    htmlWriter = new FaultReportWriter();
   }
 
-  public int getRankOfSet(Fault set) {
-    return rankedList.indexOf(set);
+  /**
+   * Sort faults by the index returned by {@link Fault#getIntendedIndex()}. The index has to be set
+   * manually in advance.
+   */
+  public void sortIntended() {
+    rankedList.sort(Comparator.comparingInt(Fault::getIntendedIndex));
   }
 
   @Override
@@ -148,12 +202,13 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       faultMap.put("reason", htmlWriter.toHtml(fault));
       faults.add(faultMap);
     }
+
     JSON.writeJSONString(faults ,pWriter);
   }
 
   /**
    * Append additional information to the CounterexampleInfo output
-   * @param elem maps a property of edge to an object
+   * @param elem maps a property of an edge to an object
    * @param edge the edge that is currently transformed into JSON format.
    */
   @Override
@@ -162,7 +217,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     FaultContribution fc = mapEdgeToFaultContribution.get(edge);
     if(fc != null){
       if(fc.hasReasons()){
-        elem.put("additional", "<br><br><strong>Additional information provided:</strong><br>" + htmlWriter.toHtml(fc));
+        elem.put(
+            "additional",
+            "<br><br><strong>Additional information provided:</strong><br>"
+                + htmlWriter.toHtml(fc));
       }
     }
     if(mapEdgeToRankedFaultIndex.containsKey(edge)){
@@ -171,6 +229,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     if (!elem.containsKey("faults")) {
       elem.put("faults", new ArrayList<>());
     }
+  }
+
+  public List<Fault> getRankedList() {
+    return rankedList;
   }
 
   public FaultReportWriter getHtmlWriter() {
@@ -182,9 +244,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   * Replace default CounterexampleInfo with this extended version of a CounterexampleInfo.
+   * Replace default CounterexampleInfo with this extended version.
+   * Activates the visual representation of fault localization.
    */
   public void apply(){
     super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
+  }
+
+  public void writePrecondition(Writer writer) throws IOException {
+    JSON.writeJSONString(Collections.singletonMap("fl-precondition",
+        precondition.isPresent() ?
+            InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms) :
+            ""), writer);
   }
 }

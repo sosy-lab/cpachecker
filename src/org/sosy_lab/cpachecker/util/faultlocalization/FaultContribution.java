@@ -66,7 +66,7 @@ public class FaultContribution {
         new StringBuilder(
             "Error suspected on line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
-                + ". (Score: " + (int)(getScore()*100) + ")\n");
+                + ".\n");
     List<FaultInfo> copy = new ArrayList<>(infos);
     for (FaultInfo faultInfo : copy) {
       switch(faultInfo.getType()){
@@ -75,9 +75,6 @@ public class FaultContribution {
           break;
         case REASON:
           out.append(" ".repeat(5));
-          break;
-        case HINT:
-          out.append(" ".repeat(7));
           break;
         case FIX:
           out.append(" ".repeat(8));
@@ -128,9 +125,6 @@ public class FaultContribution {
   @Override
   public int hashCode() {
     int result = 5;
-    for(FaultInfo reason: infos){
-      result = Objects.hash(reason, result);
-    }
     result = Objects.hash(correspondingEdge, result);
     return result;
   }

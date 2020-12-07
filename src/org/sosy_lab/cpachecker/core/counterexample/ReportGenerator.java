@@ -175,8 +175,11 @@ public class ReportGenerator {
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
       buildArgGraphData(pReached);
-      buildRelevantArgGraphData(pReached);
-      buildReducedArgGraphData();
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        // makes no sense to create other data structures that we will not show anyway
+        buildRelevantArgGraphData(pReached);
+        buildReducedArgGraphData();
+      }
     }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
@@ -334,11 +337,18 @@ public class ReportGenerator {
     dotBuilder.writeMergedNodesList(writer);
 
     if (counterExample != null) {
-      writer.write(",\n\"errorPath\":");
-      counterExample.toJSON(writer);
-      if(counterExample instanceof FaultLocalizationInfo){
+      if (counterExample instanceof FaultLocalizationInfo) {
+        FaultLocalizationInfo flInfo = (FaultLocalizationInfo)counterExample;
+        flInfo.prepare();
+        writer.write(",\n\"errorPath\":");
+        counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
-        ((FaultLocalizationInfo)counterExample).faultsToJSON(writer);
+        flInfo.faultsToJSON(writer);
+        writer.write(",\n\"precondition\":");
+        flInfo.writePrecondition(writer);
+      } else {
+        writer.write(",\n\"errorPath\":");
+        counterExample.toJSON(writer);
       }
     }
 
@@ -475,7 +485,7 @@ public class ReportGenerator {
                   new FileInputStream(sourcePath.toFile()),
                   Charset.defaultCharset()))) {
         writer.write(
-            "<div class=\"sourceContent\" ng-show = \"sourceFileIsSet("
+            "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
                 + ")\">\n<table>\n");
         String line;

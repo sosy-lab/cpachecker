@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -415,11 +416,11 @@ public class PredicateStaticRefiner extends StaticRefiner
     // Predicates that should be tracked globally
     Collection<AbstractionPredicate> globalPredicates = new ArrayList<>();
 
-    // Determine the ERROR locations of the path (last nodes)
+    // Determine the ERROR location of the path (last node, or set of nodes if multiple threads)
     Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new HashSet<>();
+    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();
@@ -432,7 +433,8 @@ public class PredicateStaticRefiner extends StaticRefiner
             getAssumeEdgesAlongPath(pReached, targetState, directlyAffectingStatements));
       }
       if (addAssumesByBoundedBackscan) {
-        assumeEdges.addAll(getTargetLocationAssumes(ImmutableList.copyOf(targetLocations)).values());
+        assumeEdges.addAll(
+            getTargetLocationAssumes(ImmutableList.copyOf(targetLocations)).values());
       }
     }
 

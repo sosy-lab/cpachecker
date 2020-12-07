@@ -111,7 +111,7 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 90000)
+  @Test(timeout = 200000)
   public void concurrency_false_mix000_power() throws Exception {
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
