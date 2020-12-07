@@ -187,6 +187,13 @@ public class ValueAnalysisTransferRelation
         description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
 
+    @Option(
+      secure = true,
+      description = "Allow the given extern functions and interpret them as pure functions"
+          + " although the value analysis does not support their semantics"
+          + " and this can produce wrong results.")
+    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -213,6 +220,10 @@ public class ValueAnalysisTransferRelation
 
     public Path getFunctionValuesForRandom() {
       return functionValuesForRandom;
+    }
+
+    boolean isAllowedUnsupportedOption(String func) {
+      return allowedUnsupportedFunctions.contains(func);
     }
   }
 
@@ -809,14 +820,18 @@ public class ValueAnalysisTransferRelation
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          if (!options.isAllowedUnsupportedOption(func)) {
+            throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          }
 
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+            if (!options.isAllowedUnsupportedOption(func)) {
+              throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+            }
           }
         } else if (expression instanceof CFunctionCallAssignmentStatement) {
 
