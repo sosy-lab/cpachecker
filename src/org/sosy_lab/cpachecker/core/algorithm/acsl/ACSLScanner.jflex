@@ -63,6 +63,7 @@ LineBreak   = \r|\n|\r\n
 Space       = \s|@
 DecInt      = (0 | [1-9][0-9]*)[uU]?[lL]?[lL]?
 String      = \".*\"
+Type        = _bool|float|(long\s+)?double|((un)?signed)?\s+(char|short|short\s+int|int|long|long\s+int|long\s+long|long\s+long\s+int)|(un)?signed
 Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 
 %state SINGLE_LINE_ANNOTATION, MULTI_LINE_ANNOTATION
@@ -141,6 +142,8 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
                           matched = matched.substring(0, matched.length() - 1);
                         }
                         return symbol(sym.LITERAL, new BigInteger(builder.append(matched).toString()));}
+    {Type}              {builder.setLength(0);
+                         return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
     {Identifier}        {builder.setLength(0);
                         return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
     {String}            {builder.setLength(0);
