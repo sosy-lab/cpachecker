@@ -2455,6 +2455,9 @@ cpa.predicate.refinement.newtonrefinement.liveVariables = true
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
+# use paths to effects
+cpa.predicate.refinement.performThreadEffectRefinement = false
+
 # Which predicates should be used as basis for the new precision that will be
 # attached to the refined part of the ARG:
 # ALL: Collect predicates from the complete ARG.
@@ -4070,9 +4073,6 @@ restartAlgorithm.configFiles = no default value
 # print the statistics of each component of the restart algorithm directly
 # after the components computation is finished
 restartAlgorithm.printIntermediateStatistics = true
-
-# Evil hack for printing coverage with BAM
-restartAlgorithm.subcoverageFile = "subcoverage.info"
 
 # let each component of the restart algorithm write output files and not only
 # the last one that is excuted
