@@ -2280,21 +2280,6 @@ public abstract class AbstractExpressionValueVisitor
    * @param pTargetType the type of the left side of an assignment
    * @return if evaluation successful, then value, else null
    */
-  public Value evaluate(final CExpression pExp, final CType pTargetType)
-      throws UnrecognizedCodeException {
-    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
-        pExp.getFileLocation());
-  }
-
-  /**
-   * This method returns the value of an expression, reduced to match the type.
-   * This method handles overflows and casts.
-   * If necessary warnings for the user are printed.
-   *
-   * @param pExp expression to evaluate
-   * @param pTargetType the type of the left side of an assignment
-   * @return if evaluation successful, then value, else null
-   */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
