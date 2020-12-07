@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
