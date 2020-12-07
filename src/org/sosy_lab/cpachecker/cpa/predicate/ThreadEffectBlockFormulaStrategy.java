@@ -14,21 +14,18 @@ import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class ThreadEffectBlockFormulaStrategy extends RecomputeBlockFormulaStrategy {
+public class ThreadEffectBlockFormulaStrategy extends BlockFormulaStrategy {
 
   private final FormulaManagerView fmgr;
 
   public ThreadEffectBlockFormulaStrategy(
-      PathFormulaManager pPathFormulaManager,
       FormulaManagerView pFmgr) {
-    super(pPathFormulaManager);
     fmgr = pFmgr;
   }
 

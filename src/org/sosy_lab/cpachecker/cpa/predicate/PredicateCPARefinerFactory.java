@@ -173,7 +173,7 @@ public class PredicateCPARefinerFactory {
 
     if (performThreadEffectRefinement) {
       // TODO
-      bfs = new ThreadEffectBlockFormulaStrategy(pfmgr, solver.getFormulaManager());
+      bfs = new ThreadEffectBlockFormulaStrategy(solver.getFormulaManager());
       GlobalRefinementStrategy strategy =
           new ThreadEffectRefinementStrategy(
               config,
