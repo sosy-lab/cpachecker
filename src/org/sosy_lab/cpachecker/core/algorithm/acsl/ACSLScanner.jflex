@@ -63,7 +63,8 @@ LineBreak   = \r|\n|\r\n
 Space       = \s|@
 DecInt      = (0 | [1-9][0-9]*)[uU]?[lL]?[lL]?
 String      = \".*\"
-Type        = _bool|float|(long\s+)?double|((un)?signed)?\s+(char|short|short\s+int|int|long|long\s+int|long\s+long|long\s+long\s+int)|(un)?signed
+Type        = _bool|float|(long[ \t\f]+)?double|(un)?signed|
+              ((un)?signed[ \t\f]+)?(char|short|short[ \t\f]+int|int|long|long[ \t\f]+int|long[ \t\f]+long|long[ \t\f]+long[ \t\f]+int)
 Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 
 %state SINGLE_LINE_ANNOTATION, MULTI_LINE_ANNOTATION
