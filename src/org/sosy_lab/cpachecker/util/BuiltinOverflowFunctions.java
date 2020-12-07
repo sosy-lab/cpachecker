@@ -17,14 +17,13 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -120,15 +119,15 @@ public class BuiltinOverflowFunctions {
       return "";
     }
   }
-  
-  private static final Map<String, BuiltinOverflowFunction> functions; 
-  static { 
+
+  private static final Map<String, BuiltinOverflowFunction> functions;
+  static {
     functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
   }
 
   /**
    * resolve the type of the built-yin overflow function. This is important since the input
-   * parameters have to be casted in case their type differs 
+   * parameters have to be casted in case their type differs
    */
   public static CSimpleType getType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
@@ -221,7 +220,7 @@ public class BuiltinOverflowFunctions {
     return ofmgr.getResultOfOperation(castedVar1, castedVar2, operator);
   }
 
-  private static CSimpleType getTargetType(String pFunctionName, AExpression thirdArgument) {
+  private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
     if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
       return getType(pFunctionName);
     }
@@ -242,25 +241,23 @@ public class BuiltinOverflowFunctions {
    * overflow is determined by casting to the type of the third parameter.
    */
   public static Value evaluateFunctionCall(
-      AFunctionCallExpression functionCallExpression,
+      CFunctionCallExpression functionCallExpression,
       AbstractExpressionValueVisitor evv,
       MachineModel machineModel,
       LogManagerWithoutDuplicates logger)
       throws UnrecognizedCodeException {
-    AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
+    CExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
     if (nameExpressionOfCalledFunc instanceof AIdExpression) {
-      String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+      String nameOfCalledFunc = ((CIdExpression) nameExpressionOfCalledFunc).getName();
       if (isBuiltinOverflowFunction(nameOfCalledFunc)) {
-        List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
-        if (parameters.size() == 3 && parameters.get(2) instanceof CExpression) {
+        List<CExpression> parameters = functionCallExpression.getParameterExpressions();
+        if (parameters.size() == 3) {
           Value firstParameterValue =
-              evv.evaluate(
-                  (CRightHandSide) parameters.get(0),
-                  (CType) parameters.get(0).getExpressionType());
+              evv.evaluate(parameters.get(0), parameters.get(0).getExpressionType());
           Value secondParameterValue =
               evv.evaluate(
-                  (CRightHandSide) parameters.get(1),
-                  (CType) parameters.get(1).getExpressionType());
+                  parameters.get(1),
+                  parameters.get(1).getExpressionType());
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
 
           if (resultType.getType().isIntegerType()
