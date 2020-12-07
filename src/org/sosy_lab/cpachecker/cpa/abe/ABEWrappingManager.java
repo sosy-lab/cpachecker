@@ -109,12 +109,16 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
 
     if (pState.isAbstract()) {
       ABEAbstractedState<A> aState = pState.asAbstracted();
-      iOldState =
-          ABEIntermediateState.of(
-              pState.getNode(),
-              new PathFormula(
-                  bfmgr.makeTrue(), aState.getSSAMap(), aState.getPointerTargetSet(), 1),
-              aState);
+      iOldState = ABEIntermediateState.of(
+          pState.getNode(),
+          new PathFormula(
+              bfmgr.makeTrue(),
+              aState.getSSAMap(),
+              aState.getPointerTargetSet(),
+              1
+          ),
+          aState
+      );
     } else {
       iOldState = pState.asIntermediate();
     }

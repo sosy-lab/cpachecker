@@ -179,9 +179,8 @@ public final class BMCHelper {
               e.getPathFormula().getFormula());
       pathFormulas.add(pathFormula);
     }
-    final BooleanFormula pathFormulasDisjunction = pBFMGR.or(pathFormulas);
 
-    return pathFormulasDisjunction;
+    return pBFMGR.or(pathFormulas);
   }
 
   /**

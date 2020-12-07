@@ -181,8 +181,8 @@ public class StateFormulaConversionManager {
     } else {
       extraPredicate = pFormulaManager.getBooleanFormulaManager().makeTrue();
     }
-    return new PathFormula(
-        extraPredicate, abstractState.getSSA(), abstractState.getPointerTargetSet(), 1);
+    return new PathFormula(extraPredicate, abstractState.getSSA(),
+        abstractState.getPointerTargetSet(), 1);
   }
 
   public String toDOTLabel(Map<Template, PolicyBound> pAbstraction) {
@@ -190,9 +190,10 @@ public class StateFormulaConversionManager {
       return dotWriter.toDOTLabel(pAbstraction);
     }
 
-    PathFormula inputPath =
-        new PathFormula(
-            bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
+    PathFormula inputPath = new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet
+        .emptyPointerTargetSet(), 0
+    );
 
     Map<Template, BooleanFormula> templatesToConstraints =
         ImmutableMap.copyOf(

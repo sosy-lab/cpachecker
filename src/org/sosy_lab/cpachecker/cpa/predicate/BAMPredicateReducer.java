@@ -459,12 +459,8 @@ public class BAMPredicateReducer
     final SSAMap newSummSsa = summSsa.build();
 
     // function-call needs have new retvars-indices.
-    PathFormula functionCallWithSSA =
-        new PathFormula(
-            functionCall.getFormula(),
-            newEntrySsaWithRet,
-            functionCall.getPointerTargetSet(),
-            functionCall.getLength());
+    PathFormula functionCallWithSSA = new PathFormula(functionCall.getFormula(), newEntrySsaWithRet,
+            functionCall.getPointerTargetSet(), functionCall.getLength());
 
     // concat function-call with function-summary,
     // function-summary will be instantiated with indices for params and retvars.
@@ -473,12 +469,8 @@ public class BAMPredicateReducer
 
     // after function-execution we have to re-use the previous indices (fromouter scope),
     // thus lets change the SSAmap.
-    PathFormula executedFunctionWithSSA =
-        new PathFormula(
-            executedFunction.getFormula(),
-            newSummSsa,
-            executedFunction.getPointerTargetSet(),
-            executedFunction.getLength());
+    PathFormula executedFunctionWithSSA = new PathFormula(executedFunction.getFormula(), newSummSsa,
+            executedFunction.getPointerTargetSet(), executedFunction.getLength());
 
     // everything is prepared, so build a new AbstractionState.
     // we do this as 'future abstraction', because we do not have enough information

@@ -323,7 +323,9 @@ public class LoopTransitionFinder implements StatisticsProvider {
       LBEcache.put(loopHead, out);
     }
 
-    PathFormula empty = new PathFormula(fmgr.getBooleanFormulaManager().makeTrue(), start, pts, 0);
+    PathFormula empty = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeTrue(),
+        start, pts, 0);
     EdgeWrapper outEdge;
     if (out.size() == 1) {
       outEdge = out.values().iterator().next();
