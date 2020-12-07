@@ -1974,6 +1974,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         jTypeOfThrown = optionalJTypeOfThrown.get();
       }
     } else {
+      assert thrown != null;
       jTypeOfThrown = thrown.getType();
     }
     if (!tryStack.isEmpty() && !nodeIsInCatchClause(pThrowStatement)) {
