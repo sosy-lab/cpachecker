@@ -225,14 +225,11 @@ public class BuiltinOverflowFunctions {
       return getType(pFunctionName);
     }
 
-    CSimpleType targetType;
-    if (thirdArgument.getExpressionType() instanceof CPointerType) {
-      targetType = (CSimpleType) ((CPointerType) thirdArgument.getExpressionType()).getType();
-    } else {
-      targetType = (CSimpleType) thirdArgument.getExpressionType();
+    CType targetType = thirdArgument.getExpressionType().getCanonicalType();
+    if (targetType instanceof CPointerType) {
+      targetType = ((CPointerType) targetType).getType();
     }
-
-    return targetType;
+    return (CSimpleType) targetType;
   }
 
   /*
