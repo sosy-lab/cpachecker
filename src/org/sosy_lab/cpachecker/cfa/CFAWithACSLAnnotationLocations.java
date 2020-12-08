@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class CFAWithACSLAnnotationLocations implements CFA {
@@ -113,11 +112,6 @@ public class CFAWithACSLAnnotationLocations implements CFA {
   @Override
   public Optional<LiveVariables> getLiveVariables() {
     return delegate.getLiveVariables();
-  }
-
-  @Override
-  public Optional<DependenceGraph> getDependenceGraph() {
-    return delegate.getDependenceGraph();
   }
 
   @Override

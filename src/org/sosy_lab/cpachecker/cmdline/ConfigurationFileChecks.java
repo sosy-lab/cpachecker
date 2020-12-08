@@ -130,8 +130,10 @@ public class ConfigurationFileChecks {
           "overflow.config",
           "termination.config",
           "termination.violation.witness",
+          // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
+          "witness.validation.correctness.isa",
           "pcc.proofgen.doPCC",
           "pcc.strategy",
           "pcc.cmc.configFiles",

@@ -128,7 +128,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Number of algorithms provided:    " + configFiles.size());
       pOut.println("Number of composite analysis runs:        " + noOfRuns);
       pOut.println("Total time: " + totalTimer);
-      pOut.println("Times per algorithm: ");
 
       printSubStatistics(pOut, pResult, pReached);
     }

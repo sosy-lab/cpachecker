@@ -46,7 +46,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     Set<FaultContribution> soft = new HashSet<>(tf.getEntries().toSelectorList());
     int initSize = soft.size();
     // if a selector is true (i. e. enabled) it cannot be part of the result set. This usually
-    // happens if the selector is a part of the pre-condition
+    // happens if the selector is part of the pre-condition
     soft.removeIf(
         fc ->
             bmgr.isTrue(((Selector) fc).getFormula())

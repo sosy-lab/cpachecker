@@ -55,13 +55,15 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
-  <tasks name="MemSafety-TerminCrafted">
-    <includesfile>../programs/benchmarks/MemSafety-TerminCrafted.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
-  </tasks>
   <tasks name="MemSafety-MemCleanup">
     <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Juliet">
+    <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- Juliet tasks call external functions like "time" which are irrelevant for the task itself -->
+    <option name="-setprop">cpa.smg.handleUnknownFunctions=ASSUME_SAFE</option>
   </tasks>
 
   <tasks name="SoftwareSystems-BusyBox-MemSafety">
@@ -70,6 +72,10 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks name="SoftwareSystems-OpenBSD-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 </benchmark>

@@ -52,8 +52,7 @@ output.disable = false
 # directory to put all output files in
 output.path = "output/"
 
-# base directory for all input & output files
-# (except for the configuration file itself)
+# base directory for all paths in default values
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
@@ -208,6 +207,9 @@ analysis.algorithm.faultLocalization.by_coverage = false
 # for found property violation, perform fault localization with trace
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
+
+# Use fault localization with distance metrics
+analysis.algorithm.faultlocalization.by_distance = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
@@ -478,9 +480,6 @@ analysis.unknownIfUnrestrictedProgram = false
 
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
-
-# Use explainer for fault localization with distance metrics 
-analysis.useExplainer = false
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
@@ -755,9 +754,6 @@ cfa.checkNullPointers = false
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
 
-# Whether to create dependence graph for the CFA of the program
-cfa.createDependenceGraph = false
-
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
@@ -988,9 +984,6 @@ counterexample.export.compressWitness = true
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
 
-# export counterexample to file as Dot/Graphviz automaton
-counterexample.export.dot = "Counterexample.%d.dot"
-
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
@@ -1042,10 +1035,10 @@ counterexample.export.filters = no default value
 # is found
 counterexample.export.formula = "Counterexample.%d.smt2"
 
-# export counterexample as graph
+# export counterexample as Dot/Graphviz visualization
 counterexample.export.graph = "Counterexample.%d.dot"
 
-# export counterexample to file as GraphML automaton
+# export counterexample witness as GraphML automaton
 counterexample.export.graphml = "Counterexample.%d.graphml"
 
 # export test harness to file as code
@@ -1068,6 +1061,9 @@ counterexample.export.report = "Counterexample.%d.html"
 
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
+
+# export counterexample witness as Dot/Graphviz visualization
+counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
@@ -1209,7 +1205,8 @@ cpa.arg.export.code.blockAtFunctionEnd = KEEPBLOCK
 
 # How to deal with target states during code generation
 cpa.arg.export.code.handleTargetStates = NONE
-  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA, VERIFIERERROR]
+  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA, VERIFIERERROR,
+             REACHASMEMSAFETY, REACHASOVERFLOW, REACHASTERMINATION]
 
 # write include directives
 cpa.arg.export.code.header = true
@@ -2247,10 +2244,10 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = -1
 
-# When then builtin strlen is called, approximate it up to length set by this
-# option.If the string passed to strlen is longer, the return value will be
-# overapproximated via nondet.
-cpa.predicate.maxPreciseStrlenSize = 100
+# When builtin functions like memcmp/strlen/etc. are called, unroll them up
+# to this bound.If the passed arguments are longer, the return value will be
+# overapproximated.
+cpa.predicate.maxPreciseStrFunctionSize = 100
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
@@ -2579,14 +2576,20 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
-# Use SMT arrays for encoding heap memory instead of uninterpreted function.
-# This is more precise but may lead to interpolation failures.
+# Use SMT arrays for encoding heap memory instead of uninterpreted function
+# (ignored if useByteArrayForHeap=true). This is more precise but may lead to
+# interpolation failures.
 cpa.predicate.useArraysForHeap = true
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
+
+# Use SMT byte array for encoding heap memory instead of uninterpreted
+# function. This is more close to c heap implementation but may be to
+# expensive.
+cpa.predicate.useByteArrayForHeap = false
 
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
@@ -3081,6 +3084,11 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
+# Allow the given extern functions and interpret them as pure functions
+# although the value analysis does not support their semantics and this can
+# produce wrong results.
+cpa.value.allowedUnsupportedFunctions = {}
+
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
@@ -3295,7 +3303,7 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # closer to the static program slicing based on control-flow graphs (CFGs),
 # where branching is represented by a single assumption (with true- and
 # false-edges)
-dependencegraph.controldeps.considerInverseAssumption = false
+dependencegraph.controldeps.considerInverseAssumption = true
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
@@ -4165,6 +4173,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
+# Only genenerate for __VERIFIER_nondet calls
+testHarnessExport.onlyVerifierNondet = false
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
@@ -4194,6 +4205,10 @@ testcase.progress = RELATIVE_TOTAL
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# CFA edge if only a specific edge should be considered, e.g., in
+# counterexample check
+testcase.targets.edge = no default value
 
 # Name of target function if target type is FUN_CALL
 testcase.targets.funName = no default value
@@ -4325,6 +4340,9 @@ witness.useInvariantsAsAssumptions = true
 # When validating a correctness witness, use this configuration file instead
 # of the current one.
 witness.validation.correctness.config = no default value
+
+# Use correctness witness as invariants specification automaton (ISA).
+witness.validation.correctness.isa = false
 
 # The witness to validate.
 witness.validation.file = no default value

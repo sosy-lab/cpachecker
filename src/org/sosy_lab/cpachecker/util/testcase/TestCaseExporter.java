@@ -343,7 +343,7 @@ public class TestCaseExporter {
       List<String> inputs =
           vector.getTestInputsInOrder()
               .stream()
-              .filter(v -> excludeInitialization && (v instanceof ExpressionTestValue))
+              .filter(v -> !excludeInitialization || (v instanceof ExpressionTestValue))
               .map(v -> unpack(v.getValue()))
               .collect(Collectors.toList());
 

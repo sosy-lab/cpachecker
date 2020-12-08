@@ -726,7 +726,6 @@ public class CFABuilder {
             logger.logf(Level.WARNING, "Unhandled memory intrinsic!");
         }
         logger.logf(Level.FINE, "Taking intrinsic function call as undefined");
-        pItem.dump();
     }
 
     FileLocation loc = getLocation(pItem, pFileName);

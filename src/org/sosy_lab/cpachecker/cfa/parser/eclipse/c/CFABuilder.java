@@ -215,11 +215,6 @@ class CFABuilder extends ASTVisitor {
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
-      // CDT parser struggles on GCC's __attribute__((something)) constructs
-      // because we use C99 as default.
-      // Either insert the following macro before compiling with CIL:
-      // #define  __attribute__(x)  /*NOTHING*/
-      // or insert "parser.dialect = GNUC" into properties file
       visit(((IASTProblemDeclaration)declaration).getProblem());
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
