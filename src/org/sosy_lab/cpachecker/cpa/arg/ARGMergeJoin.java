@@ -90,8 +90,10 @@ public class ARGMergeJoin implements MergeOperator {
     // Do not add projections from state1, as we may not remove it and the relations become
     // inconsistent: mergedState will have projectedFrom state1, which projects into projection1,
     // not into merged state
-    for (ARGState initialState : argElement1.getProjectedFrom()) {
-      initialState.addProjection(mergedElement);
+    if (argElement1.getProjectedFrom() != null) {
+      for (ARGState initialState : argElement1.getProjectedFrom()) {
+        initialState.addProjection(mergedElement);
+      }
     }
 
     return mergedElement;
