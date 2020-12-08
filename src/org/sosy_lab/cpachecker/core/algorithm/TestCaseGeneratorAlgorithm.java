@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetMinimizerBasicEssential;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
@@ -77,12 +78,18 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   @Option(secure = true, name = "progress", description = "defines how progress is computed")
   private ProgressComputation progressType = ProgressComputation.RELATIVE_TOTAL;
 
+  @Option(
+    secure = true,
+    name = "testgoalReductionEssential",
+    description = "enables essential Branch approach for testgoal reduction")
+  private boolean testgoalReductionEssential = false;
+
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final Set<CFAEdge> testTargets;
+  private Set<CFAEdge> testTargets;
   private final SpecificationProperty specProp;
   private final TestCaseExporter exporter;
   private double progress = 0;
@@ -108,6 +115,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
+
+    if (testgoalReductionEssential) {
+      TestTargetMinimizerBasicEssential testTargetReducer = new TestTargetMinimizerBasicEssential();
+      testTargets = testTargetReducer.reduceTargets(testTargets);
+    }
+
     exporter = new TestCaseExporter(pCfa, logger, pConfig);
 
     if (pSpec.getProperties().size() == 1) {
