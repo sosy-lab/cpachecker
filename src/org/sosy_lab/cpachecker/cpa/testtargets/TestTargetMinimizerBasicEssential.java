@@ -22,8 +22,7 @@ public class TestTargetMinimizerBasicEssential {
   }
 
   public Set<CFAEdge> reduceTargets(Set<CFAEdge> testTargets) {
-    Set<CFAEdge> rule1results = new HashSet<>();
-    rule1results.addAll(testTargets);
+    Set<CFAEdge> rule1results = new HashSet<>(testTargets);
     // rule 1
     Iterator<CFAEdge> iter = testTargets.iterator();
 
@@ -56,8 +55,7 @@ public class TestTargetMinimizerBasicEssential {
 
       }
     }
-    Set<CFAEdge> rule2results = new HashSet<>();
-    rule2results.addAll(rule1results);
+    Set<CFAEdge> rule2results = new HashSet<>(rule1results);
     iter = rule1results.iterator();
     while (iter.hasNext()) {
       CFAEdge currentEdge = iter.next();
