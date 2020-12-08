@@ -130,7 +130,7 @@ public class TraceFormulaTest {
     // Selector indices that are part of a fault
     final String resultSelector = "[3]";
     checkIfExpectedValuesMatchResultValues(
-        "unit_test_1.c",
+        "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
         ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelector).build());
@@ -141,7 +141,7 @@ public class TraceFormulaTest {
     // Selector indices that are part of a fault
     final String resultSelectors = "[0, 1, 2, 3]";
     checkIfExpectedValuesMatchResultValues(
-        "unit_test_1.c",
+        "unit_test_traces.c",
         FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
         ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelectors).build());
