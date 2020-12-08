@@ -83,7 +83,7 @@ public class TraceFormulaTest {
     return entries;
   }
 
-  private void test0(
+  private void checkIfExpectedValuesMatchResultValues(
       String program,
       FLAlgorithm algorithm,
       Map<String, String> options,
@@ -99,46 +99,51 @@ public class TraceFormulaTest {
   }
 
   @Test
-  public void testCorrectConditions() throws Exception {
-    // test if calculating post condition influences the precondition
-
-    test0(
-        "unit_test_2.c",
+  public void tesCorrectCalculationOfPreAndPostCondition() throws Exception {
+    // precondition values
+    final String preconditionValues = "4, 4, 4, 1, 2, 2, 2, 1, 1, 2, 2, 2, 3";
+    // post-condition is on line 47
+    final String postConditionLocation = "line 47";
+    checkIfExpectedValuesMatchResultValues(
+        "unit_test_pre-post-condition.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
         ImmutableMap.<LogKeys, String>builder()
-            .put(LogKeys.TFPRECONDITION, "4, 4, 4, 1, 2, 2, 2, 1, 1, 2, 2, 2, 3")
-            .put(LogKeys.TFPOSTCONDITION, "line 47")
+            .put(LogKeys.TFPRECONDITION, preconditionValues)
+            .put(LogKeys.TFPOSTCONDITION, postConditionLocation)
             .build());
   }
 
   @Test
-  public void testFlowSensitive() throws Exception {
-    // test if calculating post condition influences the precondition
-    test0(
-        "unit_test_1.c",
+  public void testErrorInvariantsOnFlowSensitiveTrace() throws Exception {
+    // Selector indices that are part of a fault
+    final String resultSelectors = "[1, 3]";
+    checkIfExpectedValuesMatchResultValues(
+        "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, "[1, 3]").build());
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelectors).build());
   }
 
   @Test
-  public void testDefaultTrace() throws Exception {
-    // test if calculating post condition influences the precondition
-    test0(
+  public void testErrorInvariantsOnDefaultTrace() throws Exception {
+    // Selector indices that are part of a fault
+    final String resultSelector = "[3]";
+    checkIfExpectedValuesMatchResultValues(
         "unit_test_1.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, "[3]").build());
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelector).build());
   }
 
   @Test
-  public void testSelectorTrace() throws Exception {
-    // test if calculating post condition influences the precondition
-    test0(
+  public void testMaxSatSelectorTrace() throws Exception {
+    // Selector indices that are part of a fault
+    final String resultSelectors = "[0, 1, 2, 3]";
+    checkIfExpectedValuesMatchResultValues(
         "unit_test_1.c",
         FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, "[0, 1, 2, 3]").build());
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelectors).build());
   }
 }
