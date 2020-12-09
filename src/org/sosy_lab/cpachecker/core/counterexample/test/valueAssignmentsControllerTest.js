@@ -13,9 +13,9 @@ describe("ReportController", function () {
         controller;
 
     beforeEach(function () {
-        module('report');
+        angular.mock.module('report');
 
-        inject(function ($injector) {
+        angular.mock.inject(function ($injector) {
             $rootScope = $injector.get('$rootScope');
             $scope = $rootScope.$new();
             controller = $injector.get('$controller')("ValueAssignmentsController", {

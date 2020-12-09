@@ -13,9 +13,9 @@ describe("ReportController", function () {
         controller;
 
     beforeEach(function () {
-        module('report');
+        angular.mock.module('report');
 
-        inject(function ($injector) {
+        angular.mock.inject(function ($injector) {
             $rootScope = $injector.get('$rootScope');
             $scope = $rootScope.$new();
             controller = $injector.get('$controller')("ErrorpathController", {
@@ -32,26 +32,26 @@ describe("ReportController", function () {
         })
     })
 
-    describe("errPathPrevClicked action haldler", function () {
+    describe("errPathPrevClicked action handler", function () {
         it("Should instantiate errPathPrevClicked", function () {
             expect($scope.errPathPrevClicked).not.toBeUndefined();
         })
     })
 
-    describe("errPathNextClicked action haldler", function () {
+    describe("errPathNextClicked action handler", function () {
 
         it("Should instantiate errPathNextClicked", function () {
             expect($scope.errPathNextClicked).not.toBeUndefined();
         })
     })
 
-    describe("errPathStartClicked action haldler", function () {
+    describe("errPathStartClicked action handler", function () {
         it("Should instantiate errPathStartClicked", function () {
             expect($scope.errPathStartClicked).not.toBeUndefined();
         })
     })
 
-    describe("clickedErrpathElement action haldler", function () {
+    describe("clickedErrpathElement action handler", function () {
         it("Should instantiate clickedErrpathElement", function () {
             expect($scope.clickedErrpathElement).not.toBeUndefined();
         })

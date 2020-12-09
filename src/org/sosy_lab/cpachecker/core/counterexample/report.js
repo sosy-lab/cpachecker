@@ -9,6 +9,60 @@
 
 /* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort */
+import "./report.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "datatables.net-dt/css/jquery.dataTables.min.css";
+
+import "@fortawesome/fontawesome-free/js/all.min";
+import $ from "jquery";
+import "angular";
+import "bootstrap";
+import "datatables.net";
+import "code-prettify";
+import "jquery-resizable-dom";
+var d3 = require("d3");
+var dagreD3 = require("dagre-d3");
+
+const isDevEnv = process.env.NODE_ENV !== "production";
+
+// Load example data into the window when using development mode
+if (isDevEnv) {
+  const data = require("devData");
+	window.argJson = data.argJson;
+	window.sourceFiles = data.sourceFiles;
+	window.cfaJson = data.cfaJson;
+}
+
+var argJson = window.argJson;
+var sourceFiles = window.sourceFiles;
+var cfaJson = window.cfaJson;
+
+const externalLibPathPrefix = document.location.protocol + "//" + document.location.host + "/external_libs/";
+const externalLibs = [externalLibPathPrefix + "d3.min.js", externalLibPathPrefix + "dagre-d3.min.js"]
+
+// CFA graph variable declarations
+var functions = cfaJson.functionNames;
+var functionCallEdges = cfaJson.functionCallEdges;
+var errorPath;
+if (cfaJson.hasOwnProperty("errorPath")) {
+	errorPath = cfaJson.errorPath;
+}
+var relevantEdges;
+if (argJson.hasOwnProperty("relevantedges")) {
+        relevantEdges = argJson.relevantedges;
+}
+var reducedEdges;
+if (argJson.hasOwnProperty("reducededges")) {
+        reducedEdges = argJson.reducededges;
+}
+
+var graphSplitThreshold = 700;
+var zoomEnabled = false;
+var render = new dagreD3.render();
+var margin = 20;
+var cfaWorker, argWorker;
+var cfaSplit = false;
+var argTabDisabled = false;
 
 (function () {
 	$(function () {
@@ -132,7 +186,7 @@ with considerably less effort */
 
 	var app = angular.module('report', []);
 
-	reportController = app.controller('ReportController', ['$rootScope', '$scope',
+	var reportController = app.controller('ReportController', ['$rootScope', '$scope',
 		function ($rootScope, $scope) {
 			$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 			$scope.help_content = "<div class=\"container \" style=\"font-family: Arial\"><p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" +
@@ -475,7 +529,7 @@ with considerably less effort */
 		};
 
 		function markErrorPathElementInTab(selectedErrPathElemId) {
-			var currentTab = $("#report-controller").scope().getTabSet();
+			var currentTab = angular.element($("#report-controller")).scope().getTabSet();
 			if (!Array.isArray(selectedErrPathElemId)) {
 				selectedErrPathElemId = [selectedErrPathElemId];
 			}
@@ -494,7 +548,7 @@ with considerably less effort */
 			markArgNode($rootScope.errorPath[errPathElemIndex]);
 			markSourceLine($rootScope.errorPath[errPathElemIndex]);
 			if (![1, 2, 3].includes(currentTab)) {
-				$("#report-controller").scope().setTab(2);
+				angular.element($("#report-controller")).scope().setTab(2);
 			}
 		}
 
@@ -700,7 +754,7 @@ with considerably less effort */
 		};
 	}]);
 
-	cfaToolbarController = app.controller('CFAToolbarController', ['$scope',
+	var cfaToolbarController = app.controller('CFAToolbarController', ['$scope',
 		function ($scope) {
 			if (functions) {
 				if (functions.length > 1) {
@@ -759,8 +813,8 @@ with considerably less effort */
 					d3.selectAll(".cfa-svg").each(function (d, i) {
 						var svg = d3.select(this),
 							svgGroup = d3.select(this.firstChild);
-						var zoom = d3.zoom().on("zoom", function () {
-							svgGroup.attr("transform", d3.event.transform);
+						var zoom = d3.zoom().on("zoom", function (d, i) {
+							svgGroup.attr("transform", d.transform);
 						});
 						svg.call(zoom);
 						svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
@@ -794,6 +848,9 @@ with considerably less effort */
 					cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
 						type: "text/javascript"
 					})));
+          if (isDevEnv) {
+            cfaWorker.postMessage({"externalLibPaths": externalLibs});
+          }
 				}
 				cfaWorker.postMessage({
 					"split": input
@@ -859,7 +916,6 @@ with considerably less effort */
                                                         d3.selectAll(".arg-simplified-graph").style("display", "inline-block").style("visibility", "visible");
                                                 }
 					} else if ($rootScope.displayedARG.indexOf("witness") !== -1) {
-						console.log("reduced graph selected");
 						d3.selectAll(".arg-graph").style("display", "none");
 						d3.selectAll(".arg-simplified-graph").style("display", "none");
 						$("#arg-container").scrollTop(0).scrollLeft(0);
@@ -904,7 +960,7 @@ with considerably less effort */
 						var svg = d3.select(this),
 							svgGroup = d3.select(this.firstChild);
 						var zoom = d3.zoom().on("zoom", function () {
-							svgGroup.attr("transform", d3.event.transform);
+							svgGroup.attr("transform", d.transform);
 						});
 						svg.call(zoom);
 						svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
@@ -933,6 +989,9 @@ with considerably less effort */
 					argWorker = new Worker(URL.createObjectURL(new Blob(["(" + argWorker_function + ")()"], {
 						type: "text/javascript"
 					})));
+          if (isDevEnv) {
+            argWorker.postMessage({"externalLibPaths": externalLibs});
+          }
 				}
 				argWorker.postMessage({
 					"split": input
@@ -967,11 +1026,6 @@ with considerably less effort */
 
 })();
 
-var argJson = {}; //ARG_JSON_INPUT
-
-var sourceFiles = []; //SOURCE_FILES
-var cfaJson = {}; //CFA_JSON_INPUT
-
 // CFA graph variable declarations
 var functions = cfaJson.functionNames;
 var functionCallEdges = cfaJson.functionCallEdges;
@@ -983,21 +1037,7 @@ var relevantEdges;
 if (argJson.hasOwnProperty("relevantedges")) {
         relevantEdges = argJson.relevantedges;
 }
-var reducedEdges;
-if (argJson.hasOwnProperty("reducededges")) {
-        reducedEdges = argJson.reducededges;
-}
-var graphSplitThreshold = 700;
-var zoomEnabled = false;
-// A Dagre D3 Renderer
-var render = new dagreD3.render();
-const margin = 20;
-var cfaWorker, argWorker;
-var cfaSplit = false,
-	argTabDisabled = false;
-
 function init() {
-
 	// Calculate total count of graphs to display in modal
 	var argTotalGraphCount;
 	if (argJson.nodes) {
@@ -1035,872 +1075,6 @@ function init() {
 		d3.select("#cfa-toolbar").style("width", "auto");
 	}
 
-	// ======================= Define CFA and ARG Workers logic =======================
-	/**
-	 * The CFA Worker. Contains the logic for building a single or a multi CFA graph.
-	 * The graph(s) is/are returned to the main script once created
-	 */
-	function cfaWorker_function() {
-		self.importScripts("https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js");
-		var json, nodes, mainNodes, edges, functions, combinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
-		var graphSplitThreshold = 700; // default value
-		var graphMap = [];
-		var graphCounter = 0;
-
-		// The first posted message will include the cfaJson
-		self.addEventListener('message', function (m) {
-			if (m.data.json !== undefined) {
-				json = JSON.parse(m.data.json);
-				extractVariables();
-				buildGraphsAndPostResults();
-			} else if (m.data.renderer !== undefined) {
-				if (graphMap[graphCounter] !== undefined) {
-					var node = nodes.find(function (n) {
-						return n.index === parseInt(graphMap[graphCounter].nodes()[0]);
-					});
-					self.postMessage({
-						"graph": JSON.stringify(graphMap[graphCounter]),
-						"id": node.func + graphCounter,
-						"func": node.func
-					});
-					graphCounter++;
-				} else {
-					self.postMessage({
-						"status": "done"
-					});
-					graphMap = [];
-					graphCounter = 0;
-				}
-			} else if (m.data.split !== undefined) {
-				graphSplitThreshold = m.data.split;
-				buildGraphsAndPostResults();
-			}
-		}, false);
-
-		// Extract information from the cfaJson
-		function extractVariables() {
-			nodes = json.nodes;
-			functions = json.functionNames;
-			mainNodes = nodes.filter(function (n) {
-				return n.func === functions[0];
-			});
-			edges = json.edges;
-			combinedNodes = json.combinedNodes;
-			combinedNodesLabels = json.combinedNodesLabels;
-			mergedNodes = json.mergedNodes;
-			functionCallEdges = json.functionCallEdges;
-			if (json.hasOwnProperty("errorPath")) {
-				errorPath = [];
-				prepareCfaErrorPath();
-			}
-		}
-
-
-		// Prepare Error Path array to be used in edge class decider
-		function prepareCfaErrorPath() {
-			var returnedEdges = {};
-			for (var key in functionCallEdges) {
-				returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
-			}
-			json.errorPath.forEach(function (errPathElem) {
-				if (errPathElem.source in functionCallEdges) {
-					errPathElem.target = functionCallEdges[errPathElem.source][0];
-				}
-				if (errPathElem.target in returnedEdges) {
-					errorPath.push({
-						"source": returnedEdges[errPathElem.target],
-						"target": errPathElem.target
-					})
-				}
-				errorPath.push(errPathElem);
-			})
-		}
-
-		function buildGraphsAndPostResults() {
-			if (mainNodes.length > graphSplitThreshold) {
-				buildMultipleGraphs(mainNodes, functions[0]);
-			} else {
-				buildSingleGraph(mainNodes, functions[0]);
-			}
-			if (functions.length > 1) {
-				var functionsToProcess = functions.filter(function (f) {
-					return f !== functions[0];
-				});
-				functionsToProcess.forEach(function (func) {
-					var funcNodes = nodes.filter(function (n) {
-						return n.func === func;
-					});
-					if (funcNodes.length > graphSplitThreshold) {
-						buildMultipleGraphs(funcNodes, func);
-					} else {
-						buildSingleGraph(funcNodes, func);
-					}
-				});
-			}
-		}
-
-		function buildSingleGraph(nodesToSet, funcName) {
-			var g = createGraph();
-			setGraphNodes(g, nodesToSet);
-			roundNodeCorners(g);
-			var nodesIndices = [];
-			nodesToSet.forEach(function (n) {
-				nodesIndices.push(n.index);
-			});
-			var edgesToSet = edges.filter(function (e) {
-				return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
-			});
-			setGraphEdges(g, edgesToSet, false);
-			if (funcName === functions[0]) {
-				self.postMessage({
-					"graph": JSON.stringify(g),
-					"id": funcName + graphCounter,
-					"func": funcName
-				});
-				graphMap.push(g);
-			} else {
-				graphMap.push(g);
-			}
-		}
-
-		function buildMultipleGraphs(nodesToSet, funcName) {
-			var requiredGraphs = Math.ceil(nodesToSet.length / graphSplitThreshold);
-			var firstGraphBuild = false;
-			var nodesPerGraph = [];
-			for (var i = 1; i <= requiredGraphs; i++) {
-				if (!firstGraphBuild) {
-					nodesPerGraph = nodesToSet.slice(0, graphSplitThreshold);
-					firstGraphBuild = true;
-				} else {
-					if (nodesToSet[graphSplitThreshold * i - 1] !== undefined)
-						nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-					else
-						nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1));
-				}
-				var graph = createGraph();
-				setGraphNodes(graph, nodesPerGraph);
-				if (graph.nodes().length > 0) {
-					graphMap.push(graph);
-					roundNodeCorners(graph);
-					var graphEdges = edges.filter(function (e) {
-						if ((nodesPerGraph[0].index <= e.source && e.source <= nodesPerGraph[nodesPerGraph.length - 1].index) &&
-							(nodesPerGraph[0].index <= e.target && e.target <= nodesPerGraph[nodesPerGraph.length - 1].index)) {
-							return e;
-						}
-					});
-					setGraphEdges(graph, graphEdges, true);
-				}
-			}
-			buildCrossgraphEdges(nodesToSet);
-			if (funcName === functions[0]) {
-				self.postMessage({
-					"graph": JSON.stringify(graphMap[graphCounter]),
-					"id": funcName + graphCounter,
-					"func": funcName
-				});
-				graphCounter++;
-			}
-		}
-
-		// Handle Edges that connect Graphs
-		function buildCrossgraphEdges(crossGraphNodes) {
-			var nodesIndices = [];
-			crossGraphNodes.forEach(function (n) {
-				nodesIndices.push(n.index);
-			});
-			var edgesToConsider = edges.filter(function (e) {
-				return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
-			});
-			edgesToConsider.forEach(function (edge) {
-				var source = edge.source;
-				var target = edge.target;
-				if (mergedNodes.includes(source) && mergedNodes.includes(target)) return;
-				if (mergedNodes.includes(source)) source = getMergingNode(source);
-				if (mergedNodes.includes(target)) target = getMergingNode(target);
-				var sourceGraph = getGraphForNode(source);
-				var targetGraph = getGraphForNode(target);
-				if (sourceGraph < targetGraph) {
-					if (Object.keys(functionCallEdges).includes("" + source)) {
-						var funcCallNodeId = functionCallEdges["" + source][0];
-						graphMap[sourceGraph].setNode(funcCallNodeId, {
-							label: getNodeLabelFCall(edge.stmt),
-							class: "cfa-node fcall",
-							id: "cfa-node" + funcCallNodeId,
-							shape: "rect"
-						});
-						graphMap[sourceGraph].setEdge(source, funcCallNodeId, {
-							label: edge.stmt,
-							labelStyle: labelStyleDecider(edge, source, funcCallNodeId),
-							class: edgeClassDecider(edge, source, funcCallNodeId),
-							id: "cfa-edge_" + source + "-" + funcCallNodeId
-						});
-						graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {
-							label: "",
-							class: "cfa-dummy",
-							id: "dummy-" + target,
-							shape: "rect"
-						});
-						graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {
-							label: source + "->" + target,
-							style: "stroke-dasharray: 5, 5;"
-						});
-					} else {
-						graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {
-							label: "",
-							class: "cfa-dummy",
-							id: "dummy-" + target,
-							shape: "rect"
-						});
-						graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {
-							label: edge.stmt,
-							labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph),
-							id: "cfa-edge_" + source + "-" + target,
-							class: edgeClassDecider(edge, source, "" + source + target + sourceGraph),
-							style: "stroke-dasharray: 5, 5;"
-						});
-					}
-					graphMap[targetGraph].setNode("" + target + source + targetGraph, {
-						label: "",
-						class: "dummy"
-					});
-					graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {
-						label: "",
-						labelStyle: "font-size: 12px;",
-						id: "cfa-split-edge_" + source + "-" + target,
-						class: "cfa-split-edge",
-						style: "stroke-dasharray: 5, 5;"
-					});
-				} else if (sourceGraph > targetGraph) {
-					graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {
-						label: "",
-						class: "cfa-dummy",
-						id: "dummy-" + target
-					});
-					graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {
-						label: edge.stmt,
-						labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source),
-						id: "cfa-edge_" + source + "-" + target,
-						class: edgeClassDecider(edge, "" + source + target + sourceGraph, source),
-						arrowhead: "undirected",
-						style: "stroke-dasharray: 5, 5;"
-					});
-					graphMap[targetGraph].setNode("" + target + source + targetGraph, {
-						label: "",
-						class: "dummy",
-						id: "node" + source
-					});
-					graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {
-						label: "",
-						labelStyle: "font-size: 12px;",
-						id: "cfa-split-edge_" + source + "-" + target,
-						class: "cfa-split-edge",
-						arrowhead: "undirected",
-						style: "stroke-dasharray: 5, 5;"
-					});
-				}
-			});
-		}
-
-		// Return the graph in which the nodeNumber is present
-		function getGraphForNode(nodeNumber) {
-			return graphMap.findIndex(function (graph) {
-				return graph.nodes().includes("" + nodeNumber);
-			})
-		}
-
-		// create and return a graph element with a set transition
-		function createGraph() {
-			var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
-				function () {
-					return {};
-				});
-			return g;
-		}
-
-		// Set nodes for the graph contained in the json nodes
-		function setGraphNodes(graph, nodesToSet) {
-			nodesToSet.forEach(function (n) {
-				if (!mergedNodes.includes(n.index)) {
-					graph.setNode(n.index, {
-						label: setNodeLabel(n),
-						labelStyle: "font-family: 'Courier New', Courier, monospace",
-						class: "cfa-node",
-						id: "cfa-node" + n.index,
-						shape: nodeShapeDecider(n)
-					});
-				}
-			});
-		}
-
-		// Node label, the label from combined nodes or a simple label
-		function setNodeLabel(node) {
-			var nodeIndex = "" + node.index;
-			if (Object.keys(combinedNodesLabels).includes(nodeIndex))
-				return combinedNodesLabels[nodeIndex];
-			else return "N" + nodeIndex;
-		}
-
-		// Decide the shape of the nodes based on type
-		function nodeShapeDecider(n) {
-			if (n.loop) {
-				return "diamond";
-			} else if (Object.keys(combinedNodes).includes("" + n.index)) {
-				return "rect";
-			} else {
-				return "circle";
-			}
-		}
-
-		// Round the corners of rectangle shaped nodes
-		function roundNodeCorners(graph) {
-			graph.nodes().forEach(function (it) {
-				var item = graph.node(it);
-				item.rx = item.ry = 5;
-			});
-		}
-
-		// Set the edges for a single graph while considering merged nodes and edges between them
-		function setGraphEdges(graph, edgesToSet, multigraph) {
-			edgesToSet.forEach(function (e) {
-				var source, target;
-				if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
-					source = e.source;
-					target = e.target;
-				} else if (!mergedNodes.includes(e.source) && mergedNodes.includes(e.target)) {
-					source = e.source;
-					target = getMergingNode(e.target);
-				} else if (mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
-					source = getMergingNode(e.source);
-					target = e.target;
-				}
-				if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target)))
-					source = undefined;
-				if (source !== undefined && target !== undefined && checkEligibleEdge(source, target)) {
-					if (Object.keys(functionCallEdges).includes("" + source)) {
-						var funcCallNodeId = functionCallEdges["" + source][0];
-						graph.setNode(funcCallNodeId, {
-							label: getNodeLabelFCall(e.stmt),
-							class: "cfa-node fcall",
-							id: "cfa-node" + funcCallNodeId,
-							shape: "rect"
-						});
-						graph.setEdge(source, funcCallNodeId, {
-							label: e.stmt,
-							labelStyle: labelStyleDecider(e, source, funcCallNodeId),
-							class: edgeClassDecider(e, source, funcCallNodeId),
-							id: "cfa-edge_" + source + "-" + funcCallNodeId,
-							weight: edgeWeightDecider(source, target)
-						});
-						graph.setEdge(funcCallNodeId, target, {
-							label: "",
-							labelStyle: labelStyleDecider(e, funcCallNodeId, target),
-							class: edgeClassDecider(e, funcCallNodeId, target),
-							id: "cfa-edge_" + funcCallNodeId + "-" + target,
-							weight: edgeWeightDecider(source, target)
-						});
-					} else {
-						graph.setEdge(source, target, {
-							label: e.stmt,
-							labelStyle: labelStyleDecider(e, source, target),
-							lineInterpolate: "basis",
-							class: edgeClassDecider(e, source, target),
-							id: "cfa-edge_" + source + "-" + target,
-							weight: edgeWeightDecider(source, target)
-						});
-					}
-				}
-			});
-		}
-
-		// If edge is part of error path, give it a representative class
-		function edgeClassDecider(edge, source, target) {
-			if (errorPath === undefined) {
-				return "cfa-edge";
-			}
-			var mergedMatch = errorPath.find(function (entry) {
-				return entry.source === source && entry.target === target;
-			})
-			var initialMatch = errorPath.find(function (entry) {
-				return entry.source === edge.source && entry.target === edge.target;
-			})
-			if (mergedMatch !== undefined || initialMatch !== undefined) {
-				return "cfa-edge error-edge";
-			} else {
-				return "cfa-edge";
-			}
-		}
-
-		// If edge is part of error path, give its label a representative class
-		function labelStyleDecider(edge, source, target) {
-			var edgeClass = edgeClassDecider(edge, source, target);
-			if (edgeClass.indexOf("error") !== -1) {
-				return "font-size: 12px; fill: red";
-			}
-			return "font-size: 12px";
-		}
-
-		// Check if edge is eligible to place in graph. Same node edge only if it is not combined node
-		function checkEligibleEdge(source, target) {
-			if (mergedNodes.includes(source) && mergedNodes.includes(target)) return false;
-			if (mergedNodes.includes(source) && Object.keys(combinedNodes).includes("" + target)) {
-				if (combinedNodes["" + target].includes(source)) return false;
-				else return true;
-			}
-			if (Object.keys(combinedNodes).includes("" + source) && mergedNodes.includes(target)) {
-				if (combinedNodes["" + source].includes(target)) return false;
-				else return true;
-			}
-			if ((Object.keys(combinedNodes).includes("" + source) && Object.keys(combinedNodes).includes("" + target)) && source == target) return false;
-			return true;
-		}
-
-		// Retrieve the node in which this node was merged
-		function getMergingNode(index) {
-			var result = "";
-			Object.keys(combinedNodes).some(function (key) {
-				if (combinedNodes[key].includes(index)) {
-					result = key;
-					return result;
-				}
-			})
-			return parseInt(result);
-		}
-
-		// Decide the weight for the edges based on type
-		function edgeWeightDecider(source, target) {
-			var sourceNode = nodes.find(function (it) {
-				return it.index === source;
-			})
-			var targetNode = nodes.find(function (it) {
-				return it.index === target;
-			})
-			if (source === target) {
-				return 2;
-			} else if (sourceNode.rpid < targetNode.rpid) {
-				return 0;
-			} else {
-				return 1;
-			}
-		}
-
-		// Get node label for functionCall node by providing the edge statement
-		function getNodeLabelFCall(stmt) {
-			var result = "";
-			if (stmt.includes("=")) {
-				result = stmt.split("=")[1].split("(")[0].trim();
-			} else {
-				result = stmt.split("(")[0].trim();
-			}
-			return result;
-		}
-
-	}
-
-	/**
-	 * The ARG Worker. Contains the logic for creating a single or multi ARG graph.
-	 * Once the graph(s) is/are created they are returned to the main script.
-	 * ONLY if ARG data is available!
-	 */
-	if (argJson.nodes) {
-		function argWorker_function() {
-			self.importScripts("https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js");
-			var json, nodes, edges, errorPath, relevantNodes, relevantEdges, errorGraphMap;
-			var graphSplitThreshold = 700;
-			var graphMap = [], graphCounter = 0,
-			    simplifiedGraphMap, simplifiedGraphCounter = 0,
-			    reducedGraphMap, reducedGraphCounter = 0;
-			self.addEventListener("message", function (m) {
-				if (m.data.json !== undefined) {
-					json = JSON.parse(m.data.json);
-					nodes = json.nodes;
-					edges = json.edges;
-					buildGraphsAndPrepareResults(nodes, edges, "default");
-					if(json.relevantedges !== undefined && json.relevantnodes !== undefined){
-					        relevantEdges = json.relevantedges;
-					        relevantNodes = json.relevantnodes;
-					        simplifiedGraphMap = [];
-					        buildGraphsAndPrepareResults(relevantNodes, relevantEdges, "relevant");
-					}
-					if(json.reducededges !== undefined && json.reducednodes !== undefined){
-				        reducedEdges = json.reducededges;
-				        reducedNodes = json.reducednodes;
-				        reducedGraphMap = [];
-				        buildGraphsAndPrepareResults(reducedNodes, reducedEdges, "witness");
-					}
-				} else if (m.data.errorPath !== undefined) {
-					errorPath = [];
-					JSON.parse(m.data.errorPath).forEach(function (d) {
-						if (d.argelem !== undefined) {
-							errorPath.push(d.argelem);
-						}
-					});
-				} else if (m.data.renderer !== undefined) {
-					if (graphMap.length > 0) {
-						self.postMessage({
-							"graph": JSON.stringify(graphMap[0]),
-							"id": graphCounter
-						});
-						graphMap.shift();
-						graphCounter++;
-					} else {
-						self.postMessage({
-							"status": "done"
-						});
-						if (simplifiedGraphMap.length > 0) {
-						        self.postMessage({
-						              "graph": JSON.stringify(simplifiedGraphMap[0]),
-						              "id": simplifiedGraphCounter,
-						              "simplifiedGraph" : true
-						        });
-						        simplifiedGraphMap.shift();
-						        simplifiedGraphCounter++;
-						}
-						if (typeof reducedGraphMap !== 'undefined' && reducedGraphMap.length > 0) {
-					        self.postMessage({
-					              "graph": JSON.stringify(reducedGraphMap[0]),
-					              "id": reducedGraphCounter,
-					              "reducedGraph" : true
-					        });
-					        reducedGraphMap.shift();
-					        reducedGraphCounter++;
-						}
-						if (errorPath !== undefined) {
-							errorGraphMap = [];
-							graphCounter = 0;
-							prepareErrorGraph();
-						}
-					}
-				} else if (m.data.errorGraph !== undefined) {
-					if (errorGraphMap.length > 0) {
-						self.postMessage({
-							"graph": JSON.stringify(errorGraphMap[0]),
-							"id": graphCounter,
-							"errorGraph": true
-						});
-						errorGraphMap.shift();
-						graphCounter++;
-					}
-				} else if (m.data.split !== undefined) {
-					graphSplitThreshold = m.data.split;
-					if (errorGraphMap !== undefined && errorGraphMap.length > 0) {
-						errorGraphMap = [];
-					}
-					buildGraphsAndPrepareResults();
-				}
-			}, false);
-
-			function buildGraphsAndPrepareResults(nodes, edges, graphLabel) {
-				if (nodes.length > graphSplitThreshold) {
-					buildMultipleGraphs(nodes, edges, graphLabel);
-				} else {
-					buildSingleGraph(nodes, edges, graphLabel);
-				}
-			}
-
-			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path
-			function prepareErrorGraph() {
-				var errorNodes = [],
-					errorEdges = [];
-				nodes.forEach(function (n) {
-					if (errorPath.includes(n.index)) {
-						errorNodes.push(n);
-					}
-				});
-				edges.forEach(function (e) {
-					if (errorPath.includes(e.source) && errorPath.includes(e.target)) {
-						errorEdges.push(e);
-					}
-				});
-				if (errorNodes.length > graphSplitThreshold) {
-					buildMultipleErrorGraphs(errorNodes, errorEdges);
-				} else {
-					var g = createGraph();
-					setGraphNodes(g, errorNodes);
-					setGraphEdges(g, errorEdges, false);
-					errorGraphMap.push(g);
-				}
-			}
-
-			function buildSingleGraph(nodes, edges, graphLabel) {
-				var g = createGraph();
-				setGraphNodes(g, nodes);
-				setGraphEdges(g, edges, false);
-				if(graphLabel === "relevant"){
-					simplifiedGraphMap.push(g);
-				} else if (graphLabel === "witness") {
-					reducedGraphMap.push(g);
-				} else {
-					graphMap.push(g);
-				}
-			}
-
-			// Split the ARG graph honoring the split threshold
-			function buildMultipleGraphs(nodes, edges, graphLabel) {
-				nodes.sort(function (firstNode, secondNode) {
-					return firstNode.index - secondNode.index;
-				})
-				var requiredGraphs = Math.ceil(nodes.length / graphSplitThreshold);
-				var firstGraphBuild = false;
-				var nodesPerGraph = [];
-				for (var i = 1; i <= requiredGraphs; i++) {
-					if (!firstGraphBuild) {
-						nodesPerGraph = nodes.slice(0, graphSplitThreshold);
-						firstGraphBuild = true;
-					} else {
-						if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-							nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-						} else {
-							nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
-						}
-					}
-					var graph = createGraph();
-					if (graphLabel === "relevant") {
-					    simplifiedGraphMap.push(graph);
-					} else if (graphLabel === "witness") {
-						reducedGraphMap.push(graph);
-					} else {
-						graphMap.push(graph);
-					}
-					setGraphNodes(graph, nodesPerGraph);
-					var nodesIndices = []
-					nodesPerGraph.forEach(function (n) {
-						nodesIndices.push(n.index);
-					});
-					var graphEdges = edges.filter(function (e) {
-						if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
-							return e;
-						}
-					});
-					setGraphEdges(graph, graphEdges, true);
-				}
-				buildCrossgraphEdges(edges, false);
-			}
-
-			// Split the ARG error graph honoring the split threshold
-			function buildMultipleErrorGraphs(errorNodes, errorEdges) {
-				errorNodes.sort(function (firstNode, secondNode) {
-					return firstNode.index - secondNode.index;
-				})
-				var requiredGraphs = Math.ceil(errorNodes.length / graphSplitThreshold);
-				var firstGraphBuild = false;
-				var nodesPerGraph = [];
-				for (var i = 1; i <= requiredGraphs; i++) {
-					if (!firstGraphBuild) {
-						nodesPerGraph = errorNodes.slice(0, graphSplitThreshold);
-						firstGraphBuild = true;
-					} else {
-						if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-							nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-						} else {
-							nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1));
-						}
-					}
-					var graph = createGraph();
-					errorGraphMap.push(graph);
-					setGraphNodes(graph, nodesPerGraph);
-					var nodesIndices = []
-					nodesPerGraph.forEach(function (n) {
-						nodesIndices.push(n.index);
-					});
-					var graphEdges = errorEdges.filter(function (e) {
-						if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
-							return e;
-						}
-					});
-					setGraphEdges(graph, graphEdges, true);
-				}
-				buildCrossgraphEdges(errorEdges, true);
-			}
-
-			// Handle graph connecting edges
-			function buildCrossgraphEdges(edges, errorGraph) {
-				edges.forEach(function (edge) {
-					var sourceGraph, targetGraph;
-					if (errorGraph) {
-						sourceGraph = getGraphForErrorNode(edge.source);
-						targetGraph = getGraphForErrorNode(edge.target);
-						if (sourceGraph < targetGraph) {
-							errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-								label: "",
-								class: "arg-dummy",
-								id: "dummy-" + edge.target
-							});
-							errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-								label: edge.label,
-								id: "arg-edge" + edge.source + edge.target,
-								style: "stroke-dasharray: 5, 5;",
-								class: edgeClassDecider(edge)
-							});
-							errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-								label: "",
-								class: "dummy"
-							});
-							errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-								label: "",
-								labelStyle: "font-size: 12px;",
-								id: "arg-edge_" + edge.source + "-" + edge.target,
-								style: "stroke-dasharray: 5, 5;",
-								class: "arg-split-edge"
-							});
-						} else if (sourceGraph > targetGraph) {
-							errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-								label: "",
-								class: "arg-dummy",
-								id: "dummy-" + edge.target
-							});
-							errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-								label: edge.label,
-								id: "arg-edge" + edge.source + edge.target,
-								arrowhead: "undirected",
-								style: "stroke-dasharray: 5, 5;",
-								class: edgeClassDecider(edge)
-							});
-							errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-								label: "",
-								class: "dummy"
-							});
-							errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-								label: "",
-								labelStyle: "font-size: 12px;",
-								id: "arg-edge_" + edge.source + "-" + edge.target,
-								arrowhead: "undirected",
-								style: "stroke-dasharray: 5, 5;",
-								class: "arg-split-edge"
-							});
-						}
-					} else {
-						sourceGraph = getGraphForNode(edge.source);
-						targetGraph = getGraphForNode(edge.target);
-						if (sourceGraph < targetGraph) {
-							graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-								label: "",
-								class: "arg-dummy",
-								id: "dummy-" + edge.target
-							});
-							graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-								label: edge.label,
-								id: "arg-edge" + edge.source + edge.target,
-								style: "stroke-dasharray: 5, 5;",
-								class: edgeClassDecider(edge)
-							});
-							graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-								label: "",
-								class: "dummy"
-							});
-							graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-								label: "",
-								labelStyle: "font-size: 12px;",
-								id: "arg-edge_" + edge.source + "-" + edge.target,
-								style: "stroke-dasharray: 5, 5;",
-								class: "arg-split-edge"
-							});
-						} else if (sourceGraph > targetGraph) {
-							graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-								label: "",
-								class: "arg-dummy",
-								id: "dummy-" + edge.target
-							});
-							graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-								label: edge.label,
-								id: "arg-edge" + edge.source + edge.target,
-								arrowhead: "undirected",
-								style: "stroke-dasharray: 5, 5;",
-								class: edgeClassDecider(edge)
-							});
-							graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-								label: "",
-								class: "dummy"
-							});
-							graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-								label: "",
-								labelStyle: "font-size: 12px;",
-								id: "arg-edge_" + edge.source + "-" + edge.target,
-								arrowhead: "undirected",
-								style: "stroke-dasharray: 5, 5;",
-								class: "arg-split-edge"
-							});
-						}
-					}
-				});
-			}
-
-			// Return the graph in which the nodeNumber is present
-			function getGraphForNode(nodeNumber) {
-				return graphMap.findIndex(function (graph) {
-					return graph.nodes().includes("" + nodeNumber);
-				})
-			}
-
-			// Return the graph in which the nodeNumber is present for an error node
-			function getGraphForErrorNode(nodeNumber) {
-				return errorGraphMap.findIndex(function (graph) {
-					return graph.nodes().includes("" + nodeNumber);
-				})
-			}
-
-			// create and return a graph element with a set transition
-			function createGraph() {
-				var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
-					function () {
-						return {};
-					});
-				return g;
-			}
-
-			// Set nodes for the graph contained in the json nodes
-			function setGraphNodes(graph, nodesToSet) {
-				nodesToSet.forEach(function (n) {
-					if (n.type === "target" && errorPath !== undefined && !errorPath.includes(n.index)) {
-						errorPath.push(n.index);
-					}
-					graph.setNode(n.index, {
-						label: n.label,
-						class: "arg-node " + n.type,
-						id: nodeIdDecider(n)
-					});
-				});
-			}
-
-			function nodeIdDecider(node) {
-				if (errorGraphMap === undefined)
-					return "arg-node" + node.index;
-				else
-					return "arg-error-node" + node.index;
-			}
-
-			// Set the graph edges
-			function setGraphEdges(graph, edgesToSet, multigraph) {
-				edgesToSet.forEach(function (e) {
-					if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
-						graph.setEdge(e.source, e.target, {
-							label: e.label,
-							lineInterpolate: "basis",
-							class: edgeClassDecider(e),
-							id: "arg-edge" + e.source + e.target,
-							weight: edgeWeightDecider(e)
-						});
-					}
-				});
-			}
-
-			// Set class for passed edge
-			function edgeClassDecider(edge) {
-				if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
-					return "arg-edge error-edge";
-				} else {
-					return "arg-edge";
-				}
-			}
-
-			// Decide the weight for the edges based on type
-			function edgeWeightDecider(edge) {
-				if (edge.type === "covered") return 0;
-				return 1;
-			}
-
-		}
-	}
-
 	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
 	 * Create workers using blobs due to Chrome's default security policy and
@@ -1909,10 +1083,16 @@ function init() {
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
 		type: 'text/javascript'
 	})));
+  if (isDevEnv) {
+    cfaWorker.postMessage({"externalLibPaths": externalLibs});
+  }
 	if (argJson.nodes) {
 		argWorker = new Worker(URL.createObjectURL(new Blob(["(" + argWorker_function + ")()"], {
 			type: "text/javascript"
 		})));
+    if (isDevEnv) {
+      argWorker.postMessage({"externalLibPaths": externalLibs});
+    }
 	}
 
 	cfaWorker.addEventListener("message", function (m) {
@@ -2021,7 +1201,7 @@ function init() {
 					});
 				}
 			} else if (m.data.status !== undefined) {
-				if ($("#report-controller").scope().getTabSet() === 2) {
+				if (angular.element($("#report-controller")).scope().getTabSet() === 2) {
 					d3.select("#arg-toolbar").style("visibility", "visible");
 					d3.select("#arg-container").classed("arg-content", true);
 					d3.selectAll(".arg-graph").style("visibility", "visible");
@@ -2126,30 +1306,30 @@ function init() {
 	// Add desired events to CFA nodes and edges
 	function addEventsToCfa() {
 		addPanEvent(".cfa-svg");
-		d3.selectAll(".cfa-node").on("mouseover", function (d) {
+		d3.selectAll(".cfa-node").on("mouseover", function (d, i) {
 			var message;
-			if (parseInt(d) > 100000) {
+			if (parseInt(i) > 100000) {
 				message = "<span class=\" bold \">type</span>: function call node <br>" + "<span class=\" bold \">dblclick</span>: Select function";
 			} else {
 				var node = cfaJson.nodes.find(function (n) {
-					return n.index === parseInt(d);
+					return n.index === parseInt(i);
 				});
 				message = "<span class=\" bold \">function</span>: " + node.func;
-				if (d in cfaJson.combinedNodes) {
-					message += "<br><span class=\" bold \">combines nodes</span> : " + Math.min.apply(null, cfaJson.combinedNodes[d]) + "-" + Math.max.apply(null, cfaJson.combinedNodes[d]);
+				if (i in cfaJson.combinedNodes) {
+					message += "<br><span class=\" bold \">combines nodes</span> : " + Math.min.apply(null, cfaJson.combinedNodes[i]) + "-" + Math.max.apply(null, cfaJson.combinedNodes[i]);
 				}
 				message += "<br> <span class=\" bold \">reverse postorder Id</span>: " + node.rpid;
 			}
-			showToolTipBox(d3.event, message);
+			showToolTipBox(d, message);
 		}).on("mouseout", function () {
 			hideToolTipBox();
 		});
-		d3.selectAll(".fcall").on("dblclick", function (d) {
-			$("#cfa-toolbar").scope().selectedCFAFunction = d3.select("#cfa-node" + d + " text").text();
-			$("#cfa-toolbar").scope().setCFAFunction();
+		d3.selectAll(".fcall").on("dblclick", function (d, i) {
+			angular.element($("#cfa-toolbar")).scope().selectedCFAFunction = d3.select("#cfa-node" + i + " text").text();
+			angular.element($("#cfa-toolbar").scope()).setCFAFunction();
 		});
 		d3.selectAll(".cfa-dummy").on("mouseover", function (d) {
-			showToolTipBox(d3.event, "<span class=\" bold \">type</span>: placeholder <br> <span class=\" bold \">dblclick</span>: jump to Target node");
+			showToolTipBox(d, "<span class=\" bold \">type</span>: placeholder <br> <span class=\" bold \">dblclick</span>: jump to Target node");
 		}).on("mouseout", function () {
 			hideToolTipBox();
 		}).on("dblclick", function () {
@@ -2164,12 +1344,12 @@ function init() {
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "<span class=\" bold \">dblclick</span>: jump to Source line");
+				showToolTipBox(d, "<span class=\" bold \">dblclick</span>: jump to Source line");
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
-			}).on("dblclick", function (d) {
-				var edge = findCfaEdge(d);
+			}).on("dblclick", function (d, i) {
+				var edge = findCfaEdge(i);
 				if (edge === undefined) { // this occurs for edges between graphs - splitting edges
 					var thisEdgeData = d3.select(this).attr("id").split("_")[1];
 					edge = findCfaEdge({
@@ -2192,7 +1372,7 @@ function init() {
 		d3.selectAll(".cfa-split-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "<span class=\" bold \">type</span>: place holder <br> <span class=\" bold \">dblclick</span>: jump to Original edge");
+				showToolTipBox(d, "<span class=\" bold \">type</span>: place holder <br> <span class=\" bold \">dblclick</span>: jump to Original edge");
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
@@ -2234,21 +1414,21 @@ function init() {
 	function addEventsToArg() {
 		addPanEvent(".arg-svg");
 		d3.selectAll(".arg-node")
-			.on("mouseover", function (d) {
+			.on("mouseover", function (d, i) {
 				var nodesArray = Array.prototype.concat(
 						argJson.nodes,
 						typeof argJson.relevantnodes === "undefined" ? [] : argJson.relevantnodes,
 						typeof argJson.reducednodes === "undefined" ? [] : argJson.reducednodes
 				);
 				var node = nodesArray.find(function (it) {
-					return it.index === parseInt(d);
+					return it.index === parseInt(i);
 				})
 				var message = "<span class=\" bold \">function</span>: " + node.func + "<br>";
 				if (node.type) {
 					message += "<span class=\" bold \">type</span>: " + node.type + "<br>";
 				}
 				message += "<span class=\" bold \">dblclick</span>: jump to CFA node";
-				showToolTipBox(d3.event, message);
+				showToolTipBox(d, message);
 			}).on("mouseout", function () {
 				hideToolTipBox();
 			}).on("dblclick", function () {
@@ -2267,7 +1447,7 @@ function init() {
 			});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function (d) {
-				showToolTipBox(d3.event, "<span class=\" bold \">type</span>: placeholder <br> <span class=\" bold \">dblclick</span>: jump to Target node");
+				showToolTipBox(d, "<span class=\" bold \">type</span>: placeholder <br> <span class=\" bold \">dblclick</span>: jump to Target node");
 			}).on("mouseout", function () {
 				hideToolTipBox();
 			}).on("dblclick", function () {
@@ -2280,7 +1460,7 @@ function init() {
 				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 300).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
 		d3.selectAll(".arg-edge")
-			.on("mouseover", function (d) {
+			.on("mouseover", function (d, i) {
 				d3.select(this).select("path").style("stroke-width", "3px");
 				var edgeArray = Array.prototype.concat(
 						argJson.edges,
@@ -2288,7 +1468,7 @@ function init() {
 						typeof argJson.reducededges === "undefined" ? [] : argJson.reducededges
 						);
 				var edge = edgeArray.find(function (it) {
-					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
+					return it.source === parseInt(i.v) && it.target === parseInt(i.w);
 				})
 				var message = "";
 				Object.keys(edge).forEach(function(key,index) {
@@ -2297,9 +1477,9 @@ function init() {
 					}
 				});
 				if (edge) {
-					showToolTipBox(d3.event, message);
+					showToolTipBox(d, message);
 				} else {
-					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: graph connecting edge")
+					showToolTipBox(d, "<span class=\" bold \">type</span>: graph connecting edge")
 				}
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
@@ -2308,7 +1488,7 @@ function init() {
 		d3.selectAll(".arg-split-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "<span class=\" bold \">type</span>: place holder <br> <span class=\" bold \">dblclick</span>: jump to Original edge");
+				showToolTipBox(d, "<span class=\" bold \">type</span>: place holder <br> <span class=\" bold \">dblclick</span>: jump to Original edge");
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
@@ -2329,8 +1509,8 @@ function init() {
 		d3.selectAll(itemsToSelect).each(function (d, i) {
 			var svg = d3.select(this),
 				svgGroup = d3.select(this.firstChild);
-			var zoom = d3.zoom().on("zoom", function () {
-				svgGroup.attr("transform", d3.event.transform)
+			var zoom = d3.zoom().on("zoom", function (d, i) {
+				svgGroup.attr("transform", d.transform)
 			});
 			svg.call(zoom);
 			svg.on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
@@ -2355,5 +1535,6 @@ function init() {
 	function hideToolTipBox() {
 		d3.select("#infoBox").style("visibility", "hidden");
 	}
-
 }
+
+window.init = init;

@@ -17,19 +17,19 @@ describe("Init action handler", function () {
 
     describe("argJson variable initialization", function () {
         it("argJson Should be defined", function () {
-            expect(argJson).not.toBeUndefined();
+            expect(window.argJson).not.toBeUndefined();
         })
     })
 
     describe("sourceFiles variable initialization", function () {
         it(" sourceFiles Should be defined", function () {
-            expect(sourceFiles).not.toBeUndefined();
+            expect(window.sourceFiles).not.toBeUndefined();
         })
     })
 
     describe("cfaJson variable initialization", function () {
         it("cfaJson Should be defined", function () {
-            expect(cfaJson).not.toBeUndefined();
+            expect(window.cfaJson).not.toBeUndefined();
         })
     })
 
