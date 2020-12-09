@@ -79,7 +79,10 @@ public class OutputWriter {
 
     private void initOutDir(String pPath) {
         File outpath = new File(pPath);
-        outpath.mkdirs();
+        boolean dirs_done = outpath.mkdirs();
+        if (!dirs_done) {
+            logger.log(Level.WARNING, "Could not make output directory for test cases, maybe alread exists.");
+        }
     }
 
     /**
