@@ -178,7 +178,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 weight = preloadedValues.size();
             } catch (SolverException ex) {
                 // Re-Run with previous preloaded Values
-                logger.log(Level.INFO, "Targeting ...");
+                logger.log(Level.INFO, "Target solve aborted");
                 preloadedValues = previousLoadedValues;
                 weight = -1;
             }

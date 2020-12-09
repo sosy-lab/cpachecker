@@ -104,7 +104,7 @@ public class TargetSolver {
                 } catch (SolverException ex) {
                     // If this is not solvable, just skip
                     this.unsuccessfull_solves.setNextValue(1);
-                    this.logger.log(Level.INFO, "Could not solve for more solutions.");
+                    this.logger.log(Level.FINE, "Could not solve for more solutions.");
                     continue;
                 } finally {
                     prover.pop();
