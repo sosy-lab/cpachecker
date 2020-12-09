@@ -18,16 +18,17 @@ public class Utils {
     /**
      * Convert a value object (something implementing 
      * org.sosy_lab.cpachecker.cpa.value.type.Value) into it's concrete
-     * implmenentation.
+     * implementation.
      */
-    @SuppressWarnings("InstanceOfAndCastMatchWrongType")
     public static Value toValue(Object value){
         if (value instanceof Boolean) {
             return BooleanValue.valueOf((Boolean) value);
         } else if (value instanceof Integer) {
             return new NumericValue((Integer) value);
         } else if (value instanceof Character) {
-            return new NumericValue((Integer) value);
+            char c = (Character) value;
+            int i = c;
+            return new NumericValue(i);
         } else if (value instanceof Float) {
             return new NumericValue((Float) value);
         } else if (value instanceof Double) {
