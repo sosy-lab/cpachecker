@@ -298,7 +298,7 @@ public class ValueAnalysisTransferRelation
   }
 
   public void setKnownValues(List<Value> pKnownValues){
-    knownValues = new ArrayList<Value>(pKnownValues);
+    knownValues = new ArrayList<>(pKnownValues);
   }
 
   public void clearKnownValues() {
