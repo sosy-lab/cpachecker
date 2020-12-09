@@ -12,27 +12,25 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public interface Selector {
-    /**
-     * Select a target state and return the path formula that leads to it.
-     */
-    PathFormula select(ReachedSet pReachedSet) throws InterruptedException;
+  /** Select a target state and return the path formula that leads to it. */
+  PathFormula select(ReachedSet pReachedSet) throws InterruptedException;
 
-    /**
-     * Sometimes, others might want to influence which state(s) might be selected.
-     * 
-     * This feedback-mechanism is based on the following contract: Other phases might mark a state
-     * with the given weight for the selector. A posivitive weight leads to this state beeing
-     * selected with a higher percentage, a negative weight with a lower one. The actual mechanism
-     * is implemented by the selector and does not guarantee anything (like this default) but might
-     * try to respect weighted selection if possible.
-     * 
-     * @param pPathFormula Which state to mark.
-     * @param weight Weight to assign to the state.
-     */
-    default void feedback(PathFormula pPathFormula, int weight){
-        // The default is to do nothing
-        return;
-    }
-    
-    LegionComponentStatistics getStats();
+  /**
+   * Sometimes, others might want to influence which state(s) might be selected.
+   *
+   * <p>This feedback-mechanism is based on the following contract: Other phases might mark a state
+   * with the given weight for the selector. A posivitive weight leads to this state beeing selected
+   * with a higher percentage, a negative weight with a lower one. The actual mechanism is
+   * implemented by the selector and does not guarantee anything (like this default) but might try
+   * to respect weighted selection if possible.
+   *
+   * @param pPathFormula Which state to mark.
+   * @param weight Weight to assign to the state.
+   */
+  default void feedback(PathFormula pPathFormula, int weight) {
+    // The default is to do nothing
+    return;
+  }
+
+  LegionComponentStatistics getStats();
 }

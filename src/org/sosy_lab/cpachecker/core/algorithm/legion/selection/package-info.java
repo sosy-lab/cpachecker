@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Interface and implementation for the selection step within legion.
- */
+/** Interface and implementation for the selection step within legion. */
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
