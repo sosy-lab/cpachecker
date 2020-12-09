@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -64,11 +65,11 @@ public class TargetSolver {
      * 
      * @param pTarget The target formula to solve for.
      */
-    ArrayList<ArrayList<ValueAssignment>> target(PathFormula pTarget)
+    List<List<ValueAssignment>> target(PathFormula pTarget)
             throws InterruptedException, SolverException {
                         
         this.stats.start();
-        ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
+        List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
 
         try (ProverEnvironment prover =
                 this.solver.newProverEnvironment(
@@ -149,8 +150,8 @@ public class TargetSolver {
      * 
      * @param pConstraints The source of values to assign.
      */
-    private ArrayList<ValueAssignment> computePreloadValues(Model pConstraints) {
-        ArrayList<ValueAssignment> values = new ArrayList<>();
+    private List<ValueAssignment> computePreloadValues(Model pConstraints) {
+        List<ValueAssignment> values = new ArrayList<>();
         for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
 

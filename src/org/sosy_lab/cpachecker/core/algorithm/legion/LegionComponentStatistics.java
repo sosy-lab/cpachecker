@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 public class LegionComponentStatistics {
@@ -31,7 +32,7 @@ public class LegionComponentStatistics {
     private Instant now;
 
     private int iterations;
-    private HashMap<String, Double> others;
+    private Map<String, Double> others;
 
     public LegionComponentStatistics(String pName) {
         this.name = pName;

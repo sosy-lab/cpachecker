@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
@@ -135,7 +136,7 @@ public class OutputWriter {
         ARGState args = AbstractStates.extractStateByType(first, ARGState.class);
 
         // Search individual testcases
-        ArrayList<Entry<MemoryLocation, ValueAndType>> values = new ArrayList<>();
+        List<Entry<MemoryLocation, ValueAndType>> values = new ArrayList<>();
         searchTestCase(args, values);
 
         // Determine file to open
@@ -215,7 +216,7 @@ public class OutputWriter {
      * @param values The list of values to append to.
      */
     private void
-            searchTestCase(ARGState state, ArrayList<Entry<MemoryLocation, ValueAndType>> values) {
+            searchTestCase(ARGState state, List<Entry<MemoryLocation, ValueAndType>> values) {
         // check if is nondet assignment
         LocationState ls = AbstractStates.extractStateByType(state, LocationState.class);
 
@@ -283,7 +284,7 @@ public class OutputWriter {
     /**
      * Write variables from values to a testcase file.
      */
-    private String writeVariablesToTestcase(ArrayList<Entry<MemoryLocation, ValueAndType>> values) {
+    private String writeVariablesToTestcase(List<Entry<MemoryLocation, ValueAndType>> values) {
 
         StringBuilder sb = new StringBuilder();
         for (Entry<MemoryLocation, ValueAndType> v : values) {

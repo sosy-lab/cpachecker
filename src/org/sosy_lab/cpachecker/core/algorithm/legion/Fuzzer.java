@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -90,7 +91,7 @@ public class Fuzzer {
     public ReachedSet fuzz(
             ReachedSet pReachedSet,
             Algorithm pAlgorithm,
-            ArrayList<ArrayList<ValueAssignment>> pPreLoadedValues)
+            List<List<ValueAssignment>> pPreLoadedValues)
             throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
 
         for (int i = 0; i < this.passes; i++) {
@@ -142,8 +143,8 @@ public class Fuzzer {
     /**
      * Use assignments to preload the ValueCPA in order to use them as applicable.
      */
-    private ArrayList<Value> preloadValues(ArrayList<ValueAssignment> assignments) {
-        ArrayList<Value> values = new ArrayList<>();
+    private List<Value> preloadValues(List<ValueAssignment> assignments) {
+        List<Value> values = new ArrayList<>();
         for (ValueAssignment a : assignments) {
             values.add(Utils.toValue(a.getValue()));
         }

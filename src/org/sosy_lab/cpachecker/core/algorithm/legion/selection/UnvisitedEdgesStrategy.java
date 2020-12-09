@@ -62,7 +62,7 @@ public class UnvisitedEdgesStrategy implements Selector {
     public PathFormula select(ReachedSet pReachedSet) throws InterruptedException {
         this.stats.start();
         ARGState first = (ARGState) pReachedSet.getFirstState();
-        ArrayList<PathFormula> found_states = new ArrayList<>();
+        List<PathFormula> found_states = new ArrayList<>();
         
         // Search through the arg
         depthSearch(first, found_states);
@@ -77,7 +77,7 @@ public class UnvisitedEdgesStrategy implements Selector {
     /**
      * Take the found_states and try to retrieve one by considering the blacklist.
      */
-    PathFormula considerWeights(ArrayList<PathFormula> found_states) {
+    PathFormula considerWeights(List<PathFormula> found_states) {
         // Select a state at random
         PathFormula selected;
         while (true) {
@@ -156,12 +156,12 @@ public class UnvisitedEdgesStrategy implements Selector {
      * 
      * @return null if no unvisited edges, the first unvisited edge otherwise
      */
-    ArrayList<CFAEdge> getUnvisitedEdges(ARGState current_state) {
+    List<CFAEdge> getUnvisitedEdges(ARGState current_state) {
 
         LocationState current_ls =
                 AbstractStates.extractStateByType(current_state, LocationState.class);
         Iterable<CFAEdge> current_edges = current_ls.getOutgoingEdges();
-        ArrayList<CFAEdge> found_edges = new ArrayList<>();
+        List<CFAEdge> found_edges = new ArrayList<>();
 
         // Check each edge
         for (CFAEdge edge : current_edges) {

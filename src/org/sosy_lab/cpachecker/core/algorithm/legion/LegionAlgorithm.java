@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -141,7 +142,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         // has to be done to provide an initial set of states. This initial discovery
         // is meant to be cheap in resources and tries to establish easy to reach states.
         logger.log(Level.INFO, "Initial fuzzing ...");
-        ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
+        List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
         try {
             reachedSet = init_fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
         } finally {
@@ -185,7 +186,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
             // Phase Targeting: Solve for the target and produce a number of values
             // needed as input to reach this target as well as give feedback to selection.
-            ArrayList<ArrayList<ValueAssignment>> previousLoadedValues = preloadedValues;
+            List<List<ValueAssignment>> previousLoadedValues = preloadedValues;
             logger.log(Level.INFO, "Targeting ...");
             int weight;
             try {
