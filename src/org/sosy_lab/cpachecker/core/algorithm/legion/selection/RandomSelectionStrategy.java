@@ -110,12 +110,12 @@ public class RandomSelectionStrategy implements Selector {
     public void feedback(PathFormula pState, int pWeight) {
         if (pWeight < 0){
             this.blacklisted.add(pState);
-            this.stats.set_other("blacklisted", (double)this.blacklisted.size());
         }
     }
 
     @Override
     public LegionComponentStatistics getStats() {
+        this.stats.set_other("blacklisted", (double)this.blacklisted.size());
         return this.stats;
     }
 

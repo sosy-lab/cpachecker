@@ -132,6 +132,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
     if (basicType.isIntegerType()){
       value = generateInteger((CSimpleType) pType);
+      pPreviousState.nonDeterministicMark = true;
     } else {
       switch (basicType) {
         case UNSPECIFIED:
