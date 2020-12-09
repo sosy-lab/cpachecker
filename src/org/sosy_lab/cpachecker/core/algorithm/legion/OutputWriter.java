@@ -120,7 +120,7 @@ public class OutputWriter {
         }
         logger.log(
                 Level.INFO,
-                "Searching through arg(" + Integer.toString(reached_size) + ") for testcases");
+                "Searching through arg(" + reached_size + ") for testcases");
 
         // Get starting point for search
         AbstractState first = pReachedSet.getFirstState();

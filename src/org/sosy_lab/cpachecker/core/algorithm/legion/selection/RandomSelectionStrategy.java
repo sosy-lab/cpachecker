@@ -58,7 +58,7 @@ public class RandomSelectionStrategy implements Selector {
 
             // If the just selected target is the last one,
             // No choice but to return it.
-            if (nonDetStates.size() == 0){
+            if (nonDetStates.isEmpty()){
                 break;
             }
 

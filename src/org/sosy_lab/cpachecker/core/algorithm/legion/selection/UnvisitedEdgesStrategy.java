@@ -73,7 +73,7 @@ public class UnvisitedEdgesStrategy implements Selector {
 
             // If the just selected target is the last one,
             // No choice but to return it.
-            if (found_states.size() == 0){
+            if (found_states.isEmpty()){
                 break;
             }
 

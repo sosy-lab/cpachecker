@@ -495,7 +495,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     if (functionNameExp instanceof CIdExpression) {
       String calledFunctionName = ((CIdExpression) functionNameExp).getName();
-      if (calledFunctionName.startsWith("__VERIFIER_nondet_") && knownValues != null && knownValues.size() > 0){
+      if (calledFunctionName.startsWith("__VERIFIER_nondet_") && knownValues != null && !knownValues.isEmpty()){
         Value value = knownValues.get(0);
         if (isAssignable(value, pIastFunctionCallExpression)){
           logger.log(Level.FINE, "Used preloaded value", value);
