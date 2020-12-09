@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -55,7 +56,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   private Random rnd;
   private static long random_seed = 1636672210L;
   private final LogManager logger;
-  private HashMap<String, Value> loadedValues = new HashMap<>();
+  private Map<String, Value> loadedValues = new HashMap<>();
 
   @Option(
     description = "If this option is set to true, an own symbolic identifier is assigned to"
