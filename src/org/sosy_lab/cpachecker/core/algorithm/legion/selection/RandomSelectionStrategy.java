@@ -22,21 +22,23 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 /** Selects a random state from the reached set which has a nondet-mark. */
 public class RandomSelectionStrategy implements Selector {
 
-  private LogManager logger;
-  private Random random;
-  private LegionComponentStatistics stats;
-  private Set<PathFormula> blacklisted;
+  private final LogManager logger;
+  private final Random random;
+  private final LegionComponentStatistics stats;
+  private final Set<PathFormula> blacklisted;
 
-  private static long random_seed = 1200709844L;
+  private static long randomSeed = 1200709844L;
 
   public RandomSelectionStrategy(LogManager logger) {
     this.logger = logger;
 
-    this.random = new Random(random_seed);
+    this.random = new Random(randomSeed);
     this.stats = new LegionComponentStatistics("selection");
 
     this.blacklisted = new HashSet<>();
@@ -75,7 +77,7 @@ public class RandomSelectionStrategy implements Selector {
     List<ARGState> nonDetStates = new ArrayList<>();
     for (AbstractState state : reachedSet.asCollection()) {
       ValueAnalysisState vs = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-      if (vs.nonDeterministicMark) {
+      if (vs.isMarkedNonDeterministic()) {
         logger.log(Level.FINE, "Nondet state", vs.getConstants().toString());
         nonDetStates.add((ARGState) state);
       }
@@ -96,7 +98,9 @@ public class RandomSelectionStrategy implements Selector {
 
   @Override
   public LegionComponentStatistics getStats() {
-    this.stats.set_other("blacklisted", (double) this.blacklisted.size());
+    StatInt blacklistedSum = new StatInt(StatKind.SUM, "blacklisted");
+    blacklistedSum.setNextValue(this.blacklisted.size());
+    this.stats.setOther(blacklistedSum);
     return this.stats;
   }
 }

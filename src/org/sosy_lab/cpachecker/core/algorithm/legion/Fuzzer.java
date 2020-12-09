@@ -43,9 +43,9 @@ public class Fuzzer {
 
     private final LogManager logger;
     private final ValueAnalysisCPA valueCpa;
-    private OutputWriter outputWriter;
-    private ShutdownNotifier shutdownNotifier;
-    LegionComponentStatistics stats;
+    private final OutputWriter outputWriter;
+    private final ShutdownNotifier shutdownNotifier;
+    private final LegionComponentStatistics stats;
     private int passes;
 
     public Fuzzer(
@@ -96,10 +96,8 @@ public class Fuzzer {
             try {
                 // Run algorithm and collect result
                 pAlgorithm.run(pReachedSet);
-            } catch (Exception e) {
-                this.stats.finish();
-                throw e;
             } finally {
+                this.stats.finish();
                 this.outputWriter.writeTestCases(pReachedSet);
             }
 
@@ -135,11 +133,16 @@ public class Fuzzer {
     private List<Value> preloadValues(List<ValueAssignment> assignments) {
         List<Value> values = new ArrayList<>();
         for (ValueAssignment a : assignments) {
-            values.add(Utils.toValue(a.getValue()));
+            values.add(ValueConverter.toValue(a.getValue()));
         }
 
         valueCpa.getTransferRelation().setKnownValues(values);
 
         return values;
     }
+
+    public LegionComponentStatistics getStats() {
+        return this.stats;
+    }
+
 }

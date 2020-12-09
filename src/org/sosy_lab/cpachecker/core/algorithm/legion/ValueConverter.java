@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-public class Utils {
+class ValueConverter {
 
     /**
      * Convert a value object (something implementing 

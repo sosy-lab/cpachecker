@@ -569,7 +569,6 @@ public class CoreComponentsFactory {
       }
 
       if (useLegion) {
-        logger.log(Level.INFO, "Creating Legion algorithm");
         algorithm = new LegionAlgorithm(algorithm, logger, config, cpa, shutdownNotifier);
       }
 

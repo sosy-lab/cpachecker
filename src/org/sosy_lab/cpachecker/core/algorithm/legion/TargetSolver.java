@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
@@ -26,13 +28,13 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class TargetSolver {
 
-    private LogManager logger;
-    private Solver solver;
-    private int maxSolverAsks;
-    private int successfull_primary_solves = 0;
-    private int successfull_secondary_solves = 0;
-    private int unsuccessfull_solves = 0;
-    private LegionComponentStatistics stats;
+    private final LogManager logger;
+    private final Solver solver;
+    private final int maxSolverAsks;
+    private final StatInt successfull_primary_solves = new StatInt(StatKind.COUNT, "successfull_primary_solves");
+    private final StatInt successfull_secondary_solves = new StatInt(StatKind.COUNT, "successfull_secondary_solves");
+    private final StatInt unsuccessfull_solves = new StatInt(StatKind.COUNT, "unsuccessfull_solves");
+    private final LegionComponentStatistics stats;
 
     /**
      * @param pLogger        The logging instance to use.
@@ -70,9 +72,9 @@ public class TargetSolver {
             // Ask solver for the first set of Values
             try (Model constraints = solvePathConstrains(pTarget.getFormula(), prover)) {
                 preloadedValues.add(computePreloadValues(constraints));
-                this.successfull_primary_solves += 1;
+                this.successfull_primary_solves.setNextValue(1);
             } catch (SolverException ex) {
-                this.unsuccessfull_solves += 1;
+                this.unsuccessfull_solves.setNextValue(1);
                 this.logger.log(Level.WARNING, "Could not solve even once formula.");
                 this.stats.finish();
                 throw ex;
@@ -96,12 +98,12 @@ public class TargetSolver {
                     }
                     try (Model constraints = prover.getModel()){
                         preloadedValues.add(computePreloadValues(constraints));
-                        this.successfull_secondary_solves += 1;
+                        this.successfull_secondary_solves.setNextValue(1);
                     }
                     
                 } catch (SolverException ex) {
                     // If this is not solvable, just skip
-                    this.unsuccessfull_solves += 1;
+                    this.unsuccessfull_solves.setNextValue(1);
                     this.logger.log(Level.INFO, "Could not solve for more solutions.");
                     continue;
                 } finally {
@@ -147,7 +149,7 @@ public class TargetSolver {
                 continue;
             }
 
-            Value value = Utils.toValue(assignment.getValue());
+            Value value = ValueConverter.toValue(assignment.getValue());
             logger.log(Level.FINE, "Loaded Value", name, value);
             values.add(assignment);
         }
@@ -155,9 +157,9 @@ public class TargetSolver {
     }
 
     public LegionComponentStatistics getStats(){
-        this.stats.set_other("successfull_primary_solves", (double)this.successfull_primary_solves);
-        this.stats.set_other("successfull_secondary_solves", (double)this.successfull_secondary_solves);
-        this.stats.set_other("unsuccessfull_solves", (double)this.unsuccessfull_solves);
+        this.stats.setOther(this.successfull_primary_solves);
+        this.stats.setOther(this.successfull_secondary_solves);
+        this.stats.setOther(this.unsuccessfull_solves);
 
         return this.stats;
     }

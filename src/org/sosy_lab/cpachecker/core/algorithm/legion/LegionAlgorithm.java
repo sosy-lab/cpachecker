@@ -60,20 +60,20 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     // General fields
     private final Algorithm algorithm;
     private final LogManager logger;
-    private Configuration config;
-    private ShutdownNotifier shutdownNotifier;
+    private final Configuration config;
+    private final ShutdownNotifier shutdownNotifier;
 
     // CPAs + components
-    private ValueAnalysisCPA valueCpa;
-    private Solver solver;
-    final PredicateCPA predCpa;
+    private final ValueAnalysisCPA valueCpa;
+    private final Solver solver;
+    private final PredicateCPA predCpa;
 
     // Legion Specific
-    private OutputWriter outputWriter;
-    private Selector selectionStrategy;
-    private TargetSolver targetSolver;
-    private Fuzzer fuzzer;
-    private Fuzzer init_fuzzer;
+    private final OutputWriter outputWriter;
+    private final Selector selectionStrategy;
+    private final TargetSolver targetSolver;
+    private final Fuzzer fuzzer;
+    private final Fuzzer initFuzzer;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -97,12 +97,12 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         this.valueCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
 
         // Configure Output
-        this.outputWriter = new OutputWriter(logger, predCpa, "./output/testcases");
+        this.outputWriter = new OutputWriter(logger, predCpa, pConfig);
 
         // Set selection Strategy, targetSolver and fuzzers
         this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
-        this.init_fuzzer =
+        this.initFuzzer =
                 new Fuzzer(
                         "init",
                         logger,
@@ -132,7 +132,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         logger.log(Level.INFO, "Initial fuzzing ...");
         List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
         try {
-            reachedSet = init_fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
+            reachedSet = initFuzzer.fuzz(reachedSet, algorithm, preloadedValues);
         } finally {
             outputWriter.writeTestCases(reachedSet);
         }
@@ -178,6 +178,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                 weight = preloadedValues.size();
             } catch (SolverException ex) {
                 // Re-Run with previous preloaded Values
+                logger.log(Level.INFO, "Targeting ...");
                 preloadedValues = previousLoadedValues;
                 weight = -1;
             }
@@ -229,10 +230,10 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
         pOut.println("components:");
 
-        pOut.println(this.init_fuzzer.stats.collect());
+        pOut.println(this.initFuzzer.getStats().collect());
         pOut.println(this.selectionStrategy.getStats().collect());
         pOut.println(this.targetSolver.getStats().collect());
-        pOut.println(this.fuzzer.stats.collect());
+        pOut.println(this.fuzzer.getStats().collect());
         pOut.println(this.outputWriter.getStats().collect());
     }
 

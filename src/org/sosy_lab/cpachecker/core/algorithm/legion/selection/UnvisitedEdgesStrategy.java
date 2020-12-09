@@ -27,14 +27,16 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 public class UnvisitedEdgesStrategy implements Selector {
 
-  final LogManager logger;
-  final PathFormulaManager formulaManager;
-  private LegionComponentStatistics stats;
-  private Random random;
-  private Set<PathFormula> blacklisted;
+  private final LogManager logger;
+  private final PathFormulaManager formulaManager;
+  private final LegionComponentStatistics stats;
+  private final Random random;
+  private final Set<PathFormula> blacklisted;
 
   public UnvisitedEdgesStrategy(LogManager logger, PathFormulaManager formulaManager) {
     this.logger = logger;
@@ -49,28 +51,28 @@ public class UnvisitedEdgesStrategy implements Selector {
   public PathFormula select(ReachedSet pReachedSet) throws InterruptedException {
     this.stats.start();
     ARGState first = (ARGState) pReachedSet.getFirstState();
-    List<PathFormula> found_states = new ArrayList<>();
+    List<PathFormula> foundStates = new ArrayList<>();
 
     // Search through the arg
-    depthSearch(first, found_states);
+    depthSearch(first, foundStates);
 
     // Select a state at random
-    PathFormula selected = considerWeights(found_states);
+    PathFormula selected = considerWeights(foundStates);
 
     this.stats.finish();
     return selected;
   }
 
   /** Take the found_states and try to retrieve one by considering the blacklist. */
-  PathFormula considerWeights(List<PathFormula> found_states) {
+  PathFormula considerWeights(List<PathFormula> foundStates) {
     // Select a state at random
     PathFormula selected;
     while (true) {
-      selected = found_states.remove(this.random.nextInt(found_states.size()));
+      selected = foundStates.remove(this.random.nextInt(foundStates.size()));
 
       // If the just selected target is the last one,
       // No choice but to return it.
-      if (found_states.isEmpty()) {
+      if (foundStates.isEmpty()) {
         break;
       }
 
@@ -107,12 +109,12 @@ public class UnvisitedEdgesStrategy implements Selector {
    * Search through the states referenced by state in a depth-first manor in order to find the first
    * unvisited CFAEdge.
    */
-  void depthSearch(ARGState state, List<PathFormula> found_edges) throws InterruptedException {
+  void depthSearch(ARGState state, List<PathFormula> foundEdges) throws InterruptedException {
     for (CFAEdge unvisitedEdge : getUnvisitedEdges(state)) {
       try {
-        found_edges.add(this.makeFormula(state, unvisitedEdge));
+        foundEdges.add(this.makeFormula(state, unvisitedEdge));
       } catch (CPATransferException exc) {
-        logger.log(Level.SEVERE, "Could not do formula makeAnd", exc);
+        logger.log(Level.INFO, "Could not do formula makeAnd", exc);
         continue;
       }
     }
@@ -122,7 +124,7 @@ public class UnvisitedEdgesStrategy implements Selector {
     for (ARGState child : children) {
 
       try {
-        depthSearch(child, found_edges);
+        depthSearch(child, foundEdges);
       } catch (StackOverflowError e) {
         // If the stack is too deep, opt out of this path
         return;
@@ -138,17 +140,17 @@ public class UnvisitedEdgesStrategy implements Selector {
    *
    * @return null if no unvisited edges, the first unvisited edge otherwise
    */
-  List<CFAEdge> getUnvisitedEdges(ARGState current_state) {
+  List<CFAEdge> getUnvisitedEdges(ARGState currentState) {
 
-    LocationState current_ls =
-        AbstractStates.extractStateByType(current_state, LocationState.class);
-    Iterable<CFAEdge> current_edges = current_ls.getOutgoingEdges();
-    List<CFAEdge> found_edges = new ArrayList<>();
+    LocationState currentLocationState =
+        AbstractStates.extractStateByType(currentState, LocationState.class);
+    Iterable<CFAEdge> currentEdges = currentLocationState.getOutgoingEdges();
+    List<CFAEdge> foundEdges = new ArrayList<>();
 
     // Check each edge
-    for (CFAEdge edge : current_edges) {
+    for (CFAEdge edge : currentEdges) {
       // Get the next cfa node this edge would lead to
-      CFANode target_node = edge.getSuccessor();
+      CFANode targetNode = edge.getSuccessor();
 
       // If the edge is anything other than a conditional edge, the fuzzer
       // will walk it. Only if there is a conditional to solve, it should be
@@ -158,27 +160,29 @@ public class UnvisitedEdgesStrategy implements Selector {
       }
 
       // Now search the currents states children if we find one which
-      // leads to target_node.
+      // leads to targetNode.
       boolean found = false;
-      for (ARGState arg_child : current_state.getChildren()) {
-        LocationState child_ls = AbstractStates.extractStateByType(arg_child, LocationState.class);
-        CFANode cfa_actual_node = child_ls.getLocationNode();
-        if (target_node.equals(cfa_actual_node)) {
+
+      for (ARGState arg_child : currentState.getChildren()) {
+        CFANode actualCfaNode = AbstractStates.extractLocation(arg_child);
+        if (targetNode.equals(actualCfaNode)) {
           found = true;
           break;
         }
       }
 
       if (!found) {
-        found_edges.add(edge);
+        foundEdges.add(edge);
       }
     }
-    return found_edges;
+    return foundEdges;
   }
 
   @Override
   public LegionComponentStatistics getStats() {
-    this.stats.set_other("blacklisted", (double) this.blacklisted.size());
+    StatInt blacklistedSum = new StatInt(StatKind.SUM, "blacklisted");
+    blacklistedSum.setNextValue(this.blacklisted.size());
+    this.stats.setOther(blacklistedSum);
     return this.stats;
   }
 }

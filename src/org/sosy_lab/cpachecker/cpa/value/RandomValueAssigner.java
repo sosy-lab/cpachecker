@@ -117,7 +117,6 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
     if (basicType.isIntegerType()){
       value = generateInteger((CSimpleType) pType);
-      pPreviousState.nonDeterministicMark = true;
     } else {
       switch (basicType) {
         case UNSPECIFIED:
@@ -126,21 +125,19 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
           return;
         case BOOL:
           value = BooleanValue.valueOf(this.rnd.nextBoolean());
-          pPreviousState.nonDeterministicMark = true;
           break;
         case FLOAT:
           value = new NumericValue(this.rnd.nextFloat());
-          pPreviousState.nonDeterministicMark = true;
           break;
         case DOUBLE:
           value = new NumericValue(this.rnd.nextDouble());
-          pPreviousState.nonDeterministicMark = true;
           break;
 
         default:
           throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
       }
     }
+    pPreviousState.setNonDeterministicMark();
     logger.log(Level.FINE, "Assigning simple value: ", value.toString());
     pState.assignConstant(pMemLocation, value, pType);
   }

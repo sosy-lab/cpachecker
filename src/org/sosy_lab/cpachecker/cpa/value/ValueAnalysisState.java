@@ -90,7 +90,7 @@ public final class ValueAnalysisState
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
-  public boolean nonDeterministicMark = false;
+  private boolean nonDeterministicMark = false;
 
   static void addToBlacklist(MemoryLocation var) {
     blacklist.add(checkNotNull(var));
@@ -760,6 +760,30 @@ public final class ValueAnalysisState
   @Override
   public Object getPseudoHashCode() {
     return this;
+  }
+
+  /**
+   * Mark this state as containing a decision which is non-deterministic
+   * and therefore may change on subequent visits.
+   */
+  public void setNonDeterministicMark() {
+    this.nonDeterministicMark = true;
+  }
+
+  /**
+   * Removes the non-deterministic mark from this state, not making 
+   * it interesting in subsequent visits.
+   */
+  public void resetNonDeterministicMark() {
+    this.nonDeterministicMark = false;
+  }
+
+  /**
+   * Check whether this state was marked as containing
+   * a non-deterministic state.
+   */
+  public boolean isMarkedNonDeterministic() {
+    return this.nonDeterministicMark;
   }
 
   @Override

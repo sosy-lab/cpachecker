@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
@@ -20,6 +20,13 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -40,32 +47,40 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 
+@Options(prefix = "legion")
 public class OutputWriter {
 
-    private LogManager logger;
-    private PredicateCPA predicateCPA;
-    private String path;
+    private final LogManager logger;
+    private final PredicateCPA predicateCPA;
 
     private int testCaseNumber;
     private int previousSetSize;
     private Instant zero;
 
+    @Option(
+        secure = false,
+        name = "testcaseOutputDirectory",
+        description = "The subdirectory testcases will be written to.")
+    @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
+    @Nullable
+    private Path testcaseOutputDir = Paths.get("testcases");
+
     // Stats
-    private LegionComponentStatistics stats;
-    int successfull_writes = 0;
+    private final LegionComponentStatistics stats;
+    private final StatInt successfullWrites = new StatInt(StatKind.SUM, "successfull_writes");
 
     /**
      * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
      * testcase for it.
-     * 
-     * @param pPath The output path to write files to.
      */
-    public OutputWriter(LogManager pLogger, PredicateCPA pPredicateCPA, String pPath) {
+    public OutputWriter(LogManager pLogger, PredicateCPA pPredicateCPA, Configuration pConfig) throws InvalidConfigurationException {
         this.logger = pLogger;
+        pConfig.inject(this, OutputWriter.class);
         this.predicateCPA = pPredicateCPA;
-        this.path = pPath;
 
         this.testCaseNumber = 0;
         this.previousSetSize = 0;
@@ -73,14 +88,16 @@ public class OutputWriter {
         this.zero = Instant.now();
         this.stats = new LegionComponentStatistics("output_writer");
 
-        initOutDir(path);
-        writeTestMetadata();
+        if (testcaseOutputDir != null){
+            initOutDir(testcaseOutputDir.toString());
+            writeTestMetadata();
+        }
     }
 
     private void initOutDir(String pPath) {
         File outpath = new File(pPath);
-        boolean dirs_done = outpath.mkdirs();
-        if (!dirs_done) {
+        boolean dirsDone = outpath.mkdirs();
+        if (!dirsDone) {
             logger.log(Level.WARNING, "Could not make output directory for test cases, maybe alread exists.");
         }
     }
@@ -92,17 +109,15 @@ public class OutputWriter {
      */
     private void writeTestMetadata() {
         this.stats.start();
-        try (Writer metadata =
-                Files.newBufferedWriter(
-                        Paths.get(this.path + "/metadata.xml"),
-                        Charset.defaultCharset())) {
+        Path metaFilePath = Paths.get(this.testcaseOutputDir.toString(), "/metadata.xml");
+        try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
             XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
             metadata.flush();
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write metadata file", exc);
         } finally {
             this.stats.finish();
-            this.successfull_writes += 1;
+            this.successfullWrites.setNextValue(1);
         }
 
     }
@@ -112,15 +127,20 @@ public class OutputWriter {
      */
     public void writeTestCases(UnmodifiableReachedSet pReachedSet) {
 
+        if (testcaseOutputDir == null){
+            return;
+        }
+
         this.stats.start();
-        int reached_size = pReachedSet.size();
+        int reachedSize = pReachedSet.size();
         // Write output only if new states have been reached
-        if (previousSetSize == reached_size) {
+        if (previousSetSize == reachedSize) {
+            this.stats.finish();
             return;
         }
         logger.log(
                 Level.INFO,
-                "Searching through arg(" + reached_size + ") for testcases");
+                "Searching through arg(" + reachedSize + ") for testcases");
 
         // Get starting point for search
         AbstractState first = pReachedSet.getFirstState();
@@ -131,32 +151,28 @@ public class OutputWriter {
         searchTestCase(args, values);
 
         // Determine file to open
-        String violation_str = "";
+        String violationStr = "";
         if (pReachedSet.hasViolatedProperties()) {
-            violation_str = "_error";
+            violationStr = "_error";
         }
-        Duration since_zero = Duration.between(this.zero, Instant.now());
+        Duration sinceZero = Duration.between(this.zero, Instant.now());
         String filename =
                 String.format(
                         "/testcase_%016d_%s%s.xml",
-                        since_zero.toNanos(),
+                        sinceZero.toNanos(),
                         this.testCaseNumber,
-                        violation_str);
+                        violationStr);
 
         // Get content
         String inputs = writeVariablesToTestcase(values);
         if (inputs.length() < 1) {
-            this.previousSetSize = reached_size;
+            this.previousSetSize = reachedSize;
             this.stats.finish();
             return;
         }
 
         logger.log(Level.WARNING, "Writing testcase ", filename);
-        try (Writer testcase =
-                Files.newBufferedWriter(
-                        Paths.get(this.path + filename),
-                        Charset.defaultCharset())) {
-
+        try (Writer testcase = IO.openOutputFile(Paths.get(this.testcaseOutputDir.toString(), filename), Charset.defaultCharset())) {
             // Write header
             testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
             testcase.write(
@@ -169,12 +185,12 @@ public class OutputWriter {
             // Footer and flush
             testcase.write("</testcase>\n");
             testcase.flush();
-            this.successfull_writes += 1;
+            this.successfullWrites.setNextValue(1);
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write test output", exc);
         } finally {
             this.testCaseNumber += 1;
-            this.previousSetSize = reached_size;
+            this.previousSetSize = reachedSize;
             this.stats.finish();
         }
 
@@ -220,13 +236,13 @@ public class OutputWriter {
 
             // Check if assignment is for a nondeterministic variable
             if (assignment.getRightHandSide().toString().startsWith("__VERIFIER_nondet_")) {
-                String function_name = ls.getLocationNode().getFunctionName();
+                String functionName = ls.getLocationNode().getFunctionName();
                 String identifier = getLeftHandName(assignment.getLeftHandSide());
 
                 ValueAnalysisState vs =
                         AbstractStates.extractStateByType(state, ValueAnalysisState.class);
                 Entry<MemoryLocation, ValueAndType> vt =
-                        getValueTypeFromState(function_name, identifier, vs);
+                        getValueTypeFromState(functionName, identifier, vs);
                 if (vt != null) {
                     values.add(vt);
                 } else {
@@ -239,21 +255,21 @@ public class OutputWriter {
         }
 
         // find largest child state
-        ARGState largest_child = null;
+        ARGState largestChild = null;
         for (ARGState child : state.getChildren()) {
-            if (largest_child == null || largest_child.getStateId() < child.getStateId()) {
-                largest_child = child;
+            if (largestChild == null || largestChild.getStateId() < child.getStateId()) {
+                largestChild = child;
             }
         }
 
-        // If largest_child still null -> at the bottom of the graph
-        if (largest_child == null) {
+        // If largestChild still null -> at the bottom of the graph
+        if (largestChild == null) {
             return;
         }
 
-        // If not, search in largest_child
+        // If not, search in largestChild
         try {
-            searchTestCase(largest_child, values);
+            searchTestCase(largestChild, values);
         } catch (StackOverflowError e) {
             return;
         }
@@ -283,11 +299,11 @@ public class OutputWriter {
             String type = v.getValue().getType().toString();
             Value value = v.getValue().getValue();
 
-            String value_str = "";
+            String valueStr = "";
             if (value instanceof NumericValue) {
-                value_str = String.valueOf(((NumericValue) value).longValue());
+                valueStr = String.valueOf(((NumericValue) value).longValue());
             } else {
-                value_str = value.toString();
+                valueStr = value.toString();
             }
 
             sb.append(
@@ -295,7 +311,7 @@ public class OutputWriter {
                             "\t<input variable=\"%s\" type=\"%s\">%s</input>%n",
                             name,
                             type,
-                            value_str));
+                            valueStr));
         }
         return sb.toString();
     }
@@ -304,21 +320,21 @@ public class OutputWriter {
      * Retrieve variables a MemoryLocation and ValueAndType from a ValueAnalysisState by its
      * function name and identifier (=name).
      * 
-     * @param function_name Name of the function the variable is contained in.
+     * @param functionName Name of the function the variable is contained in.
      * @param identifier    The name of the function.
      * @return The constants entry for this value or null.
      */
     private static Entry<MemoryLocation, ValueAndType> getValueTypeFromState(
-            String function_name,
+            String functionName,
             String identifier,
             ValueAnalysisState state) {
         for (Entry<MemoryLocation, ValueAndType> entry : state.getConstants()) {
             MemoryLocation loc = entry.getKey();
 
-            String fn_name = "";
+            String fnName = "";
             String ident = "";
             try {
-                fn_name = loc.getFunctionName();
+                fnName = loc.getFunctionName();
             } catch (NullPointerException exc) {
                 continue;
             }
@@ -329,7 +345,7 @@ public class OutputWriter {
                 continue;
             }
 
-            if (fn_name.equals(function_name) && ident.equals(identifier)) {
+            if (fnName.equals(functionName) && ident.equals(identifier)) {
                 return entry;
             }
         }
@@ -337,8 +353,7 @@ public class OutputWriter {
     }
 
     public LegionComponentStatistics getStats() {
-        this.stats.set_other("successfull_writes", (double)this.successfull_writes);
-
+        this.stats.setOther(this.successfullWrites);
         return this.stats;
     }
 }

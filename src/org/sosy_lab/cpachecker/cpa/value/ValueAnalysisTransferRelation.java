@@ -704,7 +704,6 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
-    logger.log(Level.FINE, "Declaration edge");
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
@@ -768,10 +767,9 @@ public class ValueAnalysisTransferRelation
     if (initialValue.isUnknown()) {
       unknownValueHandler.handle(memoryLocation, declarationType, state, newElement, getVisitor());
       // If a nonDeterministic mark is set, remove it.
-      // If an element is initialized, it nonDet behaviour is expected.
-      // TODO check ok
-      state.nonDeterministicMark = false;
-      newElement.nonDeterministicMark = false;
+      // If an element is initialized, nonDet behaviour is expected.
+      state.resetNonDeterministicMark();
+      newElement.resetNonDeterministicMark();
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
@@ -1739,7 +1737,7 @@ public class ValueAnalysisTransferRelation
           machineModel,
           logger);
     } else if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, knownValues); // <- neues attribut: preloadedValues: sortierte Liste pro nondet_x function
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, knownValues);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

@@ -7,35 +7,35 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+
 public class LegionComponentStatistics {
-    private String name;
+    private final String name;
 
-    private Duration execution_time;
-    private Instant now;
+    private final Timer timer;
 
-    private int iterations;
-    private Map<String, Double> others;
+    private long iterations;
+    private final Map<String, StatInt> others;
 
     public LegionComponentStatistics(String pName) {
         this.name = pName;
-        this.execution_time = Duration.ZERO;
+        this.timer = new Timer();
         this.iterations = 0;
         this.others = new HashMap<>();
         
     }
 
     public void start() {
-        this.now = Instant.now();
+        this.timer.start();
     }
 
     public void finish() {
-        this.execution_time = this.execution_time.plus(Duration.between(now, Instant.now()));
+        this.timer.stopIfRunning();
         this.iterations += 1;
     }
 
@@ -43,24 +43,24 @@ public class LegionComponentStatistics {
         StringBuilder buff = new StringBuilder();
 
         buff.append("  " + this.name + ":");
-        buff.append("\n    exec_time: " + String.format("%.3fs", (float) this.execution_time.toMillis() / 1000));
+        buff.append("\n    exec_time: " + String.format("%.3fs", (float) this.timer.getSumTime().asMillis() / 1000));
         buff.append("\n    iterations: " + this.iterations);
 
-        StringBuilder other_buff = new StringBuilder();
-        for (Entry<String, Double> entry: this.others.entrySet()){
-            other_buff.append("\n      " + entry.getKey() + ": " + entry.getValue());
+        StringBuilder otherBuff = new StringBuilder();
+        for (Entry<String, StatInt> entry: this.others.entrySet()){
+            otherBuff.append("\n      " + entry.getKey() + ": " + entry.getValue().getValueSum());
         }
 
-        if (other_buff.length() > 0){
+        if (otherBuff.length() > 0){
             buff.append("\n    others:");
-            buff.append(other_buff);
+            buff.append(otherBuff);
         }
 
         return buff.toString();
     }
 
-    public void set_other(String key, Double value){
-        this.others.put(key, value);
+    public void setOther(StatInt value){
+        this.others.put(value.getTitle(), value);
     }
 
 }

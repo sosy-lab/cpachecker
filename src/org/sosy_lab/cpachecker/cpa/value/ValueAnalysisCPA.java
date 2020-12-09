@@ -170,16 +170,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     
   }
 
-  // public void setKnownValues(List<Value> pKnownValues){
-  //   knownValues = pKnownValues;
-  // }
-
-  // public void clearKnownValues() {
-  //   if (knownValues != null) {
-  //     knownValues.clear();
-  //   }
-  // }
-
   private MemoryLocationValueHandler createUnknownValueHandler()
       throws InvalidConfigurationException {
     switch (unknownValueStrategy) {

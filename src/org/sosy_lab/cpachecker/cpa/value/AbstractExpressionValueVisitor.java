@@ -785,7 +785,6 @@ public abstract class AbstractExpressionValueVisitor
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
-    // Wenn es einer von denen
     if (functionNameExp instanceof CIdExpression) {
       String calledFunctionName = ((CIdExpression) functionNameExp).getName();
 
