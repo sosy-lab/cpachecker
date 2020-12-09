@@ -44,6 +44,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -97,6 +98,16 @@ public class TestCaseExporter {
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testCaseZip = null;
+
+  @Option(
+    secure = true,
+    description = "Only convert literal value and do not add suffix, e.g., for unsigned, etc.")
+  private boolean plainLiteralValue = false;
+
+  @Option(
+    secure = true,
+    description = "Do not output values for variables that are not initialized when declared")
+  private boolean excludeInitialization = false;
 
   private static int testsWritten = 0;
 
@@ -308,6 +319,9 @@ public class TestCaseExporter {
     if (pInputValue instanceof CCastExpression) {
       return unpack(((CCastExpression) pInputValue).getOperand());
     } else {
+      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
+        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
+      }
       return pInputValue.toASTString();
     }
   }
@@ -327,7 +341,9 @@ public class TestCaseExporter {
       final TestVector vector = maybeTestVector.orElseThrow().getVector();
 
       List<String> inputs =
-          vector.getTestInputsInOrder().stream()
+          vector.getTestInputsInOrder()
+              .stream()
+              .filter(v -> !excludeInitialization || (v instanceof ExpressionTestValue))
               .map(v -> unpack(v.getValue()))
               .collect(Collectors.toList());
 

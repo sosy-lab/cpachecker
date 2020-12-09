@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.legion.LegionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -84,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
+
 
   @Option(
       secure = true,
@@ -323,6 +325,12 @@ public class CoreComponentsFactory {
       description = "for found property violation, perform fault localization with trace formulas")
   boolean useFaultLocalizationWithTraceFormulas = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.faultlocalization.by_distance",
+      description = "Use fault localization with distance metrics")
+  private boolean useFaultLocalizationWithDistanceMetrics = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -452,6 +460,14 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
+    } else if (useFaultLocalizationWithDistanceMetrics) {
+      algorithm = new
+          Explainer(
+          config,
+          logger,
+          shutdownNotifier,
+          specification,
+          cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -635,7 +651,8 @@ public class CoreComponentsFactory {
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
-        || asConditionalVerifier) {
+        || asConditionalVerifier
+        || useFaultLocalizationWithDistanceMetrics) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -664,7 +681,8 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
-        || constructProgramSlice) {
+        || constructProgramSlice
+        || useFaultLocalizationWithDistanceMetrics) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

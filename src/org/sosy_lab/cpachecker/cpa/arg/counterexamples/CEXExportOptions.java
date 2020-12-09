@@ -45,9 +45,12 @@ public final class CEXExportOptions {
       description = "export counterexample as source file")
   private boolean exportSource = true;
 
-  @Option(secure = true, name = "graph", description = "export counterexample as graph")
+  @Option(
+      secure = true,
+      name = "graph",
+      description = "export counterexample as Dot/Graphviz visualization")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("Counterexample.%d.dot");
+  private PathTemplate errorPathDotFile = PathTemplate.ofFormatString("Counterexample.%d.dot");
 
   @Option(secure = true, name = "automaton", description = "export counterexample as automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -83,18 +86,18 @@ public final class CEXExportOptions {
   @Option(
       secure = true,
       name = "graphml",
-      description = "export counterexample to file as GraphML automaton")
+      description = "export counterexample witness as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAutomatonGraphmlFile =
+  private PathTemplate errorPathWitnessFile =
       PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
   @Option(
       secure = true,
-      name = "dot",
-      description = "export counterexample to file as Dot/Graphviz automaton")
+      name = "witnessGraph",
+      description = "export counterexample witness as Dot/Graphviz visualization")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAutomatonDotFile =
-      PathTemplate.ofFormatString("Counterexample.%d.dot");
+  private PathTemplate errorPathWitnessDotFile =
+      PathTemplate.ofFormatString("Counterexample.%d.witness.dot");
 
   @Option(secure = true, description = "Export extended witness in addition to regular witness")
   private boolean exportExtendedWitness = false;
@@ -145,7 +148,7 @@ public final class CEXExportOptions {
         && getCoreFile() == null
         && getCoveragePrefix() == null
         && getErrorPathFile() == null
-        && getGraphFile() == null
+        && getDotFile() == null
         && getSourceFile() == null
         && getTestHarnessFile() == null
         && getWitnessFile() == null
@@ -186,11 +189,11 @@ public final class CEXExportOptions {
   }
 
   @Nullable
-  PathTemplate getGraphFile() {
+  PathTemplate getDotFile() {
     if (!exportErrorPath) {
       return null;
     }
-    return errorPathGraphFile;
+    return errorPathDotFile;
   }
 
   @Nullable
@@ -214,7 +217,7 @@ public final class CEXExportOptions {
     if (!exportErrorPath) {
       return null;
     }
-    return exportWitness ? errorPathAutomatonGraphmlFile : null;
+    return exportWitness ? errorPathWitnessFile : null;
   }
 
   @Nullable
@@ -222,7 +225,7 @@ public final class CEXExportOptions {
     if (!exportErrorPath) {
       return null;
     }
-    return exportWitness ? errorPathAutomatonDotFile : null;
+    return exportWitness ? errorPathWitnessDotFile : null;
   }
 
   @Nullable

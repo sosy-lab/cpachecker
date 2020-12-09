@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Static program slicer that represents the "identity slice". This slicer always creates a program
@@ -39,6 +40,13 @@ public class IdentitySlicer extends AbstractSlicer {
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria) {
     EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), visitor);
-    return new Slice(pCfa, visitor.getVisitedEdges(), pSlicingCriteria);
+
+    return new AbstractSlice(pCfa, visitor.getVisitedEdges(), pSlicingCriteria) {
+
+      @Override
+      public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+        return true;
+      }
+    };
   }
 }

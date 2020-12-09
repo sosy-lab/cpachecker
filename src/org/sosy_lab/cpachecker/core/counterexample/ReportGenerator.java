@@ -175,8 +175,11 @@ public class ReportGenerator {
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
       buildArgGraphData(pReached);
-      buildRelevantArgGraphData(pReached);
-      buildReducedArgGraphData();
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        // makes no sense to create other data structures that we will not show anyway
+        buildRelevantArgGraphData(pReached);
+        buildReducedArgGraphData();
+      }
     }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
@@ -341,6 +344,8 @@ public class ReportGenerator {
         counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
+        writer.write(",\n\"precondition\":");
+        flInfo.writePrecondition(writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);

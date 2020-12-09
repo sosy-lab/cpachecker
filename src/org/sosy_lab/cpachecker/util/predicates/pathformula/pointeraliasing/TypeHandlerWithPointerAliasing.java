@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   private static final String POINTER_NAME_PREFIX = "*";
+  private static final String BYTE_ARRAY_HEAP_ACCESS_NAME =
+      POINTER_NAME_PREFIX + "SINGLE_BYTE_ARRAY";
 
   private final MachineModel model;
   private final FormulaEncodingWithPointerAliasingOptions options;
@@ -60,6 +62,10 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
     model = pMachineModel;
     options = pOptions;
+  }
+
+  public static boolean isByteArrayAccessName(String pName) {
+    return BYTE_ARRAY_HEAP_ACCESS_NAME.equals(pName);
   }
 
   /**
@@ -176,8 +182,12 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     if (result != null) {
       return result;
     } else {
-      result =
-          POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+      if (options.useByteArrayForHeap()) {
+        result = BYTE_ARRAY_HEAP_ACCESS_NAME;
+      } else {
+        result =
+            POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+      }
       pointerNameCache.put(type, result);
       return result;
     }

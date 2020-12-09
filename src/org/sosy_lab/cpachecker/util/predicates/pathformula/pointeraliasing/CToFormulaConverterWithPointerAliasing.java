@@ -235,7 +235,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      if(!options.useMemoryRegions()) {
+      if (!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
