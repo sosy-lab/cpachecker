@@ -146,9 +146,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             i += 1;
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()) {
-                break;
-            }
+            shutdownNotifier.shutdownIfNecessary();
 
             // Phase Selection: Select non-deterministic variables for path solving
             PathFormula target;
@@ -168,9 +166,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             }
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()) {
-                break;
-            }
+            shutdownNotifier.shutdownIfNecessary();
 
             // Phase Targeting: Solve for the target and produce a number of values
             // needed as input to reach this target as well as give feedback to selection.
@@ -189,9 +185,8 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             selectionStrategy.feedback(target, weight);
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()) {
-                break;
-            }
+            shutdownNotifier.shutdownIfNecessary();
+
 
             // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
             // new paths through the program.

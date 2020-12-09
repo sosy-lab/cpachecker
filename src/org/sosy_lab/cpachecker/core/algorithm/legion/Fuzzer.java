@@ -104,9 +104,10 @@ public class Fuzzer {
             }
 
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()) {
+            try {
+                shutdownNotifier.shutdownIfNecessary();
+            } finally {
                 this.stats.finish();
-                break;
             }
 
             // Otherwise, start from the beginning again
