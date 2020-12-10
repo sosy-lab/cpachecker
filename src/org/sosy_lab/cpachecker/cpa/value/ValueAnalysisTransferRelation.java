@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -877,7 +876,6 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
-    logger.log(Level.FINE, "Function assignment");
     final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
