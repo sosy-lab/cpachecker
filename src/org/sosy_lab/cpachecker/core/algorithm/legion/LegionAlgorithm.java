@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,202 +42,187 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "legion")
 public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
-    // Configuration Options
-    @Option(
-        secure = true,
-        name = "selectionStrategy",
-        toUppercase = true,
-        values = {"RAND", "UNVISITED"},
-        description = "which selection strategy to use to get target states.")
-    private String selectionStrategyOption = "RAND";
+  // Configuration Options
+  @Option(
+      secure = true,
+      name = "selectionStrategy",
+      toUppercase = true,
+      values = {"RAND", "UNVISITED"},
+      description = "which selection strategy to use to get target states.")
+  private String selectionStrategyOption = "RAND";
 
-    @Option(
-        secure = true,
-        description = "The maximum number of times to ask the solver for a solution per iteration.")
-    private int maxSolverAsks = 5;
+  @Option(
+      secure = true,
+      description = "The maximum number of times to ask the solver for a solution per iteration.")
+  private int maxSolverAsks = 5;
+
+  // General fields
+  private final Algorithm algorithm;
+  private final LogManager logger;
+  private final Configuration config;
+  private final ShutdownNotifier shutdownNotifier;
+
+  // CPAs + components
+  private final ValueAnalysisCPA valueCpa;
+  private final Solver solver;
+  private final PredicateCPA predCpa;
+
+  // Legion Specific
+  private final OutputWriter outputWriter;
+  private final Selector selectionStrategy;
+  private final TargetSolver targetSolver;
+  private final Fuzzer fuzzer;
+  private final Fuzzer initFuzzer;
+
+  public LegionAlgorithm(
+      final Algorithm algorithm,
+      final LogManager pLogger,
+      Configuration pConfig,
+      ConfigurableProgramAnalysis cpa,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
 
     // General fields
-    private final Algorithm algorithm;
-    private final LogManager logger;
-    private final Configuration config;
-    private final ShutdownNotifier shutdownNotifier;
+    this.algorithm = algorithm;
+    this.logger = pLogger;
 
-    // CPAs + components
-    private final ValueAnalysisCPA valueCpa;
-    private final Solver solver;
-    private final PredicateCPA predCpa;
+    this.config = pConfig;
+    pConfig.inject(this, LegionAlgorithm.class);
+    this.shutdownNotifier = pShutdownNotifier;
 
-    // Legion Specific
-    private final OutputWriter outputWriter;
-    private final Selector selectionStrategy;
-    private final TargetSolver targetSolver;
-    private final Fuzzer fuzzer;
-    private final Fuzzer initFuzzer;
+    // Fetch solver from predicate CPA and valueCpa (used in fuzzer)
+    this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
+    this.solver = predCpa.getSolver();
+    this.valueCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
 
-    public LegionAlgorithm(
-            final Algorithm algorithm,
-            final LogManager pLogger,
-            Configuration pConfig,
-            ConfigurableProgramAnalysis cpa,
-            ShutdownNotifier pShutdownNotifier)
-            throws InvalidConfigurationException {
+    // Configure Output
+    this.outputWriter = new OutputWriter(logger, predCpa, pConfig);
 
-        // General fields
-        this.algorithm = algorithm;
-        this.logger = pLogger;
+    // Set selection Strategy, targetSolver and fuzzers
+    this.selectionStrategy = buildSelectionStrategy();
+    this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
+    this.initFuzzer =
+        new Fuzzer("init", logger, valueCpa, this.outputWriter, pShutdownNotifier, pConfig);
+    this.fuzzer =
+        new Fuzzer("fuzzer", logger, valueCpa, this.outputWriter, pShutdownNotifier, pConfig);
+  }
 
-        this.config = pConfig;
-        pConfig.inject(this, LegionAlgorithm.class);
-        this.shutdownNotifier = pShutdownNotifier;
+  @Override
+  public AlgorithmStatus run(ReachedSet reachedSet)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-        // Fetch solver from predicate CPA and valueCpa (used in fuzzer)
-        this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
-        this.solver = predCpa.getSolver();
-        this.valueCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
-
-        // Configure Output
-        this.outputWriter = new OutputWriter(logger, predCpa, pConfig);
-
-        // Set selection Strategy, targetSolver and fuzzers
-        this.selectionStrategy = buildSelectionStrategy();
-        this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
-        this.initFuzzer =
-                new Fuzzer(
-                        "init",
-                        logger,
-                        valueCpa,
-                        this.outputWriter,
-                        pShutdownNotifier,
-                        pConfig);
-        this.fuzzer =
-                new Fuzzer(
-                        "fuzzer",
-                        logger,
-                        valueCpa,
-                        this.outputWriter,
-                        pShutdownNotifier,
-                        pConfig);
+    // Before asking a solver for path constraints, one initial pass through the program
+    // has to be done to provide an initial set of states. This initial discovery
+    // is meant to be cheap in resources and tries to establish easy to reach states.
+    logger.log(Level.INFO, "Initial fuzzing ...");
+    List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
+    try {
+      reachedSet = initFuzzer.fuzz(reachedSet, algorithm, preloadedValues);
+    } finally {
+      outputWriter.writeTestCases(reachedSet);
     }
 
-    @Override
-    public AlgorithmStatus run(ReachedSet reachedSet)
-            throws CPAException, InterruptedException,
-            CPAEnabledAnalysisPropertyViolationException {
-        AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    // In it's main iterations, ask the solver for new solutions every time.
+    // This is done until a resource limit is reached or no new target states
+    // are available.
+    int i = 0;
+    while (true) {
+      logger.log(Level.INFO, "Iteration", i + 1);
+      i += 1;
 
-        // Before asking a solver for path constraints, one initial pass through the program
-        // has to be done to provide an initial set of states. This initial discovery
-        // is meant to be cheap in resources and tries to establish easy to reach states.
-        logger.log(Level.INFO, "Initial fuzzing ...");
-        List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
-        try {
-            reachedSet = initFuzzer.fuzz(reachedSet, algorithm, preloadedValues);
-        } finally {
-            outputWriter.writeTestCases(reachedSet);
-        }
+      // Check whether to shut down
+      shutdownNotifier.shutdownIfNecessary();
 
-        // In it's main iterations, ask the solver for new solutions every time.
-        // This is done until a resource limit is reached or no new target states
-        // are available.
-        int i = 0;
-        while (true) {
-            logger.log(Level.INFO, "Iteration", i + 1);
-            i += 1;
+      // Phase Selection: Select non-deterministic variables for path solving
+      PathFormula target;
+      logger.log(Level.INFO, "Selection ...");
+      try {
+        target = selectionStrategy.select(reachedSet);
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, "No target state found");
+        break;
+      } finally {
+        outputWriter.writeTestCases(reachedSet);
+      }
 
-            // Check whether to shut down
-            shutdownNotifier.shutdownIfNecessary();
+      if (target == null) {
+        logger.log(Level.INFO, "No target states left");
+        break;
+      }
 
-            // Phase Selection: Select non-deterministic variables for path solving
-            PathFormula target;
-            logger.log(Level.INFO, "Selection ...");
-            try {
-                target = selectionStrategy.select(reachedSet);
-            } catch (IllegalArgumentException e) {
-                logger.log(Level.WARNING, "No target state found");
-                break;
-            } finally {
-                outputWriter.writeTestCases(reachedSet);
-            }
+      // Check whether to shut down
+      shutdownNotifier.shutdownIfNecessary();
 
-            if (target == null) {
-                logger.log(Level.WARNING, "No target states left");
-                break;
-            }
+      // Phase Targeting: Solve for the target and produce a number of values
+      // needed as input to reach this target as well as give feedback to selection.
+      List<List<ValueAssignment>> previousLoadedValues = preloadedValues;
+      logger.log(Level.INFO, "Targeting ...");
+      int weight;
+      try {
+        preloadedValues = this.targetSolver.target(target);
+        weight = preloadedValues.size();
+      } catch (SolverException ex) {
+        // Re-Run with previous preloaded Values
+        logger.logDebugException(ex, "Target solve aborted");
+        preloadedValues = previousLoadedValues;
+        weight = -1;
+      }
+      // Give feedback to selection
+      selectionStrategy.feedback(target, weight);
 
-            // Check whether to shut down
-            shutdownNotifier.shutdownIfNecessary();
+      // Check whether to shut down
+      shutdownNotifier.shutdownIfNecessary();
 
-            // Phase Targeting: Solve for the target and produce a number of values
-            // needed as input to reach this target as well as give feedback to selection.
-            List<List<ValueAssignment>> previousLoadedValues = preloadedValues;
-            logger.log(Level.INFO, "Targeting ...");
-            int weight;
-            try {
-                preloadedValues = this.targetSolver.target(target);
-                weight = preloadedValues.size();
-            } catch (SolverException ex) {
-                // Re-Run with previous preloaded Values
-                logger.log(Level.INFO, "Target solve aborted");
-                preloadedValues = previousLoadedValues;
-                weight = -1;
-            }
-            // Give feedback to selection
-            selectionStrategy.feedback(target, weight);
-
-            // Check whether to shut down
-            shutdownNotifier.shutdownIfNecessary();
-
-
-            // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
-            // new paths through the program.
-            logger.log(Level.INFO, "Fuzzing ...");
-            fuzzer.computePasses(preloadedValues.size());
-            try {
-                reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
-            } finally {
-                valueCpa.getTransferRelation().clearKnownValues();
-            }
-
-        }
-        return status;
+      // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
+      // new paths through the program.
+      logger.log(Level.INFO, "Fuzzing ...");
+      fuzzer.computePasses(preloadedValues.size());
+      try {
+        reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
+      } finally {
+        valueCpa.getTransferRelation().clearKnownValues();
+      }
     }
+    return status;
+  }
 
-    Selector buildSelectionStrategy() {
-        if (selectionStrategyOption.equals("RAND")) {
-            return new RandomSelectionStrategy(logger);
-        }
-        if (selectionStrategyOption.equals("UNVISITED")) {
-            return new UnvisitedEdgesStrategy(logger, predCpa.getPathFormulaManager());
-        }
-        throw new IllegalArgumentException(
-                "Selection strategy " + selectionStrategyOption + " unknown");
+  Selector buildSelectionStrategy() {
+    if (selectionStrategyOption.equals("RAND")) {
+      return new RandomSelectionStrategy(logger);
     }
-
-    @Override
-    public void collectStatistics(Collection<Statistics> pStatsCollection) {
-        pStatsCollection.add(this);
+    if (selectionStrategyOption.equals("UNVISITED")) {
+      return new UnvisitedEdgesStrategy(logger, predCpa.getPathFormulaManager());
     }
+    throw new IllegalArgumentException(
+        "Selection strategy " + selectionStrategyOption + " unknown");
+  }
 
-    @Override
-    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-        @SuppressWarnings("deprecation")
-        String programName = config.getProperty("analysis.programNames");
-        pOut.println("program: " + programName);
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(this);
+  }
 
-        pOut.println("settings:");
-        pOut.println("  selection_strategy: " + selectionStrategyOption);
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+    @SuppressWarnings("deprecation")
+    String programName = config.getProperty("analysis.programNames");
+    pOut.println("program: " + programName);
 
-        pOut.println("components:");
+    pOut.println("settings:");
+    pOut.println("  selection_strategy: " + selectionStrategyOption);
 
-        pOut.println(this.initFuzzer.getStats().collect());
-        pOut.println(this.selectionStrategy.getStats().collect());
-        pOut.println(this.targetSolver.getStats().collect());
-        pOut.println(this.fuzzer.getStats().collect());
-        pOut.println(this.outputWriter.getStats().collect());
-    }
+    pOut.println("components:");
 
-    @Override
-    public @Nullable String getName() {
-        return "Legion Algorithm";
-    }
+    pOut.println(this.initFuzzer.getStats().collect());
+    pOut.println(this.selectionStrategy.getStats().collect());
+    pOut.println(this.targetSolver.getStats().collect());
+    pOut.println(this.fuzzer.getStats().collect());
+    pOut.println(this.outputWriter.getStats().collect());
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Legion Algorithm";
+  }
 }

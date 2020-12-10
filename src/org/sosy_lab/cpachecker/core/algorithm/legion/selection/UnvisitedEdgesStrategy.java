@@ -115,7 +115,7 @@ public class UnvisitedEdgesStrategy implements Selector {
       try {
         foundEdges.add(this.makeFormula(state, unvisitedEdge));
       } catch (CPATransferException exc) {
-        logger.log(Level.INFO, "Could not do formula makeAnd", exc);
+        logger.logUserException(Level.INFO, exc, "Could not do formula makeAnd");
         continue;
       }
     }
@@ -128,7 +128,7 @@ public class UnvisitedEdgesStrategy implements Selector {
         depthSearch(child, foundEdges);
       } catch (StackOverflowError e) {
         // If the stack is too deep, opt out of this path
-        logger.log(Level.WARNING, "Stack to deep, opting out of path");
+        logger.logUserException(Level.WARNING, e, "Stack to deep, opting out of path");
         this.optOuts.setNextValue(1);
         return;
       }

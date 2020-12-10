@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * The legion algorithm to run fuzzing and symexec in combination.
- */
-
+/** The legion algorithm to run fuzzing and symexec in combination. */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
