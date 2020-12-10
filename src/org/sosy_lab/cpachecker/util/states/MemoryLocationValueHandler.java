@@ -26,8 +26,9 @@ public interface MemoryLocationValueHandler {
    *
    * @param pMemLocation the memory location to alter
    * @param pType the type of the variable at the given memory location
-   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use.
-   *    Value assignments will happen in this state
+   * @param pPreviousState the state preceeding pState
+   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use. Value
+   *     assignments will happen in this state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
    * @throws UnrecognizedCodeException thrown if the given parameters do not fit.
    *    Other causes for this exception may be implementation-dependent
