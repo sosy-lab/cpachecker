@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -102,6 +104,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -839,8 +842,12 @@ public class SMGTransferRelation
           for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
             SMGValue value = valueAndState.getObject();
             SMGState curState = valueAndState.getSmgState();
-
-            curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+            if (value instanceof SMGKnownSymbolicValue) {
+              // TODO we should decide whether to return explicit or symbolic values consistently.
+              // currently some methods return explicit values, others return symbolic one
+              // and then check whether there is a registered explicit value.
+              curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+            }
             result.add(
                 expressionEvaluator.assignFieldToState(
                     curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
@@ -1380,6 +1387,18 @@ public class SMGTransferRelation
 
     StringBuilder assumeDesc = new StringBuilder();
     SMGState newElement = pElement;
+
+    // choose positive edge if we have a negated edge.
+    // This avoids a bug in AssumeVisitor#visit(CBinaryExpression),
+    // where a PredicateRelation is build from information taken from the edge.
+    // TODO there needs to be a better way to solve this.
+    if (pCfaEdge instanceof CAssumeEdge && !((CAssumeEdge) pCfaEdge).getTruthAssumption()) {
+      CFANode pred = pCfaEdge.getPredecessor();
+      final CFAEdge thisEdge = pCfaEdge;
+      pCfaEdge = Iterables.getOnlyElement(CFAUtils.leavingEdges(pred).filter(e -> e != thisEdge));
+      Preconditions.checkState(
+          pCfaEdge instanceof CAssumeEdge && ((CAssumeEdge) pCfaEdge).getTruthAssumption());
+    }
 
     for (CExpression assume : assumptions) {
       assumeDesc.append(assume.toASTString());

@@ -85,10 +85,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
-  @Option(
-      secure = true,
-      description = "Use explainer for fault localization with distance metrics ")
-  private boolean useExplainer = false;
 
   @Option(
       secure = true,
@@ -324,6 +320,12 @@ public class CoreComponentsFactory {
       description = "for found property violation, perform fault localization with trace formulas")
   boolean useFaultLocalizationWithTraceFormulas = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.faultlocalization.by_distance",
+      description = "Use fault localization with distance metrics")
+  private boolean useFaultLocalizationWithDistanceMetrics = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -453,7 +455,7 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
-    } else if (useExplainer) {
+    } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new
           Explainer(
           config,
@@ -640,7 +642,7 @@ public class CoreComponentsFactory {
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
-        || useExplainer) {
+        || useFaultLocalizationWithDistanceMetrics) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -670,7 +672,7 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useExplainer) {
+        || useFaultLocalizationWithDistanceMetrics) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

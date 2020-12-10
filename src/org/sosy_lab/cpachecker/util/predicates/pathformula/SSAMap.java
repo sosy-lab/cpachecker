@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
@@ -120,16 +121,18 @@ public class SSAMap implements Serializable {
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
-      // Disables sanity checks for single byte array heaps
-      if (!TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
-        type = type.getCanonicalType();
-        assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
-        CType oldType = varTypes.get(name);
-        if (oldType != null) {
-          TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
-        } else {
-          varTypes = varTypes.putAndCopy(name, type);
-        }
+      type = type.getCanonicalType();
+      assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
+      if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+        // Type needs to be overwritten
+        type = CNumericTypes.CHAR;
+      }
+
+      CType oldType = varTypes.get(name);
+      if (oldType != null) {
+        TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
+      } else {
+        varTypes = varTypes.putAndCopy(name, type);
       }
 
       if (idx > oldIdx || idx == ssa.defaultValue) {

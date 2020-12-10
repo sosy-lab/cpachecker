@@ -72,7 +72,13 @@ class ExpressionValueVisitor
     implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 
   final SMGExpressionEvaluator smgExpressionEvaluator;
+
+  /**
+   * The edge should never be used to retrieve any information. It should only be used for logging
+   * and debugging, because we do not know the context of the caller.
+   */
   final CFAEdge cfaEdge;
+
   private final SMGState initialSmgState;
 
   public ExpressionValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
