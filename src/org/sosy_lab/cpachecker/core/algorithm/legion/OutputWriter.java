@@ -109,7 +109,6 @@ public class OutputWriter {
       this.successfullWrites.setNextValue(1);
     } catch (IOException exc) {
       logger.logUserException(Level.SEVERE, exc, "Could not write metadata file");
-      this.failedWrites.setNextValue(1);
     } finally {
       this.stats.finish();
     }
@@ -159,7 +158,7 @@ public class OutputWriter {
       return;
     }
 
-    logger.log(Level.WARNING, "Writing testcase ", testcasePath);
+    logger.log(Level.INFO, "Writing testcase ", testcasePath);
     try (Writer testcase =
         IO.openOutputFile(testcasePath, Charset.defaultCharset())) {
       // Write header
@@ -176,7 +175,7 @@ public class OutputWriter {
       testcase.write("</testcase>\n");
       this.successfullWrites.setNextValue(1);
     } catch (IOException exc) {
-      logger.log(Level.SEVERE, "Could not write test output", exc);
+      logger.logUserException(Level.SEVERE, exc, "Could not write test output");
     } finally {
       this.testCaseNumber += 1;
       this.previousSetSize = reachedSize;
