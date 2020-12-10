@@ -124,6 +124,7 @@ public class CompositeState
     return states;
   }
 
+
   @Override
   public Object getPartitionKey() {
     if (partitionKey == null) {
