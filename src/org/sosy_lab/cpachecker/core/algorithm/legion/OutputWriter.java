@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -272,8 +273,8 @@ public class OutputWriter {
 
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<MemoryLocation, ValueAndType> v : values) {
-      String name = v.getKey().toString();
-      String type = v.getValue().getType().toString();
+      MemoryLocation name = v.getKey();
+      Type type = v.getValue().getType();
       Value value = v.getValue().getValue();
 
       String valueStr = "";
