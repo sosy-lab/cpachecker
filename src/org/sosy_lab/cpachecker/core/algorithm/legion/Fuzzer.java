@@ -51,8 +51,7 @@ public class Fuzzer {
       OutputWriter pOutputWriter,
       ShutdownNotifier pShutdownNotifier,
       NondeterministicValueProvider pNonDetValueProvider,
-      Configuration pConfig
-      )
+      Configuration pConfig)
       throws InvalidConfigurationException {
 
     pConfig.inject(this, Fuzzer.class);
