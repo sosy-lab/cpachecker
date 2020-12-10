@@ -106,7 +106,6 @@ public class OutputWriter {
     Path metaFilePath = this.testcaseOutputDir.resolve(Paths.get("metadata.xml"));
     try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
-      metadata.flush();
       this.successfullWrites.setNextValue(1);
     } catch (IOException exc) {
       logger.logUserException(Level.SEVERE, exc, "Could not write metadata file");
@@ -175,7 +174,6 @@ public class OutputWriter {
 
       // Footer and flush
       testcase.write("</testcase>\n");
-      testcase.flush();
       this.successfullWrites.setNextValue(1);
     } catch (IOException exc) {
       logger.log(Level.SEVERE, "Could not write test output", exc);
