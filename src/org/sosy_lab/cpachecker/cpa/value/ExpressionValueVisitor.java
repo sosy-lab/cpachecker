@@ -64,9 +64,14 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
+   * @param pNonDetValueProviders a provider for already known values
    */
-  public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, NondeterministicValueProvider pNonDetValueProviders) {
+  public ExpressionValueVisitor(
+      ValueAnalysisState pState,
+      String pFunctionName,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger,
+      NondeterministicValueProvider pNonDetValueProviders) {
     super(pFunctionName, pMachineModel, pLogger);
     readableState = pState;
     nonDetValueProviders = pNonDetValueProviders;
@@ -80,8 +85,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
    */
-  public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+  public ExpressionValueVisitor(
+      ValueAnalysisState pState,
+      String pFunctionName,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger) {
     this(pState, pFunctionName, pMachineModel, pLogger, new NondeterministicValueProvider());
   }
 
@@ -478,11 +486,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   /**
-   * This will check, if the function call in question is a nondeterministic
-   * one (and would return an unknown Value) and if values were were preloaded.
+   * This will check, if the function call in question is a nondeterministic one (and would return
+   * an unknown Value) and if values were were preloaded.
    * 
-   * If this is the case, the preloaded Value will be short-curcuited.
-   * Else, the regular visit-logic is run.
+   * <p>If this is the case, the preloaded Value will be short-curcuited. Else, the regular
+   * visit-logic is run.
    */
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression)
@@ -492,7 +500,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     if (functionNameExp instanceof CIdExpression) {
       String calledFunctionName = ((CIdExpression) functionNameExp).getName();
-      if (calledFunctionName.startsWith("__VERIFIER_nondet_")){
+      if (calledFunctionName.startsWith("__VERIFIER_nondet_")) {
 
         CType expressionType = pIastFunctionCallExpression.getExpressionType();
         Optional<Value> value = this.nonDetValueProviders.getNextNondetValueFor(expressionType);
