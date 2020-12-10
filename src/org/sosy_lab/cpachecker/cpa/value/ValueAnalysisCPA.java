@@ -134,7 +134,6 @@ public class ValueAnalysisCPA extends AbstractCPA
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
-
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
