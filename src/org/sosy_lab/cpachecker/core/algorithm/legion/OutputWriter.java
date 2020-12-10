@@ -17,7 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -143,7 +143,7 @@ public class OutputWriter {
     ARGState args = AbstractStates.extractStateByType(first, ARGState.class);
 
     // Search individual testcases
-    List<Entry<MemoryLocation, ValueAndType>> values = new ArrayList<>();
+    List<Map.Entry<MemoryLocation, ValueAndType>> values = new ArrayList<>();
     searchTestCase(args, values);
 
     // Determine file to open
@@ -217,7 +217,7 @@ public class OutputWriter {
    * @param state The starting state.
    * @param values The list of values to append to.
    */
-  private void searchTestCase(ARGState state, List<Entry<MemoryLocation, ValueAndType>> values) {
+  private void searchTestCase(ARGState state, List<Map.Entry<MemoryLocation, ValueAndType>> values) {
     // check if is nondet assignment
     LocationState ls = AbstractStates.extractStateByType(state, LocationState.class);
 
@@ -234,7 +234,7 @@ public class OutputWriter {
         String identifier = getLeftHandName(assignment.getLeftHandSide());
 
         ValueAnalysisState vs = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-        Entry<MemoryLocation, ValueAndType> vt =
+        Map.Entry<MemoryLocation, ValueAndType> vt =
             getValueTypeFromState(functionName, identifier, vs);
         if (vt != null) {
           values.add(vt);
@@ -279,10 +279,10 @@ public class OutputWriter {
   }
 
   /** Write variables from values to a testcase file. */
-  private String writeVariablesToTestcase(List<Entry<MemoryLocation, ValueAndType>> values) {
+  private String writeVariablesToTestcase(List<Map.Entry<MemoryLocation, ValueAndType>> values) {
 
     StringBuilder sb = new StringBuilder();
-    for (Entry<MemoryLocation, ValueAndType> v : values) {
+    for (Map.Entry<MemoryLocation, ValueAndType> v : values) {
       String name = v.getKey().toString();
       String type = v.getValue().getType().toString();
       Value value = v.getValue().getValue();
@@ -308,9 +308,9 @@ public class OutputWriter {
    * @param identifier The name of the function.
    * @return The constants entry for this value or null.
    */
-  private static Entry<MemoryLocation, ValueAndType> getValueTypeFromState(
+  private static Map.Entry<MemoryLocation, ValueAndType> getValueTypeFromState(
       String functionName, String identifier, ValueAnalysisState state) {
-    for (Entry<MemoryLocation, ValueAndType> entry : state.getConstants()) {
+    for (Map.Entry<MemoryLocation, ValueAndType> entry : state.getConstants()) {
       MemoryLocation loc = entry.getKey();
 
       String fnName = "";
