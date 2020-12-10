@@ -14,16 +14,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ConcolicMergeOperator implements MergeOperator {
 
-    private static final MergeOperator instance = new ConcolicMergeOperator();
+  private static final MergeOperator instance = new ConcolicMergeOperator();
 
-    public static MergeOperator getInstance() {
-        return instance;
-    }
+  public static MergeOperator getInstance() {
+    return instance;
+  }
 
-    @Override
-    public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
-            throws CPAException, InterruptedException {
+  @Override
+  public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
+          throws CPAException, InterruptedException {
 
-        return el1;
-    }
+    return el1;
+  }
 }
