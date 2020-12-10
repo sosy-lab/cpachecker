@@ -54,11 +54,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private boolean missingPointer = false;
 
-  // This state is read-only! No writing or modification allowed!
+  // This state is read-only! No writing or modification allowepd!
   protected final ValueAnalysisState readableState;
 
   // This can be used to assign a value statically.
-  private List<Value> knownValues;
+  private NondeterministicValueProvider nonDetValueProviders;
   private LogManagerWithoutDuplicates logger;
 
   /** This Visitor returns the numeral value for an expression.
@@ -69,10 +69,10 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pLogger logging
    */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, List<Value> pKnownValues) {
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, NondeterministicValueProvider pNonDetValueProviders) {
     super(pFunctionName, pMachineModel, pLogger);
     readableState = pState;
-    knownValues = pKnownValues;
+    nonDetValueProviders = pNonDetValueProviders;
     logger = pLogger;
   }
 
@@ -85,7 +85,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
-    this(pState, pFunctionName, pMachineModel, pLogger, new ArrayList<Value>());
+    this(pState, pFunctionName, pMachineModel, pLogger, new NondeterministicValueProvider());
   }
 
   /* additional methods */
@@ -495,11 +495,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     if (functionNameExp instanceof CIdExpression) {
       String calledFunctionName = ((CIdExpression) functionNameExp).getName();
-      if (calledFunctionName.startsWith("__VERIFIER_nondet_") && knownValues != null && !knownValues.isEmpty()){
-        Value value = knownValues.get(0);
+      if (calledFunctionName.startsWith("__VERIFIER_nondet_") && !this.nonDetValueProviders.isEmpty()){
+        Value value = this.nonDetValueProviders.peek();
         if (isAssignable(value, pIastFunctionCallExpression)){
           logger.log(Level.FINE, "Used preloaded value", value);
-          return knownValues.remove(0);
+          return this.nonDetValueProviders.remove();
         }
       }
     }

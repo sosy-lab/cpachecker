@@ -184,6 +184,13 @@ public class ValueAnalysisTransferRelation
     private Path functionValuesForRandom = null;
 
     @Option(
+      secure = true,
+      description =
+          "Enable the use of NondeterministicValueProvider to assign values "
+              +" to VERIFIER_nondet_* functions by pre-loading already known values.")
+    private boolean usePreloadedValues = false;
+
+    @Option(
         secure = true,
         description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
@@ -221,6 +228,10 @@ public class ValueAnalysisTransferRelation
 
     public Path getFunctionValuesForRandom() {
       return functionValuesForRandom;
+    }
+
+    public boolean usePreloadedValues() {
+      return usePreloadedValues;
     }
 
     boolean isAllowedUnsupportedOption(String func) {
@@ -271,7 +282,7 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
-  private List<Value> knownValues;
+  private NondeterministicValueProvider nonDetValueProvider = new NondeterministicValueProvider();
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -295,16 +306,6 @@ public class ValueAnalysisTransferRelation
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
-  }
-
-  public void setKnownValues(List<Value> pKnownValues){
-    knownValues = new ArrayList<>(pKnownValues);
-  }
-
-  public void clearKnownValues() {
-    if (knownValues != null) {
-      knownValues.clear();
-    }
   }
 
   @Override
@@ -1724,6 +1725,10 @@ public class ValueAnalysisTransferRelation
 
   }
 
+  public NondeterministicValueProvider getNonDetValueProvider(){
+    return this.nonDetValueProvider;
+  }
+
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
     if (options.isIgnoreFunctionValueExceptRandom()
@@ -1736,8 +1741,9 @@ public class ValueAnalysisTransferRelation
           ValueAnalysisTransferRelation.indexForNextRandomValue,
           machineModel,
           logger);
-    } else if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, knownValues);
+    } else if (options.isIgnoreFunctionValue()
+               && options.usePreloadedValues()) {
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, nonDetValueProvider);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.value.NondeterministicValueProvider;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -73,6 +74,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   private final TargetSolver targetSolver;
   private final Fuzzer fuzzer;
   private final Fuzzer initFuzzer;
+  private final NondeterministicValueProvider nonDetValueProvider;
 
   public LegionAlgorithm(
       final Algorithm algorithm,
@@ -94,6 +96,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
     this.solver = predCpa.getSolver();
     this.valueCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
+    this.nonDetValueProvider = this.valueCpa.getTransferRelation().getNonDetValueProvider();
 
     // Configure Output
     this.outputWriter = new OutputWriter(logger, predCpa, pConfig);
@@ -181,7 +184,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       try {
         reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
       } finally {
-        valueCpa.getTransferRelation().clearKnownValues();
+        this.nonDetValueProvider.clearKnownValues();
       }
     }
     return status;
