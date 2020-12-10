@@ -775,17 +775,12 @@ public final class ValueAnalysisState
     this.nonDeterministicMark = true;
   }
 
-  /**
-   * Removes the non-deterministic mark from this state.
-   */
+  /** Removes the non-deterministic mark from this state. */
   public void resetNonDeterministicMark() {
     this.nonDeterministicMark = false;
   }
 
-  /**
-   * Check whether this state was marked as containing
-   * a non-deterministic state.
-   */
+  /** Check whether this state is before a non-deterministic decision. */
   public boolean isMarkedNonDeterministic() {
     return this.nonDeterministicMark;
   }
