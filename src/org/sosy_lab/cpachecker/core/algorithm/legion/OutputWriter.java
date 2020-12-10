@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -86,17 +87,12 @@ public class OutputWriter {
     this.predicateCPA = pPredicateCPA;
 
     if (testcaseOutputDir != null) {
-      initOutDir(testcaseOutputDir.toString());
+      try {
+        Files.createDirectories(testcaseOutputDir);
+      } catch (IOException exc) {
+        throw new InvalidConfigurationException("Could not create configured output dir", exc);
+      }
       writeTestMetadata();
-    }
-  }
-
-  private void initOutDir(String pPath) {
-    File outpath = new File(pPath);
-    boolean dirsDone = outpath.mkdirs();
-    if (!dirsDone) {
-      logger.log(
-          Level.WARNING, "Could not make output directory for test cases, maybe alread exists.");
     }
   }
 
