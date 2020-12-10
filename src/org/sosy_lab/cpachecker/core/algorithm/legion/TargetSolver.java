@@ -36,6 +36,7 @@ public class TargetSolver {
       new StatInt(StatKind.COUNT, "successfull_secondary_solves");
   private final StatInt unsuccessfull_solves = new StatInt(StatKind.COUNT, "unsuccessfull_solves");
   private final LegionComponentStatistics stats = new LegionComponentStatistics("targeting");
+  private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
 
   /**
    * @param pLogger The logging instance to use.
@@ -142,7 +143,7 @@ public class TargetSolver {
     for (ValueAssignment assignment : pConstraints.asList()) {
       String name = assignment.getName();
 
-      if (!name.startsWith("__VERIFIER_nondet_")) {
+      if (!name.startsWith(VERIFIER_NONDET)) {
         continue;
       }
 

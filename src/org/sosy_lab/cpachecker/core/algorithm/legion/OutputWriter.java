@@ -57,6 +57,8 @@ public class OutputWriter {
   private final LogManager logger;
   private final PredicateCPA predicateCPA;
 
+  private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
+
   private int testCaseNumber = 0;
   private int previousSetSize = 0;
   private Instant zero = Instant.now();
@@ -225,7 +227,7 @@ public class OutputWriter {
       }
 
       // Check if assignment is for a nondeterministic variable
-      if (assignment.getRightHandSide().toString().startsWith("__VERIFIER_nondet_")) {
+      if (assignment.getRightHandSide().toString().startsWith(VERIFIER_NONDET)) {
         String functionName = ls.getLocationNode().getFunctionName();
         String identifier = getLeftHandName(assignment.getLeftHandSide());
 
