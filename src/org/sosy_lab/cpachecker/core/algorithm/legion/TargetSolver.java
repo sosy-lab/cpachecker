@@ -30,11 +30,11 @@ public class TargetSolver {
   private final LogManager logger;
   private final Solver solver;
   private final int maxSolverAsks;
-  private final StatInt successfull_primary_solves =
+  private final StatInt successfullPrimarySolves =
       new StatInt(StatKind.COUNT, "successfull_primary_solves");
-  private final StatInt successfull_secondary_solves =
+  private final StatInt successfullSecondarySolves =
       new StatInt(StatKind.COUNT, "successfull_secondary_solves");
-  private final StatInt unsuccessfull_solves = new StatInt(StatKind.COUNT, "unsuccessfull_solves");
+  private final StatInt unsuccessfullSolves = new StatInt(StatKind.COUNT, "unsuccessfull_solves");
   private final LegionComponentStatistics stats = new LegionComponentStatistics("targeting");
   private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
 
@@ -70,9 +70,9 @@ public class TargetSolver {
       // Ask solver for the first set of Values
       try (Model constraints = solvePathConstrains(pTarget.getFormula(), prover)) {
         preloadedValues.add(computePreloadValues(constraints));
-        this.successfull_primary_solves.setNextValue(1);
+        this.successfullPrimarySolves.setNextValue(1);
       } catch (SolverException ex) {
-        this.unsuccessfull_solves.setNextValue(1);
+        this.unsuccessfullSolves.setNextValue(1);
         this.logger.log(Level.WARNING, "Could not solve even once formula.");
         this.stats.finish();
         throw ex;
@@ -86,22 +86,22 @@ public class TargetSolver {
 
         // Create negated assignment formula
         BooleanFormula f = assignment.getAssignmentAsFormula();
-        BooleanFormula not_f = bmgr.not(f);
+        BooleanFormula notF = bmgr.not(f);
 
         try {
-          prover.push(not_f);
+          prover.push(notF);
           if (prover.isUnsat()) {
             this.logger.log(Level.WARNING, "Is unsat.", i);
             continue;
           }
           try (Model constraints = prover.getModel()) {
             preloadedValues.add(computePreloadValues(constraints));
-            this.successfull_secondary_solves.setNextValue(1);
+            this.successfullSecondarySolves.setNextValue(1);
           }
 
         } catch (SolverException ex) {
           // If this is not solvable, just skip
-          this.unsuccessfull_solves.setNextValue(1);
+          this.unsuccessfullSolves.setNextValue(1);
           this.logger.log(Level.FINE, "Could not solve for more solutions.");
           continue;
         } finally {
@@ -155,9 +155,9 @@ public class TargetSolver {
   }
 
   public LegionComponentStatistics getStats() {
-    this.stats.setOther(this.successfull_primary_solves);
-    this.stats.setOther(this.successfull_secondary_solves);
-    this.stats.setOther(this.unsuccessfull_solves);
+    this.stats.setOther(this.successfullPrimarySolves);
+    this.stats.setOther(this.successfullSecondarySolves);
+    this.stats.setOther(this.unsuccessfullSolves);
 
     return this.stats;
   }
