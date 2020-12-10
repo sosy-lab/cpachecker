@@ -104,7 +104,7 @@ public class OutputWriter {
    */
   private void writeTestMetadata() {
     this.stats.start();
-    Path metaFilePath = Paths.get(this.testcaseOutputDir.toString(), "/metadata.xml");
+    Path metaFilePath = this.testcaseOutputDir.resolve(Paths.get("metadata.xml"));
     try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
       metadata.flush();
@@ -148,7 +148,9 @@ public class OutputWriter {
     Duration sinceZero = Duration.between(this.zero, Instant.now());
     String filename =
         String.format(
-            "/testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber, violationStr);
+            "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber, violationStr);
+    Path testcasePath = this.testcaseOutputDir.resolve(Paths.get(filename));
+    
 
     // Get content
     String inputs = writeVariablesToTestcase(values);
@@ -158,10 +160,9 @@ public class OutputWriter {
       return;
     }
 
-    logger.log(Level.WARNING, "Writing testcase ", filename);
+    logger.log(Level.WARNING, "Writing testcase ", testcasePath);
     try (Writer testcase =
-        IO.openOutputFile(
-            Paths.get(this.testcaseOutputDir.toString(), filename), Charset.defaultCharset())) {
+        IO.openOutputFile(testcasePath, Charset.defaultCharset())) {
       // Write header
       testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
       testcase.write(
