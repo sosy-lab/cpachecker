@@ -56,9 +56,9 @@ public class OutputWriter {
   private final LogManager logger;
   private final PredicateCPA predicateCPA;
 
-  private int testCaseNumber;
-  private int previousSetSize;
-  private Instant zero;
+  private int testCaseNumber = 0;
+  private int previousSetSize = 0;
+  private Instant zero = Instant.now();
 
   @Option(
       secure = false,
@@ -69,7 +69,7 @@ public class OutputWriter {
   private Path testcaseOutputDir = Paths.get("testcases");
 
   // Stats
-  private final LegionComponentStatistics stats;
+  private final LegionComponentStatistics stats = new LegionComponentStatistics("output_writer");
   private final StatInt successfullWrites = new StatInt(StatKind.SUM, "successfull_writes");
 
   /**
@@ -81,12 +81,6 @@ public class OutputWriter {
     this.logger = pLogger;
     pConfig.inject(this, OutputWriter.class);
     this.predicateCPA = pPredicateCPA;
-
-    this.testCaseNumber = 0;
-    this.previousSetSize = 0;
-
-    this.zero = Instant.now();
-    this.stats = new LegionComponentStatistics("output_writer");
 
     if (testcaseOutputDir != null) {
       initOutDir(testcaseOutputDir.toString());

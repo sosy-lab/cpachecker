@@ -16,16 +16,13 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 public class LegionComponentStatistics {
   private final String name;
 
-  private final Timer timer;
+  private final Timer timer = new Timer();;
 
-  private long iterations;
-  private final Map<String, StatInt> others;
+  private long iterations = 0;
+  private final Map<String, StatInt> others = new HashMap<>();;
 
   public LegionComponentStatistics(String pName) {
     this.name = pName;
-    this.timer = new Timer();
-    this.iterations = 0;
-    this.others = new HashMap<>();
   }
 
   public void start() {

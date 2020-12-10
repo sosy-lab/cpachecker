@@ -34,18 +34,14 @@ public class UnvisitedEdgesStrategy implements Selector {
 
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
-  private final LegionComponentStatistics stats;
-  private final Random random;
-  private final Set<PathFormula> blacklisted;
+  private final LegionComponentStatistics stats = new LegionComponentStatistics("selection");
+  private final Random random = new Random(1636672210L);
+  private final Set<PathFormula> blacklisted = new HashSet<>();
   private final StatInt optOuts = new StatInt(StatKind.SUM, "opt_outs");
 
   public UnvisitedEdgesStrategy(LogManager logger, PathFormulaManager formulaManager) {
     this.logger = logger;
     this.formulaManager = formulaManager;
-    this.random = new Random(1636672210L);
-    this.blacklisted = new HashSet<>();
-
-    this.stats = new LegionComponentStatistics("selection");
   }
 
   @Override

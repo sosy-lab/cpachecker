@@ -35,7 +35,7 @@ public class TargetSolver {
   private final StatInt successfull_secondary_solves =
       new StatInt(StatKind.COUNT, "successfull_secondary_solves");
   private final StatInt unsuccessfull_solves = new StatInt(StatKind.COUNT, "unsuccessfull_solves");
-  private final LegionComponentStatistics stats;
+  private final LegionComponentStatistics stats = new LegionComponentStatistics("targeting");
 
   /**
    * @param pLogger The logging instance to use.
@@ -46,8 +46,6 @@ public class TargetSolver {
     logger = pLogger;
     solver = pSolver;
     maxSolverAsks = pMaxSolverAsks;
-
-    this.stats = new LegionComponentStatistics("targeting");
   }
 
   /**
