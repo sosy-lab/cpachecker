@@ -131,9 +131,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private SymbolicStatistics symbolicStats;
 
-  // private List<Value> knownValues;
-  private ValueAnalysisTransferRelation transferRelation;
-
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
@@ -157,15 +154,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
-
-    transferRelation = new ValueAnalysisTransferRelation(
-        logger,
-        cfa,
-        transferOptions,
-        unknownValueHandler,
-        constraintsStrengthenOperator,
-        statistics);
-    
   }
 
   private MemoryLocationValueHandler createUnknownValueHandler()
