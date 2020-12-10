@@ -55,9 +55,7 @@ public class RandomSelectionStrategy implements Selector {
       }
 
       // Otherwhise, check if it's blacklisted
-      if (this.blacklisted.contains(target)) {
-        continue;
-      } else {
+      if (!this.blacklisted.contains(target)) {
         break;
       }
     }
