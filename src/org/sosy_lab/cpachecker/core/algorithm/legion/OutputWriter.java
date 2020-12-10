@@ -303,17 +303,14 @@ public class OutputWriter {
     for (Map.Entry<MemoryLocation, ValueAndType> entry : state.getConstants()) {
       MemoryLocation loc = entry.getKey();
 
-      String fnName = "";
-      String ident = "";
-      try {
-        fnName = loc.getFunctionName();
-      } catch (NullPointerException exc) {
+      if (loc == null) {
         continue;
       }
 
-      try {
-        ident = loc.getIdentifier();
-      } catch (NullPointerException exc) {
+      String fnName = loc.getFunctionName();
+      String ident = loc.getIdentifier();
+
+      if (fnName == null || ident == null) {
         continue;
       }
 
