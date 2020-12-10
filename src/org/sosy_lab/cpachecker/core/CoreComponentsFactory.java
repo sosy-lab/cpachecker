@@ -163,11 +163,12 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
-    private boolean useTestCaseGeneratorAlgorithm = false
+    private boolean useTestCaseGeneratorAlgorithm = false;
 
   @Option(secure = true, name = "useLegion",
-  description = "generate test cases for covered test targets")
-  private boolean useTestCaseGeneratorAlgorithm = false;
+      description = "generate test cases using the Legion algorithm")
+  private boolean useLegion = false;
+
 
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
