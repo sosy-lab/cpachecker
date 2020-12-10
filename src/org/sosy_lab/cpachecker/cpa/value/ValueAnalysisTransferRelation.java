@@ -183,13 +183,6 @@ public class ValueAnalysisTransferRelation
     private Path functionValuesForRandom = null;
 
     @Option(
-      secure = true,
-      description =
-          "Enable the use of NondeterministicValueProvider to assign values "
-              +" to VERIFIER_nondet_* functions by pre-loading already known values.")
-    private boolean usePreloadedValues = false;
-
-    @Option(
         secure = true,
         description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
@@ -227,10 +220,6 @@ public class ValueAnalysisTransferRelation
 
     public Path getFunctionValuesForRandom() {
       return functionValuesForRandom;
-    }
-
-    public boolean usePreloadedValues() {
-      return usePreloadedValues;
     }
 
     boolean isAllowedUnsupportedOption(String func) {
@@ -1739,8 +1728,7 @@ public class ValueAnalysisTransferRelation
           ValueAnalysisTransferRelation.indexForNextRandomValue,
           machineModel,
           logger);
-    } else if (options.isIgnoreFunctionValue()
-               && options.usePreloadedValues()) {
+    } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, nonDetValueProvider);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
