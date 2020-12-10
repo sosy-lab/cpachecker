@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -75,6 +74,7 @@ public class OutputWriter {
   // Stats
   private final LegionComponentStatistics stats = new LegionComponentStatistics("output_writer");
   private final StatInt successfullWrites = new StatInt(StatKind.SUM, "successfull_writes");
+  private final StatInt failedWrites = new StatInt(StatKind.SUM, "failed_writes");
 
   /**
    * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
@@ -107,11 +107,12 @@ public class OutputWriter {
     try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
       metadata.flush();
+      this.successfullWrites.setNextValue(1);
     } catch (IOException exc) {
       logger.logUserException(Level.SEVERE, exc, "Could not write metadata file");
+      this.failedWrites.setNextValue(1);
     } finally {
       this.stats.finish();
-      this.successfullWrites.setNextValue(1);
     }
   }
 
@@ -321,6 +322,7 @@ public class OutputWriter {
 
   public LegionComponentStatistics getStats() {
     this.stats.setOther(this.successfullWrites);
+    this.stats.setOther(this.failedWrites);
     return this.stats;
   }
 }
