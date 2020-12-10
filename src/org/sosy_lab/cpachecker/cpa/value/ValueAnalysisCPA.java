@@ -79,14 +79,16 @@ public class ValueAnalysisCPA extends AbstractCPA
      * will be created, but not evaluated.
      */
     INTRODUCE_SYMBOLIC,
-    /**
-     * This strategy fills each unknown value with a random one.
-     */
+    /** This strategy fills each unknown value with a random one. */
     RANDOM_VALUE,
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "CONCOLIC"},
-      description="which merge operator to use for ValueAnalysisCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "CONCOLIC"},
+      description = "which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
   @Option(

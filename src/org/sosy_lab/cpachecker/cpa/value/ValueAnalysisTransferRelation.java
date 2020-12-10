@@ -1712,7 +1712,7 @@ public class ValueAnalysisTransferRelation
 
   }
 
-  public NondeterministicValueProvider getNonDetValueProvider(){
+  public NondeterministicValueProvider getNonDetValueProvider() {
     return this.nonDetValueProvider;
   }
 
@@ -1729,7 +1729,8 @@ public class ValueAnalysisTransferRelation
           machineModel,
           logger);
     } else if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, nonDetValueProvider);
+      return new ExpressionValueVisitor(
+          pState, pFunctionName, machineModel, logger, nonDetValueProvider);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

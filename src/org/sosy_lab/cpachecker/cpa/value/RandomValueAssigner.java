@@ -39,13 +39,15 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   private final LogManager logger;
 
   @Option(
-    description = "If this option is set to true, an own symbolic identifier is assigned to"
-        + " each array slot when handling non-deterministic arrays of fixed length."
-        + " If the length of the array can't be determined, it won't be handled in either cases.")
+      description =
+          "If this option is set to true, an own symbolic identifier is assigned to each array"
+              + " slot when handling non-deterministic arrays of fixed length. If the length of"
+              + " the array can't be determined, it won't be handled in either cases.")
   private boolean handleArrays = false;
 
   @Option(description = "Default size of arrays whose length can't be determined.")
   private int defaultArraySize = 20;
+
   private MachineModel machineModel;
 
   public RandomValueAssigner(LogManager logger, Configuration pConfig, MachineModel pMachineModel)
@@ -59,14 +61,13 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   /**
    * Assign a random value to the {@link MemoryLocation} from the given {@link ValueAnalysisState}.
    *
-   * @param pMemLocation   the memory location to remove
-   * @param pType          the type of the memory location that should be removed
+   * @param pMemLocation the memory location to remove
+   * @param pType the type of the memory location that should be removed
    * @param pPreviousState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} which
-   *                       preceedes pState. This state will be marked when a random value is
-   *                       assigned in pState.
-   * @param pState         the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use.
-   *                       Value assignments will happen in this state
-   * @param pValueVisitor  unused, may be null
+   *     preceedes pState. This state will be marked when a random value is assigned in pState.
+   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use. Value
+   *     assignments will happen in this state
+   * @param pValueVisitor unused, may be null
    */
   @Override
   public void handle(
@@ -90,9 +91,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     pState.forget(pMemLocation);
   }
 
-  /**
-   * Create a simple Type and assign it to the pMemLocation.
-   */
+  /** Create a simple Type and assign it to the pMemLocation. */
   private void createSimpleType(
       MemoryLocation pMemLocation,
       Type pType,
@@ -102,7 +101,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     CBasicType basicType = ((CSimpleType) pType).getType();
     Value value;
 
-    if (basicType.isIntegerType()){
+    if (basicType.isIntegerType()) {
       value = generateInteger((CSimpleType) pType);
     } else {
       switch (basicType) {
@@ -129,19 +128,15 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     pState.assignConstant(pMemLocation, value, pType);
   }
 
-  /**
-   * Return a random integer in the correct range for this type.
-   */
+  /** Return a random integer in the correct range for this type. */
   private NumericValue generateInteger(CSimpleType pType) {
     long min = this.machineModel.getMinimalIntegerValue(pType).longValue();
     long max = this.machineModel.getMaximalIntegerValue(pType).longValue();
-    long random = (long)((this.rnd.nextDouble() * (max - min)) + min);
+    long random = (long) ((this.rnd.nextDouble() * (max - min)) + min);
     return new NumericValue(random);
   }
 
-  /**
-   * Fill an array with Values.
-   */
+  /** Fill an array with Values. */
   private void fillArray(
       final ValueAnalysisState pState,
       final MemoryLocation pArrayLocation,

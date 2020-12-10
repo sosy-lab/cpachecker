@@ -763,13 +763,11 @@ public final class ValueAnalysisState
   }
 
   /**
-   * If e.g. {@link RandomValueAssigner} is used to handle unknown values, it will
-   * in some cases return a non-deterministic value, marking the previous state
-   * as non-deterministic.
+   * If e.g. {@link RandomValueAssigner} is used to handle unknown values, it will in some cases
+   * return a non-deterministic value, marking the previous state as non-deterministic.
    * 
-   * This is done as these concrete but non-deterministic values are
-   * indistinguishable from other values. To enable analysis to find these states
-   * again, the mark is set.
+   * <p>This is done as these concrete but non-deterministic values are indistinguishable from other
+   * values. To enable analysis to find these states again, the mark is set.
    */
   public void setNonDeterministicMark() {
     this.nonDeterministicMark = true;
