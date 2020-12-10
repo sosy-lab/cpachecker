@@ -12,7 +12,6 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.logging.Level;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
