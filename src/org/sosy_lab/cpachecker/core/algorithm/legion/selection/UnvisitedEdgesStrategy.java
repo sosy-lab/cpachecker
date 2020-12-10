@@ -37,7 +37,6 @@ public class UnvisitedEdgesStrategy implements Selector {
   private final LegionComponentStatistics stats = new LegionComponentStatistics("selection");
   private final Random random = new Random(1636672210L);
   private final Set<PathFormula> blacklisted = new HashSet<>();
-  private final StatInt optOuts = new StatInt(StatKind.SUM, "opt_outs");
 
   public UnvisitedEdgesStrategy(LogManager logger, PathFormulaManager formulaManager) {
     this.logger = logger;
@@ -119,15 +118,7 @@ public class UnvisitedEdgesStrategy implements Selector {
     // If there are children, search them for unvisited Edge
     Collection<ARGState> children = state.getChildren();
     for (ARGState child : children) {
-
-      try {
-        depthSearch(child, foundEdges);
-      } catch (StackOverflowError e) {
-        // If the stack is too deep, opt out of this path
-        logger.logUserException(Level.WARNING, e, "Stack to deep, opting out of path");
-        this.optOuts.setNextValue(1);
-        return;
-      }
+      depthSearch(child, foundEdges);
     }
   }
 
@@ -182,7 +173,6 @@ public class UnvisitedEdgesStrategy implements Selector {
     StatInt blacklistedSum = new StatInt(StatKind.SUM, "blacklisted");
     blacklistedSum.setNextValue(this.blacklisted.size());
     this.stats.setOther(blacklistedSum);
-    this.stats.setOther(this.optOuts);
     return this.stats;
   }
 }

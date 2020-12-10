@@ -252,13 +252,7 @@ public class OutputWriter {
     }
 
     // If not, search in largestChild
-    try {
-      searchTestCase(largestChild, values);
-    } catch (StackOverflowError e) {
-      logger.logUserException(
-          Level.WARNING, e, "Stack to deep, could not search for more testcases");
-      return;
-    }
+    searchTestCase(largestChild, values);
   }
 
   /** Retrieve an assignment statement from a CFAEdge, if this is possible. */
