@@ -21,17 +21,20 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.RandomSelectionStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.UnvisitedEdgesStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.NondeterministicValueProvider;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -64,7 +67,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   private final ShutdownNotifier shutdownNotifier;
 
   // CPAs + components
-  private final ValueAnalysisCPA valueCpa;
   private final Solver solver;
   private final PredicateCPA predCpa;
 
@@ -88,15 +90,17 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     this.algorithm = algorithm;
     this.logger = pLogger;
 
+    ValueAnalysisTransferRelation valueAnalysisTransferRelation = getCurrentValueTransferRelation(algorithm);
+    this.nonDetValueProvider = valueAnalysisTransferRelation.getNonDetValueProvider();
+
     this.config = pConfig;
     pConfig.inject(this, LegionAlgorithm.class);
     this.shutdownNotifier = pShutdownNotifier;
 
     // Fetch solver from predicate CPA and valueCpa (used in fuzzer)
+
     this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
     this.solver = predCpa.getSolver();
-    this.valueCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
-    this.nonDetValueProvider = this.valueCpa.getTransferRelation().getNonDetValueProvider();
 
     // Configure Output
     this.outputWriter = new OutputWriter(logger, predCpa, pConfig);
@@ -105,9 +109,9 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     this.selectionStrategy = buildSelectionStrategy();
     this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
     this.initFuzzer =
-        new Fuzzer("init", logger, valueCpa, this.outputWriter, pShutdownNotifier, pConfig);
+        new Fuzzer("init", logger, this.outputWriter, pShutdownNotifier, nonDetValueProvider, pConfig);
     this.fuzzer =
-        new Fuzzer("fuzzer", logger, valueCpa, this.outputWriter, pShutdownNotifier, pConfig);
+        new Fuzzer("fuzzer", logger, this.outputWriter, pShutdownNotifier, nonDetValueProvider, pConfig);
   }
 
   @Override
@@ -227,5 +231,18 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   @Override
   public @Nullable String getName() {
     return "Legion Algorithm";
+  }
+
+  private ValueAnalysisTransferRelation getCurrentValueTransferRelation(Algorithm algo) throws InvalidConfigurationException{
+    if (!(algo instanceof CPAAlgorithm)){
+      throw new InvalidConfigurationException("Cannot run concolic execution with anything but CPAAlgorithm.");
+    } 
+    
+    TransferRelation transferRelation = ((CPAAlgorithm)algorithm).getTransferRelation();
+    if (!(transferRelation instanceof ARGTransferRelation)){
+      throw new InvalidConfigurationException("Can only run with arg transfer relation in algorithm.");
+    }
+    ARGTransferRelation argTransferRelation = (ARGTransferRelation)transferRelation;
+    return argTransferRelation.retrieveWrappedTransferRelation(ValueAnalysisTransferRelation.class);
   }
 }

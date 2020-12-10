@@ -460,4 +460,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
     pStatsCollection.add(stats);
   }
+
+  public TransferRelation getTransferRelation() {
+    return this.transferRelation;
+  }
 }

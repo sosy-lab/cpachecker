@@ -271,7 +271,13 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public ValueAnalysisTransferRelation getTransferRelation() {
-    return transferRelation;
+    return new ValueAnalysisTransferRelation(
+        logger,
+        cfa,
+        transferOptions,
+        unknownValueHandler,
+        constraintsStrengthenOperator,
+        statistics);
   }
 
   @Override

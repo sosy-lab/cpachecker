@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.logging.Level;

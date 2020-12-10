@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 public class RandomSelectionStrategy implements Selector {
 
   private final LogManager logger;
-  private final Random random  = new Random(1200709844L);
-  private final LegionComponentStatistics stats = new LegionComponentStatistics("selection");;
+  private final Random random = new Random(1200709844L);
+  private final LegionComponentStatistics stats = new LegionComponentStatistics("selection");
   private final Set<PathFormula> blacklisted = new HashSet<>();
 
   public RandomSelectionStrategy(LogManager logger) {

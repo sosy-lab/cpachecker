@@ -19,7 +19,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.NondeterministicValueProvider;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -40,7 +39,6 @@ public class Fuzzer {
   private int emergencyFuzzingPasses = 1;
 
   private final LogManager logger;
-  private final ValueAnalysisCPA valueCpa;
   private final OutputWriter outputWriter;
   private final ShutdownNotifier shutdownNotifier;
   private final LegionComponentStatistics stats;
@@ -50,9 +48,9 @@ public class Fuzzer {
   public Fuzzer(
       String pName,
       final LogManager pLogger,
-      ValueAnalysisCPA pValueCPA,
       OutputWriter pOutputWriter,
       ShutdownNotifier pShutdownNotifier,
+      NondeterministicValueProvider pNonDetValueProvider,
       Configuration pConfig
       )
       throws InvalidConfigurationException {
@@ -61,8 +59,7 @@ public class Fuzzer {
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
 
-    this.valueCpa = pValueCPA;
-    this.nonDetValueProvider = pValueCPA.getTransferRelation().getNonDetValueProvider();
+    this.nonDetValueProvider = pNonDetValueProvider;
 
     this.outputWriter = pOutputWriter;
     this.stats = new LegionComponentStatistics(pName);
