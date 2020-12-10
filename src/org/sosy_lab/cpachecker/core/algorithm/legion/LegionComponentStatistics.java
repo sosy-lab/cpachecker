@@ -18,7 +18,6 @@ public class LegionComponentStatistics {
 
   private final Timer timer = new Timer();
 
-  private long iterations = 0;
   private final Map<String, StatInt> others = new HashMap<>();
 
   public LegionComponentStatistics(String pName) {
@@ -31,7 +30,6 @@ public class LegionComponentStatistics {
 
   public void finish() {
     this.timer.stopIfRunning();
-    this.iterations += 1;
   }
 
   public String collect() {
@@ -41,7 +39,7 @@ public class LegionComponentStatistics {
     buff.append(
         "\n    exec_time: "
             + String.format("%.3fs", (float) this.timer.getSumTime().asMillis() / 1000));
-    buff.append("\n    iterations: " + this.iterations);
+    buff.append("\n    iterations: " + this.timer.getNumberOfIntervals());
 
     StringBuilder otherBuff = new StringBuilder();
     for (Entry<String, StatInt> entry : this.others.entrySet()) {
