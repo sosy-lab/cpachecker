@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
@@ -44,16 +45,22 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
-  @Option(secure=true, name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicates",
+      description =
+          "get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
-  @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
+  @Option(
+      secure = true,
+      description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
@@ -90,7 +97,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     public PrecisionConverter getPrecisionConverter() {
       return encodePredicates;
     }
-
   }
 
   private final FormulaManagerView formulaManagerView;
@@ -141,8 +147,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = PredicatePrecision.empty();
 
     if (checkBlockFeasibility) {
-      result = result
-          .addGlobalPredicates(Collections.singleton(abstractionManager.makeFalsePredicate()));
+      result =
+          result.addGlobalPredicates(
+              Collections.singleton(abstractionManager.makeFalsePredicate()));
     }
 
     if (!predicatesFiles.isEmpty()) {
@@ -183,10 +190,18 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       throws InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
     try {
+
+
       WitnessInvariantsExtractor extractor =
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, pWitnessFile);
       final Set<ExpressionTreeLocationInvariant> invariants =
           extractor.extractInvariantsFromReachedSet();
+
+      boolean predicatesPresent = !invariants.isEmpty();
+      boolean predicatesPresentButNotAdded = false;
+      if (predicatesPresent) {
+        predicatesPresentButNotAdded = true;
+      }
 
       for (ExpressionTreeLocationInvariant invariant : invariants) {
 
@@ -199,9 +214,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         List<AbstractionPredicate> predicates = new ArrayList<>();
         // get atom predicates from invariant
         if (options.splitIntoAtoms) {
-          predicates.addAll(
-              predicateAbstractionManager.getPredicatesForAtomsOf(
-                  invariant.getFormula(formulaManagerView, pathFormulaManager, null)));
+          BooleanFormula formula =
+              invariant.getFormula(formulaManagerView, pathFormulaManager, null);
+          ImmutableSet<AbstractionPredicate> predicatesForAtomsOf =
+              predicateAbstractionManager.getPredicatesForAtomsOf(formula);
+          if (predicatesPresent && !predicatesForAtomsOf.isEmpty()) {
+            predicatesPresentButNotAdded = false;
+          }
+
+          predicates.addAll(predicatesForAtomsOf);
 
         }
         // get predicate from invariant
@@ -230,6 +251,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           result = result.addGlobalPredicates(globalPredicates);
         }
       }
+      if (predicatesPresentButNotAdded) {
+        logger.log(
+            Level.WARNING,
+            "Predicate from correctness witness invariants could not be computed."
+                + "They are present, but are not corectly loaded");
+      }
+
     } catch (CPAException | InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
@@ -243,8 +271,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = internalPrepareInitialPredicates();
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
-    statistics.addKeyValueStatistic("Init. location predicates", result.getLocalPredicates().size());
-    statistics.addKeyValueStatistic("Init. function predicates", result.getFunctionPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. location predicates", result.getLocalPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. function predicates", result.getFunctionPredicates().size());
 
     return result;
   }
@@ -253,5 +283,4 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }
