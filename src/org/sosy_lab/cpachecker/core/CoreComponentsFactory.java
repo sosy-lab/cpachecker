@@ -169,7 +169,6 @@ public class CoreComponentsFactory {
       description = "generate test cases using the Legion algorithm")
   private boolean useLegion = false;
 
-
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
