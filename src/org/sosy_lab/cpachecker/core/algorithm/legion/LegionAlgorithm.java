@@ -90,7 +90,8 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     this.algorithm = algorithm;
     this.logger = pLogger;
 
-    ValueAnalysisTransferRelation valueAnalysisTransferRelation = getCurrentValueTransferRelation(algorithm);
+    ValueAnalysisTransferRelation valueAnalysisTransferRelation =
+        getCurrentValueTransferRelation(algorithm);
     this.nonDetValueProvider = valueAnalysisTransferRelation.getNonDetValueProvider();
 
     this.config = pConfig;
@@ -109,9 +110,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     this.selectionStrategy = buildSelectionStrategy();
     this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
     this.initFuzzer =
-        new Fuzzer("init", logger, this.outputWriter, pShutdownNotifier, nonDetValueProvider, pConfig);
+        new Fuzzer(
+            "init", logger, this.outputWriter, pShutdownNotifier, nonDetValueProvider, pConfig);
     this.fuzzer =
-        new Fuzzer("fuzzer", logger, this.outputWriter, pShutdownNotifier, nonDetValueProvider, pConfig);
+        new Fuzzer(
+            "fuzzer", logger, this.outputWriter, pShutdownNotifier, nonDetValueProvider, pConfig);
   }
 
   @Override
@@ -233,16 +236,19 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     return "Legion Algorithm";
   }
 
-  private ValueAnalysisTransferRelation getCurrentValueTransferRelation(Algorithm algo) throws InvalidConfigurationException{
-    if (!(algo instanceof CPAAlgorithm)){
-      throw new InvalidConfigurationException("Cannot run concolic execution with anything but CPAAlgorithm.");
-    } 
-    
-    TransferRelation transferRelation = ((CPAAlgorithm)algorithm).getTransferRelation();
-    if (!(transferRelation instanceof ARGTransferRelation)){
-      throw new InvalidConfigurationException("Can only run with arg transfer relation in algorithm.");
+  private ValueAnalysisTransferRelation getCurrentValueTransferRelation(Algorithm algo)
+      throws InvalidConfigurationException {
+    if (!(algo instanceof CPAAlgorithm)) {
+      throw new InvalidConfigurationException(
+          "Cannot run concolic execution with anything but CPAAlgorithm.");
     }
-    ARGTransferRelation argTransferRelation = (ARGTransferRelation)transferRelation;
+
+    TransferRelation transferRelation = ((CPAAlgorithm) algorithm).getTransferRelation();
+    if (!(transferRelation instanceof ARGTransferRelation)) {
+      throw new InvalidConfigurationException(
+          "Can only run with arg transfer relation in algorithm.");
+    }
+    ARGTransferRelation argTransferRelation = (ARGTransferRelation) transferRelation;
     return argTransferRelation.retrieveWrappedTransferRelation(ValueAnalysisTransferRelation.class);
   }
 }

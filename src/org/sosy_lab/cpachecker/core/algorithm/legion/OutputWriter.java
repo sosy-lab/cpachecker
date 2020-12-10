@@ -148,7 +148,6 @@ public class OutputWriter {
         String.format(
             "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber, violationStr);
     Path testcasePath = this.testcaseOutputDir.resolve(Paths.get(filename));
-    
 
     // Get content
     String inputs = writeVariablesToTestcase(values);
@@ -159,8 +158,7 @@ public class OutputWriter {
     }
 
     logger.log(Level.INFO, "Writing testcase ", testcasePath);
-    try (Writer testcase =
-        IO.openOutputFile(testcasePath, Charset.defaultCharset())) {
+    try (Writer testcase = IO.openOutputFile(testcasePath, Charset.defaultCharset())) {
       // Write header
       testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
       testcase.write(
@@ -209,7 +207,8 @@ public class OutputWriter {
    * @param state The starting state.
    * @param values The list of values to append to.
    */
-  private void searchTestCase(ARGState state, List<Map.Entry<MemoryLocation, ValueAndType>> values) {
+  private void searchTestCase(
+      ARGState state, List<Map.Entry<MemoryLocation, ValueAndType>> values) {
     // check if is nondet assignment
     LocationState ls = AbstractStates.extractStateByType(state, LocationState.class);
 
