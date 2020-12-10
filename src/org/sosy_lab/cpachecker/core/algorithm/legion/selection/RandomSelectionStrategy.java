@@ -33,12 +33,10 @@ public class RandomSelectionStrategy implements Selector {
   private final LegionComponentStatistics stats;
   private final Set<PathFormula> blacklisted;
 
-  private static long randomSeed = 1200709844L;
-
   public RandomSelectionStrategy(LogManager logger) {
     this.logger = logger;
 
-    this.random = new Random(randomSeed);
+    this.random = new Random(1200709844L);
     this.stats = new LegionComponentStatistics("selection");
 
     this.blacklisted = new HashSet<>();
