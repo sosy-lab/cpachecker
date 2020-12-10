@@ -52,7 +52,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   private boolean missingPointer = false;
 
-  // This state is read-only! No writing or modification allowepd!
+  // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
 
   // This can be used to assign a value statically.
