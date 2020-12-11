@@ -237,7 +237,10 @@ class TestcaseWriter {
         if (vt != null) {
           values.add(vt);
         } else {
-          logger.log(Level.WARNING, "No values to write, propably `MemoryLocation forgotten`");
+          logger.log(
+              Level.WARNING,
+              "No values to write, maybe 'cpa.value.concolic.handleArrays = false' or CPAchecker"
+                  + " wasn't able to handle a type in this input");
         }
       }
     }
