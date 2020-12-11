@@ -484,6 +484,9 @@ analysis.useCompositionAnalysis = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# generate test cases using the Legion algorithm
+analysis.useLegion = false
+
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
 
@@ -3083,6 +3086,15 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# Default size of arrays whose length can't be determined.
+cpa.value.concolic.defaultArraySize = 20
+
+# If this option is set to true, an own symbolic identifier is assigned to
+# each array slot when handling non-deterministic arrays of fixed length. If
+# the length of the array can't be determined, it won't be handled in either
+# cases.
+cpa.value.concolic.handleArrays = false
+
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
@@ -3119,7 +3131,7 @@ cpa.value.interpolation.manageCallstack = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, CONCOLIC]
 
 # Assume that variables used only in a boolean context are either zero or
 # one.
@@ -3238,7 +3250,7 @@ cpa.value.trackJavaArrayValues = true
 
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
-  enum:     [DISCARD, INTRODUCE_SYMBOLIC]
+  enum:     [DISCARD, INTRODUCE_SYMBOLIC, RANDOM_VALUE]
 
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
@@ -3455,6 +3467,25 @@ language = no default value
   enum:     [C, JAVA, LLVM]
 language = C
   enum:     [C, JAVA, LLVM]
+
+# If 0 fuzzing would run, instead run this amount of passes.
+legion.emergencyFuzzingPasses = 1
+
+# fuzzingPasses = ⌈ fuzzingMultiplier * fuzzingSolutions ⌉
+legion.fuzzingMultiplier = 1
+
+# How many passes to fuzz before asking the solver for the first time.
+legion.initialPasses = 3
+
+# The maximum number of times to ask the solver for a solution per iteration.
+legion.maxSolverAsks = 5
+
+# which selection strategy to use to get target states.
+legion.selectionStrategy = "RAND"
+  allowed values: [RAND, UNVISITED]
+
+# The subdirectory testcases will be written to.
+legion.testcaseOutputDirectory = "testcases"
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
