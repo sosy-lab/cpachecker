@@ -84,7 +84,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     }
 
     if (pType instanceof CArrayType) {
-      fillArray(pState, pMemLocation, ((CArrayType) pType), pValueVisitor);
+      fillArray(pState, pPreviousState, pMemLocation, ((CArrayType) pType), pValueVisitor);
       return;
     }
 
@@ -139,6 +139,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   /** Fill an array with Values. */
   private void fillArray(
       final ValueAnalysisState pState,
+      final ValueAnalysisState pPreviousState,
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,
       final ExpressionValueVisitor pValueVisitor)
@@ -169,7 +170,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       MemoryLocation arraySlotMemLoc =
           pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
 
-      handle(arraySlotMemLoc, pArrayType.getType(), null, pState, pValueVisitor);
+      handle(arraySlotMemLoc, pArrayType.getType(), pPreviousState, pState, pValueVisitor);
     }
   }
 }
