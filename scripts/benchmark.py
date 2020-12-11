@@ -134,6 +134,14 @@ class Benchmark(benchexec.benchexec.BenchExec):
             action="store_true",
             help="Allows the usage of cgroups inside the execution environment. This is useful e.g. if a tool wants to make use of resource limits for subprocesses it spawns.",
         )
+        vcloud_args.add_argument(
+            "--cloudAdditionalFiles",
+            dest="additional_files",
+            metavar="FILE_OR_PATH",
+            nargs="*",
+            type=str,
+            help="Specify files or paths that shall also be transferred and be made available to the run in the cloud.",
+        )
 
         return parser
 
