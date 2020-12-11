@@ -131,8 +131,8 @@ public class TargetSolver {
       ProverEnvironment pProver)
       throws InterruptedException, SolverException {
 
-    logger.log(Level.FINE, "Solve path constraints. ");
-    logger.log(Level.FINER, "Formula is ", target.toString());
+    logger.log(Level.FINE, "Solve path constraints.");
+    logger.log(Level.ALL, "Formula is", target);
     pProver.push(target);
 
     // Add additional conditions if present
