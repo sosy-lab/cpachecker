@@ -360,7 +360,7 @@ public class ValueAnalysisTransferRelation
         }
 
         unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
-        
+
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
       }
