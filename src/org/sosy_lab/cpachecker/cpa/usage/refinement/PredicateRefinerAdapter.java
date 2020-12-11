@@ -67,43 +67,44 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
     RefinementResult result = RefinementResult.createTrue();
 
+    strategy.initializeGlobalRefinement();
+    CounterexampleInfo cex = null;
+
+    externalRefinement.start();
     try {
-      strategy.initializeGlobalRefinement();
-      externalRefinement.start();
-      CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, pInput);
-      externalRefinement.stop();
-
-      if (cex.isSpurious()) {
-        result = RefinementResult.createFalse();
-        List<ARGState> affectedStates = strategy.getLastAffectedStates();
-        if (!affectedStates.isEmpty()) {
-          // it may be, if there are no valuable interpolants: ..., true, false, ...
-          result.addInfo(PredicateRefinerAdapter.class, affectedStates);
-          PredicatePrecision lastPrecision = strategy.getNewPrecision();
-          assert (lastPrecision != null);
-          assert (!lastPrecision.isEmpty());
-          result.addPrecision(lastPrecision);
-        }
-      }
-
-      strategy.resetGlobalRefinement();
+      cex = refiner.performRefinementForPath(ARGReached, pInput);
 
     } catch (IllegalStateException e) {
       // msat_solver return -1 <=> unknown
       // consider its as true;
       logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
       solverFailures.inc();
-      externalRefinement.stop();
     } catch (RefinementFailedException e) {
       logger.log(Level.WARNING, "Path is repeated, BAM is looped");
       pInput.getUsageInfo().setAsLooped();
-      externalRefinement.stop();
     } catch (AssertionError e) {
       // Sometimes the assertion is inside the solver
       logger.log(Level.WARNING, "Assertion error in the solver: " + e.getMessage());
       pInput.getUsageInfo().setAsLooped();
+    } finally {
       externalRefinement.stop();
     }
+
+    if (cex != null && cex.isSpurious()) {
+      result = RefinementResult.createFalse();
+      List<ARGState> affectedStates = strategy.getLastAffectedStates();
+      if (!affectedStates.isEmpty()) {
+        // it may be, if there are no valuable interpolants: ..., true, false, ...
+        result.addInfo(PredicateRefinerAdapter.class, affectedStates);
+        PredicatePrecision lastPrecision = strategy.getNewPrecision();
+        assert (lastPrecision != null);
+        assert (!lastPrecision.isEmpty());
+        result.addPrecision(lastPrecision);
+      }
+    }
+
+    // We update the precision later
+    strategy.resetGlobalRefinement();
     return result;
   }
 
@@ -194,7 +195,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     @Override
     protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
         throws InterruptedException {
-      //Do not update ARG for race analysis
+      // Do not update ARG for race analysis
     }
 
     @Override
