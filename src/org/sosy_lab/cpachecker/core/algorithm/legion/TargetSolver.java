@@ -158,7 +158,7 @@ public class TargetSolver {
    */
   private List<ValueAssignment> computePreloadValues(Model pConstraints) {
     List<ValueAssignment> values = new ArrayList<>();
-    for (ValueAssignment assignment : pConstraints.asList()) {
+    for (ValueAssignment assignment : pConstraints) {
       String name = assignment.getName();
 
       if (!name.startsWith(VERIFIER_NONDET)) {
