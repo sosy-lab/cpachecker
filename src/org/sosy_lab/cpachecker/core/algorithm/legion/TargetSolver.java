@@ -8,6 +8,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -156,8 +158,8 @@ public class TargetSolver {
    *
    * @param pConstraints The source of values to assign.
    */
-  private List<ValueAssignment> computePreloadValues(Model pConstraints) {
-    List<ValueAssignment> values = new ArrayList<>();
+  private ImmutableList<ValueAssignment> computePreloadValues(Model pConstraints) {
+    Builder<ValueAssignment> values = ImmutableList.builder();
     for (ValueAssignment assignment : pConstraints) {
       String name = assignment.getName();
 
@@ -169,7 +171,7 @@ public class TargetSolver {
       logger.log(Level.FINE, "Loaded Value", name, value);
       values.add(assignment);
     }
-    return values;
+    return values.build();
   }
 
   public LegionComponentStatistics getStats() {
