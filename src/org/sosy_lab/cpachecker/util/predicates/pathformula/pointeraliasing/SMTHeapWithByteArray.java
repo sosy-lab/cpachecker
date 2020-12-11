@@ -29,7 +29,6 @@ import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 /** SMT heap representation with one huge byte array. */
 class SMTHeapWithByteArray implements SMTHeap {
 
-  private static final String SINGLE_BYTEARRAY_HEAP_NAME = "SINGLE_BYTEARRAY_HEAP_";
   private static final BitvectorType BYTE_TYPE = FormulaType.getBitvectorTypeWithSize(8);
 
   private final ArrayFormulaManagerView afmgr;
@@ -71,7 +70,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       checkArgument(pointerType.equals(addressType));
 
       return handleBitvectorAssignment(
-          oldIndex, newIndex, address, addressType, (BitvectorFormula) value);
+          targetName, oldIndex, newIndex, address, addressType, (BitvectorFormula) value);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + pTargetType.toString());
@@ -96,7 +95,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       BitvectorType bvTargetType = (BitvectorType) targetType;
 
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
-          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, addressType, BYTE_TYPE);
+          afmgr.makeArray(targetName, addressType, BYTE_TYPE);
       @SuppressWarnings("unchecked")
       E returnVal = (E) handleBitvectorDeref(arrayFormula, address, addressType, bvTargetType);
       return returnVal;
@@ -123,7 +122,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       checkArgument(pointerType.equals(addressType));
       BitvectorType bvTargetType = (BitvectorType) targetType;
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
-          afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, ssaIndex, addressType, BYTE_TYPE);
+          afmgr.makeArray(targetName, ssaIndex, addressType, BYTE_TYPE);
       @SuppressWarnings("unchecked")
       V returnVal = (V) handleBitvectorDeref(arrayFormula, address, addressType, bvTargetType);
       return returnVal;
@@ -163,9 +162,14 @@ class SMTHeapWithByteArray implements SMTHeap {
   }
 
   private <I extends Formula> BooleanFormula handleBitvectorAssignment(
-      int oldIndex, int newIndex, I address, FormulaType<I> addressType, BitvectorFormula value) {
+      String targetName,
+      int oldIndex,
+      int newIndex,
+      I address,
+      FormulaType<I> addressType,
+      BitvectorFormula value) {
     ArrayFormula<I, BitvectorFormula> oldFormula =
-        afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, oldIndex, addressType, BYTE_TYPE);
+        afmgr.makeArray(targetName, oldIndex, addressType, BYTE_TYPE);
     final int bitLength = bfmgr.getLength(value);
 
     ImmutableList<BitvectorFormula> bytes;
@@ -186,7 +190,7 @@ class SMTHeapWithByteArray implements SMTHeap {
     }
 
     final ArrayFormula<I, BitvectorFormula> arrayFormula =
-        afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, newIndex, addressType, BYTE_TYPE);
+        afmgr.makeArray(targetName, newIndex, addressType, BYTE_TYPE);
     return formulaManager.makeEqual(arrayFormula, oldFormula);
   }
 
