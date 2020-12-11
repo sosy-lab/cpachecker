@@ -72,7 +72,8 @@ public class TargetSolver {
 
       // Ask solver for the first set of Values
       try {
-        Optional<Model> constraints = solvePathConstrains(pTarget.getFormula(), Optional.absent(), prover);
+        Optional<Model> constraints =
+            solvePathConstrains(pTarget.getFormula(), Optional.absent(), prover);
         if (constraints.isPresent()) {
           preloadedValues.add(computePreloadValues(constraints.get()));
           this.successfullPrimarySolves.setNextValue(1);
@@ -99,7 +100,8 @@ public class TargetSolver {
         BooleanFormula notF = bmgr.not(f);
 
         try {
-          Optional<Model> additionalConstraints = solvePathConstrains(pTarget.getFormula(), Optional.of(notF), prover);
+          Optional<Model> additionalConstraints =
+              solvePathConstrains(pTarget.getFormula(), Optional.of(notF), prover);
           if (additionalConstraints.isPresent()) {
             preloadedValues.add(computePreloadValues(additionalConstraints.get()));
             this.successfullSecondarySolves.setNextValue(1);
