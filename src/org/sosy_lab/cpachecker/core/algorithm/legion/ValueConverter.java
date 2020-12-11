@@ -27,7 +27,7 @@ class ValueConverter {
       char c = (Character) value;
       int i = c;
       return new NumericValue(i);
-    } else if (value instanceof Float) {
+    } else if (value instanceof Float) {  
       return new NumericValue((Float) value);
     } else if (value instanceof Double) {
       return new NumericValue((Double) value);

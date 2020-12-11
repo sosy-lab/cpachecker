@@ -18,8 +18,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
@@ -30,16 +31,15 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class TargetSolver {
 
+  private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
+
   private final LogManager logger;
   private final Solver solver;
   private final int maxSolverAsks;
-  private final StatInt successfulPrimarySolves =
-      new StatInt(StatKind.COUNT, "successful_primary_solves");
-  private final StatInt successfulSecondarySolves =
-      new StatInt(StatKind.COUNT, "successful_secondary_solves");
-  private final StatInt unsuccessfulSolves = new StatInt(StatKind.COUNT, "unsuccessful_solves");
-  private final LegionComponentStatistics stats = new LegionComponentStatistics("targeting");
-  private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
+  private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Targeting time");
+  private int successfulPrimarySolves = 0;
+  private int successfulSecondarySolves = 0;
+  private int unsuccessfulSolves = 0;
 
   /**
    * @param pLogger The logging instance to use.
@@ -53,14 +53,25 @@ public class TargetSolver {
   }
 
   /**
-   * Phase targeting Solve for the given targets and return matching values.
+   * Phase target-solve for the given targets and return matching values.
    *
    * @param pTarget The target formula to solve for.
    */
   List<List<ValueAssignment>> target(PathFormula pTarget)
       throws InterruptedException, SolverException {
 
-    this.stats.start();
+    this.iterationTimer.start();
+    try {
+      return this.solve(pTarget);
+    } finally {
+      this.iterationTimer.stop();
+    }
+  }
+
+  /** Do the actual solving. */
+  List<List<ValueAssignment>> solve(PathFormula pTarget)
+      throws InterruptedException, SolverException {
+
     List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
 
     try (ProverEnvironment prover =
@@ -71,17 +82,13 @@ public class TargetSolver {
       BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
 
       // Ask solver for the first set of Values
-      try {
-        Optional<Model> constraints =
-            solvePathConstrains(pTarget.getFormula(), Optional.absent(), prover);
-        if (constraints.isPresent()) {
-          preloadedValues.add(computePreloadValues(constraints.get()));
-          this.successfulPrimarySolves.setNextValue(1);
-        } else {
-          this.unsuccessfulSolves.setNextValue(1);
-        }
-      } finally {
-        this.stats.finish();
+      Optional<Model> constraints =
+          solvePathConstrains(pTarget.getFormula(), Optional.absent(), prover);
+      if (constraints.isPresent()) {
+        preloadedValues.add(computePreloadValues(constraints.get()));
+        this.successfulPrimarySolves += 1;
+      } else {
+        this.unsuccessfulSolves += 1;
       }
 
       // Don't try for additional values if none could be produced
@@ -99,22 +106,17 @@ public class TargetSolver {
         BooleanFormula f = assignment.getAssignmentAsFormula();
         BooleanFormula notF = bmgr.not(f);
 
-        try {
-          Optional<Model> additionalConstraints =
-              solvePathConstrains(pTarget.getFormula(), Optional.of(notF), prover);
-          if (additionalConstraints.isPresent()) {
-            preloadedValues.add(computePreloadValues(additionalConstraints.get()));
-            this.successfulSecondarySolves.setNextValue(1);
-          } else {
-            this.unsuccessfulSolves.setNextValue(1);
-            this.logger.log(Level.FINE, "Could not solve for more solutions.");
-          }
-        } finally {
-          this.stats.finish();
+        Optional<Model> additionalConstraints =
+            solvePathConstrains(pTarget.getFormula(), Optional.of(notF), prover);
+        if (additionalConstraints.isPresent()) {
+          preloadedValues.add(computePreloadValues(additionalConstraints.get()));
+          this.successfulSecondarySolves += 1;
+        } else {
+          this.unsuccessfulSolves += 1;
+          this.logger.log(Level.FINE, "Could not solve for more solutions.");
         }
       }
     }
-    this.stats.finish();
     return preloadedValues;
   }
 
@@ -180,11 +182,11 @@ public class TargetSolver {
         .collect(ImmutableList.toImmutableList());
   }
 
-  public LegionComponentStatistics getStats() {
-    this.stats.setOther(this.successfulPrimarySolves);
-    this.stats.setOther(this.successfulSecondarySolves);
-    this.stats.setOther(this.unsuccessfulSolves);
-
-    return this.stats;
+  public void writeStats(StatisticsWriter writer) {
+    writer.put(this.iterationTimer);
+    writer.put("Targeting Iterations", this.iterationTimer.getUpdateCount());
+    writer.put("Successful primary solves", this.successfulPrimarySolves);
+    writer.put("Successful secondary solves", this.successfulSecondarySolves);
+    writer.put("Unsuccessful solves", this.unsuccessfulSolves);
   }
 }

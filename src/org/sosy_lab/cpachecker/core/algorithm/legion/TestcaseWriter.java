@@ -46,8 +46,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 
 @Options(prefix = "legion")
@@ -61,6 +62,7 @@ class TestcaseWriter {
   private int testCaseNumber = 0;
   private int previousSetSize = 0;
   private Instant zero = Instant.now();
+  private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Testcases writing time");
 
   @Option(
       secure = false,
@@ -71,9 +73,7 @@ class TestcaseWriter {
   private Path testcaseOutputDir = Paths.get("testcases");
 
   // Stats
-  private final LegionComponentStatistics stats = new LegionComponentStatistics("output_writer");
-  private final StatInt successfulWrites = new StatInt(StatKind.SUM, "successful_writes");
-  private final StatInt failedWrites = new StatInt(StatKind.SUM, "failed_writes");
+  private int successfulWrites = 0;
 
   /**
    * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
@@ -100,13 +100,13 @@ class TestcaseWriter {
    * <p>This only needs to be done once and does not contain testcase specific information.
    */
   private void writeTestMetadata() throws IOException {
-    this.stats.start();
+    this.iterationTimer.start();
     Path metaFilePath = this.testcaseOutputDir.resolve("metadata.xml");
     try (Writer metadata = IO.openOutputFile(metaFilePath, StandardCharsets.UTF_8)) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
-      this.successfulWrites.setNextValue(1);
+      this.successfulWrites += 1;
     } finally {
-      this.stats.finish();
+      this.iterationTimer.stop();
     }
   }
 
@@ -124,10 +124,10 @@ class TestcaseWriter {
     }
 
     try {
-      this.stats.start();
+      this.iterationTimer.start();
       this.doTheWrite(pReachedSet, reachedSize);
     } finally {
-      this.stats.finish();
+      this.iterationTimer.stop();
     }
   }
 
@@ -176,7 +176,7 @@ class TestcaseWriter {
 
       // Footer and flush
       testcase.write("</testcase>\n");
-      this.successfulWrites.setNextValue(1);
+      this.successfulWrites += 1;
     } finally {
       this.testCaseNumber += 1;
       this.previousSetSize = pReachedSize;
@@ -321,9 +321,8 @@ class TestcaseWriter {
     return null;
   }
 
-  public LegionComponentStatistics getStats() {
-    this.stats.setOther(this.successfulWrites);
-    this.stats.setOther(this.failedWrites);
-    return this.stats;
+  public void writeStats(StatisticsWriter writer) {
+    writer.put(this.iterationTimer);
+    writer.put("Successful Testcase writes", this.successfulWrites);
   }
 }

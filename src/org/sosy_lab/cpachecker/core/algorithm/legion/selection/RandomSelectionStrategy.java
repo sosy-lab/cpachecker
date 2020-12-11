@@ -14,7 +14,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.legion.LegionComponentStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -22,16 +21,17 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Selects a random state from the reached set which has a nondet-mark. */
 public class RandomSelectionStrategy implements Selector {
 
   private final LogManager logger;
   private final Random random = new Random(1200709844L);
-  private final LegionComponentStatistics stats = new LegionComponentStatistics("selection");
   private final Set<PathFormula> blacklisted = new HashSet<>();
+  private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Selection time");
 
   public RandomSelectionStrategy(LogManager logger) {
     this.logger = logger;
@@ -39,7 +39,7 @@ public class RandomSelectionStrategy implements Selector {
 
   @Override
   public PathFormula select(ReachedSet reachedSet) {
-    this.stats.start();
+    this.iterationTimer.start();
     List<ARGState> nonDetStates = getNondetStates(reachedSet);
     PathFormula target;
     while (true) {
@@ -59,7 +59,7 @@ public class RandomSelectionStrategy implements Selector {
         break;
       }
     }
-    this.stats.finish();
+    this.iterationTimer.stop();
     return target;
   }
 
@@ -88,10 +88,10 @@ public class RandomSelectionStrategy implements Selector {
   }
 
   @Override
-  public LegionComponentStatistics getStats() {
-    StatInt blacklistedSum = new StatInt(StatKind.SUM, "blacklisted");
-    blacklistedSum.setNextValue(this.blacklisted.size());
-    this.stats.setOther(blacklistedSum);
-    return this.stats;
+  public void writeStats(StatisticsWriter writer) {
+    writer.put(this.iterationTimer);
+    writer.put("Selection Iterations", this.iterationTimer.getUpdateCount());
+    writer.put("Selection Kind", "RandomSelectionStrategy");
+    writer.put("Blacklisted States", this.blacklisted.size());
   }
 }

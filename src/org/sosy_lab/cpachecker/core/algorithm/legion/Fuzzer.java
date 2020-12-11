@@ -23,6 +23,9 @@ import org.sosy_lab.cpachecker.cpa.value.NondeterministicValueProvider;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "legion")
@@ -42,9 +45,9 @@ public class Fuzzer {
   private final LogManager logger;
   private final TestcaseWriter outputWriter;
   private final ShutdownNotifier shutdownNotifier;
-  private final LegionComponentStatistics stats;
   private final NondeterministicValueProvider nonDetValueProvider;
   private int passes;
+  private final StatTimer iterationTimer;
 
   public Fuzzer(
       String pName,
@@ -62,9 +65,8 @@ public class Fuzzer {
     this.nonDetValueProvider = pNonDetValueProvider;
 
     this.outputWriter = pOutputWriter;
-    this.stats = new LegionComponentStatistics(pName);
-
     this.passes = initialPasses;
+    this.iterationTimer = new StatTimer(StatKind.SUM, "Iteration time " + pName);
   }
 
   /**
@@ -79,7 +81,7 @@ public class Fuzzer {
           IOException {
 
     for (int i = 0; i < this.passes; i++) {
-      this.stats.start();
+      this.iterationTimer.start();
       logger.log(Level.FINE, "Fuzzing pass", i + 1);
 
       // Preload values if they exist
@@ -93,20 +95,15 @@ public class Fuzzer {
         // Run algorithm and collect result
         pAlgorithm.run(pReachedSet);
       } finally {
-        this.stats.finish();
         this.outputWriter.writeTestCases(pReachedSet);
       }
 
       // Check whether to shut down
-      try {
-        shutdownNotifier.shutdownIfNecessary();
-      } finally {
-        this.stats.finish();
-      }
+      shutdownNotifier.shutdownIfNecessary();
 
       // Otherwise, start from the beginning again
       pReachedSet.reAddToWaitlist(pReachedSet.getFirstState());
-      this.stats.finish();
+      this.iterationTimer.stop();
     }
     return pReachedSet;
   }
@@ -135,7 +132,8 @@ public class Fuzzer {
     return values;
   }
 
-  public LegionComponentStatistics getStats() {
-    return this.stats;
+  public void writeStats(StatisticsWriter writer) {
+    writer.put(this.iterationTimer);
+    writer.put("Fuzzing Iterations", this.iterationTimer.getUpdateCount());
   }
 }

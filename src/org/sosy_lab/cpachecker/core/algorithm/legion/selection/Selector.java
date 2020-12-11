@@ -7,9 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
-import org.sosy_lab.cpachecker.core.algorithm.legion.LegionComponentStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public interface Selector {
   /** Select a target state and return the path formula that leads to it. */
@@ -32,5 +32,5 @@ public interface Selector {
     return;
   }
 
-  LegionComponentStatistics getStats();
+  void writeStats(StatisticsWriter writer);
 }

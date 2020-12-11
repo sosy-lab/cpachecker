@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -222,20 +223,12 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    @SuppressWarnings("deprecation")
-    String programName = config.getProperty("analysis.programNames");
-    pOut.println("program: " + programName);
-
-    pOut.println("settings:");
-    pOut.println("  selection_strategy: " + selectionStrategyOption);
-
-    pOut.println("components:");
-
-    pOut.println(this.initFuzzer.getStats().collect());
-    pOut.println(this.selectionStrategy.getStats().collect());
-    pOut.println(this.targetSolver.getStats().collect());
-    pOut.println(this.fuzzer.getStats().collect());
-    pOut.println(this.outputWriter.getStats().collect());
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+    this.initFuzzer.writeStats(writer);
+    this.selectionStrategy.writeStats(writer);
+    this.targetSolver.writeStats(writer);
+    this.fuzzer.writeStats(writer);
+    this.outputWriter.writeStats(writer);
   }
 
   @Override

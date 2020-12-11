@@ -18,7 +18,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.legion.LegionComponentStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -27,16 +26,17 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class UnvisitedEdgesStrategy implements Selector {
 
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
-  private final LegionComponentStatistics stats = new LegionComponentStatistics("selection");
   private final Random random = new Random(1636672210L);
   private final Set<PathFormula> blacklisted = new HashSet<>();
+  private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Selection time");
 
   public UnvisitedEdgesStrategy(LogManager logger, PathFormulaManager formulaManager) {
     this.logger = logger;
@@ -45,7 +45,7 @@ public class UnvisitedEdgesStrategy implements Selector {
 
   @Override
   public PathFormula select(ReachedSet pReachedSet) throws InterruptedException {
-    this.stats.start();
+    this.iterationTimer.start();
     ARGState first = (ARGState) pReachedSet.getFirstState();
     List<PathFormula> foundStates = new ArrayList<>();
 
@@ -55,7 +55,7 @@ public class UnvisitedEdgesStrategy implements Selector {
     // Select a state at random
     PathFormula selected = considerWeights(foundStates);
 
-    this.stats.finish();
+    this.iterationTimer.stop();
     return selected;
   }
 
@@ -159,10 +159,10 @@ public class UnvisitedEdgesStrategy implements Selector {
   }
 
   @Override
-  public LegionComponentStatistics getStats() {
-    StatInt blacklistedSum = new StatInt(StatKind.SUM, "blacklisted");
-    blacklistedSum.setNextValue(this.blacklisted.size());
-    this.stats.setOther(blacklistedSum);
-    return this.stats;
+  public void writeStats(StatisticsWriter writer) {
+    writer.put("Selection Kind", "UnvisitedEdgesStrategy");
+    writer.put(this.iterationTimer);
+    writer.put("Selection Iterations", this.iterationTimer.getUpdateCount());
+    writer.put("Blacklisted States", this.blacklisted.size());
   }
 }
