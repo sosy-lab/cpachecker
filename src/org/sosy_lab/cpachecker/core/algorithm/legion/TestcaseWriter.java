@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -87,12 +86,6 @@ class TestcaseWriter {
     this.predicateCPA = pPredicateCPA;
 
     if (testcaseOutputDir != null) {
-      try {
-        Files.createDirectories(testcaseOutputDir);
-      } catch (IOException exc) {
-        throw new InvalidConfigurationException("Could not create configured output dir", exc);
-      }
-
       try {
         writeTestMetadata();
       } catch (IOException exc) {
