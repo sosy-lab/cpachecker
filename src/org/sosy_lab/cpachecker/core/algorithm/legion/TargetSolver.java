@@ -33,11 +33,11 @@ public class TargetSolver {
   private final LogManager logger;
   private final Solver solver;
   private final int maxSolverAsks;
-  private final StatInt successfullPrimarySolves =
-      new StatInt(StatKind.COUNT, "successfull_primary_solves");
-  private final StatInt successfullSecondarySolves =
-      new StatInt(StatKind.COUNT, "successfull_secondary_solves");
-  private final StatInt unsuccessfullSolves = new StatInt(StatKind.COUNT, "unsuccessfull_solves");
+  private final StatInt successfulPrimarySolves =
+      new StatInt(StatKind.COUNT, "successful_primary_solves");
+  private final StatInt successfulSecondarySolves =
+      new StatInt(StatKind.COUNT, "successful_secondary_solves");
+  private final StatInt unsuccessfulSolves = new StatInt(StatKind.COUNT, "unsuccessful_solves");
   private final LegionComponentStatistics stats = new LegionComponentStatistics("targeting");
   private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
 
@@ -76,9 +76,9 @@ public class TargetSolver {
             solvePathConstrains(pTarget.getFormula(), Optional.absent(), prover);
         if (constraints.isPresent()) {
           preloadedValues.add(computePreloadValues(constraints.get()));
-          this.successfullPrimarySolves.setNextValue(1);
+          this.successfulPrimarySolves.setNextValue(1);
         } else {
-          this.unsuccessfullSolves.setNextValue(1);
+          this.unsuccessfulSolves.setNextValue(1);
         }
       } finally {
         this.stats.finish();
@@ -104,9 +104,9 @@ public class TargetSolver {
               solvePathConstrains(pTarget.getFormula(), Optional.of(notF), prover);
           if (additionalConstraints.isPresent()) {
             preloadedValues.add(computePreloadValues(additionalConstraints.get()));
-            this.successfullSecondarySolves.setNextValue(1);
+            this.successfulSecondarySolves.setNextValue(1);
           } else {
-            this.unsuccessfullSolves.setNextValue(1);
+            this.unsuccessfulSolves.setNextValue(1);
             this.logger.log(Level.FINE, "Could not solve for more solutions.");
           }
         } finally {
@@ -177,9 +177,9 @@ public class TargetSolver {
   }
 
   public LegionComponentStatistics getStats() {
-    this.stats.setOther(this.successfullPrimarySolves);
-    this.stats.setOther(this.successfullSecondarySolves);
-    this.stats.setOther(this.unsuccessfullSolves);
+    this.stats.setOther(this.successfulPrimarySolves);
+    this.stats.setOther(this.successfulSecondarySolves);
+    this.stats.setOther(this.unsuccessfulSolves);
 
     return this.stats;
   }

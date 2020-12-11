@@ -73,7 +73,7 @@ class TestcaseWriter {
 
   // Stats
   private final LegionComponentStatistics stats = new LegionComponentStatistics("output_writer");
-  private final StatInt successfullWrites = new StatInt(StatKind.SUM, "successfull_writes");
+  private final StatInt successfulWrites = new StatInt(StatKind.SUM, "successful_writes");
   private final StatInt failedWrites = new StatInt(StatKind.SUM, "failed_writes");
 
   /**
@@ -106,7 +106,7 @@ class TestcaseWriter {
     Path metaFilePath = this.testcaseOutputDir.resolve(Paths.get("metadata.xml"));
     try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
-      this.successfullWrites.setNextValue(1);
+      this.successfulWrites.setNextValue(1);
     } catch (IOException exc) {
       logger.logUserException(Level.SEVERE, exc, "Could not write metadata file");
     } finally {
@@ -179,7 +179,7 @@ class TestcaseWriter {
 
       // Footer and flush
       testcase.write("</testcase>\n");
-      this.successfullWrites.setNextValue(1);
+      this.successfulWrites.setNextValue(1);
     } catch (IOException exc) {
       logger.logUserException(Level.WARNING, exc, "Could not write test output");
     } finally {
@@ -324,7 +324,7 @@ class TestcaseWriter {
   }
 
   public LegionComponentStatistics getStats() {
-    this.stats.setOther(this.successfullWrites);
+    this.stats.setOther(this.successfulWrites);
     this.stats.setOther(this.failedWrites);
     return this.stats;
   }
