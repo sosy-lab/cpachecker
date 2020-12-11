@@ -9,9 +9,9 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -156,24 +156,28 @@ public class TargetSolver {
   }
 
   /**
-   * Pushes the values from the model into the value assigner.
+   * Filters the computed values for the ones which are assignments to VERIFIER_NONDET.
    *
    * @param pConstraints The source of values to assign.
    */
   private ImmutableList<ValueAssignment> computePreloadValues(Model pConstraints) {
-    Builder<ValueAssignment> values = ImmutableList.builder();
-    for (ValueAssignment assignment : pConstraints) {
-      String name = assignment.getName();
+    return pConstraints.asList().stream()
+        .filter(
+            new Predicate<ValueAssignment>() {
+              @Override
+              public boolean test(ValueAssignment assignment) {
+                String name = assignment.getName();
 
-      if (!name.startsWith(VERIFIER_NONDET)) {
-        continue;
-      }
+                if (!name.startsWith(VERIFIER_NONDET)) {
+                  return false;
+                }
 
-      Value value = ValueConverter.toValue(assignment.getValue());
-      logger.log(Level.FINE, "Loaded Value", name, value);
-      values.add(assignment);
-    }
-    return values.build();
+                Value value = ValueConverter.toValue(assignment.getValue());
+                logger.log(Level.FINE, "Loaded Value", name, value);
+                return true;
+              }
+            })
+        .collect(ImmutableList.toImmutableList());
   }
 
   public LegionComponentStatistics getStats() {
