@@ -168,18 +168,21 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       // needed as input to reach this target as well as give feedback to selection.
       List<List<ValueAssignment>> previousLoadedValues = preloadedValues;
       logger.log(Level.INFO, "Targeting ...");
-      int weight;
+
       try {
         preloadedValues = this.targetSolver.target(target);
-        weight = preloadedValues.size();
-      } catch (SolverException ex) {
-        // Re-Run with previous preloaded Values
-        logger.logDebugException(ex, "Target solve aborted");
-        preloadedValues = previousLoadedValues;
-        weight = -1;
+      } catch (SolverException exc) {
+        logger.logException(Level.SEVERE, exc, "SAT solver failed to compute values");
+        return status;
       }
-      // Give feedback to selection
-      selectionStrategy.feedback(target, weight);
+
+      // If no values have been found, use previous ones and feedback it
+      if (preloadedValues.isEmpty()) {
+        preloadedValues = previousLoadedValues;
+        selectionStrategy.feedback(target, -1);
+      } else {
+        selectionStrategy.feedback(target, preloadedValues.size());
+      }
 
       // Check whether to shut down
       shutdownNotifier.shutdownIfNecessary();

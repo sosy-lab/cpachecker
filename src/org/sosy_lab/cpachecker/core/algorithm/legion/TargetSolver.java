@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -68,14 +69,21 @@ public class TargetSolver {
       BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
 
       // Ask solver for the first set of Values
-      try (Model constraints = solvePathConstrains(pTarget.getFormula(), prover)) {
-        preloadedValues.add(computePreloadValues(constraints));
-        this.successfullPrimarySolves.setNextValue(1);
-      } catch (SolverException ex) {
-        this.unsuccessfullSolves.setNextValue(1);
-        this.logger.log(Level.WARNING, "Could not solve even once formula.");
+      try {
+        Optional<Model> constraints = solvePathConstrains(pTarget.getFormula(), Optional.absent(), prover);
+        if (constraints.isPresent()) {
+          preloadedValues.add(computePreloadValues(constraints.get()));
+          this.successfullPrimarySolves.setNextValue(1);
+        } else {
+          this.unsuccessfullSolves.setNextValue(1);
+        }
+      } finally {
         this.stats.finish();
-        throw ex;
+      }
+
+      // Don't try for additional values if none could be produced
+      if (preloadedValues.isEmpty()) {
+        return preloadedValues;
       }
 
       // Repeats the solving at most pMaxSolverAsks amount of times
@@ -89,23 +97,16 @@ public class TargetSolver {
         BooleanFormula notF = bmgr.not(f);
 
         try {
-          prover.push(notF);
-          if (prover.isUnsat()) {
-            this.logger.log(Level.WARNING, "Is unsat.", i);
-            continue;
-          }
-          try (Model constraints = prover.getModel()) {
-            preloadedValues.add(computePreloadValues(constraints));
+          Optional<Model> additionalConstraints = solvePathConstrains(pTarget.getFormula(), Optional.of(notF), prover);
+          if (additionalConstraints.isPresent()) {
+            preloadedValues.add(computePreloadValues(additionalConstraints.get()));
             this.successfullSecondarySolves.setNextValue(1);
+          } else {
+            this.unsuccessfullSolves.setNextValue(1);
+            this.logger.log(Level.FINE, "Could not solve for more solutions.");
           }
-
-        } catch (SolverException ex) {
-          // If this is not solvable, just skip
-          this.unsuccessfullSolves.setNextValue(1);
-          this.logger.log(Level.FINE, "Could not solve for more solutions.");
-          continue;
         } finally {
-          prover.pop();
+          this.stats.finish();
         }
       }
     }
@@ -120,17 +121,34 @@ public class TargetSolver {
    * @param pProver The prover to use.
    * @throws InterruptedException, SolverException
    */
-  private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
+  private Optional<Model> solvePathConstrains(
+      BooleanFormula target,
+      Optional<BooleanFormula> additionalConditions,
+      ProverEnvironment pProver)
       throws InterruptedException, SolverException {
 
     logger.log(Level.FINE, "Solve path constraints. ");
     logger.log(Level.FINER, "Formula is ", target.toString());
     pProver.push(target);
-    boolean isUnsat = pProver.isUnsat();
-    if (isUnsat) {
-      throw new SolverException("Formula is unsat");
+
+    // Add additional conditions if present
+    if (additionalConditions.isPresent()) {
+      pProver.push(additionalConditions.get());
     }
-    return pProver.getModel();
+
+    // Let the solver work
+    Optional<Model> model = Optional.absent();
+    boolean isUnsat = pProver.isUnsat();
+    if (!isUnsat) {
+      model = Optional.of(pProver.getModel());
+    }
+
+    // Remove previously added additional constraints
+    if (additionalConditions.isPresent()) {
+      pProver.pop();
+    }
+
+    return model;
   }
 
   /**
