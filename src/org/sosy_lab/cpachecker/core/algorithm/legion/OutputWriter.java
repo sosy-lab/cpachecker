@@ -121,14 +121,23 @@ public class OutputWriter {
       return;
     }
 
-    this.stats.start();
     int reachedSize = pReachedSet.size();
     // Write output only if new states have been reached
     if (previousSetSize == reachedSize) {
-      this.stats.finish();
       return;
     }
-    logger.log(Level.INFO, "Searching through arg(" + reachedSize + ") for testcases");
+
+    try {
+      this.stats.start();
+      this.doTheWrite(pReachedSet, reachedSize);
+    } finally {
+      this.stats.finish();
+    }
+  }
+
+  /** After early abort possibilities, this does the actual writing. */
+  public void doTheWrite(UnmodifiableReachedSet pReachedSet, final int pReachedSize) {
+    logger.log(Level.INFO, "Searching through arg(" + pReachedSize + ") for testcases");
 
     // Get starting point for search
     AbstractState first = pReachedSet.getFirstState();
@@ -152,8 +161,7 @@ public class OutputWriter {
     // Get content
     String inputs = writeVariablesToTestcase(values);
     if (inputs.length() < 1) {
-      this.previousSetSize = reachedSize;
-      this.stats.finish();
+      this.previousSetSize = pReachedSize;
       return;
     }
 
@@ -173,11 +181,10 @@ public class OutputWriter {
       testcase.write("</testcase>\n");
       this.successfullWrites.setNextValue(1);
     } catch (IOException exc) {
-      logger.logUserException(Level.SEVERE, exc, "Could not write test output");
+      logger.logUserException(Level.WARNING, exc, "Could not write test output");
     } finally {
       this.testCaseNumber += 1;
-      this.previousSetSize = reachedSize;
-      this.stats.finish();
+      this.previousSetSize = pReachedSize;
     }
   }
 
