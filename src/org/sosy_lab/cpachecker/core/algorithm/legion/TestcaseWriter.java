@@ -9,7 +9,7 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,7 +109,7 @@ class TestcaseWriter {
   private void writeTestMetadata() throws IOException {
     this.stats.start();
     Path metaFilePath = this.testcaseOutputDir.resolve(Paths.get("metadata.xml"));
-    try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
+    try (Writer metadata = IO.openOutputFile(metaFilePath, StandardCharsets.UTF_8)) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
       this.successfulWrites.setNextValue(1);
     } finally {
@@ -170,7 +170,7 @@ class TestcaseWriter {
     }
 
     logger.log(Level.INFO, "Writing testcase ", testcasePath);
-    try (Writer testcase = IO.openOutputFile(testcasePath, Charset.defaultCharset())) {
+    try (Writer testcase = IO.openOutputFile(testcasePath, StandardCharsets.UTF_8)) {
       // Write header
       testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
       testcase.write(
