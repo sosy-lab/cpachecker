@@ -69,8 +69,12 @@ public class RandomSelectionStrategy implements Selector {
     for (AbstractState state : reachedSet.asCollection()) {
       ValueAnalysisState vs = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
       if (vs.isMarkedNonDeterministic()) {
-        logger.log(Level.FINE, "NonDeterministic state found.", vs.getConstants());
-        nonDetStates.add((ARGState) state);
+        for (AbstractState parent : ((ARGState) state).getParents()) {
+          ValueAnalysisState parentVAState =
+              AbstractStates.extractStateByType(parent, ValueAnalysisState.class);
+          logger.log(Level.FINE, "NonDeterministic state found.", parentVAState.getConstants());
+          nonDetStates.add((ARGState) parent);
+        }
       }
     }
     return nonDetStates;

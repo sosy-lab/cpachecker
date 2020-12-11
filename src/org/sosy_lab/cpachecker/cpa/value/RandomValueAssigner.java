@@ -63,8 +63,6 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
    *
    * @param pMemLocation the memory location to remove
    * @param pType the type of the memory location that should be removed
-   * @param pPreviousState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} which
-   *     preceedes pState. This state will be marked when a random value is assigned in pState.
    * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use. Value
    *     assignments will happen in this state
    * @param pValueVisitor unused, may be null
@@ -73,18 +71,17 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   public void handle(
       MemoryLocation pMemLocation,
       Type pType,
-      ValueAnalysisState pPreviousState,
       ValueAnalysisState pState,
       @Nullable ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCodeException {
 
     if (pType instanceof CSimpleType) {
-      createSimpleType(pMemLocation, pType, pPreviousState, pState);
+      createSimpleType(pMemLocation, pType, pState);
       return;
     }
 
     if (pType instanceof CArrayType) {
-      fillArray(pState, pPreviousState, pMemLocation, ((CArrayType) pType), pValueVisitor);
+      fillArray(pState, pMemLocation, ((CArrayType) pType), pValueVisitor);
       return;
     }
 
@@ -95,7 +92,6 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   private void createSimpleType(
       MemoryLocation pMemLocation,
       Type pType,
-      ValueAnalysisState pPreviousState,
       ValueAnalysisState pState) {
 
     CBasicType basicType = ((CSimpleType) pType).getType();
@@ -123,7 +119,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
           throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
       }
     }
-    pPreviousState.setNonDeterministicMark();
+    pState.setNonDeterministicMark();
     logger.log(Level.FINE, "Assigning simple value: ", value.toString());
     pState.assignConstant(pMemLocation, value, pType);
   }
@@ -139,7 +135,6 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   /** Fill an array with Values. */
   private void fillArray(
       final ValueAnalysisState pState,
-      final ValueAnalysisState pPreviousState,
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,
       final ExpressionValueVisitor pValueVisitor)
@@ -170,7 +165,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       MemoryLocation arraySlotMemLoc =
           pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
 
-      handle(arraySlotMemLoc, pArrayType.getType(), pPreviousState, pState, pValueVisitor);
+      handle(arraySlotMemLoc, pArrayType.getType(), pState, pValueVisitor);
     }
   }
 }

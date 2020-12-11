@@ -358,7 +358,7 @@ public class ValueAnalysisTransferRelation
         if (isMissingCExpressionInformation(visitor, exp)) {
           addMissingInformation(formalParamName, exp);
         }
-        unknownValueHandler.handle(formalParamName, paramType, state, newElement, visitor);
+        unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
       }
@@ -506,7 +506,7 @@ public class ValueAnalysisTransferRelation
         if (memLoc.isPresent()) {
           if (!valueExists) {
             unknownValueHandler.handle(
-                memLoc.orElseThrow(), op1.getExpressionType(), state, newElement, v);
+                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
 
           } else {
             newElement.assignConstant(
@@ -754,10 +754,9 @@ public class ValueAnalysisTransferRelation
     }
 
     if (initialValue.isUnknown()) {
-      unknownValueHandler.handle(memoryLocation, declarationType, state, newElement, getVisitor());
+      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
       // If a nonDeterministic mark is set, remove it.
       // If an element is initialized, nonDet behaviour is expected.
-      state.resetNonDeterministicMark();
       newElement.resetNonDeterministicMark();
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
@@ -881,7 +880,7 @@ public class ValueAnalysisTransferRelation
         newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, state, newElement, evv);
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
       }
     }
 
@@ -1078,7 +1077,7 @@ public class ValueAnalysisTransferRelation
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
-        unknownValueHandler.handle(assignedVar, lType, state, newElement, visitor);
+        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
 
       } else {
         newElement.assignConstant(assignedVar, value, lType);

@@ -78,7 +78,6 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    *
    * @param pVarLocation the memory location of the variable to handle
    * @param pVarType the type of th evariable
-   * @param pPreviousState the {@link ValueAnalysisState} being a predecessor to pState.
    * @param pState the {@link ValueAnalysisState} to use. Value assignments will happen directly in
    *     this state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
@@ -88,7 +87,6 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   public void handle(
       MemoryLocation pVarLocation,
       Type pVarType,
-      ValueAnalysisState pPreviousState,
       ValueAnalysisState pState,
       ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCodeException {
@@ -249,7 +247,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       MemoryLocation arraySlotMemLoc =
           pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
 
-      handle(arraySlotMemLoc, pArrayType.getType(), null, pState, pValueVisitor);
+      handle(arraySlotMemLoc, pArrayType.getType(), pState, pValueVisitor);
     }
   }
 
