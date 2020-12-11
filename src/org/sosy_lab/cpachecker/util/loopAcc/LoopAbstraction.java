@@ -293,12 +293,7 @@ public class LoopAbstraction {
                       lineNumber++;
                     }
 
-
-                    content +=
-                        ("__VERIFIER_assume(!("
-                            + loopD.getCondition()
-                            + "));"
-                            + System.lineSeparator());
+                    content += assumeEnd(loopD);
 
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
                       line = reader.readLine();
@@ -330,20 +325,7 @@ public class LoopAbstraction {
                         content += line + System.lineSeparator();
                         lineNumber++;
                       }
-                      if (outerLoopTemp.get(i).getLoopType().equals("for")) {
-                        content +=
-                            ("__VERIFIER_assume(!("
-                                + Iterables.get(
-                                    Splitter.on(';').split(outerLoopTemp.get(i).getCondition()), 1)
-                                + "));"
-                                + System.lineSeparator());
-                      } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
-                        content +=
-                            ("__VERIFIER_assume(!("
-                                + outerLoopTemp.get(i).getCondition()
-                                + "));"
-                                + System.lineSeparator());
-                      }
+                      content += assumeEnd(loopD);
                     }
                     outerLoopTemp.clear();
                   } else if (loopD.getLoopType().equals("for")) {
@@ -399,11 +381,7 @@ public class LoopAbstraction {
                       content += line + System.lineSeparator();
                       lineNumber++;
                     }
-                    content +=
-                        ("__VERIFIER_assume(!("
-                            + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
-                            + "));"
-                            + System.lineSeparator());
+                    content += assumeEnd(loopD);
 
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
                       line = reader.readLine();
@@ -435,20 +413,7 @@ public class LoopAbstraction {
                         content += line + System.lineSeparator();
                         lineNumber++;
                       }
-                      if (outerLoopTemp.get(i).getLoopType().equals("for")) {
-                        content +=
-                            ("__VERIFIER_assume(!("
-                                + Iterables.get(
-                                    Splitter.on(';').split(outerLoopTemp.get(i).getCondition()), 1)
-                                + "));"
-                                + System.lineSeparator());
-                      } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
-                        content +=
-                            ("__VERIFIER_assume(!("
-                                + outerLoopTemp.get(i).getCondition()
-                                + "));"
-                                + System.lineSeparator());
-                      }
+                      content += assumeEnd(loopD);
                     }
                     outerLoopTemp.clear();
                   }
@@ -533,6 +498,22 @@ public class LoopAbstraction {
     printFile(content, pathForNewFile, logger);
     totalTime.stop();
     timeToAbstract = totalTime.getLengthOfLastInterval();
+  }
+
+  private String assumeEnd(LoopData loopD) {
+    String ass = "";
+    if (!loopD.getOnlyRandomCondition()) {
+      if (loopD.getLoopType().equals("for")) {
+        ass +=
+            ("__VERIFIER_assume(!("
+                + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
+                + "));"
+                + System.lineSeparator());
+      } else if (loopD.getLoopType().equals("while")) {
+        ass += ("__VERIFIER_assume(!(" + loopD.getCondition() + "));" + System.lineSeparator());
+      }
+    }
+    return ass;
   }
 
   /**

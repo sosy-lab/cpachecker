@@ -91,24 +91,42 @@ public class LoopInformation implements StatisticsProvider {
       CFAEdge tempEdge = loopHead.getLeavingEdge(VALID_STATE);
       CFANode tempNode = null;
       boolean flag = false;
-      if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+      if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
+          || tempEdge.getCode().contains("CPAchecker_TMP")) {
         // suche erste nicht assume edge -> kann eig auch in loopdata ausgelagert werden
-        while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
+            || tempEdge.getCode().contains("CPAchecker_TMP")) {
           for (int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
             if (!tempEdge
-                .getSuccessor()
-                .getLeavingEdge(i)
-                .getEdgeType()
-                .equals(CFAEdgeType.AssumeEdge)) {
-              tempNode = tempEdge.getSuccessor();
+                    .getSuccessor()
+                    .getLeavingEdge(i)
+                    .getEdgeType()
+                    .equals(CFAEdgeType.AssumeEdge)
+                || tempEdge.getCode().contains("CPAchecker_TMP")) {
+              if (tempEdge.getCode().contains("__VERIFIER_nondet_")) {
+                tempNode = tempEdge.getSuccessor().getLeavingEdge(1).getSuccessor();
+              } else if (!tempEdge.getCode().contains("CPAchecker_TMP")) {
+                tempNode = tempEdge.getSuccessor();
+              }
             }
           }
+          if (!(tempEdge.getCode().contains("CPAchecker_TMP")
+              && tempEdge.getCode().contains("=="))) {
           tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
+          } else {
+            tempEdge =
+                tempEdge
+                    .getPredecessor()
+                    .getLeavingEdge(1)
+                    .getSuccessor()
+                    .getLeavingEdge(VALID_STATE);
+          }
         }
       } else {
         tempNode = loopHead;
         flag = true;
       }
+
       if (!(tempNode == null) || flag) {
         loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger));
       }

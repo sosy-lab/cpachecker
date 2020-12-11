@@ -48,6 +48,7 @@ public class LoopData implements Comparable<LoopData> {
   private boolean outerLoop;
   private Loop innerLoop;
   private boolean canBeAccelerated;
+  private boolean onlyRandomCondition;
 
   private Timer timeToAnalyze;
   private TimeSpan analyzeTime;
@@ -80,6 +81,7 @@ public class LoopData implements Comparable<LoopData> {
     conditionInFor = new ArrayList<>();
     output = new ArrayList<>();
 
+    onlyRandomCondition = false;
     this.endOfCondition.add(endCondition);
     loopInLoop = isInnerLoop(loop, cfa);
     outerLoop = isOuterLoop(loop, cfa);
@@ -89,7 +91,6 @@ public class LoopData implements Comparable<LoopData> {
     nodesInCondition =
         nodesInCondition(cfa, pLogger, loopStart, loopType, nodesInLoop, endOfCondition, forStart);
     output = getAllOutputs(cfa, nodesInLoop);
-    condition = nodesToCondition(nodesInCondition, loopType, endOfCondition, flagEndless);
     inputOutput = getAllIO(output, nodesInLoop);
     numberAllOutputs = getAllNumberOutputs(output);
     amountOfPaths = getAllPaths(nodesInLoop, loopEnd, nodesInCondition, failedState, output);
@@ -101,6 +102,9 @@ public class LoopData implements Comparable<LoopData> {
             numberAllOutputs,
             flagEndless,
             conditionInFor);
+    condition =
+        nodesToCondition(
+            nodesInCondition, loopType, endOfCondition, flagEndless, onlyRandomCondition);
     timeToAnalyze.stop();
     analyzeTime = timeToAnalyze.getLengthOfLastInterval();
   }
@@ -555,19 +559,25 @@ public class LoopData implements Comparable<LoopData> {
     if (type.contentEquals("while")) {
 
       while (flag) {
-
-        if (tempNode.getLeavingEdge(VALID_STATE).getEdgeType().equals(CFAEdgeType.AssumeEdge)
-            && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+        if ((tempNode.getLeavingEdge(VALID_STATE).getEdgeType().equals(CFAEdgeType.AssumeEdge)
+                || tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP"))
+            && (loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+                || (tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
+                    && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())))
             && !nodes.contains(tempNode)) {
           nodes.add(tempNode);
         }
         for (int i = 1; i < tempNode.getNumLeavingEdges(); i++) {
-          if (tempNode
-                  .getLeavingEdge(i)
-                  .getSuccessor()
-                  .getLeavingEdge(VALID_STATE)
-                  .getEdgeType()
-                  .equals(CFAEdgeType.AssumeEdge)
+          if (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
+              && tempNode.getLeavingEdge(VALID_STATE).getCode().contains("==")) {
+            tempNodes.add(tempNode.getLeavingEdge(1).getSuccessor());
+          } else if ((tempNode
+                      .getLeavingEdge(i)
+                      .getSuccessor()
+                      .getLeavingEdge(VALID_STATE)
+                      .getEdgeType()
+                      .equals(CFAEdgeType.AssumeEdge)
+                  || tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP"))
               && !loopNodes.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
 
             tempNodes.add(tempNode.getLeavingEdge(i).getSuccessor());
@@ -614,15 +624,6 @@ public class LoopData implements Comparable<LoopData> {
     }
     if (!nodes.isEmpty()) {
       if (LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger) != NO_IF_CASE) {
-        /**
-         * List<CFANode> tempN = copyList(nodes);
-         *
-         * <p>for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext(); ) {
-         * CFANode temps = tempIterator.next(); if
-         * (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin() >=
-         * LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger)) { conditionEnd.add(temps);
-         * tempIterator.remove(); } }
-         */
         List<CFANode> tempNodeList = new ArrayList<>();
         for (CFANode node : nodes) {
           if (node.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin()
@@ -636,9 +637,27 @@ public class LoopData implements Comparable<LoopData> {
         nodes = tempNodeList;
       }
     }
+
+    List<CFANode> condWithoutBody = new ArrayList<>();
+
+    for (CFANode cond : nodes) {
+      boolean partOfBody = false;
+      for (CFANode body : endOfCondition) {
+        if (cond.equals(body)) {
+          partOfBody = true;
+        }
+      }
+      if (!partOfBody) {
+        condWithoutBody.add(cond);
+      }
+    }
+
+    nodes = condWithoutBody;
+
     if (nodes.isEmpty()) {
       setEndless(true);
     }
+
     return nodes;
   }
 
@@ -656,9 +675,22 @@ public class LoopData implements Comparable<LoopData> {
       List<CFANode> conditionNodes,
       String type,
       List<CFANode> conditionEnd,
-      boolean endless) {
+      boolean endless,
+      boolean onlyRandomC) {
     String cond = "";
-    List<CFANode> temp = copyList(conditionNodes);
+    List<CFANode> temp = new ArrayList<>();
+    if (!onlyRandomC) {
+      if (type.equals("while")) {
+        for (CFANode n : conditionNodes) {
+          if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
+            temp.add(n);
+          }
+        }
+      }else if(type.equals("for")){
+      temp = copyList(conditionNodes);
+      }
+
+    }
     CFANode node;
 
     if (type.contentEquals("while")) {
@@ -764,17 +796,39 @@ public class LoopData implements Comparable<LoopData> {
    *     accelerate it
    */
   private boolean canLoopBeAccelerated(
-      List<CFANode> conditionNodes,
+      List<CFANode> condNodes,
       String type,
       int pathNumber,
       int outputNumber,
       boolean endless,
       List<CFANode> forCondition) {
 
+    boolean tmpEndless = endless;
+    boolean onlyRandomOperator = true;
+    for (CFANode n : condNodes) {
+      if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
+        onlyRandomOperator = false;
+      }
+    }
+
+    if (onlyRandomOperator) {
+      setOnlyRandomCondition(true);
+      setEndless(true);
+      tmpEndless = true;
+    }
+
+    List<CFANode> allConditionNodes = copyList(condNodes);
+    List<CFANode> conditionNodes = new ArrayList<>();
+    for (CFANode n : condNodes) {
+      if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
+        conditionNodes.add(n);
+      }
+    }
+
     boolean canAccelerate = false;
 
     List<Boolean> temp = new ArrayList<>();
-    if (!endless) {
+    if (!tmpEndless) {
     if (type.contentEquals("while")) {
       List<String> rightSideVariable = new ArrayList<>();
       for (CFANode node : conditionNodes) {
@@ -997,8 +1051,16 @@ public class LoopData implements Comparable<LoopData> {
     conditionInFor.addAll(tempForCondition);
   }
 
+  private void setOnlyRandomCondition(boolean value) {
+    onlyRandomCondition = value;
+  }
+
   public TimeSpan getAnalyzeTime() {
     return analyzeTime;
+  }
+
+  public boolean getOnlyRandomCondition() {
+    return onlyRandomCondition;
   }
 
   public String outputToString() {
