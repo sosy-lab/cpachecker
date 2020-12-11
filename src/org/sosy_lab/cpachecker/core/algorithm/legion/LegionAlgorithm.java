@@ -71,7 +71,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   private final PredicateCPA predCpa;
 
   // Legion Specific
-  private final OutputWriter outputWriter;
+  private final TestcaseWriter outputWriter;
   private final Selector selectionStrategy;
   private final TargetSolver targetSolver;
   private final Fuzzer fuzzer;
@@ -104,7 +104,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     this.solver = predCpa.getSolver();
 
     // Configure Output
-    this.outputWriter = new OutputWriter(logger, predCpa, pConfig);
+    this.outputWriter = new TestcaseWriter(logger, predCpa, pConfig);
 
     // Set selection Strategy, targetSolver and fuzzers
     this.selectionStrategy = buildSelectionStrategy();

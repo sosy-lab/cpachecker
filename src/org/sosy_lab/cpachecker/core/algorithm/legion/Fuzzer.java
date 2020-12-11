@@ -39,7 +39,7 @@ public class Fuzzer {
   private int emergencyFuzzingPasses = 1;
 
   private final LogManager logger;
-  private final OutputWriter outputWriter;
+  private final TestcaseWriter outputWriter;
   private final ShutdownNotifier shutdownNotifier;
   private final LegionComponentStatistics stats;
   private final NondeterministicValueProvider nonDetValueProvider;
@@ -48,7 +48,7 @@ public class Fuzzer {
   public Fuzzer(
       String pName,
       final LogManager pLogger,
-      OutputWriter pOutputWriter,
+      TestcaseWriter pOutputWriter,
       ShutdownNotifier pShutdownNotifier,
       NondeterministicValueProvider pNonDetValueProvider,
       Configuration pConfig)

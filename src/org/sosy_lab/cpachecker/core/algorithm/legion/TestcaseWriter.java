@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 
 @Options(prefix = "legion")
-public class OutputWriter {
+class TestcaseWriter {
 
   private final LogManager logger;
   private final PredicateCPA predicateCPA;
@@ -80,10 +80,10 @@ public class OutputWriter {
    * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
    * testcase for it.
    */
-  public OutputWriter(LogManager pLogger, PredicateCPA pPredicateCPA, Configuration pConfig)
+  public TestcaseWriter(LogManager pLogger, PredicateCPA pPredicateCPA, Configuration pConfig)
       throws InvalidConfigurationException {
     this.logger = pLogger;
-    pConfig.inject(this, OutputWriter.class);
+    pConfig.inject(this, TestcaseWriter.class);
     this.predicateCPA = pPredicateCPA;
 
     if (testcaseOutputDir != null) {
