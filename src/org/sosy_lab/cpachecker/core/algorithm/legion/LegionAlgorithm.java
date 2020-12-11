@@ -65,7 +65,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   // General fields
   private final Algorithm algorithm;
   private final LogManager logger;
-  private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
 
   // CPAs + components
@@ -96,7 +95,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         getCurrentValueTransferRelation(algorithm);
     this.nonDetValueProvider = valueAnalysisTransferRelation.getNonDetValueProvider();
 
-    this.config = pConfig;
     pConfig.inject(this, LegionAlgorithm.class);
     this.shutdownNotifier = pShutdownNotifier;
 
