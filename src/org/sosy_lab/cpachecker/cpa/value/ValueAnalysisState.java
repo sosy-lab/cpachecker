@@ -764,7 +764,7 @@ public final class ValueAnalysisState
 
   /**
    * If e.g. {@link RandomValueAssigner} is used to handle unknown values, it will in some cases
-   * return a non-deterministic value, marking the previous state as non-deterministic.
+   * return a non-deterministic value, marking this state as non-deterministic.
    * 
    * <p>This is done as these concrete but non-deterministic values are indistinguishable from other
    * values. To enable analysis to find these states again, the mark is set.
