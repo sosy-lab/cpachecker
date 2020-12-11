@@ -13,6 +13,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,12 +48,34 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 abstract class GlobalPointerState {
 
   public static final GlobalPointerState EMPTY = new EmptyPointerState();
 
   public abstract Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression);
+
+  private static Set<MemoryLocation> getPossiblePointees(
+      PointerState pPointerState,
+      Optional<VariableClassification> pVariableClassification,
+      CExpression pExpression) {
+
+    Set<MemoryLocation> possiblePointees =
+        ReachingDefUtils.possiblePointees(pExpression, pPointerState);
+
+    if (possiblePointees == null && pVariableClassification.isPresent()) {
+
+      VariableClassification variableClassification = pVariableClassification.orElseThrow();
+      possiblePointees = new HashSet<>();
+
+      for (String variableName : variableClassification.getAddressedVariables()) {
+        possiblePointees.add(MemoryLocation.valueOf(variableName));
+      }
+    }
+
+    return possiblePointees;
+  }
 
   public static GlobalPointerState createFlowInsensitive(CFA pCfa)
       throws CPAException, InterruptedException {
@@ -74,16 +97,19 @@ abstract class GlobalPointerState {
         new PointerTransferRelation();
 
     private final PointerState pointerState;
+    private final Optional<VariableClassification> variableClassification;
 
-    private FlowInsensitivePointerState(PointerState pPointerState) {
+    private FlowInsensitivePointerState(
+        PointerState pPointerState, Optional<VariableClassification> pVariableClassification) {
       pointerState = pPointerState;
+      variableClassification = pVariableClassification;
     }
 
     @Override
     public Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
 
       Set<MemoryLocation> possiblePointees =
-          ReachingDefUtils.possiblePointees(pExpression, pointerState);
+          GlobalPointerState.getPossiblePointees(pointerState, variableClassification, pExpression);
 
       return possiblePointees != null ? possiblePointees : ImmutableSet.of();
     }
@@ -153,16 +179,20 @@ abstract class GlobalPointerState {
         }
       }
 
-      return new FlowInsensitivePointerState(pointerState);
+      return new FlowInsensitivePointerState(pointerState, pCfa.getVarClassification());
     }
   }
 
   private static final class FlowSensitivePointerState extends GlobalPointerState {
 
     private final Map<CFAEdge, PointerState> pointerStates;
+    private final Optional<VariableClassification> variableClassification;
 
-    private FlowSensitivePointerState(Map<CFAEdge, PointerState> pPointerStates) {
+    private FlowSensitivePointerState(
+        Map<CFAEdge, PointerState> pPointerStates,
+        Optional<VariableClassification> pVariableClassification) {
       pointerStates = pPointerStates;
+      variableClassification = pVariableClassification;
     }
 
     @Override
@@ -172,7 +202,9 @@ abstract class GlobalPointerState {
 
       Set<MemoryLocation> possiblePointees = null;
       if (pointerState != null) {
-        possiblePointees = ReachingDefUtils.possiblePointees(pExpression, pointerState);
+        possiblePointees =
+            GlobalPointerState.getPossiblePointees(
+                pointerState, variableClassification, pExpression);
       }
 
       return possiblePointees != null ? possiblePointees : ImmutableSet.of();
@@ -239,7 +271,7 @@ abstract class GlobalPointerState {
         }
       }
 
-      return new FlowSensitivePointerState(pointerStates);
+      return new FlowSensitivePointerState(pointerStates, pCfa.getVarClassification());
     }
   }
 
