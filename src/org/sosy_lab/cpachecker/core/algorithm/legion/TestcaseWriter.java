@@ -101,7 +101,7 @@ class TestcaseWriter {
    */
   private void writeTestMetadata() throws IOException {
     this.stats.start();
-    Path metaFilePath = this.testcaseOutputDir.resolve(Paths.get("metadata.xml"));
+    Path metaFilePath = this.testcaseOutputDir.resolve("metadata.xml");
     try (Writer metadata = IO.openOutputFile(metaFilePath, StandardCharsets.UTF_8)) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
       this.successfulWrites.setNextValue(1);
@@ -153,7 +153,7 @@ class TestcaseWriter {
     String filename =
         String.format(
             "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber, violationStr);
-    Path testcasePath = this.testcaseOutputDir.resolve(Paths.get(filename));
+    Path testcasePath = this.testcaseOutputDir.resolve(filename);
 
     // Get content
     String inputs = writeVariablesToTestcase(values);
