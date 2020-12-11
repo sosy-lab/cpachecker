@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -74,7 +75,8 @@ public class Fuzzer {
    */
   public ReachedSet fuzz(
       ReachedSet pReachedSet, Algorithm pAlgorithm, List<List<ValueAssignment>> pPreLoadedValues)
-      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
+          IOException {
 
     for (int i = 0; i < this.passes; i++) {
       this.stats.start();

@@ -92,7 +92,12 @@ class TestcaseWriter {
       } catch (IOException exc) {
         throw new InvalidConfigurationException("Could not create configured output dir", exc);
       }
-      writeTestMetadata();
+
+      try {
+        writeTestMetadata();
+      } catch (IOException exc) {
+        throw new InvalidConfigurationException("Could not write metadata file to output dir", exc);
+      }
     }
   }
 
@@ -101,21 +106,19 @@ class TestcaseWriter {
    *
    * <p>This only needs to be done once and does not contain testcase specific information.
    */
-  private void writeTestMetadata() {
+  private void writeTestMetadata() throws IOException {
     this.stats.start();
     Path metaFilePath = this.testcaseOutputDir.resolve(Paths.get("metadata.xml"));
     try (Writer metadata = IO.openOutputFile(metaFilePath, Charset.defaultCharset())) {
       XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
       this.successfulWrites.setNextValue(1);
-    } catch (IOException exc) {
-      logger.logUserException(Level.SEVERE, exc, "Could not write metadata file");
     } finally {
       this.stats.finish();
     }
   }
 
   /** Handles writing of all testcases necessary for the given reachedSet. */
-  public void writeTestCases(UnmodifiableReachedSet pReachedSet) {
+  public void writeTestCases(UnmodifiableReachedSet pReachedSet) throws IOException {
 
     if (testcaseOutputDir == null) {
       return;
@@ -136,7 +139,8 @@ class TestcaseWriter {
   }
 
   /** After early abort possibilities, this does the actual writing. */
-  public void doTheWrite(UnmodifiableReachedSet pReachedSet, final int pReachedSize) {
+  public void doTheWrite(UnmodifiableReachedSet pReachedSet, final int pReachedSize)
+      throws IOException {
     logger.log(Level.INFO, "Searching through arg(" + pReachedSize + ") for testcases");
 
     // Get starting point for search
@@ -180,8 +184,6 @@ class TestcaseWriter {
       // Footer and flush
       testcase.write("</testcase>\n");
       this.successfulWrites.setNextValue(1);
-    } catch (IOException exc) {
-      logger.logUserException(Level.WARNING, exc, "Could not write test output");
     } finally {
       this.testCaseNumber += 1;
       this.previousSetSize = pReachedSize;

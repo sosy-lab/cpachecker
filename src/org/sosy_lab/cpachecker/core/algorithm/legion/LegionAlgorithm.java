@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -129,8 +130,10 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
     try {
       reachedSet = initFuzzer.fuzz(reachedSet, algorithm, preloadedValues);
-    } finally {
-      outputWriter.writeTestCases(reachedSet);
+    } catch (IOException exc) {
+      logger.logException(
+          Level.SEVERE, exc, "Fuzzer could not write results to disk in itialization phase");
+      return status;
     }
 
     // In it's main iterations, ask the solver for new solutions every time.
@@ -152,8 +155,6 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "No target state found");
         break;
-      } finally {
-        outputWriter.writeTestCases(reachedSet);
       }
 
       if (target == null) {
@@ -193,6 +194,9 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       fuzzer.computePasses(preloadedValues.size());
       try {
         reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
+      } catch (IOException exc) {
+        logger.logException(Level.SEVERE, exc, "Fuzzer could not write results to disk");
+        return status;
       } finally {
         this.nonDetValueProvider.clearKnownValues();
       }
