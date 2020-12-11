@@ -33,7 +33,11 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
       targetSet = usageInfoSets.get(newPoint);
     } else {
       targetSet = new UsageInfoSet();
-      usageInfoSets.put(newPoint, targetSet);
+      // It is possible, that someone place the set after check
+      UsageInfoSet present = usageInfoSets.putIfAbsent(newPoint, targetSet);
+      if (present != null) {
+        targetSet = present;
+      }
     }
     add(newPoint);
     targetSet.add(newInfo);

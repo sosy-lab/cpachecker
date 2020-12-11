@@ -85,7 +85,11 @@ public class UsageContainer {
 
     if (!unrefinedIds.containsKey(id)) {
       uset = new UnrefinedUsagePointSet();
-      unrefinedIds.put(id, uset);
+      // It is possible, that someone place the set after check
+      UnrefinedUsagePointSet present = unrefinedIds.putIfAbsent(id, uset);
+      if (present != null) {
+        uset = present;
+      }
     } else {
       uset = unrefinedIds.get(id);
     }
