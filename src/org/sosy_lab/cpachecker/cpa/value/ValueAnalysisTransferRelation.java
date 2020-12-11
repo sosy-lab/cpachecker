@@ -358,7 +358,9 @@ public class ValueAnalysisTransferRelation
         if (isMissingCExpressionInformation(visitor, exp)) {
           addMissingInformation(formalParamName, exp);
         }
+
         unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
+        
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
       }
