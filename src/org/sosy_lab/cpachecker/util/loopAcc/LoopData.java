@@ -684,6 +684,9 @@ public class LoopData implements Comparable<LoopData> {
           if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
             temp.add(n);
           }
+          if (n.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
+            temp.add(n);
+          }
         }
       }else if(type.equals("for")){
       temp = copyList(conditionNodes);
@@ -711,13 +714,33 @@ public class LoopData implements Comparable<LoopData> {
           }
 
           if (notNodeToEndCondition) {
-            cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " && ";
+            if (node.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
+              String tmpType =
+                  CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
+              cond = cond + "__VERIFIER_nondet_" + tmpType + "() &&";
+            } else {
+              cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " && ";
+            }
           } else {
-            cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " || ";
+            if (node.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
+              String tmpType =
+                  CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
+              cond = cond + "__VERIFIER_nondet_" + tmpType + "() ||";
+            } else {
+              cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " || ";
+            }
           }
         } else {
-          cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
-          setFailedState(node.getLeavingEdge(ERROR_STATE).getSuccessor());
+          if (node.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
+            String tmpType =
+                CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
+            cond = cond + "__VERIFIER_nondet_" + tmpType + "()";
+            setFailedState(
+                node.getLeavingEdge(VALID_STATE).getSuccessor().getLeavingEdge(0).getSuccessor());
+          } else {
+            cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
+            setFailedState(node.getLeavingEdge(ERROR_STATE).getSuccessor());
+          }
         }
       }
     } else if (type.contentEquals("for")) {
