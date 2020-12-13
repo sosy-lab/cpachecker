@@ -271,7 +271,6 @@ public class LoopData implements Comparable<LoopData> {
         }
       }
     }
-
     for (CFANode n : cfa.getAllNodes()) {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
@@ -811,13 +810,12 @@ public class LoopData implements Comparable<LoopData> {
       }
     }
 
-    if (onlyRandomOperator) {
+    if (onlyRandomOperator && condNodes.size() > 0) {
       setOnlyRandomCondition(true);
-      setEndless(true);
+      setEndless(false);
       tmpEndless = true;
     }
 
-    List<CFANode> allConditionNodes = copyList(condNodes);
     List<CFANode> conditionNodes = new ArrayList<>();
     for (CFANode n : condNodes) {
       if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
@@ -1045,6 +1043,10 @@ public class LoopData implements Comparable<LoopData> {
 
   private void setEndless(boolean endless) {
     flagEndless = endless;
+  }
+
+  public boolean getEndless() {
+    return flagEndless;
   }
 
   private void setConditionInFor(List<CFANode> tempForCondition) {

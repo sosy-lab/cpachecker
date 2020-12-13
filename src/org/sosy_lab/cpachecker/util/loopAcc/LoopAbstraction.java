@@ -34,6 +34,9 @@ public class LoopAbstraction {
   private final Timer totalTime;
   private TimeSpan timeToAbstract;
   private String fName;
+  private boolean openIf = false;
+  private int ifWithoutBracket = 0;
+  private boolean hasBreak = false;
 
   public LoopAbstraction() {
     totalTime = new Timer();
@@ -112,6 +115,7 @@ public class LoopAbstraction {
               flagInt = false;
             }
             break;
+          case "unsigned":
           case "unsigned int":
             if (flaguInt) {
               content +=
@@ -503,14 +507,16 @@ public class LoopAbstraction {
   private String assumeEnd(LoopData loopD) {
     String ass = "";
     if (!loopD.getOnlyRandomCondition()) {
-      if (loopD.getLoopType().equals("for")) {
-        ass +=
-            ("__VERIFIER_assume(!("
-                + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
-                + "));"
-                + System.lineSeparator());
-      } else if (loopD.getLoopType().equals("while")) {
-        ass += ("__VERIFIER_assume(!(" + loopD.getCondition() + "));" + System.lineSeparator());
+      if (!(loopD.getCondition().equals("1") && hasBreak)) {
+        if (loopD.getLoopType().equals("for")) {
+          ass +=
+              ("__VERIFIER_assume(!("
+                  + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
+                  + "));"
+                  + System.lineSeparator());
+        } else if (loopD.getLoopType().equals("while")) {
+          ass += ("__VERIFIER_assume(!(" + loopD.getCondition() + "));" + System.lineSeparator());
+        }
       }
     }
     return ass;
@@ -563,6 +569,7 @@ public class LoopAbstraction {
           case "signed int":
             tmp += "=__VERIFIER_nondet_int();}" + System.lineSeparator();
             break;
+          case "unsigned":
           case "unsigned int":
             tmp += "=__VERIFIER_nondet_uint();}" + System.lineSeparator();
             break;
@@ -610,6 +617,7 @@ public class LoopAbstraction {
           case "signed int":
             tmp += "=__VERIFIER_nondet_int();" + System.lineSeparator();
             break;
+          case "unsigned":
           case "unsigned int":
             tmp += "=__VERIFIER_nondet_uint();" + System.lineSeparator();
             break;
@@ -805,6 +813,10 @@ public class LoopAbstraction {
    */
   private boolean ifCaseClosed(String line, boolean closed) {
 
+    if (line.contains("break;")) {
+      hasBreak = true;
+    }
+
     boolean ifCaseC = closed;
 
     if (line != null) {
@@ -812,16 +824,28 @@ public class LoopAbstraction {
       if (!ifCaseC && line.contains("}")) {
         ifCaseC = true;
       }
+      if (temp.contains("{") && openIf == true) {
+        openIf = false;
+        ifCaseC = false;
+      }
+      if (ifWithoutBracket > 0) {
+        ifWithoutBracket = 0;
+        openIf = false;
+      }
       if (temp.contains("if") || line.contains("else")) {
         ifCaseC = false;
         if (temp.contains("if")) {
           String temp2 = Iterables.get(Splitter.on("if").split(line), 1);
           if (temp2.contains("}")) {
             ifCaseC = true;
+          } else if (!temp.contains("{")) {
+            ifCaseC = true;
+            openIf = true;
+            ifWithoutBracket += 1;
           }
         } else if (line.contains("else")) {
           String temp2 = Iterables.get(Splitter.on("else").split(line), 1);
-          if (temp2.contains("}")) {
+          if (temp2.contains("}") || !temp2.contains("{")) {
             ifCaseC = true;
           }
         }
