@@ -8,6 +8,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import getpass
 import glob
 import logging
 import os
@@ -147,18 +148,16 @@ class Benchmark(benchexec.benchexec.BenchExec):
 
     def load_executor(self):
         webclient = False
+        if getpass.getuser() == "root":
+            logging.warning(
+                "Benchmarking as root user is not advisable! Please execute this script as normal user!"
+            )
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 webclient = True
                 import benchmark.webclient_executor as executor
             else:
                 import benchmark.benchmarkclient_executor as executor
-                import getpass
-
-                if getpass.getuser() == "root":
-                    logging.warning(
-                        "Benchmarking as root user is not advisable! Please execute this script as normal user!"
-                    )
             logging.debug(
                 "This is CPAchecker's benchmark.py (based on benchexec %s) "
                 "using the VerifierCloud %s API.",
