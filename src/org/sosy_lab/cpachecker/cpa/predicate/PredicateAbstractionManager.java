@@ -416,21 +416,6 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  public AbstractionFormula buildAbstraction(
-      final CFANode location,
-      Optional<CallstackStateEqualsWrapper> callstackInformation,
-      final AbstractionFormula abstractionFormula,
-      final PathFormula pathFormula,
-      final Collection<AbstractionPredicate> pPredicates)
-      throws SolverException, InterruptedException {
-    return buildAbstraction(
-        Collections.singleton(location),
-        callstackInformation,
-        abstractionFormula,
-        pathFormula,
-        pPredicates);
-  }
-
   /**
    * Compute an abstraction of a formula.
    * This is a low-level version of
