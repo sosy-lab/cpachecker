@@ -153,6 +153,12 @@ class Benchmark(benchexec.benchexec.BenchExec):
                 import benchmark.webclient_executor as executor
             else:
                 import benchmark.benchmarkclient_executor as executor
+                import getpass
+
+                if getpass.getuser() == "root":
+                    logging.warning(
+                        "Benchmarking as root user is not advisable! Please execute this script as normal user!"
+                    )
             logging.debug(
                 "This is CPAchecker's benchmark.py (based on benchexec %s) "
                 "using the VerifierCloud %s API.",
