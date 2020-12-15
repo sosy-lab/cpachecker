@@ -54,7 +54,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
 
-  // This can be used to assign a value statically.
+  // If a memory location is encountered for which the assigned value would
+  // be unknown, e.g. a __VERIFIER_nondet_* function, and a
+  // {@link MemoryLocationValueHandler} would produce a value, this can be
+  // avoided providing the {@link NondeterministicValueProvider} with values
+  // which are already known in order to set them.
   private NondeterministicValueProvider nonDetValueProviders;
   private LogManagerWithoutDuplicates logger;
 
