@@ -41,10 +41,7 @@ public interface Value extends Serializable {
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
-  /**
-   * Convert a value object (something implementing Value)
-   * into it's concrete implementation.
-   */
+  /** Convert an object into it's value representation. **/
   public static Value of(Object value) {
     if (value instanceof Boolean) {
       return BooleanValue.valueOf((Boolean) value);
