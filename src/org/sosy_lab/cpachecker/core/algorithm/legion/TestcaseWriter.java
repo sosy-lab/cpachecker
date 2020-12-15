@@ -303,16 +303,8 @@ class TestcaseWriter {
     for (Map.Entry<MemoryLocation, ValueAndType> entry : state.getConstants()) {
       MemoryLocation loc = entry.getKey();
 
-      if (loc == null) {
-        continue;
-      }
-
       String fnName = loc.getFunctionName();
       String ident = loc.getIdentifier();
-
-      if (fnName == null || ident == null) {
-        continue;
-      }
 
       if (fnName.equals(functionName) && ident.equals(identifier)) {
         return entry;
