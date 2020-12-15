@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** The legion algorithm to run fuzzing and symexec in combination. */
+/**
+ * Proposed in the masters thesis "Combining fuzzing and symbolic execution in CPAchecker" by
+ * C. Girstenbrei the Legion algorithm is the corresponding implementation.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
