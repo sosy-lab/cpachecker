@@ -134,7 +134,7 @@ class TestcaseWriter {
   /** After early abort possibilities, this does the actual writing. */
   public void doTheWrite(UnmodifiableReachedSet pReachedSet, final int pReachedSize)
       throws IOException {
-    logger.log(Level.INFO, "Searching through arg(" + pReachedSize + ") for testcases");
+    logger.log(Level.FINEST, "Searching through arg(" + pReachedSize + ") for testcases");
 
     // Get starting point for search
     AbstractState first = pReachedSet.getFirstState();
@@ -162,7 +162,7 @@ class TestcaseWriter {
       return;
     }
 
-    logger.log(Level.FINER, "Writing testcase ", testcasePath);
+    logger.log(Level.FINEST, "Writing testcase ", testcasePath);
     try (Writer testcase = IO.openOutputFile(testcasePath, StandardCharsets.UTF_8)) {
       // Write header
       testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
