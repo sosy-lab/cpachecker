@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
@@ -39,6 +40,32 @@ public interface Value extends Serializable {
   public Long asLong(CType type);
 
   <T> T accept(ValueVisitor<T> pVisitor);
+
+  /**
+   * Convert a value object (something implementing Value)
+   * into it's concrete implementation.
+   */
+  public static Value of(Object value) {
+    if (value instanceof Boolean) {
+      return BooleanValue.valueOf((Boolean) value);
+    } else if (value instanceof Integer) {
+      return new NumericValue((Integer) value);
+    } else if (value instanceof Character) {
+      char c = (Character) value;
+      int i = c;
+      return new NumericValue(i);
+    } else if (value instanceof Float) {
+      return new NumericValue((Float) value);
+    } else if (value instanceof Double) {
+      return new NumericValue((Double) value);
+    } else if (value instanceof BigInteger) {
+      BigInteger v = (BigInteger) value;
+      return new NumericValue(v);
+    } else {
+      throw new IllegalArgumentException(
+          String.format("The objects value type was not recognized (value was %s).", value));
+    }
+  }
 
   /** Singleton class used to signal that the value is unknown (could be anything). **/
   public static final class UnknownValue implements Value, Serializable {

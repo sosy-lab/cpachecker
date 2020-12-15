@@ -124,7 +124,7 @@ public class Fuzzer {
   private List<Value> preloadValues(List<ValueAssignment> assignments) {
     List<Value> values = new ArrayList<>();
     for (ValueAssignment a : assignments) {
-      values.add(ValueConverter.toValue(a.getValue()));
+      values.add(Value.of(a.getValue()));
     }
 
     this.nonDetValueProvider.setKnownValues(values);

@@ -174,7 +174,7 @@ public class TargetSolver {
                   return false;
                 }
 
-                Value value = ValueConverter.toValue(assignment.getValue());
+                Value value = Value.of(assignment.getValue());
                 logger.log(Level.FINE, "Loaded Value", name, value);
                 return true;
               }
