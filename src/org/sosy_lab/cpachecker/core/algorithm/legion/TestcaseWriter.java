@@ -61,7 +61,7 @@ class TestcaseWriter {
 
   private int testCaseNumber = 0;
   private int previousSetSize = 0;
-  private Instant zero = Instant.now();
+  private final Instant startTime = Instant.now();
   private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Testcases writing time");
 
   @Option(
@@ -149,7 +149,7 @@ class TestcaseWriter {
     if (pReachedSet.hasViolatedProperties()) {
       violationStr = "_error";
     }
-    Duration sinceZero = Duration.between(this.zero, Instant.now());
+    Duration sinceZero = Duration.between(this.startTime, Instant.now());
     String filename =
         String.format(
             "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber, violationStr);
