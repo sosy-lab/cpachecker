@@ -182,7 +182,7 @@ public class TargetSolver {
         .collect(ImmutableList.toImmutableList());
   }
 
-  public void writeStats(StatisticsWriter writer) {
+  public void printStatistics(StatisticsWriter writer) {
     writer.put(this.iterationTimer);
     writer.put("Targeting Iterations", this.iterationTimer.getUpdateCount());
     writer.put("Successful primary solves", this.successfulPrimarySolves);

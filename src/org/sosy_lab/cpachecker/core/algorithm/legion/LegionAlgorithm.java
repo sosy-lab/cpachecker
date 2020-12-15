@@ -222,11 +222,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-    this.initFuzzer.writeStats(writer);
-    this.selectionStrategy.writeStats(writer);
-    this.targetSolver.writeStats(writer);
-    this.fuzzer.writeStats(writer);
-    this.outputWriter.writeStats(writer);
+    this.initFuzzer.printStatistics(writer);
+    this.selectionStrategy.printStatistics(writer);
+    this.targetSolver.printStatistics(writer);
+    this.fuzzer.printStatistics(writer);
+    this.outputWriter.printStatistics(writer);
   }
 
   @Override

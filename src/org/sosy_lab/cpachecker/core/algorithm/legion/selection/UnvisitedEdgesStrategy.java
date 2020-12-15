@@ -160,7 +160,7 @@ public class UnvisitedEdgesStrategy implements Selector {
   }
 
   @Override
-  public void writeStats(StatisticsWriter writer) {
+  public void printStatistics(StatisticsWriter writer) {
     writer.put("Selection Kind", "UnvisitedEdgesStrategy");
     writer.put(this.iterationTimer);
     writer.put("Selection Iterations", this.iterationTimer.getUpdateCount());

@@ -132,7 +132,7 @@ public class Fuzzer {
     return values;
   }
 
-  public void writeStats(StatisticsWriter writer) {
+  public void printStatistics(StatisticsWriter writer) {
     writer.put(this.iterationTimer);
     writer.put("Fuzzing Iterations", this.iterationTimer.getUpdateCount());
   }

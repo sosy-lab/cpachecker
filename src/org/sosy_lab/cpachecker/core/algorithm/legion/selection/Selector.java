@@ -32,5 +32,14 @@ public interface Selector {
     return;
   }
 
-  void writeStats(StatisticsWriter writer);
+  /**
+   * As phases implement statistic generation to allow for further analysis, the selector should
+   * opt in to do so to enable reasoning between different implementations.
+   * 
+   * @param writer Writer to add generated statistics to.
+   */
+  default void printStatistics(StatisticsWriter writer) {
+    // The default is to do nothing
+    return;
+  }
 }

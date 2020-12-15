@@ -321,7 +321,7 @@ class TestcaseWriter {
     return null;
   }
 
-  public void writeStats(StatisticsWriter writer) {
+  public void printStatistics(StatisticsWriter writer) {
     writer.put(this.iterationTimer);
     writer.put("Successful Testcase writes", this.successfulWrites);
   }

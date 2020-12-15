@@ -92,7 +92,7 @@ public class RandomSelectionStrategy implements Selector {
   }
 
   @Override
-  public void writeStats(StatisticsWriter writer) {
+  public void printStatistics(StatisticsWriter writer) {
     writer.put(this.iterationTimer);
     writer.put("Selection Iterations", this.iterationTimer.getUpdateCount());
     writer.put("Selection Kind", "RandomSelectionStrategy");
