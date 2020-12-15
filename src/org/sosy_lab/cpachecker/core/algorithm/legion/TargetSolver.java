@@ -75,8 +75,7 @@ public class TargetSolver {
     List<List<ValueAssignment>> preloadedValues = new ArrayList<>();
 
     try (ProverEnvironment prover =
-        this.solver.newProverEnvironment(
-            ProverOptions.GENERATE_MODELS, ProverOptions.GENERATE_UNSAT_CORE)) {
+        this.solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
       FormulaManagerView fmgr = this.solver.getFormulaManager();
       BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
