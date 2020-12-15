@@ -59,7 +59,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   // {@link MemoryLocationValueHandler} would produce a value, this can be
   // avoided providing the {@link NondeterministicValueProvider} with values
   // which are already known in order to set them.
-  private NondeterministicValueProvider nonDetValueProviders;
+  private final NondeterministicValueProvider nonDetValueProviders;
   private LogManagerWithoutDuplicates logger;
 
   /** This Visitor returns the numeral value for an expression.
