@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -143,18 +144,18 @@ abstract class AbstractBMCAlgorithm
   private InvariantGeneratorFactory invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
 
   @Option(
-    secure = true,
-    description =
-        "Controls how long the invariant generator is allowed to run before the k-induction procedure starts."
-  )
+      secure = true,
+      description =
+          "Controls how long the invariant generator is allowed to run before the k-induction"
+              + " procedure starts.")
   private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
       InvariantGeneratorHeadStartFactories.NONE;
 
   @Option(
-    secure = true,
-    description =
-        "k-induction configuration to be used as an invariant generator for k-induction (ki-ki(-ai))."
-  )
+      secure = true,
+      description =
+          "k-induction configuration to be used as an invariant generator for k-induction"
+              + " (ki-ki(-ai)).")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path invariantGeneratorConfig = null;
 
@@ -167,7 +168,11 @@ abstract class AbstractBMCAlgorithm
   )
   private boolean usePropertyDirection = false;
 
-  @Option(name = "simplifyBooleanFormula", secure = true, description = "Simplifies the disjunction of all path formulas that should speed up the final SAT check of BMC.")
+  @Option(
+      secure = true,
+      description =
+          "Try to simplify the structure of formulas for the sat check of BMC. "
+              + "The improvement depends on the underlying SMT solver.")
   private boolean simplifyBooleanFormula = false;
 
   protected final BMCStatistics stats;
@@ -203,9 +208,6 @@ abstract class AbstractBMCAlgorithm
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
-
-  /** This map is used to avoid the repetitive simplification of BooleanFormulas in simplifyBooleanFormulaRecursively method. It maps BooleanFormulas to the simplified one. */
-  private Map<BooleanFormula, BooleanFormula> cachedBooleanFormulas = new HashMap<>();
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -332,7 +334,10 @@ abstract class AbstractBMCAlgorithm
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
     if (!cfa.getLoopStructure().isPresent()) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
+      logger.log(
+          Level.WARNING,
+          "Could not use induction for proving program safety, loop structure of program could not"
+              + " be determined.");
       return false;
     }
 
@@ -375,7 +380,9 @@ abstract class AbstractBMCAlgorithm
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
-          logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
+          logger.log(
+              Level.WARNING,
+              "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
         }
         shutdownNotifier.shutdownIfNecessary();
@@ -610,8 +617,14 @@ abstract class AbstractBMCAlgorithm
       throws CPATransferException, InterruptedException, SolverException {
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
     if (simplifyBooleanFormula) {
-      program = simplifyBooleanFormulaRecursively(program);
-      cachedBooleanFormulas.clear();
+      BigInteger sizeBeforeSimplification = fmgr.countBooleanOperations(program);
+      program = fmgr.simplifyBooleanFormula(program);
+      BigInteger sizeAfterSimplification = fmgr.countBooleanOperations(program);
+      logger.logf(
+          Level.FINER,
+          "Formula was simplified from %s to %s boolean operations.",
+          sizeBeforeSimplification,
+          sizeAfterSimplification);
     }
     logger.log(Level.INFO, "Starting satisfiability check...");
     stats.satCheck.start();
@@ -632,73 +645,6 @@ abstract class AbstractBMCAlgorithm
     pProver.pop();
 
     return safe;
-  }
-
-  /**
-   * This method simplifies a given boolean formula by putting out of brackets mutual operands of all conjunctions in a single disjunction.
-   * The simplified formula should speed up the SAT check of BMC.
-   * Example: (or (and A B C) (and A B D E)) transformed to ((and A B) and (or (and C) (and D E)))
-   *
-   * @param formula to be simplified
-   * @return simplified formula
-   */
-  private BooleanFormula simplifyBooleanFormulaRecursively(BooleanFormula formula) {
-    BooleanFormulaManager pBFMGR = fmgr.getBooleanFormulaManager();
-    //split a formula to subformulas
-    final Set<BooleanFormula> disjunctionSet = pBFMGR.toDisjunctionArgs(formula, true);
-    //list of sets. Each set contains all operands of a single subformula.
-    List<Set<BooleanFormula>> listOfOperands = new ArrayList<>();
-
-    //iterate through all subformulas of disjunction
-    for (BooleanFormula subformula : disjunctionSet) {
-      //split each subformula to a set containing all subformulas of conjunction
-      Set<BooleanFormula> conjunctionSet = pBFMGR.toConjunctionArgs(subformula, true);
-      //this set contains all operands of current subformula
-      Set<BooleanFormula> operandsOfSubformula = new HashSet<>();
-      listOfOperands.add(operandsOfSubformula);
-      //iterate through all subformulas of a current conjunction
-      for (BooleanFormula formulaInConjunctionSet : conjunctionSet) {
-        //check whether a formulaInConjunctionSet should be transformed
-        if (pBFMGR.toDisjunctionArgs(formulaInConjunctionSet, true).size() <= 1) {
-          //formulaInConjunctionSet is a single atom
-          operandsOfSubformula.add(formulaInConjunctionSet);
-        } else {
-          //formulaInConjunctionSet contains disjunction that should be also transformed recursively
-          if (cachedBooleanFormulas.containsKey(formulaInConjunctionSet)) {
-            //formula has been already transformed and cached
-            operandsOfSubformula.add(cachedBooleanFormulas.get(formulaInConjunctionSet));
-          } else {
-            //transform formula further
-            BooleanFormula transformedFormula =
-                simplifyBooleanFormulaRecursively(formulaInConjunctionSet);
-            //cache transformed formula
-            cachedBooleanFormulas.put(formulaInConjunctionSet, transformedFormula);
-            //add transformed formula as an operand of a current subformula
-            operandsOfSubformula.addAll(pBFMGR.toConjunctionArgs(transformedFormula, true));
-          }
-        }
-      }
-    }
-
-    if (listOfOperands.isEmpty()) {
-      //return false if a given formula is empty
-      return pBFMGR.makeFalse();
-    }
-
-    //set of mutual operands that are contained in all subformulas
-    Set<BooleanFormula> mutualOperandsSet = new HashSet<>(listOfOperands.get(0));
-    for (Set<BooleanFormula> operands : listOfOperands) {
-      mutualOperandsSet.retainAll(operands);
-    }
-    //remove all mutual operands from each subformula
-    List<BooleanFormula> transformedSubformulas = new ArrayList<>();
-    for (Set<BooleanFormula> operands : listOfOperands) {
-      operands.removeAll(mutualOperandsSet);
-      transformedSubformulas.add(pBFMGR.and(operands));
-    }
-
-    //simplified BooleanFormula consists of ((conjunction of mutual operands) AND (disjunction of transformed subformulas))
-    return pBFMGR.and(pBFMGR.and(mutualOperandsSet), pBFMGR.or(transformedSubformulas));
   }
 
   private boolean refineCtiBlockingClauses(

@@ -670,8 +670,8 @@ bmc.invariantsExport = no default value
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
-# Simplifies the disjunction of all path formulas that should speed up the
-# final SAT check of BMC.
+# Try to simplify the structure of formulas for the sat check of BMC. The
+# improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
 
 # Use generalized counterexamples to induction as candidate invariants.
