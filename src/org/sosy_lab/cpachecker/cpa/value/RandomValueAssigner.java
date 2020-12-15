@@ -8,6 +8,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -128,8 +129,8 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   private NumericValue generateInteger(CSimpleType pType) {
     long min = this.machineModel.getMinimalIntegerValue(pType).longValue();
     long max = this.machineModel.getMaximalIntegerValue(pType).longValue();
-    long random = (long) ((this.rnd.nextDouble() * (max - min)) + min);
-    return new NumericValue(random);
+    long random = ThreadLocalRandom.current().nextLong(min,max);
+    return new NumericValue(random);  
   }
 
   /** Fill an array with Values. */
