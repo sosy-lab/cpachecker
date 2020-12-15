@@ -12,8 +12,6 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -62,7 +61,7 @@ class TestcaseWriter {
 
   private UniqueIdGenerator testCaseNumber = new UniqueIdGenerator();
   private int previousSetSize = 0;
-  private final Instant startTime = Instant.now();
+  private final long startTime = System.nanoTime();
   private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Testcases writing time");
 
   @Option(
@@ -73,8 +72,17 @@ class TestcaseWriter {
   @Nullable
   private Path testcaseOutputDir = Paths.get("testcases");
 
+  @Option(
+      secure = false,
+      description = "The file statistics concerning testcase generation will be written to.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @Nullable
+  private Path testcaseTimingsFile = Paths.get("testcase_timings.csv");
+
   // Stats
   private int successfulWrites = 0;
+
+  private final List<Pair<String, Double>> testcaseTimingStats = new ArrayList<>();
 
   /**
    * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
@@ -150,10 +158,8 @@ class TestcaseWriter {
     if (pReachedSet.hasViolatedProperties()) {
       violationStr = "_error";
     }
-    Duration sinceZero = Duration.between(this.startTime, Instant.now());
     String filename =
-        String.format(
-            "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber.getFreshId(), violationStr);
+        String.format("testcase_%s%s.xml", this.testCaseNumber.getFreshId(), violationStr);
     Path testcasePath = this.testcaseOutputDir.resolve(filename);
 
     // Get content
@@ -178,6 +184,8 @@ class TestcaseWriter {
       // Footer and flush
       testcase.write("</testcase>\n");
       this.successfulWrites += 1;
+      Double generationTimeStamp = (System.nanoTime() - this.startTime) / 1000000000.0;
+      this.testcaseTimingStats.add(Pair.of(filename, generationTimeStamp));
     } finally {
       this.previousSetSize = pReachedSize;
     }
@@ -316,5 +324,23 @@ class TestcaseWriter {
   public void printStatistics(StatisticsWriter writer) {
     writer.put(this.iterationTimer);
     writer.put("Successful Testcase writes", this.successfulWrites);
+  }
+
+  /** Write statistics about when each test case was generated to a file. */
+  public void writeTestcaseTimings() throws IOException {
+    if (this.testcaseTimingsFile == null) {
+      return;
+    }
+
+    try (Writer testcaseTimingsWriter =
+        IO.openOutputFile(this.testcaseTimingsFile, StandardCharsets.UTF_8)) {
+      testcaseTimingsWriter.write("Filename, Generation_Time\n");
+      for (Pair<String, Double> stat : testcaseTimingStats) {
+        testcaseTimingsWriter.write(stat.getFirst());
+        testcaseTimingsWriter.write(",");
+        testcaseTimingsWriter.write(String.valueOf(stat.getSecond()));
+        testcaseTimingsWriter.write("\n");
+      }
+    }
   }
 }

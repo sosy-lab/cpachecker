@@ -250,4 +250,14 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     ARGTransferRelation argTransferRelation = (ARGTransferRelation) transferRelation;
     return argTransferRelation.retrieveWrappedTransferRelation(ValueAnalysisTransferRelation.class);
   }
+
+  @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    try {
+      this.outputWriter.writeTestcaseTimings();
+    }  catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not export testcase timing statistics");
+      // ignore exception at the end of execution, nothing can be done.
+    }
+  }
 }
