@@ -52,8 +52,14 @@ public class UnvisitedEdgesStrategy implements Selector {
     // Search through the arg
     depthSearch(first, foundStates);
 
-    // Select a state at random
-    PathFormula selected = considerWeights(foundStates);
+    
+    // Select a state at random if there is something to select
+    PathFormula selected;
+    if (foundStates.isEmpty()) {
+      selected = null;
+    } else {
+      selected = considerWeights(foundStates);
+    }
 
     this.iterationTimer.stop();
     return selected;
