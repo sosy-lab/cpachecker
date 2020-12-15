@@ -118,7 +118,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       }
     }
     pState.setNonDeterministicMark();
-    logger.log(Level.ALL, "Assigning simple value: ", value.toString());
+    logger.log(Level.ALL, "Assigning simple value: ", value);
     pState.assignConstant(pMemLocation, value, pType);
   }
 
