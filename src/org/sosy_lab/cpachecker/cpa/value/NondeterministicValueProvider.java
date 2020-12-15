@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Optional;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -26,14 +26,14 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  */
 public class NondeterministicValueProvider {
 
-  private List<Value> knownValues;
+  private ArrayDeque<Value> knownValues;
 
   public NondeterministicValueProvider() {
-    knownValues = new ArrayList<>();
+    knownValues = new ArrayDeque<>();
   }
 
   public void setKnownValues(List<Value> pKnownValues) {
-    knownValues = new ArrayList<>(pKnownValues);
+    knownValues = new ArrayDeque<>(pKnownValues);
   }
 
   public void clearKnownValues() {
@@ -47,11 +47,11 @@ public class NondeterministicValueProvider {
       return Optional.absent();
     }
 
-    if (!isAssignable(this.knownValues.get(0), pType)) {
+    if (!isAssignable(this.knownValues.peek(), pType)) {
       return Optional.absent();
     }
 
-    return Optional.of(this.knownValues.remove(0));
+    return Optional.of(this.knownValues.removeFirst());
   }
 
   /**
