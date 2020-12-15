@@ -37,9 +37,7 @@ public class NondeterministicValueProvider {
   }
 
   public void clearKnownValues() {
-    if (knownValues != null) {
       knownValues.clear();
-    }
   }
 
   public Optional<Value> getNextNondetValueFor(CType pType) {
