@@ -27,7 +27,7 @@ class ValueConverter {
       char c = (Character) value;
       int i = c;
       return new NumericValue(i);
-    } else if (value instanceof Float) {  
+    } else if (value instanceof Float) {
       return new NumericValue((Float) value);
     } else if (value instanceof Double) {
       return new NumericValue((Double) value);
@@ -36,7 +36,7 @@ class ValueConverter {
       return new NumericValue(v);
     } else {
       throw new IllegalArgumentException(
-          String.format("Did not recognize value for loadedValues Map: %s.", value.getClass()));
+          String.format("The objects value type was not recognized (value was %s).", value));
     }
   }
 }
