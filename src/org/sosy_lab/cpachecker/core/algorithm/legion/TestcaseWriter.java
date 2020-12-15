@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,7 +60,7 @@ class TestcaseWriter {
 
   private static final String VERIFIER_NONDET = "__VERIFIER_nondet_";
 
-  private int testCaseNumber = 0;
+  private UniqueIdGenerator testCaseNumber = new UniqueIdGenerator();
   private int previousSetSize = 0;
   private final Instant startTime = Instant.now();
   private final StatTimer iterationTimer = new StatTimer(StatKind.SUM, "Testcases writing time");
@@ -152,7 +153,7 @@ class TestcaseWriter {
     Duration sinceZero = Duration.between(this.startTime, Instant.now());
     String filename =
         String.format(
-            "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber, violationStr);
+            "testcase_%016d_%s%s.xml", sinceZero.toNanos(), this.testCaseNumber.getFreshId(), violationStr);
     Path testcasePath = this.testcaseOutputDir.resolve(filename);
 
     // Get content
@@ -178,7 +179,6 @@ class TestcaseWriter {
       testcase.write("</testcase>\n");
       this.successfulWrites += 1;
     } finally {
-      this.testCaseNumber += 1;
       this.previousSetSize = pReachedSize;
     }
   }
