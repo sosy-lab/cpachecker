@@ -115,13 +115,13 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
         case DOUBLE:
           value = new NumericValue(this.rnd.nextDouble());
           break;
-
+        
         default:
           throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
       }
     }
     pState.setNonDeterministicMark();
-    logger.log(Level.FINE, "Assigning simple value: ", value.toString());
+    logger.log(Level.ALL, "Assigning simple value: ", value.toString());
     pState.assignConstant(pMemLocation, value, pType);
   }
 
