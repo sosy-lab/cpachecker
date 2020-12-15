@@ -505,7 +505,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         CType expressionType = pIastFunctionCallExpression.getExpressionType();
         Optional<Value> value = this.nonDetValueProviders.getNextNondetValueFor(expressionType);
         if (value.isPresent()) {
-          logger.log(Level.FINE, "Used preloaded value", value);
+          logger.log(Level.FINEST, "Used preloaded value", value);
           return value.get();
         }
       }
