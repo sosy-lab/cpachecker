@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -60,6 +61,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
   @Option(
       secure = true,
       description = "The maximum number of times to ask the solver for a solution per iteration.")
+  @IntegerOption(min=1)
   private int maxSolverAsks = 5;
 
   // General fields

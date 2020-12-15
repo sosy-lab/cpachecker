@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -34,12 +35,14 @@ public class Fuzzer {
   @Option(
       secure = true,
       description = "How many passes to fuzz before asking the solver for the first time.")
+  @IntegerOption(min=1)
   private int initialPasses = 3;
 
   @Option(secure = true, description = "fuzzingPasses = ⌈ fuzzingMultiplier * fuzzingSolutions ⌉")
   private double fuzzingMultiplier = 1;
 
   @Option(secure = true, description = "If 0 fuzzing would run, instead run this amount of passes.")
+  @IntegerOption(min=0)
   private int emergencyFuzzingPasses = 1;
 
   private final LogManager logger;
