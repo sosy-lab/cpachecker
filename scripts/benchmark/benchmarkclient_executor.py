@@ -275,6 +275,8 @@ def getToolDataForCloud(benchmark):
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
+    if benchmark.config.additional_files:
+        toolpaths.update(set(benchmark.config.additional_files))
     validToolpaths = set()
     for file in toolpaths:
         if not os.path.exists(file):
