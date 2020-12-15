@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 /**
  * Memory location value handler that assigns randomly chosen values to the given memory locations.
  */
-@Options(prefix = "cpa.value.concolic")
+@Options(prefix = "cpa.value.randomValues")
 public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;

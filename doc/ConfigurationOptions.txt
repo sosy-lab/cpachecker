@@ -3086,15 +3086,6 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
-# Default size of arrays whose length can't be determined.
-cpa.value.concolic.defaultArraySize = 20
-
-# If this option is set to true, an own symbolic identifier is assigned to
-# each array slot when handling non-deterministic arrays of fixed length. If
-# the length of the array can't be determined, it won't be handled in either
-# cases.
-cpa.value.concolic.handleArrays = false
-
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
@@ -3139,6 +3130,15 @@ cpa.value.optimizeBooleanVariables = true
 
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
+
+# Default size of arrays whose length can't be determined.
+cpa.value.randomValues.defaultArraySize = 20
+
+# If this option is set to true, an own symbolic identifier is assigned to
+# each array slot when handling non-deterministic arrays of fixed length. If
+# the length of the array can't be determined, it won't be handled in either
+# cases.
+cpa.value.randomValues.handleArrays = false
 
 # whether or not to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
