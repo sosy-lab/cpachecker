@@ -149,13 +149,8 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       // Phase Selection: Select non-deterministic variables for path solving
       PathFormula target;
       logger.log(Level.INFO, "Selection ...");
-      try {
-        target = selectionStrategy.select(reachedSet);
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, "No target state found");
-        break;
-      }
-
+      target = selectionStrategy.select(reachedSet);
+      
       if (target == null) {
         logger.log(Level.INFO, "No target states left");
         break;
