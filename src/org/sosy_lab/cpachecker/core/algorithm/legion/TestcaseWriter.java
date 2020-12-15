@@ -162,7 +162,7 @@ class TestcaseWriter {
       return;
     }
 
-    logger.log(Level.INFO, "Writing testcase ", testcasePath);
+    logger.log(Level.FINER, "Writing testcase ", testcasePath);
     try (Writer testcase = IO.openOutputFile(testcasePath, StandardCharsets.UTF_8)) {
       // Write header
       testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
