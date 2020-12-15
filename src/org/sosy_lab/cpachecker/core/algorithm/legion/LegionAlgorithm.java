@@ -130,7 +130,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     try {
       reachedSet = initFuzzer.fuzz(reachedSet, algorithm, preloadedValues);
     } catch (IOException exc) {
-      logger.logException(
+      logger.logUserException(
           Level.SEVERE, exc, "Fuzzer could not write results to disk in itialization phase");
       return status;
     }
@@ -150,7 +150,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       PathFormula target;
       logger.log(Level.INFO, "Selection ...");
       target = selectionStrategy.select(reachedSet);
-      
+
       if (target == null) {
         logger.log(Level.INFO, "No target states left");
         break;
@@ -167,7 +167,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       try {
         preloadedValues = this.targetSolver.target(target);
       } catch (SolverException exc) {
-        logger.logException(Level.SEVERE, exc, "SAT solver failed to compute values");
+        logger.logUserException(Level.SEVERE, exc, "SAT solver failed to compute values");
         return status;
       }
 
@@ -189,7 +189,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
       try {
         reachedSet = fuzzer.fuzz(reachedSet, algorithm, preloadedValues);
       } catch (IOException exc) {
-        logger.logException(Level.SEVERE, exc, "Fuzzer could not write results to disk");
+        logger.logUserException(Level.SEVERE, exc, "Fuzzer could not write results to disk");
         return status;
       } finally {
         this.nonDetValueProvider.clearKnownValues();
