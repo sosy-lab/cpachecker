@@ -3468,10 +3468,14 @@ language = no default value
 language = C
   enum:     [C, JAVA, LLVM]
 
-# If 0 fuzzing would run, instead run this amount of passes.
+# If the current iteration would run no fuzzing attempts at all due to no
+# value solutions available ( see legion.fuzzingMultiplier ), instead run
+# this amount of fuzzing attempts.
 legion.emergencyFuzzingPasses = 1
 
-# fuzzingPasses = ⌈ fuzzingMultiplier * fuzzingSolutions ⌉
+# Influence the amount of fuzzing done each iteration implemented as follows:
+# fuzzingPasses = ⌈ fuzzingMultiplier * valueSolutions ⌉ with value solutions
+# being the amount of solutions to values provided by the solver.
 legion.fuzzingMultiplier = 1
 
 # How many passes to fuzz before asking the solver for the first time.
