@@ -90,9 +90,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   /** Create a simple Type and assign it to the pMemLocation. */
   private void createSimpleType(
-      MemoryLocation pMemLocation,
-      Type pType,
-      ValueAnalysisState pState) {
+      MemoryLocation pMemLocation, Type pType, ValueAnalysisState pState) {
 
     CBasicType basicType = ((CSimpleType) pType).getType();
     Value value;
@@ -114,7 +112,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
         case DOUBLE:
           value = new NumericValue(this.rnd.nextDouble());
           break;
-        
+
         default:
           throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
       }
@@ -128,8 +126,8 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   private NumericValue generateInteger(CSimpleType pType) {
     long min = this.machineModel.getMinimalIntegerValue(pType).longValue();
     long max = this.machineModel.getMaximalIntegerValue(pType).longValue();
-    long random = ThreadLocalRandom.current().nextLong(min,max);
-    return new NumericValue(random);  
+    long random = ThreadLocalRandom.current().nextLong(min, max);
+    return new NumericValue(random);
   }
 
   /** Fill an array with Values. */
