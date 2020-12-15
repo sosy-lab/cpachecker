@@ -95,7 +95,6 @@ public class RandomSelectionStrategy implements Selector {
   public void printStatistics(StatisticsWriter writer) {
     writer.put(this.iterationTimer);
     writer.put("Selection Iterations", this.iterationTimer.getUpdateCount());
-    writer.put("Selection Kind", "RandomSelectionStrategy");
     writer.put("Blacklisted States", this.blacklisted.size());
   }
 }

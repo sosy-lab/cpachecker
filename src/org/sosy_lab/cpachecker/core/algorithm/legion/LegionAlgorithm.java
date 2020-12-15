@@ -216,16 +216,20 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(this);
+    pStatsCollection.add(this); 
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
     this.initFuzzer.printStatistics(writer);
+    writer.spacer();
     this.selectionStrategy.printStatistics(writer);
+    writer.spacer();
     this.targetSolver.printStatistics(writer);
+    writer.spacer();
     this.fuzzer.printStatistics(writer);
+    writer.spacer();
     this.outputWriter.printStatistics(writer);
   }
 
