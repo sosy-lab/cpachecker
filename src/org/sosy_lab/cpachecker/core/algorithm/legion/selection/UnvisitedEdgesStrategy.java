@@ -91,8 +91,9 @@ public class UnvisitedEdgesStrategy implements Selector {
   }
 
   /**
-   * The random selector just blacklists states with a weight below zero. Selection will then try to
-   * select a state not blacklisted, only when there is no other choice it will return one.
+   * The unvisited edges strategy also just blacklists states with a weight below zero.
+   * Selection will then try to select a state not blacklisted, only when there is no
+   * other choice it will return one.
    */
   @Override
   public void feedback(PathFormula pPathFormula, int pWeight) {
