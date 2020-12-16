@@ -1848,7 +1848,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
-    assert !areNonEqual(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
 
