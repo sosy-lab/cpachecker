@@ -1716,7 +1716,7 @@ public class ValueAnalysisTransferRelation
    } else {
      return null;
    }
-
+  }
 
   /** Load the FunctionValues for random functinos from the given Testcomp Testcase */
   private void setupFunctionValuesForRandom() {
