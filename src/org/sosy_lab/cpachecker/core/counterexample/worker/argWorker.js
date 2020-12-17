@@ -1,9 +1,16 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * The ARG Worker. Contains the logic for creating a single or multi ARG graph.
  * Once the graph(s) is/are created they are returned to the main script.
  * Should ONLY be used if ARG data is available!
  **/
-
 function argWorker_function() {
     /* d3 and dagre-d3 will be hard-coded here during production. During
        development, the first posted message will include the url for those

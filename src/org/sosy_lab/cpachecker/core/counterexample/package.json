@@ -6,10 +6,10 @@
 	"license": "ISC",
 	"private": true,
 	"scripts": {
-		"build": "webpack",
-		"start": "npm run build & webpack-dev-server --mode=development",
-		"test": "karma start karma.conf.js",
-		"e2e-test": "protractor e2e-conf.js"
+		"build": "node dependency_licenses/check_dependencies.js && webpack",
+		"start": "node dependency_licenses/check_dependencies.js && npm run build & webpack-dev-server --mode=development",
+		"test": "node dependency_licenses/check_dependencies.js && karma start karma.conf.js",
+		"e2e-test": "node dependency_licenses/check_dependencies.js && protractor e2e-conf.js"
 	},
 	"devDependencies": {
 		"babel-polyfill": "^6.26.0",
