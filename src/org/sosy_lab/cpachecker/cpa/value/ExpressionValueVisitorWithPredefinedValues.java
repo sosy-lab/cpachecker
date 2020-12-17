@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueVisitor {
 
-  public static String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
+  public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
   private AtomicInteger numReturnedValues;
   private LogManagerWithoutDuplicates logger;
   private Map<Integer, String> valuesFromFile = new HashMap<>();
