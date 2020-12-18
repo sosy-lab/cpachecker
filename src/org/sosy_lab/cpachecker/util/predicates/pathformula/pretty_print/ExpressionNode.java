@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +32,7 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public List<FormulaNode> getSuccessors() {
-    return ImmutableList.of();
+    return operands;
   }
 
   @Override
@@ -66,6 +65,10 @@ public class ExpressionNode implements FormulaNode {
     return Objects.equals(operator, that.operator);
   }
 
+  public String getOperator() {
+    return operator;
+  }
+
   @Override
   public int hashCode() {
     int hashCode = Objects.hash(ExpressionNode.class, operator);
@@ -81,7 +84,14 @@ public class ExpressionNode implements FormulaNode {
     if (operands.size() == 2) {
       return "(" + operands.get(0) + " " + op + " "  + operands.get(1) + ")";
     }
-    return "(" + op + " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" ")) + ")";
+    final String operandsRepresentation;
+    if (operands.isEmpty()) {
+      operandsRepresentation = "";
+    } else {
+      operandsRepresentation =
+          " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" "));
+    }
+    return "(" + op + operandsRepresentation + ")";
   }
 
   private String readableOperator (String pOperator, boolean pNegated) {

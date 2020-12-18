@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
@@ -72,7 +72,22 @@ public class AssumeVisitor extends ExpressionValueVisitor {
           for (SMGValueAndState rightSideValAndState :
               smgExpressionEvaluator.evaluateExpressionValue(newState, edge, rightSideExpression)) {
             SMGValue rightSideVal = rightSideValAndState.getObject();
-          newState = rightSideValAndState.getSmgState();
+            newState = rightSideValAndState.getSmgState();
+
+            // if we already know the value, we should use it.
+            // TODO why does the visitor above create the symbolic value in the first place?
+            if (leftSideVal instanceof SMGKnownSymbolicValue) {
+              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) leftSideVal;
+              if (newState.isExplicit(expValue)) {
+                leftSideVal = newState.getExplicit(expValue);
+              }
+            }
+            if (rightSideVal instanceof SMGKnownSymbolicValue) {
+              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) rightSideVal;
+              if (newState.isExplicit(expValue)) {
+                rightSideVal = newState.getExplicit(expValue);
+              }
+            }
 
             for (SMGValueAndState resultValueAndState :
                 evaluateBinaryAssumption(newState, binaryOperator, leftSideVal, rightSideVal)) {
@@ -106,10 +121,23 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                         rightSideOriginType, newState, edge, smgExpressionEvaluator);
                 rightSideSMGType = new SMGType(leftSideSMGType, rightSideOriginSMGType);
               }
+
+              // TODO
+              // The following predicate relation is a completely unsound assumption,
+              // because we know nothing about the calling context, not even, if we are in a negated (!) expression.
+              // This might clearly be a bug, but I could currently not find a better way to solve this.
+              // The code works well for expressions that are not nested, like "a==b" or "a!=b",
+              // but is invalid for "(a==b)==c".
+              // There exists code in SMGTransferRelation.strenghten
+              // that even needs to negate an edge to get correct results.
+
+              //FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
-                  leftSideVal,
+                  // next line: use the symbolic value here and not the potential explicit one.
+                  leftSideValAndState.getObject(),
                   leftSideSMGType,
-                  rightSideVal,
+                  // next line: use the symbolic value here and not the potential explicit one.
+                  rightSideValAndState.getObject(),
                   rightSideSMGType,
                   binaryOperator,
                   edge);
@@ -138,8 +166,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   /** returns the comparison of two pointers, i.e. "p1 op p2". */
-  private boolean comparePointer(
-      SMGKnownAddressValue pV1, SMGKnownAddressValue pV2, BinaryOperator pOp) {
+  private boolean comparePointer(SMGAddressValue pV1, SMGAddressValue pV2, BinaryOperator pOp) {
 
     SMGObject object1 = pV1.getObject();
     SMGObject object2 = pV2.getObject();
@@ -225,20 +252,26 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         if (isPointerOp1 && isPointerOp2) {
           isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
-        } else if (isPointerOp1 && !pV2.isUnknown()) {
-          SMGExplicitValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
+        } else if (isPointerOp1 && !pV2.isUnknown() && pV2 instanceof SMGKnownSymbolicValue) {
+          SMGKnownExpValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
           if (explicit2 != null) {
-            isTrue = comparePointer((SMGKnownAddressValue) pV1,
-                (SMGKnownAddressValue) SMGKnownAddressValue
-                    .valueOf((SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE,
-                        (SMGKnownExpValue) explicit2), pOp);
+            isTrue =
+                comparePointer(
+                    (SMGKnownAddressValue) pV1,
+                    SMGKnownAddressValue.valueOf(
+                        (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
+                    pOp);
             isFalse = !isTrue;
           }
-        } else if (isPointerOp2 && !pV1.isUnknown()) {
-            SMGExplicitValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
+        } else if (isPointerOp2 && !pV1.isUnknown() && pV1 instanceof SMGKnownSymbolicValue) {
+          SMGKnownExpValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
             if (explicit1 != null) {
-              isTrue = comparePointer((SMGKnownAddressValue) SMGKnownAddressValue.valueOf((SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE,
-                      (SMGKnownExpValue) explicit1), (SMGKnownAddressValue) pV2, pOp);
+            isTrue =
+                comparePointer(
+                    SMGKnownAddressValue.valueOf(
+                        (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
+                    (SMGKnownAddressValue) pV2,
+                    pOp);
               isFalse = !isTrue;
             }
         }

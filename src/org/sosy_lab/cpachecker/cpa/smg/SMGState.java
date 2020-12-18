@@ -15,6 +15,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1165,11 +1166,41 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             .filterAtOffset(pOffset)
             .filterBySize(pSizeInBits);
     SMGHasValueEdges matchingEdges = heap.getHVEdges(filter);
-    if (matchingEdges.size() != 0) {
+    if (!matchingEdges.isEmpty()) {
       SMGEdgeHasValue object_edge = Iterables.getOnlyElement(matchingEdges);
       performConsistencyCheck(SMGRuntimeCheck.HALF);
       addElementToCurrentChain(object_edge);
       return SMGValueAndState.of(this, object_edge.getValue());
+    }
+
+    // if some edge points to a large enough chunk of memory, then use its middle part.
+    // TODO this code is ugly and might better be placed inside heap.getHVEdges,
+    // but there it removes the existing value from the heap for the rest of the region
+    // and that is not wanted. Thus we add this very special case here.
+    SMGEdgeHasValueFilter filterOffsetZero = SMGEdgeHasValueFilter.objectFilter(pObject);
+    SMGHasValueEdges matchingEdgesOffsetZero = heap.getHVEdges(filterOffsetZero);
+    for (SMGEdgeHasValue object_edge : matchingEdgesOffsetZero) {
+      if (pOffset >= object_edge.getOffset()
+          && pOffset + pSizeInBits <= object_edge.getOffset() + object_edge.getSizeInBits()) {
+        SMGValue symValue = object_edge.getValue();
+        if (symValue instanceof SMGKnownSymbolicValue
+            && isExplicit((SMGKnownSymbolicValue) symValue)) {
+          SMGKnownExpValue expValue = getExplicit((SMGKnownSymbolicValue) symValue);
+          BigInteger value = expValue.getValue();
+
+          // extract the important bits
+          // TODO we depend on little or big endian here, query this info from machinemodel?
+
+          // remove the lower part
+          value = value.shiftRight((int) (pOffset - object_edge.getOffset()));
+          for (int i = (int) pSizeInBits; i < value.bitLength(); i++) {
+            value = value.clearBit(i); // remove the upper part
+          }
+
+          addElementToCurrentChain(object_edge);
+          return SMGValueAndState.of(this, SMGKnownExpValue.valueOf(value));
+        }
+      }
     }
 
     SMGEdgeHasValue edge =
@@ -1817,7 +1848,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
-    assert !areNonEqual(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
 
@@ -1973,7 +2003,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   @Nullable
-  public SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey) {
+  public SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey) {
     return explicitValues.get(pKey);
   }
 

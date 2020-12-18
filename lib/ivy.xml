@@ -45,15 +45,15 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-442-ge6ac6c3"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-457-g2465cf3"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="30.0-jre"
+        <dependency org="com.google.guava" name="guava" rev="30.1-jre"
                     conf="runtime->default; contrib->sources"/>
 
-        <dependency org="org.sosy_lab" name="llvm-j" rev="0.4"
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.6"
                     conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="3.6.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="3.6.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="3.6.28" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="3.6.28" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -123,7 +123,7 @@ SPDX-License-Identifier: Apache-2.0
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="30.0-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="30.1-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
@@ -158,13 +158,13 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.38.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.37" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.38" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.6.1-7-ga0f38022" conf="runtime->runtime-without-gpl; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.7.0" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case:
@@ -176,7 +176,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2020-08-31-r98de7d922a" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2020-11-22-raf891fcd33" conf="runtime->runtime; contrib->sources"/>
 
         <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
             <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>

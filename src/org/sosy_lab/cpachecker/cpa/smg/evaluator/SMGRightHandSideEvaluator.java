@@ -209,10 +209,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         && pValue instanceof SMGKnownSymbolicValue) {
       SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
       if (pState.isExplicit(knownValue)) {
-        SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
-        pValue =
-            SMGKnownAddressValue.valueOf(
-                knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
+        SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
+        pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
         pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
       }
     }

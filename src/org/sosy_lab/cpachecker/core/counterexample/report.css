@@ -314,6 +314,11 @@ input:checked+.slider:before {
 	font-weight: 700;
 }
 
+.fault-table .fault-precond-header {
+	background-color: #28a745;
+	font-weight: 700;
+}
+
 .fault-table .fault-lines {
 	max-height: 8em;
 	overflow: auto;
@@ -324,6 +329,19 @@ input:checked+.slider:before {
 .fault-lines {
 	padding: 3px;
 	list-style: none;
+}
+
+.interval-scrollbox {
+	width: 100%;
+    height: 4rem;
+    font-size: 100%;
+    overflow: auto;
+}
+
+.precondition {
+	border: 1px solid gray;
+	border-radius: 3px;
+	padding: 3px;
 }
 
 .value-table {
@@ -339,6 +357,7 @@ input:checked+.slider:before {
 .value-table tr:nth-child(even){background-color: #f2f2f2}
   
 .value-table th {
+	border: 2px solid black;
 	background-color: #4CAF50;
 	color: white;
 }

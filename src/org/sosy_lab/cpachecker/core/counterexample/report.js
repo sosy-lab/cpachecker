@@ -183,7 +183,7 @@ with considerably less effort */
 						d3.select("#cfa-toolbar").style("width", "95%");
 					}
 				});
-			}
+			};
 
 			//Full screen mode function to view the report in full screen
 			$('#full_screen_mode').click(function () {
@@ -341,9 +341,9 @@ with considerably less effort */
 					var newValues = getValues(errPathElem.val, previousValueDictionary);
 					errPathElem["newValDict"] = newValues;
 					if (!$.isEmptyObject(newValues)) {
-						$.extend(errPathElem.valDict, newValues)
+						$.extend(errPathElem.valDict, newValues);
 					}
-					for (key in errPathElem.valDict) {
+					for (var key in errPathElem.valDict) {
 						errPathElem.valString += key + ":  " + errPathElem.valDict[key] + "\n";
 					}
 					// add indentation
@@ -399,6 +399,8 @@ with considerably less effort */
 
 		// make faults visible to angular
 		$rootScope.faults = [];
+		$rootScope.precondition = cfaJson.precondition === undefined ? "" : cfaJson.precondition["fl-precondition"];
+		$rootScope.hasPrecondition = $rootScope.precondition !== "";
 		if (cfaJson.faults !== undefined) {
 			for (var i = 0; i < cfaJson.faults.length; i++) {
 				var fault = cfaJson.faults[i];
@@ -944,7 +946,7 @@ with considerably less effort */
 				if (input % 1 !== 0) return false;
 				if (input < 500 || input > 900) return false;
 				return true;
-			}
+			};
 		}
 	]);
 
@@ -1097,7 +1099,7 @@ function init() {
 		// Prepare Error Path array to be used in edge class decider
 		function prepareCfaErrorPath() {
 			var returnedEdges = {};
-			for (key in functionCallEdges) {
+			for (var key in functionCallEdges) {
 				returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
 			}
 			json.errorPath.forEach(function (errPathElem) {
@@ -1281,7 +1283,7 @@ function init() {
 						class: edgeClassDecider(edge, "" + source + target + sourceGraph, source),
 						arrowhead: "undirected",
 						style: "stroke-dasharray: 5, 5;"
-					})
+					});
 					graphMap[targetGraph].setNode("" + target + source + targetGraph, {
 						label: "",
 						class: "dummy",
@@ -1512,7 +1514,7 @@ function init() {
 					json = JSON.parse(m.data.json);
 					nodes = json.nodes;
 					edges = json.edges;
-					buildGraphsAndPrepareResults(nodes, edges, "default")
+					buildGraphsAndPrepareResults(nodes, edges, "default");
 					if(json.relevantedges !== undefined && json.relevantnodes !== undefined){
 					        relevantEdges = json.relevantedges;
 					        relevantNodes = json.relevantnodes;
@@ -1752,7 +1754,7 @@ function init() {
 								arrowhead: "undirected",
 								style: "stroke-dasharray: 5, 5;",
 								class: edgeClassDecider(edge)
-							})
+							});
 							errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
 								label: "",
 								class: "dummy"
@@ -1804,7 +1806,7 @@ function init() {
 								arrowhead: "undirected",
 								style: "stroke-dasharray: 5, 5;",
 								class: edgeClassDecider(edge)
-							})
+							});
 							graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
 								label: "",
 								class: "dummy"
@@ -2004,7 +2006,7 @@ function init() {
 				d3.selectAll(".arg-node tspan").each(function (d, i) {
 					var transformation = d3.select(this.parentNode.parentNode).attr("transform")
 					d3.select(this).attr("dx", Math.abs(getTransformation(transformation).translateX));
-				})
+				});
 				if (m.data.errorGraph !== undefined) {
 					addEventsToArg();
 					$("#renderStateModal").hide();
@@ -2173,7 +2175,7 @@ function init() {
 					edge = findCfaEdge({
 						v: thisEdgeData.split("-")[0],
 						w: thisEdgeData.split("-")[1]
-					})
+					});
 				}
 				$("#set-tab-3").click();
 				var line = edge.line;

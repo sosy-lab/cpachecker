@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.base.Preconditions;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
@@ -33,6 +34,8 @@ final class NeqRelation {
   }
 
   public NeqRelation addRelationAndCopy(SMGValue pOne, SMGValue pTwo) {
+    Preconditions.checkNotNull(pOne);
+    Preconditions.checkNotNull(pTwo);
     return new NeqRelation(smgValues.putAndCopy(pOne, pTwo).putAndCopy(pTwo, pOne));
   }
 

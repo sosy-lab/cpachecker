@@ -8,19 +8,17 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
 public class MergePoint<T> {
 
     private DomTree<T> tree;
-    private Function<T, Iterable<T>> treeSuccessors;
     private Function<T, Iterable<T>> actualSuccessors;
 
   /**
@@ -32,7 +30,6 @@ public class MergePoint<T> {
    */
     public MergePoint(T pExitNode, Function<T, Iterable<T>> pSuccessors, Function<T, Iterable<T>> pPredecessors) {
       tree = Dominance.createDomTree(pExitNode, pPredecessors, pSuccessors);
-      treeSuccessors = pPredecessors;
       actualSuccessors = pSuccessors;
     }
 
@@ -49,7 +46,11 @@ public class MergePoint<T> {
       List<List<Integer>> waitlist = new ArrayList<>();
       int assumeId = tree.getId(assume);
 
-      Objects.requireNonNull(treeSuccessors.apply(assume)).forEach(e -> waitlist.add(new ArrayList<>(ImmutableList.of(tree.getId(e)))));
+      for (T succ: actualSuccessors.apply(assume)) {
+        List<Integer> waitlistElem = new ArrayList<>();
+        waitlistElem.add(tree.getId(succ));
+        waitlist.add(waitlistElem);
+      }
 
       if (waitlist.isEmpty()) {
         throw new AssertionError("an assume edge must have branching edges");
