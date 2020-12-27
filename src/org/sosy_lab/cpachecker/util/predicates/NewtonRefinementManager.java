@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Predicate;
@@ -329,7 +314,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           Set<BooleanFormula> pathFormulaElements =
               bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
-            if (pUnsatCore.get().contains(pathFormulaElement)) {
+            if (pUnsatCore.orElseThrow().contains(pathFormulaElement)) {
               requiredPart.add(pathFormulaElement);
               break;
             }
@@ -460,7 +445,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Try to eliminate the intermediate Variables
     Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
     if (result.isPresent()) {
-      return result.get();
+      return result.orElseThrow();
     } else {
       logger.log(
           Level.FINE, "Quantifier elimination failed, keeping old assignments in predicate.");
@@ -589,7 +574,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           Optional<BooleanFormula> quantifiedPred =
               qeManager.eliminateQuantifiers(toQuantify, pred);
           if (quantifiedPred.isPresent()) {
-            newPredicates.add(quantifiedPred.get());
+            newPredicates.add(quantifiedPred.orElseThrow());
             stats.noOfQuantifiedFutureLives += toQuantify.size();
           } else {
             // Keep the old predicate as QE is not possible
@@ -714,7 +699,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {
-        return PredicateAbstractState.getPredicateState(state.get()).isAbstractionState();
+        return PredicateAbstractState.getPredicateState(state.orElseThrow()).isAbstractionState();
       } else {
         return false;
       }
@@ -722,7 +707,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     @Override
     public String toString() {
-      return (lastEdge != null ? lastEdge.toString() : ("First State: " + state.get().toDOTLabel()))
+      return (lastEdge != null
+              ? lastEdge.toString()
+              : ("First State: " + state.orElseThrow().toDOTLabel()))
           + ", PathFormula: "
           + pathFormula.toString();
     }

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -30,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +71,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4 //pointer
+      4, //pointer
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
@@ -116,7 +103,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8 // pointer
+      8, // pointer
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing an ARM machine with alignment: */
@@ -147,7 +135,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       4, // bool
-      4 // pointer
+      4, // pointer
+      ByteOrder.LITTLE_ENDIAN // endianness
   );
   // numeric types
   private final int sizeofShort;
@@ -162,6 +151,9 @@ public enum MachineModel {
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
+
+  @SuppressWarnings("ImmutableEnumChecker")
+  private final transient ByteOrder endianness;
 
   // alignof numeric types
   private final int alignofShort;
@@ -205,7 +197,8 @@ public enum MachineModel {
       int pAlignofLongDouble,
       int pAlignofVoid,
       int pAlignofBool,
-      int pAlignofPtr) {
+      int pAlignofPtr,
+      ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -227,6 +220,7 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
       ptrEquivalent = CNumericTypes.INT;
@@ -326,6 +320,10 @@ public enum MachineModel {
     return sizeofLongLongInt;
   }
 
+  public int getSizeofInt128() {
+    return 128 / getSizeofCharInBits();
+  }
+
   public int getSizeofFloat() {
     return sizeofFloat;
   }
@@ -336,6 +334,10 @@ public enum MachineModel {
 
   public int getSizeofLongDouble() {
     return sizeofLongDouble;
+  }
+
+  public int getSizeofFloat128() {
+    return 128 / getSizeofCharInBits();
   }
 
   public int getSizeofVoid() {
@@ -373,15 +375,23 @@ public enum MachineModel {
         } else {
           return getSizeofInt();
         }
+      case INT128:
+        return getSizeofInt128();
       case DOUBLE:
         if (type.isLong()) {
           return getSizeofLongDouble();
         } else {
           return getSizeofDouble();
         }
+      case FLOAT128:
+        return getSizeofFloat128();
       default:
         throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
+  }
+
+  public ByteOrder getEndianness() {
+    return endianness;
   }
 
   public int getSizeofInBits(CSimpleType type) {
@@ -404,6 +414,10 @@ public enum MachineModel {
     return alignofLongLongInt;
   }
 
+  public int getAlignofInt128() {
+    return getSizeofInt128(); // alignment is same as size for this type
+  }
+
   public int getAlignofFloat() {
     return alignofFloat;
   }
@@ -414,6 +428,10 @@ public enum MachineModel {
 
   public int getAlignofLongDouble() {
     return alignofLongDouble;
+  }
+
+  public int getAlignofFloat128() {
+    return getSizeofFloat128(); // alignment is same as size for this type
   }
 
   public int getAlignofVoid() {
@@ -752,12 +770,16 @@ public enum MachineModel {
           } else {
             return model.getAlignofInt();
           }
+        case INT128:
+          return model.getAlignofInt128();
         case DOUBLE:
           if (pSimpleType.isLong()) {
             return model.getAlignofLongDouble();
           } else {
             return model.getAlignofDouble();
           }
+        case FLOAT128:
+          return model.getAlignofFloat128();
         default:
           throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
       }

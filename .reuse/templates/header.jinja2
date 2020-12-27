@@ -1,0 +1,11 @@
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+{% for copyright_line in copyright_lines %}
+{{ copyright_line }}
+{% endfor %}
+
+{% for expression in spdx_expressions %}
+SPDX-License-Identifier: {{ expression }}
+{% endfor %}

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Preconditions;
@@ -29,15 +14,16 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /**
- * An edge corresponds to the transfer from one node to another.
- * This class is intended to be immutable.
+ * An edge corresponds to the transfer from one node to another. This class is intended to be
+ * immutable.
  */
-class Edge implements Comparable<Edge> {
+public class Edge implements Comparable<Edge> {
 
   private final String source;
 
@@ -45,7 +31,7 @@ class Edge implements Comparable<Edge> {
 
   private final TransitionCondition label;
 
-  private int hashCode = 0;
+  private final int hashCode;
 
   public Edge(String pSource, String pTarget, TransitionCondition pLabel) {
     Preconditions.checkNotNull(pSource);
@@ -54,6 +40,9 @@ class Edge implements Comparable<Edge> {
     this.source = pSource;
     this.target = pTarget;
     this.label = pLabel;
+
+    // we assume immutable members and can eagerly compute the hashcode
+    this.hashCode = Objects.hash(label, source, target);
   }
 
   @Override
@@ -72,12 +61,6 @@ class Edge implements Comparable<Edge> {
 
   @Override
   public int hashCode() {
-    if (hashCode == 0) {
-      final int prime = 31;
-      hashCode = prime + ((label == null) ? 0 : label.hashCode());
-      hashCode = prime * hashCode + ((source == null) ? 0 : source.hashCode());
-      hashCode = prime * hashCode + ((target == null) ? 0 : target.hashCode());
-    }
     return hashCode;
   }
 
@@ -88,7 +71,8 @@ class Edge implements Comparable<Edge> {
     }
     if (pOther instanceof Edge) {
       Edge other = (Edge) pOther;
-      return source.equals(other.source)
+      return hashCode == other.hashCode
+          && source.equals(other.source)
           && target.equals(other.target)
           && label.equals(other.label);
     }
@@ -107,15 +91,19 @@ class Edge implements Comparable<Edge> {
     return label;
   }
 
+  /**
+   * This method tries to merge the current edge with another edge.
+   *
+   * @return the merged edge or nothing.
+   */
   public Optional<Edge> tryMerge(Edge pOther) {
-    if (!source.equals(pOther.source)) {
-      return Optional.empty();
-    }
-    if (!target.equals(pOther.target)) {
+    // only merge edges from matching source and targets.
+    if (!source.equals(pOther.source) || !target.equals(pOther.target)) {
       return Optional.empty();
     }
     MapDifference<KeyDef, String> difference =
         Maps.difference(label.getMapping(), pOther.label.getMapping());
+    // only merge edges if label mappings are comparable.
     if (!difference.entriesOnlyOnLeft().isEmpty() || !difference.entriesOnlyOnRight().isEmpty()) {
       return Optional.empty();
     }
@@ -124,8 +112,9 @@ class Edge implements Comparable<Edge> {
     if (!newScope.isPresent()) {
       return Optional.empty();
     }
-    newLabel = newLabel.withScope(newScope.get());
+    newLabel = newLabel.withScope(newScope.orElseThrow());
     newLabel = newLabel.putAllAndCopy(label);
+    // merge information from the label mappings.
     for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :
         difference.entriesDiffering().entrySet()) {
       KeyDef key = diffEntry.getKey();
@@ -145,6 +134,7 @@ class Edge implements Comparable<Edge> {
           result = Integer.toString(Math.max(highA, highB));
           break;
         default:
+          // incomparable information
           return Optional.empty();
       }
       newLabel = newLabel.putAndCopy(key, result);

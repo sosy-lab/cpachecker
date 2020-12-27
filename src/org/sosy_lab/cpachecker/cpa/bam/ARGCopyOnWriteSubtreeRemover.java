@@ -1,43 +1,30 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -156,12 +143,13 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     // last iteration, most inner block for refinement
     // This heuristics works best on test_locks-examples, otherwise they have exponential blowup.
-    if (doPrecisionRefinementForMostInnerBlock && currentCutState == lastRelevantNode) {
+    if (doPrecisionRefinementForMostInnerBlock
+        && Objects.equals(currentCutState, lastRelevantNode)) {
       return true;
     }
 
     // this is the important case: lazy refinement expects a new precision at this place.
-    if (currentCutState == cutState) {
+    if (Objects.equals(currentCutState, cutState)) {
       return true;
     }
 
@@ -218,10 +206,10 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     assert pReached.contains(cutState);
 
-    // get subgraph, iteration order (natural state numbering -> Treeset) is important,
+    // get subgraph, iteration order (natural state numbering -> ImmutableSortedSet) is important,
     // because we have to keep it and create cloned states in the same order
-    Set<ARGState> reachedStates =
-        new TreeSet<>(((ARGState) pReached.getFirstState()).getSubgraph());
+    ImmutableSortedSet<ARGState> reachedStates =
+        ((ARGState) pReached.getFirstState()).getSubgraph().toSortedSet(Comparator.naturalOrder());
 
     // get all states that should not be part of the cloned reached-set,
     // because the states are below the cutState (including transitive coverage)
@@ -259,17 +247,10 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
    * successors and all states that are covered by them.
    */
   private static Set<ARGState> getStatesToRemove(final ARGState cutState) {
-    Set<ARGState> toRemove = cutState.getSubgraph();
-
-    // collect all elements covered by the subtree,
-    // we assume there is no transitive coverage a->b->c, then we need a fixed-point algorithm
-    List<ARGState> newToUnreach = new ArrayList<>();
-    for (ARGState ae : toRemove) {
-      newToUnreach.addAll(ae.getCoveredByThis());
-    }
-    toRemove.addAll(newToUnreach);
-
-    return toRemove;
+    // get subgraph
+    List<ARGState> toRemove = cutState.getSubgraph().toList();
+    // and combine with covered states (there are no transitively covered states)
+    return from(toRemove).transformAndConcat(ARGState::getCoveredByThis).append(toRemove).toSet();
   }
 
   /** Build cloned ARG as a flat copy of existing states, but limited to only some states. */

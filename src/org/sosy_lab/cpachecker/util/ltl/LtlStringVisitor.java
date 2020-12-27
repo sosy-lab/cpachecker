@@ -1,26 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.ltl;
 
 import com.google.common.collect.ImmutableList;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BinaryFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
@@ -31,6 +19,7 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.Globally;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Next;
+import org.sosy_lab.cpachecker.util.ltl.formulas.PropositionalFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Release;
 import org.sosy_lab.cpachecker.util.ltl.formulas.StrongRelease;
 import org.sosy_lab.cpachecker.util.ltl.formulas.UnaryFormula;
@@ -55,36 +44,32 @@ public class LtlStringVisitor implements LtlFormulaVisitor {
     return pBooleanConstant.toString();
   }
 
+  private String visitPropositionalFormula(PropositionalFormula pProp) {
+    return pProp
+        .getChildren()
+        .stream()
+        .map(this::visitFormula)
+        .collect(Collectors.joining(String.format(" %s ", pProp.getSymbol()), "(", ")"));
+  }
+
   @Override
   public String visit(Conjunction pConjunction) {
-    return "("
-        + pConjunction
-            .children
-            .stream()
-            .map((Function<LtlFormula, CharSequence>) this::visitFormula)
-            .collect(Collectors.joining(String.format(" %s ", pConjunction.getSymbol())))
-        + ")";
+    return visitPropositionalFormula(pConjunction);
   }
 
   @Override
   public String visit(Disjunction pDisjunction) {
-    return "("
-        + pDisjunction
-            .children
-            .stream()
-            .map((Function<LtlFormula, CharSequence>) this::visitFormula)
-            .collect(Collectors.joining(String.format(" %s ", pDisjunction.getSymbol())))
-        + ")";
+    return visitPropositionalFormula(pDisjunction);
   }
 
   @Override
   public String visit(Finally pFinally) {
-    return visit((UnaryFormula) pFinally);
+    return visitUnaryFormula(pFinally);
   }
 
   @Override
   public String visit(Globally pGlobally) {
-    return visit((UnaryFormula) pGlobally);
+    return visitUnaryFormula(pGlobally);
   }
 
   @Override
@@ -101,41 +86,37 @@ public class LtlStringVisitor implements LtlFormulaVisitor {
 
   @Override
   public String visit(Next pNext) {
-    return visit((UnaryFormula) pNext);
+    return visitUnaryFormula(pNext);
   }
 
   @Override
   public String visit(Release pRelease) {
-    return visit((BinaryFormula) pRelease);
+    return visitBinaryFormula(pRelease);
   }
 
   @Override
   public String visit(StrongRelease pStrongRelease) {
-    return visit((BinaryFormula) pStrongRelease);
+    return visitBinaryFormula(pStrongRelease);
   }
 
   @Override
   public String visit(Until pUntil) {
-    return visit((BinaryFormula) pUntil);
+    return visitBinaryFormula(pUntil);
   }
 
   @Override
   public String visit(WeakUntil pWeakUntil) {
-    return visit((BinaryFormula) pWeakUntil);
+    return visitBinaryFormula(pWeakUntil);
   }
 
-  private String visit(UnaryFormula pFormula) {
-    return pFormula.getSymbol() + " " + pFormula.operand.accept(this);
+  private String visitUnaryFormula(UnaryFormula pFormula) {
+    return pFormula.getSymbol() + " " + pFormula.getOperand().accept(this);
   }
 
-  private String visit(BinaryFormula pFormula) {
-    return "(("
-        + pFormula.left.accept(this)
-        + ") "
-        + pFormula.getSymbol()
-        + " ("
-        + pFormula.right.accept(this)
-        + "))";
+  private String visitBinaryFormula(BinaryFormula pFormula) {
+    return String.format(
+        "((%s) %s (%s))",
+        pFormula.getLeft().accept(this), pFormula.getSymbol(), pFormula.getRight().accept(this));
   }
 
   private String visitFormula(LtlFormula pFormula) {

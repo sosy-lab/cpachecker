@@ -1,29 +1,15 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -38,12 +24,16 @@ public class BuiltinFunctions {
 
   private static final String FREE = "free";
   private static final String STRLEN = "strlen";
+  private static final String POPCOUNT = "popcount";
+
 
   private static final CType UNSPECIFIED_TYPE = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
       false, false, false, false, false, false, false);
 
   public static boolean isBuiltinFunction(String pFunctionName) {
     return pFunctionName.startsWith("__builtin_")
+        // https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
+        || pFunctionName.startsWith("__atomic_")
         || pFunctionName.equals(FREE)
         || matchesStrlen(pFunctionName)
         || BuiltinFloatFunctions.isBuiltinFloatFunction(pFunctionName);
@@ -66,10 +56,44 @@ public class BuiltinFunctions {
       return BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
     }
 
+    if(BuiltinOverflowFunctions.isBuiltinOverflowFunction(pFunctionName)) {
+      return BuiltinOverflowFunctions.getType(pFunctionName);
+    }
+
+    if (isPopcountFunction(pFunctionName)) {
+      return new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+    }
+
     return UNSPECIFIED_TYPE;
   }
 
   public static boolean matchesStrlen(String pFunctionName) {
     return pFunctionName.equals(STRLEN);
   }
+  public static boolean isPopcountFunction(String pFunctionName) {
+    return pFunctionName.contains(POPCOUNT);
+  }
+
+  /**
+   * Get the parameter type of a builtin popcount function.
+   *
+   * @param pFunctionName A function name for which
+   *                      {@link #isPopcountFunction(String)} returns true.
+   * @throws IllegalArgumentException For unhandled functions.
+   */
+  public static CSimpleType getParameterTypeOfBuiltinPopcountFunction(String pFunctionName) {
+    if (isPopcountFunction(pFunctionName)) {
+      if(pFunctionName.endsWith(POPCOUNT+"ll")) {
+        return CNumericTypes.LONG_LONG_INT;
+      } else if (pFunctionName.endsWith(POPCOUNT+"l")) {
+        return CNumericTypes.LONG_INT;
+      } else if (pFunctionName.endsWith(POPCOUNT)) {
+        return CNumericTypes.INT;
+      } else {
+        throw new IllegalArgumentException("Builtin function '" + pFunctionName + "' with unknown suffix '" + pFunctionName.substring(pFunctionName.length()) + "'");
+      }
+    }
+    throw new IllegalArgumentException("Builtin function '" + pFunctionName + "' is not a popcount function'");
+  }
+
 }

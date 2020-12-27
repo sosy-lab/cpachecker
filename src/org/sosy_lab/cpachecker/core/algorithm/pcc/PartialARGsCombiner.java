@@ -1,34 +1,20 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -146,7 +132,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
               "Require that all restart configurations consider a location aware state");
 
-          for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
+          for (AbstractState errorState : from(usedReached).filter(AbstractStates::isTargetState)) {
             /* logger.log(Level.INFO, "Error state found in reached set ", usedReached,
             "but not by last configuration. Error state must be infeasible.");*/
             logger.log(Level.FINE, "Remove infeasible error state", errorState);
@@ -419,7 +405,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       return ImmutableSet.of();
     }
 
-    Collection<Pair<List<AbstractState>, List<ARGState>>> result = new ArrayList<>(count);
+    ImmutableCollection.Builder<Pair<List<AbstractState>, List<ARGState>>> result =
+        ImmutableList.builder();
 
     // compute cartesian product
     int[] indices = new int[pSuccessorsForEdge.size()];
@@ -460,7 +447,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       }
     }
 
-    return result;
+    return result.build();
   }
 
   private ARGState getUncoveredSuccessor(ARGState pMaybeCovered) {

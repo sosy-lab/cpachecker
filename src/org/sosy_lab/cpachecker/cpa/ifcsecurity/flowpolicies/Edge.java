@@ -1,36 +1,19 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
 import com.google.common.collect.ComparisonChain;
-
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
-
 import java.io.Serializable;
+import java.util.NavigableSet;
 import java.util.Objects;
-import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
 
 /**
  * Class for specifiying an Information Flow Relation
@@ -44,19 +27,17 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
    * Security Level, which can have information of Security Levels <i>to</i>
    */
   private E from;
-  /**
-   * Security Levels, which can flow to Security Levels <i>from</i>
-   */
-  private SortedSet<E> to;
-
+  /** Security Levels, which can flow to Security Levels <i>from</i> */
+  private NavigableSet<E> to;
 
   /**
    * Constructs a new Information Flow Relation
+   *
    * @param pFrom Security Level, which can have information of Security Levels <i>to</i>
    * @param pTo Security Levels, which can flow to Security Levels <i>from</i>
    */
-  public Edge(E pFrom, SortedSet<E> pTo){
-    SortedSet<E> toclone = new TreeSet<>(pTo);
+  public Edge(E pFrom, NavigableSet<E> pTo) {
+    NavigableSet<E> toclone = new TreeSet<>(pTo);
     toclone.add(pFrom);
     this.from=pFrom;
     this.to=toclone;
@@ -66,7 +47,7 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
   public int compareTo(Edge<E> pOtherEdge) {
     return ComparisonChain.start()
         .compare(from, pOtherEdge.from)
-        .<SortedSet<E>>compare(to, pOtherEdge.to, new InternalSetComparator<E>())
+        .<NavigableSet<E>>compare(to, pOtherEdge.to, new InternalSetComparator<E>())
         .result();
   }
 
@@ -102,13 +83,11 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
     from = pFrom;
   }
 
-
-  protected SortedSet<E> getTo() {
+  protected NavigableSet<E> getTo() {
     return to;
   }
 
-
-  protected void setTo(SortedSet<E> pTo) {
+  protected void setTo(NavigableSet<E> pTo) {
     to = pTo;
   }
 

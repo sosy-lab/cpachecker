@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -366,7 +351,7 @@ class AssignmentHandler {
         || !lhsLocation.isAliased()) {
       // Fallback case, if we have no initialization of the form "<variable> = <value>"
       // Example code snippet
-      // (cf. test/programs/simple/struct-initializer-for-composite-field_false-unreach-label.c)
+      // (cf. test/programs/simple/struct-initializer-for-composite-field.c)
       //    struct s { int x; };
       //    struct t { struct s s; };
       //    ...
@@ -529,7 +514,7 @@ class AssignmentHandler {
     }
     int length =
         lvalueLength.isPresent()
-            ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
+            ? Integer.min(options.maxArrayLength(), lvalueLength.orElseThrow())
             : options.defaultArrayLength();
 
     // There are two cases of assignment to an array
@@ -645,7 +630,7 @@ class AssignmentHandler {
           continue; // TODO this looses values of bit fields
         }
         final Formula offsetFormula =
-            fmgr.makeNumber(conv.voidPointerFormulaType, offset.getAsLong());
+            fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
         final Location newLvalue;
         if (lvalue.isAliased()) {
           final MemoryRegion region =
@@ -738,7 +723,7 @@ class AssignmentHandler {
       final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
       rhs =
           value.isPresent()
-              ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
+              ? conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge)
               : null;
     }
 
@@ -889,7 +874,7 @@ class AssignmentHandler {
       throws AssertionError, UnrecognizedCodeException, UnsupportedCodeException {
     final Expression newRhsExpression;
     if (CTypeUtils.isSimpleType(rhsType) && !rhsExpression.isNondetValue()) {
-      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
+      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
       rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
       rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
       newRhsExpression = Value.ofValueOrNondet(rhsFormula);
@@ -918,7 +903,7 @@ class AssignmentHandler {
                       innerMember.getType(),
                       createRHSExpression(
                           innerMemberFieldReference, innerMember.getType(), expVisitor))
-                  .get();
+                  .orElseThrow();
           if (!(memberFormula instanceof BitvectorFormula)) {
             CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
             memberFormula =
@@ -1010,7 +995,7 @@ class AssignmentHandler {
       int endIndex = fieldOffset + fieldSize - 1;
 
       // "treatAsMemberType"
-      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
+      Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
       if (rhsType instanceof CPointerType) {
         // Do not break on Pointer-Handling
         CType rhsCasted = TypeUtils.createTypeWithLength(rhsSize);

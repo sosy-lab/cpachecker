@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
@@ -38,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -110,8 +96,8 @@ class DynamicBindingCreator {
     trackOverridenMethods(cfAs);
     completeMethodBindings();
 
-    for (Map.Entry<String, FunctionEntryNode> functionEntry : cfAs.entrySet()) {
-      insertBindings(functionEntry.getValue());
+    for (FunctionEntryNode value : cfAs.values()) {
+      insertBindings(value);
     }
   }
 
@@ -483,7 +469,7 @@ class DynamicBindingCreator {
         (JMethodInvocationExpression) functionCall.getFunctionCallExpression();
 
     FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
-    String callInFunction = prevNode.getFunctionName();
+    AFunctionDeclaration callInFunction = prevNode.getFunction();
 
     JMethodInvocationExpression newFunctionCallExpression =
         astCreator.convert(overridesThisMethod.getMethodEntryNode(), oldFunctionCallExpression);
@@ -493,12 +479,12 @@ class DynamicBindingCreator {
     // Node for successful function call
     // That is the case if runtime type equals function declaring class type.
     CFANode successfulNode = new CFANode(callInFunction);
-    cfas.put(callInFunction, successfulNode);
+    cfas.put(callInFunction.getName(), successfulNode);
     pProcessed.add(successfulNode);
 
     // unsuccessfulNode if runtime type does not equal function declaring class type
     CFANode unsuccessfulNode = new CFANode(callInFunction);
-    cfas.put(callInFunction, unsuccessfulNode);
+    cfas.put(callInFunction.getName(), unsuccessfulNode);
     pProcessed.add(unsuccessfulNode);
 
     JClassOrInterfaceType definingType = overridesThisMethod.getDefiningType();
@@ -530,7 +516,7 @@ class DynamicBindingCreator {
     }
 
     CFANode postFunctionCallNode = new CFANode(callInFunction);
-    cfaBuilder.getCFANodes().put(callInFunction, postFunctionCallNode);
+    cfaBuilder.getCFANodes().put(callInFunction.getName(), postFunctionCallNode);
     pProcessed.add(postFunctionCallNode);
 
     //AStatementEdge from successful Node to postFunctionCall location

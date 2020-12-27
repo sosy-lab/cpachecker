@@ -1,0 +1,25 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# This is a Docker image for running the Javascript unit tests.
+# It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
+# and will be used by CI as declared in .gitlab-ci.yml.
+#
+# Commands for updating the image:
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:node - < build/gitlab-ci.Dockerfile.node
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
+
+# We base it on Ubuntu 18.04 instead of some Node image
+# to make sure that the tests are also executable on a standard Ubuntu easily.
+FROM ubuntu:18.04
+
+RUN apt-get update && apt-get install -y \
+      chromium-browser \
+      firefox \
+      nodejs \
+      npm

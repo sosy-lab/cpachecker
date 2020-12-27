@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -31,6 +16,7 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @Immutable
 abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
@@ -63,6 +49,7 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
   public final boolean equals(Object pObj) {
     if ((pObj == null)
         || !getClass().equals(pObj.getClass())) {
@@ -73,6 +60,15 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
 
     return wrapped.equals(other.wrapped)
         && type.equals(other.type);
+  }
+
+  @Immutable
+  static final class WrappingIntegerFormula<TWrap extends Formula>
+      extends WrappingFormula<TWrap, IntegerFormula> implements IntegerFormula {
+
+    WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
+      super(type, pToWrap);
+    }
   }
 
   @Immutable

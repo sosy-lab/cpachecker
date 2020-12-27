@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -41,9 +26,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -60,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -271,7 +259,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
       rootState =
-          rootStates.stream().reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y).get();
+          rootStates.stream()
+              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
+              .orElseThrow();
       logger.log(
           Level.INFO,
           String.format(
@@ -411,10 +401,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
       }
 
-      Map<ARGState, List<ARGState>> segmentMap =
+      Map<ARGState, PersistentList<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
-      for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+      for (Map.Entry<ARGState, PersistentList<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
         boolean infeasible;
@@ -440,7 +430,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
   private static void slice0(
       ARGState currentState,
-      Map<ARGState, List<ARGState>> segmentMap,
+      Map<ARGState, PersistentList<ARGState>> segmentMap,
       Map<ARGState, Boolean> infeasibleMap) {
     Set<ARGState> segmentStateSet = new HashSet<>();
     for (List<ARGState> segment : segmentMap.values()) {
@@ -566,7 +556,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
     PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
-    BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
+    BooleanFormula formula =
+        buildPathFormula(
+                start,
+                stop,
+                segmentList,
+                startSSAMap,
+                startPts,
+                solver.getFormulaManager(),
+                pfmgr,
+                AbstractionPosition.BOTH)
+            .getFormula();
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
       stats.increaseSolverCallCounter();
@@ -593,32 +593,32 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     for (int i = 0; i< abstractionStatesTrace.size()-1; i++) {
       ARGState currentState = abstractionStatesTrace.get(i);
       ARGState nextState = abstractionStatesTrace.get(i+1);
-      if (currentState == parent) {
+      if (currentState.equals(parent)) {
         ARGState s = forkedStateMap.get(nextState);
-        if (s == child && pChangedElements.contains(nextState)) {
+        if (Objects.equals(s, child) && pChangedElements.contains(nextState)) {
           return true;
         }
       }
     }
 
     // root state needs special treatment:
-    if (parent == rootState) {
+    if (Objects.equals(parent, rootState)) {
       ARGState firstAfterRoot = abstractionStatesTrace.get(0);
       ARGState s = forkedStateMap.get(firstAfterRoot);
-      if (s == child &&  pChangedElements.contains(firstAfterRoot)) {
+      if (Objects.equals(s, child) && pChangedElements.contains(firstAfterRoot)) {
         return true;
       }
     }
 
     // beginning of infeasible part at end of trace needs special treatment:
-    if (infeasiblePartOfART == child) {
+    if (Objects.equals(infeasiblePartOfART, child)) {
       int i = abstractionStatesTrace.indexOf(infeasiblePartOfART);
       if (i>0) {
-        if (abstractionStatesTrace.get(i-1) == parent) {
+        if (Objects.equals(abstractionStatesTrace.get(i - 1), parent)) {
           return true;
         }
       } else {
-        if (parent == rootState) {
+        if (Objects.equals(parent, rootState)) {
           return true;
         }
       }

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
@@ -63,15 +48,19 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public class ExpressionToFormulaVisitor
@@ -568,6 +557,12 @@ public class ExpressionToFormulaVisitor
     final String functionName;
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression)functionNameExpression).getName();
+
+      final String isUnsupported = conv.isUnsupportedFunction(functionName);
+      if (isUnsupported != null) {
+        throw new UnsupportedCodeException(isUnsupported, edge, e);
+      }
+
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
@@ -582,10 +577,8 @@ public class ExpressionToFormulaVisitor
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
-      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-        throw new UnsupportedCodeException(
-            CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
-
+      } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
+        return handlePopCount(functionName, returnType, parameters, e);
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
         if (parameters.isEmpty()) {
@@ -1213,5 +1206,35 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  /**
+   * Handle calls to __builtin_popcount, __builtin_popcountl, and  __builtin_popcountll.
+   * Popcount sums up all 1-bits of an int, long or long long.
+   * Test c programs available: test/programs/simple/builtin_popcount32_x.c  and test/programs/simple/builtin_popcount64_x.c
+   */
+  private Formula handlePopCount(String pFunctionName, CType pReturnType, List<CExpression> pParameters, CFunctionCallExpression e) throws UnrecognizedCodeException {
+    if (pParameters.size() == 1) {
+      CType paramType = BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+      FormulaType<?> paramFormulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaReturnType = conv.getFormulaTypeFromCType(pReturnType);
+
+      if (paramFormulaType.isBitvectorType()) {
+        BitvectorFormulaManagerView bvMgrv = this.mgr.getBitvectorFormulaManager();
+        BitvectorFormula bvParameter = (BitvectorFormula) toFormula(pParameters.get(0));
+        BitvectorType bvParamType = (BitvectorType) paramFormulaType;
+        BitvectorType bvReturnType = (BitvectorType) formulaReturnType;
+        int offset = 0;
+        BitvectorFormula result = bvMgrv.makeBitvector(bvReturnType, 0);
+        while (offset < bvParamType.getSize()){
+          BitvectorFormula bitAtOffset = bvMgrv.extract(bvParameter, offset, offset++, false);
+          BitvectorFormula bitAtOffsetAsBV = bvMgrv.extend(bitAtOffset, bvReturnType.getSize()-1,  false);
+          result = bvMgrv.add(result, bitAtOffsetAsBV);
+        }
+        return result;
+      }
+      throw new IllegalArgumentException("Popcount implementation does not support non bitvector and non integer type " + paramFormulaType.toString() +" for Edge: " + edge.toString());
+    }
+    throw new UnrecognizedCodeException("Function " + pFunctionName + " received " + pParameters.size() + " parameters" + " instead of the expected " + 1, edge, e);
   }
 }

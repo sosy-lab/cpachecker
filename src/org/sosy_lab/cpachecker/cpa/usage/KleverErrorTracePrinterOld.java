@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -32,6 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.Appender;
@@ -46,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -95,7 +81,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       File name = new File("output/witness." + createUniqueName(pId) + ".graphml");
       String defaultSourcefileName =
           from(firstPath)
-              .filter(FILTER_EMPTY_FILE_LOCATIONS)
+              .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
               .getFileName();
@@ -137,13 +123,13 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
-    Iterator<CFAEdge> iterator = from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+    Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
 
     Optional<CFAEdge> warningEdge =
         from(path)
             .filter(
                 e ->
-                e.getSuccessor() == usage.getCFANode()
+                Objects.equals(e.getSuccessor(), usage.getCFANode())
                         && e.toString().contains(pId.getName()))
             .last();
 

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -49,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
@@ -66,7 +50,6 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
-  private final @Nullable DependenceGraph dependenceGraph;
   private final Language language;
 
   /* fileNames are final, except for serialization. */
@@ -80,7 +63,6 @@ class ImmutableCFA implements CFA, Serializable {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
-      Optional<DependenceGraph> pDependenceGraph,
       List<Path> pFileNames,
       Language pLanguage) {
 
@@ -91,11 +73,10 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = pLoopStructure.orElse(null);
     varClassification = pVarClassification.orElse(null);
     liveVariables = pLiveVariables.orElse(null);
-    dependenceGraph = pDependenceGraph.orElse(null);
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
-    checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
+    checkArgument(mainFunction.equals(functions.get(mainFunction.getFunctionName())));
   }
 
   private ImmutableCFA(MachineModel pMachineModel, Language pLanguage) {
@@ -106,7 +87,6 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = null;
     varClassification = null;
     liveVariables = null;
-    dependenceGraph = null;
     fileNames = ImmutableList.of();
     language = pLanguage;
   }
@@ -181,11 +161,6 @@ class ImmutableCFA implements CFA, Serializable {
   @Override
   public Optional<LiveVariables> getLiveVariables() {
     return Optional.ofNullable(liveVariables);
-  }
-
-  @Override
-  public Optional<DependenceGraph> getDependenceGraph() {
-    return Optional.ofNullable(dependenceGraph);
   }
 
   @Override

@@ -1,32 +1,14 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.slicing;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Set;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,13 +20,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Refiner for {@link SlicingCPA} that works in tandem with another precision refinement procedure.
@@ -57,7 +35,6 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
 
   private final Refiner delegate;
   private final SlicingRefiner slicingRefiner;
-  private final ARGCPA argCpa;
 
   @Options(prefix = "SlicingDelegatingRefiner")
   private static class SlicingDelegatingRefinerOptions {
@@ -90,34 +67,25 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
         options.delegate.create(pCpa, slicingCPA.getLogger(), slicingCPA.getShutdownNotifier());
     SlicingRefiner slicingRefiner = SlicingRefiner.create(pCpa);
 
-    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingDelegatingRefiner.class);
-
-    return new SlicingDelegatingRefiner(delegate, slicingRefiner, argCpa);
+    return new SlicingDelegatingRefiner(delegate, slicingRefiner);
   }
 
   private SlicingDelegatingRefiner(
-      final Refiner pDelegateRefiner, final SlicingRefiner pSlicingRefiner, final ARGCPA pArgCpa) {
+      final Refiner pDelegateRefiner, final SlicingRefiner pSlicingRefiner) {
     delegate = pDelegateRefiner;
     slicingRefiner = pSlicingRefiner;
-    argCpa = pArgCpa;
   }
 
   @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
 
-    // The delegate refiner will cut the ARG at the refinement root that is really necessary
-    // -- this is, except for predicate analysis, equal to or lower in the ARG than the
-    // refinement roots of slicing.
-    // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
-    Set<Pair<ARGState, SlicingPrecision>> refRootsAndPrec =
-        slicingRefiner.computeNewPrecision(pReached);
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
-    SlicingPrecision fullPrec = Iterables.getLast(refRootsAndPrec).getSecond();
-    for (Pair<ARGState, SlicingPrecision> p : refRootsAndPrec) {
-      fullPrec = fullPrec.getNew(fullPrec.getWrappedPrec(), p.getSecond().getRelevant());
+    final boolean sliceRefinementSuccessful =
+        slicingRefiner.updatePrecisionAndRemoveSubtree(pReached);
+    if (sliceRefinementSuccessful) {
+      return true;
     }
-    argReached.updatePrecisionGlobally(fullPrec, Predicates.instanceOf(SlicingPrecision.class));
+    
     boolean refinementResult = delegate.performRefinement(pReached);
     // Update counterexamples to be imprecise, because the program slice
     // may not reflect the real program semantics, but reflects the real program

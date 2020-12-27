@@ -1,30 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -39,26 +27,16 @@ public class SMGAbstractionManager {
   private final CLangSMG smg;
   private final SMGState smgState;
 
-  private final List<SMGAbstractionCandidate> abstractionCandidates = new ArrayList<>();
   private final Set<SMGAbstractionBlock> blocks;
   private final SMGDoublyLinkedListFinder dllCandidateFinder;
   private final SMGSingleLinkedListFinder sllCandidateFinder;
 
+  @VisibleForTesting
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate) {
     smg = pSMG;
     smgState = pSMGstate;
     logger = pLogger;
     blocks = ImmutableSet.of();
-    dllCandidateFinder = new SMGDoublyLinkedListFinder();
-    sllCandidateFinder = new SMGSingleLinkedListFinder();
-  }
-
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
-      Set<SMGAbstractionBlock> pBlocks) {
-    smg = pSMG;
-    smgState = pSMGstate;
-    logger = pLogger;
-    blocks = pBlocks;
     dllCandidateFinder = new SMGDoublyLinkedListFinder();
     sllCandidateFinder = new SMGSingleLinkedListFinder();
   }
@@ -73,57 +51,40 @@ public class SMGAbstractionManager {
     sllCandidateFinder = new SMGSingleLinkedListFinder(equalSeq, entailSeq, incSeq);
   }
 
-  private boolean hasCandidates() throws SMGInconsistentException {
-
-    abstractionCandidates.addAll(dllCandidateFinder.traverse(smg, smgState, blocks));
-    abstractionCandidates.addAll(sllCandidateFinder.traverse(smg, smgState, blocks));
-
-    return (!abstractionCandidates.isEmpty());
+  private List<SMGAbstractionCandidate> getCandidates() throws SMGInconsistentException {
+    return ImmutableList.<SMGAbstractionCandidate>builder()
+        .addAll(dllCandidateFinder.traverse(smg, smgState, blocks))
+        .addAll(sllCandidateFinder.traverse(smg, smgState, blocks))
+        .build();
   }
 
-  private SMGAbstractionCandidate getBestCandidate() {
-
-    SMGAbstractionCandidate bestCandidate = abstractionCandidates.get(0);
-
-    for (SMGAbstractionCandidate candidate : abstractionCandidates) {
-      if (candidate.getScore() > bestCandidate.getScore()) {
-        bestCandidate = candidate;
-      }
-    }
-
-    return bestCandidate;
+  private SMGAbstractionCandidate getBestCandidate(
+      List<SMGAbstractionCandidate> abstractionCandidates) {
+    return Collections.max(
+        abstractionCandidates, Comparator.comparing(SMGAbstractionCandidate::getScore));
   }
 
   public boolean execute() throws SMGInconsistentException {
-
     SMGAbstractionCandidate currentAbstraction = executeOneStep();
-
     if (currentAbstraction.isEmpty()) {
       return false;
     }
-
     while (!currentAbstraction.isEmpty()) {
       currentAbstraction = executeOneStep();
     }
-
     return true;
   }
 
   public SMGAbstractionCandidate executeOneStep() throws SMGInconsistentException {
-
-    if (hasCandidates()) {
-      SMGAbstractionCandidate best = getBestCandidate();
+    List<SMGAbstractionCandidate> abstractionCandidates = getCandidates();
+    if (!abstractionCandidates.isEmpty()) {
+      SMGAbstractionCandidate best = getBestCandidate(abstractionCandidates);
       logger.log(Level.ALL, "Execute abstraction of ", best);
       best.execute(smg, smgState);
-      invalidateCandidates();
       logger.log(Level.ALL, "Finish executing abstraction of ", best);
       return best;
     } else {
       return EmptyAbstractionCandidate.INSTANCE;
     }
-  }
-
-  private void invalidateCandidates() {
-    abstractionCandidates.clear();
   }
 }

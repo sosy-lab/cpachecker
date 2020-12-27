@@ -1,32 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
@@ -140,13 +124,20 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     String fName = "main";
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
-
-    FunctionEntryNode entryNode = dummyFunction(fName);
+    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
+    CFunctionDeclaration fdef =
+        new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
+    FunctionEntryNode entryNode =
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            fdef,
+            new FunctionExitNode(fdef),
+            com.google.common.base.Optional.absent());
 
     // Edge 1: "x' = x + 1".
     // Edge 2: "x <= 10"
-    CFANode a = new CFANode(fName);
-    CFANode b = new CFANode(fName);
+    CFANode a = new CFANode(fdef);
+    CFANode b = new CFANode(fdef);
 
     CFAEdge init = new BlankEdge("", FileLocation.DUMMY, entryNode, a, "init");
     entryNode.addLeavingEdge(init);
@@ -228,7 +219,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
         b, a
     );
 
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
+    TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     nodes.put("main", a);
     nodes.put("main", b);
 
@@ -244,19 +235,6 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY, CNumericTypes.INT, constant
     );
-  }
-
-  private FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
-
-    FunctionEntryNode main =
-        new CFunctionEntryNode(
-            FileLocation.DUMMY,
-            new CFunctionDeclaration(FileLocation.DUMMY, functionType, name, ImmutableList.of()),
-            new FunctionExitNode(name),
-            com.google.common.base.Optional.absent());
-
-    return main;
   }
 
   @Test

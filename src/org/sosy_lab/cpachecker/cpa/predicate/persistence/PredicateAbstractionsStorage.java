@@ -1,34 +1,19 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -38,7 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -87,11 +72,7 @@ public class PredicateAbstractionsStorage {
       return Integer.toString(getId());
     }
 
-    @Override
-    public int hashCode() {
-      // TODO
-      return super.hashCode();
-    }
+    // TODO: equals() and hashCode()?
   }
 
   private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)[ ]*(@[0-9]+)$");
@@ -104,7 +85,7 @@ public class PredicateAbstractionsStorage {
 
   private Integer rootAbstractionId = null;
   private ImmutableMap<Integer, AbstractionNode> abstractions = ImmutableMap.of();
-  private ImmutableMultimap<Integer, Integer> abstractionTree = ImmutableMultimap.of();
+  private ImmutableListMultimap<Integer, Integer> abstractionTree = ImmutableListMultimap.of();
   private Set<Integer> reusedAbstractions = new TreeSet<>();
 
   public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter) throws PredicateParsingFailedException {
@@ -227,7 +208,7 @@ public class PredicateAbstractionsStorage {
 
     // Set results
     this.abstractions = ImmutableMap.copyOf(resultAbstractions);
-    this.abstractionTree = ImmutableMultimap.copyOf(resultTree);
+    this.abstractionTree = ImmutableListMultimap.copyOf(resultTree);
   }
 
   private String convert(String str) {
@@ -251,7 +232,7 @@ public class PredicateAbstractionsStorage {
     return abstractions.get(abstractionId);
   }
 
-  public ImmutableMultimap<Integer, Integer> getAbstractionTree() {
+  public ImmutableListMultimap<Integer, Integer> getAbstractionTree() {
     return abstractionTree;
   }
 
@@ -260,7 +241,7 @@ public class PredicateAbstractionsStorage {
   }
 
   public Set<AbstractionNode> getSuccessorAbstractions(Integer ofAbstractionWithId) {
-    Set<AbstractionNode> result = new HashSet<>();
+    Set<AbstractionNode> result = new LinkedHashSet<>();
 
     if (abstractionTree != null) {
       for (Integer successorId : abstractionTree.get(ofAbstractionWithId)) {

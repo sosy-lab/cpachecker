@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
@@ -40,6 +25,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -100,27 +86,30 @@ public class NullPointerChecks {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 
-    for (final String function : cfa.getAllFunctionNames()) {
+    for (final String functionName : cfa.getAllFunctionNames()) {
 
       // This supplier creates the appropriate target nodes that get added
       // to the CFA for the case the dereference fails.
-      Supplier<CFANode> targetNodeSupplier = new Supplier<CFANode>() {
-        @Override
-        public CFANode get() {
+      Supplier<CFANode> targetNodeSupplier =
+          new Supplier<>() {
+            @Override
+            public CFANode get() {
+              AFunctionDeclaration function =
+                  cfa.getFunctionHead(functionName).getFunctionDefinition();
+              CFANode startNode = new CFANode(function);
+              CFANode endNode = new CFANode(function);
+              BlankEdge endEdge =
+                  new BlankEdge("null-deref", FileLocation.DUMMY, startNode, endNode, "null-deref");
+              CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
 
-          CFANode startNode = new CFANode(function);
-          CFANode endNode = new CFANode(function);
-          BlankEdge endEdge = new BlankEdge("null-deref", FileLocation.DUMMY, startNode, endNode, "null-deref");
-          CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
+              BlankEdge loopEdge = new BlankEdge("", FileLocation.DUMMY, endNode, endNode, "");
+              CFACreationUtils.addEdgeUnconditionallyToCFA(loopEdge);
 
-          BlankEdge loopEdge = new BlankEdge("", FileLocation.DUMMY, endNode, endNode, "");
-          CFACreationUtils.addEdgeUnconditionallyToCFA(loopEdge);
-
-          cfa.addNode(startNode);
-          cfa.addNode(endNode);
-          return startNode;
-        }
-      };
+              cfa.addNode(startNode);
+              cfa.addNode(endNode);
+              return startNode;
+            }
+          };
 
       if (singleTargetPerFunction) {
         // Only a single target node per function,
@@ -128,7 +117,7 @@ public class NullPointerChecks {
         targetNodeSupplier = Suppliers.memoize(targetNodeSupplier);
       }
 
-      for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(function))) {
+      for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(functionName))) {
         switch (node.getNumLeavingEdges()) {
         case 0:
           break;
@@ -195,7 +184,7 @@ public class NullPointerChecks {
     CFANode successor = edge.getSuccessor();
     CFACreationUtils.removeEdgeFromNodes(edge);
 
-    CFANode falseNode = new CFANode(predecessor.getFunctionName());
+    CFANode falseNode = new CFANode(predecessor.getFunction());
 
     for (CFAEdge otherEdge : leavingEdges(predecessor).toList()) {
       CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, otherEdge.getSuccessor(), otherEdge);

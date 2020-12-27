@@ -1,33 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,6 +34,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -85,7 +70,7 @@ class CFABuilder extends ASTVisitor {
   // Data structures for handling function declarations
   private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>> functionDeclarations = new ArrayList<>();
   private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
-  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
+  private final TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
@@ -107,6 +92,7 @@ class CFABuilder extends ASTVisitor {
   private final EclipseCParserOptions options;
   private final MachineModel machine;
   private final LogManagerWithoutDuplicates logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final CheckBindingVisitor checkBinding;
 
   private boolean encounteredAsm = false;
@@ -115,10 +101,12 @@ class CFABuilder extends ASTVisitor {
   public CFABuilder(
       EclipseCParserOptions pOptions,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       ParseContext pParseContext,
       MachineModel pMachine) {
     options = pOptions;
     logger = new LogManagerWithoutDuplicates(pLogger);
+    shutdownNotifier = pShutdownNotifier;
     parseContext = pParseContext;
     machine = pMachine;
 
@@ -131,7 +119,10 @@ class CFABuilder extends ASTVisitor {
   }
 
   public void analyzeTranslationUnit(
-      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope) {
+      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope)
+      throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+
     if (!isNullOrEmpty(ast.getFilePath())) {
       parsedFiles.add(Paths.get(ast.getFilePath()));
     }
@@ -160,13 +151,16 @@ class CFABuilder extends ASTVisitor {
         Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
+
+    shutdownNotifier.shutdownIfNecessary();
   }
 
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
-   */
   @Override
   public int visit(IASTDeclaration declaration) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     sideAssignmentStack.enterBlock();
 
     if (declaration instanceof IASTSimpleDeclaration) {
@@ -205,11 +199,6 @@ class CFABuilder extends ASTVisitor {
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
-      // CDT parser struggles on GCC's __attribute__((something)) constructs
-      // because we use C99 as default.
-      // Either insert the following macro before compiling with CIL:
-      // #define  __attribute__(x)  /*NOTHING*/
-      // or insert "parser.dialect = GNUC" into properties file
       visit(((IASTProblemDeclaration)declaration).getProblem());
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
@@ -309,15 +298,16 @@ class CFABuilder extends ASTVisitor {
   }
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
-   */
   @Override
   public int visit(IASTProblem problem) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     throw parseContext.parseError(problem);
   }
 
-  public ParseResult createCFA() throws CParserException {
+  public ParseResult createCFA() throws CParserException, InterruptedException {
     // in case we
     if (functionDeclarations.size() > 1) {
       programDeclarations.completeUncompletedElaboratedTypes();
@@ -362,13 +352,15 @@ class CFABuilder extends ASTVisitor {
     return result;
   }
 
-  private void handleFunctionDefinition(final GlobalScope actScope,
-                                        String fileName,
-                                        IASTFunctionDefinition declaration,
-                                        ImmutableMap<String, CFunctionDeclaration> functions,
-                                        ImmutableMap<String, CComplexTypeDeclaration> types,
-                                        ImmutableMap<String, CTypeDefDeclaration> typedefs,
-                                        ImmutableMap<String, CSimpleDeclaration> globalVars) {
+  private void handleFunctionDefinition(
+      final GlobalScope actScope,
+      String fileName,
+      IASTFunctionDefinition declaration,
+      ImmutableMap<String, CFunctionDeclaration> functions,
+      ImmutableMap<String, CComplexTypeDeclaration> types,
+      ImmutableMap<String, CTypeDefDeclaration> typedefs,
+      ImmutableMap<String, CSimpleDeclaration> globalVars)
+      throws InterruptedException {
 
     FunctionScope localScope =
         new FunctionScope(functions, types, typedefs, globalVars, fileName, artificialScope);
@@ -376,13 +368,18 @@ class CFABuilder extends ASTVisitor {
         new CFAFunctionBuilder(
             options,
             logger,
+            shutdownNotifier,
             localScope,
             parseContext,
             machine,
             fileName,
             sideAssignmentStack,
             checkBinding);
+
     declaration.accept(functionBuilder);
+
+    // check whether an interrupt happened while parsing
+    shutdownNotifier.shutdownIfNecessary();
 
     FunctionEntryNode startNode = functionBuilder.getStartNode();
     String functionName = startNode.getFunctionName();
@@ -405,6 +402,10 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public int leave(IASTTranslationUnit ast) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     return PROCESS_CONTINUE;
   }
 }

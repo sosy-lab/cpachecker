@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 # 1 "/home/shchepetkov/tests/thomas/work/current--X--drivers/power/ds2781_battery.ko--X--x1linux-3.11-rc1.tar.xz--X--32_7a/linux-3.11-rc1.tar.xz/csd_deg_dscv/12/dscv_tempdir/rule-instrumentor/32_7a/common-model/ldv_common_model.c"
 # 1 "/home/shchepetkov/tests/thomas/inst/current/envs/linux-3.11-rc1.tar.xz/linux-3.11-rc1//"
 # 1 "<command-line>"

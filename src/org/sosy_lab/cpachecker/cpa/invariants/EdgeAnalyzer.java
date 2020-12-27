@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Optional;
@@ -76,7 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class EdgeAnalyzer {
+class EdgeAnalyzer {
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -95,10 +80,11 @@ public class EdgeAnalyzer {
    * Gets the variables involved in the given edge.
    *
    * @param pCfaEdge the edge to be analyzed.
-   *
    * @return the variables involved in the given edge.
    */
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
+  @SuppressWarnings(
+      "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
+  Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
@@ -116,10 +102,20 @@ public class EdgeAnalyzer {
         if (initializer == null) {
           return ImmutableMap.of(declaredVariable, type);
         }
-        Map<MemoryLocation, CType> result = new HashMap<>();
-        result.put(declaredVariable, type);
-        result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
-        return result;
+
+            final Map<MemoryLocation, CType> initializerVariableTypes =
+                getInvolvedVariableTypes(initializer, pCfaEdge);
+            if (initializerVariableTypes.containsKey(declaredVariable)) {
+              // happens with "int x = x;"
+              assert initializerVariableTypes.get(declaredVariable).equals(type);
+              return initializerVariableTypes;
+            }
+            return ImmutableMap.<MemoryLocation, CType>builderWithExpectedSize(
+                    initializerVariableTypes.size() + 1)
+                .put(declaredVariable, type)
+                .putAll(initializerVariableTypes)
+                .build();
+
       } else if (declaration instanceof AVariableDeclaration) {
         throw new UnsupportedOperationException("Only C expressions are supported");
       } else {
@@ -128,7 +124,7 @@ public class EdgeAnalyzer {
     }
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-      Map<MemoryLocation, CType> result = new HashMap<>();
+        Map<MemoryLocation, CType> result = new HashMap<>();
 
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
@@ -148,13 +144,13 @@ public class EdgeAnalyzer {
         result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
       }
 
-      return result;
+        return result;
     }
     case ReturnStatementEdge: {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
       if (returnStatementEdge.getExpression().isPresent()) {
         AExpression returnExpression = returnStatementEdge.getExpression().get();
-        Map<MemoryLocation, CType> result = new HashMap<>();
+          Map<MemoryLocation, CType> result = new HashMap<>();
             Optional<? extends AAssignment> returnAssignment = returnStatementEdge.asAssignment();
             if (returnAssignment.isPresent()) {
               result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
@@ -169,7 +165,7 @@ public class EdgeAnalyzer {
               }
         }
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
-        return result;
+          return result;
       }
           return ImmutableMap.of();
     }
@@ -184,11 +180,11 @@ public class EdgeAnalyzer {
             return getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-        Map<MemoryLocation, CType> result = new HashMap<>();
+          Map<MemoryLocation, CType> result = new HashMap<>();
         for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
           result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
         }
-        return result;
+          return result;
       } else {
             return ImmutableMap.of();
       }
@@ -201,7 +197,7 @@ public class EdgeAnalyzer {
             (AFunctionCallAssignmentStatement) functionCall;
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         if (functionCallExpression != null) {
-          Map<MemoryLocation, CType> result = new HashMap<>();
+            Map<MemoryLocation, CType> result = new HashMap<>();
           Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
           if (retVar.isPresent()) {
               AExpression idExpression =
@@ -221,7 +217,7 @@ public class EdgeAnalyzer {
                           ImmutableMap.of())));
           }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-          return result;
+            return result;
         }
       }
         return ImmutableMap.of();
@@ -232,6 +228,8 @@ public class EdgeAnalyzer {
     }
   }
 
+  @SuppressWarnings(
+      "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
   private Map<MemoryLocation, CType> getInvolvedVariableTypes(
       AAssignment pAssignment, CFAEdge pCfaEdge) {
     if (pAssignment instanceof AExpressionAssignmentStatement) {
@@ -278,15 +276,14 @@ public class EdgeAnalyzer {
     return ImmutableMap.of();
   }
 
-
   /**
    * Gets the variables involved in the given CInitializer.
    *
    * @param pCInitializer the CInitializer to be analyzed.
-   *
    * @return the variables involved in the given CInitializer.
    */
-  private Map<MemoryLocation, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
+  private ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+      CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
@@ -297,7 +294,7 @@ public class EdgeAnalyzer {
       for (CInitializer initializer : initializerList.getInitializers()) {
         result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
-      return result;
+      return ImmutableMap.copyOf(result);
     }
     return ImmutableMap.of();
   }
@@ -307,10 +304,10 @@ public class EdgeAnalyzer {
    *
    * @param pExpression the expression to be analyzed.
    * @param pCFAEdge the CFA edge to obtain the function name from, if required.
-   *
    * @return the variables involved in the given expression.
    */
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
+  public ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+      AExpression pExpression, CFAEdge pCFAEdge) {
     return getInvolvedVariableTypes(
         pExpression,
         new MemoryLocationExtractor(
@@ -322,10 +319,10 @@ public class EdgeAnalyzer {
    *
    * @param pExpression the expression to be analyzed.
    * @param pVariableNameExtractor the variable name extractor to be used.
-   *
    * @return the variables involved in the given expression.
    */
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, MemoryLocationExtractor pVariableNameExtractor) {
+  public ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+      AExpression pExpression, MemoryLocationExtractor pVariableNameExtractor) {
     if (pExpression == null) {
       return ImmutableMap.of();
     }
@@ -348,7 +345,7 @@ public class EdgeAnalyzer {
         }
       }
 
-      return result;
+      return ImmutableMap.copyOf(result);
     } else {
       throw new UnsupportedOperationException("Only C expressions are supported");
     }

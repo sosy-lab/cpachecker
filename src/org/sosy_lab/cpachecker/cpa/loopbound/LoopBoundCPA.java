@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -48,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -64,6 +50,13 @@ public class LoopBoundCPA extends AbstractCPA
   @Option(secure=true, description="enable stack-based tracking of loops")
   private boolean trackStack = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Use a stop operator that will identify loop states who's depth is congruent regarding the modulus of this number. "
+              + "Values smaller or equal to zero will deactivate this feature.")
+  private int cyclicStopModulus = -1;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LoopBoundCPA.class);
   }
@@ -73,17 +66,26 @@ public class LoopBoundCPA extends AbstractCPA
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
   LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", new LoopBoundTransferRelation(pCFA));
+    super("sep", "sep", new LoopBoundTransferRelation(pConfig, pCFA));
     pConfig.inject(this);
-    loopStructure = pCFA.getLoopStructure().get();
+    loopStructure = pCFA.getLoopStructure().orElseThrow();
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    if (cyclicStopModulus <= 0) {
+      return super.getStopOperator();
+    } else {
+      return new ModularStopOperator(cyclicStopModulus);
+    }
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     LoopBoundState initialState = new LoopBoundState();
     for (Loop loop : loopStructure.getLoopsForLoopHead(pNode)) {
-      initialState = initialState.visitLoopHead(new LoopEntry(pNode, loop));
+      initialState = initialState.visitLoopHead(loop);
     }
     return initialState;
   }

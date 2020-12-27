@@ -1,22 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -81,7 +70,7 @@ public class SSCPath extends ARGPath {
     CFAEdge previous = it.next();
     while (it.hasNext()) {
       CFAEdge current = it.next();
-      if (previous.getSuccessor() != current.getPredecessor()) {
+      if (!Objects.equals(previous.getSuccessor(), current.getPredecessor())) {
         return false;
       }
       previous = current;
@@ -136,14 +125,14 @@ public class SSCPath extends ARGPath {
       CFAEdge nextEdge = parentLoc.getLeavingEdge(0);
       CFANode nextLoc = nextEdge.getSuccessor();
       newFullPath.add(nextEdge);
-      if (nextLoc == childLoc) {
+      if (Objects.equals(nextLoc, childLoc)) {
         return; // child found -> finished
       }
       parentLoc = nextLoc;
     }
     // handle last edge of chain, we need to handle multiple successor nodes here.
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(parentLoc)) {
-      if (leavingEdge.getSuccessor() == childLoc) {
+      if (Objects.equals(leavingEdge.getSuccessor(), childLoc)) {
         newFullPath.add(leavingEdge);
         return; // child found -> finished
       }
@@ -152,7 +141,7 @@ public class SSCPath extends ARGPath {
   }
 
   private List<CFANode> getLocations() {
-    return Lists.transform(asStatesList(), AbstractStates.EXTRACT_LOCATION);
+    return Lists.transform(asStatesList(), AbstractStates::extractLocation);
   }
 
   @Override

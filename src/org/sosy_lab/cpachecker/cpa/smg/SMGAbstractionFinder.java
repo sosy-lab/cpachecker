@@ -1,33 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
+import com.google.common.annotations.VisibleForTesting;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -40,6 +25,7 @@ public abstract class SMGAbstractionFinder {
   protected final int seqLengthEntailmentThreshold;
   protected final int seqLengthIncomparableThreshold;
 
+  @VisibleForTesting // some default values for testing, constructor never used otherwise
   protected SMGAbstractionFinder() {
     seqLengthEqualityThreshold = 2;
     seqLengthEntailmentThreshold = 2;
@@ -55,19 +41,16 @@ public abstract class SMGAbstractionFinder {
     seqLengthIncomparableThreshold = pSeqLengthIncomparableThreshold;
   }
 
-  public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg, UnmodifiableSMGState pSMGState)
-      throws SMGInconsistentException {
-    return traverse(pSmg, pSMGState, ImmutableSet.of());
-  }
-
   public abstract Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> abstractionBlocks)
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      Set<SMGAbstractionBlock> abstractionBlocks)
       throws SMGInconsistentException;
 
   protected boolean isSubSmgSeperate(
       Set<SMGObject> nonSharedObject,
       Set<SMGValue> nonSharedValues,
-      CLangSMG smg,
+      UnmodifiableCLangSMG smg,
       Set<SMGObject> reachableObjects,
       Set<SMGValue> reachableValues,
       SMGObject rootOfSubSmg) {
@@ -111,11 +94,11 @@ public abstract class SMGAbstractionFinder {
   protected final void getSubSmgOf(
       SMGObject pObject,
       Predicate<SMGEdgeHasValue> check,
-      CLangSMG inputSmg,
+      UnmodifiableCLangSMG inputSmg,
       Set<SMGValue> pValues,
       Set<SMGObject> pObjects) {
 
-    Set<SMGObject> toBeChecked = new HashSet<>();
+    Set<SMGObject> toBeChecked = new LinkedHashSet<>();
 
     pObjects.add(pObject);
 
@@ -136,7 +119,7 @@ public abstract class SMGAbstractionFinder {
       }
     }
 
-    Set<SMGObject> toCheck = new HashSet<>();
+    Set<SMGObject> toCheck = new LinkedHashSet<>();
 
     while (!toBeChecked.isEmpty()) {
       toCheck.clear();
@@ -152,7 +135,7 @@ public abstract class SMGAbstractionFinder {
   private void getSubSmgOf(
       SMGObject pObjToCheck,
       Set<SMGObject> pToBeChecked,
-      CLangSMG pInputSmg,
+      UnmodifiableCLangSMG pInputSmg,
       Set<SMGObject> pObjects,
       Set<SMGValue> pValues) {
 

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.Lists;
@@ -32,7 +17,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -43,58 +27,50 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class ITPStrategy<T> {
+public abstract class ITPStrategy {
 
   protected final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManager bfmgr;
-  private final Timer getInterpolantTimer = new Timer();
 
-  ITPStrategy(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
+  ITPStrategy(LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     fmgr = pFmgr;
-    bfmgr = pBfmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
-
   /**
-   * The implementation of this method specifies the interpolation strategy
-   * and computes interpolants for the given formulae.
+   * The implementation of this method specifies the interpolation strategy and computes
+   * interpolants for the given formulae.
    *
-   * @param interpolator is the interface towards the SMT-solver and
-   *          contains an ITP-solver with all formulas asserted on its solver-stack.
-   * @param formulasWithStateAndGroupId is a list of (F,E,T) where
-   *          the path formula F starting at an abstract state E (abstraction state?)
-   *          corresponds with the ITP-group T.
-   *          We assume the sorting of the list matches the order
-   *          of abstract states along the counterexample.
+   * @param interpolator is the interface towards the SMT-solver and contains an ITP-solver with all
+   *     formulas asserted on its solver-stack.
+   * @param formulasWithStateAndGroupId is a list of (F,E,T) where the path formula F starting at an
+   *     abstract state E (abstraction state?) corresponds with the ITP-group T. We assume the
+   *     sorting of the list matches the order of abstract states along the counterexample.
    * @return a list of (N-1) interpolants for a list of N formulae
    */
-  public abstract List<BooleanFormula> getInterpolants(
+  public abstract <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException;
 
-
   /**
-   * This method checks the validity of the interpolants according to
-   * the current interpolation strategy.
-   * The default interpolation strategy is sequential interpolation,
-   * i.e. we assume:  \forall i \in [1..n-1] : itp_{i-1} & f_i => itp_i
-   * This method can be overridden if the strategy computes interpolants
-   * with a different strategy.
+   * This method checks the validity of the interpolants according to the current interpolation
+   * strategy. The default interpolation strategy is sequential interpolation, i.e. we assume:
+   * \forall i \in [1..n-1] : itp_{i-1} & f_i => itp_i This method can be overridden if the strategy
+   * computes interpolants with a different strategy.
    *
    * @param solver is for checking satisfiability
-   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where
-   *          the path formula F starting at an abstract state E corresponds
-   *          with the ITP-group T. We assume the sorting of the list matches
-   *          the order of abstract states along the counterexample.
+   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where the path formula F starting at
+   *     an abstract state E corresponds with the ITP-group T. We assume the sorting of the list
+   *     matches the order of abstract states along the counterexample.
    * @param interpolants computed with {@link #getInterpolants} and will be checked.
    */
-  public void checkInterpolants(final Solver solver,
+  public <T> void checkInterpolants(
+      final Solver solver,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws InterruptedException, SolverException {
@@ -167,25 +143,23 @@ public abstract class ITPStrategy<T> {
   }
 
   /**
-   * Precondition: The solver-stack contains all formulas and is UNSAT.
-   * Get the interpolant between the Sublist of formulas and the other formulas on the solver-stack.
-   * Each formula is identified by its GroupId,
-   * The sublist is taken from the list of GroupIds, including both start and end of A.
+   * Precondition: The solver-stack contains all formulas and is UNSAT. Get the interpolant between
+   * the Sublist of formulas and the other formulas on the solver-stack. Each formula is identified
+   * by its GroupId, The sublist is taken from the list of GroupIds, including both start and end of
+   * A.
    */
-  protected final BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-      final List<T> itpGroupsIds, final int start_of_A, final int end_of_A)
-          throws InterruptedException, SolverException {
+  protected final <T> BooleanFormula getInterpolantFromSublist(
+      final InterpolatingProverEnvironment<T> pItpProver,
+      final List<T> itpGroupsIds,
+      final int start_of_A,
+      final int end_of_A)
+      throws InterruptedException, SolverException {
     shutdownNotifier.shutdownIfNecessary();
 
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
 
-    getInterpolantTimer.start();
-    final BooleanFormula itp;
-    try {
-      itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
-    } finally {
-      getInterpolantTimer.stop();
-    }
+    final BooleanFormula itp =
+        pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
 
     logger.log(Level.ALL, "Received interpolant", itp);
     return itp;

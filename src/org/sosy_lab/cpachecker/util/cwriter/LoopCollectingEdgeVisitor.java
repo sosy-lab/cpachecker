@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -34,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -118,7 +104,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
         CFANode beforeFunctionCall = ((CFunctionReturnEdge) edge).getSummaryEdge().getPredecessor();
         while (cfaIterator.hasPrevious()) {
           tmp = cfaIterator.previous();
-          if (tmp.getFirst().getPredecessor() == beforeFunctionCall) {
+          if (Objects.equals(tmp.getFirst().getPredecessor(), beforeFunctionCall)) {
             edge = tmp.getFirst();
             if(cfaIterator.hasPrevious()) {
               state = cfaIterator.previous().getSecond();
@@ -195,8 +181,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
       // we either need all loops because there were no before or because of
       // the heuristic
     } else {
-      for (int i = 0; i < loops.size(); i++) {
-        Loop actLoop = loops.get(i);
+      for (Loop actLoop : loops) {
         loopStack.push(actLoop);
         Set<ARGState> states = new HashSet<>();
         states.add(state);

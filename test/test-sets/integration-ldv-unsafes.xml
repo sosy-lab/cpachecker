@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="180 s" hardtimelimit="200 s" memlimit="3500 MB" cpuCores="2">
   <!-- This file contains regression tests from the LDV project.
@@ -14,56 +25,69 @@
   </rundefinition>
 
   <tasks>
-    <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+    <propertyfile>../programs/ldv-benchmarks/properties/unreach-label.prp</propertyfile>
 
-    <include>../programs/ldv-benchmarks/validator/v0.7/*.c</include>
-    <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
-    <exclude>../programs/ldv-benchmarks/validator/v0.7/linux-stable-90a4845-110_1a-drivers--char--ipmi--ipmi_si.ko-ldv_main0_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-sound--pci--hda--snd-hda-codec.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.12-rc1/fs--ext3--ext3.ko-ldv_main17_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--block--virtio_blk.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--net--ethernet--qlogic--netxen--netxen_nic.ko-ldv_main3_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/134_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-134_1a-drivers--tty--synclinkmp.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--net--wireless--orinoco--orinoco_usb.ko-ldv_main0_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--staging--media--solo6x10--solo6x10.ko-ldv_main3_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/150_1a/linux-3.12-rc1/drivers--net--wireless--ath--ath6kl--ath6kl_sdio.ko-ldv_main0_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--gpu--drm--vmwgfx--vmwgfx.ko-ldv_main10_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--net--ethernet--broadcom--bnx2x--bnx2x.ko-ldv_main3_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--net--phy--dp83640.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--video--console--fbcon.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main1_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main4_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main4_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main2_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main6_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main1_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main48_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main73_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--staging--lustre--lustre--llite--lustre.ko-ldv_main15_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main1_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main2_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main4_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9_true-unreach-label.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/unsafes/43_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-43_1a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main11_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-sound--usb--snd-usb-audio.ko-ldv_main7_false-unreach-label.cil.out.c</exclude> <!-- flapping timeout -->
+    <include>../programs/ldv-benchmarks/validator/v0.7/*.yml</include>
+    <include>../programs/ldv-benchmarks/unsafes/*/*/*.yml</include>
+    <exclude>../programs/ldv-benchmarks/validator/v0.7/linux-stable-90a4845-110_1a-drivers--char--ipmi--ipmi_si.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-fs--nfs--nfs.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-sound--pci--hda--snd-hda-codec.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.12-rc1/fs--ext3--ext3.ko-ldv_main17.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--block--virtio_blk.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--net--ethernet--qlogic--netxen--netxen_nic.ko-ldv_main3.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/132_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-132_1a-drivers--media--usb--cx231xx--cx231xx.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/132_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-132_1a-drivers--media--usb--tlg2300--poseidon.ko-ldv_main4.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/134_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-134_1a-drivers--tty--synclinkmp.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--net--wireless--orinoco--orinoco_usb.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/148_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-148_7a-drivers--staging--media--solo6x10--solo6x10.ko-ldv_main3.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/150_1a/linux-3.12-rc1/drivers--net--wireless--ath--ath6kl--ath6kl_sdio.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--gpu--drm--vmwgfx--vmwgfx.ko-ldv_main10.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--net--ethernet--broadcom--bnx2x--bnx2x.ko-ldv_main3.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--net--phy--dp83640.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-drivers--video--console--fbcon.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main4.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main4.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--hfsplus--hfsplus.ko-ldv_main2.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--ata--libata.ko-ldv_main6.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main48.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main73.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--staging--lustre--lustre--llite--lustre.ko-ldv_main15.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main2.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main4.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/unsafes/43_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-43_1a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main11.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1/linux-3.12-rc1/linux-3.12-rc1.tar.xz-68_1-drivers--input--joystick--xpad.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--media--usb--cpia2--cpia2.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--media--usb--gspca--gspca_benq.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--net--usb--r8152.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--staging--media--msi3101--sdr-msi3101.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--usb--core--usbcore.ko-ldv_main11.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-sound--usb--snd-usb-audio.ko-ldv_main7.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--scsi--scsi_mod.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--ttm--ttm.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
   </tasks>
 
   <tasks>
-    <propertyfile>../programs/ldv-benchmarks/validator/Reach.prp</propertyfile>
-    <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.c</include>
+    <propertyfile>../programs/ldv-benchmarks/properties/unreach-call.prp</propertyfile>
+    <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.yml</include>
+    <exclude>../programs/ldv-benchmarks/validator/klever-v0.1/klever__linux-kernel-locking-spinlock__sound-pci-emu10k1-snd-emu10k1-synth565b7ba46bc2.cil.yml</exclude> <!-- flapping timeout -->
   </tasks>
 
   <tasks>
-    <propertyfile>../programs/ldv-benchmarks/bnb/ALL.prp</propertyfile>
+    <propertyfile>../programs/ldv-benchmarks/properties/unreach-call.prp</propertyfile>
     <includesfile>../programs/ldv-benchmarks/bnb/bnb.set</includesfile>
-    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--ethernet--broadcom--bnx2x--bnx2x-ldv_main3_sequence_infinite_withcheck_stateful-entry_point_true-unreach-call.cil.out.c</exclude> <!-- flapping timeout / wrong result -->
-    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--phy--dp83640-ldv_main0_sequence_infinite_withcheck_stateful-entry_point_true-unreach-call.cil.out.c</exclude> <!-- flapping timeout -->
-    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-fs--ncpfs--ncpfs-ldv_main2_sequence_infinite_withcheck_stateful-entry_point_true-unreach-call.cil.out.c</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--ethernet--broadcom--bnx2x--bnx2x-ldv_main3_sequence_infinite_withcheck_stateful-entry_point.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-drivers--net--phy--dp83640-ldv_main0_sequence_infinite_withcheck_stateful-entry_point.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/bnb/linux-3.14-32_7a-fs--ncpfs--ncpfs-ldv_main2_sequence_infinite_withcheck_stateful-entry_point.cil.out.yml</exclude> <!-- flapping timeout -->
   </tasks>
 </benchmark>

@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of SoSy-Lab Java-Project Template,
+a collection of common files and build definitions for Java projects:
+https://gitlab.com/sosy-lab/software/java-project-template
+
+SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
 <project name="ivy" basedir="."
          xmlns:ivy="antlib:org.apache.ivy.ant">
@@ -11,7 +22,7 @@
     -->
 
     <!-- These properties can be overridden from including file. -->
-    <property name="ivy.target_version" value="2.5.0-rc1"/> <!-- Change version number here to use a newer version of Ivy. -->
+    <property name="ivy.target_version" value="2.5.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
     <property name="ivy.repo.url" value="https://www.sosy-lab.org/ivy"/>
     <property name="ivy.lib.dir" value="lib/java"/>

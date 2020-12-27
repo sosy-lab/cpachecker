@@ -1,8 +1,18 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+// SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Refer doc/JavascriptTesting for quikstart guide
 
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 var fs = require('fs');
+const isDocker = require('is-docker')();
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
 // Remove everything from the line with REPORT_CSS to the line after REPORT_JS
@@ -20,7 +30,7 @@ module.exports = function (config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine'],
+    frameworks: ['jasmine', 'detectBrowsers'],
 
     // list of files / patterns to load in the browser
     files: [
@@ -55,27 +65,36 @@ module.exports = function (config) {
     reporters: ['progress', 'html'],
 
     htmlReporter: {
-      outputDir: 'unit_testing_report', // where to put the reports 
-      templatePath: null, // set if you moved jasmine_template.html
-      focusOnFailures: true, // reports show failures on start
-      namedFiles: false, // name files instead of creating sub-directories
-      pageTitle: null, // page title for reports; browser info by default
-      urlFriendlyName: false, // simply replaces spaces with _ for files/dirs
-      reportName: 'PhantomJS', // report summary filename; browser info by default
-
-
-      // experimental
-      preserveDescribeNesting: false, // folded suites stay folded 
-      foldAll: false, // reports start folded (only with preserveDescribeNesting)
+      outputFile: 'unit_testing_report.html',
+      useLegacyStyle: true,
     },
 
     // add to plugins
     plugins: [
       // other plugins
-      'karma-html-reporter',
-      'karma-phantomjs-launcher',
-      'karma-jasmine'
+      'karma-htmlfile-reporter',
+      'karma-firefox-launcher',
+      'karma-chrome-launcher',
+      'karma-jasmine',
+      'karma-detect-browsers'
     ],
+
+    detectBrowsers: {
+      enabled: true,
+      usePhantomJS: false,
+      preferHeadless: true,
+      // Start Chromium with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
+      postDetection: availableBrowsers => {
+        if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
+          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] = "ChromiumHeadlessNoSandbox";
+        }
+        return availableBrowsers.filter(browser =>
+          browser.includes("Chromium") ||
+          browser.includes("Chrome") ||
+          browser.includes("Firefox")
+        );
+      }
+    },
 
     // web server port
     port: 9876,
@@ -90,9 +109,14 @@ module.exports = function (config) {
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
-    // start these browsers
-    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['PhantomJS'],
+    // to make Chrome run in Docker container
+    // https://github.com/karma-runner/karma-chrome-launcher/issues/158
+    customLaunchers: {
+      ChromiumHeadlessNoSandbox: {
+        base: 'ChromiumHeadless',
+        flags: ['--no-sandbox']
+      }
+    },
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits

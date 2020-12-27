@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import com.google.common.base.Preconditions;
@@ -34,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -45,38 +31,41 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialReachedSetDirectedGraph implements Statistics {
 
-  /* index of node is its position in <code>nodes</code>*/
+  /** index of node is its position in <code>nodes</code> */
   private final AbstractState[] nodes;
+
   private final int numNodes;
   private final ImmutableList<ImmutableList<Integer>> adjacencyList;
 
   public PartialReachedSetDirectedGraph(final ARGState[] pNodes) {
-    List<List<Integer>> adjacencyList;
     if (pNodes == null) {
       nodes = new AbstractState[0];
       numNodes = 0;
-      adjacencyList = new ArrayList<>(0);
+      adjacencyList = ImmutableList.of();
     } else {
-      nodes = Arrays.copyOf(pNodes, pNodes.length);
+      nodes = pNodes.clone();
       numNodes = nodes.length;
-      adjacencyList = new ArrayList<>(nodes.length);
-      for (@SuppressWarnings("unused")
-      AbstractState node : nodes) {
-        adjacencyList.add(new ArrayList<Integer>());
-      }
+      this.adjacencyList = buildAdjacencyList(pNodes);
+    }
+  }
 
-      SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(adjacencyList);
-      for (ARGState node : pNodes) {
-        edgeConstructor.setPredecessorBeforeARGPass(node);
-        edgeConstructor.passARG(node);
-      }
+  private static ImmutableList<ImmutableList<Integer>> buildAdjacencyList(final ARGState[] pNodes) {
+    List<List<Integer>> adjacencyList = new ArrayList<>(pNodes.length);
+    for (@SuppressWarnings("unused") AbstractState node : pNodes) {
+      adjacencyList.add(new ArrayList<Integer>());
+    }
+
+    SuccessorEdgeConstructor edgeConstructor = new SuccessorEdgeConstructor(pNodes, adjacencyList);
+    for (ARGState node : pNodes) {
+      edgeConstructor.setPredecessorBeforeARGPass(node);
+      edgeConstructor.passARG(node);
     }
 
     List<ImmutableList<Integer>> newList = new ArrayList<>(adjacencyList.size());
-    for (int i = 0; i < adjacencyList.size(); i++) {
-      newList.add(ImmutableList.copyOf(adjacencyList.get(i)));
+    for (List<Integer> element : adjacencyList) {
+      newList.add(ImmutableList.copyOf(element));
     }
-    this.adjacencyList = ImmutableList.copyOf(newList);
+    return ImmutableList.copyOf(newList);
   }
 
   public Set<Integer> getPredecessorsOf(int node) {
@@ -316,8 +305,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
   }
 
-
-  private class SuccessorEdgeConstructor extends AbstractARGPass {
+  private static class SuccessorEdgeConstructor extends AbstractARGPass {
 
     private ARGState predecessor;
     private int indexPredecessor;
@@ -325,14 +313,14 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private final List<List<Integer>> changeableAdjacencyList;
     private final Set<Pair<Integer, Integer>> knownEdges;
 
-    public SuccessorEdgeConstructor(List<List<Integer>> pAdjacencyList) {
+    public SuccessorEdgeConstructor(ARGState[] pNodes, List<List<Integer>> pAdjacencyList) {
       super(false);
       nodeToIndex = new HashMap<>();
-      for (int i = 0; i < nodes.length; i++) {
-        nodeToIndex.put(nodes[i], i);
+      for (int i = 0; i < pNodes.length; i++) {
+        nodeToIndex.put(pNodes[i], i);
       }
       changeableAdjacencyList = pAdjacencyList;
-      knownEdges = Sets.newHashSetWithExpectedSize(nodes.length);
+      knownEdges = Sets.newHashSetWithExpectedSize(pNodes.length);
     }
 
     public void setPredecessorBeforeARGPass(ARGState pNewPredecessor) {
@@ -356,7 +344,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
 
     @Override
     public boolean stopPathDiscovery(ARGState pNode) {
-      return pNode != predecessor && (nodeToIndex.containsKey(pNode) || pNode.isCovered());
+      return !Objects.equals(pNode, predecessor)
+          && (nodeToIndex.containsKey(pNode) || pNode.isCovered());
     }
 
   }

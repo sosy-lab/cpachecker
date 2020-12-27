@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
@@ -36,7 +21,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -200,7 +184,8 @@ public class AssumptionToEdgeAllocator {
    *          represented as assumptions
    */
   public CFAEdgeWithAssumptions allocateAssumptionsToEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
-    Collection<AExpressionStatement> assignmentsAtEdge = createAssignmentsAtEdge(pCFAEdge, pConcreteState);
+    ImmutableSet<AExpressionStatement> assignmentsAtEdge =
+        createAssignmentsAtEdge(pCFAEdge, pConcreteState);
     String comment = createComment(pCFAEdge, pConcreteState);
     return new CFAEdgeWithAssumptions(pCFAEdge, assignmentsAtEdge, comment);
   }
@@ -265,8 +250,9 @@ public class AssumptionToEdgeAllocator {
     return "&" + dcl.getName() + " == " + address.getCommentRepresentation();
   }
 
-  private Collection<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
-    Set<AExpressionStatement> result = new LinkedHashSet<>();
+  private ImmutableSet<AExpressionStatement> createAssignmentsAtEdge(
+      CFAEdge pCFAEdge, ConcreteState pConcreteState) {
+    ImmutableSet.Builder<AExpressionStatement> result = ImmutableSet.builder();
 
     // Get all Assumptions of this edge
     switch (pCFAEdge.getEdgeType()) {
@@ -295,7 +281,7 @@ public class AssumptionToEdgeAllocator {
       result.addAll(parameterAssumptions);
     }
 
-    return result;
+    return result.build();
   }
 
   private String handleAssumeComment(AssumeEdge pCfaEdge, ConcreteState pConcreteState) {
@@ -376,7 +362,7 @@ public class AssumptionToEdgeAllocator {
         CExpression op1 = binExp.getOperand1();
         CExpression op2 = binExp.getOperand2();
 
-        List<AExpressionStatement> result = new ArrayList<>();
+        ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
         if (op1 instanceof CLeftHandSide) {
           result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op1, pConcreteState));
         }
@@ -384,7 +370,7 @@ public class AssumptionToEdgeAllocator {
         if (op2 instanceof CLeftHandSide) {
           result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op2, pConcreteState));
         }
-        return result;
+        return result.build();
       }
     }
   }
@@ -427,11 +413,11 @@ public class AssumptionToEdgeAllocator {
     if (parameterDeclarations.isEmpty()) {
       return ImmutableList.of();
     }
-    List<AExpressionStatement> result = new ArrayList<>(parameterDeclarations.size());
+    ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
     for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
       result.addAll(handleDeclaration(parameterDeclaration, functionName, pConcreteState));
     }
-    return result;
+    return result.build();
   }
 
   private List<AExpressionStatement> handleAssignment(CFAEdge pCFAEdge, CLeftHandSide pLeftHandSide, ConcreteState pConcreteState) {
@@ -566,7 +552,7 @@ public class AssumptionToEdgeAllocator {
     boolean equalTypes = leftType.equals(rightType);
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
-        FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
+        FluentIterable.from(Collections.singleton(CSimpleType.class));
     acceptedTypes = acceptedTypes.append(
           Arrays.asList(
               CArrayType.class,
@@ -2073,7 +2059,7 @@ public class AssumptionToEdgeAllocator {
 
     private final CCastExpression castExpression;
 
-    protected CastedExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression exp) {
+    CastedExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression exp) {
       super(pValueLiteral);
       castExpression = exp;
     }

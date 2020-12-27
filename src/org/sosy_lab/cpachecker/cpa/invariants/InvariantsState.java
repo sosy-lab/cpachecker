@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -362,8 +347,7 @@ public class InvariantsState implements AbstractState,
     TypeInfo typeInfo = BitVectorInfo.from(machineModel, variableType);
     NumeralFormula<CompoundInterval> value =
         tools.compoundIntervalFormulaManager.cast(typeInfo, pValue);
-    for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : this.environment.entrySet()) {
-      MemoryLocation memoryLocation = entry.getKey();
+    for (MemoryLocation memoryLocation : this.environment.keySet()) {
       TypeInfo varTypeInfo = BitVectorInfo.from(machineModel, getType(memoryLocation));
       if (memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + "->")
           || memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + ".")) {
@@ -736,8 +720,10 @@ public class InvariantsState implements AbstractState,
 
     NonRecursiveEnvironment resultEnvironment = environment;
     Set<BooleanFormula<CompoundInterval>> resultAssumptions = new HashSet<>();
+    final CollectFormulasVisitor<CompoundInterval> variableCollectionVisitor =
+        new CollectFormulasVisitor<>(Predicates.instanceOf(Variable.class));
     for (BooleanFormula<CompoundInterval> assumption : assumptions) {
-      if (Collections.disjoint(assumption.accept(COLLECT_VARS_VISITOR), toClear)) {
+      if (Collections.disjoint(assumption.accept(variableCollectionVisitor), toClear)) {
         resultAssumptions.add(assumption);
       }
     }
@@ -818,11 +804,12 @@ public class InvariantsState implements AbstractState,
   }
 
   /**
-   * We build an interval formula like <code>A <= X <= B</code> for each known memory location.
+   * We build an interval formula like <code>{@code A <= X <= B}</code> for each known memory
+   * location.
    *
    * <p>Please note that we already try to simplify the interval, i.e., if X has type 'signed int',
-   * we return TRUE instead of <code>MIN_INT <= X <= MAX_INT</code> , because this is trivially
-   * satisfied.
+   * we return TRUE instead of <code>{@code MIN_INT <= X <= MAX_INT}</code> , because this is
+   * trivially satisfied.
    */
   private Iterable<BooleanFormula<CompoundInterval>> getTypeInformationAsAssumptions() {
     List<BooleanFormula<CompoundInterval>> assumptionsIntervals = new ArrayList<>();
@@ -1610,8 +1597,7 @@ public class InvariantsState implements AbstractState,
         Set<MemoryLocation> todo = new HashSet<>();
 
         // Join the easy ones first (both values equal or one value top)
-        for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : state1.environment.entrySet()) {
-          MemoryLocation memoryLocation = entry.getKey();
+        for (MemoryLocation memoryLocation : state1.environment.keySet()) {
           NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(memoryLocation);
           if (rightFormula != null) {
             NumeralFormula<CompoundInterval> leftFormula =
@@ -1714,7 +1700,7 @@ public class InvariantsState implements AbstractState,
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> result = new HashSet<>();
-    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<NumeralFormula<CompoundInterval>>() {
+    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<>() {
 
       @Override
       public boolean apply(NumeralFormula<CompoundInterval> pFormula) {

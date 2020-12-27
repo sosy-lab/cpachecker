@@ -1,43 +1,29 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -122,21 +108,18 @@ public class AssignmentToPathAllocator {
 
     ConcreteExpressionEvaluator evaluator = createPredicateAnalysisEvaluator(pModel);
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
-    List<ConcreteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
-    Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
+    ImmutableList.Builder<ConcreteStatePathNode> pathWithAssignments =
+        ImmutableList.builderWithExpectedSize(pPath.getInnerEdges().size());
+    ImmutableMap<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
-    /* Its too inefficient to recreate every assignment from scratch,
-       but the ssaIndex of the Assignable Terms are needed, thats
-       why we declare two maps of variables and functions. One for
-       the calculation of the SSAIndex, the other to save the references
-       to the objects we want to store in the concrete State, so we can avoid
-       recreating those objects */
-
-    Map<String, ValueAssignment> variableEnvironment = new HashMap<>();
-    Map<LeftHandSide, Object> variables = new HashMap<>();
-    Multimap<String, ValueAssignment> functionEnvironment = HashMultimap.create();
-    //TODO Persistent Map
-    Map<String, Map<Address, Object>> memory = new HashMap<>();
+    // Its too inefficient to recreate every assignment from scratch, but the ssaIndex of the
+    // Assignable Terms are needed, thats why we declare two maps of variables and functions. One
+    // for the calculation of the SSAIndex, the other to save the references to the objects we want
+    // to store in the concrete State, so we can avoid recreating those objects
+    final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
+    final Map<LeftHandSide, Object> variables = new LinkedHashMap<>();
+    final SetMultimap<String, ValueAssignment> functionEnvironment = LinkedHashMultimap.create();
+    final Map<String, Map<Address, Object>> memory = new LinkedHashMap<>();
 
     int ssaMapIndex = 0;
 
@@ -146,13 +129,8 @@ public class AssignmentToPathAllocator {
     while (pathIt.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge cfaEdge = pathIt.getOutgoingEdge();
-
-      memory = new HashMap<>(memory);
-      variableEnvironment = new HashMap<>(variableEnvironment);
-      functionEnvironment = HashMultimap.create(functionEnvironment);
-      Collection<ValueAssignment> terms =
+      ImmutableSet<ValueAssignment> terms =
           assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
-
       SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
       boolean isInsideMultiEdge;
@@ -165,16 +143,14 @@ public class AssignmentToPathAllocator {
         isInsideMultiEdge = false;
       }
 
+      createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
+      removeDeallocatedVariables(ssaMap, variableEnvironment, variables);
+      ImmutableMap<String, Memory> allocatedMemory =
+          ImmutableMap.copyOf(
+              Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
+
       ConcreteState concreteState =
-          createConcreteState(
-              ssaMap,
-              variableEnvironment,
-              variables,
-              functionEnvironment,
-              memory,
-              addressOfVariables,
-              terms,
-              evaluator);
+          new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, evaluator);
 
       final SingleConcreteState singleConcreteState;
       if (isInsideMultiEdge) {
@@ -190,7 +166,7 @@ public class AssignmentToPathAllocator {
       pathIt.advance();
     }
 
-    return new ConcreteStatePath(pathWithAssignments);
+    return new ConcreteStatePath(pathWithAssignments.build());
   }
 
   private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(Iterable<ValueAssignment> pModel) {
@@ -375,30 +351,6 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private ConcreteState createConcreteState(
-      SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvironment,
-      Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvironment,
-      Map<String, Map<Address, Object>> memory,
-      Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms,
-      ConcreteExpressionEvaluator pEvaluator) {
-
-    createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
-    removeDeallocatedVariables(ssaMap, variableEnvironment);
-    Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
-
-    return new ConcreteState(
-        variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator);
-  }
-
-  private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
-
-    return ImmutableMap.copyOf(
-        Maps.transformEntries(pMemory, (name, heap) -> new Memory(name, heap)));
-  }
-
   private LeftHandSide createLeftHandSide(String pTermName) {
 
     //TODO ugly, refactor (no splitting)
@@ -447,15 +399,16 @@ public class AssignmentToPathAllocator {
   }
 
   private void removeDeallocatedVariables(
-      SSAMap pMap, Map<String, ValueAssignment> variableEnvironment) {
+      SSAMap pMap,
+      Map<String, ValueAssignment> variableEnvironment,
+      Map<LeftHandSide, Object> variables) {
     variableEnvironment.keySet().removeIf(name -> pMap.getIndex(name) < 0);
+    variables.keySet().removeIf(lhs -> pMap.getIndex(lhs.toString()) < 0);
   }
 
-  /**
-   * We need the variableEnvironment and functionEnvironment for their SSAIndeces.
-   */
+  /** We need the variableEnvironment and functionEnvironment for their SSAIndeces. */
   private void createAssignments(
-      Collection<ValueAssignment> terms,
+      ImmutableCollection<ValueAssignment> terms,
       Map<String, ValueAssignment> variableEnvironment,
       Map<LeftHandSide, Object> pVariables,
       Multimap<String, ValueAssignment> functionEnvironment,
@@ -466,12 +419,13 @@ public class AssignmentToPathAllocator {
       Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
       if (pair.getSecond().isPresent()) {
         String canonicalName = pair.getFirst();
-        int newIndex = pair.getSecond().getAsInt();
+        int newIndex = pair.getSecond().orElseThrow();
 
         if (variableEnvironment.containsKey(canonicalName)) {
           ValueAssignment oldVariable = variableEnvironment.get(canonicalName);
 
-          int oldIndex = FormulaManagerView.parseName(oldVariable.getName()).getSecond().getAsInt();
+          int oldIndex =
+              FormulaManagerView.parseName(oldVariable.getName()).getSecond().orElseThrow();
 
           if (oldIndex < newIndex) {
 
@@ -523,13 +477,12 @@ public class AssignmentToPathAllocator {
   }
   private void addHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
-    Map<Address, Object> heap;
 
-    if (!memory.containsKey(heapName)) {
-      memory.put(heapName, new HashMap<>());
+    Map<Address, Object> heap = memory.get(heapName);
+    if (heap == null) {
+      heap = new LinkedHashMap<>();
+      memory.put(heapName, heap);
     }
-
-    heap = memory.get(heapName);
 
     Address address =
         Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
@@ -538,10 +491,10 @@ public class AssignmentToPathAllocator {
     heap.put(address, value);
   }
 
-  private Map<LeftHandSide, Address> getVariableAddresses(
+  private ImmutableMap<LeftHandSide, Address> getVariableAddresses(
       AssignableTermsInPath assignableTerms) {
 
-    Map<LeftHandSide, Address> addressOfVariables = new HashMap<>();
+    ImmutableMap.Builder<LeftHandSide, Address> addressOfVariables = ImmutableMap.builder();
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = constant.getName();
@@ -556,7 +509,7 @@ public class AssignmentToPathAllocator {
       }
     }
 
-    return ImmutableMap.copyOf(addressOfVariables);
+    return addressOfVariables.build();
   }
 
   private boolean isSmallerSSA(ValueAssignment pOldFunction, ValueAssignment pFunction) {
@@ -604,10 +557,11 @@ public class AssignmentToPathAllocator {
 
     // Create a map that holds all AssignableTerms that occurred
     // in the given path. The referenced path is the precise path, with multi edges resolved.
-    Multimap<Integer, ValueAssignment> assignedTermsPosition = HashMultimap.create();
+    ImmutableSetMultimap.Builder<Integer, ValueAssignment> assignedTermsPosition =
+        ImmutableSetMultimap.builder();
 
-    Set<ValueAssignment> constants = new HashSet<>();
-    Set<ValueAssignment> functionsWithoutSSAIndex = new HashSet<>();
+    ImmutableSet.Builder<ValueAssignment> constants = ImmutableSet.builder();
+    ImmutableSet.Builder<ValueAssignment> functionsWithoutSSAIndex = ImmutableSet.builder();
 
     for (ValueAssignment term : pModel) {
 
@@ -631,7 +585,8 @@ public class AssignmentToPathAllocator {
       }
     }
 
-    return new AssignableTermsInPath(assignedTermsPosition, constants, functionsWithoutSSAIndex);
+    return new AssignableTermsInPath(
+        assignedTermsPosition.build(), constants.build(), functionsWithoutSSAIndex.build());
   }
 
   private int getSSAIndex(ValueAssignment pTerm) {
@@ -669,29 +624,30 @@ public class AssignmentToPathAllocator {
 
   private static final class AssignableTermsInPath {
 
-    private final Multimap<Integer, ValueAssignment> assignableTermsAtPosition;
-    private final Set<ValueAssignment> constants;
-    private final Set<ValueAssignment> ufFunctionsWithoutSSAIndex;
+    private final ImmutableSetMultimap<Integer, ValueAssignment> assignableTermsAtPosition;
+    private final ImmutableSet<ValueAssignment> constants;
+    private final ImmutableSet<ValueAssignment> ufFunctionsWithoutSSAIndex;
 
     public AssignableTermsInPath(
-        Multimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
-        Set<ValueAssignment> pConstants, Set<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
+        ImmutableSetMultimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
+        ImmutableSet<ValueAssignment> pConstants,
+        ImmutableSet<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
 
-      assignableTermsAtPosition = ImmutableMultimap.copyOf(pAssignableTermsAtPosition);
-      constants = ImmutableSet.copyOf(pConstants);
-      ufFunctionsWithoutSSAIndex = ImmutableSet.copyOf(pUfFunctionsWithoutSSAIndex);
+      assignableTermsAtPosition = pAssignableTermsAtPosition;
+      constants = pConstants;
+      ufFunctionsWithoutSSAIndex = pUfFunctionsWithoutSSAIndex;
     }
 
-    public Multimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
+    public ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
       return assignableTermsAtPosition;
     }
 
-    public Set<ValueAssignment> getConstants() {
+    public ImmutableSet<ValueAssignment> getConstants() {
       return constants;
     }
 
     @SuppressWarnings("unused")
-    public Set<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
+    public ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
 

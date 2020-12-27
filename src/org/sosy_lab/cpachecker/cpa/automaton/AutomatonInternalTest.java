@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -52,6 +37,7 @@ import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
@@ -82,7 +68,9 @@ public class AutomatonInternalTest {
     logger = LogManager.createTestLogManager();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
-    parser = CParser.Factory.getParser(logger, options, MachineModel.LINUX32);
+    parser =
+        CParser.Factory.getParser(
+            logger, options, MachineModel.LINUX32, ShutdownNotifier.createDummy());
   }
 
   @Test
@@ -194,14 +182,14 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testJokerReplacementInAST() {
+  public void testJokerReplacementInAST() throws InterruptedException {
     // tests the replacement of Joker expressions in the AST comparison
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
 
-    assert_().about(astMatcher).that(pattern).matches(source).andVariable(20).isEqualTo("var1");
-    assert_().about(astMatcher).that(pattern).matches(source).andVariable(1).isEqualTo("var2");
-    assert_().about(astMatcher).that(pattern).matches(source).andVariable(5).isEqualTo("function");
+    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(20).isEqualTo("var1");
+    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(1).isEqualTo("var2");
+    assert_().about(ASTMatcherSubject::new).that(pattern).matches(source).andVariable(5).isEqualTo("function");
   }
 
   @Test
@@ -281,79 +269,71 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void testASTcomparison() {
-    assert_().about(astMatcher).that("x= $?;").matches("x=5;");
-    assert_().about(astMatcher).that("x= 10;").doesNotMatch("x=5;");
-    assert_().about(astMatcher).that("$? =10;").doesNotMatch("x=5;");
-    assert_().about(astMatcher).that("$?=$?;").matches("x  = 5;");
+  public void testASTcomparison() throws InterruptedException {
+    assert_().about(ASTMatcherSubject::new).that("x= $?;").matches("x=5;");
+    assert_().about(ASTMatcherSubject::new).that("x= 10;").doesNotMatch("x=5;");
+    assert_().about(ASTMatcherSubject::new).that("$? =10;").doesNotMatch("x=5;");
+    assert_().about(ASTMatcherSubject::new).that("$?=$?;").matches("x  = 5;");
 
-    assert_().about(astMatcher).that("b    = 5;").doesNotMatch("a = 5;");
+    assert_().about(ASTMatcherSubject::new).that("b    = 5;").doesNotMatch("a = 5;");
 
-    assert_().about(astMatcher).that("init($?);").matches("init(a);");
-    assert_().about(astMatcher).that("init($?);").matches("init();");
-    assert_().about(astMatcher).that("init($1);").doesNotMatch("init();");
+    assert_().about(ASTMatcherSubject::new).that("init($?);").matches("init(a);");
+    assert_().about(ASTMatcherSubject::new).that("init($?);").matches("init();");
+    assert_().about(ASTMatcherSubject::new).that("init($1);").doesNotMatch("init();");
 
-    assert_().about(astMatcher).that("init($?, b);").matches("init(a, b);");
-    assert_().about(astMatcher).that("init($?, c);").doesNotMatch("init(a, b);");
+    assert_().about(ASTMatcherSubject::new).that("init($?, b);").matches("init(a, b);");
+    assert_().about(ASTMatcherSubject::new).that("init($?, c);").doesNotMatch("init(a, b);");
 
-    assert_().about(astMatcher).that("x=$?").matches("x = 5;");
-    assert_().about(astMatcher).that("x=$?;").matches("x = 5");
+    assert_().about(ASTMatcherSubject::new).that("x=$?").matches("x = 5;");
+    assert_().about(ASTMatcherSubject::new).that("x=$?;").matches("x = 5");
 
-    assert_().about(astMatcher).that("f($?);").matches("f();");
-    assert_().about(astMatcher).that("f($?);").matches("f(x);");
-    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x, y);");
 
     // Too-large number in a joker makes it be ignored.
-    assert_().about(astMatcher).that("$12345678901;").doesNotMatch("x");
+    assert_().about(ASTMatcherSubject::new).that("$12345678901;").doesNotMatch("x");
   }
 
   @Test
-  public void testAstMatcherFunctionParameters() {
-    assert_().about(astMatcher).that("f();").matches("f();");
-    assert_().about(astMatcher).that("f();").doesNotMatch("f(x);");
-    assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
+  public void testAstMatcherParameters() throws InterruptedException {
+    assert_().about(ASTMatcherSubject::new).that("f();").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("f();").doesNotMatch("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f();").doesNotMatch("f(x, y);");
 
-    assert_().about(astMatcher).that("f($1);").doesNotMatch("f();");
-    assert_().about(astMatcher).that("f($1);").matches("f(x);").andVariable(1).isEqualTo("x");
-    assert_().about(astMatcher).that("f($1);").doesNotMatch("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f($1);").doesNotMatch("f();");
+    assert_().about(ASTMatcherSubject::new).that("f($1);").matches("f(x);").andVariable(1).isEqualTo("x");
+    assert_().about(ASTMatcherSubject::new).that("f($1);").doesNotMatch("f(x, y);");
 
-    assert_().about(astMatcher).that("f($?);").matches("f();");
-    assert_().about(astMatcher).that("f($?);").matches("f(x);");
-    assert_().about(astMatcher).that("f($?);").matches("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f($?);").matches("f(x, y);");
 
-    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x);");
-    assert_().about(astMatcher).that("f(x, $?);").matches("f(x, y);");
-    assert_().about(astMatcher).that("f(x, $?);").doesNotMatch("f(x, y, z);");
+    assert_().about(ASTMatcherSubject::new).that("f(x, $?);").doesNotMatch("f(x);");
+    assert_().about(ASTMatcherSubject::new).that("f(x, $?);").matches("f(x, y);");
+    assert_().about(ASTMatcherSubject::new).that("f(x, $?);").doesNotMatch("f(x, y, z);");
   }
 
   @Test
-  public void testAstMatcherFunctionCall() {
-    assert_().about(astMatcher).that("$?();").matches("f();");
-    assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
-    assert_().about(astMatcher).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
+  public void testAstMatcherFunctionCall() throws InterruptedException {
+    assert_().about(ASTMatcherSubject::new).that("$?();").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("$?();").doesNotMatch("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
 
-    assert_().about(astMatcher).that("x = $?();").doesNotMatch("f();");
-    assert_().about(astMatcher).that("x = $?();").matches("x = f();");
-    assert_().about(astMatcher).that("x = $1();").matches("x = f();").andVariable(1).isEqualTo("f");
+    assert_().about(ASTMatcherSubject::new).that("x = $?();").doesNotMatch("f();");
+    assert_().about(ASTMatcherSubject::new).that("x = $?();").matches("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("x = $1();").matches("x = f();").andVariable(1).isEqualTo("f");
 
-    assert_().about(astMatcher).that("$?($?);").matches("f();");
-    assert_().about(astMatcher).that("$?($?);").matches("f(y);");
-    assert_().about(astMatcher).that("$?($?);").matches("f(y, z);");
-    assert_().about(astMatcher).that("$?($?);").doesNotMatch("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f();");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f(y);");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").matches("f(y, z);");
+    assert_().about(ASTMatcherSubject::new).that("$?($?);").doesNotMatch("x = f();");
 
-    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f();");
-    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y);");
-    assert_().about(astMatcher).that("$? = $1($?);").matches("x = f(y, z);");
-    assert_().about(astMatcher).that("$? = $1($?);").doesNotMatch("f();");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").matches("x = f();");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").matches("x = f(y);");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").matches("x = f(y, z);");
+    assert_().about(ASTMatcherSubject::new).that("$? = $1($?);").doesNotMatch("f();");
   }
-
-  private final Subject.Factory<ASTMatcherSubject, String> astMatcher =
-      new Subject.Factory<ASTMatcherSubject, String>() {
-        @Override
-        public ASTMatcherSubject createSubject(FailureMetadata pMd, String pThat) {
-          return new ASTMatcherSubject(pMd, pThat);
-        }
-      };
 
   /**
    * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
@@ -370,7 +350,7 @@ public class AutomatonInternalTest {
       pattern = pPattern;
     }
 
-    private boolean matches0(String src) throws InvalidAutomatonException {
+    private boolean matches0(String src) throws InvalidAutomatonException, InterruptedException {
       CAstNode sourceAST;
       ASTMatcher matcher;
       try {
@@ -383,7 +363,7 @@ public class AutomatonInternalTest {
       return matcher.matches(sourceAST, args);
     }
 
-    public Matches matches(final String src) {
+    public Matches matches(final String src) throws InterruptedException {
       boolean matches;
       try {
         matches = matches0(src);
@@ -422,7 +402,7 @@ public class AutomatonInternalTest {
       };
     }
 
-    public void doesNotMatch(String src) {
+    public void doesNotMatch(String src) throws InterruptedException {
       try {
         if (matches0(src)) {
           if (args.getTransitionVariables().isEmpty()) {

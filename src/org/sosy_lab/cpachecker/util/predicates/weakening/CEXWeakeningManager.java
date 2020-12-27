@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import com.google.common.collect.ImmutableSet;
@@ -33,10 +18,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -52,13 +33,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 /**
  * Perform weakening using counter-examples to induction.
  */
-@Options(prefix="cpa.slicing")
 public class CEXWeakeningManager {
-  @Option(description="Strategy for abstracting children during CEX weakening", secure=true)
-  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.ALL;
-
-  @Option(description="Depth limit for the 'LEAST_REMOVALS' strategy.")
-  private int leastRemovalsDepthLimit = 2;
 
   /**
    * Selection strategy for CEX-based weakening.
@@ -87,17 +62,18 @@ public class CEXWeakeningManager {
 
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
-  private final InductiveWeakeningManager.InductiveWeakeningStatistics
-      statistics;
+  private final InductiveWeakeningManager.InductiveWeakeningStatistics statistics;
   private final Random r = new Random(0);
   private final ShutdownNotifier shutdownNotifier;
+  private final WeakeningOptions options;
 
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
       InductiveWeakeningManager.InductiveWeakeningStatistics pStatistics,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
+      WeakeningOptions pOptions,
+      ShutdownNotifier pShutdownNotifier) {
+    options = pOptions;
     solver = pSolver;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -197,7 +173,7 @@ public class CEXWeakeningManager {
 
         if (selector.isPresent()) {
           if (shouldAbstract(bfmgr.or(operands))) {
-            handleAnnotatedLiteral(selector.get());
+            handleAnnotatedLiteral(selector.orElseThrow());
           }
           return TraversalProcess.SKIP;
         } else {
@@ -232,7 +208,7 @@ public class CEXWeakeningManager {
       }
 
       private TraversalProcess selectChildren(List<BooleanFormula> operands) {
-        switch (removalSelectionStrategy) {
+        switch (options.getRemovalSelectionStrategy()) {
           case ALL:
             return TraversalProcess.CONTINUE;
           case FIRST:
@@ -242,7 +218,7 @@ public class CEXWeakeningManager {
             int rand = r.nextInt(operands.size());
             return TraversalProcess.custom(operands.get(rand));
           case LEAST_REMOVALS:
-            if (depth >= leastRemovalsDepthLimit) {
+            if (depth >= options.getLeastRemovalsDepthLimit()) {
               return TraversalProcess.custom(operands.iterator().next());
             }
             BooleanFormula out =

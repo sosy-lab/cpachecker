@@ -1,44 +1,36 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -120,6 +112,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -132,16 +125,20 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.xml.sax.SAXException;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+
+  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -173,8 +170,34 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
-    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    @Option(
+        secure = true,
+        description =
+            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
+                + " values in the TestComp format. It is used for function-calls to calls of"
+                + " VERIFIER_nondet_*. The file is provided via the option"
+                + " functionValuesForRandom ")
+    private boolean ignoreFunctionValueExceptRandom = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled ")
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+    private Path functionValuesForRandom = null;
+
+    @Option(
+        secure = true,
+        description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
+
+    @Option(
+      secure = true,
+      description = "Allow the given extern functions and interpret them as pure functions"
+          + " although the value analysis does not support their semantics"
+          + " and this can produce wrong results.")
+    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -194,6 +217,18 @@ public class ValueAnalysisTransferRelation
 
     boolean isIgnoreFunctionValue() {
       return ignoreFunctionValue;
+    }
+
+    public boolean isIgnoreFunctionValueExceptRandom() {
+      return ignoreFunctionValueExceptRandom;
+    }
+
+    public Path getFunctionValuesForRandom() {
+      return functionValuesForRandom;
+    }
+
+    boolean isAllowedUnsupportedOption(String func) {
+      return allowedUnsupportedFunctions.contains(func);
     }
   }
 
@@ -239,6 +274,7 @@ public class ValueAnalysisTransferRelation
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
+  private Map<Integer, String> valuesFromFile;
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -253,15 +289,21 @@ public class ValueAnalysisTransferRelation
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
-      addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
-      booleanVariables   = pCfa.getVarClassification().get().getIntBoolVars();
+      addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+      booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
-      booleanVariables   = ImmutableSet.of();
+      booleanVariables = ImmutableSet.of();
     }
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      setupFunctionValuesForRandom();
+    }
   }
 
   @Override
@@ -434,7 +476,7 @@ public class ValueAnalysisTransferRelation
         OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.getAsInt());
+          assignedArray.setValue(newValue, maybeIndex.orElseThrow());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -464,10 +506,9 @@ public class ValueAnalysisTransferRelation
             String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
             memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
           }
-        }
 
-        // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-        else if (op1 instanceof APointerExpression) {
+        } else if (op1 instanceof APointerExpression) {
+          // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
         } else {
           throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
@@ -476,12 +517,12 @@ public class ValueAnalysisTransferRelation
         // assign the value if a memory location was successfully computed
         if (memLoc.isPresent()) {
           if (!valueExists) {
-            unknownValueHandler.handle(memLoc.get(), op1.getExpressionType(), newElement, v);
+            unknownValueHandler.handle(
+                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
 
           } else {
-            newElement.assignConstant(memLoc.get(),
-                                      newValue,
-                                      state.getTypeForMemoryLocation(functionReturnVar));
+            newElement.assignConstant(
+                memLoc.orElseThrow(), newValue, state.getTypeForMemoryLocation(functionReturnVar));
           }
         }
       }
@@ -653,7 +694,7 @@ public class ValueAnalysisTransferRelation
       return ((BooleanValue) value).isTrue() == bool;
 
     } else if (value.isNumericValue()) {
-      return ((NumericValue) value).equals(new NumericValue(bool ? 1L : 0L));
+      return value.equals(new NumericValue(bool ? 1L : 0L));
 
     } else {
       return false;
@@ -791,11 +832,19 @@ public class ValueAnalysisTransferRelation
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          if (!options.isAllowedUnsupportedOption(func)) {
+            throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          }
 
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
+            if (!options.isAllowedUnsupportedOption(func)) {
+              throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+            }
+          }
         } else if (expression instanceof CFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
@@ -808,11 +857,11 @@ public class ValueAnalysisTransferRelation
     if (expression instanceof AAssignment) {
       return handleAssignment((AAssignment)expression, cfaEdge);
 
-    // external function call - do nothing
     } else if (expression instanceof AFunctionCallStatement) {
+      // external function call - do nothing
 
-    // there is such a case
     } else if (expression instanceof AExpressionStatement) {
+      // there is such a case
 
     } else {
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
@@ -837,10 +886,10 @@ public class ValueAnalysisTransferRelation
 
     if (memLoc.isPresent()) {
       if (!newValue.isUnknown()) {
-        newElement.assignConstant(memLoc.get(), newValue, leftSideType);
+        newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.get(), leftSideType, newElement, evv);
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
       }
     }
 
@@ -937,7 +986,8 @@ public class ValueAnalysisTransferRelation
         }
       }
     } else {
-      throw new UnrecognizedCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
+      throw new UnrecognizedCodeException(
+          "left operand of assignment has to be a variable", cfaEdge, op1);
     }
 
     return state; // the default return-value is the old state
@@ -1131,7 +1181,7 @@ public class ValueAnalysisTransferRelation
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.getAsInt();
+        index = maybeIndex.orElseThrow();
 
       } else {
         return null;
@@ -1168,7 +1218,7 @@ public class ValueAnalysisTransferRelation
       OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
@@ -1278,6 +1328,14 @@ public class ValueAnalysisTransferRelation
           AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
           result.addAll(
               strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
+      } else if (ae instanceof ThreadingState) {
+        result.clear();
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
@@ -1550,6 +1608,18 @@ public class ValueAnalysisTransferRelation
     }
   }
 
+  private @NonNull ValueAnalysisState strengthenWithThreads(
+      ThreadingState pThreadingState, ValueAnalysisState pState) throws CPATransferException {
+    final FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    final FunctionEntryNode succ = function.getSuccessor();
+    final String calledFunctionName = succ.getFunctionName();
+    return handleFunctionCallEdge(
+        function, function.getArguments(), succ.getFunctionParameters(), calledFunctionName);
+  }
+
   private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
@@ -1646,13 +1716,37 @@ public class ValueAnalysisTransferRelation
    } else {
      return null;
    }
+  }
 
-
+  /** Load the FunctionValues for random functinos from the given Testcomp Testcase */
+  private void setupFunctionValuesForRandom() {
+    try {
+      this.valuesFromFile =
+          TestCompTestcaseLoader.loadTestcase(options.getFunctionValuesForRandom());
+    } catch (ParserConfigurationException | SAXException | IOException e) {
+      // Nothing to do here, as we are not able to lead the additional information, hence ignoring
+      // the file
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+              options.getFunctionValuesForRandom()));
+    }
   }
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValue()) {
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      return new ExpressionValueVisitorWithPredefinedValues(
+          pState,
+          pFunctionName,
+          ValueAnalysisTransferRelation.indexForNextRandomValue,
+          machineModel,
+          logger,
+          valuesFromFile);
+    } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);

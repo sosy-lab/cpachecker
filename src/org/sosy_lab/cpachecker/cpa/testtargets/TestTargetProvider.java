@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Preconditions;
@@ -31,6 +16,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,21 +33,32 @@ public class TestTargetProvider implements Statistics {
   private final TestTargetType type;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
+  private int numNonOptimizedTargets = -1;
   private boolean printTargets = false;
   private boolean runParallel;
   private TestTargetAdaption optimization;
+  private Timer optimizationTimer = new Timer();
 
   private TestTargetProvider(
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
+      final String pTargetFun,
       final TestTargetAdaption pGoalAdaption) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
     optimization = pGoalAdaption;
 
-    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion(), pGoalAdaption);
+    Predicate<CFAEdge> edgeCriterion;
+    switch (type) {
+      case FUN_CALL:
+        edgeCriterion = type.getEdgeCriterion(pTargetFun);
+        break;
+      default:
+        edgeCriterion = type.getEdgeCriterion();
+    }
+    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, optimization);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -77,27 +74,43 @@ public class TestTargetProvider implements Statistics {
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
+
+    numNonOptimizedTargets = edges.size();
+
+    optimizationTimer.start();
+    try {
     edges = pAdaption.adaptTestTargets(edges);
+    } finally {
+      optimizationTimer.stopIfRunning();
+    }
     return edges;
   }
 
-  public static int getCurrentNumOfTestTargets() {
+  public static int getTotalNumberOfTestTargets() {
     if (instance == null) {
       return 0;
     }
     return instance.initialTestTargets.size();
   }
 
+  public static int getNumberOfUncoveredTestTargets() {
+    if (instance == null) {
+      return 0;
+    }
+    return instance.uncoveredTargets.size();
+  }
+
   public static Set<CFAEdge> getTestTargets(
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
+      final String pTargetFun,
       TestTargetAdaption pTargetOptimization) {
     if (instance == null
         || pCfa != instance.cfa
         || instance.type != pType
         || instance.optimization != pTargetOptimization) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetOptimization);
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetFun, pTargetOptimization);
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;
@@ -129,9 +142,13 @@ public class TestTargetProvider implements Statistics {
     double testTargetCoverage =
         initialTestTargets.isEmpty() ? 0 : (double) numCovered / initialTestTargets.size();
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
+    if (numNonOptimizedTargets >= 0) {
+      pOut.println("Number of total test targets before optimization: " + numNonOptimizedTargets);
+    }
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
     pOut.println("Number of uncovered test targets: " + uncoveredTargets.size());
+    pOut.println("Total time for test goal reduction:     " + optimizationTimer);
 
     if (printTargets) {
     pOut.println("Initial test targets: ");

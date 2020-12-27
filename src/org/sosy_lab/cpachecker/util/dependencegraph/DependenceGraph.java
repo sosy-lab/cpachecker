@@ -1,39 +1,30 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -46,10 +37,14 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * Dependence graph that describes flow dependence and control dependence between expressions and
@@ -58,7 +53,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * <p>A dependence graph G = (V, E) is a directed graph. His nodes V are CFA edges of the program.
  * Given two nodes i and j, if j is a dependence of i, a directed edge (j, i) from j to i is in E.
  */
-public class DependenceGraph implements Serializable {
+public final class DependenceGraph implements Serializable {
 
   private static final long serialVersionUID = -6721168496945584302L;
 
@@ -89,14 +84,12 @@ public class DependenceGraph implements Serializable {
   }
 
   public static DependenceGraphBuilder builder(
-      final MutableCFA pCfa,
-      final Optional<VariableClassification> pVarClassification,
+      final CFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new DependenceGraphBuilder(
-        pCfa, pVarClassification, pConfig, pLogger, pShutdownNotifier);
+    return new DependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
   }
 
   Table<DGNode, DGNode, DependenceType> getMatrix() {
@@ -107,9 +100,42 @@ public class DependenceGraph implements Serializable {
     return nodes.getAllNodes();
   }
 
-  public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
+  public ReachedSet getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
     return getReachable(pStart, pDirection, ImmutableSet.of());
+  }
+
+  /**
+   * Returns all summary edges that must be reached during backward traversal because they are
+   * callers (or the caller's caller, etc.) of the function that contains pStart.
+   */
+  private Set<CFunctionSummaryEdge> getRelevantCallerSummaryEdges(CFAEdge pStart) {
+
+    Deque<CFAEdge> waitlist = new ArrayDeque<>();
+    Set<CFAEdge> seen = new HashSet<>();
+    Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
+
+    waitlist.add(pStart);
+    seen.add(pStart);
+
+    while (!waitlist.isEmpty()) {
+
+      CFAEdge edge = waitlist.remove();
+
+      if (edge instanceof CFunctionCallEdge) {
+        relevantSummaryEdges.add(((CFunctionCallEdge) edge).getSummaryEdge());
+      }
+
+      if (!(edge instanceof CFunctionReturnEdge)) {
+        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(edge.getPredecessor())) {
+          if (seen.add(enteringEdge)) { // if not previously seen -> add to waitlist
+            waitlist.add(enteringEdge);
+          }
+        }
+      }
+    }
+
+    return relevantSummaryEdges;
   }
 
   /**
@@ -119,37 +145,93 @@ public class DependenceGraph implements Serializable {
    * @param pDirection direction of the search for reachability
    * @param pEdgesToIgnore edges to ignore on the search. Edges in this collection are ignored in
    *     the search.
-   * @return the set of reachable CFA edges from the given edge, traversing through the graph in the
-   *     given direction
    */
-  public Collection<CFAEdge> getReachable(
+  public ReachedSet getReachable(
       CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
       throws InterruptedException {
-    Collection<CFAEdge> reachable = new HashSet<>();
-    Collection<DGNode> visited = new HashSet<>();
+
+    // reachable.get(cfaEdge) == null
+    //   => cfaEdge not reachable
+    // reachable.get(cfaEdge) == optional && optional.isEmpty()
+    //   => edge reachable, all its causes reachable
+    // reachable.get(cfaEdge) == optional && optional.isPresent()
+    //   => edge reachable, all its causes in optional.get() are reachable
+    Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
+
+    Set<CFunctionSummaryEdge> relevantSummaryEdges = new HashSet<>();
+    Multimap<AFunctionDeclaration, CFunctionCallEdge> ignoredCallEdges = HashMultimap.create();
+
+    Collection<DGNode> seen = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
-    nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
+
+    for (DGNode dgNode : nodes.getNodesForEdge(pStart)) {
+      seen.add(dgNode);
+      waitlist.add(dgNode);
+    }
+
+    if (pDirection == TraversalDirection.BACKWARD) {
+      relevantSummaryEdges.addAll(getRelevantCallerSummaryEdges(pStart));
+    }
 
     while (!waitlist.isEmpty()) {
-      if (shutdownNotifier.shouldShutdown()) {
-        throw new InterruptedException();
-      }
-      DGNode current = waitlist.poll();
 
-      if (!visited.contains(current)) {
-        visited.add(current);
-        // FIXME: this is a strong overapproximation: If an unknown pointer is used,
-        // we don't know anything, so we use the full program as slice
-        if (current.isUnknownPointerNode()) {
-          reachable.addAll(nodes.nodesForEdges.keys());
-        } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
-          reachable.add(current.getCfaEdge());
-          Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
-          waitlist.addAll(adjacent);
+      shutdownNotifier.shutdownIfNecessary();
+      DGNode current = waitlist.remove();
+
+      // FIXME: this is a strong overapproximation: If an unknown pointer is used,
+      // we don't know anything, so we use the full program as slice
+      if (current.isUnknownPointerNode()) {
+
+        reachable.clear();
+        for (CFAEdge edge : nodes.nodesForEdges.keySet()) {
+          reachable.put(edge, Optional.empty());
+        }
+        break;
+
+      } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
+
+        CFAEdge edge = current.getCfaEdge();
+
+        // Only consider relevant call edges during backward traversal, but remember irrelevant
+        // call edges as they can become relevant later on.
+        if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionCallEdge) {
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+          if (!relevantSummaryEdges.contains(callEdge.getSummaryEdge())) {
+            ignoredCallEdges.put(edge.getSuccessor().getFunction(), callEdge);
+            continue;
+          }
+        }
+
+        MemoryLocation cause = current.getCause();
+        int dgNodeCount = nodes.nodesForEdges.get(edge).size();
+        // for edges that have DG-nodes with causes, a set for these causes must be added
+        if (dgNodeCount > 1 || (dgNodeCount == 1 && cause != null)) {
+          Set<MemoryLocation> causes =
+              reachable.computeIfAbsent(edge, key -> Optional.of(new HashSet<>())).orElseThrow();
+          if (cause != null) {
+            causes.add(cause);
+          }
+        } else {
+          reachable.put(edge, Optional.empty());
+        }
+
+        // Additional call edges become relevant during backward traversal, when the corresponding
+        // return edge is visited. Previously seen, but ignored, call edges must be checked again.
+        if (pDirection == TraversalDirection.BACKWARD && edge instanceof CFunctionReturnEdge) {
+          relevantSummaryEdges.add(((CFunctionReturnEdge) edge).getSummaryEdge());
+          ignoredCallEdges.removeAll(edge.getPredecessor().getFunction());
+          nodes.getNodesForEdge(pStart).forEach(waitlist::add);
+        }
+
+        for (DGNode dgNode : getAdjacentNeighbors(current, pDirection)) {
+          if (seen.add(dgNode)) {
+            waitlist.add(dgNode);
+          }
         }
       }
     }
-    return reachable;
+
+    return ReachedSet.fromMutable(reachable);
   }
 
   private Collection<DGNode> getAdjacentNeighbors(
@@ -208,16 +290,16 @@ public class DependenceGraph implements Serializable {
     return Objects.hash(nodes, adjacencyMatrix);
   }
 
-  private static class ImmutableNodeMap implements Serializable {
+  private static final class ImmutableNodeMap implements Serializable {
 
     private static final long serialVersionUID = 4311993821719514171L;
 
-    private ImmutableMultimap<CFAEdge, DGNode> nodesForEdges;
-    private ImmutableSet<DGNode> specialNodes;
+    private final ImmutableListMultimap<CFAEdge, DGNode> nodesForEdges;
+    private final ImmutableSet<DGNode> specialNodes;
 
     public ImmutableNodeMap(NodeMap pNodeMap) {
       // FIXME avoid iteration in O(n) here, there may be lots of nodes
-      ImmutableMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableMultimap.builder();
+      ImmutableListMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableListMultimap.builder();
       for (Cell<CFAEdge, Optional<MemoryLocation>, DGNode> c :
           pNodeMap.getNodesForEdges().cellSet()) {
         mapBuilder.put(checkNotNull(c.getRowKey()), checkNotNull(c.getValue()));
@@ -226,7 +308,7 @@ public class DependenceGraph implements Serializable {
       specialNodes = ImmutableSet.copyOf(pNodeMap.getSpecialNodes());
     }
 
-    public Collection<DGNode> getNodesForEdge(CFAEdge pEdge) {
+    public ImmutableList<DGNode> getNodesForEdge(CFAEdge pEdge) {
       return nodesForEdges.get(pEdge);
     }
 
@@ -267,7 +349,101 @@ public class DependenceGraph implements Serializable {
     }
   }
 
-  static class NodeMap {
+  /** Contains reached CFA edges as well as their relevant causes. */
+  public static final class ReachedSet {
+
+    private final ImmutableMap<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> reachable;
+
+    private ReachedSet(ImmutableMap<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> pReachable) {
+      reachable = pReachable;
+    }
+
+    private static ReachedSet fromMutable(Map<CFAEdge, Optional<Set<MemoryLocation>>> pReachable) {
+
+      ImmutableMap.Builder<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> builder =
+          ImmutableMap.builderWithExpectedSize(pReachable.size());
+
+      for (Map.Entry<CFAEdge, Optional<Set<MemoryLocation>>> entry : pReachable.entrySet()) {
+
+        CFAEdge cfaEdge = entry.getKey();
+        Optional<Set<MemoryLocation>> optionalCauseSet = entry.getValue();
+
+        if (optionalCauseSet.isPresent()) {
+          Set<MemoryLocation> causeSet = optionalCauseSet.orElseThrow();
+          builder.put(cfaEdge, Optional.of(ImmutableSet.copyOf(causeSet)));
+        } else {
+          builder.put(cfaEdge, Optional.empty());
+        }
+      }
+
+      return new ReachedSet(builder.build());
+    }
+
+    private static Optional<Set<MemoryLocation>> combine(
+        Optional<Set<MemoryLocation>> pMutableCauseSet,
+        Optional<ImmutableSet<MemoryLocation>> pImmutableCauseSet) {
+
+      if (pMutableCauseSet.isPresent() && pImmutableCauseSet.isPresent()) {
+        Set<MemoryLocation> mutableCauseSet = pMutableCauseSet.orElseThrow();
+        mutableCauseSet.addAll(pImmutableCauseSet.orElseThrow());
+        return Optional.of(mutableCauseSet);
+      } else {
+        return Optional.empty();
+      }
+    }
+
+    public static ReachedSet empty() {
+      return new ReachedSet(ImmutableMap.of());
+    }
+
+    public static ReachedSet combine(ReachedSet pSomeReachedSet, ReachedSet pOtherReachedSet) {
+
+      Map<CFAEdge, Optional<Set<MemoryLocation>>> reachable = new HashMap<>();
+
+      for (ReachedSet reachedSet : ImmutableList.of(pSomeReachedSet, pOtherReachedSet)) {
+        for (Map.Entry<CFAEdge, Optional<ImmutableSet<MemoryLocation>>> entry :
+            reachedSet.reachable.entrySet()) {
+
+          CFAEdge cfaEdge = entry.getKey();
+          Optional<ImmutableSet<MemoryLocation>> optionalCauseSet = entry.getValue();
+
+          Optional<Set<MemoryLocation>> optionalCauses;
+
+          if (reachable.containsKey(cfaEdge)) {
+            optionalCauses = combine(reachable.get(cfaEdge), optionalCauseSet);
+          } else if (optionalCauseSet.isPresent()) {
+            Set<MemoryLocation> mutableCauseSet = new HashSet<>(optionalCauseSet.orElseThrow());
+            optionalCauses = Optional.of(mutableCauseSet);
+          } else {
+            optionalCauses = Optional.empty();
+          }
+
+          reachable.put(cfaEdge, optionalCauses);
+        }
+      }
+
+      return fromMutable(reachable);
+    }
+
+    public ImmutableSet<CFAEdge> getReachedCfaEdges() {
+      return reachable.keySet();
+    }
+
+    public boolean contains(CFAEdge pEdge, MemoryLocation pCause) {
+
+      Optional<ImmutableSet<MemoryLocation>> causes = reachable.get(pEdge);
+
+      if (causes == null) {
+        return false;
+      } else if (causes.isEmpty()) {
+        return true;
+      } else {
+        return causes.orElseThrow().contains(pCause);
+      }
+    }
+  }
+
+  static final class NodeMap {
     private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodesForEdges =
         HashBasedTable.create();
     private Set<DGNode> specialNodes = new HashSet<>();
