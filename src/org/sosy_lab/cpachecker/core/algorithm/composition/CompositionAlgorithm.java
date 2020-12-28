@@ -573,6 +573,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
+      //TODO: check this reusePrecision
       if (pCurrentContext.reusePrecision()) {
         // start with new reached set each time, but precision from previous analysis if possible
         List<ReachedSet> previousResults = new ArrayList<>(2);
@@ -672,6 +673,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     reached.add(initialState, initialPrecision);
     return reached;
   }
+
+  //TODO: check this out
 
   private Precision aggregatePrecisionsForReuse(
       final List<ReachedSet> pPreviousReachedSets,
@@ -779,6 +782,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     return resultPrec;
   }
 
+
+  //TODO: check this conversion out
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
       final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
     Collection<AbstractionPredicate> predicates = new HashSet<>();
