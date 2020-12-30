@@ -17,7 +17,6 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -808,7 +807,7 @@ public class LoopData implements Comparable<LoopData> {
    * This method looks for hints if it makes any sense to accelerate the loop or if a
    * Bounded-Model-Checker should be able to handle it
    *
-   * @param conditionNodes all Nodes of the condition to check if the
+   * @param condNodes all Nodes of the condition to check if the
    * @param type loop type to specify the method used to check that
    * @param pathNumber number of possible path in the loop
    * @param outputNumber number of outputs in the loop
@@ -864,14 +863,6 @@ public class LoopData implements Comparable<LoopData> {
                               POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
                   POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
       }
-
-        // edge analysis try --------------------------------------------------
-
-        for (CFANode n : conditionNodes) {
-          AssumeEdge x = (AssumeEdge) n.getLeavingEdge(0);
-        }
-
-        // ---------------------------------------------------------------------------
 
         for (String variable : rightSideVariable) {
         try {
