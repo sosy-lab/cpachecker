@@ -17,6 +17,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -864,7 +865,15 @@ public class LoopData implements Comparable<LoopData> {
                   POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
       }
 
-      for (String variable : rightSideVariable) {
+        // edge analysis try --------------------------------------------------
+
+        for (CFANode n : conditionNodes) {
+          AssumeEdge x = (AssumeEdge) n.getLeavingEdge(0);
+        }
+
+        // ---------------------------------------------------------------------------
+
+        for (String variable : rightSideVariable) {
         try {
           double d = Double.parseDouble(variable);
           if (d > pathNumber || d > outputNumber) {
