@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.util.loopAcc;
+package org.sosy_lab.cpachecker.util.loopInformation;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;

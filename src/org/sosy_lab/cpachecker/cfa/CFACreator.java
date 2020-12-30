@@ -94,7 +94,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.loopAcc.LoopAbstractionHeader;
-import org.sosy_lab.cpachecker.util.loopAcc.LoopInformation;
+import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -269,9 +269,9 @@ public class CFACreator {
   private Language language = Language.C;
 
   @Option(
-    secure = true,
-    name = "cfa.automateAbstractLoopParser",
-    description = "Automates the abstraction of loops and creation of the new CFA's,overwrites the files")
+      secure = true,
+      name = "cfa.abstractLoopsAnalyzeProgram",
+      description = "Abstractes the loops and analyzes the Programm")
   private boolean automateAbstractLoopParser = false;
 
   private boolean loopIsAutomated;

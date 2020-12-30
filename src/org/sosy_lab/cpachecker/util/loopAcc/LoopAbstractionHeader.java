@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
 
 /**
  * This class helps to abstract the loop code so that different cpa's or bounded model checker can

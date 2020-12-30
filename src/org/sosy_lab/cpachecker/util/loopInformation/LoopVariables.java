@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.loopAcc;
+package org.sosy_lab.cpachecker.util.loopInformation;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 

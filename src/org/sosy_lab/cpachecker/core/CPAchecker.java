@@ -455,12 +455,12 @@ public class CPAchecker {
     CPAcheckerResult res =
         new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
 
-    if (config.hasProperty("cfa.automateAbstractLoopParser")
-        && config.getProperty("cfa.automateAbstractLoopParser").contentEquals("true")
+    if (config.hasProperty("cfa.abstractLoopsAnalyzeProgram")
+        && config.getProperty("cfa.abstractLoopsAnalyzeProgram").contentEquals("true")
         && result != Result.TRUE) {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(config);
-      singleConfigBuilder.clearOption("cfa.automateAbstractLoopParser");
+      singleConfigBuilder.clearOption("cfa.abstractLoopsAnalyzeProgram");
       singleConfigBuilder.clearOption("LoopInfo.generateLoopInformation");
       singleConfigBuilder.clearOption("loopacc.loopabstractionheader.shouldAbstract");
       try {

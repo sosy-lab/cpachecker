@@ -24,6 +24,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.loopInformation.LoopData;
+import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
+import org.sosy_lab.cpachecker.util.loopInformation.LoopVariables;
 
 /**
  * This class takes a file and changes all of the loops in a advanced abstraction to make the
