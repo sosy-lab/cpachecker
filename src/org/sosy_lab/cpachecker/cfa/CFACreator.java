@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
-import org.sosy_lab.cpachecker.util.loopAcc.LoopAbstractionHeader;
+import org.sosy_lab.cpachecker.util.loopAbstraction.LoopAbstractionHeader;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
