@@ -833,7 +833,7 @@ public class LoopData implements Comparable<LoopData> {
       }
     }
 
-    if (onlyRandomOperator && condNodes.size() > 0) {
+    if (onlyRandomOperator && !condNodes.isEmpty()) {
       setOnlyRandomCondition(true);
       setEndless(false);
       tmpEndless = true;
