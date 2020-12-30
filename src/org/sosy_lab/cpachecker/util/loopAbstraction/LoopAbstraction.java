@@ -822,7 +822,6 @@ public class LoopAbstraction {
 
     boolean ifCaseC = closed;
 
-    if (line != null) {
       String temp = Iterables.get(Splitter.on('(').split(line), 0);
       if (!ifCaseC && line.contains("}")) {
         ifCaseC = true;
@@ -853,7 +852,6 @@ public class LoopAbstraction {
           }
         }
       }
-    }
     return ifCaseC;
   }
 
