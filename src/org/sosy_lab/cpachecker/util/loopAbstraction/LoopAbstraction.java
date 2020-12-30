@@ -823,14 +823,14 @@ public class LoopAbstraction {
     boolean ifCaseC = closed;
 
       String temp = Iterables.get(Splitter.on('(').split(line), 0);
-      if (!ifCaseC && line.contains("}")) {
+    if (!ifCaseC && line.contains("}")) {
         ifCaseC = true;
       }
-      if (temp.contains("{") && openIf == true) {
+    if (temp.contains("{") && openIf) {
         openIf = false;
         ifCaseC = false;
       }
-      if (ifWithoutBracket > 0) {
+    if (ifWithoutBracket > 0) {
         ifWithoutBracket = 0;
         openIf = false;
       }
