@@ -54,9 +54,31 @@ abstract class GlobalPointerState {
 
   public static final GlobalPointerState EMPTY = new EmptyPointerState();
 
-  public abstract Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression);
+  public abstract ImmutableSet<MemoryLocation> getPossiblePointees(
+      CFAEdge pEdge, CExpression pExpression);
 
-  private static Set<MemoryLocation> getPossiblePointees(
+  private static boolean isPointerUnknown(Set<MemoryLocation> pPossiblePointees) {
+
+    // if there are no possible pointees, the pointer is unknown
+    if (pPossiblePointees.isEmpty()) {
+      return true;
+    }
+
+    // The current pointer analysis (pointer2) does not support structs/unions.
+    // The pointer analysis treats pointers to struct/union instances as pointers to the
+    // corresponding struct/union declaration type.
+    // If such an unsupported case is encountered, the pointer is unknown.
+    for (MemoryLocation possiblePointee : pPossiblePointees) {
+      String identifier = possiblePointee.getIdentifier();
+      if (identifier.contains("struct ") || identifier.contains("union ")) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static ImmutableSet<MemoryLocation> getPossiblePointees(
       PointerState pPointerState,
       Optional<VariableClassification> pVariableClassification,
       CExpression pExpression) {
@@ -64,17 +86,26 @@ abstract class GlobalPointerState {
     Set<MemoryLocation> possiblePointees =
         ReachingDefUtils.possiblePointees(pExpression, pPointerState);
 
-    if (possiblePointees == null && pVariableClassification.isPresent()) {
+    if (possiblePointees == null) {
+      possiblePointees = ImmutableSet.of();
+    }
 
-      VariableClassification variableClassification = pVariableClassification.orElseThrow();
+    if (isPointerUnknown(possiblePointees)) {
+
       possiblePointees = new HashSet<>();
 
-      for (String variableName : variableClassification.getAddressedVariables()) {
-        possiblePointees.add(MemoryLocation.valueOf(variableName));
+      if (pVariableClassification.isPresent()) {
+
+        VariableClassification variableClassification = pVariableClassification.orElseThrow();
+        possiblePointees = new HashSet<>();
+
+        for (String variableName : variableClassification.getAddressedVariables()) {
+          possiblePointees.add(MemoryLocation.valueOf(variableName));
+        }
       }
     }
 
-    return possiblePointees;
+    return ImmutableSet.copyOf(possiblePointees);
   }
 
   public static GlobalPointerState createFlowInsensitive(CFA pCfa)
@@ -106,12 +137,11 @@ abstract class GlobalPointerState {
     }
 
     @Override
-    public Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
+    public ImmutableSet<MemoryLocation> getPossiblePointees(
+        CFAEdge pEdge, CExpression pExpression) {
 
-      Set<MemoryLocation> possiblePointees =
-          GlobalPointerState.getPossiblePointees(pointerState, variableClassification, pExpression);
-
-      return possiblePointees != null ? possiblePointees : ImmutableSet.of();
+      return GlobalPointerState.getPossiblePointees(
+          pointerState, variableClassification, pExpression);
     }
 
     private static Collection<CFAEdge> getAllEdges(CFA pCfa) {
@@ -196,18 +226,17 @@ abstract class GlobalPointerState {
     }
 
     @Override
-    public Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
+    public ImmutableSet<MemoryLocation> getPossiblePointees(
+        CFAEdge pEdge, CExpression pExpression) {
 
       PointerState pointerState = pointerStates.get(pEdge);
 
-      Set<MemoryLocation> possiblePointees = null;
       if (pointerState != null) {
-        possiblePointees =
-            GlobalPointerState.getPossiblePointees(
-                pointerState, variableClassification, pExpression);
+        return GlobalPointerState.getPossiblePointees(
+            pointerState, variableClassification, pExpression);
+      } else {
+        return ImmutableSet.of();
       }
-
-      return possiblePointees != null ? possiblePointees : ImmutableSet.of();
     }
 
     private static GlobalPointerState create(
@@ -278,7 +307,8 @@ abstract class GlobalPointerState {
   private static final class EmptyPointerState extends GlobalPointerState {
 
     @Override
-    public Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
+    public ImmutableSet<MemoryLocation> getPossiblePointees(
+        CFAEdge pEdge, CExpression pExpression) {
       return ImmutableSet.of();
     }
   }
