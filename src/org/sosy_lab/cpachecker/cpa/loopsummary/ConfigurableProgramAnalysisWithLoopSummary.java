@@ -8,4 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-public class ConfigurableProgramAnalysisWithLoopSummary {}
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+
+public interface ConfigurableProgramAnalysisWithLoopSummary extends ConfigurableProgramAnalysis {}

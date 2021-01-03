@@ -8,4 +8,22 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-public class LoopSummaryTransferRelation {}
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+public class LoopSummaryTransferRelation extends AbstractLoopSummaryTransferRelation<CPAException> {
+
+  // private final AlgorithmFactory algorithmFactory;
+
+  // private final LoopSummaryCPAStatistics stats;
+
+  public LoopSummaryTransferRelation(
+      LoopSummaryCPA loopSummaryCpa,
+      ShutdownNotifier pShutdownNotifier,
+      AlgorithmFactory pFactory) {
+    super(loopSummaryCpa, pShutdownNotifier);
+    // algorithmFactory = pFactory;
+    // stats = loopSummaryCpa.getStatistics();
+  }
+}
