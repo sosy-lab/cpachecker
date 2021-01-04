@@ -15,10 +15,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 
 public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(LoopSummaryCPA.class);
+  }
 
   private final LoopSummaryTransferRelation transfer;
 
@@ -32,7 +38,6 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
       throws InvalidConfigurationException {
     super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
-
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
 
