@@ -12,7 +12,8 @@
 *~
 __pycache__
 a.out
-
+*.dot
+*.svg
 # /
 /bin
 /build.properties
