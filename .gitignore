@@ -14,7 +14,7 @@ __pycache__
 a.out
 *.dot
 *.svg
-.settings/*
+.settings/org.eclipse.jdt.ui.prefs
 # /
 /bin
 /build.properties
