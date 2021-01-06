@@ -262,7 +262,7 @@ abstract class GlobalPointerState {
         return GlobalPointerState.getPossiblePointees(
             pointerState, variableClassification, addressableVariables, pExpression);
       } else {
-        return ImmutableSet.of();
+        return addressableVariables;
       }
     }
 
