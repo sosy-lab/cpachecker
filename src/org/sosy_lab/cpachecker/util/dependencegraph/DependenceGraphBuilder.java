@@ -136,7 +136,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    config = pConfig;
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -178,7 +177,14 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
-    return builder.build();
+    SystemDependenceGraph<CFAEdge, MemoryLocation> sdp = builder.build();
+    dependenceGraphConstructionTimer.stop();
+
+    if (exportDot != null) {
+      DotExporter.export(sdp, exportDot, logger);
+    }
+
+    return sdp;
   }
 
   private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
