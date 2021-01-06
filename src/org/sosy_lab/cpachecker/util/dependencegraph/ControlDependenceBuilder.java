@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -35,7 +34,7 @@ final class ControlDependenceBuilder {
   private ControlDependenceBuilder() {}
 
   private static boolean ignoreFunctionEdge(CFAEdge pEdge) {
-    return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
+    return pEdge instanceof CFunctionCallEdge;
   }
 
   private static Iterable<CFAEdge> functionEdges(Set<CFANode> pFunctionNodes) {
