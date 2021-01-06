@@ -17,11 +17,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Factory class for creating {@link Slicer} objects. The concrete <code>Slicer</code> that is
@@ -82,7 +85,7 @@ public class SlicerFactory implements StatisticsProvider {
     stats = new ArrayList<>();
   }
 
-  private DependenceGraph createDependenceGraph(
+  private SystemDependenceGraph<CFAEdge, MemoryLocation> createDependenceGraph(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
       throws InterruptedException, InvalidConfigurationException {
 
@@ -126,7 +129,7 @@ public class SlicerFactory implements StatisticsProvider {
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {
       case STATIC:
-        DependenceGraph dependenceGraph =
+        SystemDependenceGraph<CFAEdge, MemoryLocation> dependenceGraph =
             createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
         return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, dependenceGraph);
       case IDENTITY:

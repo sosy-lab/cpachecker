@@ -48,9 +48,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -90,6 +93,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceTy
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -157,6 +162,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               + " where pointers are involved in.")
   private boolean considerPointees = true;
 
+  private final SystemDependenceGraph.Builder<CFAEdge, MemoryLocation> builder;
+
   public DependenceGraphBuilder(
       final CFA pCfa,
       final Configuration pConfig,
@@ -178,19 +185,20 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           "At least one kind of dependency is required"
               + " to build a meaningful dependence graph");
     }
+
+    builder = SystemDependenceGraph.builder();
   }
 
-  public DependenceGraph build() throws InterruptedException, CPAException {
+  public SystemDependenceGraph<CFAEdge, MemoryLocation> build()
+      throws InterruptedException, CPAException {
 
     dependenceGraphConstructionTimer.start();
-    nodes = new NodeMap();
-    adjacencyMatrix = HashBasedTable.create();
 
     if (considerFlowDeps) {
       flowDependenceTimer.start();
       try {
         // addFlowDependences();
-        addFlowDependencesNew();
+        addFlowDependecies();
       } finally {
         flowDependenceTimer.stop();
       }
@@ -199,7 +207,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     if (considerControlDeps) {
       controlDependenceTimer.start();
       try {
-        addControlDependences();
+        addControlDependencies();
       } finally {
         controlDependenceTimer.stop();
       }
@@ -216,7 +224,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         adjacencyMatrix.size(),
         " edges.");
     dependenceGraphConstructionTimer.stop();
-    return dg;
+    return builder.build();
   }
 
   private void addMissingNodes() {
@@ -268,6 +276,60 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     throw new AssertionError("No CFunctionCallEdge for CFunctionSummaryEdge");
   }
 
+  private CFunctionCall getFunctionCallWithoutParameters(CFunctionSummaryEdge pSummaryEdge) {
+
+    CFunctionCall functionCall = pSummaryEdge.getExpression();
+
+    if (functionCall instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) functionCall;
+
+      CLeftHandSide lhs = statement.getLeftHandSide();
+      CFunctionCallExpression rhs = statement.getRightHandSide();
+
+      CFunctionCallExpression functionCallExpression =
+          new CFunctionCallExpression(
+              rhs.getFileLocation(),
+              rhs.getExpressionType(),
+              rhs.getFunctionNameExpression(),
+              ImmutableList.of(),
+              rhs.getDeclaration());
+
+      return new CFunctionCallAssignmentStatement(
+          statement.getFileLocation(), lhs, functionCallExpression);
+
+    } else if (functionCall instanceof CFunctionCallStatement) {
+
+      CFunctionCallStatement statement = (CFunctionCallStatement) functionCall;
+      CFunctionCallExpression expression = statement.getFunctionCallExpression();
+
+      CFunctionCallExpression functionCallExpression =
+          new CFunctionCallExpression(
+              expression.getFileLocation(),
+              expression.getExpressionType(),
+              expression.getFunctionNameExpression(),
+              ImmutableList.of(),
+              expression.getDeclaration());
+
+      return new CFunctionCallStatement(statement.getFileLocation(), functionCallExpression);
+    } else {
+      throw new AssertionError("Unsupported function call: " + functionCall);
+    }
+  }
+
+  private Optional<MemoryLocation> getReturnVariable(CFunctionSummaryEdge pSummaryEdge) {
+
+    CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
+    Optional<CVariableDeclaration> returnVariable =
+        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable().toJavaUtil();
+
+    if (returnVariable.isPresent()) {
+      String variableName = returnVariable.orElseThrow().getQualifiedName();
+      return Optional.of(MemoryLocation.valueOf(variableName));
+    } else {
+      return Optional.empty();
+    }
+  }
+
   private void addFlowDependence(
       CFAEdge pDefEdge,
       Optional<MemoryLocation> pDefEdgeCause,
@@ -279,7 +341,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         DependenceType.FLOW);
   }
 
-  private void addFlowDependencesNew() throws InterruptedException, CPAException {
+  private void addFlowDependecies() throws InterruptedException, CPAException {
 
     GlobalPointerState pointerState;
     if (considerPointees) {
@@ -357,79 +419,150 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       DependenceConsumer dependenceConsumer =
           (defEdge, useEdge, cause) -> {
-            Optional<MemoryLocation> defEdgeCause = Optional.empty();
-            Optional<MemoryLocation> useEdgeCause = Optional.empty();
+            if (defEdge instanceof CFunctionSummaryEdge && useEdge instanceof CFunctionCallEdge) {
 
-            if (defEdge instanceof CFunctionCallEdge
-                || defEdge instanceof CFunctionReturnEdge
-                || defEdge instanceof CFunctionSummaryEdge) {
-              defEdgeCause = Optional.of(cause);
-            }
+              builder
+                  .node(NodeType.ACTUAL_IN, defEdge, Optional.of(cause))
+                  .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                  .on(NodeType.FORMAL_IN, useEdge, Optional.of(cause));
+              flowDepCounter.inc();
 
-            if (useEdge instanceof CFunctionCallEdge
-                || useEdge instanceof CFunctionReturnEdge
-                || useEdge instanceof CFunctionSummaryEdge) {
-              useEdgeCause = Optional.of(cause);
-            }
+            } else if (defEdge instanceof CFunctionReturnEdge
+                && useEdge instanceof CFunctionSummaryEdge) {
 
-            if (defEdge instanceof CFunctionReturnEdge
-                && useEdge instanceof CFunctionSummaryEdge
-                && ((CFunctionReturnEdge) defEdge)
-                    .getFunctionEntry()
-                    .getReturnVariable()
-                    .transform(decl -> MemoryLocation.valueOf(decl.getQualifiedName()))
-                    .toJavaUtil()
-                    .equals(defEdgeCause)) {
+              builder
+                  .node(NodeType.FORMAL_OUT, defEdge, Optional.of(cause))
+                  .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                  .on(NodeType.ACTUAL_OUT, useEdge, Optional.of(cause));
+              flowDepCounter.inc();
 
-              CFunctionCallEdge callEdge = getCallEdge((CFunctionSummaryEdge) useEdge);
-              EdgeDefUseData defUseData = defUseExtractor.extract(callEdge);
+            } else {
 
-              for (MemoryLocation summaryEdgeDef : defUseData.getDefs()) {
-                addFlowDependence(defEdge, defEdgeCause, useEdge, Optional.of(summaryEdgeDef));
-              }
+              NodeType defNodeType;
+              Optional<MemoryLocation> defNodeVariable = Optional.empty();
 
-            } else if (useEdge instanceof CFunctionSummaryEdge
-                && !(defEdge instanceof CFunctionReturnEdge)) {
+              if (defEdge instanceof CFunctionCallEdge) {
+                defNodeType = NodeType.FORMAL_IN;
+                defNodeVariable = Optional.of(cause);
+              } else if (defEdge instanceof CFunctionReturnEdge) {
+                defNodeType = NodeType.FORMAL_OUT;
+                defNodeVariable = Optional.of(cause);
+              } else if (defEdge instanceof CFunctionSummaryEdge) {
 
-              CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) useEdge;
-              List<CParameterDeclaration> params =
-                  summaryEdge.getFunctionEntry().getFunctionParameters();
-              List<CExpression> expressions =
-                  summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
+                defNodeType = NodeType.ACTUAL_OUT;
 
-              CFunctionCall functionCall = summaryEdge.getExpression();
-              if (functionCall instanceof CFunctionCallAssignmentStatement) {
-                CLeftHandSide lhs =
-                    ((CFunctionCallAssignmentStatement) functionCall).getLeftHandSide();
-                EdgeDefUseData defUseData = defUseExtractor.extract(lhs);
-                if (defUseData.getUses().contains(cause)
-                    || !defUseData.getPointeeUses().isEmpty()) {
-                  addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
+                CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) defEdge;
+                CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
+                EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
+
+                if (defUseData.getDefs().contains(cause)) {
+                  defNodeVariable = getReturnVariable(summaryEdge);
+                } else {
+                  for (CExpression pointeeExpression : defUseData.getPointeeDefs()) {
+                    if (pointerState
+                        .getPossiblePointees(defEdge, pointeeExpression)
+                        .contains(cause)) {
+                      defNodeVariable = getReturnVariable(summaryEdge);
+                    }
+                  }
                 }
+              } else {
+                defNodeType = NodeType.STATEMENT;
               }
 
-              if (foreignDefUseData
-                  .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
-                  .contains(cause)) {
-                addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
+              if (useEdge instanceof CFunctionCallEdge) {
+                builder
+                    .node(NodeType.FORMAL_IN, useEdge, Optional.of(cause))
+                    .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                    .on(defNodeType, defEdge, defNodeVariable);
                 flowDepCounter.inc();
-              }
+              } else if (useEdge instanceof CFunctionReturnEdge) {
+                builder
+                    .node(NodeType.FORMAL_OUT, useEdge, Optional.of(cause))
+                    .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                    .on(defNodeType, defEdge, defNodeVariable);
+                flowDepCounter.inc();
+              } else if (useEdge instanceof CFunctionSummaryEdge) {
 
-              for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
+                CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) useEdge;
+                CFunctionCall functionCall =
+                    getFunctionCallWithoutParameters((CFunctionSummaryEdge) defEdge);
+                EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
+                Optional<MemoryLocation> returnVariable = getReturnVariable(summaryEdge);
 
-                EdgeDefUseData defUseData = defUseExtractor.extract(expressions.get(index));
-                Optional<MemoryLocation> paramUseCause =
-                    Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
+                if (defUseData.getPointeeUses().contains(cause)) {
+                  builder
+                      .node(NodeType.ACTUAL_OUT, useEdge, returnVariable)
+                      .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                      .on(defNodeType, defEdge, defNodeVariable);
+                  flowDepCounter.inc();
+                } else {
+                  for (CExpression pointeeExpression : defUseData.getPointeeUses()) {
+                    if (pointerState
+                        .getPossiblePointees(useEdge, pointeeExpression)
+                        .contains(cause)) {
+                      builder
+                          .node(NodeType.ACTUAL_OUT, useEdge, returnVariable)
+                          .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                          .on(defNodeType, defEdge, defNodeVariable);
+                      flowDepCounter.inc();
+                    }
+                  }
+                }
 
-                if (defUseData.getUses().contains(cause)
-                    || !defUseData.getPointeeUses().isEmpty()) {
-                  addFlowDependence(defEdge, defEdgeCause, useEdge, paramUseCause);
+                if (foreignDefUseData
+                    .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
+                    .contains(cause)) {
+                  builder
+                      .node(NodeType.ACTUAL_IN, useEdge, Optional.of(cause))
+                      .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                      .on(defNodeType, defEdge, defNodeVariable);
                   flowDepCounter.inc();
                 }
+
+                List<CParameterDeclaration> params =
+                    summaryEdge.getFunctionEntry().getFunctionParameters();
+                List<CExpression> expressions =
+                    summaryEdge
+                        .getExpression()
+                        .getFunctionCallExpression()
+                        .getParameterExpressions();
+
+                for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
+
+                  EdgeDefUseData argumentDefUseData =
+                      defUseExtractor.extract(expressions.get(index));
+                  Optional<MemoryLocation> paramVariable =
+                      Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
+
+                  if (argumentDefUseData.getUses().contains(cause)) {
+                    builder
+                        .node(NodeType.ACTUAL_IN, useEdge, paramVariable)
+                        .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                        .on(defNodeType, defEdge, defNodeVariable);
+                    flowDepCounter.inc();
+                  } else {
+                    for (CExpression pointeeExpression : defUseData.getPointeeUses()) {
+                      if (pointerState
+                          .getPossiblePointees(useEdge, pointeeExpression)
+                          .contains(cause)) {
+                        builder
+                            .node(NodeType.ACTUAL_IN, useEdge, paramVariable)
+                            .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                            .on(defNodeType, defEdge, defNodeVariable);
+                        flowDepCounter.inc();
+                      }
+                    }
+                  }
+                }
+
+              } else {
+                builder
+                    .node(NodeType.STATEMENT, useEdge, Optional.empty())
+                    .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                    .on(defNodeType, defEdge, defNodeVariable);
+                flowDepCounter.inc();
               }
-            } else {
-              addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
-              flowDepCounter.inc();
             }
           };
 
@@ -451,7 +584,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void addControlDependences() {
+  private void addControlDependencies() {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
@@ -461,10 +594,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               entryNode, controlDepsTakeBothAssumptions);
 
       for (ControlDependency controlDependency : controlDependencies) {
-        addDependence(
-            getDGNode(controlDependency.getControlEdge(), Optional.empty()),
-            getDGNode(controlDependency.getDependentEdge(), Optional.empty()),
-            DependenceType.CONTROL);
+
+        builder
+            .node(NodeType.STATEMENT, controlDependency.getDependentEdge(), Optional.empty())
+            .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+            .on(NodeType.STATEMENT, controlDependency.getControlEdge(), Optional.empty());
+
         controlDepCounter++;
       }
 
