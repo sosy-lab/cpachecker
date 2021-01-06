@@ -381,6 +381,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               } else if (defEdge instanceof CFunctionSummaryEdge) {
 
                 defNodeType = NodeType.ACTUAL_OUT;
+                defNodeVariable = Optional.of(cause);
 
                 CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) defEdge;
                 CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
