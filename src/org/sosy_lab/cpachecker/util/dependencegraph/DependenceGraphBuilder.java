@@ -420,7 +420,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
                 Optional<MemoryLocation> returnVariable = getReturnVariable(summaryEdge);
 
-                if (defUseData.getPointeeUses().contains(cause)) {
+                if (defUseData.getUses().contains(cause)) {
                   builder
                       .node(NodeType.ACTUAL_OUT, useEdge, returnVariable)
                       .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
