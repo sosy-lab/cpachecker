@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
@@ -76,7 +75,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final EdgeDefUseData.Extractor defUseExtractor;
-  private NodeMap nodes;
 
   private final StatTimer dependenceGraphConstructionTimer = new StatTimer("Time for dep. graph");
   private StatInt flowDependenceNumber = new StatInt(StatKind.SUM, "Number of flow dependences");
@@ -128,6 +126,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private boolean considerPointees = true;
 
   private final SystemDependenceGraph.Builder<CFAEdge, MemoryLocation> builder;
+  private SystemDependenceGraph<CFAEdge, MemoryLocation> systemDependenceGraph;
 
   public DependenceGraphBuilder(
       final CFA pCfa,
@@ -177,14 +176,14 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
-    SystemDependenceGraph<CFAEdge, MemoryLocation> sdp = builder.build();
+    systemDependenceGraph = builder.build();
     dependenceGraphConstructionTimer.stop();
 
     if (exportDot != null) {
-      DotExporter.export(sdp, exportDot, logger);
+      DotExporter.export(systemDependenceGraph, exportDot, logger);
     }
 
-    return sdp;
+    return systemDependenceGraph;
   }
 
   private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
@@ -540,28 +539,29 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
+    pStatsCollection.add(
+        new Statistics() {
 
-      @Override
-      public void printStatistics(
-          final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-        StatInt nodeNumber = new StatInt(StatKind.SUM, "Number of DG nodes");
-        nodeNumber.setNextValue(nodes.size());
-        if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
-          put(pOut, 3, dependenceGraphConstructionTimer);
-          put(pOut, 4, flowDependenceTimer);
-          put(pOut, 4, controlDependenceTimer);
-          put(pOut, 4, nodeNumber);
-          put(pOut, 4, flowDependenceNumber);
-          put(pOut, 4, controlDependenceNumber);
-          put(pOut, 4, isolatedNodes);
-        }
-      }
+          @Override
+          public void printStatistics(
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+            StatInt nodeNumber = new StatInt(StatKind.SUM, "Number of DG nodes");
+            nodeNumber.setNextValue(systemDependenceGraph.getNodes().size());
+            if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
+              put(pOut, 3, dependenceGraphConstructionTimer);
+              put(pOut, 4, flowDependenceTimer);
+              put(pOut, 4, controlDependenceTimer);
+              put(pOut, 4, nodeNumber);
+              put(pOut, 4, flowDependenceNumber);
+              put(pOut, 4, controlDependenceNumber);
+              put(pOut, 4, isolatedNodes);
+            }
+          }
 
-      @Override
-      public String getName() {
-        return ""; // empty name for nice output under CFACreator statistics
-      }
-    });
+          @Override
+          public String getName() {
+            return ""; // empty name for nice output under CFACreator statistics
+          }
+        });
   }
 }
