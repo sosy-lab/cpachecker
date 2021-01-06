@@ -3309,13 +3309,6 @@ dependencegraph.controldeps.use = true
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
 
-# Run flow dependence analysis with constant propagation
-dependencegraph.flowdep.constantPropagation = false
-
-# Whether to consider constraints on program variables (e.g., x > 10) as
-# definitions.
-dependencegraph.flowdep.constraintIsDef = false
-
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
 
