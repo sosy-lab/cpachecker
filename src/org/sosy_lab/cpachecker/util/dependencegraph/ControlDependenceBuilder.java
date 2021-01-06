@@ -160,6 +160,11 @@ final class ControlDependenceBuilder {
       }
     }
 
+    // If the function has no entering call edges, use the function start dummy edge instead.
+    if (callEdges.isEmpty()) {
+      callEdges.addAll(CFAUtils.allLeavingEdges(pEntryNode).toList());
+    }
+
     // Check whether all CFAEdges are, directly or indirectly, control dependent on the function's
     // entering call edges. If such a dependency doesn't already exist, it's subsequently added.
 
