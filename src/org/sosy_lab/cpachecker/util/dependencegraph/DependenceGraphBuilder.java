@@ -473,7 +473,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                         .on(defNodeType, defEdge, defNodeVariable);
                     flowDepCounter.inc();
                   } else {
-                    for (CExpression pointeeExpression : defUseData.getPointeeUses()) {
+                    for (CExpression pointeeExpression : argumentDefUseData.getPointeeUses()) {
                       if (pointerState
                           .getPossiblePointees(useEdge, pointeeExpression)
                           .contains(cause)) {
