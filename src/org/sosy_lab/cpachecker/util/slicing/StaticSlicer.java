@@ -142,7 +142,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
         depGraph.traverseOnce(
             SystemDependenceGraph.Direction.BACKWARDS,
-            Set.of(depGraph.getNode(NodeType.STATEMENT, g, Optional.empty())),
+            ImmutableSet.of(depGraph.getNode(NodeType.STATEMENT, g, Optional.empty())),
             new SystemDependenceGraph.Visitor<CFAEdge, MemoryLocation>() {
 
               @Override
