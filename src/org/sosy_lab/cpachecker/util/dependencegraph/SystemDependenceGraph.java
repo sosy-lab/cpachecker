@@ -40,6 +40,15 @@ public class SystemDependenceGraph<T, V> {
     return nodes.keySet();
   }
 
+  public Node<T, V> getNode(NodeType pType, T pStatement, Optional<V> pVariable) {
+
+    Objects.requireNonNull(pType, "pType must not be null");
+    Objects.requireNonNull(pStatement, "pStatement must not be null");
+    Objects.requireNonNull(pVariable, "pVariable must not be null");
+
+    return new Node<>(pType, pStatement, pVariable);
+  }
+
   public ImmutableSet<V> getDefs(Node<T, V> pNode) {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
