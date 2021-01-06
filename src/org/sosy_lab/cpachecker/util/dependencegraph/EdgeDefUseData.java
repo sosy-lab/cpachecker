@@ -151,10 +151,10 @@ final class EdgeDefUseData {
       }
 
       @Override
-      public EdgeDefUseData extract(CExpression pExpression) {
+      public EdgeDefUseData extract(CAstNode pAstNode) {
 
         Collector collector = new Collector(pConsiderPointees);
-        pExpression.accept(collector);
+        pAstNode.accept(collector);
 
         return createEdgeDefUseData(collector);
       }
@@ -173,7 +173,7 @@ final class EdgeDefUseData {
 
     public EdgeDefUseData extract(CFAEdge pEdge);
 
-    public EdgeDefUseData extract(CExpression pExpression);
+    public EdgeDefUseData extract(CAstNode pAstNode);
   }
 
   private static final class EdgeDefUseDataException extends RuntimeException {
