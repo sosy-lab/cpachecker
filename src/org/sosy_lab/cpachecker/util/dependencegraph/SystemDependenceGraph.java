@@ -285,7 +285,7 @@ public class SystemDependenceGraph<T, V> {
 
     @Override
     public int hashCode() {
-      return Objects.hash(node, enteringEdges, leavingEdges, defs, uses);
+      return Objects.hash(node);
     }
 
     @Override
@@ -304,11 +304,7 @@ public class SystemDependenceGraph<T, V> {
       }
 
       GraphNode<?, ?> other = (GraphNode<?, ?>) obj;
-      return Objects.equals(node, other.node)
-          && Objects.equals(enteringEdges, other.enteringEdges)
-          && Objects.equals(leavingEdges, other.leavingEdges)
-          && Objects.equals(defs, other.defs)
-          && Objects.equals(uses, other.uses);
+      return Objects.equals(node, other.node);
     }
 
     @Override
