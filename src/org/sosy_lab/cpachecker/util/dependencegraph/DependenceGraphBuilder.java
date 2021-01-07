@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-
+import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -139,7 +140,25 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    defUseExtractor = EdgeDefUseData.createExtractor(considerPointees);
+    defUseExtractor =
+        new EdgeDefUseData.Extractor() {
+
+          private final Map<Equivalence.Wrapper<Object>, EdgeDefUseData> cache = new HashMap<>();
+          private final EdgeDefUseData.Extractor delegateExtractor =
+              EdgeDefUseData.createExtractor(considerPointees);
+
+          @Override
+          public EdgeDefUseData extract(CFAEdge pEdge) {
+            return cache.computeIfAbsent(
+                Equivalence.identity().wrap(pEdge), key -> delegateExtractor.extract(pEdge));
+          }
+
+          @Override
+          public EdgeDefUseData extract(CAstNode pAstNode) {
+            return cache.computeIfAbsent(
+                Equivalence.identity().wrap(pAstNode), key -> delegateExtractor.extract(pAstNode));
+          }
+        };
 
     // If you add additional types of dependencies, they should probably be added to this check,
     // as well
