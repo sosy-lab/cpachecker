@@ -35,7 +35,6 @@ public class LoopGetIfAfterLoopCondition {
   private static int smallestIf;
   private static LogManager logger;
 
-  // diese Implementierung könnte ineffizienter sein
   private static void readFile() {
     try (Reader freader =
         Files.newBufferedReader(Paths.get(fileLocation.getFileName()), Charset.defaultCharset())) {
