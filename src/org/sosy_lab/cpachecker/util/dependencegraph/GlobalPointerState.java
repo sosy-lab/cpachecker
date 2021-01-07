@@ -71,6 +71,23 @@ abstract class GlobalPointerState {
     return ImmutableSet.copyOf(addressableVariables);
   }
 
+  private static ImmutableSet<MemoryLocation> computeAddressedVariables(CFA pCfa) {
+
+    Set<MemoryLocation> addressedVariables = new HashSet<>();
+    Optional<VariableClassification> optVariableClassification = pCfa.getVarClassification();
+
+    if (optVariableClassification.isPresent()) {
+
+      VariableClassification variableClassification = optVariableClassification.orElseThrow();
+
+      for (String variableName : variableClassification.getAddressedVariables()) {
+        addressedVariables.add(MemoryLocation.valueOf(variableName));
+      }
+    }
+
+    return ImmutableSet.copyOf(addressedVariables);
+  }
+
   private static boolean isPointerUnknown(Set<MemoryLocation> pPossiblePointees) {
 
     // if there are no possible pointees, the pointer is unknown
@@ -94,8 +111,8 @@ abstract class GlobalPointerState {
 
   private static ImmutableSet<MemoryLocation> getPossiblePointees(
       PointerState pPointerState,
-      Optional<VariableClassification> pVariableClassification,
       ImmutableSet<MemoryLocation> pAddressableVariables,
+      ImmutableSet<MemoryLocation> pAddressedVariables,
       CExpression pExpression) {
 
     Set<MemoryLocation> possiblePointees =
@@ -109,14 +126,10 @@ abstract class GlobalPointerState {
 
       possiblePointees = new HashSet<>();
 
-      if (pVariableClassification.isPresent()) {
-
-        VariableClassification variableClassification = pVariableClassification.orElseThrow();
-        possiblePointees = new HashSet<>();
-
-        for (String variableName : variableClassification.getAddressedVariables()) {
-          possiblePointees.add(MemoryLocation.valueOf(variableName));
-        }
+      if (!pAddressedVariables.isEmpty()) {
+        possiblePointees = pAddressedVariables;
+      } else {
+        possiblePointees = pAddressableVariables;
       }
 
       if (possiblePointees.isEmpty()) {
@@ -147,16 +160,17 @@ abstract class GlobalPointerState {
         new PointerTransferRelation();
 
     private final PointerState pointerState;
-    private final Optional<VariableClassification> variableClassification;
     private final ImmutableSet<MemoryLocation> addressableVariables;
+    private final ImmutableSet<MemoryLocation> addressedVariables;
 
     private FlowInsensitivePointerState(
         PointerState pPointerState,
-        Optional<VariableClassification> pVariableClassification,
-        ImmutableSet<MemoryLocation> pAddressableVariables) {
+        ImmutableSet<MemoryLocation> pAddressableVariables,
+        ImmutableSet<MemoryLocation> pAddressedVariables) {
+
       pointerState = pPointerState;
-      variableClassification = pVariableClassification;
       addressableVariables = pAddressableVariables;
+      addressedVariables = pAddressedVariables;
     }
 
     @Override
@@ -164,7 +178,7 @@ abstract class GlobalPointerState {
         CFAEdge pEdge, CExpression pExpression) {
 
       return GlobalPointerState.getPossiblePointees(
-          pointerState, variableClassification, addressableVariables, pExpression);
+          pointerState, addressableVariables, addressedVariables, pExpression);
     }
 
     private static Collection<CFAEdge> getAllEdges(CFA pCfa) {
@@ -233,23 +247,24 @@ abstract class GlobalPointerState {
       }
 
       return new FlowInsensitivePointerState(
-          pointerState, pCfa.getVarClassification(), computeAddressableVariables(pCfa));
+          pointerState, computeAddressableVariables(pCfa), computeAddressedVariables(pCfa));
     }
   }
 
   private static final class FlowSensitivePointerState extends GlobalPointerState {
 
     private final Map<CFAEdge, PointerState> pointerStates;
-    private final Optional<VariableClassification> variableClassification;
     private final ImmutableSet<MemoryLocation> addressableVariables;
+    private final ImmutableSet<MemoryLocation> addressedVariables;
 
     private FlowSensitivePointerState(
         Map<CFAEdge, PointerState> pPointerStates,
-        Optional<VariableClassification> pVariableClassification,
-        ImmutableSet<MemoryLocation> pAddressableVariables) {
+        ImmutableSet<MemoryLocation> pAddressableVariables,
+        ImmutableSet<MemoryLocation> pAddressedVariables) {
+
       pointerStates = pPointerStates;
-      variableClassification = pVariableClassification;
       addressableVariables = pAddressableVariables;
+      addressedVariables = pAddressedVariables;
     }
 
     @Override
@@ -260,7 +275,7 @@ abstract class GlobalPointerState {
 
       if (pointerState != null) {
         return GlobalPointerState.getPossiblePointees(
-            pointerState, variableClassification, addressableVariables, pExpression);
+            pointerState, addressableVariables, addressedVariables, pExpression);
       } else {
         return addressableVariables;
       }
@@ -328,7 +343,7 @@ abstract class GlobalPointerState {
       }
 
       return new FlowSensitivePointerState(
-          pointerStates, pCfa.getVarClassification(), computeAddressableVariables(pCfa));
+          pointerStates, computeAddressableVariables(pCfa), computeAddressedVariables(pCfa));
     }
   }
 
