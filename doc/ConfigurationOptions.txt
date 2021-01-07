@@ -157,12 +157,6 @@ solver.z3.usePhantomReferences = false
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Get information about all the loops
-LoopInfo.generateLoopInformation = false
-
-# Dumps infos about the loops in the tested program to a file.
-LoopInfo.logfile = "LoopInformation.log"
-
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
 
@@ -676,6 +670,10 @@ bmc.invariantsExport = no default value
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
+# Try to simplify the structure of formulas for the sat check of BMC. The
+# improvement depends on the underlying SMT solver.
+bmc.simplifyBooleanFormula = false
+
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
@@ -738,10 +736,6 @@ cfa.addLabels.atProgramExit = false
 
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
-
-# Automates the abstraction of loops and creation of the new CFA's,overwrites
-# the files
-cfa.automateAbstractLoopParser = false
 
 # dump a simple call graph
 cfa.callgraph.export = true
@@ -3085,6 +3079,11 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
+# Allow the given extern functions and interpret them as pure functions
+# although the value analysis does not support their semantics and this can
+# produce wrong results.
+cpa.value.allowedUnsupportedFunctions = {}
+
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
@@ -3499,17 +3498,6 @@ locmapper.dumpTokenizedProgramToFile = no default value
 
 # all used options are printed
 log.usedOptions.export = false
-
-# Change this option only if you want all of the loops to be abstracted.
-loopacc.loopabstractionheader.onlyAccelerableLoops = true
-
-# Use this option to specify a place to save the new c file with the
-# abstracted loops, default is in the cpachecker folder -> abstractLoops
-loopacc.loopabstractionheader.pathForFile = "../abstractLoops/"
-
-# AbstractLoops to be able to process them
-loopacc.loopabstractionheader.shouldAbstract = "none"
-  allowed values: [naive, advanced, none]
 
 # When checking for memory cleanup properties, use this configuration file
 # instead of the current one.

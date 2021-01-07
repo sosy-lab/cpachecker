@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -60,6 +61,7 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
@@ -1977,5 +1979,126 @@ public class FormulaManagerView {
             return visitDefault(pF);
           }
         });
+  }
+
+  /**
+   * This method simplifies a given boolean formula by putting out of brackets mutual operands of
+   * all conjunctions in a single disjunction. The simplified formula should speed up the SAT check
+   * of BMC. Example: <code>(or (and A B C) (and A B D E))</code> transformed to <code>
+   * ((and A B) and (or (and C) (and D E)))</code>.
+   *
+   * <p>It depends on the solver whether this speeds up the SMT check, because solvers can
+   * internally implement similar routines. Example execution of BMC for concurrent tasks: The
+   * performance of SMTInterpol with Integer logic is improved by a factor of up to 5 in several
+   * cases. MathSAT with BV logic becomes a little bit slower on the same tasks when formulas are
+   * simplified.
+   */
+  public BooleanFormula simplifyBooleanFormula(final BooleanFormula formula) {
+    return simplifyBooleanFormula0(formula, new HashMap<>(), getBooleanFormulaManager());
+  }
+
+  private BooleanFormula simplifyBooleanFormula0(
+      final BooleanFormula formula,
+      final Map<BooleanFormula, BooleanFormula> cache,
+      final BooleanFormulaManager bmgr) {
+    final Set<BooleanFormula> disjunctionSet = bmgr.toDisjunctionArgs(formula, true);
+
+    if (disjunctionSet.size() <= 1) {
+      // a single atom can not be simplified
+      return formula;
+    }
+
+    final List<Set<BooleanFormula>> listOfOperands = new ArrayList<>();
+    for (final BooleanFormula subformula : disjunctionSet) {
+      // split each subformula to a set containing all subformulas of conjunction
+      Set<BooleanFormula> conjunctionSet = bmgr.toConjunctionArgs(subformula, true);
+      // this set contains all operands of current subformula
+      Set<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
+      listOfOperands.add(operandsOfSubformula);
+      // iterate through all subformulas of a current conjunction
+      for (BooleanFormula formulaInConjunctionSet : conjunctionSet) {
+        // formulaInConjunctionSet contains disjunction that should be also transformed
+        BooleanFormula transformedFormula = cache.get(formulaInConjunctionSet);
+        if (transformedFormula == null) {
+          transformedFormula = simplifyBooleanFormula0(formulaInConjunctionSet, cache, bmgr);
+          cache.put(formulaInConjunctionSet, transformedFormula);
+        }
+        operandsOfSubformula.addAll(bmgr.toConjunctionArgs(transformedFormula, true));
+      }
+    }
+
+    // set of mutual operands that are contained in all subformulas
+    final Set<BooleanFormula> mutualOperandsSet = new LinkedHashSet<>(listOfOperands.get(0));
+    for (Set<BooleanFormula> operands : listOfOperands) {
+      mutualOperandsSet.retainAll(operands);
+    }
+
+    // remove all mutual operands from each subformula
+    final List<BooleanFormula> transformedSubformulas = new ArrayList<>();
+    for (Set<BooleanFormula> operands : listOfOperands) {
+      operands.removeAll(mutualOperandsSet);
+      transformedSubformulas.add(bmgr.and(operands));
+    }
+
+    // simplified BooleanFormula consists of
+    // ((conjunction of mutual operands) AND (disjunction of transformed subformulas))
+    return bmgr.and(bmgr.and(mutualOperandsSet), bmgr.or(transformedSubformulas));
+  }
+
+  /**
+   * This method computes the number of boolean operations in the formula, including recursive ones.
+   *
+   * <p>The result serves as an overview and can be used as a vague measurement for the difficulty
+   * of a formula. Please note that for a better measurement, you should also consider the used SMT
+   * theory, complexity of arithmetic operations, number of symbols and constants, etc.
+   */
+  public BigInteger countBooleanOperations(BooleanFormula f) {
+    final Map<Formula, BigInteger> cache = new HashMap<>();
+    final Deque<Formula> waitlist = new ArrayDeque<>();
+
+    final FormulaVisitor<BigInteger> countingVisitor =
+        new DefaultFormulaVisitor<>() {
+          @Override
+          protected BigInteger visitDefault(Formula pF) {
+            return BigInteger.ZERO;
+          }
+
+          @Override
+          public BigInteger visitFunction(
+              Formula pF, List<Formula> args, FunctionDeclaration<?> decl) {
+            assert !args.isEmpty();
+            switch (decl.getKind()) {
+              case AND:
+              case OR:
+              case NOT:
+                BigInteger count = BigInteger.valueOf(args.size());
+                for (Formula arg : args) {
+                  final BigInteger subCount = cache.get(arg);
+                  if (subCount == null) {
+                    // pF will be visited again later, non-recursive implementation of DFS
+                    waitlist.push(pF);
+                    waitlist.push(arg);
+                    return null;
+                  } else {
+                    count = count.add(subCount);
+                  }
+                }
+                return count;
+              default:
+                return visitDefault(pF);
+            }
+          }
+        };
+
+    // non-recursive implementation of DFS
+    waitlist.push(f);
+    while (!waitlist.isEmpty()) {
+      Formula formula = waitlist.pop();
+      BigInteger count = visit(formula, countingVisitor);
+      if (count != null) {
+        cache.put(formula, count);
+      }
+    }
+    return cache.get(f);
   }
 }
