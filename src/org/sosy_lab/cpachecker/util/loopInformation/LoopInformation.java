@@ -93,7 +93,6 @@ public class LoopInformation implements StatisticsProvider {
       boolean flag = false;
       if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
           || tempEdge.getCode().contains("CPAchecker_TMP")) {
-        // suche erste nicht assume edge -> kann eig auch in loopdata ausgelagert werden
         while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
             || tempEdge.getCode().contains("CPAchecker_TMP")) {
           for (int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
@@ -112,7 +111,7 @@ public class LoopInformation implements StatisticsProvider {
           }
           if (!(tempEdge.getCode().contains("CPAchecker_TMP")
               && tempEdge.getCode().contains("=="))) {
-          tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
+            tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
           } else {
             tempEdge =
                 tempEdge

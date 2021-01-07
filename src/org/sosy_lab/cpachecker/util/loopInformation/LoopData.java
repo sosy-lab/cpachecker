@@ -252,7 +252,10 @@ public class LoopData implements Comparable<LoopData> {
                         Splitter.on('[')
                             .split(CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).toString()),
                         0);
-                String tempType = CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType().toString();
+                String tempType =
+                    CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
+                        .getExpressionType()
+                        .toString();
                 tmpO.add(new LoopVariables(tempName, tempType, node, true, null, null));
               }
             }
@@ -278,10 +281,11 @@ public class LoopData implements Comparable<LoopData> {
                       arrayLength(CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString());
                   o.setArrayLength(arraySize);
                 }
-                o.setInitializationLine(((ADeclarationEdge) n.getLeavingEdge(e))
-                    .getDeclaration()
-                    .getFileLocation()
-                    .getStartingLineInOrigin());
+                o.setInitializationLine(
+                    ((ADeclarationEdge) n.getLeavingEdge(e))
+                        .getDeclaration()
+                        .getFileLocation()
+                        .getStartingLineInOrigin());
 
               } else if (!CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
                   && o.getVariableName()
@@ -320,7 +324,7 @@ public class LoopData implements Comparable<LoopData> {
             flag = false;
           }
         }
-        if(flag) {
+        if (flag) {
           removeDO.add(o);
         }
       }
@@ -669,10 +673,9 @@ public class LoopData implements Comparable<LoopData> {
             temp.add(n);
           }
         }
-      }else if(type.equals("for")){
-      temp = copyList(conditionNodes);
+      } else if (type.equals("for")) {
+        temp = copyList(conditionNodes);
       }
-
     }
     CFANode node;
 
@@ -831,9 +834,9 @@ public class LoopData implements Comparable<LoopData> {
 
     List<Boolean> temp = new ArrayList<>();
     if (!tmpEndless) {
-    if (type.contentEquals("while")) {
-      List<String> rightSideVariable = new ArrayList<>();
-      for (CFANode node : conditionNodes) {
+      if (type.contentEquals("while")) {
+        List<String> rightSideVariable = new ArrayList<>();
+        for (CFANode node : conditionNodes) {
           rightSideVariable.add(
               Iterables.get(
                   Splitter.on(']')
@@ -843,44 +846,44 @@ public class LoopData implements Comparable<LoopData> {
                                   .split(node.getLeavingEdge(VALID_STATE).getRawAST().toString()),
                               POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
                   POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
-      }
+        }
 
         for (String variable : rightSideVariable) {
-        try {
-          double d = Double.parseDouble(variable);
-          if (d > pathNumber || d > outputNumber) {
+          try {
+            double d = Double.parseDouble(variable);
+            if (d > pathNumber || d > outputNumber) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe) {
             temp.add(true);
           }
-        } catch (NumberFormatException | NullPointerException nfe) {
-          temp.add(true);
-        }
-        try {
-          int d = Integer.parseInt(variable);
-          if (d > pathNumber || d > outputNumber) {
+          try {
+            int d = Integer.parseInt(variable);
+            if (d > pathNumber || d > outputNumber) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe1) {
             temp.add(true);
           }
-        } catch (NumberFormatException | NullPointerException nfe1) {
-          temp.add(true);
-        }
-        try {
-          long d = Long.parseLong(variable);
-          if (d > pathNumber || d > outputNumber) {
+          try {
+            long d = Long.parseLong(variable);
+            if (d > pathNumber || d > outputNumber) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe2) {
             temp.add(true);
           }
-        } catch (NumberFormatException | NullPointerException nfe2) {
-          temp.add(true);
-        }
-        try {
-          float d = Float.parseFloat(variable);
-          if (d > pathNumber || d > outputNumber) {
+          try {
+            float d = Float.parseFloat(variable);
+            if (d > pathNumber || d > outputNumber) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe3) {
             temp.add(true);
           }
-        } catch (NumberFormatException | NullPointerException nfe3) {
-          temp.add(true);
         }
-      }
 
-    } else if (type.contentEquals("for")) {
+      } else if (type.contentEquals("for")) {
         List<String> rightSideVariable = new ArrayList<>();
         for (CFANode node : forCondition) {
           rightSideVariable.add(
@@ -928,12 +931,12 @@ public class LoopData implements Comparable<LoopData> {
             temp.add(true);
           }
         }
-    }
-    for (Boolean b : temp) {
-      if (b) {
-        canAccelerate = true;
       }
-    }
+      for (Boolean b : temp) {
+        if (b) {
+          canAccelerate = true;
+        }
+      }
     } else {
       canAccelerate = true;
     }
@@ -960,11 +963,11 @@ public class LoopData implements Comparable<LoopData> {
     if (!(otherLoop instanceof LoopData)) {
       return false;
     }
-    if(otherLoop == this) {
+    if (otherLoop == this) {
       return true;
     }
-    LoopData ld = (LoopData)otherLoop;
-    if(this.getLoopStart().getNodeNumber() == ld.getLoopStart().getNodeNumber()) {
+    LoopData ld = (LoopData) otherLoop;
+    if (this.getLoopStart().getNodeNumber() == ld.getLoopStart().getNodeNumber()) {
       return true;
     } else {
       return false;

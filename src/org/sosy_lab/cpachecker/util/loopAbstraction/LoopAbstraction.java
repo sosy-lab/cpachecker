@@ -822,36 +822,36 @@ public class LoopAbstraction {
 
     boolean ifCaseC = closed;
 
-      String temp = Iterables.get(Splitter.on('(').split(line), 0);
+    String temp = Iterables.get(Splitter.on('(').split(line), 0);
     if (!ifCaseC && line.contains("}")) {
-        ifCaseC = true;
-      }
+      ifCaseC = true;
+    }
     if (temp.contains("{") && openIf) {
-        openIf = false;
-        ifCaseC = false;
-      }
+      openIf = false;
+      ifCaseC = false;
+    }
     if (ifWithoutBracket > 0) {
-        ifWithoutBracket = 0;
-        openIf = false;
-      }
-      if (temp.contains("if") || line.contains("else")) {
-        ifCaseC = false;
-        if (temp.contains("if")) {
-          String temp2 = Iterables.get(Splitter.on("if").split(line), 1);
-          if (temp2.contains("}")) {
-            ifCaseC = true;
-          } else if (!temp.contains("{")) {
-            ifCaseC = true;
-            openIf = true;
-            ifWithoutBracket += 1;
-          }
-        } else if (line.contains("else")) {
-          String temp2 = Iterables.get(Splitter.on("else").split(line), 1);
-          if (temp2.contains("}") || !temp2.contains("{")) {
-            ifCaseC = true;
-          }
+      ifWithoutBracket = 0;
+      openIf = false;
+    }
+    if (temp.contains("if") || line.contains("else")) {
+      ifCaseC = false;
+      if (temp.contains("if")) {
+        String temp2 = Iterables.get(Splitter.on("if").split(line), 1);
+        if (temp2.contains("}")) {
+          ifCaseC = true;
+        } else if (!temp.contains("{")) {
+          ifCaseC = true;
+          openIf = true;
+          ifWithoutBracket += 1;
+        }
+      } else if (line.contains("else")) {
+        String temp2 = Iterables.get(Splitter.on("else").split(line), 1);
+        if (temp2.contains("}") || !temp2.contains("{")) {
+          ifCaseC = true;
         }
       }
+    }
     return ifCaseC;
   }
 
@@ -868,7 +868,7 @@ public class LoopAbstraction {
 
     File file = new File(fileName);
     try {
-    file.getParentFile().mkdirs();
+      file.getParentFile().mkdirs();
     } catch (Exception e) {
       logger.logUserException(Level.WARNING, e, "Security Exception");
     }
