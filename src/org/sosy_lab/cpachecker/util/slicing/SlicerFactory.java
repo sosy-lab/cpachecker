@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -42,7 +42,7 @@ public class SlicerFactory implements StatisticsProvider {
     /**
      * Use static program slicing based on dependence graph of CFA
      *
-     * @see org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph
+     * @see org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder
      * @see StaticSlicer
      */
     STATIC,
@@ -88,8 +88,8 @@ public class SlicerFactory implements StatisticsProvider {
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
       throws InterruptedException, InvalidConfigurationException {
 
-    final DependenceGraphBuilder depGraphBuilder =
-        new DependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
+    final CSystemDependenceGraphBuilder depGraphBuilder =
+        new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
     try {
       return depGraphBuilder.build();
     } catch (CPAException ex) {

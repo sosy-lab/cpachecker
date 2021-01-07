@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** Factory for creating a {@link SystemDependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependencegraph")
-public class DependenceGraphBuilder implements StatisticsProvider {
+public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private final CFA cfa;
   private final LogManager logger;
@@ -129,7 +129,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private final SystemDependenceGraph.Builder<CFAEdge, MemoryLocation> builder;
   private SystemDependenceGraph<CFAEdge, MemoryLocation> systemDependenceGraph;
 
-  public DependenceGraphBuilder(
+  public CSystemDependenceGraphBuilder(
       final CFA pCfa,
       final Configuration pConfig,
       final LogManager pLogger,
