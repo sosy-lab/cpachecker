@@ -79,7 +79,11 @@ final class DotExporter {
             stringBuilder.append(nodeId(pSuccessor));
 
             if (pType == EdgeType.CONTROL_DEPENDENCY) {
-              stringBuilder.append(" [style=dashed]");
+              stringBuilder.append(" [style=\"bold,dashed\"]");
+            } else if (pType == EdgeType.FLOW_DEPENDENCY) {
+              stringBuilder.append(" [style=bold]");
+            } else if (pType == EdgeType.PARAMETER_EDGE) {
+              stringBuilder.append(" [style=\"bold,dotted\",color=blue]");
             }
 
             stringBuilder.append('\n');
@@ -91,7 +95,7 @@ final class DotExporter {
 
   private String createString() {
 
-    stringBuilder.append("digraph SystemDependenceGraph {\n");
+    stringBuilder.append("digraph SystemDependenceGraph {\nrankdir=LR;\n");
 
     Multimap<AFunctionDeclaration, Node<CFAEdge, MemoryLocation>> functionNodes =
         ArrayListMultimap.create();
@@ -141,8 +145,10 @@ final class DotExporter {
         stringBuilder.append(nodeId(node));
         stringBuilder.append(" [");
 
+        CFAEdge cfaEdge = node.getStatement();
+
         String style;
-        switch (node.getStatement().getEdgeType()) {
+        switch (cfaEdge.getEdgeType()) {
           case AssumeEdge:
             style = "shape=\"diamond\"";
             break;
@@ -161,14 +167,22 @@ final class DotExporter {
         stringBuilder.append(",label=\"");
 
         if (node.getType() != NodeType.STATEMENT) {
-          stringBuilder.append('[');
           stringBuilder.append(node.getType());
-          stringBuilder.append(' ');
+          stringBuilder.append(" of ");
           stringBuilder.append(escape(String.valueOf(node.getVariable().orElse(null))));
-          stringBuilder.append("] ");
+          stringBuilder.append("\\n");
         }
 
-        stringBuilder.append(escape(node.getStatement().toString()));
+        stringBuilder.append(
+            escape(
+                cfaEdge.getPredecessor()
+                    + " ---> "
+                    + cfaEdge.getSuccessor()
+                    + ", "
+                    + cfaEdge.getFileLocation()
+                    + ":"));
+        stringBuilder.append("\\n");
+        stringBuilder.append(escape(cfaEdge.getDescription()));
         stringBuilder.append("\"]\n");
       }
 

@@ -150,7 +150,8 @@ public class SystemDependenceGraph<T, V> {
 
   public enum EdgeType {
     FLOW_DEPENDENCY,
-    CONTROL_DEPENDENCY;
+    CONTROL_DEPENDENCY,
+    PARAMETER_EDGE;
   }
 
   public static final class Node<T, V> {

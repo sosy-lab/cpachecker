@@ -342,20 +342,20 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           (defEdge, useEdge, cause) -> {
             if (defEdge instanceof CFunctionSummaryEdge && useEdge instanceof CFunctionCallEdge) {
 
+              // actual-in --> formal-in
               builder
                   .node(NodeType.FORMAL_IN, useEdge, Optional.of(cause))
-                  .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                  .depends(EdgeType.PARAMETER_EDGE, Optional.of(cause))
                   .on(NodeType.ACTUAL_IN, defEdge, Optional.of(cause));
-              flowDepCounter.inc();
 
             } else if (defEdge instanceof CFunctionReturnEdge
                 && useEdge instanceof CFunctionSummaryEdge) {
 
+              // formal-out --> actual-out
               builder
                   .node(NodeType.ACTUAL_OUT, useEdge, Optional.of(cause))
-                  .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(cause))
+                  .depends(EdgeType.PARAMETER_EDGE, Optional.of(cause))
                   .on(NodeType.FORMAL_OUT, defEdge, Optional.of(cause));
-              flowDepCounter.inc();
 
             } else {
 
