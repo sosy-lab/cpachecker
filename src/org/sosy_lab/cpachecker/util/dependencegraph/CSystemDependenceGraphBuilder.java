@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
