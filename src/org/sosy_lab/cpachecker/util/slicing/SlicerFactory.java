@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -90,7 +89,7 @@ public class SlicerFactory implements StatisticsProvider {
       throws InterruptedException, InvalidConfigurationException {
 
     final DependenceGraphBuilder depGraphBuilder =
-        DependenceGraph.builder(pCfa, pConfig, pLogger, pShutdownNotifier);
+        new DependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
     try {
       return depGraphBuilder.build();
     } catch (CPAException ex) {

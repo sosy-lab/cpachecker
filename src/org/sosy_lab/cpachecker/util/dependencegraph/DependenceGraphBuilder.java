@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
-/** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
+/** Factory for creating a {@link SystemDependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependencegraph")
 public class DependenceGraphBuilder implements StatisticsProvider {
 
