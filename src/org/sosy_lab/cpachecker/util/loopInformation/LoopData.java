@@ -199,21 +199,19 @@ public class LoopData implements Comparable<LoopData> {
                 || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
             && (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
                 || CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null)) {
-          boolean flag = true;
-
-          boolean flagCPAchecker = true;
+          boolean variablenameNotContainsCPAchecker = true;
           if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null
               && CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
                   .contains("__CPAchecker_")) {
-            flagCPAchecker = false;
+            variablenameNotContainsCPAchecker = false;
           } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
               && CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
                   .toString()
                   .contains("__CPAchecker_")) {
-            flagCPAchecker = false;
+            variablenameNotContainsCPAchecker = false;
           }
 
-          if (flag && flagCPAchecker) {
+          if (variablenameNotContainsCPAchecker) {
             if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null) {
               if (CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().contains("[")) {
                 String tmpType =
