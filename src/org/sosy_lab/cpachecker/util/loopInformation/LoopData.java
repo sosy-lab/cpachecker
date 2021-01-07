@@ -226,16 +226,7 @@ public class LoopData implements Comparable<LoopData> {
                             .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
                         OUTPUT_VARIABLE_ARRAY_POSITION);
                 String tmpArraySize =
-                    Iterables.get(
-                        Splitter.on(']')
-                            .split(
-                                Iterables.get(
-                                    Splitter.on('[')
-                                        .split(
-                                            CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i))
-                                                .toString()),
-                                    1)),
-                        0);
+                    arrayLength(CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString());
                 tmpO.add(new LoopVariables(tmpName, tmpType, node, true, tmpArraySize, null));
               } else {
                 if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)).contains(":")) {
@@ -284,16 +275,7 @@ public class LoopData implements Comparable<LoopData> {
 
                 if (o.getIsArray() && o.getArrayLength() == null) {
                   String arraySize =
-                      Iterables.get(
-                          Splitter.on(']')
-                              .split(
-                                  Iterables.get(
-                                      Splitter.on('[')
-                                          .split(
-                                              CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e))
-                                                  .toString()),
-                                      1)),
-                          0);
+                      arrayLength(CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString());
                   o.setArrayLength(arraySize);
                 }
                 o.setInitializationLine(((ADeclarationEdge) n.getLeavingEdge(e))
@@ -307,16 +289,7 @@ public class LoopData implements Comparable<LoopData> {
 
                 if (o.getIsArray() && o.getArrayLength() == null) {
                   String arraySize =
-                      Iterables.get(
-                          Splitter.on(']')
-                              .split(
-                                  Iterables.get(
-                                      Splitter.on('[')
-                                          .split(
-                                              CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e))
-                                                  .toString()),
-                                      1)),
-                          0);
+                      arrayLength(CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString());
                   o.setArrayLength(arraySize);
                 }
                 if (o.getVariableType() == null) {
@@ -354,6 +327,16 @@ public class LoopData implements Comparable<LoopData> {
     }
     tmpO = removeDO;
     return tmpO;
+  }
+
+  /**
+   * Gets the length of the array out of the string that this method gets
+   *
+   * @param x CFAEdgeUtils.leftHandType String
+   * @return Array-length in String representation
+   */
+  private String arrayLength(String x) {
+    return Iterables.get(Splitter.on(']').split(Iterables.get(Splitter.on('[').split(x), 1)), 0);
   }
 
   private int getAllNumberOutputs(List<LoopVariables> pOutput) {
