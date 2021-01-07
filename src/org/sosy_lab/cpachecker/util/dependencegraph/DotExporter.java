@@ -96,6 +96,7 @@ final class DotExporter {
   private String createString() {
 
     stringBuilder.append("digraph SystemDependenceGraph {\nrankdir=LR;\n");
+    appendLegend();
 
     Multimap<AFunctionDeclaration, Node<CFAEdge, MemoryLocation>> functionNodes =
         ArrayListMultimap.create();
@@ -204,5 +205,29 @@ final class DotExporter {
       pLogger.logUserException(
           Level.WARNING, ex, "Could not write system dependence graph to dot file");
     }
+  }
+
+  private void appendLegend() {
+    String legend =
+        "  subgraph cluster_legend { \n"
+            + "label = \"Legend\\n"
+            + "Y depends on X\";\n"
+            + "key [penwidth=\"0\",label=<<table border=\"0\" cellpadding=\"8\" cellspacing=\"0\""
+            + " cellborder=\"0\">\n"
+            + "<tr><td align=\"right\" port=\"i1\">Flow Dependecy      X </td></tr>\n"
+            + "<tr><td align=\"right\" port=\"i2\">Control Dependecy      X </td></tr>\n"
+            + "<tr><td align=\"right\" port=\"i3\">Parameter Dependecy      X </td></tr>\n"
+            + "</table>>]\n"
+            + "key2 [penwidth=\"0\",label=<<table border=\"0\" penwidth=\"0\" cellpadding=\"8\""
+            + " cellspacing=\"0\" cellborder=\"0\">\n"
+            + "<tr><td port=\"i1\"> Y</td></tr>\n"
+            + "<tr><td port=\"i2\"> Y</td></tr>\n"
+            + "<tr><td port=\"i3\"> Y</td></tr>\n"
+            + "</table>>]\n"
+            + "key:i1:e -> key2:i1:w [style=bold]\n"
+            + "key:i2:e -> key2:i2:w [style=\"bold,dashed\"]\n"
+            + "key:i3:e -> key2:i3:w [style=\"bold,dotted\",color=blue]\n"
+            + "}\n";
+    stringBuilder.append(legend);
   }
 }
