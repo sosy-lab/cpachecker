@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.Con
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -198,7 +201,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     dependenceGraphConstructionTimer.stop();
 
     if (exportDot != null) {
-      DotExporter.export(systemDependenceGraph, exportDot, logger);
+      new CDotExporter().export(systemDependenceGraph, exportDot, logger);
     }
 
     return systemDependenceGraph;
@@ -554,5 +557,78 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             return ""; // empty name for nice output under CFACreator statistics
           }
         });
+  }
+
+  private static final class CDotExporter
+      extends DotExporter<CFAEdge, MemoryLocation, AFunctionDeclaration> {
+
+    @Override
+    protected AFunctionDeclaration getContext(Node<CFAEdge, MemoryLocation> pNode) {
+
+      CFAEdge cfaEdge = pNode.getStatement();
+      CFANode cfaFunctionNode =
+          cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+              ? cfaEdge.getSuccessor()
+              : cfaEdge.getPredecessor();
+
+      return cfaFunctionNode.getFunction();
+    }
+
+    @Override
+    protected String getContextLabel(AFunctionDeclaration pContext) {
+      return pContext.toString();
+    }
+
+    @Override
+    protected String getNodeStyle(Node<CFAEdge, MemoryLocation> pNode) {
+
+      switch (pNode.getStatement().getEdgeType()) {
+        case AssumeEdge:
+          return "shape=\"diamond\"";
+        case FunctionCallEdge:
+          return "shape=\"ellipse\", peripheries=\"2\"";
+        case BlankEdge:
+          return "shape=\"box\"";
+        default:
+          return "shape=\"ellipse\"";
+      }
+    }
+
+    @Override
+    protected String getNodeLabel(Node<CFAEdge, MemoryLocation> pNode) {
+
+      StringBuilder sb = new StringBuilder();
+
+      if (pNode.getType() != NodeType.STATEMENT) {
+        sb.append(pNode.getType());
+        sb.append(" of ");
+        sb.append(String.valueOf(pNode.getVariable().orElse(null)));
+        sb.append("\\n");
+      }
+
+      CFAEdge cfaEdge = pNode.getStatement();
+      sb.append(cfaEdge.getPredecessor());
+      sb.append(" ---> ");
+      sb.append(cfaEdge.getSuccessor());
+      sb.append(", ");
+      sb.append(cfaEdge.getFileLocation());
+      sb.append(":\\n");
+      sb.append(cfaEdge.getDescription());
+
+      return sb.toString();
+    }
+
+    @Override
+    protected boolean isHighlighted(Node<CFAEdge, MemoryLocation> pNode) {
+      return false;
+    }
+
+    @Override
+    protected boolean isHighlighted(
+        EdgeType pEdgeType,
+        Node<CFAEdge, MemoryLocation> pPredecessor,
+        Node<CFAEdge, MemoryLocation> pSuccessor) {
+      return false;
+    }
   }
 }
