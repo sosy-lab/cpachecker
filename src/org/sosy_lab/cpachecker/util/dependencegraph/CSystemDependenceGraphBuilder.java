@@ -304,34 +304,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       pointerState = GlobalPointerState.EMPTY;
     }
 
-    boolean unknownPointer = false;
-
-    outer:
-    for (CFANode node : cfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-
-        EdgeDefUseData edgeDefUseData = defUseExtractor.extract(edge);
-
-        for (CExpression expression :
-            Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
-
-          ImmutableSet<MemoryLocation> possiblePointees =
-              pointerState.getPossiblePointees(edge, expression);
-
-          // if there are no possible pointees, the pointer is unknown
-          if (possiblePointees.isEmpty()) {
-            unknownPointer = true;
-            break outer;
-          }
-        }
-      }
-    }
-
-    if (unknownPointer) {
-      // TODO: handle unknown pointers
-      return;
-    }
-
     ForeignDefUseData foreignDefUseData =
         ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
 
