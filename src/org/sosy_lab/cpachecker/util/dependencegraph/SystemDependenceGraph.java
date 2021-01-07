@@ -159,11 +159,15 @@ public class SystemDependenceGraph<T, V> {
     private final T statement;
     private final Optional<V> variable;
 
+    private final int hash;
+
     private Node(NodeType pType, T pStatement, Optional<V> pVariable) {
 
       type = pType;
       statement = pStatement;
       variable = pVariable;
+
+      hash = Objects.hash(type, statement, variable);
     }
 
     public NodeType getType() {
@@ -180,7 +184,7 @@ public class SystemDependenceGraph<T, V> {
 
     @Override
     public int hashCode() {
-      return Objects.hash(type, statement, variable);
+      return hash;
     }
 
     @Override
@@ -200,7 +204,8 @@ public class SystemDependenceGraph<T, V> {
 
       Node<?, ?> other = (Node<?, ?>) pObject;
 
-      return type == other.type
+      return hash == other.hash
+          && type == other.type
           && Objects.equals(statement, other.statement)
           && Objects.equals(variable, other.variable);
     }
@@ -285,7 +290,7 @@ public class SystemDependenceGraph<T, V> {
 
     @Override
     public int hashCode() {
-      return Objects.hash(node);
+      return node.hashCode();
     }
 
     @Override
@@ -304,7 +309,7 @@ public class SystemDependenceGraph<T, V> {
       }
 
       GraphNode<?, ?> other = (GraphNode<?, ?>) obj;
-      return Objects.equals(node, other.node);
+      return node.equals(other.node);
     }
 
     @Override
