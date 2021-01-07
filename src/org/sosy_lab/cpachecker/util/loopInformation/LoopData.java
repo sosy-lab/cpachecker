@@ -1088,21 +1088,6 @@ public class LoopData implements Comparable<LoopData> {
     return onlyRandomCondition;
   }
 
-  public String outputToString() {
-    StringBuilder temp = new StringBuilder();
-    Object[] tempArray = output.toArray();
-    for (int i = 0; i < tempArray.length; i++) {
-      if (i < tempArray.length - FLAG_FOR_LAST_STRING) {
-        temp.append((String) tempArray[i]);
-        temp.append(",");
-      } else {
-        temp.append((String) tempArray[i]);
-      }
-    }
-
-    return temp.toString();
-  }
-
   @Override
   public String toString() {
     return "Start "
