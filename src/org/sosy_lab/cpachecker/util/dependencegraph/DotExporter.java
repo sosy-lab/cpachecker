@@ -83,7 +83,7 @@ abstract class DotExporter<T, V, C> {
     int i = 1;
     for (String label : edgeLabels.values()) {
       pWriter.printf(
-          Locale.ENGLISH, "<tr><td align=\"right\" port=\"i%d\">%s      X </td></tr>\n", i, label);
+          Locale.ENGLISH, "<tr><td align=\"right\" port=\"i%d\">%s      X </td></tr>%n", i, label);
       i++;
     }
 
@@ -94,7 +94,7 @@ abstract class DotExporter<T, V, C> {
             + " cellspacing=\"0\" cellborder=\"0\">");
 
     for (i = 1; i <= edgeLabels.size(); i++) {
-      pWriter.printf(Locale.ENGLISH, "<tr><td port=\"i%d\"> Y</td></tr>\n", i);
+      pWriter.printf(Locale.ENGLISH, "<tr><td port=\"i%d\"> Y</td></tr>%n", i);
     }
 
     pWriter.println("</table>>]");
@@ -102,7 +102,7 @@ abstract class DotExporter<T, V, C> {
     i = 1;
     for (EdgeType edgeType : edgeLabels.keySet()) {
       String edgeStyle = edgeStyles.get(edgeType).replace("{color}", "black");
-      pWriter.printf(Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]\n", i, i, edgeStyle);
+      pWriter.printf(Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]%n", i, i, edgeStyle);
       i++;
     }
 
@@ -133,7 +133,7 @@ abstract class DotExporter<T, V, C> {
 
             String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
             String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
-            pWriter.printf(Locale.ENGLISH, " [%s]\n", edgeStyle);
+            pWriter.printf(Locale.ENGLISH, " [%s]%n", edgeStyle);
 
             return VisitResult.SKIP;
           }
@@ -174,15 +174,15 @@ abstract class DotExporter<T, V, C> {
 
     for (C cluster : contexts.keySet()) {
 
-      pWriter.printf(Locale.ENGLISH, "subgraph cluster_f%d {\n", counter.getValue());
+      pWriter.printf(Locale.ENGLISH, "subgraph cluster_f%d {%n", counter.getValue());
       counter.inc();
-      pWriter.printf(Locale.ENGLISH, "label=\"%s\";\n", escape(getContextLabel(cluster)));
+      pWriter.printf(Locale.ENGLISH, "label=\"%s\";%n", escape(getContextLabel(cluster)));
 
       for (Node<T, V> node : contexts.get(cluster)) {
         String color = isHighlighted(node) ? ",color=red" : "";
         pWriter.printf(
             Locale.ENGLISH,
-            "%s [%s,label=\"%s\"%s]\n",
+            "%s [%s,label=\"%s\"%s]%n",
             nodeId(visitedNodes, node),
             getNodeStyle(node),
             escape(getNodeLabel(node)),
