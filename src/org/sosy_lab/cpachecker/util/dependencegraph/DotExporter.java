@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -71,46 +71,54 @@ abstract class DotExporter<T, V, C> {
     return "n" + pVisitedNodes.get(pNode);
   }
 
-  private static void writeLegend(PrintWriter pWriter) {
+  private static void writeLegend(Writer pWriter) throws IOException {
 
-    pWriter.println("subgraph cluster_legend {");
-    pWriter.println("label=\"Legend\\nY depends on X\";");
+    pWriter.write("subgraph cluster_legend {\n");
+    pWriter.write("label=\"Legend\\nY depends on X\";\n");
 
-    pWriter.println(
+    pWriter.write(
         "key1 [penwidth=\"0\",label=<<table border=\"0\" cellpadding=\"8\" cellspacing=\"0\""
-            + " cellborder=\"0\">");
+            + " cellborder=\"0\">\n");
 
     int i = 1;
     for (String label : edgeLabels.values()) {
-      pWriter.printf(
-          Locale.ENGLISH, "<tr><td align=\"right\" port=\"i%d\">%s      X </td></tr>%n", i, label);
+      pWriter.write(
+          String.format(
+              Locale.ENGLISH,
+              "<tr><td align=\"right\" port=\"i%d\">%s      X </td></tr>%n",
+              i,
+              label));
       i++;
     }
 
-    pWriter.println("</table>>]");
+    pWriter.write("</table>>]\n");
 
-    pWriter.println(
+    pWriter.write(
         "key2 [penwidth=\"0\",label=<<table border=\"0\" penwidth=\"0\" cellpadding=\"8\""
-            + " cellspacing=\"0\" cellborder=\"0\">");
+            + " cellspacing=\"0\" cellborder=\"0\">\n");
 
     for (i = 1; i <= edgeLabels.size(); i++) {
-      pWriter.printf(Locale.ENGLISH, "<tr><td port=\"i%d\"> Y</td></tr>%n", i);
+      pWriter.write(String.format(Locale.ENGLISH, "<tr><td port=\"i%d\"> Y</td></tr>%n", i));
     }
 
-    pWriter.println("</table>>]");
+    pWriter.write("</table>>]\n");
 
     i = 1;
     for (EdgeType edgeType : edgeLabels.keySet()) {
       String edgeStyle = edgeStyles.get(edgeType).replace("{color}", "black");
-      pWriter.printf(Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]%n", i, i, edgeStyle);
+      pWriter.write(
+          String.format(Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]%n", i, i, edgeStyle));
       i++;
     }
 
-    pWriter.println('}');
+    pWriter.write("}\n");
   }
 
   private void writeEdges(
-      PrintWriter pWriter, SystemDependenceGraph<T, V> pSdg, Map<Node<T, V>, Long> pVisitedNodes) {
+      Writer pWriter, SystemDependenceGraph<T, V> pSdg, Map<Node<T, V>, Long> pVisitedNodes)
+      throws IOException {
+
+    StringBuilder sb = new StringBuilder();
 
     pSdg.traverse(
         pSdg.getNodes(),
@@ -125,25 +133,28 @@ abstract class DotExporter<T, V, C> {
           public VisitResult visitEdge(
               EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
 
-            pWriter.printf(
-                Locale.ENGLISH,
-                "%s -> %s ",
-                nodeId(pVisitedNodes, pPredecessor),
-                nodeId(pVisitedNodes, pSuccessor));
+            sb.append(
+                String.format(
+                    Locale.ENGLISH,
+                    "%s -> %s ",
+                    nodeId(pVisitedNodes, pPredecessor),
+                    nodeId(pVisitedNodes, pSuccessor)));
 
             String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
             String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
-            pWriter.printf(Locale.ENGLISH, " [%s]%n", edgeStyle);
+            sb.append(String.format(Locale.ENGLISH, " [%s]%n", edgeStyle));
 
             return VisitResult.SKIP;
           }
         });
+
+    pWriter.write(sb.toString());
   }
 
-  private void write(PrintWriter pWriter, SystemDependenceGraph<T, V> pSdg) {
+  private void write(Writer pWriter, SystemDependenceGraph<T, V> pSdg) throws IOException {
 
-    pWriter.println("digraph SystemDependenceGraph {");
-    pWriter.println("rankdir=LR;");
+    pWriter.write("digraph SystemDependenceGraph {\n");
+    pWriter.write("rankdir=LR;\n");
 
     writeLegend(pWriter);
 
@@ -174,32 +185,34 @@ abstract class DotExporter<T, V, C> {
 
     for (C cluster : contexts.keySet()) {
 
-      pWriter.printf(Locale.ENGLISH, "subgraph cluster_f%d {%n", counter.getValue());
+      pWriter.write(String.format(Locale.ENGLISH, "subgraph cluster_f%d {%n", counter.getValue()));
       counter.inc();
-      pWriter.printf(Locale.ENGLISH, "label=\"%s\";%n", escape(getContextLabel(cluster)));
+      pWriter.write(
+          String.format(Locale.ENGLISH, "label=\"%s\";%n", escape(getContextLabel(cluster))));
 
       for (Node<T, V> node : contexts.get(cluster)) {
         String color = isHighlighted(node) ? ",color=red" : "";
-        pWriter.printf(
-            Locale.ENGLISH,
-            "%s [%s,label=\"%s\"%s]%n",
-            nodeId(visitedNodes, node),
-            getNodeStyle(node),
-            escape(getNodeLabel(node)),
-            color);
+        pWriter.write(
+            String.format(
+                Locale.ENGLISH,
+                "%s [%s,label=\"%s\"%s]%n",
+                nodeId(visitedNodes, node),
+                getNodeStyle(node),
+                escape(getNodeLabel(node)),
+                color));
       }
 
-      pWriter.println('}');
+      pWriter.write("}\n");
     }
 
     writeEdges(pWriter, pSdg, visitedNodes);
 
-    pWriter.println("\n}");
+    pWriter.write("\n}\n");
   }
 
   void export(SystemDependenceGraph<T, V> pSdg, Path pPath, LogManager pLogger) {
 
-    try (PrintWriter writer = new PrintWriter(IO.openOutputFile(pPath, Charset.defaultCharset()))) {
+    try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       write(writer, pSdg);
     } catch (IOException ex) {
       pLogger.logUserException(
