@@ -540,28 +540,28 @@ public class SystemDependenceGraph<T, V> {
       }
     }
 
-    private List<Node<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
+    private List<GraphNode<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
 
-      List<Node<T, V>> actualInNodes = new ArrayList<>();
+      List<GraphNode<T, V>> actualInNodes = new ArrayList<>();
 
       GraphNode<T, V> formalInGraphNode = graphNodes.get(pFormalIn.getId());
       for (GraphEdge<T, V> formalInEntering : formalInGraphNode.getEnteringEdges()) {
         if (formalInEntering.getType() == EdgeType.PARAMETER_EDGE) {
-          actualInNodes.add(formalInEntering.getPredecessor().getNode());
+          actualInNodes.add(formalInEntering.getPredecessor());
         }
       }
 
       return actualInNodes;
     }
 
-    private List<Node<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
+    private List<GraphNode<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
 
-      List<Node<T, V>> actualOutNodes = new ArrayList<>();
+      List<GraphNode<T, V>> actualOutNodes = new ArrayList<>();
 
       GraphNode<T, V> formalOutGraphNode = graphNodes.get(pFormalOut.getId());
       for (GraphEdge<T, V> formalOutLeaving : formalOutGraphNode.getLeavingEdges()) {
         if (formalOutLeaving.getType() == EdgeType.PARAMETER_EDGE) {
-          actualOutNodes.add(formalOutLeaving.getSuccessor().getNode());
+          actualOutNodes.add(formalOutLeaving.getSuccessor());
         }
       }
 
@@ -631,36 +631,29 @@ public class SystemDependenceGraph<T, V> {
             }
           };
 
-      int visitOnceVisitorSize = 0;
-      ForwardsVisitOnceVisitor<T, V> visitOnceVisitor = null;
+      ForwardsVisitOnceVisitor<T, V> visitOnceVisitor =
+          new ForwardsVisitOnceVisitor<>(visitor, nodes.size());
 
       for (Node<T, V> node : nodes) {
         if (node.getType() == NodeType.FORMAL_IN) {
-
-          if (visitOnceVisitorSize < nodes.size() || visitOnceVisitor == null) {
-            visitOnceVisitorSize = nodes.size() * 2;
-            visitOnceVisitor = new ForwardsVisitOnceVisitor<>(visitor, visitOnceVisitorSize);
-          }
 
           visitor.setFormalInNode(node);
           traverse(graphNodes, ImmutableList.of(node), visitOnceVisitor, true);
           visitOnceVisitor.reset();
 
-          for (Node<T, V> actualInNode : getActualInNodes(node)) {
+          for (GraphNode<T, V> actualInGraphNode : getActualInNodes(node)) {
             for (Node<T, V> formalOutNode : visitor.getDependingFormalOutNodes()) {
-              for (Node<T, V> actualOutNode : getActualOutNodes(formalOutNode)) {
-                C actualInContext = pContextFunction.apply(actualInNode.getStatement());
-                C actualOutContext = pContextFunction.apply(actualOutNode.getStatement());
+              for (GraphNode<T, V> actualOutGraphNode : getActualOutNodes(formalOutNode)) {
+                C actualInContext =
+                    pContextFunction.apply(actualInGraphNode.getNode().getStatement());
+                C actualOutContext =
+                    pContextFunction.apply(actualOutGraphNode.getNode().getStatement());
                 if (actualInContext.equals(actualOutContext)) {
-                  node(
-                          NodeType.ACTUAL_OUT,
-                          actualOutNode.getStatement(),
-                          actualOutNode.getVariable())
-                      .depends(EdgeType.SUMMARY_EDGE, Optional.empty())
-                      .on(
-                          NodeType.ACTUAL_IN,
-                          actualInNode.getStatement(),
-                          actualInNode.getVariable());
+                  insertEdge(
+                      actualInGraphNode,
+                      actualOutGraphNode,
+                      EdgeType.SUMMARY_EDGE,
+                      Optional.empty());
                 }
               }
             }
