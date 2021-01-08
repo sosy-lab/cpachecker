@@ -21,7 +21,7 @@ const fileHeader = `// This file is part of CPAchecker,
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-`
+`;
 
 const workerFiles = fs.readdirSync(rawWorkerPath);
 const externalLibFiles = fs.readdirSync(externalLibsPath);
@@ -29,18 +29,21 @@ const externalLibFiles = fs.readdirSync(externalLibsPath);
 let output = fileHeader;
 const workerNames = [];
 
-let externalLibContent = [];
-externalLibFiles.forEach(libFile => {
+const externalLibContent = [];
+externalLibFiles.forEach((libFile) => {
   libPath = path.join(externalLibsPath, libFile);
   externalLibContent.push(fs.readFileSync(libPath));
-})
+});
 
-workerFiles.forEach(worker => {
+workerFiles.forEach((worker) => {
   const workerName = `${worker.split(".")[0]}Data`;
   workerNames.push(workerName);
   const workerPath = path.join(rawWorkerPath, worker);
   const workerContent = fs.readFileSync(workerPath);
-  const content = Buffer.concat([...externalLibContent, workerContent]).toString("base64");
+  const content = Buffer.concat([
+    ...externalLibContent,
+    workerContent,
+  ]).toString("base64");
 
   output += `\n const ${workerName} = "${template}${content}";\n`;
 });

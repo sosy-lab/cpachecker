@@ -11,69 +11,73 @@
 
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
-const fs = require('fs');
+const fs = require("fs");
 const path = require("path");
-const isDocker = require('is-docker')();
-const webpack = require('webpack');
-const webpackConfig = require('./webpack.config.js');
+const isDocker = require("is-docker")();
+const webpack = require("webpack");
+const webpackConfig = require("./webpack.config.js");
 const devFolder = "development_data/";
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
 // Remove everything from the line with REPORT_CSS to the line after REPORT_JS
 // (".*" matches a single line, "[^]*" arbitrarily many lines).
-fs.writeFileSync('testReport.html',
-  fs.readFileSync('report.html', 'utf8')
+fs.writeFileSync(
+  "testReport.html",
+  fs
+    .readFileSync("report.html", "utf8")
     .replace(/^.*REPORT_CSS[^]*REPORT_JS.*\n.*$/m, "")
-  )
+);
 
 module.exports = function (config) {
   config.set({
-
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine', 'jquery-3.4.0', 'detectBrowsers'],
+    frameworks: ["jasmine", "jquery-3.4.0", "detectBrowsers"],
 
     // list of files / patterns to load in the browser
     files: [
-      {pattern: 'report.js', watched: false},
-      {pattern: './node_modules/angular-mocks/ngMock.js', watched: false},
-      {pattern: './node_modules/jasmine-jquery/lib/jasmine-jquery.js', watched: false},
-      {pattern: 'testReport.html'},
-      {pattern: 'test/*.js', watched: false},
+      { pattern: "report.js", watched: false },
+      { pattern: "./node_modules/angular-mocks/ngMock.js", watched: false },
+      {
+        pattern: "./node_modules/jasmine-jquery/lib/jasmine-jquery.js",
+        watched: false,
+      },
+      { pattern: "testReport.html" },
+      { pattern: "test/*.js", watched: false },
     ],
 
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-     'report.js': ['webpack'],
-     './node_modules/angular-mocks/ngMock.js': ['webpack'],
-     './node_modules/jasmine-jquery/lib/jasmine-jquery.js': ['webpack'],
-     'test/*.js': ['webpack'],
-   },
+      "report.js": ["webpack"],
+      "./node_modules/angular-mocks/ngMock.js": ["webpack"],
+      "./node_modules/jasmine-jquery/lib/jasmine-jquery.js": ["webpack"],
+      "test/*.js": ["webpack"],
+    },
 
     // list of files / patterns to exclude
-    exclude: ['test/initFunctionTest.js'],
+    exclude: ["test/initFunctionTest.js"],
 
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress', 'html'],
+    reporters: ["progress", "html"],
 
     htmlReporter: {
-      outputFile: 'unit_testing_report.html',
+      outputFile: "unit_testing_report.html",
       useLegacyStyle: true,
     },
 
     // add to plugins
     plugins: [
       // other plugins
-      'karma-htmlfile-reporter',
-      'karma-firefox-launcher',
-      'karma-chrome-launcher',
-      'karma-detect-browsers',
-      'karma-jasmine',
-      'karma-jquery',
-      'karma-webpack'
+      "karma-htmlfile-reporter",
+      "karma-firefox-launcher",
+      "karma-chrome-launcher",
+      "karma-detect-browsers",
+      "karma-jasmine",
+      "karma-jquery",
+      "karma-webpack",
     ],
 
     detectBrowsers: {
@@ -81,16 +85,18 @@ module.exports = function (config) {
       usePhantomJS: false,
       preferHeadless: true,
       // Start Chromium with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
-      postDetection: availableBrowsers => {
+      postDetection: (availableBrowsers) => {
         if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
-          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] = "ChromiumHeadlessNoSandbox";
+          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] =
+            "ChromiumHeadlessNoSandbox";
         }
-        return availableBrowsers.filter(browser =>
-          browser.includes("Chromium") ||
-          browser.includes("Chrome") ||
-          browser.includes("Firefox")
+        return availableBrowsers.filter(
+          (browser) =>
+            browser.includes("Chromium") ||
+            browser.includes("Chrome") ||
+            browser.includes("Firefox")
         );
-      }
+      },
     },
 
     // web server port
@@ -110,9 +116,9 @@ module.exports = function (config) {
     // https://github.com/karma-runner/karma-chrome-launcher/issues/158
     customLaunchers: {
       ChromiumHeadlessNoSandbox: {
-        base: 'ChromiumHeadless',
-        flags: ['--no-sandbox']
-      }
+        base: "ChromiumHeadless",
+        flags: ["--no-sandbox"],
+      },
     },
 
     // Continuous Integration mode
@@ -130,5 +136,5 @@ module.exports = function (config) {
       optimization: webpackConfig.optimization,
       resolve: webpackConfig.resolve,
     },
-  })
-}
+  });
+};

@@ -34,17 +34,18 @@ checker.init(
     // The following is the list of currently allowed licenses for bundled code.
     // We can add other free licenses, but must adjust the licences for
     // build/vendors.* in ~/reuse/dep5 accordingly and run "reuse download --all".
-    onlyAllow: "0BSD; Apache-2.0; BSD*; BSD-2-Clause; BSD-3-Clause; CC0-1.0; CC-BY-3.0; CC-BY-4.0; ISC; MIT; OFL-1.1",
+    onlyAllow:
+      "0BSD; Apache-2.0; BSD*; BSD-2-Clause; BSD-3-Clause; CC0-1.0; CC-BY-3.0; CC-BY-4.0; ISC; MIT; OFL-1.1",
     customFormat: {
       name: "",
       version: "",
       licenses: "",
       copyright: "",
       repository: "",
-      licenseText: ""
-    }
+      licenseText: "",
+    },
   },
-  function(err, packages) {
+  function (err, packages) {
     if (err) {
       console.log(err);
       process.exit(1);
@@ -56,9 +57,9 @@ checker.init(
       const licenseTexts = [];
       const licenseCounts = {};
       const dependencies = [];
-      Object.keys(packages).forEach(key => {
+      Object.keys(packages).forEach((key) => {
         const dependency = packages[key];
-        var license = dependency.licenseText;
+        let license = dependency.licenseText;
 
         // Replace windows specific line endings with unix based ones so the bundled
         // files stay the same on any OS
@@ -85,7 +86,7 @@ checker.init(
         // For dependencies that have no license file but only a readme,
         // we remove the readme part until the start of the license section.
         ["\n## License\n", "\n## **License**\n"].forEach(
-          prefix => (license = stripUpTo(license, prefix))
+          (prefix) => (license = stripUpTo(license, prefix))
         );
 
         // Many license texts differ only in a small header.
@@ -107,8 +108,8 @@ checker.init(
           "For React software",
           "# " + dependency.name,
           // plus each sentence of copyright
-          ...dependency.copyright.split(/(\.)\.?[ *]/)
-        ].forEach(prefix => (license = stripPrefix(license, prefix)));
+          ...dependency.copyright.split(/(\.)\.?[ *]/),
+        ].forEach((prefix) => (license = stripPrefix(license, prefix)));
 
         // Furthermore, some license texts differ only in whitespace and
         // punctuation, so for deduplication, we normalize this.
@@ -116,7 +117,7 @@ checker.init(
           .replace(/[\s*]+/g, " ")
           .replace(/['"](Software|AS IS)['"]/g, "'$1'");
 
-        var licenseId;
+        let licenseId;
         if (normalizedLicense in licenseTextMapping) {
           licenseId = licenseTextMapping[normalizedLicense];
         } else if (license) {
@@ -137,15 +138,15 @@ checker.init(
           repository: dependency.repository,
           copyright: dependency.copyright,
           licenses: dependency.licenses,
-          licenseId: licenseId
+          licenseId: licenseId,
         });
       });
       const dependencyData = JSON.stringify({
         dependencies: dependencies,
-        licenses: licenseTexts
+        licenses: licenseTexts,
       });
 
-      const prettyPrintLicense = d =>
+      const prettyPrintLicense = (d) =>
         `${d.licenses} (${licenseCounts[d.licenses]} variants)`;
       console.info(
         "Found %d dependencies under %s, adding %d bytes of metadata.",
@@ -154,12 +155,16 @@ checker.init(
         dependencyData.length
       );
 
-      fs.writeFile("./dependency_licenses/licenses.json", dependencyData, err => {
-        if (err) {
-          console.log(err);
-          process.exit(1);
+      fs.writeFile(
+        "./dependency_licenses/licenses.json",
+        dependencyData,
+        (err) => {
+          if (err) {
+            console.log(err);
+            process.exit(1);
+          }
         }
-      });
+      );
     }
   }
 );

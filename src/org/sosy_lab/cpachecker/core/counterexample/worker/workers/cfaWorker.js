@@ -10,12 +10,21 @@
  * The CFA Worker. Contains the logic for building a single or a multi CFA graph.
  * The graph(s) is/are returned to the main script once created
  **/
-let json, nodes, mainNodes, edges, functions, combinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
+let json;
+let nodes;
+let mainNodes;
+let edges;
+let functions;
+let combinedNodes;
+let combinedNodesLabels;
+let mergedNodes;
+let functionCallEdges;
+let errorPath;
 let graphSplitThreshold = 700;
 let graphMap = [];
 let graphCounter = 0;
 
-onmessage = msg => {
+onmessage = (msg) => {
   const data = msg.data;
   const cfaSplit = data.cfaSplit;
   const argTabDisabled = data.argTabDisabled;
@@ -27,23 +36,23 @@ onmessage = msg => {
     buildGraphsAndPostResults();
   } else if (data.renderer !== undefined) {
     if (graphMap[graphCounter] !== undefined) {
-      let node = nodes.find(function(n) {
+      const node = nodes.find(function (n) {
         return n.index === parseInt(graphMap[graphCounter].nodes()[0]);
       });
       workerResult = {
-        "graph": JSON.stringify(graphMap[graphCounter]),
-        "id": node.func + graphCounter,
-        "func": node.func,
-        "cfaSplit": cfaSplit,
-        "argTabDisabled": argTabDisabled
+        graph: JSON.stringify(graphMap[graphCounter]),
+        id: node.func + graphCounter,
+        func: node.func,
+        cfaSplit: cfaSplit,
+        argTabDisabled: argTabDisabled,
       };
 
       graphCounter++;
     } else {
       workerResult = {
-        "status": "done",
-        "cfaSplit": cfaSplit,
-        "argTabDisabled": argTabDisabled
+        status: "done",
+        cfaSplit: cfaSplit,
+        argTabDisabled: argTabDisabled,
       };
       graphMap = [];
       graphCounter = 0;
@@ -55,14 +64,13 @@ onmessage = msg => {
 
   postMessage(workerResult);
 
-
   /* ################## Helper functions ################## */
 
   // Extract information from the cfaJson
   function extractletiables() {
     nodes = json.nodes;
     functions = json.functionNames;
-    mainNodes = nodes.filter(function(n) {
+    mainNodes = nodes.filter(function (n) {
       return n.func === functions[0];
     });
     edges = json.edges;
@@ -76,25 +84,24 @@ onmessage = msg => {
     }
   }
 
-
   // Prepare Error Path array to be used in edge class decider
   function prepareCfaErrorPath() {
     const returnedEdges = {};
     for (key in functionCallEdges) {
-      returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
+      returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0];
     }
-    json.errorPath.forEach(function(errPathElem) {
+    json.errorPath.forEach(function (errPathElem) {
       if (errPathElem.source in functionCallEdges) {
         errPathElem.target = functionCallEdges[errPathElem.source][0];
       }
       if (errPathElem.target in returnedEdges) {
         errorPath.push({
-          "source": returnedEdges[errPathElem.target],
-          "target": errPathElem.target
-        })
+          source: returnedEdges[errPathElem.target],
+          target: errPathElem.target,
+        });
       }
       errorPath.push(errPathElem);
-    })
+    });
   }
 
   function buildGraphsAndPostResults() {
@@ -104,11 +111,11 @@ onmessage = msg => {
       buildSingleGraph(mainNodes, functions[0]);
     }
     if (functions.length > 1) {
-      const functionsToProcess = functions.filter(function(f) {
+      const functionsToProcess = functions.filter(function (f) {
         return f !== functions[0];
       });
-      functionsToProcess.forEach(function(func) {
-        const funcNodes = nodes.filter(function(n) {
+      functionsToProcess.forEach(function (func) {
+        const funcNodes = nodes.filter(function (n) {
           return n.func === func;
         });
         if (funcNodes.length > graphSplitThreshold) {
@@ -125,20 +132,20 @@ onmessage = msg => {
     setGraphNodes(g, nodesToSet);
     roundNodeCorners(g);
     const nodesIndices = [];
-    nodesToSet.forEach(function(n) {
+    nodesToSet.forEach(function (n) {
       nodesIndices.push(n.index);
     });
-    const edgesToSet = edges.filter(function(e) {
+    const edgesToSet = edges.filter(function (e) {
       return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
     });
     setGraphEdges(g, edgesToSet, false);
     if (funcName === functions[0]) {
       workerResult = {
-        "graph": JSON.stringify(g),
-        "id": funcName + graphCounter,
-        "func": funcName,
-        "cfaSplit": cfaSplit,
-        "argTabDisabled": argTabDisabled
+        graph: JSON.stringify(g),
+        id: funcName + graphCounter,
+        func: funcName,
+        cfaSplit: cfaSplit,
+        argTabDisabled: argTabDisabled,
       };
       graphMap.push(g);
     } else {
@@ -156,18 +163,24 @@ onmessage = msg => {
         firstGraphBuild = true;
       } else {
         if (nodesToSet[graphSplitThreshold * i - 1] !== undefined)
-          nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-        else
-          nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1));
+          nodesPerGraph = nodesToSet.slice(
+            graphSplitThreshold * (i - 1),
+            graphSplitThreshold * i
+          );
+        else nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1));
       }
-      let graph = createGraph();
+      const graph = createGraph();
       setGraphNodes(graph, nodesPerGraph);
       if (graph.nodes().length > 0) {
         graphMap.push(graph);
         roundNodeCorners(graph);
-        const graphEdges = edges.filter(function(e) {
-          if ((nodesPerGraph[0].index <= e.source && e.source <= nodesPerGraph[nodesPerGraph.length - 1].index) &&
-            (nodesPerGraph[0].index <= e.target && e.target <= nodesPerGraph[nodesPerGraph.length - 1].index)) {
+        const graphEdges = edges.filter(function (e) {
+          if (
+            nodesPerGraph[0].index <= e.source &&
+            e.source <= nodesPerGraph[nodesPerGraph.length - 1].index &&
+            nodesPerGraph[0].index <= e.target &&
+            e.target <= nodesPerGraph[nodesPerGraph.length - 1].index
+          ) {
             return e;
           }
         });
@@ -177,12 +190,12 @@ onmessage = msg => {
     buildCrossgraphEdges(nodesToSet);
     if (funcName === functions[0]) {
       workerResult = {
-        "graph": JSON.stringify(graphMap[graphCounter]),
-        "id": funcName + graphCounter,
-        "func": funcName,
-        "cfaSplit": cfaSplit,
-        "argTabDisabled": argTabDisabled
-      }
+        graph: JSON.stringify(graphMap[graphCounter]),
+        id: funcName + graphCounter,
+        func: funcName,
+        cfaSplit: cfaSplit,
+        argTabDisabled: argTabDisabled,
+      };
       graphCounter++;
     }
   }
@@ -190,13 +203,13 @@ onmessage = msg => {
   // Handle Edges that connect Graphs
   function buildCrossgraphEdges(crossGraphNodes) {
     const nodesIndices = [];
-    crossGraphNodes.forEach(function(n) {
+    crossGraphNodes.forEach(function (n) {
       nodesIndices.push(n.index);
     });
-    const edgesToConsider = edges.filter(function(e) {
+    const edgesToConsider = edges.filter(function (e) {
       return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
     });
-    edgesToConsider.forEach(function(edge) {
+    edgesToConsider.forEach(function (edge) {
       const source = edge.source;
       const target = edge.target;
       if (mergedNodes.includes(source) && mergedNodes.includes(target)) return;
@@ -211,103 +224,141 @@ onmessage = msg => {
             label: getNodeLabelFCall(edge.stmt),
             class: "cfa-node fcall",
             id: "cfa-node" + funcCallNodeId,
-            shape: "rect"
+            shape: "rect",
           });
           graphMap[sourceGraph].setEdge(source, funcCallNodeId, {
             label: edge.stmt,
             labelStyle: labelStyleDecider(edge, source, funcCallNodeId),
             class: edgeClassDecider(edge, source, funcCallNodeId),
-            id: "cfa-edge_" + source + "-" + funcCallNodeId
+            id: "cfa-edge_" + source + "-" + funcCallNodeId,
           });
           graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {
             label: "",
             class: "cfa-dummy",
             id: "dummy-" + target,
-            shape: "rect"
+            shape: "rect",
           });
-          graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {
-            label: source + "->" + target,
-            style: "stroke-dasharray: 5, 5;"
-          });
+          graphMap[sourceGraph].setEdge(
+            funcCallNodeId,
+            "" + source + target + sourceGraph,
+            {
+              label: source + "->" + target,
+              style: "stroke-dasharray: 5, 5;",
+            }
+          );
         } else {
           graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {
             label: "",
             class: "cfa-dummy",
             id: "dummy-" + target,
-            shape: "rect"
+            shape: "rect",
           });
-          graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {
-            label: edge.stmt,
-            labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph),
-            id: "cfa-edge_" + source + "-" + target,
-            class: edgeClassDecider(edge, source, "" + source + target + sourceGraph),
-            style: "stroke-dasharray: 5, 5;"
-          });
+          graphMap[sourceGraph].setEdge(
+            source,
+            "" + source + target + sourceGraph,
+            {
+              label: edge.stmt,
+              labelStyle: labelStyleDecider(
+                edge,
+                source,
+                "" + source + target + sourceGraph
+              ),
+              id: "cfa-edge_" + source + "-" + target,
+              class: edgeClassDecider(
+                edge,
+                source,
+                "" + source + target + sourceGraph
+              ),
+              style: "stroke-dasharray: 5, 5;",
+            }
+          );
         }
         graphMap[targetGraph].setNode("" + target + source + targetGraph, {
           label: "",
-          class: "dummy"
+          class: "dummy",
         });
-        graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {
-          label: "",
-          labelStyle: "font-size: 12px;",
-          id: "cfa-split-edge_" + source + "-" + target,
-          class: "cfa-split-edge",
-          style: "stroke-dasharray: 5, 5;"
-        });
+        graphMap[targetGraph].setEdge(
+          "" + target + source + targetGraph,
+          target,
+          {
+            label: "",
+            labelStyle: "font-size: 12px;",
+            id: "cfa-split-edge_" + source + "-" + target,
+            class: "cfa-split-edge",
+            style: "stroke-dasharray: 5, 5;",
+          }
+        );
       } else if (sourceGraph > targetGraph) {
         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {
           label: "",
           class: "cfa-dummy",
-          id: "dummy-" + target
+          id: "dummy-" + target,
         });
-        graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {
-          label: edge.stmt,
-          labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source),
-          id: "cfa-edge_" + source + "-" + target,
-          class: edgeClassDecider(edge, "" + source + target + sourceGraph, source),
-          arrowhead: "undirected",
-          style: "stroke-dasharray: 5, 5;"
-        })
+        graphMap[sourceGraph].setEdge(
+          source,
+          "" + source + target + sourceGraph,
+          {
+            label: edge.stmt,
+            labelStyle: labelStyleDecider(
+              edge,
+              "" + source + target + sourceGraph,
+              source
+            ),
+            id: "cfa-edge_" + source + "-" + target,
+            class: edgeClassDecider(
+              edge,
+              "" + source + target + sourceGraph,
+              source
+            ),
+            arrowhead: "undirected",
+            style: "stroke-dasharray: 5, 5;",
+          }
+        );
         graphMap[targetGraph].setNode("" + target + source + targetGraph, {
           label: "",
           class: "dummy",
-          id: "node" + source
+          id: "node" + source,
         });
-        graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {
-          label: "",
-          labelStyle: "font-size: 12px;",
-          id: "cfa-split-edge_" + source + "-" + target,
-          class: "cfa-split-edge",
-          arrowhead: "undirected",
-          style: "stroke-dasharray: 5, 5;"
-        });
+        graphMap[targetGraph].setEdge(
+          "" + target + source + targetGraph,
+          target,
+          {
+            label: "",
+            labelStyle: "font-size: 12px;",
+            id: "cfa-split-edge_" + source + "-" + target,
+            class: "cfa-split-edge",
+            arrowhead: "undirected",
+            style: "stroke-dasharray: 5, 5;",
+          }
+        );
       }
     });
   }
 
   // Return the graph in which the nodeNumber is present
   function getGraphForNode(nodeNumber) {
-    return graphMap.findIndex(function(graph) {
+    return graphMap.findIndex(function (graph) {
       return graph.nodes().includes("" + nodeNumber);
-    })
+    });
   }
 
   // create and return a graph element with a set transition
   function createGraph() {
-    return new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(() => {});
+    return new dagreD3.graphlib.Graph()
+      .setGraph({})
+      .setDefaultEdgeLabel(() => {});
   }
 
   // Set nodes for the graph contained in the json nodes
   function setGraphNodes(graph, nodesToSet) {
-    nodesToSet.forEach(function(n) {
+    nodesToSet.forEach(function (n) {
       if (!mergedNodes.includes(n.index)) {
         graph.setNode(n.index, {
           label: setNodeLabel(n),
           labelStyle: "font-family: 'Courier New', Courier, monospace",
           class: "cfa-node",
           id: "cfa-node" + n.index,
-          shape: nodeShapeDecider(n)
+          shape: nodeShapeDecider(n),
         });
       }
     });
@@ -334,7 +385,7 @@ onmessage = msg => {
 
   // Round the corners of rectangle shaped nodes
   function roundNodeCorners(graph) {
-    graph.nodes().forEach(function(it) {
+    graph.nodes().forEach(function (it) {
       const item = graph.node(it);
       item.rx = item.ry = 5;
     });
@@ -342,42 +393,57 @@ onmessage = msg => {
 
   // Set the edges for a single graph while considering merged nodes and edges between them
   function setGraphEdges(graph, edgesToSet, multigraph) {
-    edgesToSet.forEach(function(e) {
-      let source, target;
+    edgesToSet.forEach(function (e) {
+      let source;
+      let target;
       if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
         source = e.source;
         target = e.target;
-      } else if (!mergedNodes.includes(e.source) && mergedNodes.includes(e.target)) {
+      } else if (
+        !mergedNodes.includes(e.source) &&
+        mergedNodes.includes(e.target)
+      ) {
         source = e.source;
         target = getMergingNode(e.target);
-      } else if (mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
+      } else if (
+        mergedNodes.includes(e.source) &&
+        !mergedNodes.includes(e.target)
+      ) {
         source = getMergingNode(e.source);
         target = e.target;
       }
-      if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target)))
+      if (
+        multigraph &&
+        (!graph.nodes().includes("" + source) ||
+          !graph.nodes().includes("" + target))
+      )
         source = undefined;
-      if (source !== undefined && target !== undefined && checkEligibleEdge(source, target)) {
+      if (
+        source !== undefined &&
+        target !== undefined &&
+        checkEligibleEdge(source, target)
+      ) {
         if (Object.keys(functionCallEdges).includes("" + source)) {
           const funcCallNodeId = functionCallEdges["" + source][0];
           graph.setNode(funcCallNodeId, {
             label: getNodeLabelFCall(e.stmt),
             class: "cfa-node fcall",
             id: "cfa-node" + funcCallNodeId,
-            shape: "rect"
+            shape: "rect",
           });
           graph.setEdge(source, funcCallNodeId, {
             label: e.stmt,
             labelStyle: labelStyleDecider(e, source, funcCallNodeId),
             class: edgeClassDecider(e, source, funcCallNodeId),
             id: "cfa-edge_" + source + "-" + funcCallNodeId,
-            weight: edgeWeightDecider(source, target)
+            weight: edgeWeightDecider(source, target),
           });
           graph.setEdge(funcCallNodeId, target, {
             label: "",
             labelStyle: labelStyleDecider(e, funcCallNodeId, target),
             class: edgeClassDecider(e, funcCallNodeId, target),
             id: "cfa-edge_" + funcCallNodeId + "-" + target,
-            weight: edgeWeightDecider(source, target)
+            weight: edgeWeightDecider(source, target),
           });
         } else {
           graph.setEdge(source, target, {
@@ -386,7 +452,7 @@ onmessage = msg => {
             lineInterpolate: "basis",
             class: edgeClassDecider(e, source, target),
             id: "cfa-edge_" + source + "-" + target,
-            weight: edgeWeightDecider(source, target)
+            weight: edgeWeightDecider(source, target),
           });
         }
       }
@@ -398,12 +464,12 @@ onmessage = msg => {
     if (errorPath === undefined) {
       return "cfa-edge";
     }
-    const mergedMatch = errorPath.find(function(entry) {
+    const mergedMatch = errorPath.find(function (entry) {
       return entry.source === source && entry.target === target;
-    })
-    const initialMatch = errorPath.find(function(entry) {
+    });
+    const initialMatch = errorPath.find(function (entry) {
       return entry.source === edge.source && entry.target === edge.target;
-    })
+    });
     if (mergedMatch !== undefined || initialMatch !== undefined) {
       return "cfa-edge error-edge";
     } else {
@@ -422,39 +488,51 @@ onmessage = msg => {
 
   // Check if edge is eligible to place in graph. Same node edge only if it is not combined node
   function checkEligibleEdge(source, target) {
-    if (mergedNodes.includes(source) && mergedNodes.includes(target)) return false;
-    if (mergedNodes.includes(source) && Object.keys(combinedNodes).includes("" + target)) {
+    if (mergedNodes.includes(source) && mergedNodes.includes(target))
+      return false;
+    if (
+      mergedNodes.includes(source) &&
+      Object.keys(combinedNodes).includes("" + target)
+    ) {
       if (combinedNodes["" + target].includes(source)) return false;
       else return true;
     }
-    if (Object.keys(combinedNodes).includes("" + source) && mergedNodes.includes(target)) {
+    if (
+      Object.keys(combinedNodes).includes("" + source) &&
+      mergedNodes.includes(target)
+    ) {
       if (combinedNodes["" + source].includes(target)) return false;
       else return true;
     }
-    if ((Object.keys(combinedNodes).includes("" + source) && Object.keys(combinedNodes).includes("" + target)) && source == target) return false;
+    if (
+      Object.keys(combinedNodes).includes("" + source) &&
+      Object.keys(combinedNodes).includes("" + target) &&
+      source == target
+    )
+      return false;
     return true;
   }
 
   // Retrieve the node in which this node was merged
   function getMergingNode(index) {
     let result = "";
-    Object.keys(combinedNodes).some(function(key) {
+    Object.keys(combinedNodes).some(function (key) {
       if (combinedNodes[key].includes(index)) {
         result = key;
         return result;
       }
-    })
+    });
     return parseInt(result);
   }
 
   // Decide the weight for the edges based on type
   function edgeWeightDecider(source, target) {
-    const sourceNode = nodes.find(function(it) {
+    const sourceNode = nodes.find(function (it) {
       return it.index === source;
-    })
-    const targetNode = nodes.find(function(it) {
+    });
+    const targetNode = nodes.find(function (it) {
       return it.index === target;
-    })
+    });
     if (source === target) {
       return 2;
     } else if (sourceNode.rpid < targetNode.rpid) {
@@ -474,4 +552,4 @@ onmessage = msg => {
     }
     return result;
   }
-}
+};

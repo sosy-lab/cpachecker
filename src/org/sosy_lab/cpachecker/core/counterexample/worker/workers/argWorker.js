@@ -11,14 +11,22 @@
  * Once the graph(s) is/are created they are returned to the main script.
  * Should ONLY be used if ARG data is available!
  **/
-let json, nodes, edges, errorPath, relevantNodes, relevantEdges, errorGraphMap;
+let json;
+let nodes;
+let edges;
+let errorPath;
+let relevantNodes;
+let relevantEdges;
+let errorGraphMap;
 let graphSplitThreshold = 700;
-let graphMap = [],
-  graphCounter = 0,
-  simplifiedGraphMap, simplifiedGraphCounter = 0,
-  reducedGraphMap, reducedGraphCounter = 0;
+const graphMap = [];
+let graphCounter = 0;
+let simplifiedGraphMap;
+let simplifiedGraphCounter = 0;
+let reducedGraphMap;
+let reducedGraphCounter = 0;
 
-onmessage = msg => {
+onmessage = (msg) => {
   const data = msg.data;
   let workerResult = {};
 
@@ -26,7 +34,7 @@ onmessage = msg => {
     json = JSON.parse(data.json);
     nodes = json.nodes;
     edges = json.edges;
-    buildGraphsAndPrepareResults(nodes, edges, "default")
+    buildGraphsAndPrepareResults(nodes, edges, "default");
     if (json.relevantedges !== undefined && json.relevantnodes !== undefined) {
       relevantEdges = json.relevantedges;
       relevantNodes = json.relevantnodes;
@@ -41,7 +49,7 @@ onmessage = msg => {
     }
   } else if (data.errorPath !== undefined) {
     errorPath = [];
-    JSON.parse(data.errorPath).forEach(function(d) {
+    JSON.parse(data.errorPath).forEach(function (d) {
       if (d.argelem !== undefined) {
         errorPath.push(d.argelem);
       }
@@ -49,30 +57,33 @@ onmessage = msg => {
   } else if (data.renderer !== undefined) {
     if (graphMap.length > 0) {
       workerResult = {
-        "graph": JSON.stringify(graphMap[0]),
-        "id": graphCounter
+        graph: JSON.stringify(graphMap[0]),
+        id: graphCounter,
       };
       graphMap.shift();
       graphCounter++;
     } else {
       workerResult = {
-        "status": "done",
-        "errorpath": data.errorpath,
+        status: "done",
+        errorpath: data.errorpath,
       };
       if (simplifiedGraphMap.length > 0) {
         workerResult = {
-          "graph": JSON.stringify(simplifiedGraphMap[0]),
-          "id": simplifiedGraphCounter,
-          "simplifiedGraph": true
+          graph: JSON.stringify(simplifiedGraphMap[0]),
+          id: simplifiedGraphCounter,
+          simplifiedGraph: true,
         };
         simplifiedGraphMap.shift();
         simplifiedGraphCounter++;
       }
-      if (typeof reducedGraphMap !== 'undefined' && reducedGraphMap.length > 0) {
+      if (
+        typeof reducedGraphMap !== "undefined" &&
+        reducedGraphMap.length > 0
+      ) {
         workerResult = {
-          "graph": JSON.stringify(reducedGraphMap[0]),
-          "id": reducedGraphCounter,
-          "reducedGraph": true
+          graph: JSON.stringify(reducedGraphMap[0]),
+          id: reducedGraphCounter,
+          reducedGraph: true,
         };
         reducedGraphMap.shift();
         reducedGraphCounter++;
@@ -86,9 +97,9 @@ onmessage = msg => {
   } else if (data.errorGraph !== undefined) {
     if (errorGraphMap.length > 0) {
       workerResult = {
-        "graph": JSON.stringify(errorGraphMap[0]),
-        "id": graphCounter,
-        "errorGraph": true
+        graph: JSON.stringify(errorGraphMap[0]),
+        id: graphCounter,
+        errorGraph: true,
       };
       errorGraphMap.shift();
       graphCounter++;
@@ -112,14 +123,14 @@ onmessage = msg => {
 
   // After the initial ARG graph has been send to the master script, prepare ARG containing only error path
   function prepareErrorGraph() {
-    const errorNodes = [],
-      errorEdges = [];
-    nodes.forEach(function(n) {
+    const errorNodes = [];
+    const errorEdges = [];
+    nodes.forEach(function (n) {
       if (errorPath.includes(n.index)) {
         errorNodes.push(n);
       }
     });
-    edges.forEach(function(e) {
+    edges.forEach(function (e) {
       if (errorPath.includes(e.source) && errorPath.includes(e.target)) {
         errorEdges.push(e);
       }
@@ -149,9 +160,9 @@ onmessage = msg => {
 
   // Split the ARG graph honoring the split threshold
   function buildMultipleGraphs(nodes, edges, graphLabel) {
-    nodes.sort(function(firstNode, secondNode) {
+    nodes.sort(function (firstNode, secondNode) {
       return firstNode.index - secondNode.index;
-    })
+    });
     const requiredGraphs = Math.ceil(nodes.length / graphSplitThreshold);
     let firstGraphBuild = false;
     let nodesPerGraph = [];
@@ -161,7 +172,10 @@ onmessage = msg => {
         firstGraphBuild = true;
       } else {
         if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-          nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+          nodesPerGraph = nodes.slice(
+            graphSplitThreshold * (i - 1),
+            graphSplitThreshold * i
+          );
         } else {
           nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
         }
@@ -175,12 +189,15 @@ onmessage = msg => {
         graphMap.push(graph);
       }
       setGraphNodes(graph, nodesPerGraph);
-      const nodesIndices = []
-      nodesPerGraph.forEach(function(n) {
+      const nodesIndices = [];
+      nodesPerGraph.forEach(function (n) {
         nodesIndices.push(n.index);
       });
-      const graphEdges = edges.filter(function(e) {
-        if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
+      const graphEdges = edges.filter(function (e) {
+        if (
+          nodesIndices.includes(e.source) &&
+          nodesIndices.includes(e.target)
+        ) {
           return e;
         }
       });
@@ -191,9 +208,9 @@ onmessage = msg => {
 
   // Split the ARG error graph honoring the split threshold
   function buildMultipleErrorGraphs(errorNodes, errorEdges) {
-    errorNodes.sort(function(firstNode, secondNode) {
+    errorNodes.sort(function (firstNode, secondNode) {
       return firstNode.index - secondNode.index;
-    })
+    });
     const requiredGraphs = Math.ceil(errorNodes.length / graphSplitThreshold);
     let firstGraphBuild = false;
     let nodesPerGraph = [];
@@ -203,7 +220,10 @@ onmessage = msg => {
         firstGraphBuild = true;
       } else {
         if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-          nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+          nodesPerGraph = errorNodes.slice(
+            graphSplitThreshold * (i - 1),
+            graphSplitThreshold * i
+          );
         } else {
           nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1));
         }
@@ -211,12 +231,15 @@ onmessage = msg => {
       const graph = createGraph();
       errorGraphMap.push(graph);
       setGraphNodes(graph, nodesPerGraph);
-      const nodesIndices = []
-      nodesPerGraph.forEach(function(n) {
+      const nodesIndices = [];
+      nodesPerGraph.forEach(function (n) {
         nodesIndices.push(n.index);
       });
-      const graphEdges = errorEdges.filter(function(e) {
-        if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
+      const graphEdges = errorEdges.filter(function (e) {
+        if (
+          nodesIndices.includes(e.source) &&
+          nodesIndices.includes(e.target)
+        ) {
           return e;
         }
       });
@@ -227,111 +250,168 @@ onmessage = msg => {
 
   // Handle graph connecting edges
   function buildCrossgraphEdges(edges, errorGraph) {
-    edges.forEach(function(edge) {
-      let sourceGraph, targetGraph;
+    edges.forEach(function (edge) {
+      let sourceGraph;
+      let targetGraph;
       if (errorGraph) {
         sourceGraph = getGraphForErrorNode(edge.source);
         targetGraph = getGraphForErrorNode(edge.target);
         if (sourceGraph < targetGraph) {
-          errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-            label: "",
-            class: "arg-dummy",
-            id: "dummy-" + edge.target
-          });
-          errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-            label: edge.label,
-            id: "arg-edge" + edge.source + edge.target,
-            style: "stroke-dasharray: 5, 5;",
-            class: edgeClassDecider(edge)
-          });
-          errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-            label: "",
-            class: "dummy"
-          });
-          errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-            label: "",
-            labelStyle: "font-size: 12px;",
-            id: "arg-edge_" + edge.source + "-" + edge.target,
-            style: "stroke-dasharray: 5, 5;",
-            class: "arg-split-edge"
-          });
+          errorGraphMap[sourceGraph].setNode(
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: "",
+              class: "arg-dummy",
+              id: "dummy-" + edge.target,
+            }
+          );
+          errorGraphMap[sourceGraph].setEdge(
+            edge.source,
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: edge.label,
+              id: "arg-edge" + edge.source + edge.target,
+              style: "stroke-dasharray: 5, 5;",
+              class: edgeClassDecider(edge),
+            }
+          );
+          errorGraphMap[targetGraph].setNode(
+            "" + edge.target + edge.source + targetGraph,
+            {
+              label: "",
+              class: "dummy",
+            }
+          );
+          errorGraphMap[targetGraph].setEdge(
+            "" + edge.target + edge.source + targetGraph,
+            edge.target,
+            {
+              label: "",
+              labelStyle: "font-size: 12px;",
+              id: "arg-edge_" + edge.source + "-" + edge.target,
+              style: "stroke-dasharray: 5, 5;",
+              class: "arg-split-edge",
+            }
+          );
         } else if (sourceGraph > targetGraph) {
-          errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-            label: "",
-            class: "arg-dummy",
-            id: "dummy-" + edge.target
-          });
-          errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-            label: edge.label,
-            id: "arg-edge" + edge.source + edge.target,
-            arrowhead: "undirected",
-            style: "stroke-dasharray: 5, 5;",
-            class: edgeClassDecider(edge)
-          })
-          errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-            label: "",
-            class: "dummy"
-          });
-          errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-            label: "",
-            labelStyle: "font-size: 12px;",
-            id: "arg-edge_" + edge.source + "-" + edge.target,
-            arrowhead: "undirected",
-            style: "stroke-dasharray: 5, 5;",
-            class: "arg-split-edge"
-          });
+          errorGraphMap[sourceGraph].setNode(
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: "",
+              class: "arg-dummy",
+              id: "dummy-" + edge.target,
+            }
+          );
+          errorGraphMap[sourceGraph].setEdge(
+            edge.source,
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: edge.label,
+              id: "arg-edge" + edge.source + edge.target,
+              arrowhead: "undirected",
+              style: "stroke-dasharray: 5, 5;",
+              class: edgeClassDecider(edge),
+            }
+          );
+          errorGraphMap[targetGraph].setNode(
+            "" + edge.target + edge.source + targetGraph,
+            {
+              label: "",
+              class: "dummy",
+            }
+          );
+          errorGraphMap[targetGraph].setEdge(
+            "" + edge.target + edge.source + targetGraph,
+            edge.target,
+            {
+              label: "",
+              labelStyle: "font-size: 12px;",
+              id: "arg-edge_" + edge.source + "-" + edge.target,
+              arrowhead: "undirected",
+              style: "stroke-dasharray: 5, 5;",
+              class: "arg-split-edge",
+            }
+          );
         }
       } else {
         sourceGraph = getGraphForNode(edge.source);
         targetGraph = getGraphForNode(edge.target);
         if (sourceGraph < targetGraph) {
-          graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-            label: "",
-            class: "arg-dummy",
-            id: "dummy-" + edge.target
-          });
-          graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-            label: edge.label,
-            id: "arg-edge" + edge.source + edge.target,
-            style: "stroke-dasharray: 5, 5;",
-            class: edgeClassDecider(edge)
-          });
-          graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-            label: "",
-            class: "dummy"
-          });
-          graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-            label: "",
-            labelStyle: "font-size: 12px;",
-            id: "arg-edge_" + edge.source + "-" + edge.target,
-            style: "stroke-dasharray: 5, 5;",
-            class: "arg-split-edge"
-          });
+          graphMap[sourceGraph].setNode(
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: "",
+              class: "arg-dummy",
+              id: "dummy-" + edge.target,
+            }
+          );
+          graphMap[sourceGraph].setEdge(
+            edge.source,
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: edge.label,
+              id: "arg-edge" + edge.source + edge.target,
+              style: "stroke-dasharray: 5, 5;",
+              class: edgeClassDecider(edge),
+            }
+          );
+          graphMap[targetGraph].setNode(
+            "" + edge.target + edge.source + targetGraph,
+            {
+              label: "",
+              class: "dummy",
+            }
+          );
+          graphMap[targetGraph].setEdge(
+            "" + edge.target + edge.source + targetGraph,
+            edge.target,
+            {
+              label: "",
+              labelStyle: "font-size: 12px;",
+              id: "arg-edge_" + edge.source + "-" + edge.target,
+              style: "stroke-dasharray: 5, 5;",
+              class: "arg-split-edge",
+            }
+          );
         } else if (sourceGraph > targetGraph) {
-          graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {
-            label: "",
-            class: "arg-dummy",
-            id: "dummy-" + edge.target
-          });
-          graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {
-            label: edge.label,
-            id: "arg-edge" + edge.source + edge.target,
-            arrowhead: "undirected",
-            style: "stroke-dasharray: 5, 5;",
-            class: edgeClassDecider(edge)
-          })
-          graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
-            label: "",
-            class: "dummy"
-          });
-          graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {
-            label: "",
-            labelStyle: "font-size: 12px;",
-            id: "arg-edge_" + edge.source + "-" + edge.target,
-            arrowhead: "undirected",
-            style: "stroke-dasharray: 5, 5;",
-            class: "arg-split-edge"
-          });
+          graphMap[sourceGraph].setNode(
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: "",
+              class: "arg-dummy",
+              id: "dummy-" + edge.target,
+            }
+          );
+          graphMap[sourceGraph].setEdge(
+            edge.source,
+            "" + edge.source + edge.target + sourceGraph,
+            {
+              label: edge.label,
+              id: "arg-edge" + edge.source + edge.target,
+              arrowhead: "undirected",
+              style: "stroke-dasharray: 5, 5;",
+              class: edgeClassDecider(edge),
+            }
+          );
+          graphMap[targetGraph].setNode(
+            "" + edge.target + edge.source + targetGraph,
+            {
+              label: "",
+              class: "dummy",
+            }
+          );
+          graphMap[targetGraph].setEdge(
+            "" + edge.target + edge.source + targetGraph,
+            edge.target,
+            {
+              label: "",
+              labelStyle: "font-size: 12px;",
+              id: "arg-edge_" + edge.source + "-" + edge.target,
+              arrowhead: "undirected",
+              style: "stroke-dasharray: 5, 5;",
+              class: "arg-split-edge",
+            }
+          );
         }
       }
     });
@@ -339,54 +419,62 @@ onmessage = msg => {
 
   // Return the graph in which the nodeNumber is present
   function getGraphForNode(nodeNumber) {
-    return graphMap.findIndex(function(graph) {
+    return graphMap.findIndex(function (graph) {
       return graph.nodes().includes("" + nodeNumber);
-    })
+    });
   }
 
   // Return the graph in which the nodeNumber is present for an error node
   function getGraphForErrorNode(nodeNumber) {
-    return errorGraphMap.findIndex(function(graph) {
+    return errorGraphMap.findIndex(function (graph) {
       return graph.nodes().includes("" + nodeNumber);
-    })
+    });
   }
 
   // create and return a graph element with a set transition
   function createGraph() {
-    return new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(() => {});
+    return new dagreD3.graphlib.Graph()
+      .setGraph({})
+      .setDefaultEdgeLabel(() => {});
   }
 
   // Set nodes for the graph contained in the json nodes
   function setGraphNodes(graph, nodesToSet) {
-    nodesToSet.forEach(function(n) {
-      if (n.type === "target" && errorPath !== undefined && !errorPath.includes(n.index)) {
+    nodesToSet.forEach(function (n) {
+      if (
+        n.type === "target" &&
+        errorPath !== undefined &&
+        !errorPath.includes(n.index)
+      ) {
         errorPath.push(n.index);
       }
       graph.setNode(n.index, {
         label: n.label,
         class: "arg-node " + n.type,
-        id: nodeIdDecider(n)
+        id: nodeIdDecider(n),
       });
     });
   }
 
   function nodeIdDecider(node) {
-    if (errorGraphMap === undefined)
-      return "arg-node" + node.index;
-    else
-      return "arg-error-node" + node.index;
+    if (errorGraphMap === undefined) return "arg-node" + node.index;
+    else return "arg-error-node" + node.index;
   }
 
   // Set the graph edges
   function setGraphEdges(graph, edgesToSet, multigraph) {
-    edgesToSet.forEach(function(e) {
-      if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
+    edgesToSet.forEach(function (e) {
+      if (
+        !multigraph ||
+        (graph.nodes().includes("" + e.source) &&
+          graph.nodes().includes("" + e.target))
+      ) {
         graph.setEdge(e.source, e.target, {
           label: e.label,
           lineInterpolate: "basis",
           class: edgeClassDecider(e),
           id: "arg-edge" + e.source + e.target,
-          weight: edgeWeightDecider(e)
+          weight: edgeWeightDecider(e),
         });
       }
     });
@@ -394,7 +482,11 @@ onmessage = msg => {
 
   // Set class for passed edge
   function edgeClassDecider(edge) {
-    if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
+    if (
+      errorPath !== undefined &&
+      errorPath.includes(edge.source) &&
+      errorPath.includes(edge.target)
+    ) {
       return "arg-edge error-edge";
     } else {
       return "arg-edge";

@@ -10,10 +10,7 @@
 // deal with Chrome being unable to load WebWorkers when opened using
 // the file:// protocol https://stackoverflow.com/questions/21408510/chrome-cant-load-web-worker
 
-import {
-  argWorkerData,
-  cfaWorkerData
-} from "./workerData";
+import { argWorkerData, cfaWorkerData } from "./workerData";
 
 const handleWorkerMessage = (msg, worker, callback) => {
   worker.busy = false;
@@ -21,19 +18,23 @@ const handleWorkerMessage = (msg, worker, callback) => {
   if (callback) {
     callback(msg);
   }
-}
+};
 
 const argWorker = new Worker(argWorkerData);
 argWorker.workerName = "argWorker";
-argWorker.onmessage = (result) => handleWorkerMessage(result.data, argWorker, argWorker.callback);
-argWorker.onerror = (err) => handleWorkerMessage(err.message, argWorker, argWorker.onErrorCallback);
+argWorker.onmessage = (result) =>
+  handleWorkerMessage(result.data, argWorker, argWorker.callback);
+argWorker.onerror = (err) =>
+  handleWorkerMessage(err.message, argWorker, argWorker.onErrorCallback);
 
 const cfaWorker = new Worker(cfaWorkerData);
 cfaWorker.workerName = "cfaWorker";
-cfaWorker.onmessage = (result) => handleWorkerMessage(result.data, cfaWorker, cfaWorker.callback);
-cfaWorker.onerror = (err) => handleWorkerMessage(err.message, cfaWorker, cfaWorker.onErrorCallback);
+cfaWorker.onmessage = (result) =>
+  handleWorkerMessage(result.data, cfaWorker, cfaWorker.callback);
+cfaWorker.onerror = (err) =>
+  handleWorkerMessage(err.message, cfaWorker, cfaWorker.onErrorCallback);
 
-const workerPool = {argWorker, cfaWorker};
+const workerPool = { argWorker, cfaWorker };
 
 // FIFO queue for the jobs that will be executed by the workers
 const jobQueue = [];
@@ -42,10 +43,10 @@ const jobQueue = [];
 const deleteCallbacks = (worker) => {
   delete worker.callback;
   delete worker.onErrorCallback;
-}
+};
 
 // Gets the first idle worker and reserves it for job dispatch in case one is available
-const reserveWorker = workerName => {
+const reserveWorker = (workerName) => {
   const worker = workerPool[workerName];
   if (!worker.busy) {
     worker.busy = true;
@@ -81,11 +82,9 @@ const enqueue = async (workerName, data) =>
       workerName,
       data,
       callback: resolve,
-      onErrorCallback: reject
+      onErrorCallback: reject,
     });
     setImmediate(processQueue);
   });
 
-export {
-  enqueue
-};
+export { enqueue };

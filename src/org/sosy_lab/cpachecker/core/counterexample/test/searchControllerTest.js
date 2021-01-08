@@ -8,53 +8,53 @@
 // SPDX-License-Identifier: Apache-2.0
 
 describe("ReportController", function () {
-    var $rootScope,
-        $scope,
-        controller;
+  let $rootScope;
+  let $scope;
+  let controller;
 
-    beforeEach(function () {
-        angular.mock.module('report');
+  beforeEach(function () {
+    angular.mock.module("report");
 
-        angular.mock.inject(function ($injector) {
-            $rootScope = $injector.get('$rootScope');
-            $scope = $rootScope.$new();
-            controller = $injector.get('$controller')("SearchController", {
-                $scope: $scope
-            });
-        })
-        jasmine.getFixtures().fixturesPath = 'base/';
-        jasmine.getFixtures().load('testReport.html');
-    })
+    angular.mock.inject(function ($injector) {
+      $rootScope = $injector.get("$rootScope");
+      $scope = $rootScope.$new();
+      controller = $injector.get("$controller")("SearchController", {
+        $scope: $scope,
+      });
+    });
+    jasmine.getFixtures().fixturesPath = "base/";
+    jasmine.getFixtures().load("testReport.html");
+  });
 
-    describe("numOfValueMatches initialization", function () {
-        it("Should be defined", function () {
-            expect($scope.numOfValueMatches).not.toBeUndefined();
-        })
+  describe("numOfValueMatches initialization", function () {
+    it("Should be defined", function () {
+      expect($scope.numOfValueMatches).not.toBeUndefined();
+    });
 
-        it("Should instantiate value equal to 0", function () {
-            expect($scope.numOfValueMatches).toEqual(0);
-        })
-    })
+    it("Should instantiate value equal to 0", function () {
+      expect($scope.numOfValueMatches).toEqual(0);
+    });
+  });
 
-    describe("numOfDescriptionMatches initialization", function () {
-        it("Should be defined", function () {
-            expect($scope.numOfDescriptionMatches).not.toBeUndefined();
-        })
+  describe("numOfDescriptionMatches initialization", function () {
+    it("Should be defined", function () {
+      expect($scope.numOfDescriptionMatches).not.toBeUndefined();
+    });
 
-        it("Should instantiate value equal to 0", function () {
-            expect($scope.numOfDescriptionMatches).toEqual(0);
-        })
-    })
+    it("Should instantiate value equal to 0", function () {
+      expect($scope.numOfDescriptionMatches).toEqual(0);
+    });
+  });
 
-    describe("checkIfEnter action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.checkIfEnter).not.toBeUndefined();
-        })
-    })
+  describe("checkIfEnter action handler", function () {
+    it("Should be defined", function () {
+      expect($scope.checkIfEnter).not.toBeUndefined();
+    });
+  });
 
-    describe("searchFor action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.searchFor).not.toBeUndefined();
-        })
-    })
+  describe("searchFor action handler", function () {
+    it("Should be defined", function () {
+      expect($scope.searchFor).not.toBeUndefined();
+    });
+  });
 });
