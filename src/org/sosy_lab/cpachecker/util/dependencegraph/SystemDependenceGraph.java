@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -497,7 +498,7 @@ public class SystemDependenceGraph<T, V> {
       return new SystemDependenceGraph<>(
           ImmutableList.copyOf(nodes),
           ImmutableList.copyOf(graphNodes),
-          ImmutableMultimap.copyOf(nodesPerStatement));
+          ImmutableListMultimap.copyOf(nodesPerStatement));
     }
 
     public final class EdgeChooser {
