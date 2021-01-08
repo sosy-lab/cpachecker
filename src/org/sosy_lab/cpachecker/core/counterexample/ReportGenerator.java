@@ -90,10 +90,8 @@ public class ReportGenerator {
   private static final String HTML_TEMPLATE = "report.html";
   private static final String CSS_TEMPLATE = "build/bundle.css";
   private static final String JS_TEMPLATE = "build/bundle.js";
-  private static final String JS_ARGWORKER_TEMPLATE = "worker/argWorker.js";
-  private static final String JS_CFAWORKER_TEMPLATE = "worker/cfaWorker.js";
-  private static final String JS_D3_TEMPLATE = "external_libs/d3.min.js";
-  private static final String JS_DAGRE_D3_TEMPLATE = "external_libs/dagre-d3.min.js";
+  private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
+  private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";
 
   private final Configuration config;
   private final LogManager logger;
@@ -263,8 +261,6 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertWorkerJs(writer, JS_ARGWORKER_TEMPLATE);
-          insertWorkerJs(writer, JS_CFAWORKER_TEMPLATE);
           insertJs(writer, cfa, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
@@ -291,47 +287,7 @@ public class ReportGenerator {
     }
   }
 
-  private void insertJs(
-      Writer writer,
-      CFA cfa,
-      DOTBuilder2 dotBuilder,
-      @Nullable CounterexampleInfo counterExample)
-      throws IOException {
-        insertCfaJson(writer, cfa, dotBuilder, counterExample);
-        insertArgJson(writer);
-        insertSourceFileNames(writer);
-
-        try (BufferedReader reader =
-            Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-                .openBufferedStream();) {
-          String line;
-          while (null != (line = reader.readLine())) {
-              writer.write(line);
-              writer.write('\n');
-          }
-        }
-      }
-
-  private void insertWorkerJs(
-      Writer writer,
-      String jsFile)
-      throws IOException {
-        try (BufferedReader reader =
-            Resources.asCharSource(Resources.getResource(getClass(), jsFile), Charsets.UTF_8)
-                .openBufferedStream();) {
-          String line;
-          while (null != (line = reader.readLine())) {
-              if (line.contains("EXTERNAL_LIBS")) {
-                insertFile(writer, JS_D3_TEMPLATE);
-                insertFile(writer, JS_DAGRE_D3_TEMPLATE);
-              }
-              writer.write(line);
-              writer.write('\n');
-          }
-        }
-      }
-
-  private void insertFile(
+  private void insertJsFile(
       Writer writer,
       String file)
       throws IOException {
@@ -344,6 +300,20 @@ public class ReportGenerator {
               writer.write('\n');
           }
         }
+      }
+
+  private void insertJs(
+      Writer writer,
+      CFA cfa,
+      DOTBuilder2 dotBuilder,
+      @Nullable CounterexampleInfo counterExample)
+      throws IOException {
+        insertCfaJson(writer, cfa, dotBuilder, counterExample);
+        insertArgJson(writer);
+        insertSourceFileNames(writer);
+
+        insertJsFile(writer, VENDOR_JS_TEMPLATE);
+        insertJsFile(writer, JS_TEMPLATE);
       }
 
   private void insertCfaJson(
