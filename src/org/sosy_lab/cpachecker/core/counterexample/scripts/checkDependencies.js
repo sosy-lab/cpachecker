@@ -154,7 +154,7 @@ checker.init(
         dependencyData.length
       );
 
-      fs.writeFile("dependency_licenses/licenses.json", dependencyData, err => {
+      fs.writeFile("./dependency_licenses/licenses.json", dependencyData, err => {
         if (err) {
           console.log(err);
           process.exit(1);
