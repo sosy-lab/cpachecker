@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -97,25 +98,15 @@ public class SystemDependenceGraph<T, V> {
   }
 
   private void traverse(
-      Direction pDirection,
-      Collection<Node<T, V>> pStartNodes,
-      Visitor<T, V> pVisitor,
-      boolean pOnce) {
+      Collection<Node<T, V>> pStartNodes, Visitor<T, V> pVisitor, boolean pForwards) {
 
-    Objects.requireNonNull(pDirection, "pDirection must not be null");
     Objects.requireNonNull(pStartNodes, "pStartNodes must not be null");
     Objects.requireNonNull(pVisitor, "pVisitor must not be null");
 
     Deque<GraphNode<T, V>> waitlist = new ArrayDeque<>();
-    Set<GraphNode<T, V>> waitlisted = new HashSet<>();
 
     for (Node<T, V> node : pStartNodes) {
-
-      GraphNode<T, V> graphNode = getGraphNode(node);
-
-      if (!pOnce || waitlisted.add(graphNode)) {
-        waitlist.add(graphNode);
-      }
+      waitlist.add(getGraphNode(node));
     }
 
     while (!waitlist.isEmpty()) {
@@ -126,24 +117,19 @@ public class SystemDependenceGraph<T, V> {
       if (nodeVisitResult == VisitResult.CONTINUE) {
 
         List<GraphEdge<T, V>> edges =
-            pDirection == Direction.FORWARDS
-                ? graphNode.getLeavingEdges()
-                : graphNode.getEnteringEdges();
+            pForwards ? graphNode.getLeavingEdges() : graphNode.getEnteringEdges();
 
         for (GraphEdge<T, V> edge : edges) {
 
+          GraphNode<T, V> predecessor = edge.getPredecessor();
+          GraphNode<T, V> successor = edge.getSuccessor();
           VisitResult edgeVisitResult =
-              pVisitor.visitEdge(
-                  edge.getType(), edge.getPredecessor().getNode(), edge.getSuccessor().getNode());
+              pVisitor.visitEdge(edge.getType(), predecessor.getNode(), successor.getNode());
 
           if (edgeVisitResult == VisitResult.CONTINUE) {
 
-            GraphNode<T, V> next =
-                pDirection == Direction.FORWARDS ? edge.getSuccessor() : edge.getPredecessor();
-
-            if (!pOnce || waitlisted.add(next)) {
-              waitlist.add(next);
-            }
+            GraphNode<T, V> next = pForwards ? successor : predecessor;
+            waitlist.add(next);
 
           } else if (nodeVisitResult == VisitResult.TERMINATE) {
             return;
@@ -156,14 +142,22 @@ public class SystemDependenceGraph<T, V> {
     }
   }
 
-  public void traverse(
-      Direction pDirection, Collection<Node<T, V>> pStartNodes, Visitor<T, V> pVisitor) {
-    traverse(pDirection, pStartNodes, pVisitor, false);
+  public void traverse(Collection<Node<T, V>> pStartNodes, ForwardsVisitor<T, V> pVisitor) {
+    traverse(pStartNodes, pVisitor, true);
   }
 
-  public void traverseOnce(
-      Direction pDirection, Collection<Node<T, V>> pStartNodes, Visitor<T, V> pVisitor) {
-    traverse(pDirection, pStartNodes, pVisitor, true);
+  public void traverse(Collection<Node<T, V>> pStartNodes, BackwardsVisitor<T, V> pVisitor) {
+    traverse(pStartNodes, pVisitor, false);
+  }
+
+  public ForwardsVisitOnceVisitor<T, V> createVisitOnceVisitor(
+      ForwardsVisitor<T, V> pDelegateVisitor) {
+    return new ForwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
+  }
+
+  public BackwardsVisitOnceVisitor<T, V> createVisitOnceVisitor(
+      BackwardsVisitor<T, V> pDelegateVisitor) {
+    return new BackwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
   }
 
   public enum NodeType {
@@ -618,5 +612,116 @@ public class SystemDependenceGraph<T, V> {
     public VisitResult visitNode(Node<T, V> pNode);
 
     public VisitResult visitEdge(EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor);
+  }
+
+  public interface ForwardsVisitor<T, V> extends Visitor<T, V> {}
+
+  public interface BackwardsVisitor<T, V> extends Visitor<T, V> {}
+
+  private abstract static class VisitOnceVisitor<T, V> implements Visitor<T, V> {
+
+    private final boolean forwards;
+    private final Visitor<T, V> delegateVisitor;
+
+    private final byte[] visited;
+    private byte visitedMarker;
+
+    private VisitOnceVisitor(boolean pForwards, Visitor<T, V> pDelegateVisitor, int pNodeCount) {
+
+      forwards = pForwards;
+      delegateVisitor = pDelegateVisitor;
+
+      visited = new byte[pNodeCount];
+      visitedMarker = 1;
+    }
+
+    private void reset() {
+
+      visitedMarker++;
+
+      if (visitedMarker == 0) {
+
+        Arrays.fill(visited, (byte) 0);
+        visitedMarker = 1;
+      }
+    }
+
+    private boolean isVisited(Node<T, V> pNode) {
+      return visited[pNode.getId()] == visitedMarker;
+    }
+
+    @Override
+    public VisitResult visitNode(Node<T, V> pNode) {
+
+      if (!isVisited(pNode)) {
+
+        visited[pNode.getId()] = visitedMarker;
+
+        return delegateVisitor.visitNode(pNode);
+      }
+
+      return VisitResult.SKIP;
+    }
+
+    @Override
+    public VisitResult visitEdge(EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+
+      VisitResult visitResult = delegateVisitor.visitEdge(pType, pPredecessor, pSuccessor);
+
+      if (visitResult == VisitResult.CONTINUE) {
+
+        Node<T, V> nextNode = forwards ? pSuccessor : pPredecessor;
+
+        if (isVisited(nextNode)) {
+          return VisitResult.SKIP;
+        }
+      }
+
+      return visitResult;
+    }
+  }
+
+  public static final class ForwardsVisitOnceVisitor<T, V> extends VisitOnceVisitor<T, V>
+      implements ForwardsVisitor<T, V> {
+
+    private ForwardsVisitOnceVisitor(ForwardsVisitor<T, V> pDelegateVisitor, int pNodeCount) {
+      super(true, pDelegateVisitor, pNodeCount);
+    }
+
+    public void reset() {
+      super.reset();
+    }
+
+    @Override
+    public VisitResult visitNode(Node<T, V> pNode) {
+      return super.visitNode(pNode);
+    }
+
+    @Override
+    public VisitResult visitEdge(EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+      return super.visitEdge(pType, pPredecessor, pSuccessor);
+    }
+  }
+
+  public static final class BackwardsVisitOnceVisitor<T, V> extends VisitOnceVisitor<T, V>
+      implements BackwardsVisitor<T, V> {
+
+    private BackwardsVisitOnceVisitor(BackwardsVisitor<T, V> pDelegateVisitor, int pNodeCount) {
+      super(false, pDelegateVisitor, pNodeCount);
+    }
+
+    public void reset() {
+      super.reset();
+    }
+
+    @Override
+    public VisitResult visitNode(Node<T, V> pNode) {
+      return super.visitNode(pNode);
+    }
+
+    @Override
+    public VisitResult visitEdge(EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+      return super.visitEdge(pType, pPredecessor, pSuccessor);
+    }
   }
 }

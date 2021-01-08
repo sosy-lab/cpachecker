@@ -22,11 +22,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Direction;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Visitor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 abstract class DotExporter<T, V, C> {
@@ -110,10 +108,9 @@ abstract class DotExporter<T, V, C> {
   private void writeEdges(
       PrintWriter pWriter, SystemDependenceGraph<T, V> pSdg, Map<Node<T, V>, Long> pVisitedNodes) {
 
-    pSdg.traverseOnce(
-        Direction.FORWARDS,
+    pSdg.traverse(
         pSdg.getNodes(),
-        new Visitor<T, V>() {
+        new SystemDependenceGraph.ForwardsVisitor<T, V>() {
 
           @Override
           public VisitResult visitNode(Node<T, V> pNode) {
@@ -149,10 +146,9 @@ abstract class DotExporter<T, V, C> {
     Multimap<C, Node<T, V>> contexts = ArrayListMultimap.create();
     StatCounter counter = new StatCounter("Node Counter");
 
-    pSdg.traverseOnce(
-        SystemDependenceGraph.Direction.FORWARDS,
+    pSdg.traverse(
         pSdg.getNodes(),
-        new SystemDependenceGraph.Visitor<T, V>() {
+        new SystemDependenceGraph.ForwardsVisitor<T, V>() {
 
           @Override
           public VisitResult visitNode(Node<T, V> pNode) {

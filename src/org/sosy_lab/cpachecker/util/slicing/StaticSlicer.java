@@ -120,6 +120,27 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       criteriaEdges.addAll(getAbortCallEdges(pCfa));
     }
 
+    SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation> visitor =
+        depGraph.createVisitOnceVisitor(
+            new SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation>() {
+
+              @Override
+              public VisitResult visitNode(Node<CFAEdge, MemoryLocation> pNode) {
+
+                relevantEdges.add(pNode.getStatement());
+
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
+
+              @Override
+              public VisitResult visitEdge(
+                  EdgeType pType,
+                  Node<CFAEdge, MemoryLocation> pPredecessor,
+                  Node<CFAEdge, MemoryLocation> pSuccessor) {
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
+            });
+
     try {
       // Heuristic: Reverse to make states that are deeper in the path first - these
       // have a higher chance of including earlier states in their dependences
@@ -138,27 +159,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           realSlices++;
         }
 
-        depGraph.traverseOnce(
-            SystemDependenceGraph.Direction.BACKWARDS,
-            depGraph.getNodesForStatement(g),
-            new SystemDependenceGraph.Visitor<CFAEdge, MemoryLocation>() {
-
-              @Override
-              public VisitResult visitNode(Node<CFAEdge, MemoryLocation> pNode) {
-
-                relevantEdges.add(pNode.getStatement());
-
-                return SystemDependenceGraph.VisitResult.CONTINUE;
-              }
-
-              @Override
-              public VisitResult visitEdge(
-                  EdgeType pType,
-                  Node<CFAEdge, MemoryLocation> pPredecessor,
-                  Node<CFAEdge, MemoryLocation> pSuccessor) {
-                return SystemDependenceGraph.VisitResult.CONTINUE;
-              }
-            });
+        depGraph.traverse(depGraph.getNodesForStatement(g), visitor);
       }
 
       final Slice slice =
