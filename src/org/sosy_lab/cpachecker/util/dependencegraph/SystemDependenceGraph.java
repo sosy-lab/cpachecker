@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,45 +29,71 @@ import java.util.Set;
 
 public class SystemDependenceGraph<T, V> {
 
-  private final ImmutableMap<Node<T, V>, GraphNode<T, V>> nodes;
+  private final ImmutableList<Node<T, V>> nodes;
+  private final ImmutableList<GraphNode<T, V>> graphNodes;
 
-  private SystemDependenceGraph(ImmutableMap<Node<T, V>, GraphNode<T, V>> pNodes) {
+  private final ImmutableMultimap<T, Node<T, V>> nodesPerStatement;
+
+  private SystemDependenceGraph(
+      ImmutableList<Node<T, V>> pNodes,
+      ImmutableList<GraphNode<T, V>> pGraphNodes,
+      ImmutableMultimap<T, Node<T, V>> pNodesPerStatement) {
+
     nodes = pNodes;
+    graphNodes = pGraphNodes;
+    nodesPerStatement = pNodesPerStatement;
   }
 
   public static <T, V> Builder<T, V> builder() {
     return new Builder<>();
   }
 
-  public ImmutableSet<Node<T, V>> getNodes() {
-    return nodes.keySet();
+  public int getNodeCount() {
+    return nodes.size();
   }
 
-  public Node<T, V> getNode(NodeType pType, T pStatement, Optional<V> pVariable) {
+  public ImmutableCollection<Node<T, V>> getNodes() {
+    return nodes;
+  }
 
-    Objects.requireNonNull(pType, "pType must not be null");
+  public Node<T, V> getNodeById(int pId) {
+    return nodes.get(pId);
+  }
+
+  public ImmutableCollection<Node<T, V>> getNodesForStatement(T pStatement) {
+
     Objects.requireNonNull(pStatement, "pStatement must not be null");
-    Objects.requireNonNull(pVariable, "pVariable must not be null");
 
-    return new Node<>(pType, pStatement, pVariable);
+    return nodesPerStatement.get(pStatement);
+  }
+
+  private void illegalNode(Node<T, V> pNode) {
+    throw new IllegalArgumentException(getClass().getName() + " does not contain node: " + pNode);
+  }
+
+  private GraphNode<T, V> getGraphNode(Node<T, V> pNode) {
+
+    Objects.requireNonNull(pNode, "node must not be null");
+
+    if (pNode.getId() >= getNodeCount()) {
+      illegalNode(pNode);
+    }
+
+    GraphNode<T, V> graphNode = graphNodes.get(pNode.getId());
+
+    if (!graphNode.getNode().equals(pNode)) {
+      illegalNode(pNode);
+    }
+
+    return graphNode;
   }
 
   public ImmutableSet<V> getDefs(Node<T, V> pNode) {
-
-    Objects.requireNonNull(pNode, "pNode must not be null");
-
-    GraphNode<T, V> graphNode = nodes.get(pNode);
-
-    return graphNode != null ? ImmutableSet.copyOf(graphNode.getDefs()) : ImmutableSet.of();
+    return ImmutableSet.copyOf(getGraphNode(pNode).getDefs());
   }
 
   public ImmutableSet<V> getUses(Node<T, V> pNode) {
-
-    Objects.requireNonNull(pNode, "pNode must not be null");
-
-    GraphNode<T, V> graphNode = nodes.get(pNode);
-
-    return graphNode != null ? ImmutableSet.copyOf(graphNode.getUses()) : ImmutableSet.of();
+    return ImmutableSet.copyOf(getGraphNode(pNode).getUses());
   }
 
   private void traverse(
@@ -82,10 +111,7 @@ public class SystemDependenceGraph<T, V> {
 
     for (Node<T, V> node : pStartNodes) {
 
-      GraphNode<T, V> graphNode = nodes.get(node);
-      if (graphNode == null) {
-        throw new IllegalArgumentException("start node is not part of this graph: " + node);
-      }
+      GraphNode<T, V> graphNode = getGraphNode(node);
 
       if (!pOnce || waitlisted.add(graphNode)) {
         waitlist.add(graphNode);
@@ -156,19 +182,25 @@ public class SystemDependenceGraph<T, V> {
 
   public static final class Node<T, V> {
 
+    private final int id;
     private final NodeType type;
     private final T statement;
     private final Optional<V> variable;
 
     private final int hash;
 
-    private Node(NodeType pType, T pStatement, Optional<V> pVariable) {
+    private Node(int pId, NodeType pType, T pStatement, Optional<V> pVariable) {
 
+      id = pId;
       type = pType;
       statement = pStatement;
       variable = pVariable;
 
-      hash = Objects.hash(type, statement, variable);
+      hash = Objects.hash(id, type, statement, variable);
+    }
+
+    public int getId() {
+      return id;
     }
 
     public NodeType getType() {
@@ -205,7 +237,8 @@ public class SystemDependenceGraph<T, V> {
 
       Node<?, ?> other = (Node<?, ?>) pObject;
 
-      return hash == other.hash
+      return id == other.id
+          && hash == other.hash
           && type == other.type
           && Objects.equals(statement, other.statement)
           && Objects.equals(variable, other.variable);
@@ -215,8 +248,9 @@ public class SystemDependenceGraph<T, V> {
     public String toString() {
       return String.format(
           Locale.ENGLISH,
-          "%s[type=%s, statement=%s, variable=%s]",
+          "%s[id=%d, type=%s, statement=%s, variable=%s]",
           getClass().getName(),
+          id,
           type,
           statement,
           variable);
@@ -394,30 +428,48 @@ public class SystemDependenceGraph<T, V> {
 
   public static final class Builder<T, V> {
 
-    private final Map<Node<T, V>, GraphNode<T, V>> nodes;
+    private final List<Node<T, V>> nodes;
+    private final List<GraphNode<T, V>> graphNodes;
+    private final Map<NodeMapKey<T, V>, GraphNode<T, V>> nodeMap;
 
     private Builder() {
-      nodes = new HashMap<>();
+
+      nodes = new ArrayList<>();
+      graphNodes = new ArrayList<>();
+
+      nodeMap = new HashMap<>();
     }
 
-    private GraphNode<T, V> graphNode(Node<T, V> pNode) {
-      return nodes.computeIfAbsent(pNode, key -> new GraphNode<>(pNode));
+    private GraphNode<T, V> graphNode(NodeType pType, T pStatement, Optional<V> pVariable) {
+
+      NodeMapKey<T, V> nodeKey = new NodeMapKey<>(pType, pStatement, pVariable);
+      GraphNode<T, V> graphNode =
+          nodeMap.computeIfAbsent(nodeKey, key -> new GraphNode<>(key.createNode(nodes.size())));
+      Node<T, V> node = graphNode.getNode();
+
+      if (node.getId() == nodes.size()) {
+        nodes.add(node);
+        graphNodes.add(graphNode);
+      }
+
+      return graphNode;
     }
 
     private void insertEdge(
-        Node<T, V> pPredecessor, Node<T, V> pSuccessor, EdgeType pType, Optional<V> pCause) {
+        GraphNode<T, V> pPredecessor,
+        GraphNode<T, V> pSuccessor,
+        EdgeType pType,
+        Optional<V> pCause) {
 
-      GraphNode<T, V> predecessorGraphNode = graphNode(pPredecessor);
-      GraphNode<T, V> successorGraphNode = graphNode(pSuccessor);
-      GraphEdge<T, V> edge = new GraphEdge<>(pType, predecessorGraphNode, successorGraphNode);
+      GraphEdge<T, V> edge = new GraphEdge<>(pType, pPredecessor, pSuccessor);
 
-      predecessorGraphNode.addLeavingEdge(edge);
-      successorGraphNode.addEnteringEdge(edge);
+      pPredecessor.addLeavingEdge(edge);
+      pSuccessor.addEnteringEdge(edge);
 
       if (pCause.isPresent()) {
         V variable = pCause.orElseThrow();
-        predecessorGraphNode.addDef(variable);
-        successorGraphNode.addUse(variable);
+        pPredecessor.addDef(variable);
+        pSuccessor.addUse(variable);
       }
     }
 
@@ -427,24 +479,33 @@ public class SystemDependenceGraph<T, V> {
       Objects.requireNonNull(pStatement, "pStatement must not be null");
       Objects.requireNonNull(pVariable, "pVariable must not be null");
 
-      return new EdgeChooser(new Node<>(pType, pStatement, pVariable));
+      return new EdgeChooser(graphNode(pType, pStatement, pVariable));
     }
 
     public SystemDependenceGraph<T, V> build() {
 
-      for (GraphNode<T, V> graphNode : nodes.values()) {
+      Multimap<T, Node<T, V>> nodesPerStatement = ArrayListMultimap.create();
+
+      for (GraphNode<T, V> graphNode : graphNodes) {
+
         graphNode.finish();
+
+        Node<T, V> node = graphNode.getNode();
+        nodesPerStatement.put(node.getStatement(), node);
       }
 
-      return new SystemDependenceGraph<>(ImmutableMap.copyOf(nodes));
+      return new SystemDependenceGraph<>(
+          ImmutableList.copyOf(nodes),
+          ImmutableList.copyOf(graphNodes),
+          ImmutableMultimap.copyOf(nodesPerStatement));
     }
 
     public final class EdgeChooser {
 
-      private final Node<T, V> node;
+      private final GraphNode<T, V> graphNode;
 
-      private EdgeChooser(Node<T, V> pNode) {
-        node = pNode;
+      private EdgeChooser(GraphNode<T, V> pGraphNode) {
+        graphNode = pGraphNode;
       }
 
       public DependencyChooser depends(EdgeType pType, Optional<V> pCause) {
@@ -452,18 +513,19 @@ public class SystemDependenceGraph<T, V> {
         Objects.requireNonNull(pType, "pType must not be null");
         Objects.requireNonNull(pCause, "pCause must not be null");
 
-        return new DependencyChooser(node, pType, pCause);
+        return new DependencyChooser(graphNode, pType, pCause);
       }
     }
 
     public final class DependencyChooser {
 
-      private final Node<T, V> node;
+      private final GraphNode<T, V> graphNode;
       private final EdgeType edgeType;
       private final Optional<V> cause;
 
-      private DependencyChooser(Node<T, V> pNode, EdgeType pEdgeType, Optional<V> pCause) {
-        node = pNode;
+      private DependencyChooser(
+          GraphNode<T, V> pGraphNode, EdgeType pEdgeType, Optional<V> pCause) {
+        graphNode = pGraphNode;
         edgeType = pEdgeType;
         cause = pCause;
       }
@@ -474,8 +536,69 @@ public class SystemDependenceGraph<T, V> {
         Objects.requireNonNull(pStatement, "pStatement must not be null");
         Objects.requireNonNull(pVariable, "pVariable must not be null");
 
-        insertEdge(new Node<>(pType, pStatement, pVariable), node, edgeType, cause);
+        insertEdge(graphNode(pType, pStatement, pVariable), graphNode, edgeType, cause);
       }
+    }
+  }
+
+  private static final class NodeMapKey<T, V> {
+
+    private final NodeType type;
+    private final T statement;
+    private final Optional<V> variable;
+
+    private final int hash;
+
+    private NodeMapKey(NodeType pType, T pStatement, Optional<V> pVariable) {
+
+      type = pType;
+      statement = pStatement;
+      variable = pVariable;
+
+      hash = Objects.hash(type, statement, variable);
+    }
+
+    private Node<T, V> createNode(int pId) {
+      return new Node<>(pId, type, statement, variable);
+    }
+
+    @Override
+    public int hashCode() {
+      return hash;
+    }
+
+    @Override
+    public boolean equals(Object pObject) {
+
+      if (this == pObject) {
+        return true;
+      }
+
+      if (pObject == null) {
+        return false;
+      }
+
+      if (getClass() != pObject.getClass()) {
+        return false;
+      }
+
+      Node<?, ?> other = (Node<?, ?>) pObject;
+
+      return hash == other.hash
+          && type == other.type
+          && Objects.equals(statement, other.statement)
+          && Objects.equals(variable, other.variable);
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          Locale.ENGLISH,
+          "%s[type=%s, statement=%s, variable=%s]",
+          getClass().getName(),
+          type,
+          statement,
+          variable);
     }
   }
 

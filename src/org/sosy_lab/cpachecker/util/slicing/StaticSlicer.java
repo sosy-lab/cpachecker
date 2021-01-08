@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -142,7 +140,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
         depGraph.traverseOnce(
             SystemDependenceGraph.Direction.BACKWARDS,
-            ImmutableSet.of(depGraph.getNode(NodeType.STATEMENT, g, Optional.empty())),
+            depGraph.getNodesForStatement(g),
             new SystemDependenceGraph.Visitor<CFAEdge, MemoryLocation>() {
 
               @Override
