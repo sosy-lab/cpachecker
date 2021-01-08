@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -70,7 +71,7 @@ final class ControlDependenceBuilder {
   }
 
   static ImmutableSet<ControlDependency> computeControlDependencies(
-      FunctionEntryNode pEntryNode, boolean pDependOnBothAssumptions) {
+      CFA pCfa, FunctionEntryNode pEntryNode, boolean pDependOnBothAssumptions) {
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
     Set<CFANode> postDomTreeNodes = new HashSet<>();
@@ -161,7 +162,8 @@ final class ControlDependenceBuilder {
     }
 
     // If the function has no entering call edges, use the function start dummy edge instead.
-    if (callEdges.isEmpty()) {
+
+    if (callEdges.isEmpty() && !pEntryNode.equals(pCfa.getMainFunction())) {
       CFAUtils.allLeavingEdges(pEntryNode).copyInto(callEdges);
     }
 

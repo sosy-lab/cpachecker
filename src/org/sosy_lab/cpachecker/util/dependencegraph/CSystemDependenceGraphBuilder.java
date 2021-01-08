@@ -524,7 +524,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       int controlDepCounter = 0;
       ImmutableSet<ControlDependency> controlDependencies =
           ControlDependenceBuilder.computeControlDependencies(
-              entryNode, controlDepsTakeBothAssumptions);
+              cfa, entryNode, controlDepsTakeBothAssumptions);
 
       for (ControlDependency controlDependency : controlDependencies) {
 
