@@ -576,7 +576,7 @@ public class SystemDependenceGraph<T, V> {
         return false;
       }
 
-      Node<?, ?> other = (Node<?, ?>) pObject;
+      NodeMapKey<?, ?> other = (NodeMapKey<?, ?>) pObject;
 
       return hash == other.hash
           && type == other.type
