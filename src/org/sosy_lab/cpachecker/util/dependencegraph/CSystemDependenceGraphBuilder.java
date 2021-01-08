@@ -197,6 +197,15 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
+    builder.insertSummaryEdges(
+        cfaEdge -> {
+          CFANode node =
+              cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+                  ? cfaEdge.getPredecessor()
+                  : cfaEdge.getSuccessor();
+          return node.getFunction();
+        });
+
     systemDependenceGraph = builder.build();
     dependenceGraphConstructionTimer.stop();
 

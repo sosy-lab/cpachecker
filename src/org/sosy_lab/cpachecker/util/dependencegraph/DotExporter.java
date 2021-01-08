@@ -32,11 +32,13 @@ abstract class DotExporter<T, V, C> {
   private static final ImmutableMap<EdgeType, String> edgeStyles =
       ImmutableMap.of(
           EdgeType.FLOW_DEPENDENCY,
-          "style=bold",
+          "style=bold,color={color}",
           EdgeType.CONTROL_DEPENDENCY,
-          "style=\"bold,dashed\"",
+          "style=\"bold,dashed\",color={color}",
           EdgeType.PARAMETER_EDGE,
-          "style=\"bold,dotted\"");
+          "style=\"bold,dotted\",color={color}",
+          EdgeType.SUMMARY_EDGE,
+          "style=bold,peripheries=2,color=\"{color}:invis:{color}\"");
   private static final ImmutableMap<EdgeType, String> edgeLabels =
       ImmutableSortedMap.of(
           EdgeType.FLOW_DEPENDENCY,
@@ -44,7 +46,9 @@ abstract class DotExporter<T, V, C> {
           EdgeType.CONTROL_DEPENDENCY,
           "Control Dependecy",
           EdgeType.PARAMETER_EDGE,
-          "Parameter Dependency");
+          "Parameter Edge",
+          EdgeType.SUMMARY_EDGE,
+          "Summary Edge");
 
   protected abstract C getContext(Node<T, V> pNode);
 
@@ -97,8 +101,8 @@ abstract class DotExporter<T, V, C> {
 
     i = 1;
     for (EdgeType edgeType : edgeLabels.keySet()) {
-      pWriter.printf(
-          Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]\n", i, i, edgeStyles.get(edgeType));
+      String edgeStyle = edgeStyles.get(edgeType).replace("{color}", "black");
+      pWriter.printf(Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]\n", i, i, edgeStyle);
       i++;
     }
 
@@ -127,8 +131,9 @@ abstract class DotExporter<T, V, C> {
                 nodeId(pVisitedNodes, pPredecessor),
                 nodeId(pVisitedNodes, pSuccessor));
 
-            String color = isHighlighted(pType, pPredecessor, pSuccessor) ? ",color=red" : "";
-            pWriter.printf(Locale.ENGLISH, " [%s%s]\n", edgeStyles.get(pType), color);
+            String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
+            String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
+            pWriter.printf(Locale.ENGLISH, " [%s]\n", edgeStyle);
 
             return VisitResult.SKIP;
           }
