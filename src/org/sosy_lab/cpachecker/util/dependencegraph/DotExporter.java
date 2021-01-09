@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -120,35 +121,40 @@ abstract class DotExporter<T, V, C> {
 
     StringBuilder sb = new StringBuilder();
 
-    pSdg.traverse(
-        pSdg.getNodes(),
-        new SystemDependenceGraph.ForwardsVisitor<T, V>() {
+    for (Node<T, V> node : pSdg.getNodes()) {
 
-          @Override
-          public VisitResult visitNode(Node<T, V> pNode) {
-            return VisitResult.CONTINUE;
-          }
+      sb.setLength(0);
 
-          @Override
-          public VisitResult visitEdge(
-              EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+      pSdg.traverse(
+          ImmutableSet.of(node),
+          new SystemDependenceGraph.ForwardsVisitor<T, V>() {
 
-            sb.append(
-                String.format(
-                    Locale.ENGLISH,
-                    "%s -> %s ",
-                    nodeId(pVisitedNodes, pPredecessor),
-                    nodeId(pVisitedNodes, pSuccessor)));
+            @Override
+            public VisitResult visitNode(Node<T, V> pNode) {
+              return VisitResult.CONTINUE;
+            }
 
-            String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
-            String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
-            sb.append(String.format(Locale.ENGLISH, " [%s]%n", edgeStyle));
+            @Override
+            public VisitResult visitEdge(
+                EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
 
-            return VisitResult.SKIP;
-          }
-        });
+              sb.append(
+                  String.format(
+                      Locale.ENGLISH,
+                      "%s -> %s ",
+                      nodeId(pVisitedNodes, pPredecessor),
+                      nodeId(pVisitedNodes, pSuccessor)));
 
-    pWriter.write(sb.toString());
+              String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
+              String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
+              sb.append(String.format(Locale.ENGLISH, " [%s]%n", edgeStyle));
+
+              return VisitResult.SKIP;
+            }
+          });
+
+      pWriter.write(sb.toString());
+    }
   }
 
   private void write(Writer pWriter, SystemDependenceGraph<T, V> pSdg) throws IOException {
