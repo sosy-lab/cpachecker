@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -18,6 +19,7 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -541,51 +543,56 @@ public class SystemDependenceGraph<T, V> {
       }
     }
 
-    private List<GraphNode<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
+    private Iterable<GraphNode<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
 
-      List<GraphNode<T, V>> actualInNodes = new ArrayList<>();
-
-      GraphNode<T, V> formalInGraphNode = graphNodes.get(pFormalIn.getId());
-      for (GraphEdge<T, V> formalInEntering : formalInGraphNode.getEnteringEdges()) {
-        if (formalInEntering.getType() == EdgeType.PARAMETER_EDGE) {
-          actualInNodes.add(formalInEntering.getPredecessor());
-        }
-      }
-
-      return actualInNodes;
+      return FluentIterable.from(graphNodes.get(pFormalIn.getId()).getEnteringEdges())
+          .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
+          .transform(GraphEdge::getPredecessor);
     }
 
-    private List<GraphNode<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
+    private Iterable<GraphNode<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
 
-      List<GraphNode<T, V>> actualOutNodes = new ArrayList<>();
+      return FluentIterable.from(graphNodes.get(pFormalOut.getId()).getLeavingEdges())
+          .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
+          .transform(GraphEdge::getSuccessor);
+    }
 
-      GraphNode<T, V> formalOutGraphNode = graphNodes.get(pFormalOut.getId());
-      for (GraphEdge<T, V> formalOutLeaving : formalOutGraphNode.getLeavingEdges()) {
-        if (formalOutLeaving.getType() == EdgeType.PARAMETER_EDGE) {
-          actualOutNodes.add(formalOutLeaving.getSuccessor());
-        }
+    private <C> int[] getContextIds(Function<T, C> pContextFunction) {
+
+      Map<C, Integer> contexts = new HashMap<>();
+      int[] contextIds = new int[nodes.size()];
+
+      for (int nodeId = 0; nodeId < contextIds.length; nodeId++) {
+
+        Node<T, V> node = nodes.get(nodeId);
+        C context = pContextFunction.apply(node.getStatement());
+
+        int contextId = contexts.computeIfAbsent(context, key -> contexts.size());
+        contextIds[nodeId] = contextId;
       }
 
-      return actualOutNodes;
+      return contextIds;
     }
 
     public <C> void insertSummaryEdges(Function<T, C> pContextFunction) {
 
+      int[] contextIds = getContextIds(pContextFunction);
+
       var visitor =
           new ForwardsVisitor<T, V>() {
 
-            private C context = null;
+            private int contextId = -1;
             private Node<T, V> formalInNode = null;
-            private Set<Node<T, V>> finishedFormalInNodes = new HashSet<>();
+            private BitSet finishedFormalInNodes = new BitSet(nodes.size());
             private Set<Node<T, V>> dependingFormalOutNodes = new HashSet<>();
 
             private void setFormalInNode(Node<T, V> pNode) {
 
-              context = pContextFunction.apply(pNode.getStatement());
+              contextId = contextIds[pNode.getId()];
               formalInNode = pNode;
 
               if (formalInNode != null) {
-                finishedFormalInNodes.add(formalInNode);
+                finishedFormalInNodes.set(formalInNode.getId());
               }
 
               dependingFormalOutNodes.clear();
@@ -599,7 +606,7 @@ public class SystemDependenceGraph<T, V> {
             public VisitResult visitNode(Node<T, V> pNode) {
 
               if (pNode.getType() == NodeType.FORMAL_OUT
-                  && pContextFunction.apply(pNode.getStatement()).equals(context)) {
+                  && contextIds[pNode.getId()] == contextId) {
                 dependingFormalOutNodes.add(pNode);
               }
 
@@ -610,19 +617,18 @@ public class SystemDependenceGraph<T, V> {
             public VisitResult visitEdge(
                 EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
 
-              if (pSuccessor.getType() == NodeType.FORMAL_IN
-                  && finishedFormalInNodes.contains(pSuccessor)) {
-                return VisitResult.SKIP;
-              }
+              if (contextIds[pPredecessor.getId()] != contextIds[pSuccessor.getId()]) {
 
-              C predecessorContext = pContextFunction.apply(pPredecessor.getStatement());
-              C successorContext = pContextFunction.apply(pSuccessor.getStatement());
+                if (pType == EdgeType.PARAMETER_EDGE) {
 
-              if (!predecessorContext.equals(successorContext)) {
+                  if (pPredecessor.getType() == NodeType.FORMAL_OUT) {
+                    return VisitResult.CONTINUE;
+                  }
 
-                if (pType == EdgeType.PARAMETER_EDGE
-                    && !finishedFormalInNodes.contains(pSuccessor)) {
-                  return VisitResult.CONTINUE;
+                  if (pSuccessor.getType() == NodeType.FORMAL_IN
+                      && !finishedFormalInNodes.get(pSuccessor.getId())) {
+                    return VisitResult.CONTINUE;
+                  }
                 }
 
                 return VisitResult.SKIP;
@@ -645,11 +651,12 @@ public class SystemDependenceGraph<T, V> {
           for (GraphNode<T, V> actualInGraphNode : getActualInNodes(node)) {
             for (Node<T, V> formalOutNode : visitor.getDependingFormalOutNodes()) {
               for (GraphNode<T, V> actualOutGraphNode : getActualOutNodes(formalOutNode)) {
-                C actualInContext =
-                    pContextFunction.apply(actualInGraphNode.getNode().getStatement());
-                C actualOutContext =
-                    pContextFunction.apply(actualOutGraphNode.getNode().getStatement());
-                if (actualInContext.equals(actualOutContext)) {
+
+                Node<T, V> actualInNode = actualInGraphNode.getNode();
+                Node<T, V> actualOutNode = actualOutGraphNode.getNode();
+
+                if (contextIds[actualInNode.getId()] == contextIds[actualOutNode.getId()]
+                    && actualInNode.getStatement().equals(actualOutNode.getStatement())) {
                   insertEdge(
                       actualInGraphNode,
                       actualOutGraphNode,
