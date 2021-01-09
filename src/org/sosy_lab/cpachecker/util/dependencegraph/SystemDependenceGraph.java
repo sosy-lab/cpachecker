@@ -543,20 +543,6 @@ public class SystemDependenceGraph<T, V> {
       }
     }
 
-    private Iterable<GraphNode<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
-
-      return FluentIterable.from(graphNodes.get(pFormalIn.getId()).getEnteringEdges())
-          .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
-          .transform(GraphEdge::getPredecessor);
-    }
-
-    private Iterable<GraphNode<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
-
-      return FluentIterable.from(graphNodes.get(pFormalOut.getId()).getLeavingEdges())
-          .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
-          .transform(GraphEdge::getSuccessor);
-    }
-
     private <C> int[] getContextIds(Function<T, C> pContextFunction) {
 
       Map<C, Integer> contexts = new HashMap<>();
@@ -577,91 +563,119 @@ public class SystemDependenceGraph<T, V> {
     public <C> void insertSummaryEdges(Function<T, C> pContextFunction) {
 
       int[] contextIds = getContextIds(pContextFunction);
+      new SummaryEdgeBuilder(contextIds).run();
+    }
 
-      var visitor =
-          new ForwardsVisitor<T, V>() {
+    private final class SummaryEdgeBuilder implements BackwardsVisitor<T, V> {
 
-            private int contextId = -1;
-            private Node<T, V> formalInNode = null;
-            private BitSet finishedFormalInNodes = new BitSet(nodes.size());
-            private Set<Node<T, V>> dependingFormalOutNodes = new HashSet<>();
+      private final BitSet finishedFormalOutNodes;
+      private final int[] contextIds;
 
-            private void setFormalInNode(Node<T, V> pNode) {
+      private int currentContextId;
+      private boolean currentRecursive;
+      private final Set<Node<T, V>> currentRelevantFormalInNodes;
 
-              contextId = contextIds[pNode.getId()];
-              formalInNode = pNode;
+      private SummaryEdgeBuilder(int[] pContextIds) {
 
-              if (formalInNode != null) {
-                finishedFormalInNodes.set(formalInNode.getId());
-              }
+        finishedFormalOutNodes = new BitSet(nodes.size());
+        contextIds = pContextIds;
 
-              dependingFormalOutNodes.clear();
+        currentRelevantFormalInNodes = new HashSet<>();
+        currentContextId = -1;
+        currentRecursive = false;
+      }
+
+      private Iterable<GraphNode<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
+
+        return FluentIterable.from(graphNodes.get(pFormalIn.getId()).getEnteringEdges())
+            .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
+            .transform(GraphEdge::getPredecessor);
+      }
+
+      private Iterable<GraphNode<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
+
+        return FluentIterable.from(graphNodes.get(pFormalOut.getId()).getLeavingEdges())
+            .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
+            .transform(GraphEdge::getSuccessor);
+      }
+
+      private void setCurrentFormalOutNode(Node<T, V> pFormalOutNode) {
+
+        currentContextId = contextIds[pFormalOutNode.getId()];
+        currentRecursive = false;
+        currentRelevantFormalInNodes.clear();
+      }
+
+      @Override
+      public VisitResult visitNode(Node<T, V> pNode) {
+
+        if (pNode.getType() == NodeType.FORMAL_IN
+            && contextIds[pNode.getId()] == currentContextId) {
+          currentRelevantFormalInNodes.add(pNode);
+        }
+
+        return VisitResult.CONTINUE;
+      }
+
+      @Override
+      public VisitResult visitEdge(EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+
+        if (pPredecessor.getType() == NodeType.FORMAL_OUT) {
+
+          if (contextIds[pPredecessor.getId()] == currentContextId && !currentRecursive) {
+            currentRecursive = true;
+            return VisitResult.TERMINATE;
+          }
+
+          if (finishedFormalOutNodes.get(pPredecessor.getId())) {
+            return VisitResult.SKIP;
+          }
+        }
+
+        int predecessorContextId = contextIds[pPredecessor.getId()];
+        int successorContextId = contextIds[pSuccessor.getId()];
+
+        if (predecessorContextId != successorContextId
+            && successorContextId == currentContextId
+            && !currentRecursive) {
+          return VisitResult.SKIP;
+        }
+
+        return VisitResult.CONTINUE;
+      }
+
+      private void run() {
+
+        BackwardsVisitOnceVisitor<T, V> visitor =
+            new BackwardsVisitOnceVisitor<>(this, nodes.size());
+
+        for (Node<T, V> node : nodes) {
+          if (node.getType() == NodeType.FORMAL_OUT) {
+
+            setCurrentFormalOutNode(node);
+            traverse(graphNodes, ImmutableList.of(node), visitor, false);
+            visitor.reset();
+
+            if (currentRecursive) {
+              traverse(graphNodes, ImmutableList.of(node), visitor, false);
+              visitor.reset();
             }
 
-            private Set<Node<T, V>> getDependingFormalOutNodes() {
-              return dependingFormalOutNodes;
-            }
+            for (GraphNode<T, V> actualOutGraphNode : getActualOutNodes(node)) {
+              for (Node<T, V> formalInNode : currentRelevantFormalInNodes) {
+                for (GraphNode<T, V> actualInGraphNode : getActualInNodes(formalInNode)) {
 
-            @Override
-            public VisitResult visitNode(Node<T, V> pNode) {
+                  Node<T, V> actualInNode = actualInGraphNode.getNode();
+                  Node<T, V> actualOutNode = actualOutGraphNode.getNode();
 
-              if (pNode.getType() == NodeType.FORMAL_OUT
-                  && contextIds[pNode.getId()] == contextId) {
-                dependingFormalOutNodes.add(pNode);
-              }
-
-              return VisitResult.CONTINUE;
-            }
-
-            @Override
-            public VisitResult visitEdge(
-                EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
-
-              if (contextIds[pPredecessor.getId()] != contextIds[pSuccessor.getId()]) {
-
-                if (pType == EdgeType.PARAMETER_EDGE) {
-
-                  if (pPredecessor.getType() == NodeType.FORMAL_OUT) {
-                    return VisitResult.CONTINUE;
+                  if (contextIds[actualInNode.getId()] == contextIds[actualOutNode.getId()]
+                      && actualInNode.getStatement().equals(actualOutNode.getStatement())) {
+                    insertEdge(
+                        actualInGraphNode,
+                        actualOutGraphNode,
+                        EdgeType.SUMMARY_EDGE,
+                        Optional.empty());
                   }
-
-                  if (pSuccessor.getType() == NodeType.FORMAL_IN
-                      && !finishedFormalInNodes.get(pSuccessor.getId())) {
-                    return VisitResult.CONTINUE;
-                  }
-                }
-
-                return VisitResult.SKIP;
-              }
-
-              return VisitResult.CONTINUE;
-            }
-          };
-
-      ForwardsVisitOnceVisitor<T, V> visitOnceVisitor =
-          new ForwardsVisitOnceVisitor<>(visitor, nodes.size());
-
-      for (Node<T, V> node : nodes) {
-        if (node.getType() == NodeType.FORMAL_IN) {
-
-          visitor.setFormalInNode(node);
-          traverse(graphNodes, ImmutableList.of(node), visitOnceVisitor, true);
-          visitOnceVisitor.reset();
-
-          for (GraphNode<T, V> actualInGraphNode : getActualInNodes(node)) {
-            for (Node<T, V> formalOutNode : visitor.getDependingFormalOutNodes()) {
-              for (GraphNode<T, V> actualOutGraphNode : getActualOutNodes(formalOutNode)) {
-
-                Node<T, V> actualInNode = actualInGraphNode.getNode();
-                Node<T, V> actualOutNode = actualOutGraphNode.getNode();
-
-                if (contextIds[actualInNode.getId()] == contextIds[actualOutNode.getId()]
-                    && actualInNode.getStatement().equals(actualOutNode.getStatement())) {
-                  insertEdge(
-                      actualInGraphNode,
-                      actualOutGraphNode,
-                      EdgeType.SUMMARY_EDGE,
-                      Optional.empty());
                 }
               }
             }
