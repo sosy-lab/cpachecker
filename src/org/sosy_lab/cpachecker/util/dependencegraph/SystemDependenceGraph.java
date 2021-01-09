@@ -681,46 +681,45 @@ public class SystemDependenceGraph<T, V> {
         BackwardsVisitOnceVisitor<T, V> visitor =
             new BackwardsVisitOnceVisitor<>(this, nodes.size());
 
-        for (Node<T, V> node : getFormalOutNodes(pReachableFrom)) {
+       for (Node<T, V> node : getFormalOutNodes(pReachableFrom)) {
 
-            setCurrentFormalOutNode(node);
+          setCurrentFormalOutNode(node);
+          traverse(graphNodes, ImmutableList.of(node), visitor, false);
+          visitor.reset();
+
+          if (currentRecursive) {
             traverse(graphNodes, ImmutableList.of(node), visitor, false);
             visitor.reset();
+          }
 
-            if (currentRecursive) {
-              traverse(graphNodes, ImmutableList.of(node), visitor, false);
-              visitor.reset();
-            }
+          finishedFormalOutNodes.set(node.getId());
 
-            finishedFormalOutNodes.set(node.getId());
+          GraphNode<T, V> fornalOutGraphNode = graphNodes.get(node.getId());
+          for (GraphEdge<T, V> outEdge : fornalOutGraphNode.getLeavingEdges()) {
+            if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
 
-            GraphNode<T, V> fornalOutGraphNode = graphNodes.get(node.getId());
-            for (GraphEdge<T, V> outEdge : fornalOutGraphNode.getLeavingEdges()) {
-              if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
+              GraphNode<T, V> actualOutGraphNode = outEdge.getSuccessor();
+              assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
 
-                GraphNode<T, V> actualOutGraphNode = outEdge.getSuccessor();
-                assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
+              for (Node<T, V> formalInNode : currentRelevantFormalInNodes) {
 
-                for (Node<T, V> formalInNode : currentRelevantFormalInNodes) {
+                NodeMapKey<T, V> actualInNodeKey =
+                    new NodeMapKey<>(
+                        NodeType.ACTUAL_IN,
+                        actualOutGraphNode.getNode().getStatement(),
+                        formalInNode.getVariable());
+                GraphNode<T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
 
-                  NodeMapKey<T, V> actualInNodeKey =
-                      new NodeMapKey<>(
-                          NodeType.ACTUAL_IN,
-                          actualOutGraphNode.getNode().getStatement(),
-                          formalInNode.getVariable());
-                  GraphNode<T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
-
-                  if (actualInGraphNode != null) {
-                    insertEdge(
-                        actualInGraphNode,
-                        actualOutGraphNode,
-                        EdgeType.SUMMARY_EDGE,
-                        Optional.empty());
-                  }
+                if (actualInGraphNode != null) {
+                  insertEdge(
+                      actualInGraphNode,
+                      actualOutGraphNode,
+                      EdgeType.SUMMARY_EDGE,
+                      Optional.empty());
                 }
               }
             }
-          
+          }
         }
       }
     }
