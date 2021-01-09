@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -559,10 +560,11 @@ public class SystemDependenceGraph<T, V> {
       return contextIds;
     }
 
-    public <C> void insertSummaryEdges(Function<T, C> pContextFunction) {
+    public <C> void insertSummaryEdges(
+        Function<T, C> pContextFunction, Collection<T> pReachableFrom) {
 
       int[] contextIds = getContextIds(pContextFunction);
-      new SummaryEdgeBuilder(contextIds).run();
+      new SummaryEdgeBuilder(contextIds).run(pReachableFrom);
     }
 
     private final class SummaryEdgeBuilder implements BackwardsVisitor<T, V> {
@@ -629,13 +631,57 @@ public class SystemDependenceGraph<T, V> {
         return VisitResult.CONTINUE;
       }
 
-      private void run() {
+      private List<Node<T, V>> getFormalOutNodes(Collection<T> pReachableFrom) {
+
+        List<Node<T, V>> startNodes = new ArrayList<>();
+        for (T statement : pReachableFrom) {
+
+          NodeMapKey<T, V> key = new NodeMapKey<>(NodeType.STATEMENT, statement, Optional.empty());
+          GraphNode<T, V> graphNode = nodeMap.get(key);
+
+          if (graphNode != null) {
+            startNodes.add(graphNode.getNode());
+          }
+        }
+
+        assert !startNodes.isEmpty();
+
+        List<Node<T, V>> formalOutNodes = new ArrayList<>();
+
+        BackwardsVisitor<T, V> formalOutNodeCollector =
+            new BackwardsVisitor<>() {
+
+              @Override
+              public VisitResult visitNode(Node<T, V> pNode) {
+
+                if (pNode.getType() == NodeType.FORMAL_OUT) {
+                  formalOutNodes.add(pNode);
+                }
+
+                return VisitResult.CONTINUE;
+              }
+
+              @Override
+              public VisitResult visitEdge(
+                  EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+                return VisitResult.CONTINUE;
+              }
+            };
+
+        BackwardsVisitOnceVisitor<T, V> visitOnceVisitor =
+            new BackwardsVisitOnceVisitor<>(formalOutNodeCollector, nodes.size());
+
+        traverse(graphNodes, startNodes, visitOnceVisitor, false);
+
+        return Lists.reverse(formalOutNodes);
+      }
+
+      private void run(Collection<T> pReachableFrom) {
 
         BackwardsVisitOnceVisitor<T, V> visitor =
             new BackwardsVisitOnceVisitor<>(this, nodes.size());
 
-        for (Node<T, V> node : nodes) {
-          if (node.getType() == NodeType.FORMAL_OUT) {
+        for (Node<T, V> node : getFormalOutNodes(pReachableFrom)) {
 
             setCurrentFormalOutNode(node);
             traverse(graphNodes, ImmutableList.of(node), visitor, false);
@@ -674,7 +720,7 @@ public class SystemDependenceGraph<T, V> {
                 }
               }
             }
-          }
+          
         }
       }
     }

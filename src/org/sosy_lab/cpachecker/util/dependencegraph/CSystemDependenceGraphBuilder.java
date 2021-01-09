@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Equivalence;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
@@ -57,6 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
@@ -197,6 +200,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
+    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreFunctionCalls().traverse(cfa.getMainFunction(), nodeCollector);
+    List<CFAEdge> mainCfaEdges =
+        FluentIterable.from(nodeCollector.getVisitedNodes())
+            .transformAndConcat(CFAUtils::allLeavingEdges)
+            .toList();
+
     builder.insertSummaryEdges(
         cfaEdge -> {
           CFANode node =
@@ -204,7 +214,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                   ? cfaEdge.getPredecessor()
                   : cfaEdge.getSuccessor();
           return node.getFunction();
-        });
+        },
+        mainCfaEdges);
 
     systemDependenceGraph = builder.build();
     dependenceGraphConstructionTimer.stop();
