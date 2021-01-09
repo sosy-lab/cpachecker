@@ -646,6 +646,8 @@ public class SystemDependenceGraph<T, V> {
               visitor.reset();
             }
 
+            finishedFormalOutNodes.set(node.getId());
+
             GraphNode<T, V> fornalOutGraphNode = graphNodes.get(node.getId());
             for (GraphEdge<T, V> outEdge : fornalOutGraphNode.getLeavingEdges()) {
               if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
