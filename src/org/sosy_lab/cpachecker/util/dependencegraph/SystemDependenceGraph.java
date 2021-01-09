@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -585,20 +584,6 @@ public class SystemDependenceGraph<T, V> {
         currentRecursive = false;
       }
 
-      private Iterable<GraphNode<T, V>> getActualInNodes(Node<T, V> pFormalIn) {
-
-        return FluentIterable.from(graphNodes.get(pFormalIn.getId()).getEnteringEdges())
-            .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
-            .transform(GraphEdge::getPredecessor);
-      }
-
-      private Iterable<GraphNode<T, V>> getActualOutNodes(Node<T, V> pFormalOut) {
-
-        return FluentIterable.from(graphNodes.get(pFormalOut.getId()).getLeavingEdges())
-            .filter(edge -> edge.getType() == EdgeType.PARAMETER_EDGE)
-            .transform(GraphEdge::getSuccessor);
-      }
-
       private void setCurrentFormalOutNode(Node<T, V> pFormalOutNode) {
 
         currentContextId = contextIds[pFormalOutNode.getId()];
@@ -661,15 +646,23 @@ public class SystemDependenceGraph<T, V> {
               visitor.reset();
             }
 
-            for (GraphNode<T, V> actualOutGraphNode : getActualOutNodes(node)) {
-              for (Node<T, V> formalInNode : currentRelevantFormalInNodes) {
-                for (GraphNode<T, V> actualInGraphNode : getActualInNodes(formalInNode)) {
+            GraphNode<T, V> fornalOutGraphNode = graphNodes.get(node.getId());
+            for (GraphEdge<T, V> outEdge : fornalOutGraphNode.getLeavingEdges()) {
+              if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
 
-                  Node<T, V> actualInNode = actualInGraphNode.getNode();
-                  Node<T, V> actualOutNode = actualOutGraphNode.getNode();
+                GraphNode<T, V> actualOutGraphNode = outEdge.getSuccessor();
+                assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
 
-                  if (contextIds[actualInNode.getId()] == contextIds[actualOutNode.getId()]
-                      && actualInNode.getStatement().equals(actualOutNode.getStatement())) {
+                for (Node<T, V> formalInNode : currentRelevantFormalInNodes) {
+
+                  NodeMapKey<T, V> actualInNodeKey =
+                      new NodeMapKey<>(
+                          NodeType.ACTUAL_IN,
+                          actualOutGraphNode.getNode().getStatement(),
+                          formalInNode.getVariable());
+                  GraphNode<T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
+
+                  if (actualInGraphNode != null) {
                     insertEdge(
                         actualInGraphNode,
                         actualOutGraphNode,
