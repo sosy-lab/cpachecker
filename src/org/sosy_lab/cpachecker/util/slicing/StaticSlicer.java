@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -27,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -34,9 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -120,12 +117,13 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       criteriaEdges.addAll(getAbortCallEdges(pCfa));
     }
 
-    SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation> visitor =
+    SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation> phase1Visitor =
         depGraph.createVisitOnceVisitor(
             new SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation>() {
 
               @Override
-              public VisitResult visitNode(Node<CFAEdge, MemoryLocation> pNode) {
+              public SystemDependenceGraph.VisitResult visitNode(
+                  SystemDependenceGraph.Node<CFAEdge, MemoryLocation> pNode) {
 
                 relevantEdges.add(pNode.getStatement());
 
@@ -133,34 +131,63 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
               }
 
               @Override
-              public VisitResult visitEdge(
-                  EdgeType pType,
-                  Node<CFAEdge, MemoryLocation> pPredecessor,
-                  Node<CFAEdge, MemoryLocation> pSuccessor) {
+              public SystemDependenceGraph.VisitResult visitEdge(
+                  SystemDependenceGraph.EdgeType pType,
+                  SystemDependenceGraph.Node<CFAEdge, MemoryLocation> pPredecessor,
+                  SystemDependenceGraph.Node<CFAEdge, MemoryLocation> pSuccessor) {
+
+                if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT
+                    || pPredecessor.getStatement() instanceof CFunctionReturnEdge) {
+                  return SystemDependenceGraph.VisitResult.SKIP;
+                }
+
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
+            });
+
+    SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation> phase2Visitor =
+        depGraph.createVisitOnceVisitor(
+            new SystemDependenceGraph.BackwardsVisitor<CFAEdge, MemoryLocation>() {
+
+              @Override
+              public SystemDependenceGraph.VisitResult visitNode(
+                  SystemDependenceGraph.Node<CFAEdge, MemoryLocation> pNode) {
+
+                relevantEdges.add(pNode.getStatement());
+
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
+
+              @Override
+              public SystemDependenceGraph.VisitResult visitEdge(
+                  SystemDependenceGraph.EdgeType pType,
+                  SystemDependenceGraph.Node<CFAEdge, MemoryLocation> pPredecessor,
+                  SystemDependenceGraph.Node<CFAEdge, MemoryLocation> pSuccessor) {
+
+                if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
+                    || pSuccessor.getStatement() instanceof CFunctionCallEdge) {
+                  return SystemDependenceGraph.VisitResult.SKIP;
+                }
+
                 return SystemDependenceGraph.VisitResult.CONTINUE;
               }
             });
 
     try {
-      // Heuristic: Reverse to make states that are deeper in the path first - these
-      // have a higher chance of including earlier states in their dependences
-      ImmutableList<CFAEdge> sortedCriteriaEdges =
-          ImmutableList.sortedCopyOf(
-              Comparator.comparingInt(edge -> edge.getPredecessor().getReversePostorderId()),
-              criteriaEdges);
 
-      for (CFAEdge g : sortedCriteriaEdges) {
-        if (relevantEdges.contains(g)) {
-          // If the relevant edges contain g, then all dependences of g are also already included
-          // and we can skip it (this is only true as long as no function call/return edge is a
-          // criterion!)
-          continue;
-        } else {
-          realSlices++;
-        }
-
-        depGraph.traverse(depGraph.getNodesForStatement(g), visitor);
+      Set<SystemDependenceGraph.Node<CFAEdge, MemoryLocation>> startNodes = new HashSet<>();
+      for (CFAEdge criteriaEdge : criteriaEdges) {
+        startNodes.addAll(depGraph.getNodesForStatement(criteriaEdge));
       }
+
+      depGraph.traverse(startNodes, phase1Visitor);
+
+      startNodes.clear();
+      for (CFAEdge criteriaEdge : relevantEdges) {
+        startNodes.addAll(depGraph.getNodesForStatement(criteriaEdge));
+      }
+
+      depGraph.traverse(startNodes, phase2Visitor);
 
       final Slice slice =
           new StaticSlicerSlice(
