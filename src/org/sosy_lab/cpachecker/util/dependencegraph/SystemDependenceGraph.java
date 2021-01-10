@@ -732,8 +732,6 @@ public class SystemDependenceGraph<P, T, V> {
           }
         }
 
-        assert !startNodes.isEmpty();
-
         List<Node<P, T, V>> formalOutNodes = new ArrayList<>();
 
         ForwardsVisitor<P, T, V> formalOutNodeCollector =
