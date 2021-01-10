@@ -32,6 +32,59 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.Pair;
 
+/**
+ *
+ *
+ * <table>
+ *   <tr>
+ *     <td></td><td>Procedure (P)</td><td>Statement (T)</td><td>Variable (V)</td>
+ *   </tr>
+ *   <tr>
+ *     <td>NodeType.STATEMENT</td><td>optional (*)</td><td>required</td><td>empty</td>
+ *   </tr>
+ *   <tr>
+ *     <td>NodeType.FORMAL_IN</td><td>required</td><td>empty</td><td>required (***)</td>
+ *   </tr>
+ *   <tr>
+ *     <td>NodeType.FORMAL_OUT</td><td>required</td><td>empty</td><td>required (***)</td>
+ *   </tr>
+ *   <tr>
+ *     <td>NodeType.ACTUAL_IN</td><td>required</td><td>required (**)</td><td>required (***)</td>
+ *   </tr>
+ *   <tr>
+ *     <td>NodeType.ACTUAL_OUT</td><td>required</td><td>required (**)</td><td>required (***)</td>
+ *   </tr>
+ * </table>
+ *
+ * <p>(*) If the dependence graph only contains statements from a single procedure, the procedure
+ * can be omitted. Otherwise, the procedure is required.
+ *
+ * <p>(**) All actual-in and actual-out statements of a specific call site must be equal to each
+ * other.
+ *
+ * <p>(***) The variable of an actual-in/out node must be equal to the variable of the corresponding
+ * formal-in/out node.
+ *
+ * <p>
+ *
+ * <table>
+ *   <tr>
+ *     <td></td><td>Predecessor</td><td>Successor</td><td>Procedure</td>
+ *   </tr>
+ *   <tr>
+ *     <td>EdgeType.FLOW_DEPENDENCY</td><td>any node</td><td>any node</td><td>intra-procedural</td>
+ *   </tr>
+ *   <tr>
+ *     <td>EdgeType.CONTROL_DEPENDENCY</td><td>any node</td><td>any node</td><td>inter/intra-procedural</td>
+ *   </tr>
+ *   <tr>
+ *     <td>EdgeType.PARAMETER_EDGE</td><td>(A) actual-in or (B) formal-out</td><td>(A) formal-in or (B) actual-out</td><td>inter-procedural</td>
+ *   </tr>
+ *   <tr>
+ *     <td>EdgeType.SUMMARY_EDGE</td><td>actual-in</td><td>actual-out</td><td>inter/intra-procedural</td>
+ *   </tr>
+ * </table>
+ */
 public class SystemDependenceGraph<P, T, V> {
 
   private static final int UNDEFINED_ID = -1;
