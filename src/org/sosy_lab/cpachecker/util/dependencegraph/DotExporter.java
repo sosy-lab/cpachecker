@@ -198,12 +198,14 @@ abstract class DotExporter<P, T, V> {
 
       for (Node<P, T, V> node : procedureNodes.get(procedure)) {
         String color = isHighlighted(node) ? ",color=red" : "";
+        String style = getNodeStyle(node);
         pWriter.write(
             String.format(
                 Locale.ENGLISH,
-                "%s [%s,label=\"%s\"%s]%n",
+                "%s [%s%slabel=\"%s\"%s]%n",
                 nodeId(visitedNodes, node),
-                getNodeStyle(node),
+                style,
+                style.trim().isEmpty() ? "" : ",",
                 escape(getNodeLabel(node)),
                 color));
       }

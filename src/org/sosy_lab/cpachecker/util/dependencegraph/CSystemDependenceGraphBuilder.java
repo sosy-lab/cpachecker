@@ -653,13 +653,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       if (optCfaEdge.isPresent()) {
         CFAEdge cfaEdge = optCfaEdge.orElseThrow();
-      sb.append(cfaEdge.getPredecessor());
-      sb.append(" ---> ");
-      sb.append(cfaEdge.getSuccessor());
-      sb.append(", ");
-      sb.append(cfaEdge.getFileLocation());
-      sb.append(":\\n");
-      sb.append(cfaEdge.getDescription());
+        sb.append(cfaEdge.getPredecessor());
+        sb.append(" ---> ");
+        sb.append(cfaEdge.getSuccessor());
+        sb.append(", ");
+        sb.append(cfaEdge.getFileLocation());
+        sb.append(":\\n");
+        sb.append(cfaEdge.getDescription());
       }
 
       return sb.toString();
