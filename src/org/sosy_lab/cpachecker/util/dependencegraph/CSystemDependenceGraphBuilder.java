@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
@@ -204,9 +205,12 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverse(cfa.getMainFunction(), nodeCollector);
-    List<CFAEdge> mainCfaEdges =
+    List<Pair<AFunctionDeclaration, CFAEdge>> mainCfaEdges =
         FluentIterable.from(nodeCollector.getVisitedNodes())
             .transformAndConcat(CFAUtils::allLeavingEdges)
+            // FIXME: don't use Pair
+            .<Pair<AFunctionDeclaration, CFAEdge>>transform(
+                edge -> Pair.of(cfa.getMainFunction().getFunction(), edge))
             .toList();
 
     builder.insertSummaryEdges(mainCfaEdges);

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class SystemDependenceGraph<P, T, V> {
 
@@ -588,7 +589,8 @@ public class SystemDependenceGraph<P, T, V> {
       return contextIds;
     }
 
-    public void insertSummaryEdges(Collection<T> pReachableFrom) {
+    // FIXME: don't use Pair
+    public void insertSummaryEdges(Collection<Pair<P, T>> pReachableFrom) {
 
       int[] contextIds = getContextIds();
       new SummaryEdgeBuilder(contextIds).run(pReachableFrom);
@@ -659,15 +661,17 @@ public class SystemDependenceGraph<P, T, V> {
         return VisitResult.CONTINUE;
       }
 
-      private List<Node<P, T, V>> getFormalOutNodes(Collection<T> pReachableFrom) {
+      private List<Node<P, T, V>> getFormalOutNodes(Collection<Pair<P, T>> pReachableFrom) {
 
         List<Node<P, T, V>> startNodes = new ArrayList<>();
-        for (T statement : pReachableFrom) {
+        for (Pair<P, T> pair : pReachableFrom) {
 
-          // FIXME: missing procedure
           NodeMapKey<P, T, V> key =
               new NodeMapKey<>(
-                  NodeType.STATEMENT, Optional.empty(), Optional.of(statement), Optional.empty());
+                  NodeType.STATEMENT,
+                  Optional.of(pair.getFirst()),
+                  Optional.of(pair.getSecond()),
+                  Optional.empty());
           GraphNode<P, T, V> graphNode = nodeMap.get(key);
 
           if (graphNode != null) {
@@ -707,7 +711,7 @@ public class SystemDependenceGraph<P, T, V> {
         return Lists.reverse(formalOutNodes);
       }
 
-      private void run(Collection<T> pReachableFrom) {
+      private void run(Collection<Pair<P, T>> pReachableFrom) {
 
         BackwardsVisitOnceVisitor<P, T, V> visitor =
             new BackwardsVisitOnceVisitor<>(this, nodes.size());
@@ -725,8 +729,8 @@ public class SystemDependenceGraph<P, T, V> {
 
           finishedFormalOutNodes.set(node.getId());
 
-          GraphNode<P, T, V> fornalOutGraphNode = graphNodes.get(node.getId());
-          for (GraphEdge<P, T, V> outEdge : fornalOutGraphNode.getLeavingEdges()) {
+          GraphNode<P, T, V> formalOutGraphNode = graphNodes.get(node.getId());
+          for (GraphEdge<P, T, V> outEdge : formalOutGraphNode.getLeavingEdges()) {
             if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
 
               GraphNode<P, T, V> actualOutGraphNode = outEdge.getSuccessor();
@@ -737,7 +741,7 @@ public class SystemDependenceGraph<P, T, V> {
                 NodeMapKey<P, T, V> actualInNodeKey =
                     new NodeMapKey<>(
                         NodeType.ACTUAL_IN,
-                        fornalOutGraphNode.getNode().getProcedure(),
+                        actualOutGraphNode.getNode().getProcedure(),
                         actualOutGraphNode.getNode().getStatement(),
                         formalInNode.getVariable());
                 GraphNode<P, T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
