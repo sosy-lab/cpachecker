@@ -880,11 +880,6 @@ public class SystemDependenceGraph<P, T, V> {
     }
   }
 
-  public enum Direction {
-    FORWARDS,
-    BACKWARDS;
-  }
-
   public enum VisitResult {
     CONTINUE,
     TERMINATE,
