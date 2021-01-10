@@ -14,6 +14,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -129,7 +130,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                       SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
                           pNode) {
 
-                    relevantEdges.add(pNode.getStatement().orElseThrow());
+                    Optional<CFAEdge> optCfaEdge = pNode.getStatement();
+                    if (optCfaEdge.isPresent()) {
+                      relevantEdges.add(optCfaEdge.orElseThrow());
+                    }
 
                     return SystemDependenceGraph.VisitResult.CONTINUE;
                   }
@@ -143,7 +147,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                           pSuccessor) {
 
                     if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT
-                        || pPredecessor.getStatement().orElseThrow()
+                        || pPredecessor.getStatement().orElse(null)
                             instanceof CFunctionReturnEdge) {
                       return SystemDependenceGraph.VisitResult.SKIP;
                     }
@@ -163,7 +167,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                       SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
                           pNode) {
 
-                    relevantEdges.add(pNode.getStatement().orElseThrow());
+                    Optional<CFAEdge> optCfaEdge = pNode.getStatement();
+                    if (optCfaEdge.isPresent()) {
+                      relevantEdges.add(optCfaEdge.orElseThrow());
+                    }
 
                     return SystemDependenceGraph.VisitResult.CONTINUE;
                   }
@@ -177,7 +184,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                           pSuccessor) {
 
                     if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-                        || pSuccessor.getStatement().orElseThrow() instanceof CFunctionCallEdge) {
+                        || pSuccessor.getStatement().orElse(null) instanceof CFunctionCallEdge) {
                       return SystemDependenceGraph.VisitResult.SKIP;
                     }
 
