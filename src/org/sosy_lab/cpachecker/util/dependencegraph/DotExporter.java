@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
-abstract class DotExporter<T, V, C> {
+abstract class DotExporter<P, T, V, C> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles =
       ImmutableMap.of(
@@ -51,24 +51,24 @@ abstract class DotExporter<T, V, C> {
           EdgeType.SUMMARY_EDGE,
           "Summary Edge");
 
-  protected abstract C getContext(Node<T, V> pNode);
+  protected abstract C getContext(Node<P, T, V> pNode);
 
   protected abstract String getContextLabel(C pContext);
 
-  protected abstract String getNodeStyle(Node<T, V> pNode);
+  protected abstract String getNodeStyle(Node<P, T, V> pNode);
 
-  protected abstract String getNodeLabel(Node<T, V> pNode);
+  protected abstract String getNodeLabel(Node<P, T, V> pNode);
 
-  protected abstract boolean isHighlighted(Node<T, V> pNode);
+  protected abstract boolean isHighlighted(Node<P, T, V> pNode);
 
   protected abstract boolean isHighlighted(
-      EdgeType pEdgeType, Node<T, V> pPredecessor, Node<T, V> pSuccessor);
+      EdgeType pEdgeType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
 
   private String escape(String pLabel) {
     return pLabel.replaceAll("\\\"", "\\\\\"");
   }
 
-  private String nodeId(Map<Node<T, V>, Long> pVisitedNodes, Node<T, V> pNode) {
+  private String nodeId(Map<Node<P, T, V>, Long> pVisitedNodes, Node<P, T, V> pNode) {
     return "n" + pVisitedNodes.get(pNode);
   }
 
@@ -116,27 +116,27 @@ abstract class DotExporter<T, V, C> {
   }
 
   private void writeEdges(
-      Writer pWriter, SystemDependenceGraph<T, V> pSdg, Map<Node<T, V>, Long> pVisitedNodes)
+      Writer pWriter, SystemDependenceGraph<P, T, V> pSdg, Map<Node<P, T, V>, Long> pVisitedNodes)
       throws IOException {
 
     StringBuilder sb = new StringBuilder();
 
-    for (Node<T, V> node : pSdg.getNodes()) {
+    for (Node<P, T, V> node : pSdg.getNodes()) {
 
       sb.setLength(0);
 
       pSdg.traverse(
           ImmutableSet.of(node),
-          new SystemDependenceGraph.ForwardsVisitor<T, V>() {
+          new SystemDependenceGraph.ForwardsVisitor<P, T, V>() {
 
             @Override
-            public VisitResult visitNode(Node<T, V> pNode) {
+            public VisitResult visitNode(Node<P, T, V> pNode) {
               return VisitResult.CONTINUE;
             }
 
             @Override
             public VisitResult visitEdge(
-                EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+                EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
 
               sb.append(
                   String.format(
@@ -157,23 +157,23 @@ abstract class DotExporter<T, V, C> {
     }
   }
 
-  private void write(Writer pWriter, SystemDependenceGraph<T, V> pSdg) throws IOException {
+  private void write(Writer pWriter, SystemDependenceGraph<P, T, V> pSdg) throws IOException {
 
     pWriter.write("digraph SystemDependenceGraph {\n");
     pWriter.write("rankdir=LR;\n");
 
     writeLegend(pWriter);
 
-    Map<Node<T, V>, Long> visitedNodes = new HashMap<>();
-    Multimap<C, Node<T, V>> contexts = ArrayListMultimap.create();
+    Map<Node<P, T, V>, Long> visitedNodes = new HashMap<>();
+    Multimap<C, Node<P, T, V>> contexts = ArrayListMultimap.create();
     StatCounter counter = new StatCounter("Node Counter");
 
     pSdg.traverse(
         pSdg.getNodes(),
-        new SystemDependenceGraph.ForwardsVisitor<T, V>() {
+        new SystemDependenceGraph.ForwardsVisitor<P, T, V>() {
 
           @Override
-          public VisitResult visitNode(Node<T, V> pNode) {
+          public VisitResult visitNode(Node<P, T, V> pNode) {
 
             visitedNodes.put(pNode, counter.getValue());
             counter.inc();
@@ -184,7 +184,7 @@ abstract class DotExporter<T, V, C> {
 
           @Override
           public VisitResult visitEdge(
-              EdgeType pType, Node<T, V> pPredecessor, Node<T, V> pSuccessor) {
+              EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
             return VisitResult.SKIP;
           }
         });
@@ -196,7 +196,7 @@ abstract class DotExporter<T, V, C> {
       pWriter.write(
           String.format(Locale.ENGLISH, "label=\"%s\";%n", escape(getContextLabel(cluster))));
 
-      for (Node<T, V> node : contexts.get(cluster)) {
+      for (Node<P, T, V> node : contexts.get(cluster)) {
         String color = isHighlighted(node) ? ",color=red" : "";
         pWriter.write(
             String.format(
@@ -216,7 +216,7 @@ abstract class DotExporter<T, V, C> {
     pWriter.write("\n}\n");
   }
 
-  void export(SystemDependenceGraph<T, V> pSdg, Path pPath, LogManager pLogger) {
+  void export(SystemDependenceGraph<P, T, V> pSdg, Path pPath, LogManager pLogger) {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       write(writer, pSdg);
