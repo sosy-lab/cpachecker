@@ -385,7 +385,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
               // actual-in --> formal-in
               builder
-                  .node(NodeType.FORMAL_IN, useFunction, useEdge, Optional.of(pCause))
+                  .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
                   .depends(EdgeType.PARAMETER_EDGE, Optional.of(pCause))
                   .on(NodeType.ACTUAL_IN, defFunction, defEdge, Optional.of(pCause));
 
@@ -396,7 +396,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               builder
                   .node(NodeType.ACTUAL_OUT, useFunction, useEdge, Optional.of(pCause))
                   .depends(EdgeType.PARAMETER_EDGE, Optional.of(pCause))
-                  .on(NodeType.FORMAL_OUT, defFunction, defEdge, Optional.of(pCause));
+                  .on(NodeType.FORMAL_OUT, defFunction, Optional.empty(), Optional.of(pCause));
 
             } else {
 
@@ -404,9 +404,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               Optional<MemoryLocation> defNodeVariable = Optional.empty();
 
               if (pDefEdge instanceof CFunctionCallEdge) {
+                defEdge = Optional.empty();
                 defNodeType = NodeType.FORMAL_IN;
                 defNodeVariable = Optional.of(pCause);
               } else if (pDefEdge instanceof CFunctionReturnEdge) {
+                defEdge = Optional.empty();
                 defNodeType = NodeType.FORMAL_OUT;
                 defNodeVariable = Optional.of(pCause);
               } else if (pDefEdge instanceof CFunctionSummaryEdge) {
@@ -435,13 +437,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
               if (pUseEdge instanceof CFunctionCallEdge) {
                 builder
-                    .node(NodeType.FORMAL_IN, useFunction, useEdge, Optional.of(pCause))
+                    .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
                     .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
                 flowDepCounter.inc();
               } else if (pUseEdge instanceof CFunctionReturnEdge) {
                 builder
-                    .node(NodeType.FORMAL_OUT, useFunction, useEdge, Optional.of(pCause))
+                    .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
                     .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
                 flowDepCounter.inc();
