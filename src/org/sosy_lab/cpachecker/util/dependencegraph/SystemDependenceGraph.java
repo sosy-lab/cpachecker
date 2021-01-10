@@ -648,8 +648,8 @@ public class SystemDependenceGraph<T, V> {
 
         List<Node<T, V>> formalOutNodes = new ArrayList<>();
 
-        BackwardsVisitor<T, V> formalOutNodeCollector =
-            new BackwardsVisitor<>() {
+        ForwardsVisitor<T, V> formalOutNodeCollector =
+            new ForwardsVisitor<>() {
 
               @Override
               public VisitResult visitNode(Node<T, V> pNode) {
@@ -668,10 +668,10 @@ public class SystemDependenceGraph<T, V> {
               }
             };
 
-        BackwardsVisitOnceVisitor<T, V> visitOnceVisitor =
-            new BackwardsVisitOnceVisitor<>(formalOutNodeCollector, nodes.size());
+        ForwardsVisitOnceVisitor<T, V> visitOnceVisitor =
+            new ForwardsVisitOnceVisitor<>(formalOutNodeCollector, nodes.size());
 
-        traverse(graphNodes, startNodes, visitOnceVisitor, false);
+        traverse(graphNodes, startNodes, visitOnceVisitor, true);
 
         return Lists.reverse(formalOutNodes);
       }
