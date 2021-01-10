@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -610,39 +609,32 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   private static final class CDotExporter
-      extends DotExporter<AFunctionDeclaration, CFAEdge, MemoryLocation, AFunctionDeclaration> {
+      extends DotExporter<AFunctionDeclaration, CFAEdge, MemoryLocation> {
 
     @Override
-    protected AFunctionDeclaration getContext(
-        Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
-
-      CFAEdge cfaEdge = pNode.getStatement().orElseThrow();
-      CFANode cfaFunctionNode =
-          cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-              ? cfaEdge.getSuccessor()
-              : cfaEdge.getPredecessor();
-
-      return cfaFunctionNode.getFunction();
-    }
-
-    @Override
-    protected String getContextLabel(AFunctionDeclaration pContext) {
+    protected String getProcedureLabel(AFunctionDeclaration pContext) {
       return pContext.toString();
     }
 
     @Override
     protected String getNodeStyle(Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
 
-      switch (pNode.getStatement().orElseThrow().getEdgeType()) {
-        case AssumeEdge:
-          return "shape=\"diamond\"";
-        case FunctionCallEdge:
-          return "shape=\"ellipse\", peripheries=\"2\"";
-        case BlankEdge:
-          return "shape=\"box\"";
-        default:
-          return "shape=\"ellipse\"";
+      Optional<CFAEdge> optCfaEdge = pNode.getStatement();
+
+      if (optCfaEdge.isPresent()) {
+        switch (optCfaEdge.orElseThrow().getEdgeType()) {
+          case AssumeEdge:
+            return "shape=\"diamond\"";
+          case FunctionCallEdge:
+            return "shape=\"ellipse\", peripheries=\"2\"";
+          case BlankEdge:
+            return "shape=\"box\"";
+          default:
+            return "shape=\"ellipse\"";
+        }
       }
+
+      return "";
     }
 
     @Override
@@ -657,7 +649,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         sb.append("\\n");
       }
 
-      CFAEdge cfaEdge = pNode.getStatement().orElseThrow();
+      Optional<CFAEdge> optCfaEdge = pNode.getStatement();
+
+      if (optCfaEdge.isPresent()) {
+        CFAEdge cfaEdge = optCfaEdge.orElseThrow();
       sb.append(cfaEdge.getPredecessor());
       sb.append(" ---> ");
       sb.append(cfaEdge.getSuccessor());
@@ -665,6 +660,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       sb.append(cfaEdge.getFileLocation());
       sb.append(":\\n");
       sb.append(cfaEdge.getDescription());
+      }
 
       return sb.toString();
     }

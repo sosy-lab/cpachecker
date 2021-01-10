@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
@@ -28,7 +29,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
-abstract class DotExporter<P, T, V, C> {
+abstract class DotExporter<P, T, V> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles =
       ImmutableMap.of(
@@ -51,9 +52,7 @@ abstract class DotExporter<P, T, V, C> {
           EdgeType.SUMMARY_EDGE,
           "Summary Edge");
 
-  protected abstract C getContext(Node<P, T, V> pNode);
-
-  protected abstract String getContextLabel(C pContext);
+  protected abstract String getProcedureLabel(P pProcedure);
 
   protected abstract String getNodeStyle(Node<P, T, V> pNode);
 
@@ -165,7 +164,7 @@ abstract class DotExporter<P, T, V, C> {
     writeLegend(pWriter);
 
     Map<Node<P, T, V>, Long> visitedNodes = new HashMap<>();
-    Multimap<C, Node<P, T, V>> contexts = ArrayListMultimap.create();
+    Multimap<Optional<P>, Node<P, T, V>> procedureNodes = ArrayListMultimap.create();
     StatCounter counter = new StatCounter("Node Counter");
 
     pSdg.traverse(
@@ -177,7 +176,7 @@ abstract class DotExporter<P, T, V, C> {
 
             visitedNodes.put(pNode, counter.getValue());
             counter.inc();
-            contexts.put(getContext(pNode), pNode);
+            procedureNodes.put(pNode.getProcedure(), pNode);
 
             return VisitResult.SKIP;
           }
@@ -189,14 +188,15 @@ abstract class DotExporter<P, T, V, C> {
           }
         });
 
-    for (C cluster : contexts.keySet()) {
+    for (Optional<P> procedure : procedureNodes.keySet()) {
 
       pWriter.write(String.format(Locale.ENGLISH, "subgraph cluster_f%d {%n", counter.getValue()));
       counter.inc();
-      pWriter.write(
-          String.format(Locale.ENGLISH, "label=\"%s\";%n", escape(getContextLabel(cluster))));
+      String procedureLabel =
+          procedure.isPresent() ? getProcedureLabel(procedure.orElseThrow()) : "";
+      pWriter.write(String.format(Locale.ENGLISH, "label=\"%s\";%n", escape(procedureLabel)));
 
-      for (Node<P, T, V> node : contexts.get(cluster)) {
+      for (Node<P, T, V> node : procedureNodes.get(procedure)) {
         String color = isHighlighted(node) ? ",color=red" : "";
         pWriter.write(
             String.format(
