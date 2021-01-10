@@ -874,6 +874,7 @@ public class SystemDependenceGraph<P, T, V> {
           "%s[type=%s, procedure=%s, statement=%s, variable=%s]",
           getClass().getName(),
           type,
+          procedure,
           statement,
           variable);
     }
