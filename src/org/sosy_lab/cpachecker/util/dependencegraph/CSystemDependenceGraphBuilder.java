@@ -395,20 +395,40 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
             if (pDefEdge instanceof CFunctionSummaryEdge && pUseEdge instanceof CFunctionCallEdge) {
 
-              // actual-in --> formal-in
+              Optional<AFunctionDeclaration> callerFunction = defFunction;
+              Optional<CFAEdge> summaryEdge = defEdge;
+              Optional<AFunctionDeclaration> calleeFunction = useFunction;
+
+              // actual-in ----(PARAMETER_EDGE)---> formal-in
               builder
-                  .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
+                  .node(NodeType.FORMAL_IN, calleeFunction, Optional.empty(), Optional.of(pCause))
                   .depends(EdgeType.PARAMETER_EDGE, Optional.of(pCause))
-                  .on(NodeType.ACTUAL_IN, defFunction, defEdge, Optional.of(pCause));
+                  .on(NodeType.ACTUAL_IN, callerFunction, summaryEdge, Optional.of(pCause));
+
+              // summary edge ----(CONTROL_DEPENDENCY)---> actual-in
+              builder
+                  .node(NodeType.ACTUAL_IN, callerFunction, summaryEdge, Optional.of(pCause))
+                  .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+                  .on(NodeType.STATEMENT, callerFunction, summaryEdge, Optional.empty());
 
             } else if (pDefEdge instanceof CFunctionReturnEdge
                 && pUseEdge instanceof CFunctionSummaryEdge) {
 
-              // formal-out --> actual-out
+              Optional<AFunctionDeclaration> callerFunction = useFunction;
+              Optional<CFAEdge> summaryEdge = useEdge;
+              Optional<AFunctionDeclaration> calleeFunction = defFunction;
+
+              // formal-out ----(PARAMETER_EDGE)---> actual-out
               builder
-                  .node(NodeType.ACTUAL_OUT, useFunction, useEdge, Optional.of(pCause))
+                  .node(NodeType.ACTUAL_OUT, callerFunction, summaryEdge, Optional.of(pCause))
                   .depends(EdgeType.PARAMETER_EDGE, Optional.of(pCause))
-                  .on(NodeType.FORMAL_OUT, defFunction, Optional.empty(), Optional.of(pCause));
+                  .on(NodeType.FORMAL_OUT, calleeFunction, Optional.empty(), Optional.of(pCause));
+
+              // summary edge ----(CONTROL_DEPENDENCY)---> actual-in
+              builder
+                  .node(NodeType.ACTUAL_OUT, callerFunction, summaryEdge, Optional.of(pCause))
+                  .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+                  .on(NodeType.STATEMENT, callerFunction, summaryEdge, Optional.empty());
 
             } else {
 
