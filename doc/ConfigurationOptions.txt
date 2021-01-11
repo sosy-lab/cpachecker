@@ -3316,6 +3316,14 @@ dependencegraph.flowdeps.use = true
 # milliseconds.
 dependencegraph.pointerAnalysisTimeout = 30_000
 
+# The computation methods used for the pointer analysis. All specified
+# methods are run in parallel. If the first computation method is able to
+# create a pointer state in time (see pointerAnalysisTimeout), this pointer
+# state is used and all other computations are canceled. Otherwise, all
+# results of the following computation methods are checked in the specified
+# order and the first valid pointer state is chosen.
+dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
+
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
 differential.ignoreDeclarations = false

@@ -140,6 +140,19 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       description = "The maximum duration the pointer analysis is allowed to run in milliseconds.")
   private int pointerAnalysisTimeout = 30_000;
 
+  @Option(
+      secure = true,
+      name = "pointerStateComputationMethods",
+      description =
+          "The computation methods used for the pointer analysis. All specified methods are run in"
+              + " parallel. If the first computation method is able to create a pointer state in"
+              + " time (see pointerAnalysisTimeout), this pointer state is used and all other"
+              + " computations are canceled. Otherwise, all results of the following computation"
+              + " methods are checked in the specified order and the first valid pointer state is"
+              + " chosen.")
+  private List<PointerStateComputationMethod> pointerStateComputationMethods =
+      ImmutableList.of(PointerStateComputationMethod.FLOW_SENSITIVE);
+
   private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, MemoryLocation>
       builder;
   private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation>
@@ -355,36 +368,51 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     GlobalPointerState pointerState = null;
     if (considerPointees) {
 
-      ExecutorService executorService = Executors.newFixedThreadPool(2);
-      Future<GlobalPointerState> flowSensitiveStatefuture =
-          executorService.submit(
-              () -> GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier));
-      Future<GlobalPointerState> flowInsensitiveStatefuture =
-          executorService.submit(() -> GlobalPointerState.createFlowInsensitive(cfa));
+      if (!pointerStateComputationMethods.isEmpty()) {
 
-      try {
-        try {
-          pointerState =
-              flowSensitiveStatefuture.get(pointerAnalysisTimeout, TimeUnit.MILLISECONDS);
-          flowInsensitiveStatefuture.cancel(true);
-        } catch (TimeoutException ex) {
-          logger.logUserException(
-              Level.INFO, ex, "FlowSensitiveGlobalPointerState computation timeout");
-        }
+        ExecutorService executorService =
+            Executors.newFixedThreadPool(pointerStateComputationMethods.size());
+        List<Future<GlobalPointerState>> futures = new ArrayList<>();
 
-        if (pointerState == null) {
-          try {
-            pointerState = flowInsensitiveStatefuture.get(0, TimeUnit.MILLISECONDS);
-          } catch (TimeoutException ex) {
-            logger.logUserException(
-                Level.INFO, ex, "FlowInsensitiveGlobalPointerState computation timeout");
+        for (PointerStateComputationMethod method : pointerStateComputationMethods) {
+          if (method == PointerStateComputationMethod.FLOW_SENSITIVE) {
+            futures.add(
+                executorService.submit(
+                    () -> GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier)));
+          } else if (method == PointerStateComputationMethod.FLOW_INSENSITIVE) {
+            futures.add(
+                executorService.submit(() -> GlobalPointerState.createFlowInsensitive(cfa)));
+          } else {
+            throw new AssertionError("Invalid PointerStateComputationMethod: " + method);
           }
         }
 
-      } catch (ExecutionException ex) {
-        logger.logUserException(Level.WARNING, ex, "GlobalPointerState computation failed");
-      } finally {
-        executorService.shutdownNow();
+        try {
+
+          for (int i = 0; i < futures.size(); i++) {
+
+            int timeout = i == 0 ? pointerAnalysisTimeout : 0;
+            try {
+              pointerState = futures.get(i).get(timeout, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException ex) {
+              logger.logUserException(
+                  Level.INFO,
+                  ex,
+                  "pointer analysis computation timeout: " + pointerStateComputationMethods.get(i));
+            }
+
+            if (pointerState != null) {
+              for (i = i + 1; i < futures.size(); i++) {
+                futures.get(i).cancel(true);
+              }
+            }
+          }
+
+        } catch (ExecutionException ex) {
+          logger.logUserException(Level.WARNING, ex, "GlobalPointerState computation failed");
+        } finally {
+          executorService.shutdownNow();
+        }
       }
 
       if (pointerState == null) {
@@ -706,6 +734,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             return ""; // empty name for nice output under CFACreator statistics
           }
         });
+  }
+
+  private enum PointerStateComputationMethod {
+    FLOW_SENSITIVE,
+    FLOW_INSENSITIVE;
   }
 
   private static final class CDotExporter
