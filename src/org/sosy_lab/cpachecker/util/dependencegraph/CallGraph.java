@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -101,6 +104,34 @@ final class CallGraph<P> {
 
   public Node<P> getNodeById(int pId) {
     return nodes.get(pId);
+  }
+
+  public ImmutableSet<P> getRecursiveProcedures() {
+
+    Deque<Node<P>> waitlist = new ArrayDeque<>();
+    Multimap<Node<P>, Node<P>> callers = HashMultimap.create();
+
+    waitlist.addAll(nodes);
+
+    while (!waitlist.isEmpty()) {
+
+      Node<P> caller = waitlist.remove();
+
+      for (Node<P> callee : caller.getSuccessors()) {
+        if (callers.put(callee, caller)) {
+          waitlist.add(callee);
+        }
+      }
+    }
+
+    Set<P> recursiveProcedures = new HashSet<>();
+    for (Node<P> node : nodes) {
+      if (callers.containsEntry(node, node)) {
+        recursiveProcedures.add(node.getProcedure());
+      }
+    }
+
+    return ImmutableSet.copyOf(recursiveProcedures);
   }
 
   @Override
