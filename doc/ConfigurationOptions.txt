@@ -3312,6 +3312,10 @@ dependencegraph.exportDot = "DependenceGraph.dot"
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
 
+# The maximum duration the pointer analysis is allowed to run in
+# milliseconds.
+dependencegraph.pointerAnalysisTimeout = 30_000
+
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
 differential.ignoreDeclarations = false

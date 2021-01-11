@@ -22,6 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -55,7 +62,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
@@ -127,10 +133,17 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               + " where pointers are involved in.")
   private boolean considerPointees = true;
 
+  @Option(
+      secure = true,
+      name = "pointerAnalysisTimeout",
+      description = "The maximum duration the pointer analysis is allowed to run in milliseconds.")
+  private int pointerAnalysisTimeout = 30_000;
+
   private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, MemoryLocation>
       builder;
   private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation>
       systemDependenceGraph;
+  private String usedGlobalPointerState = "none";
 
   public CSystemDependenceGraphBuilder(
       final CFA pCfa,
@@ -175,7 +188,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   public SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> build()
-      throws InterruptedException, CPAException {
+      throws InterruptedException {
 
     dependenceGraphConstructionTimer.start();
 
@@ -334,13 +347,55 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return Optional.of(node.getFunction());
   }
 
-  private void addFlowDependecies() throws InterruptedException, CPAException {
+  private GlobalPointerState createGlobalPointerState() throws InterruptedException {
 
-    GlobalPointerState pointerState;
+    GlobalPointerState pointerState = null;
     if (considerPointees) {
-      pointerState = GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
+
+      ExecutorService executorService = Executors.newSingleThreadExecutor();
+      Future<GlobalPointerState> flowSensitiveStatefuture =
+          executorService.submit(
+              () -> GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier));
+      Future<GlobalPointerState> flowInsensitiveStatefuture =
+          executorService.submit(() -> GlobalPointerState.createFlowInsensitive(cfa));
+
+      try {
+        pointerState = flowSensitiveStatefuture.get(pointerAnalysisTimeout, TimeUnit.MILLISECONDS);
+
+        if (pointerState == null) {
+          pointerState =
+              flowInsensitiveStatefuture.get(pointerAnalysisTimeout, TimeUnit.MILLISECONDS);
+        } else {
+          flowInsensitiveStatefuture.cancel(true);
+        }
+
+      } catch (TimeoutException ex) {
+        flowSensitiveStatefuture.cancel(true);
+        flowInsensitiveStatefuture.cancel(true);
+      } catch (ExecutionException ex) {
+        logger.logUserException(Level.WARNING, ex, "GlobalPointerState computation failed");
+      } finally {
+        executorService.shutdownNow();
+      }
+
+      if (pointerState == null) {
+        pointerState = GlobalPointerState.creatUnknown(cfa);
+      }
+
     } else {
       pointerState = GlobalPointerState.EMPTY;
+    }
+
+    return pointerState;
+  }
+
+  private void addFlowDependecies() throws InterruptedException {
+
+    GlobalPointerState pointerState = createGlobalPointerState();
+    if (pointerState != null) {
+      usedGlobalPointerState = pointerState.getClass().getSimpleName();
+    } else {
+      return;
     }
 
     ForeignDefUseData foreignDefUseData =
@@ -633,6 +688,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               put(pOut, 4, controlDependenceNumber);
               put(pOut, 4, isolatedNodes);
             }
+            put(pOut, 4, "Used GlobalPointerState", usedGlobalPointerState);
           }
 
           @Override
