@@ -76,7 +76,10 @@ import java.util.function.Function;
  *     <td>EdgeType.FLOW_DEPENDENCY</td><td>any node</td><td>any node</td><td>intra-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.CONTROL_DEPENDENCY</td><td>any node</td><td>any node</td><td>inter/intra-procedural</td>
+ *     <td>EdgeType.CONTROL_DEPENDENCY</td><td>any node</td><td>any node</td><td>intra-procedural</td>
+ *   </tr>
+ *   <tr>
+ *     <td>EdgeType.DECLARATION_EDGE</td><td>any node</td><td>any node</td><td>inter/intra-procedural</td>
  *   </tr>
  *   <tr>
  *     <td>EdgeType.PARAMETER_EDGE</td><td>(A) actual-in or (B) formal-out</td><td>(A) formal-in or (B) actual-out</td><td>inter-procedural</td>
@@ -289,6 +292,7 @@ public class SystemDependenceGraph<P, T, V> {
   public enum EdgeType {
     FLOW_DEPENDENCY,
     CONTROL_DEPENDENCY,
+    DECLARATION_EDGE,
     PARAMETER_EDGE,
     SUMMARY_EDGE;
   }
