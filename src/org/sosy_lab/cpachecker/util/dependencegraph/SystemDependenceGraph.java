@@ -92,14 +92,22 @@ public class SystemDependenceGraph<P, T, V> {
 
   private final ImmutableMultimap<T, Node<P, T, V>> nodesPerStatement;
 
+  private final TypeCounter<NodeType> nodeTypeCounter;
+  private final TypeCounter<EdgeType> edgeTypeCounter;
+
   private SystemDependenceGraph(
       ImmutableList<Node<P, T, V>> pNodes,
       ImmutableList<GraphNode<P, T, V>> pGraphNodes,
-      ImmutableMultimap<T, Node<P, T, V>> pNodesPerStatement) {
+      ImmutableMultimap<T, Node<P, T, V>> pNodesPerStatement,
+      TypeCounter<NodeType> pNodeTypeCounter,
+      TypeCounter<EdgeType> pEdgeTypeCounter) {
 
     nodes = pNodes;
     graphNodes = pGraphNodes;
     nodesPerStatement = pNodesPerStatement;
+
+    nodeTypeCounter = pNodeTypeCounter;
+    edgeTypeCounter = pEdgeTypeCounter;
   }
 
   private static <P, T, V> void illegalNode(Node<P, T, V> pNode) {
@@ -178,6 +186,34 @@ public class SystemDependenceGraph<P, T, V> {
 
   public int getNodeCount() {
     return nodes.size();
+  }
+
+  /**
+   * Returns the number of nodes of the specified {@link NodeType} in this system dependence graph.
+   *
+   * @param pType the type to get the node count for.
+   * @return the number of nodes of the specified type in this system dependence graph.
+   * @throws NullPointerException if {@code pType} is {@code null}.
+   */
+  public int getNodeCount(NodeType pType) {
+
+    Objects.requireNonNull(pType, "pType must not be null");
+
+    return nodeTypeCounter.getCount(pType);
+  }
+
+  /**
+   * Returns the number of edges of the specified {@link EdgeType} in this system dependence graph.
+   *
+   * @param pType the type to get the edge count for.
+   * @return the number of edges of the specified type in this system dependence graph.
+   * @throws NullPointerException if {@code pType} is {@code null}.
+   */
+  public int getEdgeCount(EdgeType pType) {
+
+    Objects.requireNonNull(pType, "pType must not be null");
+
+    return edgeTypeCounter.getCount(pType);
   }
 
   public ImmutableCollection<Node<P, T, V>> getNodes() {
@@ -502,12 +538,17 @@ public class SystemDependenceGraph<P, T, V> {
     private final List<GraphNode<P, T, V>> graphNodes;
     private final Map<NodeMapKey<P, T, V>, GraphNode<P, T, V>> nodeMap;
 
+    private final TypeCounter<NodeType> nodeTypeCounter;
+    private final TypeCounter<EdgeType> edgeTypeCounter;
+
     private Builder() {
 
       nodes = new ArrayList<>();
       graphNodes = new ArrayList<>();
-
       nodeMap = new HashMap<>();
+
+      nodeTypeCounter = new TypeCounter<>(NodeType.values().length);
+      edgeTypeCounter = new TypeCounter<>(EdgeType.values().length);
     }
 
     private GraphNode<P, T, V> graphNode(
@@ -519,8 +560,11 @@ public class SystemDependenceGraph<P, T, V> {
       Node<P, T, V> node = graphNode.getNode();
 
       if (node.getId() == nodes.size()) {
+        
         nodes.add(node);
         graphNodes.add(graphNode);
+
+        nodeTypeCounter.increment(pType);
       }
 
       return graphNode;
@@ -542,6 +586,8 @@ public class SystemDependenceGraph<P, T, V> {
         pPredecessor.addDef(variable);
         pSuccessor.addUse(variable);
       }
+
+      edgeTypeCounter.increment(pType);
     }
 
     public int getNodeCount() {
@@ -643,7 +689,9 @@ public class SystemDependenceGraph<P, T, V> {
       return new SystemDependenceGraph<>(
           ImmutableList.copyOf(nodes),
           ImmutableList.copyOf(graphNodes),
-          ImmutableListMultimap.copyOf(nodesPerStatement));
+          ImmutableListMultimap.copyOf(nodesPerStatement),
+          nodeTypeCounter.copy(),
+          edgeTypeCounter.copy());
     }
 
     public final class EdgeChooser {
@@ -752,6 +800,32 @@ public class SystemDependenceGraph<P, T, V> {
           procedure,
           statement,
           variable);
+    }
+  }
+
+  /** Used to count objects of a specific type. Used for {@link NodeType} and {@link EdgeType}. */
+  private static final class TypeCounter<T extends Enum<T>> {
+
+    private final int[] counters;
+
+    private TypeCounter(int[] pCounters) {
+      counters = pCounters;
+    }
+
+    private TypeCounter(int pTypeCount) {
+      this(new int[pTypeCount]);
+    }
+
+    private int getCount(T pType) {
+      return counters[pType.ordinal()];
+    }
+
+    private void increment(T pType) {
+      counters[pType.ordinal()]++;
+    }
+
+    private TypeCounter<T> copy() {
+      return new TypeCounter<>(Arrays.copyOf(counters, counters.length));
     }
   }
 
