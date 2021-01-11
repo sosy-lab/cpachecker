@@ -73,7 +73,9 @@ let argTabDisabled = false;
       html: true,
     });
     // initialize all tooltips
-    $("[data-toggle=tooltip]").tooltip();
+    $("[data-toggle=tooltip]").tooltip({
+		    trigger : 'hover'
+		});
     $(document).on("hover", "[data-toggle=tooltip]", function () {
       $(this).tooltip("show");
     });
