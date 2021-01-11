@@ -65,7 +65,7 @@ onmessage = (msg) => {
     } else {
       workerResult = {
         status: "done",
-        errorpath: data.errorpath,
+        errorPath,
       };
       if (simplifiedGraphMap.length > 0) {
         workerResult = {
