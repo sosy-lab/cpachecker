@@ -82,6 +82,9 @@ import java.util.function.Function;
  *     <td>EdgeType.DECLARATION_EDGE</td><td>any node</td><td>any node</td><td>inter/intra-procedural</td>
  *   </tr>
  *   <tr>
+ *     <td>EdgeType.CALL</td><td></td><td>entry node</td><td>inter-procedural</td>
+ *   </tr>
+ *   <tr>
  *     <td>EdgeType.PARAMETER_EDGE</td><td>(A) actual-in or (B) formal-out</td><td>(A) formal-in or (B) actual-out</td><td>inter-procedural</td>
  *   </tr>
  *   <tr>
@@ -293,6 +296,7 @@ public class SystemDependenceGraph<P, T, V> {
     FLOW_DEPENDENCY,
     CONTROL_DEPENDENCY,
     DECLARATION_EDGE,
+    CALL_EDGE,
     PARAMETER_EDGE,
     SUMMARY_EDGE;
   }
