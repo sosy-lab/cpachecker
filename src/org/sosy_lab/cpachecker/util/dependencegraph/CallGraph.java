@@ -138,7 +138,10 @@ final class CallGraph<P> {
   public ImmutableList<P> getPostOrder(P pStart) {
 
     Node<P> startNode = nodeMap.get(pStart);
-    assert startNode != null;
+
+    if (startNode == null) {
+      return ImmutableList.of();
+    }
 
     List<P> postOrderList = new ArrayList<>();
     Deque<Node<P>> stack = new ArrayDeque<>();
