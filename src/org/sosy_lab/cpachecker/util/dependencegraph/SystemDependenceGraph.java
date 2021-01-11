@@ -180,6 +180,23 @@ public class SystemDependenceGraph<P, T, V> {
     }
   }
 
+  /**
+   * Returns a new system dependence graph that does not contain any nodes and edges.
+   *
+   * @param <P> the procedure type.
+   * @param <T> the statement type.
+   * @param <V> the variable type.
+   * @return a new system dependence graph that does not contain any nodes and edges.
+   */
+  public static <P, T, V> SystemDependenceGraph<P, T, V> empty() {
+    return new SystemDependenceGraph<>(
+        ImmutableList.of(),
+        ImmutableList.of(),
+        ImmutableMultimap.of(),
+        new TypeCounter<>(NodeType.values().length),
+        new TypeCounter<>(EdgeType.values().length));
+  }
+
   public static <P, T, V> Builder<P, T, V> builder() {
     return new Builder<>();
   }
