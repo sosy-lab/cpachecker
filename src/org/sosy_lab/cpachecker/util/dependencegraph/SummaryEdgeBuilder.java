@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitor;
@@ -28,22 +30,29 @@ final class SummaryEdgeBuilder {
   private SummaryEdgeBuilder() {}
 
   public static <P, T, V> void insertSummaryEdges(
-      SystemDependenceGraph.Builder<P, T, V> pBuilder, Collection<P> pProcedures) {
+      SystemDependenceGraph.Builder<P, T, V> pBuilder, CallGraph<P> pCallGraph, P pStartProcedure) {
 
-    List<Node<P, T, V>> formalOutNodes = new ArrayList<>();
+    Multimap<P, Node<P, T, V>> formalOutNodesPerProcedure = ArrayListMultimap.create();
     for (Node<P, T, V> node : pBuilder.getNodes()) {
       if (node.getType() == NodeType.FORMAL_OUT) {
-        Optional<P> procedure = node.getProcedure();
-        if (procedure.isPresent() && pProcedures.contains(procedure.orElseThrow())) {
-          formalOutNodes.add(node);
-        }
+        formalOutNodesPerProcedure.put(node.getProcedure().orElseThrow(), node);
       }
     }
+
+    List<Node<P, T, V>> formalOutNodes = new ArrayList<>();
+    for (P procedure : pCallGraph.getPostOrder(pStartProcedure)) {
+      formalOutNodes.addAll(formalOutNodesPerProcedure.get(procedure));
+    }
+
+    ImmutableSet<P> recursiveProcedures = pCallGraph.getRecursiveProcedures();
 
     SimpleSummaryEdgeFinder<P, T, V> summaryFinder = new SimpleSummaryEdgeFinder<>(pBuilder);
     for (Node<P, T, V> formalOutNode : formalOutNodes) {
 
-      Collection<Node<P, T, V>> formalInNodes = summaryFinder.run(formalOutNode);
+      Collection<Node<P, T, V>> formalInNodes =
+          summaryFinder.run(
+              formalOutNode,
+              recursiveProcedures.contains(formalOutNode.getProcedure().orElseThrow()));
       for (Node<P, T, V> formalInNode : formalInNodes) {
         pBuilder.insertActualSummaryEdges(formalInNode, formalOutNode);
       }
@@ -69,26 +78,20 @@ final class SummaryEdgeBuilder {
 
       finishedFormalOutNodes = new BitSet(pBuilder.getNodeCount());
       procedureIds = pBuilder.createIds(Node::getProcedure);
-      ;
 
       currentRelevantFormalInNodes = new HashSet<>();
       currentProcedureId = -1;
       currentRecursive = false;
     }
 
-    private Collection<Node<P, T, V>> run(Node<P, T, V> pFormalOutNode) {
+    private Collection<Node<P, T, V>> run(Node<P, T, V> pFormalOutNode, boolean pRecursive) {
 
       currentProcedureId = procedureIds[pFormalOutNode.getId()];
-      currentRecursive = false;
+      currentRecursive = pRecursive;
       currentRelevantFormalInNodes.clear();
 
       builder.traverse(ImmutableList.of(pFormalOutNode), visitor);
       visitor.reset();
-
-      if (currentRecursive) {
-        builder.traverse(ImmutableList.of(pFormalOutNode), visitor);
-        visitor.reset();
-      }
 
       finishedFormalOutNodes.set(pFormalOutNode.getId());
 
@@ -110,16 +113,9 @@ final class SummaryEdgeBuilder {
     public VisitResult visitEdge(
         EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
 
-      if (pPredecessor.getType() == NodeType.FORMAL_OUT) {
-
-        if (procedureIds[pPredecessor.getId()] == currentProcedureId && !currentRecursive) {
-          currentRecursive = true;
-          return VisitResult.TERMINATE;
-        }
-
-        if (finishedFormalOutNodes.get(pPredecessor.getId())) {
-          return VisitResult.SKIP;
-        }
+      if (pPredecessor.getType() == NodeType.FORMAL_OUT
+          && finishedFormalOutNodes.get(pPredecessor.getId())) {
+        return VisitResult.SKIP;
       }
 
       int predecessorProcedureId = procedureIds[pPredecessor.getId()];

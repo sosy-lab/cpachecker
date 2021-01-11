@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -199,9 +198,33 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
-    List<AFunctionDeclaration> functions =
-        cfa.getAllFunctionHeads().stream().map(CFANode::getFunction).collect(Collectors.toList());
-    SummaryEdgeBuilder.insertSummaryEdges(builder, functions);
+    CallGraph<AFunctionDeclaration> callGraph =
+        CallGraph.<AFunctionDeclaration, CFANode>createCallGraph(
+            node -> {
+              List<CallGraph.Edge<AFunctionDeclaration, CFANode>> edges = new ArrayList<>();
+              for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+
+                if (edge instanceof CFunctionCallEdge) {
+                  CFANode successor = edge.getSuccessor();
+                  edges.add(
+                      CallGraph.Edge.createCallEdge(
+                          node.getFunction(), successor.getFunction(), successor));
+                } else if (edge instanceof CFunctionReturnEdge) {
+                  CFANode successor = edge.getSuccessor();
+                  edges.add(
+                      CallGraph.Edge.createReturnEdge(
+                          node.getFunction(), successor.getFunction(), successor));
+                } else {
+                  edges.add(
+                      CallGraph.Edge.createStandardEdge(node.getFunction(), edge.getSuccessor()));
+                }
+              }
+
+              return edges;
+            },
+            ImmutableSet.of(cfa.getMainFunction()));
+
+    SummaryEdgeBuilder.insertSummaryEdges(builder, callGraph, cfa.getMainFunction().getFunction());
 
     systemDependenceGraph = builder.build();
     dependenceGraphConstructionTimer.stop();
