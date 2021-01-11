@@ -355,7 +355,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     GlobalPointerState pointerState = null;
     if (considerPointees) {
 
-      ExecutorService executorService = Executors.newSingleThreadExecutor();
+      ExecutorService executorService = Executors.newFixedThreadPool(2);
       Future<GlobalPointerState> flowSensitiveStatefuture =
           executorService.submit(
               () -> GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier));
