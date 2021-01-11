@@ -12,6 +12,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -132,6 +133,36 @@ final class CallGraph<P> {
     }
 
     return ImmutableSet.copyOf(recursiveProcedures);
+  }
+
+  public ImmutableList<P> getPostOrder(P pStart) {
+
+    Node<P> startNode = nodeMap.get(pStart);
+    assert startNode != null;
+
+    List<P> postOrderList = new ArrayList<>();
+    Deque<Node<P>> stack = new ArrayDeque<>();
+    Set<Node<P>> stacked = new HashSet<>();
+
+    stack.push(startNode);
+    stacked.add(startNode);
+
+    outer:
+    while (!stack.isEmpty()) {
+
+      Node<P> caller = stack.peek();
+
+      for (Node<P> calee : caller.getSuccessors()) {
+        if (stacked.add(calee)) {
+          stack.push(calee);
+          continue outer;
+        }
+      }
+
+      postOrderList.add(stack.pop().getProcedure());
+    }
+
+    return ImmutableList.copyOf(Lists.reverse(postOrderList));
   }
 
   @Override
