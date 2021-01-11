@@ -70,9 +70,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeTy
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** Factory for creating a {@link SystemDependenceGraph} from a {@link CFA}. */
@@ -85,10 +82,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private final EdgeDefUseData.Extractor defUseExtractor;
 
   private final StatTimer dependenceGraphConstructionTimer = new StatTimer("Time for dep. graph");
-  private StatInt flowDependenceNumber = new StatInt(StatKind.SUM, "Number of flow dependences");
-  private StatInt controlDependenceNumber =
-      new StatInt(StatKind.SUM, "Number of control dependences");
-  private StatCounter isolatedNodes = new StatCounter("Number of isolated nodes");
   private final StatTimer flowDependenceTimer = new StatTimer("Time for flow deps.");
   private final StatTimer controlDependenceTimer = new StatTimer("Time for control deps.");
   private final StatTimer summaryEdgeTimer = new StatTimer("Time for summary edges");
@@ -156,7 +149,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, MemoryLocation>
       builder;
   private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation>
-      systemDependenceGraph;
+      systemDependenceGraph = SystemDependenceGraph.empty();
   private String usedGlobalPointerState = "none";
 
   public CSystemDependenceGraphBuilder(
@@ -457,8 +450,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      StatCounter flowDepCounter = new StatCounter("Flow Dependency Counter");
-
       CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
       for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
         builder
@@ -473,7 +464,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                 getOptionalFunction(funcDeclEdge),
                 Optional.of(funcDeclEdge),
                 Optional.empty());
-        flowDepCounter.inc();
       }
 
       DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
@@ -564,13 +554,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                     .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
                     .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                flowDepCounter.inc();
               } else if (pUseEdge instanceof CFunctionReturnEdge) {
                 builder
                     .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
                     .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                flowDepCounter.inc();
               } else if (pUseEdge instanceof CFunctionSummaryEdge) {
 
                 CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pUseEdge;
@@ -583,7 +571,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                       .node(NodeType.ACTUAL_OUT, useFunction, useEdge, returnVariable)
                       .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                       .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                  flowDepCounter.inc();
                 } else {
                   for (CExpression pointeeExpression : defUseData.getPointeeUses()) {
                     if (pointerState
@@ -593,7 +580,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                           .node(NodeType.ACTUAL_OUT, useFunction, useEdge, returnVariable)
                           .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                           .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                      flowDepCounter.inc();
                     }
                   }
                 }
@@ -605,7 +591,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                       .node(NodeType.ACTUAL_IN, useFunction, useEdge, Optional.of(pCause))
                       .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                       .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                  flowDepCounter.inc();
                 }
 
                 List<CParameterDeclaration> params =
@@ -628,7 +613,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                         .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
                         .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                         .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                    flowDepCounter.inc();
                   } else {
                     for (CExpression pointeeExpression : argumentDefUseData.getPointeeUses()) {
                       if (pointerState
@@ -638,7 +622,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                             .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
                             .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                             .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                        flowDepCounter.inc();
                       }
                     }
                   }
@@ -649,7 +632,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                     .node(NodeType.STATEMENT, useFunction, useEdge, Optional.empty())
                     .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
-                flowDepCounter.inc();
               }
             }
           };
@@ -667,8 +649,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               declarationEdges,
               dependenceConsumer)
           .run();
-
-      flowDependenceNumber.setNextValue((int) flowDepCounter.getValue());
     }
   }
 
@@ -676,7 +656,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      int controlDepCounter = 0;
       ImmutableSet<ControlDependency> controlDependencies =
           ControlDependenceBuilder.computeControlDependencies(
               cfa, entryNode, controlDepsTakeBothAssumptions);
@@ -698,11 +677,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                 getOptionalFunction(controlEdge),
                 Optional.of(controlEdge),
                 Optional.empty());
-
-        controlDepCounter++;
       }
-
-      controlDependenceNumber.setNextValue(controlDepCounter);
     }
   }
 
@@ -714,19 +689,58 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           @Override
           public void printStatistics(
               final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-            StatInt nodeNumber = new StatInt(StatKind.SUM, "Number of DG nodes");
-            nodeNumber.setNextValue(systemDependenceGraph.getNodes().size());
             if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
               put(pOut, 3, dependenceGraphConstructionTimer);
               put(pOut, 4, flowDependenceTimer);
               put(pOut, 4, controlDependenceTimer);
               put(pOut, 4, summaryEdgeTimer);
-              put(pOut, 4, nodeNumber);
-              put(pOut, 4, flowDependenceNumber);
-              put(pOut, 4, controlDependenceNumber);
-              put(pOut, 4, isolatedNodes);
+              put(
+                  pOut,
+                  4,
+                  "Number of statement nodes",
+                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.STATEMENT)));
+              put(
+                  pOut,
+                  4,
+                  "Number of formal-in nodes",
+                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.FORMAL_IN)));
+              put(
+                  pOut,
+                  4,
+                  "Number of formal-out nodes",
+                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.FORMAL_OUT)));
+              put(
+                  pOut,
+                  4,
+                  "Number of actual-in nodes",
+                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.ACTUAL_IN)));
+              put(
+                  pOut,
+                  4,
+                  "Number of actual-out nodes",
+                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.ACTUAL_OUT)));
+              put(
+                  pOut,
+                  4,
+                  "Number of flow dependencies",
+                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.FLOW_DEPENDENCY)));
+              put(
+                  pOut,
+                  4,
+                  "Number of control dependencies",
+                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.CONTROL_DEPENDENCY)));
+              put(
+                  pOut,
+                  4,
+                  "Number of parameter edges",
+                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.PARAMETER_EDGE)));
+              put(
+                  pOut,
+                  4,
+                  "Number of summary edges",
+                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.SUMMARY_EDGE)));
+              put(pOut, 4, "Used GlobalPointerState", usedGlobalPointerState);
             }
-            put(pOut, 4, "Used GlobalPointerState", usedGlobalPointerState);
           }
 
           @Override
