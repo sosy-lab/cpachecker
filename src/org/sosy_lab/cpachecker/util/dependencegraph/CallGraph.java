@@ -73,7 +73,7 @@ final class CallGraph<P> {
       }
     }
 
-    while (!waitlisted.isEmpty()) {
+    while (!waitlist.isEmpty()) {
 
       N node = waitlist.remove();
 
@@ -268,7 +268,7 @@ final class CallGraph<P> {
     }
 
     public ImmutableList<Node<P>> getSuccessors() {
-      return ImmutableList.copyOf(predecessors);
+      return ImmutableList.copyOf(successors);
     }
 
     @Override
