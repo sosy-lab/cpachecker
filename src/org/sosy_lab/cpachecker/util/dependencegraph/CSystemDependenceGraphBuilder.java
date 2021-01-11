@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Equivalence;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
@@ -23,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -57,10 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
@@ -202,17 +199,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
-    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
-    CFATraversal.dfs().ignoreFunctionCalls().traverse(cfa.getMainFunction(), nodeCollector);
-    List<Pair<AFunctionDeclaration, CFAEdge>> mainCfaEdges =
-        FluentIterable.from(nodeCollector.getVisitedNodes())
-            .transformAndConcat(CFAUtils::allLeavingEdges)
-            // FIXME: don't use Pair
-            .<Pair<AFunctionDeclaration, CFAEdge>>transform(
-                edge -> Pair.of(cfa.getMainFunction().getFunction(), edge))
-            .toList();
-
-    builder.insertSummaryEdges(mainCfaEdges);
+    List<AFunctionDeclaration> functions =
+        cfa.getAllFunctionHeads().stream().map(CFANode::getFunction).collect(Collectors.toList());
+    SummaryEdgeBuilder.insertSummaryEdges(builder, functions);
 
     systemDependenceGraph = builder.build();
     dependenceGraphConstructionTimer.stop();

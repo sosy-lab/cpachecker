@@ -14,12 +14,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -30,7 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.Pair;
+import java.util.function.Function;
 
 /**
  *
@@ -546,6 +544,75 @@ public class SystemDependenceGraph<P, T, V> {
       }
     }
 
+    public int getNodeCount() {
+      return nodes.size();
+    }
+
+    public ImmutableList<Node<P, T, V>> getNodes() {
+      return ImmutableList.copyOf(nodes);
+    }
+
+    public void traverse(Collection<Node<P, T, V>> pStartNodes, ForwardsVisitor<P, T, V> pVisitor) {
+      SystemDependenceGraph.traverse(graphNodes, pStartNodes, pVisitor, true);
+    }
+
+    public void traverse(
+        Collection<Node<P, T, V>> pStartNodes, BackwardsVisitor<P, T, V> pVisitor) {
+      SystemDependenceGraph.traverse(graphNodes, pStartNodes, pVisitor, false);
+    }
+
+    public int[] createIds(Function<Node<P, T, V>, Optional<?>> pFunction) {
+
+      Map<Object, Integer> resultMap = new HashMap<>();
+      int[] ids = new int[nodes.size()];
+
+      for (int nodeId = 0; nodeId < ids.length; nodeId++) {
+
+        Node<P, T, V> node = nodes.get(nodeId);
+        Optional<?> result = pFunction.apply(node);
+
+        if (result.isPresent()) {
+          int id = resultMap.computeIfAbsent(result.orElseThrow(), key -> resultMap.size());
+          ids[nodeId] = id;
+        } else {
+          ids[nodeId] = UNDEFINED_ID;
+        }
+      }
+
+      return ids;
+    }
+
+    public void insertActualSummaryEdges(
+        Node<P, T, V> pFormalInNode, Node<P, T, V> pFormalOutNode) {
+
+      Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
+      Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
+
+      GraphNode<P, T, V> formalOutGraphNode = graphNodes.get(pFormalOutNode.getId());
+      assert formalOutGraphNode.getNode().equals(pFormalOutNode);
+
+      for (GraphEdge<P, T, V> outEdge : formalOutGraphNode.getLeavingEdges()) {
+        if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
+
+          GraphNode<P, T, V> actualOutGraphNode = outEdge.getSuccessor();
+          assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
+
+          NodeMapKey<P, T, V> actualInNodeKey =
+              new NodeMapKey<>(
+                  NodeType.ACTUAL_IN,
+                  actualOutGraphNode.getNode().getProcedure(),
+                  actualOutGraphNode.getNode().getStatement(),
+                  pFormalInNode.getVariable());
+          GraphNode<P, T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
+
+          if (actualInGraphNode != null) {
+            insertEdge(
+                actualInGraphNode, actualOutGraphNode, EdgeType.SUMMARY_EDGE, Optional.empty());
+          }
+        }
+      }
+    }
+
     public EdgeChooser node(
         NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
@@ -618,196 +685,6 @@ public class SystemDependenceGraph<P, T, V> {
         Objects.requireNonNull(pVariable, "pVariable must not be null");
 
         insertEdge(graphNode(pType, pProcedure, pStatement, pVariable), graphNode, edgeType, cause);
-      }
-    }
-
-    private int[] getContextIds() {
-
-      Map<P, Integer> contexts = new HashMap<>();
-      int[] contextIds = new int[nodes.size()];
-
-      for (int nodeId = 0; nodeId < contextIds.length; nodeId++) {
-
-        Node<P, T, V> node = nodes.get(nodeId);
-        Optional<P> procedure = node.getProcedure();
-
-        if (procedure.isPresent()) {
-          int contextId = contexts.computeIfAbsent(procedure.orElseThrow(), key -> contexts.size());
-          contextIds[nodeId] = contextId;
-        } else {
-          contextIds[nodeId] = UNDEFINED_ID;
-        }
-      }
-
-      return contextIds;
-    }
-
-    // FIXME: don't use Pair
-    public void insertSummaryEdges(Collection<Pair<P, T>> pReachableFrom) {
-
-      int[] contextIds = getContextIds();
-      new SummaryEdgeBuilder(contextIds).run(pReachableFrom);
-    }
-
-    private final class SummaryEdgeBuilder implements BackwardsVisitor<P, T, V> {
-
-      private final BitSet finishedFormalOutNodes;
-      private final int[] contextIds;
-
-      private int currentContextId;
-      private boolean currentRecursive;
-      private final Set<Node<P, T, V>> currentRelevantFormalInNodes;
-
-      private SummaryEdgeBuilder(int[] pContextIds) {
-
-        finishedFormalOutNodes = new BitSet(nodes.size());
-        contextIds = pContextIds;
-
-        currentRelevantFormalInNodes = new HashSet<>();
-        currentContextId = -1;
-        currentRecursive = false;
-      }
-
-      private void setCurrentFormalOutNode(Node<P, T, V> pFormalOutNode) {
-
-        currentContextId = contextIds[pFormalOutNode.getId()];
-        currentRecursive = false;
-        currentRelevantFormalInNodes.clear();
-      }
-
-      @Override
-      public VisitResult visitNode(Node<P, T, V> pNode) {
-
-        if (pNode.getType() == NodeType.FORMAL_IN
-            && contextIds[pNode.getId()] == currentContextId) {
-          currentRelevantFormalInNodes.add(pNode);
-        }
-
-        return VisitResult.CONTINUE;
-      }
-
-      @Override
-      public VisitResult visitEdge(
-          EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
-
-        if (pPredecessor.getType() == NodeType.FORMAL_OUT) {
-
-          if (contextIds[pPredecessor.getId()] == currentContextId && !currentRecursive) {
-            currentRecursive = true;
-            return VisitResult.TERMINATE;
-          }
-
-          if (finishedFormalOutNodes.get(pPredecessor.getId())) {
-            return VisitResult.SKIP;
-          }
-        }
-
-        int predecessorContextId = contextIds[pPredecessor.getId()];
-        int successorContextId = contextIds[pSuccessor.getId()];
-
-        if (predecessorContextId != successorContextId
-            && successorContextId == currentContextId
-            && !currentRecursive) {
-          return VisitResult.SKIP;
-        }
-
-        return VisitResult.CONTINUE;
-      }
-
-      private List<Node<P, T, V>> getFormalOutNodes(Collection<Pair<P, T>> pReachableFrom) {
-
-        List<Node<P, T, V>> startNodes = new ArrayList<>();
-        for (Pair<P, T> pair : pReachableFrom) {
-
-          NodeMapKey<P, T, V> key =
-              new NodeMapKey<>(
-                  NodeType.STATEMENT,
-                  Optional.of(pair.getFirst()),
-                  Optional.of(pair.getSecond()),
-                  Optional.empty());
-          GraphNode<P, T, V> graphNode = nodeMap.get(key);
-
-          if (graphNode != null) {
-            startNodes.add(graphNode.getNode());
-          }
-        }
-
-        List<Node<P, T, V>> formalOutNodes = new ArrayList<>();
-
-        ForwardsVisitor<P, T, V> formalOutNodeCollector =
-            new ForwardsVisitor<>() {
-
-              @Override
-              public VisitResult visitNode(Node<P, T, V> pNode) {
-
-                if (pNode.getType() == NodeType.FORMAL_OUT) {
-                  formalOutNodes.add(pNode);
-                }
-
-                return VisitResult.CONTINUE;
-              }
-
-              @Override
-              public VisitResult visitEdge(
-                  EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
-                return VisitResult.CONTINUE;
-              }
-            };
-
-        ForwardsVisitOnceVisitor<P, T, V> visitOnceVisitor =
-            new ForwardsVisitOnceVisitor<>(formalOutNodeCollector, nodes.size());
-
-        traverse(graphNodes, startNodes, visitOnceVisitor, true);
-
-        return Lists.reverse(formalOutNodes);
-      }
-
-      private void run(Collection<Pair<P, T>> pReachableFrom) {
-
-        BackwardsVisitOnceVisitor<P, T, V> visitor =
-            new BackwardsVisitOnceVisitor<>(this, nodes.size());
-
-        for (Node<P, T, V> node : getFormalOutNodes(pReachableFrom)) {
-
-          setCurrentFormalOutNode(node);
-          traverse(graphNodes, ImmutableList.of(node), visitor, false);
-          visitor.reset();
-
-          if (currentRecursive) {
-            traverse(graphNodes, ImmutableList.of(node), visitor, false);
-            visitor.reset();
-          }
-
-          finishedFormalOutNodes.set(node.getId());
-
-          GraphNode<P, T, V> formalOutGraphNode = graphNodes.get(node.getId());
-          for (GraphEdge<P, T, V> outEdge : formalOutGraphNode.getLeavingEdges()) {
-            if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
-
-              GraphNode<P, T, V> actualOutGraphNode = outEdge.getSuccessor();
-              assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
-
-              for (Node<P, T, V> formalInNode : currentRelevantFormalInNodes) {
-
-                NodeMapKey<P, T, V> actualInNodeKey =
-                    new NodeMapKey<>(
-                        NodeType.ACTUAL_IN,
-                        actualOutGraphNode.getNode().getProcedure(),
-                        actualOutGraphNode.getNode().getStatement(),
-                        formalInNode.getVariable());
-                GraphNode<P, T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
-
-                if (actualInGraphNode != null) {
-                  insertEdge(
-                      actualInGraphNode,
-                      actualOutGraphNode,
-                      EdgeType.SUMMARY_EDGE,
-                      Optional.empty());
-                }
-              }
-            }
-          }
-        }
       }
     }
   }
@@ -963,7 +840,7 @@ public class SystemDependenceGraph<P, T, V> {
   public static final class ForwardsVisitOnceVisitor<P, T, V> extends VisitOnceVisitor<P, T, V>
       implements ForwardsVisitor<P, T, V> {
 
-    private ForwardsVisitOnceVisitor(ForwardsVisitor<P, T, V> pDelegateVisitor, int pNodeCount) {
+    public ForwardsVisitOnceVisitor(ForwardsVisitor<P, T, V> pDelegateVisitor, int pNodeCount) {
       super(true, pDelegateVisitor, pNodeCount);
     }
 
@@ -986,7 +863,7 @@ public class SystemDependenceGraph<P, T, V> {
   public static final class BackwardsVisitOnceVisitor<P, T, V> extends VisitOnceVisitor<P, T, V>
       implements BackwardsVisitor<P, T, V> {
 
-    private BackwardsVisitOnceVisitor(BackwardsVisitor<P, T, V> pDelegateVisitor, int pNodeCount) {
+    public BackwardsVisitOnceVisitor(BackwardsVisitor<P, T, V> pDelegateVisitor, int pNodeCount) {
       super(false, pDelegateVisitor, pNodeCount);
     }
 
