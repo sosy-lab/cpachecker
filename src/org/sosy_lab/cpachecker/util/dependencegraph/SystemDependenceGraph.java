@@ -38,6 +38,9 @@ import java.util.function.Function;
  *     <td></td><td>Procedure (P)</td><td>Statement (T)</td><td>Variable (V)</td>
  *   </tr>
  *   <tr>
+ *     <td>NodeType.ENTRY</td><td>required</td><td>empty</td><td>empty</td>
+ *   </tr>
+ *   <tr>
  *     <td>NodeType.STATEMENT</td><td>optional (*)</td><td>required</td><td>empty</td>
  *   </tr>
  *   <tr>
@@ -275,6 +278,7 @@ public class SystemDependenceGraph<P, T, V> {
   }
 
   public enum NodeType {
+    ENTRY,
     STATEMENT,
     FORMAL_IN,
     FORMAL_OUT,
