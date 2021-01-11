@@ -391,11 +391,16 @@ public class ReportGenerator {
     writer.write("window.argJson = argJson;\n");
   }
 
-  private void insertCss(Writer writer) throws IOException {
+  private void insertCssFile(Writer writer, String file) throws IOException {
     writer.write("<style>\n");
-    Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+    Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
         .copyTo(writer);
     writer.write("</style>");
+  }
+
+  private void insertCss(Writer writer) throws IOException {
+    insertCssFile(writer, VENDOR_CSS_TEMPLATE);
+    insertCssFile(writer, CSS_TEMPLATE);
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
