@@ -115,8 +115,11 @@ abstract class GlobalPointerState {
       ImmutableSet<MemoryLocation> pAddressedVariables,
       CExpression pExpression) {
 
-    Set<MemoryLocation> possiblePointees =
-        ReachingDefUtils.possiblePointees(pExpression, pPointerState);
+    Set<MemoryLocation> possiblePointees = null;
+
+    if (pPointerState != null) {
+      possiblePointees = ReachingDefUtils.possiblePointees(pExpression, pPointerState);
+    }
 
     if (possiblePointees == null) {
       possiblePointees = ImmutableSet.of();
@@ -151,6 +154,11 @@ abstract class GlobalPointerState {
       throws CPAException, InterruptedException {
 
     return FlowSensitivePointerState.create(pCfa, pLogger, pShutdownNotifier);
+  }
+
+  public static GlobalPointerState creatUnknown(CFA pCfa) {
+    return new UnknownPointerState(
+        computeAddressableVariables(pCfa), computeAddressedVariables(pCfa));
   }
 
   private static final class FlowInsensitivePointerState extends GlobalPointerState {
@@ -344,6 +352,28 @@ abstract class GlobalPointerState {
 
       return new FlowSensitivePointerState(
           pointerStates, computeAddressableVariables(pCfa), computeAddressedVariables(pCfa));
+    }
+  }
+
+  private static final class UnknownPointerState extends GlobalPointerState {
+
+    private final ImmutableSet<MemoryLocation> addressableVariables;
+    private final ImmutableSet<MemoryLocation> addressedVariables;
+
+    private UnknownPointerState(
+        ImmutableSet<MemoryLocation> pAddressableVariables,
+        ImmutableSet<MemoryLocation> pAddressedVariables) {
+
+      addressableVariables = pAddressableVariables;
+      addressedVariables = pAddressedVariables;
+    }
+
+    @Override
+    public ImmutableSet<MemoryLocation> getPossiblePointees(
+        CFAEdge pEdge, CExpression pExpression) {
+
+      return GlobalPointerState.getPossiblePointees(
+          null, addressableVariables, addressedVariables, pExpression);
     }
   }
 
