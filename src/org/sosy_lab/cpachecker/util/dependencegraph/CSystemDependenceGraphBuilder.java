@@ -363,18 +363,24 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           executorService.submit(() -> GlobalPointerState.createFlowInsensitive(cfa));
 
       try {
-        pointerState = flowSensitiveStatefuture.get(pointerAnalysisTimeout, TimeUnit.MILLISECONDS);
-
-        if (pointerState == null) {
+        try {
           pointerState =
-              flowInsensitiveStatefuture.get(pointerAnalysisTimeout, TimeUnit.MILLISECONDS);
-        } else {
+              flowSensitiveStatefuture.get(pointerAnalysisTimeout, TimeUnit.MILLISECONDS);
           flowInsensitiveStatefuture.cancel(true);
+        } catch (TimeoutException ex) {
+          logger.logUserException(
+              Level.INFO, ex, "FlowSensitiveGlobalPointerState computation timeout");
         }
 
-      } catch (TimeoutException ex) {
-        flowSensitiveStatefuture.cancel(true);
-        flowInsensitiveStatefuture.cancel(true);
+        if (pointerState == null) {
+          try {
+            pointerState = flowInsensitiveStatefuture.get(0, TimeUnit.MILLISECONDS);
+          } catch (TimeoutException ex) {
+            logger.logUserException(
+                Level.INFO, ex, "FlowInsensitiveGlobalPointerState computation timeout");
+          }
+        }
+
       } catch (ExecutionException ex) {
         logger.logUserException(Level.WARNING, ex, "GlobalPointerState computation failed");
       } finally {
