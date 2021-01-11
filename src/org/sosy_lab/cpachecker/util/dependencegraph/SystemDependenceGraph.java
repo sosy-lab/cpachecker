@@ -201,7 +201,7 @@ public class SystemDependenceGraph<P, T, V> {
     return new SystemDependenceGraph<>(
         ImmutableList.of(),
         ImmutableList.of(),
-        ImmutableMultimap.of(),
+        ImmutableListMultimap.of(),
         new TypeCounter<>(NodeType.values().length),
         new TypeCounter<>(EdgeType.values().length));
   }
