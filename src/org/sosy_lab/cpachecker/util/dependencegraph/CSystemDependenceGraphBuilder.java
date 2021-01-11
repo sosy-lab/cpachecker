@@ -91,6 +91,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private StatCounter isolatedNodes = new StatCounter("Number of isolated nodes");
   private final StatTimer flowDependenceTimer = new StatTimer("Time for flow deps.");
   private final StatTimer controlDependenceTimer = new StatTimer("Time for control deps.");
+  private final StatTimer summaryEdgeTimer = new StatTimer("Time for summary edges");
 
   @Option(
       secure = true,
@@ -211,6 +212,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
+    summaryEdgeTimer.start();
     CallGraph<AFunctionDeclaration> callGraph =
         CallGraph.<AFunctionDeclaration, CFANode>createCallGraph(
             node -> {
@@ -238,6 +240,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             ImmutableSet.of(cfa.getMainFunction()));
 
     SummaryEdgeBuilder.insertSummaryEdges(builder, callGraph, cfa.getMainFunction().getFunction());
+    summaryEdgeTimer.stop();
 
     systemDependenceGraph = builder.build();
     dependenceGraphConstructionTimer.stop();
@@ -683,6 +686,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               put(pOut, 3, dependenceGraphConstructionTimer);
               put(pOut, 4, flowDependenceTimer);
               put(pOut, 4, controlDependenceTimer);
+              put(pOut, 4, summaryEdgeTimer);
               put(pOut, 4, nodeNumber);
               put(pOut, 4, flowDependenceNumber);
               put(pOut, 4, controlDependenceNumber);
