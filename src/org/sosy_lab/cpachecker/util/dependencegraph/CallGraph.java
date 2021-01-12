@@ -107,6 +107,32 @@ final class CallGraph<P> {
     return nodes.get(pId);
   }
 
+  public ImmutableSet<P> getReachableFrom(Collection<? extends P> pProcedures) {
+
+    Deque<Node<P>> waitlist = new ArrayDeque<>();
+    Set<Node<P>> waitlisted = new HashSet<>();
+
+    for (P procedure : pProcedures) {
+      Node<P> node = nodeMap.get(procedure);
+      if (node != null && waitlisted.add(node)) {
+        waitlist.add(node);
+      }
+    }
+
+    while (!waitlist.isEmpty()) {
+      for (Node<P> successor : waitlist.remove().getSuccessors()) {
+        if (waitlisted.add(successor)) {
+          waitlist.add(successor);
+        }
+      }
+    }
+
+    ImmutableSet.Builder<P> builder = ImmutableSet.builderWithExpectedSize(waitlisted.size());
+    waitlisted.forEach(node -> builder.add(node.getProcedure()));
+
+    return builder.build();
+  }
+
   public ImmutableSet<P> getRecursiveProcedures() {
 
     Deque<Node<P>> waitlist = new ArrayDeque<>();
