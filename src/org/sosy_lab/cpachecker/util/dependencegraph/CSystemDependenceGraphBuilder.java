@@ -222,22 +222,19 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     CallGraph<AFunctionDeclaration> callGraph =
         CallGraph.<AFunctionDeclaration, CFANode>createCallGraph(
             node -> {
-              List<CallGraph.Edge<AFunctionDeclaration, CFANode>> edges = new ArrayList<>();
+              List<CallGraph.SuccessorResult<AFunctionDeclaration, CFANode>> edges =
+                  new ArrayList<>();
               for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
 
                 if (edge instanceof CFunctionCallEdge) {
                   CFANode successor = edge.getSuccessor();
                   edges.add(
-                      CallGraph.Edge.createCallEdge(
-                          node.getFunction(), successor.getFunction(), successor));
-                } else if (edge instanceof CFunctionReturnEdge) {
-                  CFANode successor = edge.getSuccessor();
-                  edges.add(
-                      CallGraph.Edge.createReturnEdge(
+                      CallGraph.SuccessorResult.createCallSuccessor(
                           node.getFunction(), successor.getFunction(), successor));
                 } else {
                   edges.add(
-                      CallGraph.Edge.createStandardEdge(node.getFunction(), edge.getSuccessor()));
+                      CallGraph.SuccessorResult.createNonCallSuccessor(
+                          node.getFunction(), edge.getSuccessor()));
                 }
               }
 

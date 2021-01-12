@@ -60,7 +60,9 @@ final class CallGraph<P> {
   }
 
   public static <P, N> CallGraph<P> createCallGraph(
-      Function<N, Iterable<Edge<P, N>>> pLeavingEdgesFunction, Collection<N> pStartNodes) {
+      Function<? super N, ? extends Iterable<? extends SuccessorResult<? extends P, ? extends N>>>
+          pSuccessorFunction,
+      Collection<? extends N> pStartNodes) {
 
     List<Node<P>> nodes = new ArrayList<>();
     Map<P, Node<P>> nodeMap = new HashMap<>();
@@ -77,12 +79,10 @@ final class CallGraph<P> {
 
       N node = waitlist.remove();
 
-      for (Edge<P, N> edge : pLeavingEdgesFunction.apply(node)) {
+      for (SuccessorResult<? extends P, ? extends N> edge : pSuccessorFunction.apply(node)) {
 
-        if (edge.getType() == Edge.Type.CALL_EDGE) {
+        if (edge.getType() == SuccessorResult.Type.CALL_EDGE) {
           insertEdge(nodes, nodeMap, edge.getPredecessorProcedure(), edge.getSuccessorProcedure());
-        } else if (edge.getType() == Edge.Type.RETURN_EDGE) {
-          insertEdge(nodes, nodeMap, edge.getSuccessorProcedure(), edge.getPredecessorProcedure());
         }
 
         N successor = edge.getSucessor();
@@ -110,14 +110,10 @@ final class CallGraph<P> {
   public ImmutableSet<P> getRecursiveProcedures() {
 
     Deque<Node<P>> waitlist = new ArrayDeque<>();
-    Multimap<Node<P>, Node<P>> callers = HashMultimap.create();
+    Multimap<Node<P>, Node<P>> callers = HashMultimap.create(); // node -> its (transitive) callers
 
-    waitlist.addAll(nodes);
-
-    while (!waitlist.isEmpty()) {
-
-      Node<P> caller = waitlist.remove();
-
+    // add direct callers
+    for (Node<P> caller : nodes) {
       for (Node<P> callee : caller.getSuccessors()) {
         if (callers.put(callee, caller)) {
           waitlist.add(callee);
@@ -125,6 +121,20 @@ final class CallGraph<P> {
       }
     }
 
+    // iterate until fixpoint is reached
+    while (!waitlist.isEmpty()) {
+
+      Node<P> node = waitlist.remove();
+      Collection<Node<P>> nodeCallers = callers.get(node);
+
+      for (Node<P> nodeCallee : node.getSuccessors()) {
+        if (callers.putAll(nodeCallee, nodeCallers)) {
+          waitlist.add(nodeCallee);
+        }
+      }
+    }
+
+    // find nodes that are their own (transitive) caller
     Set<P> recursiveProcedures = new HashSet<>();
     for (Node<P> node : nodes) {
       if (callers.containsEntry(node, node)) {
@@ -173,7 +183,7 @@ final class CallGraph<P> {
     return getClass().getSimpleName() + nodes.toString();
   }
 
-  public static final class Edge<P, N> {
+  public static final class SuccessorResult<P, N> {
 
     private final Type type;
 
@@ -181,7 +191,8 @@ final class CallGraph<P> {
     private final P successorProcedure;
     private final N sucessor;
 
-    private Edge(Type pType, P pPredecessorProcedure, P pSuccessorProcedure, N pSucessor) {
+    private SuccessorResult(
+        Type pType, P pPredecessorProcedure, P pSuccessorProcedure, N pSucessor) {
 
       type = pType;
 
@@ -190,18 +201,13 @@ final class CallGraph<P> {
       sucessor = pSucessor;
     }
 
-    public static <P, N> Edge<P, N> createStandardEdge(P pProcedure, N pSuccessor) {
-      return new Edge<>(Type.STANDARD_EDGE, pProcedure, pProcedure, pSuccessor);
+    public static <P, N> SuccessorResult<P, N> createNonCallSuccessor(P pProcedure, N pSuccessor) {
+      return new SuccessorResult<>(Type.NON_CALL_EDGE, pProcedure, pProcedure, pSuccessor);
     }
 
-    public static <P, N> Edge<P, N> createCallEdge(
+    public static <P, N> SuccessorResult<P, N> createCallSuccessor(
         P pCallerProcedure, P pCalleeProcedure, N pSuccessor) {
-      return new Edge<>(Type.CALL_EDGE, pCallerProcedure, pCalleeProcedure, pSuccessor);
-    }
-
-    public static <P, N> Edge<P, N> createReturnEdge(
-        P pCalleeProcedure, P pCallerProcedure, N pSuccessor) {
-      return new Edge<>(Type.RETURN_EDGE, pCalleeProcedure, pCallerProcedure, pSuccessor);
+      return new SuccessorResult<>(Type.CALL_EDGE, pCallerProcedure, pCalleeProcedure, pSuccessor);
     }
 
     private Type getType() {
@@ -212,18 +218,17 @@ final class CallGraph<P> {
       return predecessorProcedure;
     }
 
-    private N getSucessor() {
-      return sucessor;
-    }
-
     private P getSuccessorProcedure() {
       return successorProcedure;
     }
 
+    private N getSucessor() {
+      return sucessor;
+    }
+
     private enum Type {
-      STANDARD_EDGE,
-      CALL_EDGE,
-      RETURN_EDGE;
+      NON_CALL_EDGE,
+      CALL_EDGE;
     }
   }
 
