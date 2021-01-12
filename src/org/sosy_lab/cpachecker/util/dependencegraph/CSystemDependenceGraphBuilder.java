@@ -242,7 +242,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             },
             ImmutableSet.of(cfa.getMainFunction()));
 
-    SummaryEdgeBuilder.insertSummaryEdges(builder, callGraph, cfa.getMainFunction().getFunction());
+    SummaryEdgeBuilder.insertSummaryEdges(
+        builder, callGraph, cfa.getMainFunction().getFunction(), SummaryEdgeBuilder.Method.BATCH);
     summaryEdgeTimer.stop();
 
     systemDependenceGraph = builder.build();
