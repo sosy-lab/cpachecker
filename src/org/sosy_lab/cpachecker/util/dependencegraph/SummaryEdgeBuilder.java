@@ -127,10 +127,7 @@ final class SummaryEdgeBuilder {
     }
 
     protected boolean isFormalOutFinished(int pNodeId) {
-      // FIXME: When 'true' is returned, previously added summary edges are followed instead of
-      // traversing the procedure again. This leads to different results, which should not happen!
-      // return finished.get(pNodeId);
-      return pNodeId < 0;
+      return finished.get(pNodeId);
     }
 
     protected void setFormalOutFinished(int pNodeId) {
@@ -210,9 +207,18 @@ final class SummaryEdgeBuilder {
         int predProcedureId = getProcedureId(predId);
         int succProcedureId = getProcedureId(succId);
 
-        if (predProcedureId != succProcedureId && succProcedureId == procedureId && !recursive) {
-          // don't leave procedure via call edge if procedure does not recursively call itself
-          return VisitResult.SKIP;
+        if (predProcedureId != succProcedureId) {
+
+          if (pType != EdgeType.PARAMETER_EDGE) {
+            // don't leave procedure via non-parameter call edge
+            return VisitResult.SKIP;
+          }
+
+          if (succProcedureId == procedureId && !recursive) {
+            // Procedure P contains the relevant formal-in/out edges for this traversal:
+            // don't leave P via call edge if P does not recursively call itself
+            return VisitResult.SKIP;
+          }
         }
 
       } else if (isFormalOutFinished(predId)) {
@@ -317,9 +323,18 @@ final class SummaryEdgeBuilder {
         int predProcedureId = getProcedureId(predId);
         int succProcedureId = getProcedureId(succId);
 
-        if (predProcedureId != succProcedureId && succProcedureId == procedureId && !recursive) {
-          // don't leave procedure via call edge if procedure does not recursively call itself
-          return VisitResult.SKIP;
+        if (predProcedureId != succProcedureId) {
+
+          if (pType != EdgeType.PARAMETER_EDGE) {
+            // don't leave procedure via non-parameter call edge
+            return VisitResult.SKIP;
+          }
+
+          if (succProcedureId == procedureId && !recursive) {
+            // Procedure P contains the relevant formal-in/out edges for this traversal:
+            // don't leave P via call edge if P does not recursively call itself
+            return VisitResult.SKIP;
+          }
         }
 
         if (pPredecessor.getType() == NodeType.FORMAL_IN
