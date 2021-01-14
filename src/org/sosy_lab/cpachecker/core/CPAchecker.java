@@ -455,7 +455,8 @@ public class CPAchecker {
     CPAcheckerResult res =
         new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
 
-    if (config.hasProperty("cfa.abstractLoopsAnalyzeProgram")
+    if (!config.asPropertiesString().isEmpty()
+        && config.hasProperty("cfa.abstractLoopsAnalyzeProgram")
         && config.getProperty("cfa.abstractLoopsAnalyzeProgram").contentEquals("true")
         && result != Result.TRUE) {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();

@@ -393,7 +393,6 @@ public class CFACreator {
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     boolean flag = false;
-    CFA result = null;
     if (!loopIsAutomated || automateAbstractLoopParser) {
       stats.totalTime.start();
     }
@@ -405,18 +404,15 @@ public class CFACreator {
       assert mainFunction != null : "program lacks main function.";
 
       cfa = createCFA(parseResult, mainFunction);
-      if (!automateAbstractLoopParser) {
-        result = createCFA(parseResult, mainFunction);
-      } else {
+      if (automateAbstractLoopParser) {
         flag = true;
-        cfa = createCFA(parseResult, mainFunction);
         LoopInformation builder = new LoopInformation(config, logger, cfa);
         builder.collectStatistics(stats.statisticsCollection);
         LoopAbstractionHeader loopAbstraction =
             new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
         loopAbstraction.collectStatistics(stats.statisticsCollection);
         automateAbstractLoopParser = false;
-        result = parseSourceAndCreateCFA(program);
+        cfa = parseSourceAndCreateCFA(program);
       }
 
       return cfa;
@@ -429,7 +425,7 @@ public class CFACreator {
             || ((serializeCfaFile != null) && serializeCfa)
             || (exportCfaPixelFile != null)
             || (exportCfaToCFile != null && exportCfaToC)) {
-          exportCFAAsync(result);
+          exportCFAAsync(cfa);
         }
       }
     }
