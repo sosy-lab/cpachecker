@@ -26,6 +26,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopData;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
+import org.sosy_lab.cpachecker.util.loopInformation.LoopType;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopVariables;
 
 /**
@@ -82,10 +83,10 @@ public class LoopAbstraction {
     List<LoopVariables> preUsedVariables = new ArrayList<>();
     boolean closed = true;
     for (LoopData loopData : loopInfo.getLoopData()) {
-      if (loopData.getLoopType().equals("while")) {
+      if (loopData.getLoopType().equals(LoopType.WHILE)) {
         loopStarts.add(
             loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin());
-      } else if (loopData.getLoopType().equals("for")) {
+      } else if (loopData.getLoopType().equals(LoopType.FOR)) {
         loopStarts.add(
             loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin());
       }
@@ -232,12 +233,12 @@ public class LoopAbstraction {
                       && !onlyAccL)) {
 
                 CFANode endNodeCondition = findLastNodeInCondition(loopD);
-                if (loopD.getLoopType().equals("while")) {
+                if (loopD.getLoopType().equals(LoopType.WHILE)) {
                   line = reader.readLine();
                   line = variablesAlreadyUsed(preUsedVariables, line);
                   content = content + whileCondition(loopD, abstractionLevel);
                   lineNumber++;
-                } else if (loopD.getLoopType().equals("for")) {
+                } else if (loopD.getLoopType().equals(LoopType.FOR)) {
                   line = reader.readLine();
                   line = variablesAlreadyUsed(preUsedVariables, line);
                   content = content + forCondition(loopD, preUsedVariables, abstractionLevel);
@@ -246,7 +247,7 @@ public class LoopAbstraction {
                 content += undeterministicVariables(loopD, preUsedVariables, abstractionLevel);
 
                 if (!loopD.getIsOuterLoop()) {
-                  if (loopD.getLoopType().equals("while")) {
+                  if (loopD.getLoopType().equals(LoopType.WHILE)) {
                     content +=
                         ("__VERIFIER_assume(" + loopD.getCondition() + ");")
                             + System.lineSeparator();
@@ -335,7 +336,7 @@ public class LoopAbstraction {
                       content += assumeEnd(loopD);
                     }
                     outerLoopTemp.clear();
-                  } else if (loopD.getLoopType().equals("for")) {
+                  } else if (loopD.getLoopType().equals(LoopType.FOR)) {
                     content +=
                         ("__VERIFIER_assume("
                                 + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
@@ -425,11 +426,11 @@ public class LoopAbstraction {
                     outerLoopTemp.clear();
                   }
                 } else if (loopD.getIsOuterLoop()) {
-                  if (loopD.getLoopType().equals("while")) {
+                  if (loopD.getLoopType().equals(LoopType.WHILE)) {
                     content +=
                         ("__VERIFIER_assume(" + loopD.getCondition() + ");")
                             + System.lineSeparator();
-                  } else if (loopD.getLoopType().equals("for")) {
+                  } else if (loopD.getLoopType().equals(LoopType.FOR)) {
                     content +=
                         ("__VERIFIER_assume("
                                 + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
@@ -437,7 +438,7 @@ public class LoopAbstraction {
                             + System.lineSeparator();
                   }
                   outerLoopTemp.add(loopD);
-                  if (loopD.getLoopType().equals("for")) {
+                  if (loopD.getLoopType().equals(LoopType.FOR)) {
                     while (lineNumber
                             >= endNodeCondition
                                 .getEnteringEdge(0)
@@ -459,7 +460,7 @@ public class LoopAbstraction {
                       lineNumber++;
                       // lineNumber++;
                     }
-                  } else if (loopD.getLoopType().equals("while")) {
+                  } else if (loopD.getLoopType().equals(LoopType.WHILE)) {
                     while (lineNumber
                             >= endNodeCondition
                                 .getEnteringEdge(0)
@@ -511,13 +512,13 @@ public class LoopAbstraction {
     String ass = "";
     if (!loopD.getOnlyRandomCondition()) {
       if (!(loopD.getCondition().equals("1") && hasBreak)) {
-        if (loopD.getLoopType().equals("for")) {
+        if (loopD.getLoopType().equals(LoopType.FOR)) {
           ass +=
               ("__VERIFIER_assume(!("
                   + Iterables.get(Splitter.on(';').split(loopD.getCondition()), 1)
                   + "));"
                   + System.lineSeparator());
-        } else if (loopD.getLoopType().equals("while")) {
+        } else if (loopD.getLoopType().equals(LoopType.WHILE)) {
           ass += ("__VERIFIER_assume(!(" + loopD.getCondition() + "));" + System.lineSeparator());
         }
       }

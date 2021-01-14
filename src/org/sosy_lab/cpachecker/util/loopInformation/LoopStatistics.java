@@ -62,7 +62,9 @@ public class LoopStatistics implements Statistics {
         };
         loopStartAndEnd.add(x);
         String[] y = {
-          "L" + (i + 1), loopList.get(i).getLoopType(), "" + loopList.get(i).getLoopInLoop()
+          "L" + (i + 1),
+          loopList.get(i).getLoopType().toString(),
+          "" + loopList.get(i).getLoopInLoop()
         };
         loopType.add(y);
         String[] loopCond = {"L" + (i + 1), loopList.get(i).getCondition()};

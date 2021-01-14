@@ -25,6 +25,20 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 /** This class collects and saves all of the data in one loop */
 public class LoopData implements Comparable<LoopData> {
 
+  enum FinalVariables {
+    vOUTPUT_VARIABLE_ARRAY_POSITION {
+      @Override
+      public Integer returnValue() {
+        return 2;
+      }
+    },
+    ;
+
+    public Integer returnValue() {
+      return null;
+    }
+  }
+
   private CFANode loopStart;
   private CFANode loopEnd;
   private CFANode failedState;
@@ -38,7 +52,7 @@ public class LoopData implements Comparable<LoopData> {
   private List<CFANode> endOfCondition;
 
   private String condition;
-  private String loopType = "";
+  private LoopType loopType;
 
   private int amountOfPaths;
   private int numberAllOutputs;
@@ -53,8 +67,9 @@ public class LoopData implements Comparable<LoopData> {
   private Timer timeToAnalyze;
   private TimeSpan analyzeTime;
 
-  private static final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
   private static final String OUTPUT_NAME_SYMBOL_CUT = ":";
+
+  private static final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
   private static final int ONLY_ENTERING_EDGE = 0;
   private static final int POSITION_OF_VARIABLE_IN_ARRAY_ZERO = 0;
   private static final int POSITION_OF_VARIABLE_IN_ARRAY_ONE = 1;
@@ -115,12 +130,12 @@ public class LoopData implements Comparable<LoopData> {
    *     node of the loop
    * @return returns the type of the loop, possible solutions are "while", "for" at the moment
    */
-  private String findLoopType(CFANode firstNode) {
-    String tempLoopType = "";
+  private LoopType findLoopType(CFANode firstNode) {
+    LoopType tempLoopType = null;
 
     if (firstNode.getNumEnteringEdges() > 0
         && firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().equals("while")) {
-      tempLoopType = firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
+      tempLoopType = LoopType.WHILE;
     } else {
       CFANode temp = firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
       boolean flag = true;
@@ -128,7 +143,7 @@ public class LoopData implements Comparable<LoopData> {
       while (flag) {
         if (temp.getNumEnteringEdges() > 0
             && temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().contains("for")) {
-          tempLoopType = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
+          tempLoopType = LoopType.FOR;
           setForStart(temp);
           flag = false;
         }
@@ -529,7 +544,7 @@ public class LoopData implements Comparable<LoopData> {
       CFA cfa,
       LogManager pLogger,
       CFANode start,
-      String type,
+      LoopType type,
       List<CFANode> loopNodes,
       List<CFANode> conditionEnd,
       CFANode startFor) {
@@ -539,7 +554,7 @@ public class LoopData implements Comparable<LoopData> {
     CFANode tempNode = start;
     boolean flag = true;
 
-    if (type.contentEquals("while")) {
+    if (type.equals(LoopType.WHILE)) {
 
       while (flag) {
         if ((tempNode.getLeavingEdge(VALID_STATE).getEdgeType().equals(CFAEdgeType.AssumeEdge)
@@ -575,7 +590,7 @@ public class LoopData implements Comparable<LoopData> {
           flag = false;
         }
       }
-    } else if (type.contentEquals("for")) {
+    } else if (type.equals(LoopType.FOR)) {
       for (CFANode node : cfa.getAllNodes()) {
         if (node.getNodeNumber() >= startFor.getNodeNumber()
             && node.getNodeNumber() <= start.getNodeNumber() + 1) {
@@ -656,14 +671,14 @@ public class LoopData implements Comparable<LoopData> {
    */
   public String nodesToCondition(
       List<CFANode> conditionNodes,
-      String type,
+      LoopType type,
       List<CFANode> conditionEnd,
       boolean endless,
       boolean onlyRandomC) {
     String cond = "";
     List<CFANode> temp = new ArrayList<>();
     if (!onlyRandomC) {
-      if (type.equals("while")) {
+      if (type.equals(LoopType.WHILE)) {
         for (CFANode n : conditionNodes) {
           if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
             temp.add(n);
@@ -672,13 +687,13 @@ public class LoopData implements Comparable<LoopData> {
             temp.add(n);
           }
         }
-      } else if (type.equals("for")) {
+      } else if (type.equals(LoopType.FOR)) {
         temp = copyList(conditionNodes);
       }
     }
     CFANode node;
 
-    if (type.contentEquals("while")) {
+    if (type.equals(LoopType.WHILE)) {
       if (temp.isEmpty() || endless) {
         cond = "1";
       }
@@ -726,7 +741,7 @@ public class LoopData implements Comparable<LoopData> {
           }
         }
       }
-    } else if (type.contentEquals("for")) {
+    } else if (type.equals(LoopType.FOR)) {
 
       CFANode start = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
@@ -802,7 +817,7 @@ public class LoopData implements Comparable<LoopData> {
    */
   private boolean canLoopBeAccelerated(
       List<CFANode> condNodes,
-      String type,
+      LoopType type,
       int pathNumber,
       int outputNumber,
       boolean endless,
@@ -833,7 +848,7 @@ public class LoopData implements Comparable<LoopData> {
 
     List<Boolean> temp = new ArrayList<>();
     if (!tmpEndless) {
-      if (type.contentEquals("while")) {
+      if (type.equals(LoopType.WHILE)) {
         List<String> rightSideVariable = new ArrayList<>();
         for (CFANode node : conditionNodes) {
           rightSideVariable.add(
@@ -882,7 +897,7 @@ public class LoopData implements Comparable<LoopData> {
           }
         }
 
-      } else if (type.contentEquals("for")) {
+      } else if (type.equals(LoopType.FOR)) {
         List<String> rightSideVariable = new ArrayList<>();
         for (CFANode node : forCondition) {
           rightSideVariable.add(
@@ -999,7 +1014,7 @@ public class LoopData implements Comparable<LoopData> {
     return output;
   }
 
-  public String getLoopType() {
+  public LoopType getLoopType() {
     return loopType;
   }
 
