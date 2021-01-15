@@ -13,29 +13,45 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import java.util.HashSet;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.ForwardsVisitor;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 
-/** Utility class for computing control dependencies. */
-final class ControlDependenceBuilder {
+/**
+ * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
+ */
+final class ControlDependenceBuilder<V> {
 
-  private ControlDependenceBuilder() {}
+  private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, V> builder;
+  private final Optional<AFunctionDeclaration> procedure;
+  private final Set<CFAEdge> dependentEdges;
+
+  private ControlDependenceBuilder(
+      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, V> pBuilder,
+      FunctionEntryNode pEntryNode) {
+
+    builder = pBuilder;
+    procedure = Optional.of(pEntryNode.getFunction());
+    dependentEdges = new HashSet<>();
+  }
 
   private static boolean ignoreFunctionEdge(CFAEdge pEdge) {
-    return pEdge instanceof CFunctionCallEdge;
+    return pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge;
   }
 
   private static Iterable<CFAEdge> functionEdges(Set<CFANode> pFunctionNodes) {
@@ -45,56 +61,62 @@ final class ControlDependenceBuilder {
         .filter(edge -> !ignoreFunctionEdge(edge));
   }
 
-  private static Set<CFAEdge> getFunctionCallDependentEdges(
-      Set<ControlDependency> pDependencies, Set<CFAEdge> pCallEdges) {
+  public static void insertControlDependencies(
+      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?> pBuilder,
+      FunctionEntryNode pEntryNode,
+      boolean pDependOnBothAssumptions) {
 
-    Set<CFAEdge> functionCallDependent = new HashSet<>();
-    boolean changed = true;
-    while (changed) {
-
-      changed = false;
-
-      for (ControlDependency dependency : pDependencies) {
-
-        CFAEdge controlEdge = dependency.getControlEdge();
-        CFAEdge dependentEdge = dependency.getDependentEdge();
-
-        if (pCallEdges.contains(controlEdge) || functionCallDependent.contains(controlEdge)) {
-          if (functionCallDependent.add(dependentEdge)) {
-            changed = true;
-          }
-        }
-      }
-    }
-
-    return functionCallDependent;
-  }
-
-  static ImmutableSet<ControlDependency> computeControlDependencies(
-      CFA pCfa, FunctionEntryNode pEntryNode, boolean pDependOnBothAssumptions) {
+    ControlDependenceBuilder<?> controlDependenceBuilder =
+        new ControlDependenceBuilder<>(pBuilder, pEntryNode);
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
     Set<CFANode> postDomTreeNodes = new HashSet<>();
     Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
 
-    Set<ControlDependency> dependencies = new HashSet<>();
-    Set<CFAEdge> dependentEdges = new HashSet<>();
+    controlDependenceBuilder.insertControlDependencies(
+        postDomTree, postDomTreeNodes, pDependOnBothAssumptions);
 
-    // Compute control dependencies by using dominance frontiers created from the post-DomTree.
+    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
 
-    DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(postDomTree);
-    for (CFANode dependentNode : postDomTree) {
-      int nodeId = postDomTree.getId(dependentNode);
+    controlDependenceBuilder.insertMissingControlDependencies(
+        postDomTree, postDomTreeNodes, nodeCollector.getVisitedNodes());
+
+    controlDependenceBuilder.insertEntryControlDependencies(nodeCollector.getVisitedNodes());
+  }
+
+  /**
+   * Compute control dependencies using dominance frontiers created from the post-DomTree and insert
+   * these dependencies into the system dependence graph.
+   */
+  private void insertControlDependencies(
+      DomTree<CFANode> pPostDomTree,
+      Set<CFANode> pPostDomTreeNodes,
+      boolean pDependOnBothAssumptions) {
+
+    DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(pPostDomTree);
+    for (CFANode dependentNode : pPostDomTree) {
+      int nodeId = pPostDomTree.getId(dependentNode);
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
         for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-          if (postDomTreeNodes.contains(assumeEdge.getSuccessor())) {
-            int assumeSuccessorId = postDomTree.getId(assumeEdge.getSuccessor());
+          if (pPostDomTreeNodes.contains(assumeEdge.getSuccessor())) {
+
+            int assumeSuccessorId = pPostDomTree.getId(assumeEdge.getSuccessor());
             if (pDependOnBothAssumptions
                 || nodeId == assumeSuccessorId
-                || postDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+                || pPostDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
-                  dependencies.add(new ControlDependency(assumeEdge, dependentEdge));
+
+                  Optional<CFAEdge> dependetStatement = Optional.of(dependentEdge);
+                  Optional<CFAEdge> controlStatement = Optional.of(assumeEdge);
+
+                  builder
+                      .node(NodeType.STATEMENT, procedure, dependetStatement, Optional.empty())
+                      .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+                      .on(NodeType.STATEMENT, procedure, controlStatement, Optional.empty());
+
                   dependentEdges.add(dependentEdge);
                 }
               }
@@ -103,22 +125,26 @@ final class ControlDependenceBuilder {
         }
       }
     }
+  }
 
-    // Collect all CFANodes in the pEntryNode function.
-
-    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
-    CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
+  /**
+   * Insert necessary control dependencies that were overlooked by post-DomTree based {@link
+   * #insertControlDependencies(DomTree, Set, boolean)}.
+   */
+  private void insertMissingControlDependencies(
+      DomTree<CFANode> pPostDomTree, Set<CFANode> pPostDomTreeNodes, Set<CFANode> pFunctionNodes) {
 
     // Some function nodes are missing from the post-DomTree. This happens when a path from the node
     // to the function exit node does not exist. These nodes are handled the following way:
-    //   1. Edges directly connected to these nodes are collected, resulting in set E.
-    //   2. A subset C that contains all assume edges in E is created.
-    //   3. The following dependencies are added: { e depends on c | e in E, c in C, e != c }
+    // 1. Edges directly connected to these nodes are collected, resulting in set E.
+    // 2. A subset C that contains all assume edges in E is created.
+    // 3. The following dependencies are added: { e depends on c | e in E, c in C, e != c }
 
     Set<CFAEdge> edgesWithoutDominator = new HashSet<>();
-    for (CFANode node : nodeCollector.getVisitedNodes()) {
+    for (CFANode node : pFunctionNodes) {
       if (!(node instanceof FunctionExitNode)) {
-        if (!postDomTreeNodes.contains(node) || !postDomTree.hasParent(postDomTree.getId(node))) {
+        if (!pPostDomTreeNodes.contains(node)
+            || !pPostDomTree.hasParent(pPostDomTree.getId(node))) {
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allLeavingEdges(node));
         }
@@ -136,109 +162,77 @@ final class ControlDependenceBuilder {
       if (!ignoreFunctionEdge(dependentEdge)) {
         for (CFAEdge assumeEdge : assumeEdgesWithoutDominator) {
           if (!assumeEdge.equals(dependentEdge)) {
-            dependencies.add(new ControlDependency(assumeEdge, dependentEdge));
+
+            Optional<CFAEdge> dependetStatement = Optional.of(dependentEdge);
+            Optional<CFAEdge> controlStatement = Optional.of(assumeEdge);
+
+            builder
+                .node(NodeType.STATEMENT, procedure, dependetStatement, Optional.empty())
+                .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+                .on(NodeType.STATEMENT, procedure, controlStatement, Optional.empty());
+
             dependentEdges.add(dependentEdge);
           }
         }
       }
     }
-
-    // Add dependencies between all CFAEdges not dependent on any other CFAEdge and all function
-    // call edges entering the function.
-
-    Set<CFAEdge> callEdges = new HashSet<>();
-    for (CFAEdge callEdge : CFAUtils.enteringEdges(pEntryNode)) {
-      if (callEdge instanceof CFunctionCallEdge) {
-        callEdges.add(callEdge);
-      }
-    }
-
-    for (CFAEdge edge : functionEdges(nodeCollector.getVisitedNodes())) {
-      if (!dependentEdges.contains(edge)) {
-        for (CFAEdge callEdge : callEdges) {
-          dependencies.add(new ControlDependency(callEdge, edge));
-        }
-      }
-    }
-
-    // If the function has no entering call edges, use the function start dummy edge instead.
-
-    if (callEdges.isEmpty() && !pEntryNode.equals(pCfa.getMainFunction())) {
-      CFAUtils.allLeavingEdges(pEntryNode).copyInto(callEdges);
-    }
-
-    // Check whether all CFAEdges are, directly or indirectly, control dependent on the function's
-    // entering call edges. If such a dependency doesn't already exist, it's subsequently added.
-
-    Set<CFAEdge> functionCallDependent = getFunctionCallDependentEdges(dependencies, callEdges);
-
-    for (CFAEdge edge : functionEdges(nodeCollector.getVisitedNodes())) {
-      if (!functionCallDependent.contains(edge)) {
-        for (CFAEdge callEdge : callEdges) {
-          dependencies.add(new ControlDependency(callEdge, edge));
-        }
-      }
-    }
-
-    // Add dependencies between the function's entering call edges and their corresponding summary
-    // edges.
-
-    for (CFAEdge callEdge : callEdges) {
-      if (callEdge instanceof CFunctionCallEdge) {
-        CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
-        dependencies.add(new ControlDependency(summaryEdge, callEdge));
-      }
-    }
-
-    return ImmutableSet.copyOf(dependencies);
   }
 
-  static final class ControlDependency {
+  /**
+   * Insert control dependencies into the SDG such that all statements contained in the function are
+   * directly or indirectly control dependent on the SDG function entry node.
+   */
+  private void insertEntryControlDependencies(Set<CFANode> pFunctionNodes) {
 
-    private final CFAEdge controlEdge;
-    private final CFAEdge dependentEdge;
-
-    private ControlDependency(CFAEdge pControlEdge, CFAEdge pDependentEdge) {
-      controlEdge = pControlEdge;
-      dependentEdge = pDependentEdge;
-    }
-
-    CFAEdge getControlEdge() {
-      return controlEdge;
-    }
-
-    CFAEdge getDependentEdge() {
-      return dependentEdge;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(controlEdge, dependentEdge);
-    }
-
-    @Override
-    public boolean equals(Object pObject) {
-
-      if (this == pObject) {
-        return true;
+    for (CFAEdge edge : functionEdges(pFunctionNodes)) {
+      if (!dependentEdges.contains(edge)) {
+        builder
+            .node(NodeType.STATEMENT, procedure, Optional.of(edge), Optional.empty())
+            .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+            .on(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty());
       }
-
-      if (pObject == null) {
-        return false;
-      }
-
-      if (getClass() != pObject.getClass()) {
-        return false;
-      }
-
-      ControlDependency other = (ControlDependency) pObject;
-      return Objects.equals(controlEdge, other.controlEdge)
-          && Objects.equals(dependentEdge, other.dependentEdge);
     }
 
-    @Override
-    public String toString() {
-      return String.format(Locale.ENGLISH, "((%s) depends on (%s))", dependentEdge, controlEdge);
+    Set<CFAEdge> entryNodeDependent = new HashSet<>();
+    Node<AFunctionDeclaration, CFAEdge, V> entryNode =
+        builder.node(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty()).getNode();
+
+    builder.traverse(
+        ImmutableSet.of(entryNode),
+        new ForwardsVisitor<>() {
+
+          @Override
+          public VisitResult visitNode(Node<AFunctionDeclaration, CFAEdge, V> pNode) {
+
+            if (pNode.getType() == NodeType.ENTRY) {
+              return VisitResult.CONTINUE;
+            }
+
+            Optional<CFAEdge> statement = pNode.getStatement();
+            if (statement.isPresent() && entryNodeDependent.add(statement.orElseThrow())) {
+              return VisitResult.CONTINUE;
+            } else {
+              return VisitResult.SKIP;
+            }
+          }
+
+          @Override
+          public VisitResult visitEdge(
+              EdgeType pType,
+              Node<AFunctionDeclaration, CFAEdge, V> pPredecessor,
+              Node<AFunctionDeclaration, CFAEdge, V> pSuccessor) {
+
+            return pType == EdgeType.CONTROL_DEPENDENCY ? VisitResult.CONTINUE : VisitResult.SKIP;
+          }
+        });
+
+    for (CFAEdge edge : functionEdges(pFunctionNodes)) {
+      if (!entryNodeDependent.contains(edge)) {
+        builder
+            .node(NodeType.STATEMENT, procedure, Optional.of(edge), Optional.empty())
+            .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+            .on(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty());
+      }
     }
   }
 }

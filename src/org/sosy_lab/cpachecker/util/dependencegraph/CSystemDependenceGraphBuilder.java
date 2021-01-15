@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.ControlDependenceBuilder.ControlDependency;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
@@ -654,27 +653,34 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      ImmutableSet<ControlDependency> controlDependencies =
-          ControlDependenceBuilder.computeControlDependencies(
-              cfa, entryNode, controlDepsTakeBothAssumptions);
+      ControlDependenceBuilder.insertControlDependencies(
+          builder, entryNode, controlDepsTakeBothAssumptions);
 
-      for (ControlDependency controlDependency : controlDependencies) {
+      Optional<AFunctionDeclaration> procedure = Optional.of(entryNode.getFunction());
 
-        CFAEdge dependentEdge = controlDependency.getDependentEdge();
-        CFAEdge controlEdge = controlDependency.getControlEdge();
+      for (CFAEdge edge : CFAUtils.allEnteringEdges(entryNode)) {
+        if (edge instanceof CFunctionCallEdge) {
 
-        builder
-            .node(
-                NodeType.STATEMENT,
-                getOptionalFunction(dependentEdge),
-                Optional.of(dependentEdge),
-                Optional.empty())
-            .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
-            .on(
-                NodeType.STATEMENT,
-                getOptionalFunction(controlEdge),
-                Optional.of(controlEdge),
-                Optional.empty());
+          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+
+          builder
+              .node(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty())
+              .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
+              .on(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty());
+
+          CFunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
+          Optional<AFunctionDeclaration> summaryEdgeProcedure =
+              Optional.of(summaryEdge.getPredecessor().getFunction());
+
+          builder
+              .node(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty())
+              .depends(EdgeType.CALL_EDGE, Optional.empty())
+              .on(
+                  NodeType.STATEMENT,
+                  summaryEdgeProcedure,
+                  Optional.of(summaryEdge),
+                  Optional.empty());
+        }
       }
     }
   }

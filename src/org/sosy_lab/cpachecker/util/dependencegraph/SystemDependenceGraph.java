@@ -738,6 +738,10 @@ public class SystemDependenceGraph<P, T, V> {
 
         return new DependencyChooser(graphNode, pType, pCause);
       }
+
+      public Node<P, T, V> getNode() {
+        return graphNode.getNode();
+      }
     }
 
     public final class DependencyChooser {
