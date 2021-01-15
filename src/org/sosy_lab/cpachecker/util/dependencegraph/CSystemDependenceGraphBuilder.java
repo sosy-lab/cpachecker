@@ -693,56 +693,50 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           @Override
           public void printStatistics(
               final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+
             if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
+
               put(pOut, 3, dependenceGraphConstructionTimer);
               put(pOut, 4, flowDependenceTimer);
               put(pOut, 4, controlDependenceTimer);
               put(pOut, 4, summaryEdgeTimer);
-              put(
-                  pOut,
-                  4,
-                  "Number of statement nodes",
-                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.STATEMENT)));
-              put(
-                  pOut,
-                  4,
-                  "Number of formal-in nodes",
-                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.FORMAL_IN)));
-              put(
-                  pOut,
-                  4,
-                  "Number of formal-out nodes",
-                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.FORMAL_OUT)));
-              put(
-                  pOut,
-                  4,
-                  "Number of actual-in nodes",
-                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.ACTUAL_IN)));
-              put(
-                  pOut,
-                  4,
-                  "Number of actual-out nodes",
-                  String.valueOf(systemDependenceGraph.getNodeCount(NodeType.ACTUAL_OUT)));
-              put(
-                  pOut,
-                  4,
-                  "Number of flow dependencies",
-                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.FLOW_DEPENDENCY)));
-              put(
-                  pOut,
-                  4,
-                  "Number of control dependencies",
-                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.CONTROL_DEPENDENCY)));
-              put(
-                  pOut,
-                  4,
-                  "Number of parameter edges",
-                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.PARAMETER_EDGE)));
-              put(
-                  pOut,
-                  4,
-                  "Number of summary edges",
-                  String.valueOf(systemDependenceGraph.getEdgeCount(EdgeType.SUMMARY_EDGE)));
+
+              int entryNodeCount = systemDependenceGraph.getNodeCount(NodeType.ENTRY);
+              put(pOut, 4, "Number of entry nodes", String.valueOf(entryNodeCount));
+
+              int statementCount = systemDependenceGraph.getNodeCount(NodeType.STATEMENT);
+              put(pOut, 4, "Number of statement nodes", String.valueOf(statementCount));
+
+              int formalInCount = systemDependenceGraph.getNodeCount(NodeType.FORMAL_IN);
+              put(pOut, 4, "Number of formal-in nodes", String.valueOf(formalInCount));
+
+              int formalOutCount = systemDependenceGraph.getNodeCount(NodeType.FORMAL_OUT);
+              put(pOut, 4, "Number of formal-out nodes", String.valueOf(formalOutCount));
+
+              int actualInCount = systemDependenceGraph.getNodeCount(NodeType.ACTUAL_IN);
+              put(pOut, 4, "Number of actual-in nodes", String.valueOf(actualInCount));
+
+              int actualOutCount = systemDependenceGraph.getNodeCount(NodeType.ACTUAL_OUT);
+              put(pOut, 4, "Number of actual-out nodes", String.valueOf(actualOutCount));
+
+              int flowDepCount = systemDependenceGraph.getEdgeCount(EdgeType.FLOW_DEPENDENCY);
+              put(pOut, 4, "Number of flow dependencies", String.valueOf(flowDepCount));
+
+              int controlDepCount = systemDependenceGraph.getEdgeCount(EdgeType.CONTROL_DEPENDENCY);
+              put(pOut, 4, "Number of control dependencies", String.valueOf(controlDepCount));
+
+              int declEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.DECLARATION_EDGE);
+              put(pOut, 4, "Number of declaration edges", String.valueOf(declEdgeCount));
+
+              int callEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.CALL_EDGE);
+              put(pOut, 4, "Number of call edges", String.valueOf(callEdgeCount));
+
+              int paramEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.PARAMETER_EDGE);
+              put(pOut, 4, "Number of parameter edges", String.valueOf(paramEdgeCount));
+
+              int summaryEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.SUMMARY_EDGE);
+              put(pOut, 4, "Number of summary edges", String.valueOf(summaryEdgeCount));
+
               put(pOut, 4, "Used GlobalPointerState", usedGlobalPointerState);
             }
           }
