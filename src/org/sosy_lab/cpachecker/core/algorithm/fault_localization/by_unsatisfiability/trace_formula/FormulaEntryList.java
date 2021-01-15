@@ -72,23 +72,23 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     return values;
   }
 
-  public List<BooleanFormula> toAtomList() {
+  public ImmutableList<BooleanFormula> toAtomList() {
     return toTList(entry -> entry.atom);
   }
 
-  public List<SSAMap> toSSAMapList() {
+  public ImmutableList<SSAMap> toSSAMapList() {
     return toTList(entry -> entry.map);
   }
 
-  public List<Selector> toSelectorList() {
+  public ImmutableList<Selector> toSelectorList() {
     return toTList(entry -> entry.selector);
   }
 
-  public List<CFAEdge> toEdgeList() {
+  public ImmutableList<CFAEdge> toEdgeList() {
     return toTList(entry -> entry.selector.getEdge());
   }
 
-  private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
+  private <T> ImmutableList<T> toTList(Function<FormulaEntry, T> mapping) {
     return entries.stream()
         .map(mapping)
         .filter(Objects::nonNull)

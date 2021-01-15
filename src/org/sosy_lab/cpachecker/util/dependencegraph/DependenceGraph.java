@@ -233,13 +233,13 @@ public final class DependenceGraph implements Serializable {
     return ReachedSet.fromMutable(reachable);
   }
 
-  private Collection<DGNode> getAdjacentNeighbors(
+  private ImmutableSet<DGNode> getAdjacentNeighbors(
       final DGNode pNode, final TraversalDirection pDirection) {
     return getAdjacentNeighbors(
         pNode, pDirection, dgEdge -> true);
   }
 
-  private Collection<DGNode> getAdjacentNeighbors(
+  private ImmutableSet<DGNode> getAdjacentNeighbors(
       DGNode pNode, TraversalDirection pDirection, Predicate<DependenceType> pIsEdgeOfInterest) {
 
     return getAdjacentNodes(pNode, pDirection).entrySet().stream()

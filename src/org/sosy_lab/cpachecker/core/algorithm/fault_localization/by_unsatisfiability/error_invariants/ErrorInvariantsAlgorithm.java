@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -66,7 +67,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   private LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
-  private List<SSAMap> maps;
+  private ImmutableList<SSAMap> maps;
 
   // Memorize already processed interpolants to minimize solver calls
   private Multimap<BooleanFormula, Integer> memorize;
@@ -145,7 +146,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     // sort the intervals and calculate abstrace error trace
     Collections.sort(sortedIntervals, Comparator.comparingInt(i -> i.getStart()));
-    List<Selector> selectors = errorTrace.getEntries().toSelectorList();
+    ImmutableList<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
@@ -228,7 +229,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
    */
   private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace) {
     // Stores description of last interval
-    List<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
+    ImmutableList<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
     Selector prev = allSelectors.get(0);
     Set<Fault> faults = new HashSet<>();
     for (int i = 0; i < abstractTrace.size(); i++) {
