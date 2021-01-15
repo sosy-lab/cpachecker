@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
-abstract class DotExporter<P, T, V> {
+abstract class SdgDotExporter<P, T, V> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles =
       ImmutableMap.of(

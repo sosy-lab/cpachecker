@@ -249,7 +249,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     dependenceGraphConstructionTimer.stop();
 
     if (exportDot != null) {
-      new CDotExporter().export(systemDependenceGraph, exportDot, logger);
+      new CSdgDotExporter().export(systemDependenceGraph, exportDot, logger);
     }
 
     return systemDependenceGraph;
@@ -759,8 +759,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     FLOW_INSENSITIVE;
   }
 
-  private static final class CDotExporter
-      extends DotExporter<AFunctionDeclaration, CFAEdge, MemoryLocation> {
+  private static final class CSdgDotExporter
+      extends SdgDotExporter<AFunctionDeclaration, CFAEdge, MemoryLocation> {
 
     @Override
     protected String getProcedureLabel(AFunctionDeclaration pContext) {
