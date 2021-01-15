@@ -31,30 +31,31 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 abstract class SdgDotExporter<P, T, V> {
 
-  private static final ImmutableMap<EdgeType, String> edgeStyles =
-      ImmutableMap.of(
-          EdgeType.FLOW_DEPENDENCY,
-          "style=bold,color={color}",
-          EdgeType.CONTROL_DEPENDENCY,
-          "style=\"bold,dashed\",color={color}",
-          EdgeType.CALL_EDGE,
-          "style=\"dashed\",color={color}",
-          EdgeType.PARAMETER_EDGE,
-          "style=\"bold,dotted\",color={color}",
-          EdgeType.SUMMARY_EDGE,
-          "style=bold,peripheries=2,color=\"{color}:invis:{color}\"");
-  private static final ImmutableMap<EdgeType, String> edgeLabels =
-      ImmutableSortedMap.of(
-          EdgeType.FLOW_DEPENDENCY,
-          "Flow Dependency",
-          EdgeType.CONTROL_DEPENDENCY,
-          "Declaration Edge",
-          EdgeType.CALL_EDGE,
-          "Call Edge",
-          EdgeType.PARAMETER_EDGE,
-          "Parameter Edge",
-          EdgeType.SUMMARY_EDGE,
-          "Summary Edge");
+  private static final ImmutableMap<EdgeType, String> edgeStyles;
+  private static final ImmutableMap<EdgeType, String> edgeLabels;
+
+  static {
+    ImmutableSortedMap.Builder<EdgeType, String> edgeLabelBuilder =
+        ImmutableSortedMap.naturalOrder();
+    edgeLabelBuilder.put(EdgeType.FLOW_DEPENDENCY, "Flow Dependency");
+    edgeLabelBuilder.put(EdgeType.CONTROL_DEPENDENCY, "Control Dependency");
+    edgeLabelBuilder.put(EdgeType.DECLARATION_EDGE, "Declaration Edge");
+    edgeLabelBuilder.put(EdgeType.CALL_EDGE, "Call Edge");
+    edgeLabelBuilder.put(EdgeType.PARAMETER_EDGE, "Parameter Edge");
+    edgeLabelBuilder.put(EdgeType.SUMMARY_EDGE, "Summary Edge");
+    edgeLabels = edgeLabelBuilder.build();
+
+    ImmutableMap.Builder<EdgeType, String> edgeStyleBuilder =
+        ImmutableMap.builderWithExpectedSize(EdgeType.values().length);
+    edgeStyleBuilder.put(EdgeType.FLOW_DEPENDENCY, "style=\"bold\",color=\"{color}\"");
+    edgeStyleBuilder.put(EdgeType.CONTROL_DEPENDENCY, "style=\"bold,dashed\",color=\"{color}\"");
+    edgeStyleBuilder.put(EdgeType.DECLARATION_EDGE, "color=\"{color}\"");
+    edgeStyleBuilder.put(EdgeType.CALL_EDGE, "style=\"dashed\",color=\"{color}\"");
+    edgeStyleBuilder.put(EdgeType.PARAMETER_EDGE, "style=\"bold,dotted\",color=\"{color}\"");
+    edgeStyleBuilder.put(
+        EdgeType.SUMMARY_EDGE, "style=\"bold\",peripheries=\"2\",color=\"{color}:invis:{color}\"");
+    edgeStyles = edgeStyleBuilder.build();
+  }
 
   protected abstract String getProcedureLabel(P pProcedure);
 
