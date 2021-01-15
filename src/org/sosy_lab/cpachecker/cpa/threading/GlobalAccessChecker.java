@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.threading;
 import com.google.common.base.Optional;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -63,7 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 public class GlobalAccessChecker {
 
   /** cache elements, edges and their content never change. */
-  private final Map<AAstNode, Boolean> astCache = new IdentityHashMap<>();
+  private final IdentityHashMap<AAstNode, Boolean> astCache = new IdentityHashMap<>();
 
   /** check, whether the edge might have a write- or read-access to
    * global variables or shared memory, i.e. whether the edge might
