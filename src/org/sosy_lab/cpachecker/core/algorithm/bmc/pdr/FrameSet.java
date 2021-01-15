@@ -111,7 +111,7 @@ class FrameSet implements AutoCloseable {
     return IntStream.rangeClosed(pFrameIndex, getFrontierIndex())
         .mapToObj(frames::get)
         .flatMap(Collection::stream)
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public void addFrameClause(int pFrameIndex, CandidateInvariant pClause) {

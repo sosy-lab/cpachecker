@@ -25,7 +25,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -267,7 +266,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
                 })
             .distinct()
             .collect(
-                Collectors.toMap(
+                ImmutableMap.toImmutableMap(
                     f -> fmgr.extractVariableNames(f).iterator().next(), Function.identity()));
     lastK = desiredK;
     return currentVariables;

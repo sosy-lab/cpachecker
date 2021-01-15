@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.collect.ForwardingList;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -89,7 +89,10 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
-    return entries.stream().map(mapping).filter(Objects::nonNull).collect(Collectors.toList());
+    return entries.stream()
+        .map(mapping)
+        .filter(Objects::nonNull)
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Override
