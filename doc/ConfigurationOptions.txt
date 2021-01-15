@@ -1875,9 +1875,6 @@ cpa.lpi.toLemmasAlgorithm = "RCNF"
 # -1 to never increase the depth.
 cpa.lpi.unrollingRefinementThreshold = 2
 
-# Use caching optimization solver
-cpa.lpi.useCachingOptSolver = false
-
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
 
