@@ -14,7 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 673d65a54133408a2936656271aa67b9aa4035fe
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.4.0
+  REFASTER_VERSION: 2.5.1
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
 
 .pip-cache: &pip-cache

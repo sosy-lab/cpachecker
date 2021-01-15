@@ -89,10 +89,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
-    return entries.stream()
-        .map(mapping::apply)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+    return entries.stream().map(mapping).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   @Override

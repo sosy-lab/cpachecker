@@ -135,8 +135,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.4.0" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.4.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.5.1" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.5.1" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
@@ -194,7 +194,7 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="org.codehaus.mojo" name="animal-sniffer-annotations" rev="1.18" conf="runtime->default;"/>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.4.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.5.1"/>
 
     </dependencies>
 </ivy-module>
