@@ -456,7 +456,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       insertFunctionDeclarationEdge(declarationEdges, entryNode);
 
       DependenceConsumer dependenceConsumer =
-          (pDefEdge, pUseEdge, pCause) -> {
+          (pDefEdge, pUseEdge, pCause, pDeclaration) -> {
             Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
             Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
             Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
@@ -501,6 +501,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
             } else {
 
+              EdgeType edgeType =
+                  pDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
               NodeType defNodeType;
               Optional<MemoryLocation> defNodeVariable = Optional.empty();
 
@@ -539,12 +541,12 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               if (pUseEdge instanceof CFunctionCallEdge) {
                 builder
                     .node(NodeType.FORMAL_IN, useFunction, Optional.empty(), Optional.of(pCause))
-                    .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                    .depends(edgeType, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
               } else if (pUseEdge instanceof CFunctionReturnEdge) {
                 builder
                     .node(NodeType.FORMAL_OUT, useFunction, Optional.empty(), Optional.of(pCause))
-                    .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                    .depends(edgeType, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
               } else if (pUseEdge instanceof CFunctionSummaryEdge) {
 
@@ -556,7 +558,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                 if (defUseData.getUses().contains(pCause)) {
                   builder
                       .node(NodeType.ACTUAL_OUT, useFunction, useEdge, returnVariable)
-                      .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                      .depends(edgeType, Optional.of(pCause))
                       .on(defNodeType, defFunction, defEdge, defNodeVariable);
                 } else {
                   for (CExpression pointeeExpression : defUseData.getPointeeUses()) {
@@ -565,7 +567,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                         .contains(pCause)) {
                       builder
                           .node(NodeType.ACTUAL_OUT, useFunction, useEdge, returnVariable)
-                          .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                          .depends(edgeType, Optional.of(pCause))
                           .on(defNodeType, defFunction, defEdge, defNodeVariable);
                     }
                   }
@@ -576,7 +578,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                     .contains(pCause)) {
                   builder
                       .node(NodeType.ACTUAL_IN, useFunction, useEdge, Optional.of(pCause))
-                      .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                      .depends(edgeType, Optional.of(pCause))
                       .on(defNodeType, defFunction, defEdge, defNodeVariable);
                 }
 
@@ -598,7 +600,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                   if (argumentDefUseData.getUses().contains(pCause)) {
                     builder
                         .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
-                        .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                        .depends(edgeType, Optional.of(pCause))
                         .on(defNodeType, defFunction, defEdge, defNodeVariable);
                   } else {
                     for (CExpression pointeeExpression : argumentDefUseData.getPointeeUses()) {
@@ -607,7 +609,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                           .contains(pCause)) {
                         builder
                             .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
-                            .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                            .depends(edgeType, Optional.of(pCause))
                             .on(defNodeType, defFunction, defEdge, defNodeVariable);
                       }
                     }
@@ -617,7 +619,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               } else {
                 builder
                     .node(NodeType.STATEMENT, useFunction, useEdge, Optional.empty())
-                    .depends(EdgeType.FLOW_DEPENDENCY, Optional.of(pCause))
+                    .depends(edgeType, Optional.of(pCause))
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
               }
             }

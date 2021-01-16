@@ -52,7 +52,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private final DependenceConsumer dependenceConsumer;
 
-  private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> dependences;
+  private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> flowDeps;
+  private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> declDeps;
   private final Multimap<CFAEdge, MemoryLocation> maybeDefs;
 
   FlowDepAnalysis(
@@ -78,7 +79,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     dependenceConsumer = pDependenceConsumer;
 
-    dependences = ArrayListMultimap.create();
+    flowDeps = ArrayListMultimap.create();
+    declDeps = ArrayListMultimap.create();
     maybeDefs = HashMultimap.create();
   }
 
@@ -271,7 +273,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     super.traverseDomTree(pDomTraversable);
   }
 
-  private void handleDependence(CFAEdge pEdge, Def<MemoryLocation, CFAEdge> pDef) {
+  private void handleDependence(
+      CFAEdge pEdge, Def<MemoryLocation, CFAEdge> pDef, boolean pDeclaration) {
 
     MemoryLocation variable = pDef.getVariable();
     Set<ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> defs = new HashSet<>();
@@ -281,7 +284,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
       Optional<CFAEdge> optDefEdge = def.getEdge();
       if (optDefEdge.isPresent()) {
-        dependenceConsumer.accept(optDefEdge.orElseThrow(), pEdge, variable);
+        dependenceConsumer.accept(optDefEdge.orElseThrow(), pEdge, variable, pDeclaration);
       }
     }
   }
@@ -291,7 +294,13 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     super.run();
 
-    dependences.forEach(this::handleDependence);
+    for (Map.Entry<CFAEdge, Def<MemoryLocation, CFAEdge>> entry : flowDeps.entries()) {
+      handleDependence(entry.getKey(), entry.getValue(), false);
+    }
+
+    for (Map.Entry<CFAEdge, Def<MemoryLocation, CFAEdge>> entry : declDeps.entries()) {
+      handleDependence(entry.getKey(), entry.getValue(), true);
+    }
 
     addFunctionUseDependences();
     addReturnValueDependences();
@@ -319,7 +328,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(pNode.getFunction())) {
         for (ReachDefAnalysis.Def<MemoryLocation, CFAEdge> def : getReachDefs(defVar)) {
           for (CFAEdge returnEdge : CFAUtils.leavingEdges(pNode)) {
-            dependences.put(returnEdge, def);
+            flowDeps.put(returnEdge, def);
           }
         }
       }
@@ -333,14 +342,14 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       for (ReachDefAnalysis.Def<MemoryLocation, CFAEdge> def : getReachDefs(useVar)) {
         assert def != null
             : String.format("Variable is missing definition: %s @ %s", useVar, pEdge);
-        dependences.put(pEdge, def);
+        flowDeps.put(pEdge, def);
       }
     }
 
     for (MemoryLocation defVar : getEdgeDefs(pEdge)) {
       ReachDefAnalysis.Def<MemoryLocation, CFAEdge> declaration = getDeclaration(defVar);
       if (declaration != null) {
-        dependences.put(pEdge, declaration);
+        declDeps.put(pEdge, declaration);
       }
     }
 
@@ -358,7 +367,10 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
         if (typeDeclarationEdge != null) {
           dependenceConsumer.accept(
-              typeDeclarationEdge, pEdge, MemoryLocation.valueOf(complexType.getQualifiedName()));
+              typeDeclarationEdge,
+              pEdge,
+              MemoryLocation.valueOf(complexType.getQualifiedName()),
+              true);
         }
       }
     }
@@ -372,7 +384,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       CFAEdge summaryEdge = callEdge.getPredecessor().getLeavingSummaryEdge();
       assert summaryEdge != null : "Missing summary edge for call edge: " + callEdge;
       for (MemoryLocation parameter : getEdgeDefs(callEdge)) {
-        dependenceConsumer.accept(summaryEdge, callEdge, parameter);
+        dependenceConsumer.accept(summaryEdge, callEdge, parameter, false);
       }
     }
   }
@@ -386,7 +398,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
 
       for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
-        dependenceConsumer.accept(returnEdge, summaryEdge, defVar);
+        dependenceConsumer.accept(returnEdge, summaryEdge, defVar, false);
       }
     }
   }
@@ -401,14 +413,14 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
       for (CFAEdge defEdge : CFAUtils.allEnteringEdges(entryNode.getExitNode())) {
         for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
-          dependenceConsumer.accept(defEdge, returnEdge, returnVar);
+          dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
         }
       }
 
       for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
         CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
         assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
-        dependenceConsumer.accept(returnEdge, summaryEdge, returnVar);
+        dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
       }
     }
   }
@@ -416,7 +428,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   @FunctionalInterface
   public interface DependenceConsumer {
 
-    void accept(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause);
+    void accept(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause, boolean pDeclaration);
   }
 
   private static final class SingleFunctionGraph
