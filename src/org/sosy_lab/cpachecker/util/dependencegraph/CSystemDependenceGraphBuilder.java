@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -395,22 +395,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return pointerState;
   }
 
-  private void addFlowDependecies() throws InterruptedException {
+  private ImmutableMap<String, CFAEdge> getDeclarationEdges(List<CFAEdge> pGlobalEdges) {
 
-    GlobalPointerState pointerState = createGlobalPointerState();
-    if (pointerState != null) {
-      usedGlobalPointerState = pointerState.getClass().getSimpleName();
-    } else {
-      return;
-    }
-
-    ForeignDefUseData foreignDefUseData =
-        ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
-
-    List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
     Map<String, CFAEdge> declarationEdges = new HashMap<>();
 
-    for (CFAEdge edge : globalEdges) {
+    for (CFAEdge edge : pGlobalEdges) {
       if (edge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
         if (declaration instanceof CFunctionDeclaration) {
@@ -424,25 +413,47 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
+    return ImmutableMap.copyOf(declarationEdges);
+  }
+
+  /** Insert declartion edge between a function and the corresponding function declaration edge. */
+  private void insertFunctionDeclarationEdge(
+      ImmutableMap<String, CFAEdge> pDeclarationEdges, FunctionEntryNode pEntryNode) {
+
+    CFAEdge functionDeclarationEdge = pDeclarationEdges.get(pEntryNode.getFunctionName());
+    builder
+        .node(
+            NodeType.ENTRY,
+            Optional.of(pEntryNode.getFunction()),
+            Optional.empty(),
+            Optional.empty())
+        .depends(EdgeType.DECLARATION_EDGE, Optional.empty())
+        .on(
+            NodeType.STATEMENT,
+            getOptionalFunction(functionDeclarationEdge),
+            Optional.of(functionDeclarationEdge),
+            Optional.empty());
+  }
+
+  private void addFlowDependecies() throws InterruptedException {
+
+    GlobalPointerState pointerState = createGlobalPointerState();
+    if (pointerState != null) {
+      usedGlobalPointerState = pointerState.getClass().getSimpleName();
+    } else {
+      return;
+    }
+
+    ForeignDefUseData foreignDefUseData =
+        ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
+
+    List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
+    ImmutableMap<String, CFAEdge> declarationEdges = getDeclarationEdges(globalEdges);
+
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-
-      CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
-      for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
-        builder
-            .node(
-                NodeType.STATEMENT,
-                getOptionalFunction(callEdge),
-                Optional.of(callEdge),
-                Optional.empty())
-            .depends(EdgeType.FLOW_DEPENDENCY, Optional.empty())
-            .on(
-                NodeType.STATEMENT,
-                getOptionalFunction(funcDeclEdge),
-                Optional.of(funcDeclEdge),
-                Optional.empty());
-      }
-
       DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
+
+      insertFunctionDeclarationEdge(declarationEdges, entryNode);
 
       DependenceConsumer dependenceConsumer =
           (pDefEdge, pUseEdge, pCause) -> {
