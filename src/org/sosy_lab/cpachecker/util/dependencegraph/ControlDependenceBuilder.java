@@ -61,7 +61,17 @@ final class ControlDependenceBuilder<V> {
         .filter(edge -> !ignoreFunctionEdge(edge));
   }
 
-  public static void insertControlDependencies(
+  /**
+   * Compute control dependencies for a specified function and insert them into a {@link
+   * SystemDependenceGraph}.
+   *
+   * @param pBuilder the SDG builder used to insert dependencies.
+   * @param pEntryNode the function (specified by its entry node) to compute control dependencies
+   *     for.
+   * @param pDependOnBothAssumptions whether to always depend on both assume edges of a branching,
+   *     even if it would be sufficient to only depend on one of the assume edges.
+   */
+  static void insertControlDependencies(
       SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?> pBuilder,
       FunctionEntryNode pEntryNode,
       boolean pDependOnBothAssumptions) {
@@ -136,9 +146,9 @@ final class ControlDependenceBuilder<V> {
 
     // Some function nodes are missing from the post-DomTree. This happens when a path from the node
     // to the function exit node does not exist. These nodes are handled the following way:
-    // 1. Edges directly connected to these nodes are collected, resulting in set E.
-    // 2. A subset C that contains all assume edges in E is created.
-    // 3. The following dependencies are added: { e depends on c | e in E, c in C, e != c }
+    //   1. Edges directly connected to these nodes are collected, resulting in set E.
+    //   2. A subset C that contains all assume edges in E is created.
+    //   3. The following dependencies are added: { e depends on c | e in E, c in C, e != c }
 
     Set<CFAEdge> edgesWithoutDominator = new HashSet<>();
     for (CFANode node : pFunctionNodes) {
