@@ -27,6 +27,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Class representing a call graph.
+ *
+ * @param <P> the procedure type of the call graph.
+ */
 final class CallGraph<P> {
 
   private final ImmutableList<Node<P>> nodes;
