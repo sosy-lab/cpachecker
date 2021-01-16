@@ -605,10 +605,18 @@ public class SystemDependenceGraph<P, T, V> {
         EdgeType pType,
         Optional<V> pCause) {
 
-      GraphEdge<P, T, V> edge = new GraphEdge<>(pType, pPredecessor, pSuccessor);
+      boolean insertEdge = true;
+      for (GraphEdge<P, T, V> graphEdge : pPredecessor.getLeavingEdges()) {
+        if (graphEdge.getType() == pType && graphEdge.getSuccessor().equals(pSuccessor)) {
+          insertEdge = false;
+        }
+      }
 
-      pPredecessor.addLeavingEdge(edge);
-      pSuccessor.addEnteringEdge(edge);
+      if (insertEdge) {
+        GraphEdge<P, T, V> edge = new GraphEdge<>(pType, pPredecessor, pSuccessor);
+        pPredecessor.addLeavingEdge(edge);
+        pSuccessor.addEnteringEdge(edge);
+      }
 
       if (pCause.isPresent()) {
         V variable = pCause.orElseThrow();
