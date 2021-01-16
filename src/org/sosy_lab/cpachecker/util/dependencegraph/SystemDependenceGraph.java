@@ -416,16 +416,48 @@ public class SystemDependenceGraph<P, T, V> {
       return node;
     }
 
+    private int getEnteringEdgeCount() {
+      return enteringEdges.size();
+    }
+
     private List<GraphEdge<P, T, V>> getEnteringEdges() {
       return enteringEdges;
+    }
+
+    private boolean hasEnteringEdgeFrom(EdgeType pType, GraphNode<P, T, V> pPredecessor) {
+
+      for (GraphEdge<P, T, V> graphEdge : enteringEdges) {
+        // identity comparison between graph nodes is intended here
+        if (graphEdge.getType() == pType && graphEdge.getPredecessor() == pPredecessor) {
+          return true;
+        }
+      }
+
+      return false;
     }
 
     private void addEnteringEdge(GraphEdge<P, T, V> pEdge) {
       enteringEdges.add(pEdge);
     }
 
+    private int getLeavingEdgeCount() {
+      return leavingEdges.size();
+    }
+
     private List<GraphEdge<P, T, V>> getLeavingEdges() {
       return leavingEdges;
+    }
+
+    private boolean hasLeavingEdgeTo(EdgeType pType, GraphNode<P, T, V> pSuccessor) {
+
+      for (GraphEdge<P, T, V> graphEdge : leavingEdges) {
+        // identity comparison between graph nodes is intended here
+        if (graphEdge.getType() == pType && graphEdge.getSuccessor() == pSuccessor) {
+          return true;
+        }
+      }
+
+      return false;
     }
 
     private void addLeavingEdge(GraphEdge<P, T, V> pEdge) {
@@ -606,10 +638,10 @@ public class SystemDependenceGraph<P, T, V> {
         Optional<V> pCause) {
 
       boolean insertEdge = true;
-      for (GraphEdge<P, T, V> graphEdge : pPredecessor.getLeavingEdges()) {
-        if (graphEdge.getType() == pType && graphEdge.getSuccessor().equals(pSuccessor)) {
-          insertEdge = false;
-        }
+      if (pSuccessor.getEnteringEdgeCount() < pPredecessor.getLeavingEdgeCount()) {
+        insertEdge = !pSuccessor.hasEnteringEdgeFrom(pType, pPredecessor);
+      } else {
+        insertEdge = !pPredecessor.hasLeavingEdgeTo(pType, pSuccessor);
       }
 
       if (insertEdge) {
