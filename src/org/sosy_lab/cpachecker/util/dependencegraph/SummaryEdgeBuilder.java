@@ -24,11 +24,25 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 
+/** Class for computing summary edges and inserting them into a {@link SystemDependenceGraph}. */
 final class SummaryEdgeBuilder {
 
   private SummaryEdgeBuilder() {}
 
-  public static <P, T, V> void insertSummaryEdges(
+  /**
+   * Compute summary edges reachable from a specified start procedure and insert them into a {@link
+   * SystemDependenceGraph}.
+   *
+   * @param <P> the procedure type of the SDG.
+   * @param <T> the statement type of the SDG.
+   * @param <V> the variable type of the SDG.
+   * @param pBuilder the SDG builder used to insert summary edges.
+   * @param pCallGraph the call graph of the program.
+   * @param pStartProcedure the start procedure of the program (only summary edges reachable from
+   *     this procedure are inserted).
+   * @param pMethod the method used from computing summary edges.
+   */
+  static <P, T, V> void insertSummaryEdges(
       SystemDependenceGraph.Builder<P, T, V> pBuilder,
       CallGraph<P> pCallGraph,
       P pStartProcedure,
@@ -86,8 +100,16 @@ final class SummaryEdgeBuilder {
     }
   }
 
+  /** Method for computing summary edges. */
   public enum Method {
+
+    /** Find summary edges one by one. */
     SINGLE,
+
+    /**
+     * Find multiple summary edges at once. This may be useful for methods that have mutiple
+     * formal-in/out nodes.
+     */
     BATCH;
   }
 
