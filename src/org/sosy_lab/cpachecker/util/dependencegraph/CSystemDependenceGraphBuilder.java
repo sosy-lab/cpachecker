@@ -218,28 +218,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
 
     summaryEdgeTimer.start();
-    CallGraph<AFunctionDeclaration> callGraph =
-        CallGraph.<AFunctionDeclaration, CFANode>createCallGraph(
-            node -> {
-              List<CallGraph.SuccessorResult<AFunctionDeclaration, CFANode>> edges =
-                  new ArrayList<>();
-              for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-
-                if (edge instanceof CFunctionCallEdge) {
-                  CFANode successor = edge.getSuccessor();
-                  edges.add(
-                      CallGraph.SuccessorResult.createCallSuccessor(
-                          node.getFunction(), successor.getFunction(), successor));
-                } else {
-                  edges.add(
-                      CallGraph.SuccessorResult.createNonCallSuccessor(
-                          node.getFunction(), edge.getSuccessor()));
-                }
-              }
-
-              return edges;
-            },
-            ImmutableSet.of(cfa.getMainFunction()));
+    CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
 
     SummaryEdgeBuilder.insertSummaryEdges(
         builder, callGraph, cfa.getMainFunction().getFunction(), SummaryEdgeBuilder.Method.BATCH);
