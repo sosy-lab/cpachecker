@@ -18,7 +18,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -69,8 +68,8 @@ abstract class SdgDotExporter<P, T, V> {
   protected abstract String getProcedureLabel(P pProcedure);
 
   /**
-   * Returns syle, color, and possibly other attributes (except label) for the specified node in a
-   * dot file compatible format.
+   * Returns syle, shape, color, and possibly other attributes (except label) for the specified node
+   * in a dot file compatible format.
    *
    * <p>The returned style string can be empty. All occurrences of the substring <code>"{color}"
    * </code> (quotation marks are not part of the substring) are automatically replaced with the
@@ -79,12 +78,12 @@ abstract class SdgDotExporter<P, T, V> {
    * <p>Examples as java string literals: <or>
    * <li><code>""</code>
    * <li><code>"color=\"{color}\""</code>
-   * <li><code>"style=\"bold,dashed\",color=\"{color}\""</code>
+   * <li><code>"style=\"bold,dashed\",shape=\"ellipse\",color=\"{color}\""</code>
    * </ol>
    *
    * @param pNode the node to get the style for.
-   * @return dot file compatible syle, color, and possibly other attributes (except label) for the
-   *     node.
+   * @return dot file compatible syle, shape, color, and possibly other attributes (except label)
+   *     for the node.
    */
   protected abstract String getNodeStyle(Node<P, T, V> pNode);
 
@@ -134,29 +133,50 @@ abstract class SdgDotExporter<P, T, V> {
     pWriter.write("subgraph cluster_legend {\n");
     pWriter.write("label=\"Legend\\nY depends on X\";\n");
 
-    pWriter.write(
-        "key1 [penwidth=\"0\",label=<<table border=\"0\" cellpadding=\"8\" cellspacing=\"0\""
-            + " cellborder=\"0\">\n");
+    pWriter.write("key1 [");
+    pWriter.write("penwidth=\"0\",");
+    pWriter.write("label=");
+    pWriter.write("<<table ");
+    pWriter.write("border=\"0\" ");
+    pWriter.write("cellpadding=\"8\" ");
+    pWriter.write("cellspacing=\"0\" ");
+    pWriter.write("cellborder=\"0\">\n");
 
     int i = 1;
     for (String label : edgeLabels.values()) {
-      pWriter.write(
-          String.format(
-              Locale.ENGLISH,
-              "<tr><td align=\"right\" port=\"i%d\">%s      X </td></tr>%n",
-              i,
-              label));
+      pWriter.write("<tr>");
+      pWriter.write("<td ");
+      pWriter.write("align=\"right\" ");
+      pWriter.write("port=\"i");
+      pWriter.write(String.valueOf(i));
+      pWriter.write("\">");
+      pWriter.write(label);
+      pWriter.write("      X ");
+      pWriter.write("</td>");
+      pWriter.write("</tr>\n");
       i++;
     }
 
     pWriter.write("</table>>]\n");
 
-    pWriter.write(
-        "key2 [penwidth=\"0\",label=<<table border=\"0\" penwidth=\"0\" cellpadding=\"8\""
-            + " cellspacing=\"0\" cellborder=\"0\">\n");
+    pWriter.write("key2 [");
+    pWriter.write("penwidth=\"0\",");
+    pWriter.write("label=");
+    pWriter.write("<<table ");
+    pWriter.write("border=\"0\" ");
+    pWriter.write("cellpadding=\"8\" ");
+    pWriter.write("cellspacing=\"0\" ");
+    pWriter.write("cellborder=\"0\">\n");
 
     for (i = 1; i <= edgeLabels.size(); i++) {
-      pWriter.write(String.format(Locale.ENGLISH, "<tr><td port=\"i%d\"> Y</td></tr>%n", i));
+      pWriter.write("<tr>");
+      pWriter.write("<td ");
+      pWriter.write("port=\"i");
+      pWriter.write(String.valueOf(i));
+      pWriter.write("\">");
+      pWriter.write(" Y");
+      pWriter.write("</td>");
+      pWriter.write("</tr>\n");
     }
 
     pWriter.write("</table>>]\n");
@@ -164,8 +184,16 @@ abstract class SdgDotExporter<P, T, V> {
     i = 1;
     for (EdgeType edgeType : edgeLabels.keySet()) {
       String edgeStyle = edgeStyles.get(edgeType).replace("{color}", "black");
-      pWriter.write(
-          String.format(Locale.ENGLISH, "key1:i%d:e -> key2:i%d:w [%s]%n", i, i, edgeStyle));
+      pWriter.write("key1:i");
+      pWriter.write(String.valueOf(i));
+      pWriter.write(":e");
+      pWriter.write(" -> ");
+      pWriter.write("key2:i");
+      pWriter.write(String.valueOf(i));
+      pWriter.write(":w");
+      pWriter.write(" [");
+      pWriter.write(edgeStyle);
+      pWriter.write("]\n");
       i++;
     }
 
@@ -195,16 +223,16 @@ abstract class SdgDotExporter<P, T, V> {
             public VisitResult visitEdge(
                 EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
 
-              sb.append(
-                  String.format(
-                      Locale.ENGLISH,
-                      "%s -> %s ",
-                      nodeId(pVisitedNodes, pPredecessor),
-                      nodeId(pVisitedNodes, pSuccessor)));
+              sb.append(nodeId(pVisitedNodes, pPredecessor));
+              sb.append(" -> ");
+              sb.append(nodeId(pVisitedNodes, pSuccessor));
+              sb.append(' ');
 
               String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
               String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
-              sb.append(String.format(Locale.ENGLISH, " [%s]%n", edgeStyle));
+              sb.append('[');
+              sb.append(edgeStyle);
+              sb.append("]\n");
 
               return VisitResult.SKIP;
             }
@@ -248,24 +276,29 @@ abstract class SdgDotExporter<P, T, V> {
 
     for (Optional<P> procedure : procedureNodes.keySet()) {
 
-      pWriter.write(String.format(Locale.ENGLISH, "subgraph cluster_f%d {%n", counter.getValue()));
+      pWriter.write("subgraph cluster_f");
+      pWriter.write(String.valueOf(counter.getValue()));
+      pWriter.write(" {\n");
       counter.inc();
+
       String procedureLabel =
           procedure.isPresent() ? getProcedureLabel(procedure.orElseThrow()) : "";
-      pWriter.write(String.format(Locale.ENGLISH, "label=\"%s\";%n", escape(procedureLabel)));
+      pWriter.write("label=\"");
+      pWriter.write(escape(procedureLabel));
+      pWriter.write("\";\n");
 
       for (Node<P, T, V> node : procedureNodes.get(procedure)) {
-        String color = isHighlighted(node) ? ",color=red" : "";
-        String style = getNodeStyle(node);
-        pWriter.write(
-            String.format(
-                Locale.ENGLISH,
-                "%s [%s%slabel=\"%s\"%s]%n",
-                nodeId(visitedNodes, node),
-                style,
-                style.trim().isEmpty() ? "" : ",",
-                escape(getNodeLabel(node)),
-                color));
+
+        String color = isHighlighted(node) ? "red" : "black";
+        String style = getNodeStyle(node).replace("{color}", color);
+
+        pWriter.write(nodeId(visitedNodes, node));
+        pWriter.write(" [");
+        pWriter.write(style);
+        pWriter.write(style.trim().isEmpty() ? "" : ",");
+        pWriter.write("label=\"");
+        pWriter.write(escape(getNodeLabel(node)));
+        pWriter.write("\"]\n");
       }
 
       pWriter.write("}\n");

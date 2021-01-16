@@ -769,13 +769,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       if (optCfaEdge.isPresent()) {
         switch (optCfaEdge.orElseThrow().getEdgeType()) {
           case AssumeEdge:
-            return "shape=\"diamond\"";
+            return "shape=\"diamond\",color=\"{color}\"";
           case FunctionCallEdge:
-            return "shape=\"ellipse\", peripheries=\"2\"";
+            return "shape=\"ellipse\",peripheries=\"2\",color=\"{color}\"";
           case BlankEdge:
-            return "shape=\"box\"";
+            return "shape=\"box\",color=\"{color}\"";
           default:
-            return "shape=\"ellipse\"";
+            return "shape=\"ellipse\",color=\"{color}\"";
         }
       }
 
