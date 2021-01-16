@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
+/** Class to export {@link SystemDependenceGraph} instances as dot files. */
 abstract class SdgDotExporter<P, T, V> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles;
@@ -57,21 +58,73 @@ abstract class SdgDotExporter<P, T, V> {
     edgeStyles = edgeStyleBuilder.build();
   }
 
+  /**
+   * Returns the value of the dot file label for the specified procedure.
+   *
+   * <p>Quotation marks are automatically escaped.
+   *
+   * @param pProcedure the procedure to get the label for.
+   * @return the value of the dot file label for the specified procedure.
+   */
   protected abstract String getProcedureLabel(P pProcedure);
 
+  /**
+   * Returns syle, color, and possibly other attributes (except label) for the specified node in a
+   * dot file compatible format.
+   *
+   * <p>The returned style string can be empty. All occurrences of the substring <code>"{color}"
+   * </code> (quotation marks are not part of the substring) are automatically replaced with the
+   * right color based on highlighting of the node.
+   *
+   * <p>Examples as java string literals: <or>
+   * <li><code>""</code>
+   * <li><code>"color=\"{color}\""</code>
+   * <li><code>"style=\"bold,dashed\",color=\"{color}\""</code>
+   * </ol>
+   *
+   * @param pNode the node to get the style for.
+   * @return dot file compatible syle, color, and possibly other attributes (except label) for the
+   *     node.
+   */
   protected abstract String getNodeStyle(Node<P, T, V> pNode);
 
+  /**
+   * Returns the value of the dot file label for the specified node.
+   *
+   * <p>Quotation marks are automatically escaped.
+   *
+   * @param pNode the node to get the label for.
+   * @return the value of the dot file label for the specified node.
+   */
   protected abstract String getNodeLabel(Node<P, T, V> pNode);
 
+  /**
+   * Returns whether the specified node is highlighted.
+   *
+   * @param pNode the node to check the highlighting for.
+   * @return {@code true} if the specified node is highlighted; otherwise, {@code false} is
+   *     returned.
+   */
   protected abstract boolean isHighlighted(Node<P, T, V> pNode);
 
+  /**
+   * Returns whether the edge (specified by its type, predecessor and successor) is highlighted.
+   *
+   * @param pEdgeType the type of the edge.
+   * @param pPredecessor the predecessor of the edge.
+   * @param pSuccessor the successor of the edge.
+   * @return {@code true} if the specified edge is highlighted; otherwise, {@code false} is
+   *     returned.
+   */
   protected abstract boolean isHighlighted(
       EdgeType pEdgeType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
 
+  /** Returns the specified string with escaped quotation marks. */
   private String escape(String pLabel) {
-    return pLabel.replaceAll("\\\"", "\\\\\"");
+    return pLabel.replace("\"", "\\\"");
   }
 
+  /** Returns the identifier used in the dot file for the specified node. */
   private String nodeId(Map<Node<P, T, V>, Long> pVisitedNodes, Node<P, T, V> pNode) {
     return "n" + pVisitedNodes.get(pNode);
   }
@@ -223,13 +276,21 @@ abstract class SdgDotExporter<P, T, V> {
     pWriter.write("\n}\n");
   }
 
+  /**
+   * Exports the specified {@link SystemDependenceGraph} as a dot file.
+   *
+   * @param pSdg the system dependence graph to export.
+   * @param pPath the file the SDG is written to.
+   * @param pLogger the logger used for logging exceptions and other notable messages occurring
+   *     during export of the SDG.
+   */
   void export(SystemDependenceGraph<P, T, V> pSdg, Path pPath, LogManager pLogger) {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       write(writer, pSdg);
     } catch (IOException ex) {
       pLogger.logUserException(
-          Level.WARNING, ex, "Could not write system dependence graph to dot file");
+          Level.WARNING, ex, "Failed writing system dependence graph to dot file");
     }
   }
 }
