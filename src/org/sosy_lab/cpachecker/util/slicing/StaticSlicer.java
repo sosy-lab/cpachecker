@@ -27,8 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -36,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -63,12 +62,15 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       new StatInt(StatKind.MAX, "Number of relevant slice edges");
   private final StatInt programEdgesNumber = new StatInt(StatKind.MAX, "Number of program edges");
 
+  private final boolean partiallyRelevantEdges;
+
   StaticSlicer(
       SlicingCriteriaExtractor pExtractor,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> pDependenceGraph)
+      SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> pDependenceGraph,
+      boolean pPartiallyRelevantEdges)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
@@ -77,6 +79,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     depGraph = pDependenceGraph;
+    partiallyRelevantEdges = pPartiallyRelevantEdges;
   }
 
   private static Set<CFAEdge> getAbortCallEdges(CFA pCfa) {
@@ -146,9 +149,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                       SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
                           pSuccessor) {
 
-                    if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT
-                        || pPredecessor.getStatement().orElse(null)
-                            instanceof CFunctionReturnEdge) {
+                    if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
                       return SystemDependenceGraph.VisitResult.SKIP;
                     }
 
@@ -183,8 +184,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                       SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
                           pSuccessor) {
 
-                    if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-                        || pSuccessor.getStatement().orElse(null) instanceof CFunctionCallEdge) {
+                    if (partiallyRelevantEdges
+                        && (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
+                            || pType == EdgeType.CALL_EDGE)) {
                       return SystemDependenceGraph.VisitResult.SKIP;
                     }
 

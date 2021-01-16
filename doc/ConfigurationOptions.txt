@@ -4025,6 +4025,12 @@ slicing.exportToC.file = "programSlice.%d.c"
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
 
+# Whether to allow edges in the resulting slice that are only partially
+# relevant (e.g. function calls where not every parameter is relevant).
+# Setting this parameter to true can decrease the size of the resulting
+# slice.
+slicing.partiallyRelevantEdges = true
+
 # what kind of slicing to use
 slicing.type = STATIC
   enum:     [STATIC, IDENTITY]

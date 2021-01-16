@@ -65,6 +65,15 @@ public class SlicerFactory implements StatisticsProvider {
     @Option(secure = true, name = "type", description = "what kind of slicing to use")
     private SlicingType slicingType = SlicingType.STATIC;
 
+    @Option(
+        secure = true,
+        name = "partiallyRelevantEdges",
+        description =
+            "Whether to allow edges in the resulting slice that are only partially relevant (e.g."
+                + " function calls where not every parameter is relevant). Setting this parameter"
+                + " to true can decrease the size of the resulting slice.")
+    private boolean partiallyRelevantEdges = true;
+
     public SlicerOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -130,7 +139,13 @@ public class SlicerFactory implements StatisticsProvider {
       case STATIC:
         SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> dependenceGraph =
             createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
-        return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, dependenceGraph);
+        return new StaticSlicer(
+            extractor,
+            pLogger,
+            pShutdownNotifier,
+            pConfig,
+            dependenceGraph,
+            options.partiallyRelevantEdges);
       case IDENTITY:
         return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
       default:
