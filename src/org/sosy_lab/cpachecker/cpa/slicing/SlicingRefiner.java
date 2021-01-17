@@ -395,6 +395,11 @@ public class SlicingRefiner implements Refiner {
       // we have to add the refinement root even if no new edge was added,
       // so that the precision of the corresponding ARG subtree is updated
       Set<CFAEdge> relevantEdges = getSlice(tp);
+
+      if (relevantEdges.isEmpty()) {
+        break;
+      }
+
       ARGState refinementRoot = getRefinementRoot(tp, relevantEdges);
       SlicingPrecision oldPrec = mergeOnSubgraph(refinementRoot, pReached);
       SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
