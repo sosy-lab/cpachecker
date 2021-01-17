@@ -129,6 +129,14 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   @Option(
       secure = true,
+      name = "onlyReachableFunctions",
+      description =
+          "Whether to include only functions reachable from the main function in the dependence"
+              + " graph.")
+  private boolean onlyReachableFunction = false;
+
+  @Option(
+      secure = true,
       name = "pointerAnalysisTimeout",
       description = "The maximum duration the pointer analysis is allowed to run in milliseconds.")
   private int pointerAnalysisTimeout = 30_000;
@@ -200,8 +208,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     dependenceGraphConstructionTimer.start();
 
     CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
-    ImmutableSet<AFunctionDeclaration> reachableFunctions =
-        callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
+    ImmutableSet<AFunctionDeclaration> reachableFunctions = ImmutableSet.of();
+    if (onlyReachableFunction) {
+      reachableFunctions =
+          callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
+    }
 
     if (considerFlowDeps) {
       flowDependenceTimer.start();
@@ -576,7 +587,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      if (!pReachableFunctions.contains(entryNode.getFunction())) {
+      if (onlyReachableFunction && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;
       }
 
@@ -688,7 +699,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      if (!pReachableFunctions.contains(entryNode.getFunction())) {
+      if (onlyReachableFunction && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;
       }
 

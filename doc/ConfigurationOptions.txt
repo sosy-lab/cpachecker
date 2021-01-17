@@ -3312,6 +3312,10 @@ dependencegraph.exportDot = "DependenceGraph.dot"
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
 
+# Whether to include only functions reachable from the main function in the
+# dependence graph.
+dependencegraph.onlyReachableFunctions = false
+
 # The maximum duration the pointer analysis is allowed to run in
 # milliseconds.
 dependencegraph.pointerAnalysisTimeout = 30_000
