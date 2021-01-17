@@ -114,6 +114,15 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<AFunctionDeclaration> sdgFunctions = new HashSet<>();
+
+    for (SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation> node :
+        depGraph.getNodes()) {
+      Optional<AFunctionDeclaration> optFunction = node.getProcedure();
+      if (optFunction.isPresent()) {
+        sdgFunctions.add(optFunction.orElseThrow());
+      }
+    }
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -198,17 +207,15 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
       Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> startNodes =
           new HashSet<>();
+      
       for (CFAEdge criteriaEdge : criteriaEdges) {
-        startNodes.addAll(depGraph.getNodesForStatement(criteriaEdge));
+        AFunctionDeclaration function = criteriaEdge.getSuccessor().getFunction();
+        if (sdgFunctions.contains(function)) {
+          startNodes.addAll(depGraph.getNodesForStatement(criteriaEdge));
+        }
       }
 
       depGraph.traverse(startNodes, phase1Visitor);
-
-      startNodes.clear();
-      for (CFAEdge criteriaEdge : relevantEdges) {
-        startNodes.addAll(depGraph.getNodesForStatement(criteriaEdge));
-      }
-
       depGraph.traverse(startNodes, phase2Visitor);
 
       final Slice slice =
