@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -198,10 +199,14 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     dependenceGraphConstructionTimer.start();
 
+    CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
+    ImmutableSet<AFunctionDeclaration> reachableFunctions =
+        callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
+
     if (considerFlowDeps) {
       flowDependenceTimer.start();
       try {
-        insertFlowDependecies();
+        insertFlowDependecies(reachableFunctions);
       } finally {
         flowDependenceTimer.stop();
       }
@@ -210,14 +215,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     if (considerControlDeps) {
       controlDependenceTimer.start();
       try {
-        insertControlDependencies();
+        insertControlDependencies(reachableFunctions);
       } finally {
         controlDependenceTimer.stop();
       }
     }
 
     summaryEdgeTimer.start();
-    CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
 
     SummaryEdgeBuilder.insertSummaryEdges(
         builder, callGraph, cfa.getMainFunction().getFunction(), SummaryEdgeBuilder.Method.BATCH);
@@ -554,7 +558,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void insertFlowDependecies() throws InterruptedException {
+  private void insertFlowDependecies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
+      throws InterruptedException {
 
     GlobalPointerState pointerState = createGlobalPointerState();
     if (pointerState != null) {
@@ -570,6 +575,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     ImmutableMap<String, CFAEdge> declarationEdges = getDeclarationEdges(globalEdges);
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      if (!pReachableFunctions.contains(entryNode.getFunction())) {
+        continue;
+      }
+
       DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
 
       insertFunctionDeclarationEdge(declarationEdges, entryNode);
@@ -674,9 +684,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void insertControlDependencies() {
+  private void insertControlDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions) {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      if (!pReachableFunctions.contains(entryNode.getFunction())) {
+        continue;
+      }
 
       ControlDependenceBuilder.insertControlDependencies(
           builder, entryNode, controlDepsTakeBothAssumptions);
