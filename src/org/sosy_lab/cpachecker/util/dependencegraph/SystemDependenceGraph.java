@@ -70,25 +70,46 @@ import java.util.function.Function;
  *
  * <table>
  *   <tr>
- *     <td></td><td>Predecessor</td><td>Successor</td><td>Procedure</td>
+ *     <td></td>
+ *     <td>Predecessor</td>
+ *     <td>Successor</td>
+ *     <td>Procedure</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.FLOW_DEPENDENCY</td><td>any node</td><td>any node</td><td>intra-procedural</td>
+ *     <td>EdgeType.FLOW_DEPENDENCY</td>
+ *     <td>any node</td>
+ *     <td>any node</td>
+ *     <td>intra-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.CONTROL_DEPENDENCY</td><td>any node</td><td>any node</td><td>intra-procedural</td>
+ *     <td>EdgeType.CONTROL_DEPENDENCY</td>
+ *     <td>any node</td>
+ *     <td>any node</td>
+ *     <td>intra-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.DECLARATION_EDGE</td><td>any node</td><td>any node</td><td>inter/intra-procedural</td>
+ *     <td>EdgeType.DECLARATION_EDGE</td>
+ *     <td>any node</td>
+ *     <td>any node</td>
+ *     <td>inter/intra-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.CALL</td><td></td><td>entry node</td><td>inter-procedural</td>
+ *     <td>EdgeType.CALL</td>
+ *     <td></td>
+ *     <td>entry node</td>
+ *     <td>inter-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.PARAMETER_EDGE</td><td>(A) actual-in or (B) formal-out</td><td>(A) formal-in or (B) actual-out</td><td>inter-procedural</td>
+ *     <td>EdgeType.PARAMETER_EDGE</td>
+ *     <td>(A) actual-in or (B) formal-out</td>
+ *     <td>(A) formal-in or (B) actual-out</td>
+ *     <td>inter-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.SUMMARY_EDGE</td><td>actual-in</td><td>actual-out</td><td>intra-procedural</td>
+ *     <td>EdgeType.SUMMARY_EDGE</td>
+ *     <td>actual-in</td>
+ *     <td>actual-out</td>
+ *     <td>intra-procedural</td>
  *   </tr>
  * </table>
  */
