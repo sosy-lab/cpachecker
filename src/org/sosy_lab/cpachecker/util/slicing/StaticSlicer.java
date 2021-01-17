@@ -36,26 +36,25 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Static program slicer based on a given dependence graph.
+ * Static program slicer based on a given system dependence graph.
  *
- * <p>For a given slicing criterion CFA edge g and a dependence graph, the slice consists of all CFA
- * edges reachable in the dependence graph through backwards-traversal from g.
+ * <p>For a given slicing criterion CFA edge g, the slice consists of all CFA edges that influences
+ * the values of variables used by g and whether g get executed.
  *
  * @see SlicerFactory
  */
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
-  private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> depGraph;
+  private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> sdg;
 
-  private StatInt candidateSliceCount =
-      new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
-  private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
+  private StatCounter sliceCount = new StatCounter("Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   private final StatInt sliceEdgesNumber =
@@ -69,16 +68,16 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> pDependenceGraph,
+      SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> pSdg,
       boolean pPartiallyRelevantEdges)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
-    if (pDependenceGraph == null) {
+    if (pSdg == null) {
       throw new InvalidConfigurationException("Dependence graph required, but missing");
     }
 
-    depGraph = pDependenceGraph;
+    sdg = pSdg;
     partiallyRelevantEdges = pPartiallyRelevantEdges;
   }
 
@@ -108,21 +107,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
 
-    candidateSliceCount.setNextValue(pSlicingCriteria.size());
-    int realSlices = 0;
     slicingTime.start();
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
-    Set<AFunctionDeclaration> sdgFunctions = new HashSet<>();
-
-    for (SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation> node :
-        depGraph.getNodes()) {
-      Optional<AFunctionDeclaration> optFunction = node.getProcedure();
-      if (optFunction.isPresent()) {
-        sdgFunctions.add(optFunction.orElseThrow());
-      }
-    }
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -133,7 +121,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     SystemDependenceGraph.BackwardsVisitor<AFunctionDeclaration, CFAEdge, MemoryLocation>
         phase1Visitor =
-            depGraph.createVisitOnceVisitor(
+            sdg.createVisitOnceVisitor(
                 new SystemDependenceGraph.BackwardsVisitor<
                     AFunctionDeclaration, CFAEdge, MemoryLocation>() {
 
@@ -168,7 +156,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     SystemDependenceGraph.BackwardsVisitor<AFunctionDeclaration, CFAEdge, MemoryLocation>
         phase2Visitor =
-            depGraph.createVisitOnceVisitor(
+            sdg.createVisitOnceVisitor(
                 new SystemDependenceGraph.BackwardsVisitor<
                     AFunctionDeclaration, CFAEdge, MemoryLocation>() {
 
@@ -202,26 +190,22 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                     return SystemDependenceGraph.VisitResult.CONTINUE;
                   }
                 });
-
-    try {
-
       Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> startNodes =
           new HashSet<>();
       
       for (CFAEdge criteriaEdge : criteriaEdges) {
-        AFunctionDeclaration function = criteriaEdge.getSuccessor().getFunction();
-        if (sdgFunctions.contains(function)) {
-          startNodes.addAll(depGraph.getNodesForStatement(criteriaEdge));
-        }
+      startNodes.addAll(sdg.getNodesForStatement(criteriaEdge));
       }
 
-      depGraph.traverse(startNodes, phase1Visitor);
-      depGraph.traverse(startNodes, phase2Visitor);
+    sdg.traverse(startNodes, phase1Visitor);
+    sdg.traverse(startNodes, phase2Visitor);
 
       final Slice slice =
           new StaticSlicerSlice(
               pCfa, ImmutableSet.copyOf(criteriaEdges), ImmutableSet.copyOf(relevantEdges));
+      
       slicingTime.stop();
+    sliceCount.inc();
 
       sliceEdgesNumber.setNextValue(relevantEdges.size());
       if (programEdgesNumber.getValueCount() == 0) {
@@ -229,10 +213,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       }
 
       return slice;
-
-    } finally {
-      sliceCount.setNextValue(realSlices);
-    }
   }
 
   private int countProgramEdges(CFA pCfa) {
@@ -263,7 +243,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
               final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
 
             StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-            writer.put(candidateSliceCount).put(sliceCount).put(slicingTime);
+            writer.put(sliceCount).put(slicingTime);
 
             writer.put(sliceEdgesNumber).put(programEdgesNumber);
             writer.put(
