@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- *
+ * This class represents a system dependence graph (SDG).
  *
  * <table>
  *   <tr>
@@ -88,7 +88,7 @@ import java.util.function.Function;
  *     <td>EdgeType.PARAMETER_EDGE</td><td>(A) actual-in or (B) formal-out</td><td>(A) formal-in or (B) actual-out</td><td>inter-procedural</td>
  *   </tr>
  *   <tr>
- *     <td>EdgeType.SUMMARY_EDGE</td><td>actual-in</td><td>actual-out</td><td>inter/intra-procedural</td>
+ *     <td>EdgeType.SUMMARY_EDGE</td><td>actual-in</td><td>actual-out</td><td>intra-procedural</td>
  *   </tr>
  * </table>
  */
@@ -301,6 +301,7 @@ public class SystemDependenceGraph<P, T, V> {
     SUMMARY_EDGE;
   }
 
+  /** This class represents a single node in a system dependence graph. */
   public static final class Node<P, T, V> {
 
     private final int id;
@@ -391,6 +392,10 @@ public class SystemDependenceGraph<P, T, V> {
     }
   }
 
+  /**
+   * This class represent a node in an SDG and its connection to other nodes via entering and
+   * leaving edges. This class is private, use {@link Visitor} for graph traversals.
+   */
   private static final class GraphNode<P, T, V> {
 
     private final Node<P, T, V> node;
@@ -527,6 +532,10 @@ public class SystemDependenceGraph<P, T, V> {
     }
   }
 
+  /**
+   * This class represent an edge between two graph nodes ({@link GraphNode}). This class is
+   * private, use {@link Visitor} for graph traversals.
+   */
   private static final class GraphEdge<P, T, V> {
 
     private final EdgeType type;
@@ -593,6 +602,7 @@ public class SystemDependenceGraph<P, T, V> {
     }
   }
 
+  /** Builder for system dependence graphs. */
   public static final class Builder<P, T, V> {
 
     private final List<Node<P, T, V>> nodes;
@@ -903,8 +913,21 @@ public class SystemDependenceGraph<P, T, V> {
   }
 
   public enum VisitResult {
+
+    /** Continue traversal, follow visited edge/edges connected to the visited node. */
     CONTINUE,
+
+    /**
+     * Terminate traversal immediatly. No nodes/edges are visited after returning this visit result
+     * during a traversal.
+     */
     TERMINATE,
+
+    /**
+     * If SKIP is returned for a node visit, no connected edges are followed from this node. If SKIP
+     * is returned for an edge visit, the edge is not followed to the next node (the next node is
+     * determined by traversal direction).
+     */
     SKIP;
   }
 
