@@ -190,27 +190,34 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                     return SystemDependenceGraph.VisitResult.CONTINUE;
                   }
                 });
-      Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> startNodes =
-          new HashSet<>();
-      
-      for (CFAEdge criteriaEdge : criteriaEdges) {
+
+    Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> startNodes =
+        new HashSet<>();
+
+    for (CFAEdge criteriaEdge : criteriaEdges) {
       startNodes.addAll(sdg.getNodesForStatement(criteriaEdge));
-      }
+    }
 
     sdg.traverse(startNodes, phase1Visitor);
+
+    startNodes.clear();
+    for (CFAEdge criteriaEdge : relevantEdges) {
+      startNodes.addAll(sdg.getNodesForStatement(criteriaEdge));
+    }
+
     sdg.traverse(startNodes, phase2Visitor);
 
-      final Slice slice =
-          new StaticSlicerSlice(
-              pCfa, ImmutableSet.copyOf(criteriaEdges), ImmutableSet.copyOf(relevantEdges));
-      
-      slicingTime.stop();
+    final Slice slice =
+        new StaticSlicerSlice(
+            pCfa, ImmutableSet.copyOf(criteriaEdges), ImmutableSet.copyOf(relevantEdges));
+
+    slicingTime.stop();
     sliceCount.inc();
 
-      sliceEdgesNumber.setNextValue(relevantEdges.size());
-      if (programEdgesNumber.getValueCount() == 0) {
-        programEdgesNumber.setNextValue(countProgramEdges(pCfa));
-      }
+    sliceEdgesNumber.setNextValue(relevantEdges.size());
+    if (programEdgesNumber.getValueCount() == 0) {
+      programEdgesNumber.setNextValue(countProgramEdges(pCfa));
+    }
 
       return slice;
   }
