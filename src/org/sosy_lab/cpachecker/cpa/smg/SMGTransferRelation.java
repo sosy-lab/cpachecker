@@ -591,8 +591,7 @@ public class SMGTransferRelation
           final SMGKnownSymbolicValue val2;
 
           // convert explicit values to symbolic ones,
-          // this avoids crashes when identifying un/equal values
-          // TODO why is this needed?
+          // because identifying un/equal works with symbolic values
           if (val1ImpliesOn instanceof SMGKnownExpValue) {
             val1 = newState.getSymbolicOfExplicit((SMGKnownExpValue) val1ImpliesOn);
           } else {
@@ -605,7 +604,12 @@ public class SMGTransferRelation
           }
           if (val1 != null && val2 != null) {
             if (impliesEqOn) {
-              newState.identifyEqualValues(val1, val2);
+              if (newState.areNonEqual(val1, val2)) {
+                // Assumption does not hold
+                continue;
+              } else {
+                newState.identifyEqualValues(val1, val2);
+              }
             } else if (impliesNeqOn) {
               newState.identifyNonEqualValues(val1, val2);
             }

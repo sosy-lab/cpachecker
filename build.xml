@@ -41,6 +41,7 @@ SPDX-License-Identifier: Apache-2.0
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:MissingSummary:OFF
+        -Xep:BanSerializableRead:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

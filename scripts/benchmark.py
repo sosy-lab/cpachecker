@@ -8,6 +8,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import getpass
 import glob
 import logging
 import os
@@ -147,6 +148,10 @@ class Benchmark(benchexec.benchexec.BenchExec):
 
     def load_executor(self):
         webclient = False
+        if getpass.getuser() == "root":
+            logging.warning(
+                "Benchmarking as root user is not advisable! Please execute this script as normal user!"
+            )
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 webclient = True

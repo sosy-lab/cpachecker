@@ -385,7 +385,7 @@ public class SlicingRefiner implements Refiner {
   private RefinedSlicingPrecision getNewPrecision(final ReachedSet pReached)
       throws InterruptedException, CPAException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    
+
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
     Set<StateSlicingPrecision> newPrecs = new HashSet<>();
@@ -429,7 +429,7 @@ public class SlicingRefiner implements Refiner {
           Set<CFAEdge> prefixAssumeEdges =
               prefixes.get(0).getPath().getInnerEdges().stream()
                   .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
-                  .collect(Collectors.toSet());
+                  .collect(ImmutableSet.toImmutableSet());
           criteriaEdges.addAll(prefixAssumeEdges);
         }
 

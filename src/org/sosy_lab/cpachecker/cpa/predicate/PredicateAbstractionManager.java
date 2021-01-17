@@ -361,9 +361,9 @@ public class PredicateAbstractionManager {
     if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
       // TODO we do not yet support multiple CFA nodes per abstraction here
       // and choosing *one* location is best way for backwards compatibility.
-      BooleanFormula invariant =
-          invariantSupplier.getInvariantFor(
-              Iterables.getOnlyElement(locations), callstackInformation, fmgr, pfmgr, pathFormula);
+      for (CFANode location : locations) {
+        BooleanFormula invariant = invariantSupplier.getInvariantFor(
+            location, callstackInformation, fmgr, pfmgr, pathFormula);
 
       if (!bfmgr.isTrue(invariant)) {
         AbstractionPredicate absPred = amgr.makePredicate(invariant);
@@ -371,6 +371,7 @@ public class PredicateAbstractionManager {
 
         // Calculate the set of predicates we still need to use for abstraction.
         Iterables.removeIf(remainingPredicates, equalTo(absPred));
+        }
       }
     }
 

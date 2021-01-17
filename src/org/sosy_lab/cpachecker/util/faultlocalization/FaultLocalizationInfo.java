@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -186,8 +187,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       Set<Set<CFAEdge>> pErrorIndicators) {
     Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
-      transformed.add(new Fault(
-          errorIndicator.stream().map(FaultContribution::new).collect(Collectors.toSet())));
+      transformed.add(
+          new Fault(
+              Collections3.transformedImmutableSetCopy(errorIndicator, FaultContribution::new)));
     }
     return transformed;
   }

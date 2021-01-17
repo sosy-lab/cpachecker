@@ -670,6 +670,10 @@ bmc.invariantsExport = no default value
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
+# Try to simplify the structure of formulas for the sat check of BMC. The
+# improvement depends on the underlying SMT solver.
+bmc.simplifyBooleanFormula = false
+
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
@@ -1870,9 +1874,6 @@ cpa.lpi.toLemmasAlgorithm = "RCNF"
 # Number of refinements after which the unrolling depth is increased.Set to
 # -1 to never increase the depth.
 cpa.lpi.unrollingRefinementThreshold = 2
-
-# Use caching optimization solver
-cpa.lpi.useCachingOptSolver = false
 
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
@@ -3293,6 +3294,7 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # to false, pointers are ignored and the resulting dependence graph misses
 # all dependencies where pointers are involved in.
 dependencegraph.considerPointees = true
+dependencegraph.considerPointees = no default value
 
 # Whether to take an assumption edge 'p' as control dependence if edge 'not
 # p' is a control dependence. This creates a larger slice, but may reduce the
@@ -3301,16 +3303,27 @@ dependencegraph.considerPointees = true
 # where branching is represented by a single assumption (with true- and
 # false-edges)
 dependencegraph.controldeps.considerInverseAssumption = true
+dependencegraph.controldeps.considerInverseAssumption = no default value
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
+dependencegraph.controldeps.use = no default value
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
+dependencegraph.exportDot = no default value
+
+# Run flow dependence analysis with constant propagation
+dependencegraph.flowdep.constantPropagation = no default value
+
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions.
+dependencegraph.flowdep.constraintIsDef = no default value
 
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
+dependencegraph.flowdeps.use = no default value
 
 # Whether to include only functions reachable from the main function in the
 # dependence graph.
