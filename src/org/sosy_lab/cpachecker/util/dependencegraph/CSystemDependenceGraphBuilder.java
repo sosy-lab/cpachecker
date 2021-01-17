@@ -256,6 +256,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return Optional.of(node.getFunction());
   }
 
+  // TODO: simplifiy code; use better waiting method
   private GlobalPointerState createGlobalPointerState() throws InterruptedException {
 
     GlobalPointerState pointerState = null;
@@ -495,6 +496,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         .on(NodeType.STATEMENT, callerFunction, summaryEdge, Optional.empty());
   }
 
+  // TODO: split up into smaller/simpler methods; use less parameters; no unnecessary optionals
   private void insertUseSummaryEdges(
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
