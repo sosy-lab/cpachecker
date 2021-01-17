@@ -133,7 +133,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       description =
           "Whether to include only functions reachable from the main function in the dependence"
               + " graph.")
-  private boolean onlyReachableFunction = false;
+  private boolean onlyReachableFunctions = false;
 
   @Option(
       secure = true,
@@ -209,7 +209,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
     ImmutableSet<AFunctionDeclaration> reachableFunctions = ImmutableSet.of();
-    if (onlyReachableFunction) {
+    if (onlyReachableFunctions) {
       reachableFunctions =
           callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
     }
@@ -589,7 +589,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      if (onlyReachableFunction && !pReachableFunctions.contains(entryNode.getFunction())) {
+      if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;
       }
 
@@ -701,7 +701,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
-      if (onlyReachableFunction && !pReachableFunctions.contains(entryNode.getFunction())) {
+      if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;
       }
 
