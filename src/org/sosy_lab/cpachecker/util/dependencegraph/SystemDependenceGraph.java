@@ -92,7 +92,7 @@ import java.util.function.Function;
  *   </tr>
  * </table>
  */
-public class SystemDependenceGraph<P, T, V> {
+public final class SystemDependenceGraph<P, T, V> {
 
   private static final int UNDEFINED_ID = -1;
 
