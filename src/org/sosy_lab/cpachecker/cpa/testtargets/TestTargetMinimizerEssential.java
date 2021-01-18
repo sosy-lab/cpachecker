@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -37,8 +37,7 @@ public class TestTargetMinimizerEssential {
   public Set<CFAEdge> reduceTargets(Set<CFAEdge> testTargets, final CFA pCfa) {
 
     // create a copy of the cfa graph that can be minimized using the essential Branch rules
-    // maps an edge in the original cfa to one in the new dummy graph
-    HashMap<CFAEdge, CFAEdge> edgesMapping = new HashMap<>();
+
     // maps a node in the original cfa to one in the new dummy graph
     HashMap<CFANode, CFANode> nodesMapping = new HashMap<>();
     // maps a dummy edge to the testTarget that can be removed if its dominated by another
@@ -49,7 +48,7 @@ public class TestTargetMinimizerEssential {
     // a set of nodes that has already been created to prevent duplicates
     HashSet<CFANode> addedNodes = new HashSet<>();
 
-    Queue<CFANode> nodeQueue = new LinkedList<>();
+    Queue<CFANode> nodeQueue = new ArrayDeque<>();
     // start with function entry point
     nodeQueue.add(pCfa.getMainFunction());
     addedNodes.add(pCfa.getMainFunction());
@@ -83,7 +82,7 @@ public class TestTargetMinimizerEssential {
                 "");
         nodesMapping.get(currentNode).addLeavingEdge(newDummyEdge);
         dummySuccessorNode.addEnteringEdge(newDummyEdge);
-        edgesMapping.put(currentEdge, newDummyEdge);
+
         // if the original edge is part of the test targets we have to map the new dummy edge to
         // the test target that may be removed if its being dominated
         if (testTargets.contains(currentEdge)) {
@@ -94,7 +93,7 @@ public class TestTargetMinimizerEssential {
     // complete dummy graph has been created
 
     // remove edges from dummy graph according to first rule
-    nodeQueue = new LinkedList<>();
+    nodeQueue = new ArrayDeque<>();
     addedNodes = new HashSet<>();
     // start at entry node because why not?
     nodeQueue.add(nodesMapping.get(pCfa.getMainFunction()));
@@ -195,7 +194,7 @@ public class TestTargetMinimizerEssential {
     // all cases of nodes with a single outgoing edge should be eliminated
 
     // remove edges from dummy graph according to second rule
-    nodeQueue = new LinkedList<>();
+    nodeQueue = new ArrayDeque<>();
     addedNodes = new HashSet<>();
     // start at entry node because why not?
     nodeQueue.add(nodesMapping.get(pCfa.getMainFunction()));
@@ -273,7 +272,7 @@ public class TestTargetMinimizerEssential {
             entryNode,
             TestTargetMinimizerEssential::iteratePredecessors,
             TestTargetMinimizerEssential::iterateSuccessors);
-    nodeQueue = new LinkedList<>();
+    nodeQueue = new ArrayDeque<>();
     addedNodes = new HashSet<>();
     // start at entry node because why not?
     nodeQueue.add(nodesMapping.get(pCfa.getMainFunction()));
@@ -383,7 +382,7 @@ public class TestTargetMinimizerEssential {
             entryNode,
             TestTargetMinimizerEssential::iteratePredecessors,
             TestTargetMinimizerEssential::iterateSuccessors);
-    nodeQueue = new LinkedList<>();
+    nodeQueue = new ArrayDeque<>();
     addedNodes = new HashSet<>();
     // start at entry node because why not?
     nodeQueue.add(nodesMapping.get(pCfa.getMainFunction()));

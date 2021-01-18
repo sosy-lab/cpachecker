@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetMinimizerEssential;
 
 public enum TestTargetAdaption {
   NONE {
@@ -52,7 +53,7 @@ public enum TestTargetAdaption {
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       // TODO properly implement configuration, deliver config from TesttargetCpa and
       // configuration.inject(this);
-      TestTargetMinimizerBasicEssential testTargetReducer = new TestTargetMinimizerBasicEssential();
+      TestTargetMinimizerEssential testTargetReducer = new TestTargetMinimizerEssential();
       Set<CFAEdge> reducedTargets = testTargetReducer.reduceTargets(targets, pCfa);
       return reducedTargets;
     }
