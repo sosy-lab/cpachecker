@@ -43,12 +43,8 @@ public enum TestTargetAdaption {
           }
         }
       }
-      // TODO revert this
-      TestTargetMinimizerBasicEssential testTargetReducer = new TestTargetMinimizerBasicEssential();
-      Set<CFAEdge> reducedTargets = testTargetReducer.reduceTargets(targets, pCfa);
-      return reducedTargets;
 
-      // return newGoals;
+      return newGoals;
     }
   },
   BASIC_ESSENTIAL_EDGE {
