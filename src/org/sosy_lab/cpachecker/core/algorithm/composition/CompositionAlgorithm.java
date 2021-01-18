@@ -574,6 +574,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       //TODO: check this reusePrecision
+      // Is this where which precision to be used is to be set?
       if (pCurrentContext.reusePrecision()) {
         // start with new reached set each time, but precision from previous analysis if possible
         List<ReachedSet> previousResults = new ArrayList<>(2);
@@ -649,6 +650,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     return null;
   }
 
+  //TODO: what is initial reached set
   private ReachedSet createInitialReachedSet(
       final ConfigurableProgramAnalysis pCpa,
       final CFANode pMainFunction,
@@ -674,8 +676,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     return reached;
   }
 
-  //TODO: check this out
-
+  // TODO: does this check for many precision to use from?
   private Precision aggregatePrecisionsForReuse(
       final List<ReachedSet> pPreviousReachedSets,
       final Precision pInitialPrecision,
@@ -705,6 +706,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 changed = true;
               }
 
+              // TODO: Is this still needed?
               PredicatePrecision predPrec =
                   Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
               if (predPrec != null && pFMgr != null) {
@@ -782,7 +784,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     return resultPrec;
   }
 
-
   //TODO: check this conversion out
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
       final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
@@ -802,8 +803,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     return trackedVariables;
   }
-
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
