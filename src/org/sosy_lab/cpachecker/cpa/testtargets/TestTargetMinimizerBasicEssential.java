@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -22,7 +21,7 @@ public class TestTargetMinimizerBasicEssential {
 
   }
 
-  public Set<CFAEdge> reduceTargets(Set<CFAEdge> testTargets, final CFA pCfa) {
+  public Set<CFAEdge> reduceTargets(Set<CFAEdge> testTargets) {
     Set<CFAEdge> rule1results = new HashSet<>(testTargets);
     // rule 1
     Iterator<CFAEdge> iter = testTargets.iterator();

@@ -51,7 +51,7 @@ public class TestTargetMinimizerBasicEssentialTest {
 
     testTargets.add(c);
     testTargets.add(f);
-    Set<CFAEdge> result = uut.reduceTargets(testTargets, pCfa);
+    Set<CFAEdge> result = uut.reduceTargets(testTargets);
     assertThat(result.contains(c)).isTrue();
     assertThat(result.contains(f)).isTrue();
   }
@@ -88,7 +88,7 @@ public class TestTargetMinimizerBasicEssentialTest {
 
     testTargets.add(c);
     testTargets.add(b);
-    Set<CFAEdge> result = uut.reduceTargets(testTargets, pCfa);
+    Set<CFAEdge> result = uut.reduceTargets(testTargets);
     assertThat(result.contains(c)).isFalse();
     assertThat(result.contains(b)).isTrue();
   }
@@ -128,7 +128,7 @@ public class TestTargetMinimizerBasicEssentialTest {
     t.addEnteringEdge(g);
     testTargets.add(c);
     testTargets.add(b);
-    Set<CFAEdge> result = uut.reduceTargets(testTargets, pCfa);
+    Set<CFAEdge> result = uut.reduceTargets(testTargets);
     assertThat(result.contains(c)).isFalse();
     assertThat(result.contains(b)).isTrue();
   }
@@ -165,7 +165,7 @@ public class TestTargetMinimizerBasicEssentialTest {
 
     testTargets.add(c);
     testTargets.add(d);
-    Set<CFAEdge> result = uut.reduceTargets(testTargets, pCfa);
+    Set<CFAEdge> result = uut.reduceTargets(testTargets);
     assertThat(result.contains(c)).isFalse();
     assertThat(result.contains(d)).isTrue();
   }
@@ -215,7 +215,7 @@ public class TestTargetMinimizerBasicEssentialTest {
 
     testTargets.add(c);
     testTargets.add(d);
-    Set<CFAEdge> result = uut.reduceTargets(testTargets, pCfa);
+    Set<CFAEdge> result = uut.reduceTargets(testTargets);
     assertThat(result.contains(c)).isFalse();
     assertThat(result.contains(d)).isTrue();
 

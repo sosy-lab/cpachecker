@@ -50,6 +50,8 @@ public class TestTargetMinimizerEssential {
 
     Queue<CFANode> nodeQueue = new ArrayDeque<>();
     // start with function entry point
+    CFANode dummyStartNode = CFANode.newDummyCFANode("");
+    nodesMapping.put(pCfa.getMainFunction(), dummyStartNode);
     nodeQueue.add(pCfa.getMainFunction());
     addedNodes.add(pCfa.getMainFunction());
     while (!nodeQueue.isEmpty()) {
@@ -75,11 +77,11 @@ public class TestTargetMinimizerEssential {
         // the original to it
         CFAEdge newDummyEdge =
             new BlankEdge(
-                "",
+                "not null",
                 FileLocation.DUMMY,
                 nodesMapping.get(currentNode),
                 dummySuccessorNode,
-                "");
+                "not null");
         nodesMapping.get(currentNode).addLeavingEdge(newDummyEdge);
         dummySuccessorNode.addEnteringEdge(newDummyEdge);
 
@@ -296,6 +298,12 @@ public class TestTargetMinimizerEssential {
           }
         }
       }
+      // add successors of the current node to the queue
+      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+        if (addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor())) {
+          nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
+        }
+      }
       //remove "first edge" from the graph if isruleConditionviolated =false.
       if (!ruleConditionIsViolated && firstEdge != null) {
         // copy testtarget associations to edges incoming to the predecessor of first edge
@@ -408,8 +416,7 @@ public class TestTargetMinimizerEssential {
       }
       // add successors of the current node to the queue
       for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-        if (!addedNodes.contains(currentNode.getLeavingEdge(i).getSuccessor())) {
-          addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
+        if (addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor())) {
           nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
         }
       }
@@ -466,8 +473,7 @@ public class TestTargetMinimizerEssential {
 
       // add successors of the current node to the queue
       for(int i = 0; i<currentNode.getNumLeavingEdges();i++) {
-        if(!addedNodes.contains(currentNode.getLeavingEdge(i).getSuccessor())) {
-          addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
+        if (addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor())) {
           nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
         }
       }
