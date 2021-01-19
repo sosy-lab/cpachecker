@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -39,14 +40,14 @@ public class TestTargetMinimizerEssential {
     // create a copy of the cfa graph that can be minimized using the essential Branch rules
 
     // maps a node in the original cfa to one in the new dummy graph
-    HashMap<CFANode, CFANode> nodesMapping = new HashMap<>();
+    Map<CFANode, CFANode> nodesMapping = new HashMap<>();
     // maps a dummy edge to the testTarget that can be removed if its dominated by another
     // testTarget
-    HashMap<CFAEdge, CFAEdge> dummyTestTargetsMapping = new HashMap<>();
+    Map<CFAEdge, CFAEdge> dummyTestTargetsMapping = new HashMap<>();
 
 
     // a set of nodes that has already been created to prevent duplicates
-    HashSet<CFANode> addedNodes = new HashSet<>();
+    Set<CFANode> addedNodes = new HashSet<>();
 
     Queue<CFANode> nodeQueue = new ArrayDeque<>();
     // start with function entry point
@@ -103,14 +104,14 @@ public class TestTargetMinimizerEssential {
     while (!nodeQueue.isEmpty()) {
       CFANode currentNode = nodeQueue.poll();
 
-      // Readd the node to the queue to ensure longer paths arent overlooked
+      // Read the node to the queue to ensure longer paths arent overlooked
       // shrink graph if node has only one outgoing edge by removing the successor from the graph.
       if (currentNode.getNumLeavingEdges() == 1) {
         nodeQueue.add(currentNode);
         // remove the current nodes leaving edge from its successor and from the current edge
         CFAEdge removedEdge = currentNode.getLeavingEdge(0);
-        currentNode.removeLeavingEdge(removedEdge);
-        removedEdge.getSuccessor().removeEnteringEdge(removedEdge);
+
+
 
         if (dummyTestTargetsMapping.containsKey(removedEdge)) {
           // inherit the testTarget information to all the incoming edges as if they get dominated

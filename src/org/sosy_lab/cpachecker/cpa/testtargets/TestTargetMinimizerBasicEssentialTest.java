@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -21,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class TestTargetMinimizerBasicEssentialTest {
   @Test
   public void noReductionTest() {
-    final CFA pCfa = null;
+
     TestTargetMinimizerBasicEssential uut = new TestTargetMinimizerBasicEssential();
     Set<CFAEdge> testTargets = new HashSet<>();
     CFANode u = CFANode.newDummyCFANode("u");
@@ -58,7 +57,7 @@ public class TestTargetMinimizerBasicEssentialTest {
 
   @Test
   public void Rule1ReductionTest() {
-    final CFA pCfa = null;
+
     TestTargetMinimizerBasicEssential uut = new TestTargetMinimizerBasicEssential();
     Set<CFAEdge> testTargets = new HashSet<>();
     CFANode u = CFANode.newDummyCFANode("u");
@@ -95,7 +94,7 @@ public class TestTargetMinimizerBasicEssentialTest {
 
   @Test
   public void Rule1LongReductionTest() {
-    final CFA pCfa = null;
+
     TestTargetMinimizerBasicEssential uut = new TestTargetMinimizerBasicEssential();
     Set<CFAEdge> testTargets = new HashSet<>();
     CFANode t = CFANode.newDummyCFANode("t");
@@ -135,7 +134,6 @@ public class TestTargetMinimizerBasicEssentialTest {
 
   @Test
   public void Rule2ReductionTest() {
-    final CFA pCfa = null;
     TestTargetMinimizerBasicEssential uut = new TestTargetMinimizerBasicEssential();
     Set<CFAEdge> testTargets = new HashSet<>();
     CFANode u = CFANode.newDummyCFANode("u");
@@ -172,7 +170,6 @@ public class TestTargetMinimizerBasicEssentialTest {
 
   @Test
   public void Rule2LongReductionTest() {
-    final CFA pCfa = null;
     TestTargetMinimizerBasicEssential uut = new TestTargetMinimizerBasicEssential();
     Set<CFAEdge> testTargets = new HashSet<>();
     CFANode t = CFANode.newDummyCFANode("t");
