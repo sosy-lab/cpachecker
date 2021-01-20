@@ -354,13 +354,13 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   private void sliceEdges(final List<ARGState> pChangedElements,
       ARGState pInfeasiblePartOfART, List<ARGState> pAbstractionStatesTrace, ARGState rootState)
       throws InterruptedException, CPAException {
-    final List<ARGState> allChangedStates;
-    //get the corresponding forked states:
-    allChangedStates = pChangedElements.stream()
-        .map(x -> forkedStateMap.get(x))
-        .filter(x -> x != null)
-        .filter(x -> !pChangedElements.contains(x))
-        .collect(Collectors.toList());
+    // get the corresponding forked states:
+    final List<ARGState> allChangedStates =
+        pChangedElements.stream()
+            .map(x -> forkedStateMap.get(x))
+            .filter(x -> x != null)
+            .filter(x -> !pChangedElements.contains(x))
+            .collect(Collectors.toCollection(ArrayList::new));
     allChangedStates.addAll(pChangedElements);
 
     List<ARGState> priorAbstractionStates = new ArrayList<>();
