@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
@@ -74,11 +73,11 @@ public class FaultReportWriter {
 
   public String toHtml(Fault fault) {
     // list of all edges in fault sorted by line number
-    List<CFAEdge> edges = fault
-        .stream()
-        .map(FaultContribution::correspondingEdge)
-        .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
-        .collect(Collectors.toList());
+    List<CFAEdge> edges =
+        fault.stream()
+            .map(FaultContribution::correspondingEdge)
+            .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
+            .collect(ImmutableList.toImmutableList());
     return toHtml(fault.getInfos(), edges);
   }
 

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -155,7 +156,7 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     return faults.stream()
         .filter(f -> f.getScore() != 0)
         .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   private SuspiciousnessMeasure createSuspiciousnessMeasure(AlgorithmType pAlgorithmType) {
