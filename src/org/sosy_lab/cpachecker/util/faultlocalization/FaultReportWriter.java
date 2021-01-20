@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -202,23 +203,16 @@ public class FaultReportWriter {
   }
 
   private String listLineNumbersAndJoin(Collection<Integer> lineNumbers) {
-    return lineNumbers.stream()
-        .sorted()
-        .map(i -> String.valueOf(i))
-        .collect(
-            Collectors.collectingAndThen(
-                Collectors.toList(),
-                list -> {
-                  int lastIndex = list.size() - 1;
-                  if (lastIndex < 1) {
-                    return String.join("", list);
-                  }
-                  if (lastIndex == 1) {
-                    return String.join(" and ", list);
-                  }
-                  return String.join(
-                      " and ", String.join(", ", list.subList(0, lastIndex)), list.get(lastIndex));
-                }));
+    List<String> sortedNumbers =
+        lineNumbers.stream().sorted().map(String::valueOf).collect(ImmutableList.toImmutableList());
+
+    if (sortedNumbers.size() <= 2) {
+      return String.join(" and ", sortedNumbers);
+    }
+    int lastIndex = sortedNumbers.size() - 1;
+    return String.join(", ", sortedNumbers.subList(0, lastIndex))
+        + " and "
+        + sortedNumbers.get(lastIndex);
   }
 
 }
