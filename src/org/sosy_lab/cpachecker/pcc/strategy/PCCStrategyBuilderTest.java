@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.pcc.strategy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,7 +34,7 @@ public class PCCStrategyBuilderTest {
         .map(ClassInfo::load)
         .filter(PCCStrategy.class::isAssignableFrom)
         .filter(cls -> !Modifier.isAbstract(cls.getModifiers()))
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Parameter(0)

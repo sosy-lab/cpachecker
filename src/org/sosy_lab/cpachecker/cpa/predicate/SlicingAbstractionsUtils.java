@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.collect.FluentIterable;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -657,13 +657,8 @@ public class SlicingAbstractionsUtils {
       path = ARGUtils.getOnePathTo(errorState);
     }
 
-    final List<ARGState> abstractionStatesOnErrorPath;
-    abstractionStatesOnErrorPath =
-        path.asStatesList()
-            .asList()
-            .stream()
-            .filter(x -> isAbstractionState(x))
-            .collect(Collectors.toList());
+    final ImmutableList<ARGState> abstractionStatesOnErrorPath =
+        from(path.asStatesList()).filter(x -> isAbstractionState(x)).toList();
 
     final Set<ARGState> statesOnErrorPath = new HashSet<>(abstractionStatesOnErrorPath);
 

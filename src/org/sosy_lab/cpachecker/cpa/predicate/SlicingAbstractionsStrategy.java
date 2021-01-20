@@ -40,7 +40,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -274,16 +273,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     // optimization: Slice all edges only on first iteration
     // After that we only need to slice edges of the states we split
     if (!initialSliceDone) {
-      @SuppressWarnings("unchecked")
       List<ARGState> all =
-          (List<ARGState>)
-              (List<? extends AbstractState>)
-                  pReached
-                      .asReachedSet()
-                      .asCollection()
-                      .stream()
-                      .filter(x -> SlicingAbstractionsUtils.isAbstractionState((ARGState) x))
-                      .collect(Collectors.toList());
+          from(pReached.asReachedSet())
+              .filter(ARGState.class)
+              .filter(SlicingAbstractionsUtils::isAbstractionState)
+              .toList();
+
       sliceEdges(all, infeasiblePartOfART, abstractionStatesTrace, rootState);
       initialSliceDone = true;
     } else {
@@ -313,16 +308,11 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         changed = SlicingAbstractionsUtils.performDynamicBlockEncoding(pReached);
         if (changed) {
           pReached.recalculateReachedSet(rootState);
-          @SuppressWarnings("unchecked")
           List<ARGState> all =
-              (List<ARGState>)
-                  (List<? extends AbstractState>)
-                      pReached
-                          .asReachedSet()
-                          .asCollection()
-                          .stream()
-                          .filter(x -> SlicingAbstractionsUtils.isAbstractionState((ARGState) x))
-                          .collect(Collectors.toList());
+              from(pReached.asReachedSet())
+                  .filter(ARGState.class)
+                  .filter(SlicingAbstractionsUtils::isAbstractionState)
+                  .toList();
           sliceEdges(all, null, null, null);
         }
       }
@@ -388,9 +378,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     // Therefore we need to make sure that allChangedStates at least contains
     // all abstraction states on the error path:
     if (minimalSlicing) {
-      allChangedStates.addAll(pAbstractionStatesTrace.stream().
-          filter(x->!allChangedStates.contains(x)).
-          collect(Collectors.toList()));
+      allChangedStates.addAll(
+          pAbstractionStatesTrace.stream()
+              .filter(x -> !allChangedStates.contains(x))
+              .collect(ImmutableList.toImmutableList()));
     }
 
     for (ARGState currentState : allChangedStates) {

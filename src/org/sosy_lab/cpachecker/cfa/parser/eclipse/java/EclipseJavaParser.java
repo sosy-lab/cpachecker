@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
@@ -179,7 +178,7 @@ class EclipseJavaParser implements Parser {
 
     for (Path directory : javaSourcePaths) {
       try (Stream<Path> files = getJavaFilesInPath(directory)) {
-        for (Path file : files.collect(Collectors.toList())) {
+        for (Path file : files.collect(ImmutableList.toImmutableList())) {
           CompilationUnit ast = parse(file, IGNORE_METHOD_BODY);
           astsOfFoundFiles.add(new JavaFileAST(file, ast));
         }

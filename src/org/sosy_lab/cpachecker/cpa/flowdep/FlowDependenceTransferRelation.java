@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -134,12 +134,8 @@ class FlowDependenceTransferRelation
       MemoryLocation varName = e.getKey();
       Set<DefinitionPoint> points = e.getValue();
 
-      Collection<ProgramDefinitionPoint> defPoints =
-          points
-              .stream()
-              .filter(x -> x instanceof ProgramDefinitionPoint)
-              .map(p -> (ProgramDefinitionPoint) p)
-              .collect(Collectors.toList());
+      FluentIterable<ProgramDefinitionPoint> defPoints =
+          FluentIterable.from(points).filter(ProgramDefinitionPoint.class);
 
       normalized.putAll(varName, defPoints);
     }
