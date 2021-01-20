@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkAbstractionState;
 import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.buildPathFormula;
@@ -262,11 +263,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
           rootStates.stream()
               .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
               .orElseThrow();
-      logger.log(
+      logger.logf(
           Level.INFO,
-          String.format(
-              "More than one root state present!(%s)",
-              rootStates.stream().map(x -> x.getStateId()).collect(Collectors.toList())));
+          "More than one root state present!(%s)",
+          from(rootStates).transform(ARGState::getStateId));
     }
 
     argLogger.log("in refinement before slicing!", pReached.asReachedSet().asCollection());
