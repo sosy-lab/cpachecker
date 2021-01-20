@@ -190,7 +190,6 @@ class EclipseJavaParser implements Parser {
   }
 
   @MustBeClosed
-  @SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
   private Stream<Path> getJavaFilesInPath(Path mainDirectory) throws IOException {
     return Files.walk(mainDirectory, FileVisitOption.FOLLOW_LINKS)
         .filter(Files::isRegularFile)
