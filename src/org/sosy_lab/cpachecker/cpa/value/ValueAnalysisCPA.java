@@ -111,7 +111,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
-  @Option(secure = true, description = "get initial precision from a predicate analysis file")
+  @Option(secure = true, description = "get an initial precision from a predicate analysis file")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
@@ -187,15 +187,15 @@ public class ValueAnalysisCPA extends AbstractCPA
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
     }
 
-    //TODO: initialize precision from a predicate analysis
-    else if (initialPredicatePrecisionFile != null){
+    // Initialize precision from a predicate analysis
+    VariableTrackingPrecision initialPrecision =
+        VariableTrackingPrecision.createRefineablePrecision(
+            pConfig,
+            VariableTrackingPrecision.createStaticPrecision(
+                pConfig, pCfa.getVarClassification(), getClass()));
+    if (initialPredicatePrecisionFile != null){
 
       // create precision with empty, refinable component precision
-      VariableTrackingPrecision initialPrecision =
-          VariableTrackingPrecision.createRefineablePrecision(
-              pConfig,
-              VariableTrackingPrecision.createStaticPrecision(
-                  pConfig, pCfa.getVarClassification(), getClass()));
 
       // create managers for the predicate map parser for parsing the predicates from the given
       // predicate precision file
@@ -220,16 +220,11 @@ public class ValueAnalysisCPA extends AbstractCPA
       if (predPrec != null) {
         return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
       }
-      else return null;
+      else return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
     }
 
     else {
       // create precision with empty, refinable component precision
-      VariableTrackingPrecision initialPrecision =
-          VariableTrackingPrecision.createRefineablePrecision(
-              pConfig,
-              VariableTrackingPrecision.createStaticPrecision(
-                  pConfig, pCfa.getVarClassification(), getClass()));
       // refine the refinable component precision with increment from file
       return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
@@ -247,8 +242,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     // Get the variables from the predicate precision
     for (AbstractionPredicate pred : predicates) {
-
-      //TODO: which variables are also needed or is this all?
       for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {
         trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
@@ -258,8 +251,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-
-    //TODO: redundant?
     List<String> contents = null;
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
