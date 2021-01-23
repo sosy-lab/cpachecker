@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.collect.ForwardingList;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -72,27 +72,27 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     return values;
   }
 
-  public List<BooleanFormula> toAtomList() {
+  public ImmutableList<BooleanFormula> toAtomList() {
     return toTList(entry -> entry.atom);
   }
 
-  public List<SSAMap> toSSAMapList() {
+  public ImmutableList<SSAMap> toSSAMapList() {
     return toTList(entry -> entry.map);
   }
 
-  public List<Selector> toSelectorList() {
+  public ImmutableList<Selector> toSelectorList() {
     return toTList(entry -> entry.selector);
   }
 
-  public List<CFAEdge> toEdgeList() {
+  public ImmutableList<CFAEdge> toEdgeList() {
     return toTList(entry -> entry.selector.getEdge());
   }
 
-  private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
+  private <T> ImmutableList<T> toTList(Function<FormulaEntry, T> mapping) {
     return entries.stream()
-        .map(mapping::apply)
+        .map(mapping)
         .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Override
