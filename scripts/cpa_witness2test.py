@@ -679,7 +679,7 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 if __name__ == "__main__":
     try:
-        sys.exit(run())
+        run()
     except ValidationError as e:
         logging.error(e.msg)
         print("Verification result: ERROR.")

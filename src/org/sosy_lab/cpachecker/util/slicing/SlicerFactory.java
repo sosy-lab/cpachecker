@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -15,13 +17,18 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 
 /**
  * Factory class for creating {@link Slicer} objects. The concrete <code>Slicer</code> that is
  * created by this classes {@link #create(LogManager, ShutdownNotifier, Configuration, CFA) create}
  * method depends on the given configuration.
  */
-public class SlicerFactory {
+public class SlicerFactory implements StatisticsProvider {
 
   private enum ExtractorType {
     ALL,
@@ -69,6 +76,27 @@ public class SlicerFactory {
     }
   }
 
+  private final Collection<Statistics> stats;
+
+  public SlicerFactory() {
+    stats = new ArrayList<>();
+  }
+
+  private DependenceGraph createDependenceGraph(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
+      throws InterruptedException, InvalidConfigurationException {
+
+    final DependenceGraphBuilder depGraphBuilder =
+        DependenceGraph.builder(pCfa, pConfig, pLogger, pShutdownNotifier);
+    try {
+      return depGraphBuilder.build();
+    } catch (CPAException ex) {
+      throw new AssertionError("DependenceGraph construction failed: " + ex);
+    } finally {
+      depGraphBuilder.collectStatistics(stats);
+    }
+  }
+
   /**
    * Creates a new {@link Slicer} object according to the given {@link Configuration}. All other
    * arguments of this method are passed to the created slicer and its components, if required by
@@ -76,7 +104,7 @@ public class SlicerFactory {
    */
   public Slicer create(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InterruptedException, InvalidConfigurationException {
     SlicerOptions options = new SlicerOptions(pConfig);
 
     final SlicingCriteriaExtractor extractor;
@@ -98,11 +126,18 @@ public class SlicerFactory {
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {
       case STATIC:
-        return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, pCfa);
+        DependenceGraph dependenceGraph =
+            createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
+        return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, dependenceGraph);
       case IDENTITY:
         return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
       default:
         throw new AssertionError("Unhandled slicing type " + slicingType);
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.addAll(stats);
   }
 }

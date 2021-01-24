@@ -19,7 +19,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-benchmark"/>
   </rundefinition>
 
-  <resultfiles>**.graphml</resultfiles>
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">termination.compressWitness=true</option>
 
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
@@ -37,13 +40,9 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
-  <tasks name="MemSafety-MemCleanup">
-    <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
-  </tasks>
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="SoftwareSystems-BusyBox-MemSafety">

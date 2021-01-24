@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.9.2-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="2.0.1-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -41,6 +41,7 @@ SPDX-License-Identifier: Apache-2.0
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:MissingSummary:OFF
+        -Xep:BanSerializableRead:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

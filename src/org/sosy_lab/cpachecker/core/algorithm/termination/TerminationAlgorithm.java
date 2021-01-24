@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -611,10 +610,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
 
       Collection<ARGState> parentLoopStates =
-          next.getParents()
-              .stream()
+          next.getParents().stream()
               .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
-              .collect(Collectors.toList());
+              .collect(ImmutableList.toImmutableList());
 
       if (parentLoopStates.isEmpty()) {
         firstLoopStates.add(next);

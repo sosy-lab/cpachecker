@@ -1,0 +1,4 @@
+numpy>=1.19
+pandas>=1.0
+jupyter>=1.0
+benchexec>=3.4

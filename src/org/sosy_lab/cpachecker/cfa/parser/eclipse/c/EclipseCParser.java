@@ -502,9 +502,6 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("__FUNCTION__", "\"__FUNCTION__\"");
       macrosBuilder.put("__PRETTY_FUNCTION__", "\"__PRETTY_FUNCTION__\"");
 
-      // Eclipse CDT 8.1.1 has problems with more complex attributes
-      macrosBuilder.put("__attribute__(a)", "");
-
       // For vararg handling there are some interesting macros that we could use available at
       // https://web.archive.org/web/20160801170919/http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
       // However, without proper support in the analysis, these just make things worse.

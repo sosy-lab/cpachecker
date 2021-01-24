@@ -11,10 +11,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 import com.google.common.collect.ImmutableList;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -77,7 +76,7 @@ public class ElementTestingSymbolicEdgeInterpolator
       interpolantManager;
   private final MachineModel machineModel;
 
-  private List<SymbolicStateReducer> stateReducers;
+  private ImmutableList<SymbolicStateReducer> stateReducers;
   private int currentReducerIndex = 0;
 
   private final ShutdownNotifier shutdownNotifier;
@@ -121,10 +120,8 @@ public class ElementTestingSymbolicEdgeInterpolator
         throw new AssertionError("Unhandled strategy: " + strategy);
     }
     if (avoidConstraints) {
-      stateReducers = stateReducers
-          .stream()
-          .map(r -> new AvoidConstraintsReducer(r))
-          .collect(Collectors.toList());
+      stateReducers =
+          Collections3.transformedImmutableListCopy(stateReducers, AvoidConstraintsReducer::new);
     }
   }
 
