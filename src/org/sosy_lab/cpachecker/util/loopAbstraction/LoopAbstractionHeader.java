@@ -48,7 +48,7 @@ public class LoopAbstractionHeader implements StatisticsProvider {
 
   private LoopAbstraction loopAbstraction;
   private AbstractionStatistic timeToAbstract;
-  private String fileName;
+  private final String abstractedSource;
 
   /**
    * Constructor that enables the CPAchecker to rewrite the loops in the programs, you can choose
@@ -66,13 +66,13 @@ public class LoopAbstractionHeader implements StatisticsProvider {
       LoopInformation loopI, boolean automate, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     config.inject(this);
-    pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
 
-    loopAbstraction = new LoopAbstraction();
+    loopAbstraction = new LoopAbstraction(config);
     if (!shouldAbstract.equals("none")) {
-      loopAbstraction.changeFileToAbstractFile(
-          loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
-      fileName = loopAbstraction.getFileName();
+      loopAbstraction.changeFileToAbstractFile(loopI, logger, shouldAbstract, automate, accLoops);
+      abstractedSource = loopAbstraction.getAbstractedSource();
+    } else {
+      abstractedSource = null;
     }
     timeToAbstract = new AbstractionStatistic(loopAbstraction.getTimeToAbstract());
   }
@@ -82,7 +82,7 @@ public class LoopAbstractionHeader implements StatisticsProvider {
     pStatsCollection.add(timeToAbstract);
   }
 
-  public String getFileName() {
-    return fileName;
+  public String getAbstractedSource() {
+    return abstractedSource;
   }
 }

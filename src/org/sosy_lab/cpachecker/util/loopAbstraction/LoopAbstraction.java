@@ -10,16 +10,21 @@ package org.sosy_lab.cpachecker.util.loopAbstraction;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -33,16 +38,32 @@ import org.sosy_lab.cpachecker.util.loopInformation.LoopVariables;
  * This class takes a file and changes all of the loops in a advanced abstraction to make the
  * program verifiable for specific cpa's
  */
+@Options(prefix = "loopacc")
 public class LoopAbstraction {
   private int lineNumber = 1;
   private final Timer totalTime;
   private TimeSpan timeToAbstract;
-  private String fName;
+
+  @Option(
+      secure = true,
+      description = "Whether to export the source code of the abstracted program.")
+  private boolean exportAbstractedFile = true;
+
+  @Option(
+      secure = true,
+      name = "abstractedFile",
+      description = "Export the source code of the abstracted program to the given file name.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path abstractedFileName = Paths.get("abstractedProgram.c");
+
+  private String abstractedSource;
+
   private boolean openIf = false;
   private int ifWithoutBracket = 0;
   private boolean hasBreak = false;
 
-  public LoopAbstraction() {
+  public LoopAbstraction(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
     totalTime = new Timer();
   }
 
@@ -64,7 +85,6 @@ public class LoopAbstraction {
    *
    * @param loopInfo Information about all the loops in the file
    * @param logger logger that logs all the exceptions
-   * @param pathForNewFile systempath to the directory where the new file should be saved
    * @param abstractionLevel level of abstraction, "naive" and "advanced" possible, naive is a
    *     bigger overapproximation than advanced
    * @param automate the file will be overwritten if this is true
@@ -73,7 +93,6 @@ public class LoopAbstraction {
   public void changeFileToAbstractFile(
       LoopInformation loopInfo,
       LogManager logger,
-      String pathForNewFile,
       String abstractionLevel,
       boolean automate,
       boolean onlyAccL) {
@@ -503,7 +522,10 @@ public class LoopAbstraction {
           e,
           "LoopAbstraction: Something is not working with the file you try to import");
     }
-    writeAbstractedFile(content, pathForNewFile, logger);
+    abstractedSource = content;
+    if (exportAbstractedFile) {
+      writeAbstractedFile(content, logger); // TODO: do this in the statistics file output instead
+    }
     totalTime.stop();
     timeToAbstract = totalTime.getLengthOfLastInterval();
   }
@@ -856,25 +878,11 @@ public class LoopAbstraction {
     return ifCaseC;
   }
 
-  private void writeAbstractedFile(String content, String pathForNewFile, LogManager logger) {
-
-    String fileName = "";
-
-    if (pathForNewFile.endsWith("c")) {
-      fileName = Iterables.get(Splitter.onPattern("[.]").split(pathForNewFile), 0) + "Abstract.c";
-    } else if (pathForNewFile.endsWith("i")) {
-      fileName = Iterables.get(Splitter.onPattern("[.]").split(pathForNewFile), 0) + "Abstract.i";
+  private void writeAbstractedFile(String content, LogManager logger) {
+    if (abstractedFileName == null) {
+      return;
     }
-    setFileName(fileName);
-
-    File file = new File(fileName);
-    try {
-      file.getParentFile().mkdirs();
-    } catch (Exception e) {
-      logger.logUserException(Level.WARNING, e, "Security Exception");
-    }
-
-    try (Writer fileWriter = Files.newBufferedWriter(file.toPath(), Charset.defaultCharset())) {
+    try (Writer fileWriter = Files.newBufferedWriter(abstractedFileName, Charset.defaultCharset())) {
       String fileContent = content;
       fileWriter.write(fileContent);
     } catch (IOException e) {
@@ -910,11 +918,7 @@ public class LoopAbstraction {
     return timeToAbstract;
   }
 
-  private void setFileName(String fileName) {
-    fName = fileName;
-  }
-
-  public String getFileName() {
-    return fName;
+  public String getAbstractedSource() {
+    return abstractedSource;
   }
 }

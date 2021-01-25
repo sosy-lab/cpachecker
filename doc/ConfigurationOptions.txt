@@ -3508,6 +3508,12 @@ locmapper.dumpTokenizedProgramToFile = no default value
 # all used options are printed
 log.usedOptions.export = false
 
+# Export the source code of the abstracted program to the given file name.
+loopacc.abstractedFile = "abstractedProgram.c"
+
+# Whether to export the source code of the abstracted program.
+loopacc.exportAbstractedFile = true
+
 # Change this option only if you want all of the loops to be abstracted.
 loopacc.loopabstractionheader.onlyAccelerableLoops = true
 
