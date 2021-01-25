@@ -503,7 +503,7 @@ public class LoopAbstraction {
           e,
           "LoopAbstraction: Something is not working with the file you try to import");
     }
-    printFile(content, pathForNewFile, logger);
+    writeAbstractedFile(content, pathForNewFile, logger);
     totalTime.stop();
     timeToAbstract = totalTime.getLengthOfLastInterval();
   }
@@ -856,7 +856,7 @@ public class LoopAbstraction {
     return ifCaseC;
   }
 
-  private void printFile(String content, String pathForNewFile, LogManager logger) {
+  private void writeAbstractedFile(String content, String pathForNewFile, LogManager logger) {
 
     String fileName = "";
 
