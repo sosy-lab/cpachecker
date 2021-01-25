@@ -154,6 +154,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -3610,15 +3611,12 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
-# The command line for calling the clang processor. May contain binary name
-# and arguments, but won't be expanded by a shell. The source file name will
-# be appended to this string. The clang needs to print the output to stdout.
+# The command line for calling the clang preprocessor. May contain binary
+# name and arguments, but won't be expanded by a shell. The source file name
+# will be appended to this string. Clang needs to print the output to stdout.
 parser.clang = "clang -S -emit-llvm -o /dev/stdout"
 
-# Directory where to dump the results of the processor.
-parser.clang.dumpDirectory = "processed"
-
-# Whether to dump the results of the processor to disk for debugging.
+# Whether to dump the results of the preprocessor to disk.
 parser.clang.dumpResults = true
 
 # C dialect for parser

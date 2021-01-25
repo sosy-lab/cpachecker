@@ -10,10 +10,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -21,37 +18,25 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 @Options(prefix = "parser")
-public class ClangProcessor extends Preprocessor {
+public class ClangPreprocessor extends Preprocessor {
 
-  @Option(description="The command line for calling the clang processor. " +
-                      "May contain binary name and arguments, but won't be expanded by a shell. " +
-                      "The source file name will be appended to this string. " +
-                      "The clang needs to print the output to stdout.")
-
+  @Option(
+      description =
+          "The command line for calling the clang preprocessor. "
+              + "May contain binary name and arguments, but won't be expanded by a shell. "
+              + "The source file name will be appended to this string. "
+              + "Clang needs to print the output to stdout.")
   private String clang = "clang -S -emit-llvm -o /dev/stdout";
 
   @Option(
-    name = "clang.dumpResults",
-    description = "Whether to dump the results of the processor to disk for debugging."
-  )
+      name = "clang.dumpResults",
+      description = "Whether to dump the results of the preprocessor to disk.")
   private boolean dumpResults = true;
 
-  @Option(
-      name = "clang.dumpDirectory",
-      description = "Directory where to dump the results of the processor.")
-
-  /*
-   * The class writes its output files in the processed directory.
-   */
-  @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path dumpDirectory = Paths.get("processed");
-
-  public ClangProcessor(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    super(pLogger);
+  public ClangPreprocessor(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
+    super(config, pLogger);
     config.inject(this);
-    if (dumpDirectory != null) {
-      dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
-    }
   }
 
   public Path preprocessAndGetDumpedFile(String file) throws CParserException, InterruptedException {
@@ -72,11 +57,6 @@ public class ClangProcessor extends Preprocessor {
   @Override
   protected boolean dumpResults() {
     return dumpResults;
-  }
-
-  @Override
-  protected Path getDumpDirectory() {
-    return dumpDirectory;
   }
 
   @Override

@@ -22,9 +22,12 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  */
 public class LlvmParserWithClang extends LlvmParser {
 
-  private final ClangProcessor preprocessor;
+  private final ClangPreprocessor preprocessor;
 
-  public LlvmParserWithClang(final ClangProcessor pPreprocessor,final LogManager pLogger, final MachineModel pMachineModel) {
+  public LlvmParserWithClang(
+      final ClangPreprocessor pPreprocessor,
+      final LogManager pLogger,
+      final MachineModel pMachineModel) {
     super(pLogger, pMachineModel);
     this.preprocessor = pPreprocessor;
   }
@@ -44,9 +47,7 @@ public class LlvmParserWithClang extends LlvmParser {
 
   static class Factory {
     public static LlvmParserWithClang getParser(
-        ClangProcessor processor,
-        LogManager logger,
-        MachineModel machine) {
+        ClangPreprocessor processor, LogManager logger, MachineModel machine) {
       return new LlvmParserWithClang(processor, logger, machine);
     }
   }

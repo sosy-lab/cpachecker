@@ -8,11 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -34,19 +30,9 @@ public class CPreprocessor extends Preprocessor {
   )
   private boolean dumpResults = false;
 
-  @Option(
-    name = "preprocessor.dumpDirectory",
-    description = "Directory where to dump the results of the preprocessor."
-  )
-  @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path dumpDirectory = Paths.get("preprocessed");
-
   public CPreprocessor(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    super(pLogger);
+    super(config, pLogger);
     config.inject(this);
-    if (dumpDirectory != null) {
-      dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
-    }
   }
 
   @Override
@@ -65,7 +51,7 @@ public class CPreprocessor extends Preprocessor {
   }
 
   @Override
-  protected Path getDumpDirectory() {
-    return dumpDirectory;
+  protected String getDumpFileOfFile(String file) {
+    return file;
   }
 }

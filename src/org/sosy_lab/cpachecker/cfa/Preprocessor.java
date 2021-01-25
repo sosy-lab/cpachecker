@@ -16,20 +16,39 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
+@Options(prefix = "parser")
 public abstract class Preprocessor {
+
+  @Option(
+      name = "preprocessor.dumpDirectory",
+      description = "Directory where to dump the results of the preprocessor.")
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path dumpDirectory = Paths.get("preprocessed");
 
   private final LogManager logger;
 
-  protected Preprocessor(LogManager pLogger) {
+  protected Preprocessor(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
+    if (dumpDirectory != null) {
+      dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
+    }
   }
 
   public String preprocess(String file) throws CParserException, InterruptedException {
@@ -79,7 +98,6 @@ public abstract class Preprocessor {
   }
 
   protected Path getAndWriteDumpedFile(String programCode, String file) {
-    Path dumpDirectory = getDumpDirectory();
     if (dumpResults() && dumpDirectory != null) {
       final Path dumpFile = dumpDirectory.resolve(getDumpFileOfFile(file)).normalize();
       if (dumpFile.startsWith(dumpDirectory)) {
@@ -106,11 +124,7 @@ public abstract class Preprocessor {
 
   protected abstract boolean dumpResults();
 
-  protected abstract Path getDumpDirectory();
-
-  protected String getDumpFileOfFile(String file) {
-    return file;
-  }
+  protected abstract String getDumpFileOfFile(String file);
 
   private String getCapitalizedName() {
     return getName().substring(0, 1).toUpperCase() + getName().substring(1);
