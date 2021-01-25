@@ -157,6 +157,12 @@ solver.z3.usePhantomReferences = false
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Get information about all the loops
+LoopInfo.generateLoopInformation = false
+
+# Dumps infos about the loops in the tested program to a file.
+LoopInfo.logfile = "LoopInformation.log"
+
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
 
@@ -724,6 +730,9 @@ cegar.refiner = no default value
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
+
+# Abstractes the loops and analyzes the Programm
+cfa.abstractLoopsAnalyzeProgram = false
 
 # Add custom labels to the CFA
 cfa.addLabels = false
@@ -3498,6 +3507,17 @@ locmapper.dumpTokenizedProgramToFile = no default value
 
 # all used options are printed
 log.usedOptions.export = false
+
+# Change this option only if you want all of the loops to be abstracted.
+loopacc.loopabstractionheader.onlyAccelerableLoops = true
+
+# Use this option to specify a place to save the new c file with the
+# abstracted loops, default is in the cpachecker folder -> abstractLoops
+loopacc.loopabstractionheader.pathForFile = "../abstractLoops/"
+
+# AbstractLoops to be able to process them
+loopacc.loopabstractionheader.shouldAbstract = "none"
+  allowed values: [naive, advanced, none]
 
 # When checking for memory cleanup properties, use this configuration file
 # instead of the current one.
