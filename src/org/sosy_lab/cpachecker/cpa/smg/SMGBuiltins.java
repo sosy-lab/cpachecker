@@ -872,8 +872,8 @@ public class SMGBuiltins {
 
       // read explicit values
       // explicit values are necessary to calculate difference between char ascii codes
-      SMGExplicitValue expFirstValue = state.getExplicit((SMGKnownSymbolicValue) symFirstValue);
-      SMGExplicitValue expSecondValue = state.getExplicit((SMGKnownSymbolicValue) symSecondValue);
+      SMGExplicitValue expFirstValue = state.getExplicit(symFirstValue);
+      SMGExplicitValue expSecondValue = state.getExplicit(symSecondValue);
 
       if (!allValuesAreDefined(expFirstValue, expSecondValue)) {
         // in case evaluation for explicit values compare symbolic values

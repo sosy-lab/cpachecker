@@ -662,7 +662,7 @@ public class SMGExpressionEvaluator {
       return singletonList(SMGAddressValueAndState.of(smgState, pAddressValue));
     }
 
-    SMGKnownExpValue explicit = smgState.getExplicit((SMGKnownSymbolicValue) pAddressValue);
+    SMGKnownExpValue explicit = smgState.getExplicit(pAddressValue);
     if (explicit != null && !explicit.isUnknown()) {
       return singletonList(
           SMGAddressValueAndState.of(

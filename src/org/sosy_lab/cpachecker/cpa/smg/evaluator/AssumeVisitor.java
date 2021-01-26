@@ -252,8 +252,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         if (isPointerOp1 && isPointerOp2) {
           isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
-        } else if (isPointerOp1 && !pV2.isUnknown() && pV2 instanceof SMGKnownSymbolicValue) {
-          SMGKnownExpValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
+        } else if (isPointerOp1 && !pV2.isUnknown()) {
+          SMGKnownExpValue explicit2 = pNewState.getExplicit(pV2);
           if (explicit2 != null) {
             isTrue =
                 comparePointer(
@@ -263,8 +263,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                     pOp);
             isFalse = !isTrue;
           }
-        } else if (isPointerOp2 && !pV1.isUnknown() && pV1 instanceof SMGKnownSymbolicValue) {
-          SMGKnownExpValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
+        } else if (isPointerOp2 && !pV1.isUnknown()) {
+          SMGKnownExpValue explicit1 = pNewState.getExplicit(pV1);
             if (explicit1 != null) {
             isTrue =
                 comparePointer(
