@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariantsampling;
 
-public class testCPA {
+public class TestCPA {
 
 
 
