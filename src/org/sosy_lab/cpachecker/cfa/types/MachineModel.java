@@ -72,6 +72,7 @@ public enum MachineModel {
       1, // void
       1, //bool
       4, //pointer
+      true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
@@ -104,6 +105,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
@@ -127,15 +129,16 @@ public enum MachineModel {
       2, // short
       4, // int
       4, // long int
-      4, // long long int
+      8, // long long int
       4, // float
-      4, // double
-      4, // long double
+      8, // double
+      8, // long double
 
       // alignof other
       1, // void
-      4, // bool
+      1, // bool
       4, // pointer
+      false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
   );
   // numeric types
@@ -172,6 +175,7 @@ public enum MachineModel {
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
   private final int mAlignofChar = 1;
+  private final boolean defaultCharSigned;
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
@@ -198,6 +202,7 @@ public enum MachineModel {
       int pAlignofVoid,
       int pAlignofBool,
       int pAlignofPtr,
+      boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
@@ -220,6 +225,7 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    defaultCharSigned = pDefaultCharSigned;
     endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
@@ -265,7 +271,7 @@ public enum MachineModel {
    * or <code>unsigned char</code>.
    */
   public boolean isDefaultCharSigned() {
-    return true;
+    return defaultCharSigned;
   }
 
   /**
