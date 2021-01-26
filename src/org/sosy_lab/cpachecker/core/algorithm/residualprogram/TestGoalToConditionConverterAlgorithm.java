@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -80,7 +81,6 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
                 NAIVE, PROPAGATION
         }
 
-        private ReachedSet backwardsCpaReachedSet;
         private Algorithm backwardsCpaAlgorithm;
         private ConfigurableProgramAnalysis backwardsCpa;
 
@@ -142,11 +142,9 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
                         backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
                         backwardsCpa = backwardsCpaTriple.getSecond();
-                        backwardsCpaReachedSet = backwardsCpaTriple.getThird();
                 } catch (Exception e) {
                         backwardsCpaAlgorithm = null;
                         backwardsCpa = null;
-                        backwardsCpaReachedSet = null;
                 }
 
                 if(pOuter == null || pOuterCpa == null) {
@@ -176,7 +174,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
         /**
          * Reads the input file and extracts all covered goals.
          * @return A list of all covered goals.
-         * @throws CPAException
+         * @throws CPAException when file could not be read or another IO error occurs.
          */
         private Set<String> getCoveredGoals() throws CPAException {
 
@@ -200,19 +198,13 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
                 backwardsCpaAlgorithm.run(reachedSet);
 
-                LinkedList<ARGState> waitList = new LinkedList<>();
+                ArrayList<ARGState> waitList = new ArrayList<>();
                 //We're doing a backwards analysis; hence the first state here is the end of the ARG
                 waitList.add((ARGState) reachedSet.getFirstState());
 
                 var result = goalFindingStrategy.findGoals(waitList, coveredGoals);
 
                 return result;
-        }
-
-
-        private Map<LeafStates, List<String>> getPartitionedPropagatedLeafGoals()
-          throws CPAException, InterruptedException {
-                return null;
         }
 
         /**
