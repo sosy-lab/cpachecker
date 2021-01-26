@@ -320,7 +320,7 @@ analysis.interprocedural = true
 
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
-  enum:     [LINUX32, LINUX64, ARM]
+  enum:     [LINUX32, LINUX64, ARM, ARM64]
 
 # Use as targets for call edges only those shich are assigned to the
 # particular expression (structure field).

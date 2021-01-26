@@ -140,7 +140,41 @@ public enum MachineModel {
       4, // pointer
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
-  );
+      ),
+
+  /** Machine model representing an ARM64 machine with alignment: */
+  ARM64(
+      // numeric types
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      16, // long double
+
+      // other
+      1, // void
+      1, // bool
+      8, // pointer
+
+      //  alignof numeric types
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      16, // long double
+
+      // alignof other
+      1, // void
+      1, // bool
+      4, // pointer
+      false, // char is signed
+      ByteOrder.LITTLE_ENDIAN // endianness
+      );
+
   // numeric types
   private final int sizeofShort;
   private final int sizeofInt;
