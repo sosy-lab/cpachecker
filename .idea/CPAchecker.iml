@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <module type="JAVA_MODULE" version="4">
-  <component name="FacetManager">
-    <facet type="Python" name="Python">
-      <configuration sdkName="Python 3.8 (venv)" />
-    </facet>
-  </component>
   <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/bin" />
     <exclude-output />
@@ -72,6 +76,5 @@
         <jarDirectory url="file://$MODULE_DIR$/lib" recursive="false" type="SOURCES" />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="Python 3.8 (venv) interpreter library" level="application" />
   </component>
 </module>
