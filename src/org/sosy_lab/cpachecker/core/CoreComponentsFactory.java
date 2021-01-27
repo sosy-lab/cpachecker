@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.LoopAccelerationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -326,6 +327,12 @@ public class CoreComponentsFactory {
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.useLoopAcceleration",
+      description = "Use algorithm that tries to accelerate loops in the CFA.")
+  private boolean useLoopAccelerationAlgorithm = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -451,6 +458,10 @@ public class CoreComponentsFactory {
               specification,
               cfa,
               aggregatedReachedSets);
+
+    } else if (useLoopAccelerationAlgorithm) {
+      algorithm =
+          LoopAccelerationAlgorithm.create(config, logger, cfa, shutdownNotifier, specification);
 
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
@@ -641,6 +652,7 @@ public class CoreComponentsFactory {
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
+        || useLoopAccelerationAlgorithm
         || asConditionalVerifier
         || useFaultLocalizationWithDistanceMetrics) {
       // this algorithm needs an indirection so that it can change

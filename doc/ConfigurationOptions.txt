@@ -154,11 +154,9 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
-
-# Get information about all the loops
-LoopInfo.generateLoopInformation = false
 
 # Dumps infos about the loops in the tested program to a file.
 LoopInfo.logfile = "LoopInformation.log"
@@ -253,6 +251,9 @@ analysis.algorithm.termination = false
 
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
+
+# Use algorithm that tries to accelerate loops in the CFA.
+analysis.algorithm.useLoopAcceleration = false
 
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
@@ -730,9 +731,6 @@ cegar.refiner = no default value
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
-
-# Abstractes the loops and analyzes the Programm
-cfa.abstractLoopsAnalyzeProgram = false
 
 # Add custom labels to the CFA
 cfa.addLabels = false
@@ -3511,15 +3509,14 @@ log.usedOptions.export = false
 # Export the source code of the abstracted program to the given file name.
 loopacc.abstractedFile = "abstractedProgram.c"
 
+# Configuration that shall be run with loop acceleration
+loopacc.algorithm.wrappedConfig = no default value
+
 # Whether to export the source code of the abstracted program.
 loopacc.exportAbstractedFile = true
 
 # Change this option only if you want all of the loops to be abstracted.
 loopacc.loopabstractionheader.onlyAccelerableLoops = true
-
-# Use this option to specify a place to save the new c file with the
-# abstracted loops, default is in the cpachecker folder -> abstractLoops
-loopacc.loopabstractionheader.pathForFile = "../abstractLoops/"
 
 # AbstractLoops to be able to process them
 loopacc.loopabstractionheader.shouldAbstract = "none"

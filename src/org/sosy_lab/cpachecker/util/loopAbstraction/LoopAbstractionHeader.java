@@ -35,13 +35,6 @@ public class LoopAbstractionHeader implements StatisticsProvider {
 
   @Option(
       secure = true,
-      name = "pathForFile",
-      description =
-          "Use this option to specify a place to save the new c file with the abstracted loops, default is in the cpachecker folder -> abstractLoops")
-  private String pathForAbstractLoops = "../abstractLoops/";
-
-  @Option(
-      secure = true,
       name = "onlyAccelerableLoops",
       description = "Change this option only if you want all of the loops to be abstracted.")
   private boolean accLoops = true;

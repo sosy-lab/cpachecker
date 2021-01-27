@@ -47,12 +47,6 @@ public class LoopInformation implements StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("LoopInformation.log");
 
-  @Option(
-      secure = true,
-      name = "generateLoopInformation",
-      description = "Get information about all the loops")
-  private boolean loopInfo = false;
-
   private CFA cfa;
   private List<LoopData> loopData;
   private final LogManager logger;
@@ -67,9 +61,7 @@ public class LoopInformation implements StatisticsProvider {
 
     this.cfa = cfa;
     loopData = new ArrayList<>();
-    if (loopInfo) {
-      lookForLoops();
-    }
+    lookForLoops();
   }
 
   /**
