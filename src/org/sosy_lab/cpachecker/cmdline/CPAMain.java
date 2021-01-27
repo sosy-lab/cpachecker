@@ -169,10 +169,10 @@ public class CPAMain {
     // run analysis
     CPAcheckerResult result = cpachecker.run(options.programs, properties);
 
-      // generated proof (if enabled)
-      if (proofGenerator != null) {
-        proofGenerator.generateProof(result);
-      }
+    // generated proof (if enabled)
+    if (proofGenerator != null) {
+      proofGenerator.generateProof(result);
+    }
 
     // We want to print the statistics completely now that we have come so far,
     // so we disable all the limits, shutdown hooks, etc.
