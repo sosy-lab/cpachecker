@@ -415,10 +415,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
                 || (variables.containsKey(actualName)
                     && !inputs.get(actualName).contains(index.orElseThrow())))) {
           BooleanFormula assignment = fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
-          ModelValue modelValue =
-              new ModelValue(
-                  actualName, fmgr.dumpFormula(assignment).toString(), assignment::toString);
-          modelBuilder.put(actualName, modelValue);
+          modelBuilder.put(actualName, new ModelValue(actualName, assignment, fmgr));
         }
       }
     }
