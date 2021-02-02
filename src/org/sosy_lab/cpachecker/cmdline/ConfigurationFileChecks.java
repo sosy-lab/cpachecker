@@ -132,6 +132,7 @@ public class ConfigurationFileChecks {
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
+          "witness.validation.correctness.acsl",
           "witness.validation.correctness.config",
           "witness.validation.correctness.isa",
           "pcc.proofgen.doPCC",

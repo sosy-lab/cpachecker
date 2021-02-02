@@ -4337,6 +4337,9 @@ witness.strictChecking = true
 # witness.invariantsSpecificationAutomaton)
 witness.useInvariantsAsAssumptions = true
 
+# Validate program using invariants from ACSL annotations.
+witness.validation.correctness.acsl = false
+
 # When validating a correctness witness, use this configuration file instead
 # of the current one.
 witness.validation.correctness.config = no default value

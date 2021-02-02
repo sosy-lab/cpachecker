@@ -22,18 +22,23 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
@@ -157,6 +162,21 @@ public final class Specification {
           new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
       automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile));
 
+    } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
+      logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
+      CFACreator cfaCreator =
+          new CFACreator(config, logger, ShutdownManager.create().getNotifier());
+      CFAWithACSLAnnotationLocations annotatedCFA;
+      try {
+        annotatedCFA =
+            (CFAWithACSLAnnotationLocations)
+                cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
+      } catch (ParserException | IOException e) {
+        throw new InvalidConfigurationException(
+            "Could not load automaton from file: " + e.getMessage(), e);
+      }
+      AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
+      automata = ImmutableList.of(acslParser.parseAsAutomaton(cfa));
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(
