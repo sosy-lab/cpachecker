@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
@@ -19,7 +23,12 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.arithmeticStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.baseStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.loopAcceleration;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.strategyInterface;
 
+@Options(prefix = "cpa.loopsummary")
 public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
 
   public static CPAFactory factory() {
@@ -27,6 +36,16 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
   }
 
   private final LoopSummaryTransferRelation transfer;
+
+  // TODO wie kann man die Klassen angeben
+  @Option(
+      name = "strategies",
+      secure = true,
+      description =
+          "Strategies to be used in the Summary. The order of the strategies marks in which order they are tried")
+  private ArrayList<strategyInterface> strategies =
+      new ArrayList<>(
+          Arrays.asList(new arithmeticStrategy(), new loopAcceleration(), new baseStrategy()));
 
   private LoopSummaryCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -41,7 +60,7 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
 
-    transfer = new LoopSummaryTransferRelation(this, pShutdownNotifier, factory);
+    transfer = new LoopSummaryTransferRelation(this, pShutdownNotifier, factory, strategies);
   }
 
   @Override

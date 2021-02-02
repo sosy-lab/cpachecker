@@ -8,28 +8,68 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.strategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+
+/*
+ *
+ * Precision adjustement in CPA Classe, den nachfolger generieren der aktuellen precission
+ * prec operator, siehe CPA++
+ *
+ * Precision lattice as list of Strategies
+ *  Alle merken welche Strategien an welcher stelle geblacklisted werden sollen
+ *  Wenn sie schon benutzt wurden
+ *  Könnte auch als index der Lattice (Liste der Strategien implementiert)
+ *
+ *
+ *  LoopSummaryCPA muss von ArgCPA erben und da die funktion getEdgeToChild überschreiben fürs refinement
+ *
+ *  Generieren von zwei zuständen im CFA (new DummyCFANode) (sie könnten auch derselbe sein, das wichtige ist die Kante)
+ *  mit summary kante zwischen ihnen. Springe vom aktuellen state zum ersten erstellten
+ *  State durch anpassen der Location CPA und gehe die kante entlang mittels getAbstractSuccessors und springe vom neuen
+ *  Zustand zurück zum eigentlich zustands ende durch anpassen der Location CPA. Siehe bild von Martin
+ *      Da Location und Composite States immutable sind, kann man durch einen Visitor Pattern durchlaufen,
+ *      falls es eine Location ist tausch sie aus und generier den neuen zustand
+ *
+ *      Für die CFAEdge muss es eine CExpressionAssignmentStatement und da auf SymbolicLocationPathFormulaBuilder
+ *      schauen, da gibt es sowas in die richtung
+ *
+ *  Ghost CFA in Ghost CFA, also beschleunigung von schleifen in schleifen; Stack Basierter Ansatz wäre sinnvoll
+ *
+ */
 
 public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAException>
     extends AbstractSingleWrapperTransferRelation implements TransferRelation {
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
+  private ArrayList<strategyInterface> strategies;
+  private Map<CFANode, Integer> currentStrategyForCFANode;
 
   protected AbstractLoopSummaryTransferRelation(
-      AbstractLoopSummaryCPA pLoopSummaryCPA, ShutdownNotifier pShutdownNotifier) {
+      AbstractLoopSummaryCPA pLoopSummaryCPA,
+      ShutdownNotifier pShutdownNotifier,
+      ArrayList<strategyInterface> pStrategies) {
     super(pLoopSummaryCPA.getWrappedCpa().getTransferRelation());
     logger = pLoopSummaryCPA.getLogger();
     shutdownNotifier = pShutdownNotifier;
+    strategies = pStrategies;
+    currentStrategyForCFANode = new HashMap<>();
   }
 
   @Override
@@ -41,7 +81,44 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      final AbstractState pState, final Precision pPrecision) throws InterruptedException {
-      return ImmutableSet.of();
+      final AbstractState pState, final Precision pPrecision)
+      throws InterruptedException, CPATransferException {
+    CFANode node = AbstractStates.extractLocation(pState);
+    if (!currentStrategyForCFANode.containsKey(node)) {
+      currentStrategyForCFANode.put(node, 0);
+    }
+    while (!strategies.get(currentStrategyForCFANode.get(node)).canBeSummarized(node)) {
+      currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
+    }
+    return strategies
+        .get(currentStrategyForCFANode.get(node))
+        .summarizeLoopState(pState, pPrecision, transferRelation);
   }
+
+  /**
+   * Return the successor using the wrapped CPA.
+   *
+   * @param pState current abstract state
+   * @param pPrecision current precision
+   * @param pNode current location
+   * @throws EX thrown in subclass
+   */
+  protected Collection<? extends AbstractState> getWrappedTransferSuccessor(
+      final ARGState pState, final Precision pPrecision, final CFANode pNode)
+      throws EX, InterruptedException, CPATransferException {
+    return transferRelation.getAbstractSuccessors(pState, pPrecision);
+  }
+
+  /*
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> pOtherStates,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+    return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+  }
+  */
 }

@@ -11,18 +11,30 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 
-// @Options(prefix = "cpa.loopsummary")
+@Options(prefix = "cpa.loopsummary")
 public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
+
+  // TODO Needs to be here because of compile problems
+  @Option(name = "test", secure = true, description = "test")
+  private boolean test = false;
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   private final LoopSummaryCPAStatistics stats;
+
+  @SuppressWarnings("unused")
+  private CFA cfa;
+
+  @SuppressWarnings("unused")
+  private Specification specification;
 
   protected AbstractLoopSummaryCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -35,19 +47,30 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     pConfig.inject(this, AbstractLoopSummaryCPA.class);
 
+    /* TODO What does this mean
     if (!(pCpa instanceof ConfigurableProgramAnalysisWithLoopSummary)) {
-      throw new InvalidConfigurationException("BAM needs CPAs that are capable for Loop Summary");
+      throw new InvalidConfigurationException(
+          "Loop Summary needs CPAs that are capable for Loop Summary");
     }
+    */
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     stats = new LoopSummaryCPAStatistics(pConfig, pLogger, this);
+    cfa = pCfa;
+
+    if (test) {
+      specification = pSpecification;
+    }
+    specification = pSpecification;
   }
 
   @Override
-  protected ConfigurableProgramAnalysisWithLoopSummary getWrappedCpa() {
+  protected ConfigurableProgramAnalysis getWrappedCpa() {
     // override for visibility
-    return (ConfigurableProgramAnalysisWithLoopSummary) super.getWrappedCpa();
+    // TODO There is an error when casting to ConfigurableProgramAnalysisWithLoopSummary like is
+    // done in AbstractBAMCPA
+    return super.getWrappedCpa();
   }
 
   LogManager getLogger() {

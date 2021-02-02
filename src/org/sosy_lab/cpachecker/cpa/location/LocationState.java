@@ -66,7 +66,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   private transient CFANode locationNode;
   private boolean followFunctionCalls;
 
-  LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
+  public LocationState(
+      CFANode pLocationNode, boolean pFollowFunctionCalls) { // TODO Modify back to being private
     locationNode = pLocationNode;
     followFunctionCalls = pFollowFunctionCalls;
   }
@@ -74,6 +75,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   @Override
   public CFANode getLocationNode() {
       return locationNode;
+  }
+
+  public boolean getFollowFunctionCalls() {
+    return followFunctionCalls;
   }
 
   @Override
