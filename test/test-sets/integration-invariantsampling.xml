@@ -19,7 +19,7 @@ SPDX-License-Identifier: Apache-2.0
   <!-- analysis of recursive programs -->
   <tasks name="zilu">
     <include>../programs/benchmarks/loop-zilu/*.yml</include>
-    <option name="-kInduction"/>
+    <option name="-invariantsampling"/>
   </tasks>
 
 </benchmark>
