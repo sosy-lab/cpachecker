@@ -45,7 +45,7 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-457-g2465cf3"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-469-g2da6c474"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
@@ -188,10 +188,6 @@ SPDX-License-Identifier: Apache-2.0
             <exclude org="org.apache.xmlgraphics" module="batik-css"/>
             <exclude org="org.apache.xmlgraphics" module="batik-util"/>
         </dependency>
-
-        <!-- Several JARs declare animal-sniffer-annotations.jar as dependency in their manifest although they do not really need it.
-             As long as this is the case we need to provide the JAR, otherwise javac complains. -->
-        <dependency org="org.codehaus.mojo" name="animal-sniffer-annotations" rev="1.18" conf="runtime->default;"/>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.5.1"/>
