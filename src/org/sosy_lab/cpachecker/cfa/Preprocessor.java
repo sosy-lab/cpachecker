@@ -44,7 +44,7 @@ public abstract class Preprocessor {
 
   protected Preprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, Preprocessor.class);
     logger = pLogger;
     if (dumpDirectory != null) {
       dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
