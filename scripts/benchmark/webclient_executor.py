@@ -20,10 +20,10 @@ import threading
 from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
-
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, "vcloud"))
 import benchexec
 import benchexec.tooladapter
-from . import util
+import vcloudutil
 from .webclient import (
     WebInterface,
     WebClientError,
@@ -263,7 +263,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         return log_file
 
     def _handle_run_info(values):
-        result_values.update(util.parse_vcloud_run_result(values.items()))
+        result_values.update(vcloudutil.parse_vcloud_run_result(values.items()))
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
@@ -278,7 +278,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             values.pop("os", "-"),
             values.pop("cpuModel", "-"),
             values.pop("cores", "-"),
-            util.parse_frequency_value(values.pop("frequency", None)) or "-",
+            vcloudutil.parse_frequency_value(values.pop("frequency", None)) or "-",
             memory or "-",
             host,
             runSet=run.runSet,
