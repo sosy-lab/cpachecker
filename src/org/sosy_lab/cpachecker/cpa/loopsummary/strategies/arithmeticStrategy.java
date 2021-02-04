@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -195,13 +196,14 @@ public class arithmeticStrategy implements strategyInterface {
         CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
         if (leftSide instanceof CIdExpression && rigthSide instanceof CBinaryExpression) {
             Integer value = 0;
-            CExpression operand1 = ((CBinaryExpression) rigthSide).getOperand1();
+          CExpression operand1 = ((CBinaryExpression) rigthSide).getOperand1();
             CExpression operand2 = ((CBinaryExpression) rigthSide).getOperand2();
             if (operand1 instanceof CIntegerLiteralExpression) {
               value = ((CIntegerLiteralExpression) operand1).getValue().intValue();
             } else if (operand2 instanceof CIntegerLiteralExpression) {
               value = ((CIntegerLiteralExpression) operand2).getValue().intValue();
             }
+
             switch (((CBinaryExpression) rigthSide).getOperator().getOperator()) {
               case "+":
               if (loopVariableDelta.containsKey(((CIdExpression) leftSide).getName())) {
@@ -367,7 +369,90 @@ public class arithmeticStrategy implements strategyInterface {
     return new StartStopNodesGhostCFA(startNode, endNode);
   }
 
+  private boolean linearArithemticExpression(final CExpression expression) {
+    if (expression instanceof CIdExpression) {
+      return true;
+    } else if (expression instanceof CBinaryExpression) {
+      String operator = ((CBinaryExpression) expression).getOperator().getOperator();
+      CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
+      CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+      switch (operator) {
+        case "+":
+        case "-":
+          return ((operand1 instanceof CIdExpression)
+                  && (operand2 instanceof CIntegerLiteralExpression))
+              || ((operand2 instanceof CIdExpression)
+                  && (operand1 instanceof CIntegerLiteralExpression));
+        default:
+          return false;
+      }
+    } else {
+      return false;
+    }
+  }
 
+  private boolean linearArithmeticExpressionEdge(final CFAEdge edge) {
+    if (edge instanceof BlankEdge) {
+      return true;
+    }
+
+    if (edge instanceof CAssumeEdge) {
+      return true;
+    }
+
+    if (!(edge instanceof CStatementEdge)) {
+      return false;
+    }
+
+    CStatement statement = ((CStatementEdge) edge).getStatement();
+    if (!(statement instanceof CExpressionAssignmentStatement)) {
+      return false;
+    }
+
+    CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
+    CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
+
+    if (!(leftSide instanceof CIdExpression)) {
+      return false;
+    }
+    if (!linearArithemticExpression(rigthSide)) {
+      return false;
+    }
+
+    if (rigthSide instanceof CBinaryExpression) {
+      if (((CBinaryExpression)rigthSide).getOperand1() instanceof CIdExpression) {
+        return ((CIdExpression) ((CBinaryExpression) rigthSide).getOperand1()).getName()
+            == ((CIdExpression) leftSide).getName();
+      } else {
+        return ((CIdExpression) ((CBinaryExpression) rigthSide).getOperand2()).getName()
+            == ((CIdExpression) leftSide).getName();
+      }
+    }
+
+    if (rigthSide instanceof CIdExpression) {
+      return ((CIdExpression) rigthSide).getName() == ((CIdExpression) leftSide).getName();
+    }
+    return false;
+  }
+
+
+  private boolean linearArithmeticExpressionsLoop(final CFANode pLoopStartNode, int branchIndex) {
+    CFANode nextNode0 = pLoopStartNode.getLeavingEdge(branchIndex).getSuccessor();
+    boolean nextNode0Valid = true;
+    while (nextNode0 != pLoopStartNode && nextNode0Valid) {
+      if (nextNode0Valid
+          && nextNode0.getNumLeavingEdges() == 1
+          && linearArithmeticExpressionEdge(nextNode0.getLeavingEdge(0))) {
+        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
+      } else {
+        nextNode0Valid = false;
+      }
+      if (nextNode0 == pLoopStartNode) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
@@ -377,6 +462,7 @@ public class arithmeticStrategy implements strategyInterface {
     Optional<Integer> loopBranchIndexOptional =
         getLoopBranchIndex(AbstractStates.extractLocation(pState));
     Integer loopBranchIndex;
+
     if (loopBranchIndexOptional.isEmpty()) {
       return Optional.empty();
     } else {
@@ -389,6 +475,10 @@ public class arithmeticStrategy implements strategyInterface {
       return Optional.empty();
     } else {
       loopBound = loopBoundOptional.get();
+    }
+
+    if (!linearArithmeticExpressionsLoop(AbstractStates.extractLocation(pState), loopBranchIndex)) {
+      return Optional.empty();
     }
 
     Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(pState, loopBranchIndex);

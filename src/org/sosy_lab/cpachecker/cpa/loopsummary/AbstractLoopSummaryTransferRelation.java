@@ -103,7 +103,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
    * Return the successor using the wrapped CPA.
    *
    * @param pState current abstract state
-   * @param pPrecision current precision
+   * @param pPrecision current precisionloopOutgoingConditionEdge
    * @param pNode current location
    * @throws EX thrown in subclass
    */

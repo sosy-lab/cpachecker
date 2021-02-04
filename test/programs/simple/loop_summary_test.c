@@ -14,10 +14,12 @@ void __VERIFIER_assert(int cond) {
 int main(void) {
   unsigned int x = 0;
   unsigned int y = 0;
+  unsigned int z = 0;
 
-  while (x < 10000) {
+  while (x < 1000) {
     x += 5;
-    y += 1;
+    y = 1 + y;
+    z = z;
   }
 
   __VERIFIER_assert(x % 2 == 0);
