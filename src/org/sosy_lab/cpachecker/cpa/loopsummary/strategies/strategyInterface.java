@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
 import java.util.Collection;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -18,18 +18,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public interface strategyInterface {
 
   /*
-   * Defines if a Loop can be summarized using the strategy chosen
    *
-   */
-  public boolean canBeSummarized(final CFANode node);
-
-  /*
-   *
-   * Gives a summary state back
+   * Gives a summary state back if the State can be summarized using the Strategy given
+   * Return an Empty option if this is not the case.
    *
    */
 
-  public Collection<? extends AbstractState> summarizeLoopState(
+  public Optional<Collection<? extends AbstractState>> summarizeLoopState(
       final AbstractState pState, final Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException;
 }

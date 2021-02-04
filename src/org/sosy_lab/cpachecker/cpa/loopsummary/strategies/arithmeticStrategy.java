@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -53,262 +52,27 @@ public class arithmeticStrategy implements strategyInterface {
   }
   */
 
+  final class StartStopNodesGhostCFA {
+    private final CFANode startNode;
+    private final CFANode stopNode;
+
+    public StartStopNodesGhostCFA(CFANode startNode, CFANode stopNode) {
+      this.startNode = startNode;
+      this.stopNode = stopNode;
+    }
+
+    public CFANode getStartNode() {
+      return startNode;
+    }
+
+    public CFANode getStopNode() {
+      return stopNode;
+    }
+  }
+
   public arithmeticStrategy() {}
 
-  @Override
-  public boolean canBeSummarized(final CFANode node) {
-    if (node.getNumLeavingEdges() == 1 && node.getLeavingEdge(0).getSuccessor().isLoopStart()) {
-      CFANode loopStartNode = node.getLeavingEdge(0).getSuccessor();
-      // TODO Check Bound of loop
-      if (bound(loopStartNode).isEmpty()) {
-        return false;
-      }
-      if (loopStartNode.getNumLeavingEdges() != 2) {
-        return false;
-      }
-      if (loopContainsBranching(loopStartNode)) {
-        return false;
-      }
-      if (!linearArithmeticExpressionsLoop(loopStartNode)) {
-        return false;
-      }
-      if (loopTerminates(loopStartNode).isEmpty()) {
-        return false;
-      }
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  private boolean loopContainsBranching(final CFANode loopStartNode) {
-    CFANode nextNode0 = loopStartNode.getLeavingEdge(0).getSuccessor();
-    CFANode nextNode1 = loopStartNode.getLeavingEdge(1).getSuccessor();
-    boolean nextNode0Valid = true;
-    boolean nextNode1Valid = true;
-    while (nextNode0 != loopStartNode
-        && nextNode1 != loopStartNode
-        && (nextNode0Valid || nextNode1Valid)) {
-      if (nextNode0Valid && nextNode0.getNumLeavingEdges() == 1) {
-        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode0Valid = false;
-      }
-      if (nextNode1Valid && nextNode1.getNumLeavingEdges() == 1) {
-        nextNode1 = nextNode1.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode1Valid = false;
-      }
-      if (nextNode0 == loopStartNode || nextNode1 == loopStartNode) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private Optional<Integer> loopTerminates(final CFANode ploopStartNode) {
-    // TODO It is assumed that the start Value is 0
-    CFAEdge edge = ploopStartNode.getLeavingEdge(0);
-    if (!(edge instanceof CAssumeEdge)) {
-      return Optional.empty();
-    }
-    CExpression expression = ((CAssumeEdge) edge).getExpression();
-    if (!(expression instanceof CBinaryExpression)) {
-      return Optional.empty();
-    }
-    String operator = ((CBinaryExpression) expression).getOperator().getOperator();
-    CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-    CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-    CIdExpression variable;
-    CIntegerLiteralExpression bound;
-
-    switch (operator) {
-      case "<":
-      case "<=":
-        if (operand1 instanceof CIdExpression && operand2 instanceof CIntegerLiteralExpression) {
-          variable = (CIdExpression) operand1;
-          bound = (CIntegerLiteralExpression) operand2;
-          Integer oneLoopIterationDelta = oneLoopValue(variable.getName(), ploopStartNode);
-          if (oneLoopIterationDelta > 0) {
-            return Optional.of(bound.getValue().intValue() / oneLoopIterationDelta);
-          } else {
-            return Optional.empty();
-          }
-        } else if (operand2 instanceof CIdExpression && operand1 instanceof CIntegerLiteralExpression) {
-          variable = (CIdExpression) operand2;
-          bound = (CIntegerLiteralExpression) operand1;
-          Integer oneLoopIterationDelta = oneLoopValue(variable.getName(), ploopStartNode);
-          if (oneLoopIterationDelta < 0) {
-            return Optional.of(bound.getValue().intValue() / oneLoopIterationDelta);
-          } else {
-            return Optional.empty();
-          }
-        }
-        break;
-      case ">":
-      case ">=":
-        if (operand1 instanceof CIdExpression && operand2 instanceof CIntegerLiteralExpression) {
-          variable = (CIdExpression) operand1;
-          bound = (CIntegerLiteralExpression) operand2;
-          Integer oneLoopIterationDelta = oneLoopValue(variable.getName(), ploopStartNode);
-          if (oneLoopIterationDelta < 0) {
-            return Optional.of(bound.getValue().intValue() / oneLoopIterationDelta);
-          } else {
-            return Optional.empty();
-          }
-        } else if (operand2 instanceof CIdExpression
-            && operand1 instanceof CIntegerLiteralExpression) {
-          variable = (CIdExpression) operand2;
-          bound = (CIntegerLiteralExpression) operand1;
-          Integer oneLoopIterationDelta = oneLoopValue(variable.getName(), ploopStartNode);
-          if (oneLoopIterationDelta > 0) {
-            return Optional.of(bound.getValue().intValue() / oneLoopIterationDelta);
-          } else {
-            return Optional.empty();
-          }
-        }
-        break;
-      default:
-        return Optional.empty();
-    }
-    return Optional.empty();
-  }
-
-  private Integer oneLoopValue(String pName, final CFANode ploopStartNode) {
-    Integer branchIndex = getLoopBranchIndex(ploopStartNode);
-    CFANode currentNode = ploopStartNode.getLeavingEdge(branchIndex).getSuccessor();
-    Integer deltaOfVariable = 0;
-    while (currentNode != ploopStartNode) {
-      CFAEdge edge = currentNode.getLeavingEdge(0);
-      if (edge instanceof CStatementEdge) {
-        CStatement statement = ((CStatementEdge) edge).getStatement();
-        CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-        CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
-        if (leftSide instanceof CIdExpression && rigthSide instanceof CBinaryExpression) {
-          if (((CIdExpression) leftSide).getName() == pName) {
-            Integer value = 0;
-            CExpression operand1 = ((CBinaryExpression) rigthSide).getOperand1();
-            CExpression operand2 = ((CBinaryExpression) rigthSide).getOperand2();
-            if (operand1 instanceof CIntegerLiteralExpression) {
-              value = ((CIntegerLiteralExpression) operand1).getValue().intValue();
-            } else if (operand2 instanceof CIntegerLiteralExpression) {
-              value =
-                  ((CIntegerLiteralExpression) operand2)
-                      .getValue()
-                      .intValue();
-            }
-            switch (((CBinaryExpression) rigthSide).getOperator().getOperator()) {
-              case "+":
-                deltaOfVariable += value;
-                break;
-              case "-":
-                deltaOfVariable -= value;
-                break;
-              default:
-                break;
-            }
-          }
-        }
-      }
-      currentNode = edge.getSuccessor();
-    }
-    return deltaOfVariable;
-  }
-
-  private boolean linearArithemticExpression(final CExpression expression) {
-    if (expression instanceof CIdExpression) {
-      return true;
-    } else if (expression instanceof CIntegerLiteralExpression) {
-      return true;
-    } else if (expression instanceof CBinaryExpression) {
-      String operator = ((CBinaryExpression) expression).getOperator().getOperator();
-      CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-      switch (operator) {
-        case "+":
-        case "-":
-          // return linearArithemticExpression(operand1) && linearArithemticExpression(operand2);
-          return (operand1 instanceof CIdExpression)
-              && (operand2 instanceof CIntegerLiteralExpression);
-        case "*":
-          /*
-          // TODO This does not work in the general case, so it is ignored
-          if (operand1 instanceof CIntegerLiteralExpression) {
-            return linearArithemticExpression(operand2);
-          } else if (operand2 instanceof CIntegerLiteralExpression) {
-            return linearArithemticExpression(operand1);
-          }
-          // $FALL-THROUGH$
-          */
-        default:
-          return false;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  private boolean linearArithmeticExpressionEdge(final CFAEdge edge) {
-    if (edge instanceof BlankEdge) {
-      return true;
-    }
-
-    if (edge instanceof CAssumeEdge) {
-      return true;
-    }
-
-    if (!(edge instanceof CStatementEdge)) {
-      return false;
-    }
-
-    CStatement statement = ((CStatementEdge) edge).getStatement();
-    if (!(statement instanceof CExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-    CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
-
-    if (!(leftSide instanceof CIdExpression)) {
-      return false;
-    }
-    if (!linearArithemticExpression(rigthSide)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private boolean linearArithmeticExpressionsLoop(final CFANode pLoopStartNode) {
-    CFANode nextNode0 = pLoopStartNode.getLeavingEdge(0).getSuccessor();
-    CFANode nextNode1 = pLoopStartNode.getLeavingEdge(1).getSuccessor();
-    boolean nextNode0Valid = true;
-    boolean nextNode1Valid = true;
-    while (nextNode0 != pLoopStartNode
-        && nextNode1 != pLoopStartNode
-        && (nextNode0Valid || nextNode1Valid)) {
-      if (nextNode0Valid
-          && nextNode0.getNumLeavingEdges() == 1
-          && linearArithmeticExpressionEdge(nextNode0.getLeavingEdge(0))) {
-        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode0Valid = false;
-      }
-      if (nextNode1Valid
-          && nextNode1.getNumLeavingEdges() == 1
-          && linearArithmeticExpressionEdge(nextNode1.getLeavingEdge(0))) {
-        nextNode1 = nextNode1.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode1Valid = false;
-      }
-      if (nextNode0 == pLoopStartNode || nextNode1 == pLoopStartNode) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Returns the bound in the form 0 < x where x is the CExpression
+  // Returns the bound in the form 0 < x where x is the CExpression returned
   private Optional<CExpression> bound(final CFANode pLoopStartNode) {
     CFAEdge edge = pLoopStartNode.getLeavingEdge(0);
     if (!(edge instanceof CAssumeEdge)) {
@@ -329,89 +93,62 @@ public class arithmeticStrategy implements strategyInterface {
       return Optional.empty();
     }
 
-    CExpression standardLoopBoundForm;
     switch (operator) {
       case "<":
         return Optional.of(
-            CBinaryExpression(
+            new CBinaryExpression(
                 expression.getFileLocation(),
-                ((CBinaryExpression) expression).getExpressionType(),
-                ((CBinaryExpression) expression).getCalculationType(),
+                null,
+                null,
                 operand2,
                 operand1,
-                BinaryOperator.MINUS)); // TODO Why is this wrong
-
-        /*
-        * CBinaryExpression(final FileLocation pFileLocation,
-                             final CType pExpressionType,
-                             final CType pCalculationType,
-                             final CExpression pOperand1,
-                             final CExpression pOperand2,
-                             final BinaryOperator pOperator)
-        */
+                BinaryOperator.MINUS));
 
       case ">":
+        return Optional.of(
+            new CBinaryExpression(
+                expression.getFileLocation(),
+                null,
+                null,
+                operand1,
+                operand2,
+                BinaryOperator.MINUS));
       case "<=":
+        return Optional.of(
+            new CBinaryExpression(
+                expression.getFileLocation(),
+                null,
+                null,
+                operand2,
+                new CBinaryExpression(
+                    expression.getFileLocation(),
+                    null,
+                    null,
+                    operand1,
+                    CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
+                    BinaryOperator.MINUS),
+                BinaryOperator.MINUS));
       case ">=":
-        break;
+        return Optional.of(
+            new CBinaryExpression(
+                expression.getFileLocation(),
+                null,
+                null,
+                operand1,
+                new CBinaryExpression(
+                    expression.getFileLocation(),
+                    null,
+                    null,
+                    operand2,
+                    CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
+                    BinaryOperator.MINUS),
+                BinaryOperator.MINUS));
       default:
         return Optional.empty();
     }
-
-    return Optional.empty();
   }
 
-  public CFANode getAfterLoopCFANode(final CFANode node) {
-    CFANode loopStartNode = node.getLeavingEdge(0).getSuccessor();
-    CFANode nextNode0 = loopStartNode.getLeavingEdge(0).getSuccessor();
-    CFANode nextNode1 = loopStartNode.getLeavingEdge(1).getSuccessor();
-    boolean nextNode0Valid = true;
-    boolean nextNode1Valid = true;
-    while (nextNode0 != loopStartNode
-        && nextNode1 != loopStartNode
-        && (nextNode0Valid || nextNode1Valid)) {
-      if (nextNode0Valid && nextNode0.getNumLeavingEdges() == 1) {
-        CFAEdge edge = nextNode0.getLeavingEdge(0);
-        nextNode0 = edge.getSuccessor();
-      } else {
-        nextNode0Valid = false;
-      }
-      if (nextNode1Valid && nextNode1.getNumLeavingEdges() == 1) {
-        nextNode1 = nextNode1.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode1Valid = false;
-      }
-    }
-    if (nextNode0 == loopStartNode) {
-      return loopStartNode.getLeavingEdge(1).getSuccessor();
-    } else {
-      return loopStartNode.getLeavingEdge(0).getSuccessor();
-    }
-  }
-
-  public AbstractState overwriteLocationState(
-      AbstractState pState, LocationState locState) {
-    List<AbstractState> allWrappedStatesByCompositeState = new ArrayList<>();
-    for (AbstractState a :
-        ((CompositeState) ((ARGState) pState).getWrappedState()).getWrappedStates()) {
-      if (a instanceof LocationState) {
-        allWrappedStatesByCompositeState.add(locState);
-      } else {
-        allWrappedStatesByCompositeState.add(a);
-      }
-    }
-    AbstractState wrappedCompositeState = new CompositeState(allWrappedStatesByCompositeState);
-    return new ARGState(wrappedCompositeState, null);
-  }
-
-  private Integer getLoopBound(CFANode loopStartNode) {
-    // TODO Improve this using matrix multiplication. For this use JBLAS
-    // General Bound using variables must be checked how CPA works with
-    // Integer division
-    return loopTerminates(loopStartNode).get();
-  }
-
-  private Integer getLoopBranchIndex(CFANode loopStartNode) {
+  private Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
     CFANode nextNode0 = loopStartNode.getLeavingEdge(0).getSuccessor();
     CFANode nextNode1 = loopStartNode.getLeavingEdge(1).getSuccessor();
     boolean nextNode0Valid = true;
@@ -430,21 +167,20 @@ public class arithmeticStrategy implements strategyInterface {
         nextNode1Valid = false;
       }
       if (nextNode0 == loopStartNode) {
-        return 0;
+        return Optional.of(0);
       } else if (nextNode1 == loopStartNode) {
-        return 1;
+        return Optional.of(1);
       }
     }
-    return -1;
+    return Optional.empty();
   }
 
-  private Map<String, Integer> summarizeExpressions(final AbstractState pState) {
-    Map<String, Integer> summarizedExpressions = new HashMap<>();
+  private Map<String, Integer> getLoopVariableDeltas(
+      final AbstractState pState, final Integer loopBranchIndex) {
+    Map<String, Integer> loopVariableDelta = new HashMap<>();
     CFANode loopStartNode = AbstractStates.extractLocation(pState).getLeavingEdge(0).getSuccessor();
-    Integer loopIterations = getLoopBound(loopStartNode);
     // Calculate deltas in one Loop Iteration
-    Integer branchIndex = getLoopBranchIndex(loopStartNode);
-    CFANode currentNode = loopStartNode.getLeavingEdge(branchIndex).getSuccessor();
+    CFANode currentNode = loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor();
     while (currentNode != loopStartNode) {
       CFAEdge edge = currentNode.getLeavingEdge(0);
       if (edge instanceof CStatementEdge) {
@@ -462,21 +198,21 @@ public class arithmeticStrategy implements strategyInterface {
             }
             switch (((CBinaryExpression) rigthSide).getOperator().getOperator()) {
               case "+":
-                if (summarizedExpressions.containsKey(((CIdExpression) leftSide).getName())) {
-                summarizedExpressions.put(
+              if (loopVariableDelta.containsKey(((CIdExpression) leftSide).getName())) {
+                loopVariableDelta.put(
                     ((CIdExpression) leftSide).getName(),
-                    value + summarizedExpressions.get(((CIdExpression) leftSide).getName()));
+                    value + loopVariableDelta.get(((CIdExpression) leftSide).getName()));
                 } else {
-                summarizedExpressions.put(((CIdExpression) leftSide).getName(), value);
+                loopVariableDelta.put(((CIdExpression) leftSide).getName(), value);
                 }
                 break;
               case "-":
-              if (summarizedExpressions.containsKey(((CIdExpression) leftSide).getName())) {
-                summarizedExpressions.put(
+              if (loopVariableDelta.containsKey(((CIdExpression) leftSide).getName())) {
+                loopVariableDelta.put(
                     ((CIdExpression) leftSide).getName(),
-                    -value + summarizedExpressions.get(((CIdExpression) leftSide).getName()));
+                    -value + loopVariableDelta.get(((CIdExpression) leftSide).getName()));
               } else {
-                summarizedExpressions.put(((CIdExpression) leftSide).getName(), value);
+                loopVariableDelta.put(((CIdExpression) leftSide).getName(), value);
               }
                 break;
               default:
@@ -486,23 +222,68 @@ public class arithmeticStrategy implements strategyInterface {
       }
       currentNode = edge.getSuccessor();
     }
-    Map<String, Integer> finalSummarizedExpressions = new HashMap<>();
-    for (Map.Entry<String, Integer> set : summarizedExpressions.entrySet()) {
-      finalSummarizedExpressions.put(set.getKey(), set.getValue() * loopIterations);
-    }
-
-    return finalSummarizedExpressions;
+    return loopVariableDelta;
   }
 
-  private AbstractState summaryCFA(final AbstractState pState) {
-    int CFANodeCounter = 3;
-    CFANode dummyNodeStart = CFANode.newDummyCFANode("LS1");
-    CFANode currentStartNode = dummyNodeStart;
+  private int boundDelta(
+      final Map<String, Integer> loopVariableDelta, final CExpression loopBound) {
+    if (!(loopBound instanceof CBinaryExpression)) {
+      if (loopBound instanceof CIdExpression) {
+        return loopVariableDelta.get(((CIdExpression) loopBound).getName());
+      } else {
+        return 0;
+      }
+    } else {
+      switch (((CBinaryExpression) loopBound).getOperator().getOperator()) {
+        case "+":
+          return boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand1())
+              + boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand2());
+        case "-":
+          return boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand1())
+              - boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand2());
+        default:
+          return 0;
+      }
+    }
+  }
+
+  public AbstractState overwriteLocationState(AbstractState pState, LocationState locState) {
+    List<AbstractState> allWrappedStatesByCompositeState = new ArrayList<>();
+    for (AbstractState a :
+        ((CompositeState) ((ARGState) pState).getWrappedState()).getWrappedStates()) {
+      if (a instanceof LocationState) {
+        allWrappedStatesByCompositeState.add(locState);
+      } else {
+        allWrappedStatesByCompositeState.add(a);
+      }
+    }
+    AbstractState wrappedCompositeState = new CompositeState(allWrappedStatesByCompositeState);
+    return new ARGState(wrappedCompositeState, null);
+  }
+
+  private StartStopNodesGhostCFA summaryCFA(
+      final AbstractState pState,
+      final Map<String, Integer> loopVariableDelta,
+      final CExpression loopBound,
+      final int boundDelta,
+      final Integer loopBranchIndex) {
+    int CFANodeCounter = 4;
+    CFANode startNode = CFANode.newDummyCFANode("LS1");
     CFANode currentEndNode = CFANode.newDummyCFANode("LS2");
-    Map<String, Integer> summarizedExpression = summarizeExpressions(pState);
-    for (Map.Entry<String, Integer> set : summarizedExpression.entrySet()) {
-      CExpression rightHandSide =
-          CIntegerLiteralExpression.createDummyLiteral(set.getValue(), CNumericTypes.INT);
+    CFAEdge loopIngoingConditionEdge =
+        AbstractStates.extractLocation(pState).getLeavingEdge(loopBranchIndex);
+    CFAEdge loopIngoingConditionDummyEdge =
+        new CStatementEdge(
+            loopIngoingConditionEdge.getDescription(),
+            ((CStatementEdge) loopIngoingConditionEdge).getStatement(),
+            FileLocation.DUMMY,
+            startNode,
+            currentEndNode);
+    startNode.addLeavingEdge(loopIngoingConditionDummyEdge);
+    currentEndNode.addEnteringEdge(loopIngoingConditionDummyEdge);
+    CFANode currentStartNode = currentEndNode;
+    currentEndNode = CFANode.newDummyCFANode("LS3");
+    for (Map.Entry<String, Integer> set : loopVariableDelta.entrySet()) {
       CVariableDeclaration pc =
           new CVariableDeclaration(
               FileLocation.DUMMY,
@@ -513,6 +294,26 @@ public class arithmeticStrategy implements strategyInterface {
               set.getKey(),
               set.getKey(),
               null);
+      CExpression rightHandSide =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              null,
+              null,
+              new CIdExpression(FileLocation.DUMMY, pc),
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  null,
+                  null,
+                  CIntegerLiteralExpression.createDummyLiteral(set.getValue(), CNumericTypes.INT),
+                  new CBinaryExpression(
+                      FileLocation.DUMMY,
+                      null,
+                      null,
+                      loopBound,
+                      CIntegerLiteralExpression.createDummyLiteral(boundDelta, CNumericTypes.INT),
+                      BinaryOperator.DIVIDE),
+                  BinaryOperator.MULTIPLY),
+              BinaryOperator.PLUS);
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, pc);
       CExpressionAssignmentStatement cStatementEdge =
           new CExpressionAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
@@ -530,29 +331,82 @@ public class arithmeticStrategy implements strategyInterface {
       CFANodeCounter += 1;
     }
 
-    LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
-    LocationState newLocationState =
-        new LocationState(dummyNodeStart, oldLocationState.getFollowFunctionCalls());
-    AbstractState dummyStateStart = overwriteLocationState(pState, newLocationState);
-    return dummyStateStart;
+    CFANode endNode = currentEndNode;
+    CFAEdge loopOutgoingConditionEdge =
+        AbstractStates.extractLocation(pState)
+            .getLeavingEdge(
+                1 - loopBranchIndex); // loopBranchIndex is either 0 or 1, so we negate it here to
+    // get the other Edge
+    CFAEdge loopOutgoingConditionDummyEdgeStart =
+        new CStatementEdge(
+            loopOutgoingConditionEdge.getDescription(),
+            ((CStatementEdge) loopOutgoingConditionEdge).getStatement(),
+            FileLocation.DUMMY,
+            startNode,
+            endNode);
+    startNode.addLeavingEdge(loopOutgoingConditionDummyEdgeStart);
+    endNode.addEnteringEdge(loopOutgoingConditionDummyEdgeStart);
+    CFAEdge loopOutgoingConditionDummyEdgeEndSummary =
+        new CStatementEdge(
+            loopOutgoingConditionEdge.getDescription(),
+            ((CStatementEdge) loopOutgoingConditionEdge).getStatement(),
+            FileLocation.DUMMY,
+            currentStartNode,
+            endNode);
+    currentStartNode.addLeavingEdge(loopOutgoingConditionDummyEdgeEndSummary);
+    endNode.addEnteringEdge(loopOutgoingConditionDummyEdgeEndSummary);
+    return new StartStopNodesGhostCFA(startNode, endNode);
   }
 
+
+
   @Override
-  public Collection<? extends AbstractState> summarizeLoopState(
+  public Optional<Collection<? extends AbstractState>> summarizeLoopState(
       final AbstractState pState, final Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
-    AbstractState dummyStateStart = summaryCFA(pState);
+
+    Optional<Integer> loopBranchIndexOptional =
+        getLoopBranchIndex(AbstractStates.extractLocation(pState));
+    Integer loopBranchIndex;
+    if (loopBranchIndexOptional.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopBranchIndex = loopBranchIndexOptional.get();
+    }
+
+    Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));
+    CExpression loopBound;
+    if (loopBoundOptional.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopBound = loopBoundOptional.get();
+    }
+
+    Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(pState, loopBranchIndex);
+
+    int boundDelta = boundDelta(loopVariableDelta, loopBound);
+    if (boundDelta >= 0) {
+      return Optional.empty();
+    }
+
+    StartStopNodesGhostCFA startStopCFANodesGhostCFA =
+        summaryCFA(pState, loopVariableDelta, loopBound, loopBranchIndex, loopBranchIndex);
+
+    LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
+    LocationState newLocationState =
+        new LocationState(
+            startStopCFANodesGhostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
+    AbstractState dummyStateStart = overwriteLocationState(pState, newLocationState);
     Collection<? extends AbstractState> dummyStatesEndCollection =
         pTransferRelation.getAbstractSuccessors(dummyStateStart, pPrecision);
     Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
-    CFANode afterLoopCFANode = getAfterLoopCFANode(AbstractStates.extractLocation(pState));
-    LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
     LocationState afterLoopLocationState =
-        new LocationState(afterLoopCFANode, oldLocationState.getFollowFunctionCalls());
+        new LocationState(
+            startStopCFANodesGhostCFA.getStopNode(), oldLocationState.getFollowFunctionCalls());
     for (AbstractState a : dummyStatesEndCollection) {
       realStatesEndCollection.add(overwriteLocationState(a, afterLoopLocationState));
     }
-    return realStatesEndCollection;
+    return Optional.of(realStatesEndCollection);
   }
 
 

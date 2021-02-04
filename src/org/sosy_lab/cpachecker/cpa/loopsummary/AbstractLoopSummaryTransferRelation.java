@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -87,12 +88,14 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     if (!currentStrategyForCFANode.containsKey(node)) {
       currentStrategyForCFANode.put(node, 0);
     }
-    while (!strategies.get(currentStrategyForCFANode.get(node)).canBeSummarized(node)) {
-      currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
+    Optional<Collection<? extends AbstractState>> summarizedState = strategies.get(currentStrategyForCFANode.get(node)).summarizeLoopState(pState, pPrecision, transferRelation);
+    while (summarizedState.isEmpty()) {
+      summarizedState =
+          strategies
+              .get(currentStrategyForCFANode.get(node))
+              .summarizeLoopState(pState, pPrecision, transferRelation);
     }
-    return strategies
-        .get(currentStrategyForCFANode.get(node))
-        .summarizeLoopState(pState, pPrecision, transferRelation);
+    return summarizedState.get();
   }
 
   /**
