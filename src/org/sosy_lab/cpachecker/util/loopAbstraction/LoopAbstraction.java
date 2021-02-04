@@ -564,7 +564,7 @@ public class LoopAbstraction {
       LoopData loopD, List<LoopVariables> preUsedVariables, String abstractionLevel) {
     String tmp = "";
     List<LoopVariables> variables = null;
-    if (abstractionLevel.equals("naiv")) {
+    if (abstractionLevel.equals("naive")) {
       variables = loopD.getOutputs();
     } else {
       variables = loopD.getInputsOutputs();
@@ -739,7 +739,7 @@ public class LoopAbstraction {
    * @return string that is the new abstracted header of the while loop
    */
   private String whileCondition(LoopData loopD, String abstractionLevel) {
-    if (abstractionLevel.equals("naiv")) {
+    if (abstractionLevel.equals("naive")) {
       return "if(" + loopD.getCondition() + "){" + System.lineSeparator();
     } else {
       return "for(int cpachecker_i=0; cpachecker_i <"
@@ -772,7 +772,7 @@ public class LoopAbstraction {
         variable = x.getVariableType();
       }
     }
-    if (abstractionLevel.equals("naiv")) {
+    if (abstractionLevel.equals("naive")) {
       if (flag) {
         return Iterables.get(Splitter.on(';').split(loopD.getCondition()), 0)
             + ";"

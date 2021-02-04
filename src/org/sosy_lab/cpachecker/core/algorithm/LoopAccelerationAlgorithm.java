@@ -124,7 +124,7 @@ public class LoopAccelerationAlgorithm extends NestingAlgorithm implements Algor
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    loopInformation.collectStatistics(pStatsCollection);
+    loopInformation.buildStatistics(pStatsCollection);
     loopAbstractionHeader.collectStatistics(pStatsCollection);
   }
 }

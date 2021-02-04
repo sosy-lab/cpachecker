@@ -8,8 +8,6 @@
 package org.sosy_lab.cpachecker.util.loopInformation;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -19,104 +17,29 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 /** Class that returns important statistics for loops */
 public class LoopStatistics implements Statistics {
 
-  List<LoopData> loopList;
-  private static final String NAME = "LoopStatistics";
-
-  private List<String[]> loopStartAndEnd;
-  private List<String[]> loopType;
-  private List<String[]> loopCondition;
-  private List<String[]> failedState;
-  private List<String[]> pathsNumber;
-  private List<String[]> loopNodes;
-  private List<String[]> ioVariables;
-  private List<String[]> oVariables;
-  private List<String[]> accelerationPossible;
+  private final String NAME;
   private TimeSpan timeToAnalyze;
+  private LoopData loopData;
 
-  public LoopStatistics(List<LoopData> loopList) {
-    this.loopList = loopList;
-    usefulLoopStatistics();
-  }
-
-  /**
-   * Method that collects the data from all the loops in multiple array lists to be used in a
-   * statistics output
-   */
-  private void usefulLoopStatistics() {
-    loopStartAndEnd = new ArrayList<>();
-    loopType = new ArrayList<>();
-    loopCondition = new ArrayList<>();
-    failedState = new ArrayList<>();
-    pathsNumber = new ArrayList<>();
-    loopNodes = new ArrayList<>();
-    ioVariables = new ArrayList<>();
-    oVariables = new ArrayList<>();
-    accelerationPossible = new ArrayList<>();
-
-    for (int i = 0; i < loopList.size(); i++) {
-      if (!loopList.isEmpty()) {
-        String[] x = {
-          "L" + (i + 1),
-          loopList.get(i).getLoopStart().toString(),
-          loopList.get(i).getLoopEnd().toString()
-        };
-        loopStartAndEnd.add(x);
-        String[] y = {
-          "L" + (i + 1),
-          loopList.get(i).getLoopType().toString(),
-          "" + loopList.get(i).getLoopInLoop()
-        };
-        loopType.add(y);
-        String[] loopCond = {"L" + (i + 1), loopList.get(i).getCondition()};
-        loopCondition.add(loopCond);
-        if (loopList.get(i).getFaileState() != null) {
-          String[] failed = {"L" + (i + 1), loopList.get(i).getFaileState().toString()};
-          failedState.add(failed);
-        }
-        String[] paths = {"L" + (i + 1), "" + loopList.get(i).getAmountOfPaths()};
-        pathsNumber.add(paths);
-        String[] nodes = {"L" + (i + 1), loopList.get(i).getNodesInLoop().toString()};
-        loopNodes.add(nodes);
-        String[] io = {"L" + (i + 1), loopList.get(i).getInputsOutputs().toString()};
-        ioVariables.add(io);
-        String[] o = {"L" + (i + 1), loopList.get(i).getOutputs().toString()};
-        oVariables.add(o);
-        String[] acc = {"L" + (i + 1), "" + loopList.get(i).getCanBeAccelerated()};
-        accelerationPossible.add(acc);
-        if (loopList.get(i).getAnalyzeTime() != null) {
-          if (i == 0) {
-            timeToAnalyze = loopList.get(i).getAnalyzeTime();
-          } else {
-            timeToAnalyze = TimeSpan.sum(timeToAnalyze, loopList.get(i).getAnalyzeTime());
-          }
-        }
-      }
-    }
-  }
-
-  private String ArrayToString(List<String[]> x) {
-    StringBuilder ergebnis = new StringBuilder();
-    for (String[] sa : x) {
-      ergebnis.append("[");
-      for (String value : sa) {
-        ergebnis.append(value + ",");
-      }
-      ergebnis.append("],");
-    }
-    return ergebnis.toString();
+  public LoopStatistics(LoopData pLoopData) {
+    NAME = "Loop " + pLoopData.getLoopStart().toString();
+    timeToAnalyze = pLoopData.getAnalyzeTime();
+    loopData = pLoopData;
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    pOut.println("Startnode and Endnode:" + ArrayToString(loopStartAndEnd));
-    pOut.println("Looptype and Innerloop:" + ArrayToString(loopType));
-    pOut.println("Loopcondition:" + ArrayToString(loopCondition));
-    pOut.println("Failed loop state:" + ArrayToString(failedState));
-    pOut.println("Amount of paths in loop:" + ArrayToString(pathsNumber));
-    pOut.println("Nodes in loop:" + ArrayToString(loopNodes));
-    pOut.println("IO-Variables:" + ArrayToString(ioVariables));
-    pOut.println("Outputvariables:" + ArrayToString(oVariables));
-    pOut.println("Can loop be accelerated:" + ArrayToString(accelerationPossible));
+    pOut.println("Startnode:" + loopData.getLoopStart());
+    pOut.println("Endnode:" + loopData.getLoopEnd());
+    pOut.println("Looptype:" + loopData.getLoopType());
+    pOut.println("Innerloop:" + loopData.getInnerLoop());
+    pOut.println("Loopcondition:" + loopData.getCondition());
+    pOut.println("Failed loop state:" + loopData.getFaileState());
+    pOut.println("Amount of paths in loop:" + loopData.getAmountOfPaths());
+    pOut.println("Nodes in loop:" + loopData.getNodesInLoop());
+    pOut.println("IO-Variables:" + loopData.getInputsOutputs());
+    pOut.println("Outputvariables:" + loopData.getOutputs());
+    pOut.println("Can loop be accelerated:" + loopData.getCanBeAccelerated());
     pOut.println("Time to analyze loop in ms:" + timeToAnalyze);
   }
 

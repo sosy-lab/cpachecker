@@ -10,34 +10,33 @@ package org.sosy_lab.cpachecker.util.loopInformation;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /** This class collects and saves all of the data in one loop */
-public class LoopData implements Comparable<LoopData> {
-
-  enum FinalVariables {
-    vOUTPUT_VARIABLE_ARRAY_POSITION {
-      @Override
-      public Integer returnValue() {
-        return 2;
-      }
-    },
-    ;
-
-    public Integer returnValue() {
-      return null;
-    }
-  }
+public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
   private CFANode loopStart;
   private CFANode loopEnd;
@@ -801,6 +800,16 @@ public class LoopData implements Comparable<LoopData> {
     return cond;
   }
 
+  private static AExpression unwrap(AExpression expression) {
+    // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
+
+    while (expression instanceof CCastExpression) {
+      expression = ((CCastExpression) expression).getOperand();
+    }
+
+    return expression;
+  }
+
   /**
    * This method looks for hints if it makes any sense to accelerate the loop or if a
    * Bounded-Model-Checker should be able to handle it
@@ -815,6 +824,7 @@ public class LoopData implements Comparable<LoopData> {
    * @return true if the loop should be accelerated or false if it doesn't make that much sense to
    *     accelerate it
    */
+  @SuppressWarnings("unlikely-arg-type")
   private boolean canLoopBeAccelerated(
       List<CFANode> condNodes,
       LoopType type,
@@ -849,100 +859,100 @@ public class LoopData implements Comparable<LoopData> {
     List<Boolean> temp = new ArrayList<>();
     if (!tmpEndless) {
       if (type.equals(LoopType.WHILE)) {
-        List<String> rightSideVariable = new ArrayList<>();
         for (CFANode node : conditionNodes) {
-          rightSideVariable.add(
-              Iterables.get(
-                  Splitter.on(']')
-                      .split(
-                          Iterables.get(
-                              Splitter.on("operand2=[")
-                                  .split(node.getLeavingEdge(VALID_STATE).getRawAST().toString()),
-                              POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
-                  POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
-        }
 
-        for (String variable : rightSideVariable) {
-          try {
-            double d = Double.parseDouble(variable);
-            if (d > pathNumber || d > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe) {
+          AssumeEdge assume = (AssumeEdge) node.getLeavingEdge(VALID_STATE);
+
+          CBinaryExpression pE = (CBinaryExpression) assume.getExpression();
+
+          BinaryOperator binaryOperator = pE.getOperator();
+          CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+          CExpression rVarInBinaryExp = pE.getOperand2();
+
+          if (binaryOperator.equals(Operator.EQUALS)) {
             temp.add(true);
-          }
-          try {
-            int d = Integer.parseInt(variable);
-            if (d > pathNumber || d > outputNumber) {
+          } else {
+            if (lVarInBinaryExp instanceof CIdExpression
+                || rVarInBinaryExp.getClass().getSimpleName().equals("CIdExpression")) {
               temp.add(true);
+              if (lVarInBinaryExp instanceof CLiteralExpression) {
+                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
+                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                        > outputNumber) {
+                  temp.add(true);
+                }
+              }
+
+            } else if (lVarInBinaryExp
+                    .getClass()
+                    .getSimpleName()
+                    .equals("CIntegerLiteralExpression")
+                || rVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
+              if (lVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
+                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
+                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                        > outputNumber) {
+                  temp.add(true);
+                }
+              } else if (rVarInBinaryExp
+                  .getClass()
+                  .getSimpleName()
+                  .equals("CIntegerLiteralExpression")) {
+                if (((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue() > pathNumber
+                    || ((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                        > outputNumber) {
+                  temp.add(true);
+                }
+              }
             }
-          } catch (NumberFormatException | NullPointerException nfe1) {
-            temp.add(true);
-          }
-          try {
-            long d = Long.parseLong(variable);
-            if (d > pathNumber || d > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe2) {
-            temp.add(true);
-          }
-          try {
-            float d = Float.parseFloat(variable);
-            if (d > pathNumber || d > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe3) {
-            temp.add(true);
           }
         }
-
       } else if (type.equals(LoopType.FOR)) {
-        List<String> rightSideVariable = new ArrayList<>();
         for (CFANode node : forCondition) {
-          rightSideVariable.add(
-              Iterables.get(
-                  Splitter.on(']')
-                      .split(
-                          Iterables.get(
-                              Splitter.on("operand2=[")
-                                  .split(node.getLeavingEdge(VALID_STATE).getRawAST().toString()),
-                              POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
-                  POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
-        }
+          AssumeEdge assume = (AssumeEdge) node.getLeavingEdge(VALID_STATE);
 
-        for (String variable : rightSideVariable) {
-          try {
-            double d = Double.parseDouble(variable);
-            if (d > pathNumber || d > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe) {
+          CBinaryExpression pE = (CBinaryExpression) assume.getExpression();
+
+          BinaryOperator binaryOperator = pE.getOperator();
+          CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+          CExpression rVarInBinaryExp = pE.getOperand2();
+
+          if (binaryOperator.equals(Operator.EQUALS)) {
             temp.add(true);
-          }
-          try {
-            int d = Integer.parseInt(variable);
-            if (d > pathNumber || d > outputNumber) {
+          } else {
+            if (lVarInBinaryExp.getClass().getSimpleName().equals("CIdExpression")
+                || rVarInBinaryExp.getClass().getSimpleName().equals("CIdExpression")) {
               temp.add(true);
+              if (lVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
+                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
+                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                        > outputNumber) {
+                  temp.add(true);
+                }
+              }
+
+            } else if (lVarInBinaryExp
+                    .getClass()
+                    .getSimpleName()
+                    .equals("CIntegerLiteralExpression")
+                || rVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
+              if (lVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
+                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
+                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                        > outputNumber) {
+                  temp.add(true);
+                }
+              } else if (rVarInBinaryExp
+                  .getClass()
+                  .getSimpleName()
+                  .equals("CIntegerLiteralExpression")) {
+                if (((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue() > pathNumber
+                    || ((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                        > outputNumber) {
+                  temp.add(true);
+                }
+              }
             }
-          } catch (NumberFormatException | NullPointerException nfe1) {
-            temp.add(true);
-          }
-          try {
-            long d = Long.parseLong(variable);
-            if (d > pathNumber || d > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe2) {
-            temp.add(true);
-          }
-          try {
-            float d = Float.parseFloat(variable);
-            if (d > pathNumber || d > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe3) {
-            temp.add(true);
           }
         }
       }
@@ -1111,4 +1121,11 @@ public class LoopData implements Comparable<LoopData> {
         + "\n Failed State: "
         + failedState;
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new LoopStatistics(this));
+  }
+
+
 }

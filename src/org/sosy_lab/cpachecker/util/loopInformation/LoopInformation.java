@@ -33,12 +33,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /** This class initiates the information collection from all the loops in the specified program */
 @Options(prefix = "LoopInfo")
-public class LoopInformation implements StatisticsProvider {
+public class LoopInformation {
 
   @Option(
       secure = true,
@@ -46,6 +45,18 @@ public class LoopInformation implements StatisticsProvider {
       description = "Dumps infos about the loops in the tested program to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("LoopInformation.log");
+
+  @Option(
+      secure = true,
+      name = "loopStatistics",
+      description = "Get Information about the loops in the statistics output")
+  private boolean statisticsFile = false;
+
+  @Option(
+      secure = true,
+      name = "loopOutputFile",
+      description = "Get Information about the loops in a separate output file")
+  private boolean outputFile = true;
 
   private CFA cfa;
   private List<LoopData> loopData;
@@ -125,7 +136,7 @@ public class LoopInformation implements StatisticsProvider {
 
     sortLoopDataList();
 
-    if (dumpfile != null) { // option -noout
+    if (dumpfile != null && outputFile) { // option -noout
       try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
         for (LoopData x : loopData) {
           w.append(x.toString());
@@ -151,8 +162,11 @@ public class LoopInformation implements StatisticsProvider {
     return cfa;
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new LoopStatistics(loopData));
+  public void buildStatistics(Collection<Statistics> pStatsCollection) {
+    if (statisticsFile) {
+      for (LoopData data : loopData) {
+        data.collectStatistics(pStatsCollection);
+      }
+    }
   }
 }

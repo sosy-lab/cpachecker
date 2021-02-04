@@ -40,9 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Visitor that derives further information from an assume edge
- */
+/** Visitor that derives further information from an assume edge */
 class AssigningValueVisitor extends ExpressionValueVisitor {
 
   private ExpressionValueVisitor nonAssigningValueVisitor;
