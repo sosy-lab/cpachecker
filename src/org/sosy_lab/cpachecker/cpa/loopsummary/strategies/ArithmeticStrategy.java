@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class arithmeticStrategy implements strategyInterface {
+public class ArithmeticStrategy implements StrategyInterface {
 
   // private final LocationStateFactory locationStateFactory;
   // TODO is this needed, because then we get initalization problems
@@ -71,7 +71,7 @@ public class arithmeticStrategy implements strategyInterface {
     }
   }
 
-  public arithmeticStrategy() {}
+  public ArithmeticStrategy() {}
 
   // Returns the bound in the form 0 < x where x is the CExpression returned
   private Optional<CExpression> bound(final CFANode pLoopStartNode) {

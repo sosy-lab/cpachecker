@@ -15,12 +15,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class baseStrategy implements strategyInterface {
+public class LoopAcceleration implements StrategyInterface {
 
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
       AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
-    return Optional.of(pTransferRelation.getAbstractSuccessors(pState, pPrecision));
+    // TODO Auto-generated method stub
+    return Optional.empty();
   }
+
 }

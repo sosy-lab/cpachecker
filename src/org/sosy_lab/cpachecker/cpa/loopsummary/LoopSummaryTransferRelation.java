@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.strategyInterface;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -32,7 +32,7 @@ public class LoopSummaryTransferRelation extends AbstractLoopSummaryTransferRela
       LoopSummaryCPA loopSummaryCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      ArrayList<strategyInterface> strategies) {
+      ArrayList<StrategyInterface> strategies) {
     super(loopSummaryCpa, pShutdownNotifier, strategies);
     algorithmFactory = pFactory;
     stats = loopSummaryCpa.getStatistics();

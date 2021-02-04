@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.strategyInterface;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -59,13 +59,13 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
-  private ArrayList<strategyInterface> strategies;
+  private ArrayList<StrategyInterface> strategies;
   private Map<CFANode, Integer> currentStrategyForCFANode;
 
   protected AbstractLoopSummaryTransferRelation(
       AbstractLoopSummaryCPA pLoopSummaryCPA,
       ShutdownNotifier pShutdownNotifier,
-      ArrayList<strategyInterface> pStrategies) {
+      ArrayList<StrategyInterface> pStrategies) {
     super(pLoopSummaryCPA.getWrappedCpa().getTransferRelation());
     logger = pLoopSummaryCPA.getLogger();
     shutdownNotifier = pShutdownNotifier;

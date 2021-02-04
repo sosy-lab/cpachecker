@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class loopAcceleration implements strategyInterface {
+public class InterpolationStrategy implements StrategyInterface {
 
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
@@ -24,5 +24,4 @@ public class loopAcceleration implements strategyInterface {
     // TODO Auto-generated method stub
     return Optional.empty();
   }
-
 }

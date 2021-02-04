@@ -15,16 +15,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public interface strategyInterface {
+public class BaseStrategy implements StrategyInterface {
 
-  /*
-   *
-   * Gives a summary state back if the State can be summarized using the Strategy given
-   * Return an Empty option if this is not the case.
-   *
-   */
-
+  @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
-      final AbstractState pState, final Precision pPrecision, TransferRelation pTransferRelation)
-      throws CPATransferException, InterruptedException;
+      AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
+      throws CPATransferException, InterruptedException {
+    return Optional.of(pTransferRelation.getAbstractSuccessors(pState, pPrecision));
+  }
 }

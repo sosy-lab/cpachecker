@@ -23,10 +23,11 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.arithmeticStrategy;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.baseStrategy;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.loopAcceleration;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.strategyInterface;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.ArithmeticStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.InterpolationStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopAcceleration;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 
 @Options(prefix = "cpa.loopsummary")
 public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
@@ -43,9 +44,13 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
       secure = true,
       description =
           "Strategies to be used in the Summary. The order of the strategies marks in which order they are tried")
-  private ArrayList<strategyInterface> strategies =
+  private ArrayList<StrategyInterface> strategies =
       new ArrayList<>(
-          Arrays.asList(new arithmeticStrategy(), new loopAcceleration(), new baseStrategy()));
+          Arrays.asList(
+              new ArithmeticStrategy(),
+              new InterpolationStrategy(),
+              new LoopAcceleration(),
+              new BaseStrategy()));
 
   private LoopSummaryCPA(
       ConfigurableProgramAnalysis pCpa,
