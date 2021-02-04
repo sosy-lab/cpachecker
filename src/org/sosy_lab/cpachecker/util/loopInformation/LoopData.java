@@ -22,7 +22,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -824,7 +826,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    * @return true if the loop should be accelerated or false if it doesn't make that much sense to
    *     accelerate it
    */
-  @SuppressWarnings("unlikely-arg-type")
+  @SuppressWarnings({"unlikely-arg-type", "deprecation"})
   private boolean canLoopBeAccelerated(
       List<CFANode> condNodes,
       LoopType type,
@@ -873,35 +875,50 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             temp.add(true);
           } else {
             if (lVarInBinaryExp instanceof CIdExpression
-                || rVarInBinaryExp.getClass().getSimpleName().equals("CIdExpression")) {
+                || rVarInBinaryExp instanceof CIdExpression) {
               temp.add(true);
+            } else if (lVarInBinaryExp instanceof CLiteralExpression
+                || rVarInBinaryExp instanceof CLiteralExpression) {
               if (lVarInBinaryExp instanceof CLiteralExpression) {
-                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
-                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
-                        > outputNumber) {
+                if (lVarInBinaryExp instanceof CIntegerLiteralExpression) {
+                  if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                          > pathNumber
+                      || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
                   temp.add(true);
+                  }
+                } else if (lVarInBinaryExp instanceof CCharLiteralExpression) {
+                  if (((CCharLiteralExpression) lVarInBinaryExp).getValue() > pathNumber
+                      || ((CCharLiteralExpression) lVarInBinaryExp).getValue() > outputNumber) {
+                    temp.add(true);
+                  }
+                } else if (lVarInBinaryExp instanceof CFloatLiteralExpression) {
+                  if (((CFloatLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
+                      || ((CFloatLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
+                    temp.add(true);
+                  }
                 }
               }
-
-            } else if (lVarInBinaryExp
-                    .getClass()
-                    .getSimpleName()
-                    .equals("CIntegerLiteralExpression")
-                || rVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
-              if (lVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
-                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
-                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
-                        > outputNumber) {
+              if (rVarInBinaryExp instanceof CLiteralExpression) {
+                if (rVarInBinaryExp instanceof CIntegerLiteralExpression) {
+                  if (((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                          > pathNumber
+                      || ((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
                   temp.add(true);
-                }
-              } else if (rVarInBinaryExp
-                  .getClass()
-                  .getSimpleName()
-                  .equals("CIntegerLiteralExpression")) {
-                if (((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue() > pathNumber
-                    || ((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
-                        > outputNumber) {
-                  temp.add(true);
+                  }
+                } else if (rVarInBinaryExp instanceof CCharLiteralExpression) {
+                  if (((CCharLiteralExpression) rVarInBinaryExp).getValue() > pathNumber
+                      || ((CCharLiteralExpression) rVarInBinaryExp).getValue() > outputNumber) {
+                    temp.add(true);
+                  }
+                } else if (rVarInBinaryExp instanceof CFloatLiteralExpression) {
+                  if (((CFloatLiteralExpression) rVarInBinaryExp).getValue().intValue() > pathNumber
+                      || ((CFloatLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
+                    temp.add(true);
+                  }
                 }
               }
             }
@@ -920,38 +937,51 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           if (binaryOperator.equals(Operator.EQUALS)) {
             temp.add(true);
           } else {
-            if (lVarInBinaryExp.getClass().getSimpleName().equals("CIdExpression")
-                || rVarInBinaryExp.getClass().getSimpleName().equals("CIdExpression")) {
+            if (lVarInBinaryExp instanceof CIdExpression
+                || rVarInBinaryExp instanceof CIdExpression) {
               temp.add(true);
-              if (lVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
-                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
-                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
-                        > outputNumber) {
-                  temp.add(true);
+              if (lVarInBinaryExp instanceof CLiteralExpression) {
+                if (lVarInBinaryExp instanceof CIntegerLiteralExpression) {
+                  if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                          > pathNumber
+                      || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
+                    temp.add(true);
+                  }
+                } else if (lVarInBinaryExp instanceof CCharLiteralExpression) {
+                  if (((CCharLiteralExpression) lVarInBinaryExp).getValue() > pathNumber
+                      || ((CCharLiteralExpression) lVarInBinaryExp).getValue() > outputNumber) {
+                    temp.add(true);
+                  }
+                } else if (lVarInBinaryExp instanceof CFloatLiteralExpression) {
+                  if (((CFloatLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
+                      || ((CFloatLiteralExpression) lVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
+                    temp.add(true);
+                  }
+                  }
                 }
-              }
-
-            } else if (lVarInBinaryExp
-                    .getClass()
-                    .getSimpleName()
-                    .equals("CIntegerLiteralExpression")
-                || rVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
-              if (lVarInBinaryExp.getClass().getSimpleName().equals("CIntegerLiteralExpression")) {
-                if (((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue() > pathNumber
-                    || ((CIntegerLiteralExpression) lVarInBinaryExp).getValue().intValue()
-                        > outputNumber) {
-                  temp.add(true);
+              if (rVarInBinaryExp instanceof CLiteralExpression) {
+                if (rVarInBinaryExp instanceof CIntegerLiteralExpression) {
+                  if (((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                          > pathNumber
+                      || ((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
+                    temp.add(true);
+                  }
+                } else if (rVarInBinaryExp instanceof CCharLiteralExpression) {
+                  if (((CCharLiteralExpression) rVarInBinaryExp).getValue() > pathNumber
+                      || ((CCharLiteralExpression) rVarInBinaryExp).getValue() > outputNumber) {
+                    temp.add(true);
+                  }
+                } else if (rVarInBinaryExp instanceof CFloatLiteralExpression) {
+                  if (((CFloatLiteralExpression) rVarInBinaryExp).getValue().intValue() > pathNumber
+                      || ((CFloatLiteralExpression) rVarInBinaryExp).getValue().intValue()
+                          > outputNumber) {
+                    temp.add(true);
+                  }
+                  }
                 }
-              } else if (rVarInBinaryExp
-                  .getClass()
-                  .getSimpleName()
-                  .equals("CIntegerLiteralExpression")) {
-                if (((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue() > pathNumber
-                    || ((CIntegerLiteralExpression) rVarInBinaryExp).getValue().intValue()
-                        > outputNumber) {
-                  temp.add(true);
-                }
-              }
             }
           }
         }
