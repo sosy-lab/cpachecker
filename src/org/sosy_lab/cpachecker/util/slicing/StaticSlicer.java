@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
@@ -103,6 +105,24 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     return abortCallEdges;
   }
 
+  private Multimap<
+          CFAEdge, SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>>
+      getNodesPerCfaEdge() {
+
+    Multimap<CFAEdge, SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>>
+        nodesPerCfaNode = ArrayListMultimap.create();
+
+    for (SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation> node :
+        sdg.getNodes()) {
+      Optional<CFAEdge> optCfaEdge = node.getStatement();
+      if (optCfaEdge.isPresent()) {
+        nodesPerCfaNode.put(optCfaEdge.orElseThrow(), node);
+      }
+    }
+
+    return nodesPerCfaNode;
+  }
+
   @Override
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
@@ -193,16 +213,18 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> startNodes =
         new HashSet<>();
+    Multimap<CFAEdge, SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>>
+        nodesPerCfaEdge = getNodesPerCfaEdge();
 
     for (CFAEdge criteriaEdge : criteriaEdges) {
-      startNodes.addAll(sdg.getNodesForStatement(criteriaEdge));
+      startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
     }
 
     sdg.traverse(startNodes, phase1Visitor);
 
     startNodes.clear();
     for (CFAEdge criteriaEdge : relevantEdges) {
-      startNodes.addAll(sdg.getNodesForStatement(criteriaEdge));
+      startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
     }
 
     sdg.traverse(startNodes, phase2Visitor);

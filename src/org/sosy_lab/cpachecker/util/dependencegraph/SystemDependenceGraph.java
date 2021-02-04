@@ -8,13 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -120,21 +116,17 @@ public final class SystemDependenceGraph<P, T, V> {
   private final ImmutableList<Node<P, T, V>> nodes;
   private final ImmutableList<GraphNode<P, T, V>> graphNodes;
 
-  private final ImmutableMultimap<T, Node<P, T, V>> nodesPerStatement;
-
   private final TypeCounter<NodeType> nodeTypeCounter;
   private final TypeCounter<EdgeType> edgeTypeCounter;
 
   private SystemDependenceGraph(
       ImmutableList<Node<P, T, V>> pNodes,
       ImmutableList<GraphNode<P, T, V>> pGraphNodes,
-      ImmutableMultimap<T, Node<P, T, V>> pNodesPerStatement,
       TypeCounter<NodeType> pNodeTypeCounter,
       TypeCounter<EdgeType> pEdgeTypeCounter) {
 
     nodes = pNodes;
     graphNodes = pGraphNodes;
-    nodesPerStatement = pNodesPerStatement;
 
     nodeTypeCounter = pNodeTypeCounter;
     edgeTypeCounter = pEdgeTypeCounter;
@@ -162,54 +154,6 @@ public final class SystemDependenceGraph<P, T, V> {
     return graphNode;
   }
 
-  private static <P, T, V> void traverse(
-      List<GraphNode<P, T, V>> pGraphNodes,
-      Collection<Node<P, T, V>> pStartNodes,
-      Visitor<P, T, V> pVisitor,
-      boolean pForwards) {
-
-    Objects.requireNonNull(pStartNodes, "pStartNodes must not be null");
-    Objects.requireNonNull(pVisitor, "pVisitor must not be null");
-
-    Deque<GraphNode<P, T, V>> waitlist = new ArrayDeque<>();
-
-    for (Node<P, T, V> node : pStartNodes) {
-      waitlist.add(getGraphNode(pGraphNodes, node));
-    }
-
-    while (!waitlist.isEmpty()) {
-
-      GraphNode<P, T, V> graphNode = waitlist.remove();
-      VisitResult nodeVisitResult = pVisitor.visitNode(graphNode.getNode());
-
-      if (nodeVisitResult == VisitResult.CONTINUE) {
-
-        List<GraphEdge<P, T, V>> edges =
-            pForwards ? graphNode.getLeavingEdges() : graphNode.getEnteringEdges();
-
-        for (GraphEdge<P, T, V> edge : edges) {
-
-          GraphNode<P, T, V> predecessor = edge.getPredecessor();
-          GraphNode<P, T, V> successor = edge.getSuccessor();
-          VisitResult edgeVisitResult =
-              pVisitor.visitEdge(edge.getType(), predecessor.getNode(), successor.getNode());
-
-          if (edgeVisitResult == VisitResult.CONTINUE) {
-
-            GraphNode<P, T, V> next = pForwards ? successor : predecessor;
-            waitlist.add(next);
-
-          } else if (nodeVisitResult == VisitResult.TERMINATE) {
-            return;
-          }
-        }
-
-      } else if (nodeVisitResult == VisitResult.TERMINATE) {
-        return;
-      }
-    }
-  }
-
   /**
    * Returns a new system dependence graph that does not contain any nodes and edges.
    *
@@ -222,7 +166,6 @@ public final class SystemDependenceGraph<P, T, V> {
     return new SystemDependenceGraph<>(
         ImmutableList.of(),
         ImmutableList.of(),
-        ImmutableListMultimap.of(),
         new TypeCounter<>(NodeType.values().length),
         new TypeCounter<>(EdgeType.values().length));
   }
@@ -271,19 +214,60 @@ public final class SystemDependenceGraph<P, T, V> {
     return nodes.get(pId);
   }
 
-  public ImmutableCollection<Node<P, T, V>> getNodesForStatement(T pStatement) {
-
-    Objects.requireNonNull(pStatement, "pStatement must not be null");
-
-    return nodesPerStatement.get(pStatement);
-  }
-
   public ImmutableSet<V> getDefs(Node<P, T, V> pNode) {
     return ImmutableSet.copyOf(getGraphNode(graphNodes, pNode).getDefs());
   }
 
   public ImmutableSet<V> getUses(Node<P, T, V> pNode) {
     return ImmutableSet.copyOf(getGraphNode(graphNodes, pNode).getUses());
+  }
+
+  private static <P, T, V> void traverse(
+      List<GraphNode<P, T, V>> pGraphNodes,
+      Collection<Node<P, T, V>> pStartNodes,
+      Visitor<P, T, V> pVisitor,
+      boolean pForwards) {
+
+    Objects.requireNonNull(pStartNodes, "pStartNodes must not be null");
+    Objects.requireNonNull(pVisitor, "pVisitor must not be null");
+
+    Deque<GraphNode<P, T, V>> waitlist = new ArrayDeque<>();
+
+    for (Node<P, T, V> node : pStartNodes) {
+      waitlist.add(getGraphNode(pGraphNodes, node));
+    }
+
+    while (!waitlist.isEmpty()) {
+
+      GraphNode<P, T, V> graphNode = waitlist.remove();
+      VisitResult nodeVisitResult = pVisitor.visitNode(graphNode.getNode());
+
+      if (nodeVisitResult == VisitResult.CONTINUE) {
+
+        List<GraphEdge<P, T, V>> edges =
+            pForwards ? graphNode.getLeavingEdges() : graphNode.getEnteringEdges();
+
+        for (GraphEdge<P, T, V> edge : edges) {
+
+          GraphNode<P, T, V> predecessor = edge.getPredecessor();
+          GraphNode<P, T, V> successor = edge.getSuccessor();
+          VisitResult edgeVisitResult =
+              pVisitor.visitEdge(edge.getType(), predecessor.getNode(), successor.getNode());
+
+          if (edgeVisitResult == VisitResult.CONTINUE) {
+
+            GraphNode<P, T, V> next = pForwards ? successor : predecessor;
+            waitlist.add(next);
+
+          } else if (nodeVisitResult == VisitResult.TERMINATE) {
+            return;
+          }
+        }
+
+      } else if (nodeVisitResult == VisitResult.TERMINATE) {
+        return;
+      }
+    }
   }
 
   public void traverse(Collection<Node<P, T, V>> pStartNodes, ForwardsVisitor<P, T, V> pVisitor) {
@@ -772,24 +756,13 @@ public final class SystemDependenceGraph<P, T, V> {
 
     public SystemDependenceGraph<P, T, V> build() {
 
-      Multimap<T, Node<P, T, V>> nodesPerStatement = ArrayListMultimap.create();
-
       for (GraphNode<P, T, V> graphNode : graphNodes) {
-
         graphNode.finish();
-
-        Node<P, T, V> node = graphNode.getNode();
-        Optional<T> statement = node.getStatement();
-
-        if (statement.isPresent()) {
-          nodesPerStatement.put(node.getStatement().orElseThrow(), node);
-        }
       }
 
       return new SystemDependenceGraph<>(
           ImmutableList.copyOf(nodes),
           ImmutableList.copyOf(graphNodes),
-          ImmutableListMultimap.copyOf(nodesPerStatement),
           nodeTypeCounter.copy(),
           edgeTypeCounter.copy());
     }
