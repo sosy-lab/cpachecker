@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import org.eclipse.jdt.core.dom.InfixExpression.Operator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -871,7 +870,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
           CExpression rVarInBinaryExp = pE.getOperand2();
 
-          if (binaryOperator.equals(Operator.EQUALS)) {
+          if (binaryOperator.equals(BinaryOperator.EQUALS)) {
             temp.add(true);
           } else {
             if (lVarInBinaryExp instanceof CIdExpression
@@ -934,7 +933,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
           CExpression rVarInBinaryExp = pE.getOperand2();
 
-          if (binaryOperator.equals(Operator.EQUALS)) {
+          if (binaryOperator.equals(BinaryOperator.EQUALS)) {
             temp.add(true);
           } else {
             if (lVarInBinaryExp instanceof CIdExpression
