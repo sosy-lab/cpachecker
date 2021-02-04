@@ -74,11 +74,11 @@ let argTabDisabled = false;
     });
     // initialize all tooltips
     $("[data-toggle=tooltip]").tooltip({
-		    trigger : 'hover'
-		});
-    $(document).on("hover", "[data-toggle=tooltip]", function () {
-      $(this).tooltip("show");
+      trigger: "hover",
     });
+    $(document).on("hover", "[data-toggle=tooltip]", () =>
+      $(event.currentTarget).tooltip("show")
+    );
 
     // hide tooltip after 5 seconds
     let timeout;
@@ -238,7 +238,7 @@ let argTabDisabled = false;
       // Toggle button to hide the error path section
       $scope.toggleErrorPathSection = function (e) {
         $("#toggle_error_path").on("change", function () {
-          if ($(this).is(":checked")) {
+          if ($(event.currentTarget).is(":checked")) {
             d3.select("#errorpath_section").style("display", "inline");
             d3.select("#errorpath_section").style("width", "25%");
             d3.select("#externalFiles_section").style("width", "75%");
@@ -253,7 +253,7 @@ let argTabDisabled = false;
 
       // Full screen mode function to view the report in full screen
       $("#full_screen_mode").click(function () {
-        $(this).find("i").toggleClass("fa-compress fa-expand");
+        $(event.currentTarget).find("i").toggleClass("fa-compress fa-expand");
       });
 
       $scope.makeFullScreen = function () {
@@ -563,7 +563,7 @@ let argTabDisabled = false;
           .attr("id")
           .substring("fault-".length);
         const faultElement = $rootScope.faults[faultElementIdx];
-        markErrorPathElementInTab(faultElement.errPathIds);
+        markErrorPathElementInTab.bind(this)(faultElement.errPathIds);
       };
 
       $scope.errPathPrevClicked = function ($event) {
@@ -579,7 +579,7 @@ let argTabDisabled = false;
           $("#value-assignment").scrollTop(
             $("#value-assignment").scrollTop() - 18
           );
-          markErrorPathElementInTab(prevId);
+          markErrorPathElementInTab.bind(this)(prevId);
         }
       };
 
@@ -590,7 +590,7 @@ let argTabDisabled = false;
         );
         d3.select("#errpath-0").classed("clickedErrPathElement", true);
         $("#value-assignment").scrollTop(0);
-        markErrorPathElementInTab(0);
+        markErrorPathElementInTab.bind(this)(0);
       };
 
       $scope.errPathNextClicked = function ($event) {
@@ -606,7 +606,7 @@ let argTabDisabled = false;
           $("#value-assignment").scrollTop(
             $("#value-assignment").scrollTop() + 18
           );
-          markErrorPathElementInTab(nextId);
+          markErrorPathElementInTab.bind(this)(nextId);
         }
       };
 
@@ -617,7 +617,7 @@ let argTabDisabled = false;
         );
         const clickedElement = d3.select($event.currentTarget.parentNode);
         clickedElement.classed("clickedErrPathElement", true);
-        markErrorPathElementInTab(
+        markErrorPathElementInTab.bind(this)(
           clickedElement.attr("id").substring("errpath-".length)
         );
       };
@@ -636,12 +636,12 @@ let argTabDisabled = false;
           if ($rootScope.errorPath[id] === undefined) {
             return;
           }
-          handleErrorPathElemClick(currentTab, id);
+          handleErrorPathElemClick.bind(this)(currentTab, id);
         }
       }
 
       function handleErrorPathElemClick(currentTab, errPathElemIndex) {
-        markCfaEdge($rootScope.errorPath[errPathElemIndex]);
+        markCfaEdge.bind(this)($rootScope.errorPath[errPathElemIndex]);
         markArgNode($rootScope.errorPath[errPathElemIndex]);
         markSourceLine($rootScope.errorPath[errPathElemIndex]);
         if (![1, 2, 3].includes(currentTab)) {
@@ -676,7 +676,7 @@ let argTabDisabled = false;
                 $("#cfa-container")
             );
           if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
-            selection.selectAll("tspan").each(function (d, i) {
+            selection.selectAll("tspan").each(/* @this HTMLElement */function (i) {
               if (d3.select(this).html().includes(errPathEntry.source)) {
                 d3.select(this).classed("marked-cfa-node-label", true);
               }
@@ -1004,7 +1004,7 @@ let argTabDisabled = false;
           $scope.zoomEnabled = false;
           d3.select("#cfa-zoom-button").html("<i class='far fa-square'></i>");
           // revert zoom and remove listeners
-          d3.selectAll(".cfa-svg").each(function (d, i) {
+          d3.selectAll(".cfa-svg").each(/* @this HTMLElement */ function (i) {
             d3.select(this)
               .on("zoom", null)
               .on("wheel.zoom", null)
@@ -1016,10 +1016,10 @@ let argTabDisabled = false;
           d3.select("#cfa-zoom-button").html(
             "<i class='far fa-check-square'></i>"
           );
-          d3.selectAll(".cfa-svg").each(function (d, i) {
+          d3.selectAll(".cfa-svg").each(/* @this HTMLElement */function (i) {
             const svg = d3.select(this);
             const svgGroup = d3.select(this.firstChild);
-            const zoom = d3.zoom().on("zoom", function (d, i) {
+            const zoom = d3.zoom().on("zoom", function (d) {
               svgGroup.attr("transform", d.transform);
             });
             svg.call(zoom);
@@ -1179,7 +1179,7 @@ let argTabDisabled = false;
           $scope.zoomEnabled = false;
           d3.select("#arg-zoom-button").html("<i class='far fa-square'></i>");
           // revert zoom and remove listeners
-          d3.selectAll(".arg-svg").each(function (d, i) {
+          d3.selectAll(".arg-svg").each(/* @this HTMLElement */function (i) {
             d3.select(this)
               .on("zoom", null)
               .on("wheel.zoom", null)
@@ -1191,10 +1191,10 @@ let argTabDisabled = false;
           d3.select("#arg-zoom-button").html(
             "<i class='far fa-check-square'></i>"
           );
-          d3.selectAll(".arg-svg").each(function (d, i) {
+          d3.selectAll(".arg-svg").each(/* @this HTMLElement */function (i) {
             const svg = d3.select(this);
             const svgGroup = d3.select(this.firstChild);
-            const zoom = d3.zoom().on("zoom", function () {
+            const zoom = d3.zoom().on("zoom", function (d) {
               svgGroup.attr("transform", d.transform);
             });
             svg.call(zoom);

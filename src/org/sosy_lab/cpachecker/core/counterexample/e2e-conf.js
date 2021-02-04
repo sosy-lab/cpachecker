@@ -67,7 +67,7 @@ exports.config = {
   // Close the report after all tests finish
   afterLaunch: function (exitCode) {
     return new Promise(function (resolve) {
-      reporter.afterLaunch(resolve.bind(this, exitCode));
+      reporter.afterLaunch(resolve.bind(exitCode));
     });
   },
 };
