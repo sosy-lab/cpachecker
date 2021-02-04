@@ -21,7 +21,7 @@ public class EnsuresClause {
   }
 
   public EnsuresClause and(EnsuresClause other) {
-    return new EnsuresClause(predicate.and(other.getPredicate()).simplify());
+    return new EnsuresClause(predicate.and(other.getPredicate()));
   }
 
   @Override

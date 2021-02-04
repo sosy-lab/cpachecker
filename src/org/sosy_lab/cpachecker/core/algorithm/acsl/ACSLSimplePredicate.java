@@ -67,11 +67,6 @@ public class ACSLSimplePredicate extends ACSLPredicate {
   }
 
   @Override
-  public boolean isNegationOf(ACSLPredicate other) {
-    return simplify().equals(other.negate().simplify());
-  }
-
-  @Override
   public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
     try {
       return LeafExpression.of(term.accept(visitor), !isNegated());

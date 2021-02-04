@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -19,18 +20,23 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
   private final LoopInvariant lInvariant;
   private final ImmutableMap<List<Behavior>, LoopInvariant> additionalInvariants;
 
-  public ACSLLoopAnnotation(LoopInvariant invariant) {
+  ACSLLoopAnnotation(LoopInvariant invariant) {
     this(invariant, ImmutableMap.of());
   }
 
-  public ACSLLoopAnnotation(Map<List<Behavior>, LoopInvariant> pAdditionalInvariants) {
+  ACSLLoopAnnotation(Map<List<Behavior>, LoopInvariant> pAdditionalInvariants) {
     this(new LoopInvariant(ACSLPredicate.getTrue()), pAdditionalInvariants);
   }
 
-  public ACSLLoopAnnotation(
+  ACSLLoopAnnotation(
       LoopInvariant invariant, Map<List<Behavior>, LoopInvariant> pAdditionalInvariants) {
-    lInvariant = invariant;
-    additionalInvariants = ImmutableMap.copyOf(pAdditionalInvariants);
+    lInvariant = new LoopInvariant(invariant.getPredicate().simplify());
+    Builder<List<Behavior>, LoopInvariant> builder =
+        ImmutableMap.builderWithExpectedSize(pAdditionalInvariants.size());
+    for (Entry<List<Behavior>, LoopInvariant> entry : pAdditionalInvariants.entrySet()) {
+      builder.put(entry.getKey(), new LoopInvariant(entry.getValue().getPredicate().simplify()));
+    }
+    additionalInvariants = builder.build();
   }
 
   @Override

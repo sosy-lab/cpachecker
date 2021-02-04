@@ -48,11 +48,6 @@ public class At extends ACSLPredicate implements ACSLBuiltin {
   }
 
   @Override
-  public boolean isNegationOf(ACSLPredicate other) {
-    return simplify().equals(other.negate().simplify());
-  }
-
-  @Override
   public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
     throw new UnsupportedOperationException("There is currently no concrete translation of \\at available");
   }

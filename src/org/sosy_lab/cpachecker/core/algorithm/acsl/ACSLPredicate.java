@@ -70,7 +70,9 @@ public abstract class ACSLPredicate implements LogicExpression {
    * @param other The predicate that shall be compared with <code>this</code>.
    * @return true if <code>this</code> is a negation of <code>other</code>, false otherwise.
    */
-  public abstract boolean isNegationOf(ACSLPredicate other);
+  public boolean isNegationOf(ACSLPredicate other) {
+    return equals(other.negate());
+  }
 
   /**
    * Returns an expression tree representing the predicate.
@@ -111,11 +113,6 @@ public abstract class ACSLPredicate implements LogicExpression {
     public boolean isNegated() {
       assert !super.isNegated() : "True should not be explicitly negated, should be False instead!";
       return false;
-    }
-
-    @Override
-    public boolean isNegationOf(ACSLPredicate other) {
-      return other instanceof FALSE;
     }
 
     @Override
@@ -179,11 +176,6 @@ public abstract class ACSLPredicate implements LogicExpression {
     public boolean isNegated() {
       assert !super.isNegated() : "False should not be explicitly negated, should be True instead!";
       return false;
-    }
-
-    @Override
-    public boolean isNegationOf(ACSLPredicate other) {
-      return other instanceof TRUE;
     }
 
     @Override

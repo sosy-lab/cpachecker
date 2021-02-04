@@ -44,23 +44,23 @@ public class TernaryCondition extends ACSLPredicate {
   @Override
   public ACSLPredicate simplify() {
     ACSLPredicate simpleCondition = condition.simplify();
-    ACSLPredicate simpleNegatedCondition = condition.negate().simplify();
+    ACSLPredicate simpleConditionNegated = simpleCondition.negate();
     ACSLPredicate simpleThen = then.simplify();
-    ACSLPredicate simpleNegatedThen = then.negate().simplify();
+    ACSLPredicate simpleThenNegated = simpleThen.negate();
     ACSLPredicate simpleOtherwise = otherwise.simplify();
-    ACSLPredicate simpleNegatedOtherwise = otherwise.negate().simplify();
+    ACSLPredicate simpleOtherwiseNegated = simpleOtherwise.negate();
     if (simpleCondition.equals(getTrue())) {
-      return isNegated() ? simpleNegatedThen : simpleThen;
+      return isNegated() ? simpleThenNegated : simpleThen;
     } else if (simpleCondition.equals(getFalse())) {
-      return isNegated() ? simpleNegatedOtherwise : simpleOtherwise;
+      return isNegated() ? simpleOtherwiseNegated : simpleOtherwise;
     } else if (then.equals(otherwise) || simpleThen.equals(simpleOtherwise)) {
-      return isNegated() ? simpleNegatedThen : simpleThen;
+      return isNegated() ? simpleThenNegated : simpleThen;
     }
     return isNegated()
-        ? new ACSLLogicalPredicate(simpleNegatedCondition, simpleNegatedThen, BinaryOperator.OR)
+        ? new ACSLLogicalPredicate(simpleConditionNegated, simpleThenNegated, BinaryOperator.OR)
             .and(
                 new ACSLLogicalPredicate(
-                    simpleCondition, simpleNegatedOtherwise, BinaryOperator.OR))
+                    simpleCondition, simpleOtherwiseNegated, BinaryOperator.OR))
         : new TernaryCondition(simpleCondition, simpleThen, simpleOtherwise);
   }
 
@@ -80,11 +80,6 @@ public class TernaryCondition extends ACSLPredicate {
   public int hashCode() {
     return super.hashCode()
         * (19 * condition.hashCode() + 11 * then.hashCode() + otherwise.hashCode());
-  }
-
-  @Override
-  public boolean isNegationOf(ACSLPredicate other) {
-    return simplify().equals(other.negate().simplify());
   }
 
   @Override

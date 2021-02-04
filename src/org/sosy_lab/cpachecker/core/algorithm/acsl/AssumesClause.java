@@ -20,7 +20,7 @@ public class AssumesClause {
   }
 
   public AssumesClause and(AssumesClause other) {
-    return new AssumesClause(predicate.and(other.getPredicate()).simplify());
+    return new AssumesClause(predicate.and(other.getPredicate()));
   }
 
   @Override

@@ -18,11 +18,11 @@ public class ACSLAssertion implements ACSLAnnotation {
   private final ImmutableList<Behavior> enclosingBehaviors;
   private final ACSLPredicate predicate;
 
-  public ACSLAssertion(AssertionKind pKind, ACSLPredicate p) {
+  ACSLAssertion(AssertionKind pKind, ACSLPredicate p) {
     this(pKind, ImmutableList.of(), p);
   }
 
-  public ACSLAssertion(AssertionKind pKind, List<Behavior> enclosing, ACSLPredicate p) {
+  ACSLAssertion(AssertionKind pKind, List<Behavior> enclosing, ACSLPredicate p) {
     kind = pKind;
     enclosingBehaviors = ImmutableList.copyOf(enclosing);
     predicate = p.simplify();

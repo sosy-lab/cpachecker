@@ -72,9 +72,9 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   @Override
   public ACSLPredicate simplify() {
     ACSLPredicate simpleLeft = left.simplify();
-    ACSLPredicate simpleNegatedLeft = left.negate().simplify();
+    ACSLPredicate simpleLeftNegated = simpleLeft.negate();
     ACSLPredicate simpleRight = right.simplify();
-    ACSLPredicate simpleNegatedRight = right.negate().simplify();
+    ACSLPredicate simpleRightNegated = simpleRight.negate();
     switch (operator) {
       case AND:
         if (simpleLeft.equals(getFalse())
@@ -82,13 +82,13 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
             || simpleLeft.isNegationOf(simpleRight)) {
           return isNegated() ? getTrue() : getFalse();
         } else if (simpleLeft.equals(simpleRight)) {
-          return isNegated() ? simpleNegatedLeft : simpleLeft;
+          return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (simpleLeft.equals(getTrue())) {
-          return isNegated() ? simpleNegatedRight : simpleRight;
+          return isNegated() ? simpleRightNegated : simpleRight;
         } else if (simpleRight.equals(getTrue())) {
-          return isNegated() ? simpleNegatedLeft : simpleLeft;
+          return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (isNegated()) {
-          return new ACSLLogicalPredicate(simpleNegatedLeft, simpleNegatedRight, BinaryOperator.OR);
+          return new ACSLLogicalPredicate(simpleLeftNegated, simpleRightNegated, BinaryOperator.OR);
         }
         break;
       case OR:
@@ -97,14 +97,14 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
             || simpleLeft.isNegationOf(simpleRight)) {
           return isNegated() ? getFalse() : getTrue();
         } else if (simpleLeft.equals(simpleRight)) {
-          return isNegated() ? simpleNegatedLeft : simpleLeft;
+          return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (simpleLeft.equals(getFalse())) {
-          return isNegated() ? simpleNegatedRight : simpleRight;
+          return isNegated() ? simpleRightNegated : simpleRight;
         } else if (simpleRight.equals(getFalse())) {
-          return isNegated() ? simpleNegatedLeft : simpleLeft;
+          return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (isNegated()) {
           return new ACSLLogicalPredicate(
-              simpleNegatedLeft, simpleNegatedRight, BinaryOperator.AND);
+              simpleLeftNegated, simpleRightNegated, BinaryOperator.AND);
         }
         break;
       default:
@@ -131,11 +131,6 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   @Override
   public int hashCode() {
     return super.hashCode() * (13 * left.hashCode() + 13 * right.hashCode() + operator.hashCode());
-  }
-
-  @Override
-  public boolean isNegationOf(ACSLPredicate o) {
-    return simplify().equals(o.negate().simplify());
   }
 
   @Override

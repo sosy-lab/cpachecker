@@ -21,7 +21,7 @@ public class RequiresClause {
   }
 
   public RequiresClause and(RequiresClause other) {
-    return new RequiresClause(predicate.and(other.getPredicate()).simplify());
+    return new RequiresClause(predicate.and(other.getPredicate()));
   }
 
   @Override

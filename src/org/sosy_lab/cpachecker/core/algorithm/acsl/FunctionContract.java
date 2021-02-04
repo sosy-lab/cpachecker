@@ -28,14 +28,14 @@ public class FunctionContract implements ACSLAnnotation {
     this(req, ens, pBehaviors, pCompletenessClauses, false);
   }
 
-  FunctionContract(
+  private FunctionContract(
       RequiresClause req,
       EnsuresClause ens,
       List<Behavior> pBehaviors,
       List<CompletenessClause> pCompletenessClauses,
       boolean pUsePreStateRepresentation) {
-    requiresClause = req;
-    ensuresClause = ens;
+    requiresClause = new RequiresClause(req.getPredicate().simplify());
+    ensuresClause = new EnsuresClause(ens.getPredicate().simplify());
     behaviors = ImmutableList.copyOf(pBehaviors);
     completenessClauses = ImmutableList.copyOf(pCompletenessClauses);
     usePreStateRepresentation = pUsePreStateRepresentation;
@@ -73,7 +73,7 @@ public class FunctionContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    return preStatePredicate.simplify();
+    return preStatePredicate;
   }
 
   /**
@@ -89,7 +89,7 @@ public class FunctionContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    return postStatePredicate.simplify();
+    return postStatePredicate;
   }
 
   @Override
@@ -102,7 +102,7 @@ public class FunctionContract implements ACSLAnnotation {
               completenessClause.getPredicateRepresentation(),
               BinaryOperator.AND);
     }
-    return completenessPredicate.simplify();
+    return completenessPredicate;
   }
 
   public RequiresClause getRequires() {

@@ -22,7 +22,7 @@ public class StatementContract implements ACSLAnnotation {
   private final ImmutableList<CompletenessClause> completenessClauses;
   private final boolean usePreStateRepresentation;
 
-  public StatementContract(
+  private StatementContract(
       RequiresClause req,
       EnsuresClause ens,
       List<Behavior> enclosing,
@@ -31,7 +31,7 @@ public class StatementContract implements ACSLAnnotation {
     this(req, ens, enclosing, own, pCompletenessClauses, false);
   }
 
-  public StatementContract(
+  private StatementContract(
       RequiresClause req,
       EnsuresClause ens,
       List<Behavior> enclosing,
@@ -46,7 +46,7 @@ public class StatementContract implements ACSLAnnotation {
     usePreStateRepresentation = pUsePreStateRepresentation;
   }
 
-  public static StatementContract fromFunctionContract(
+  static StatementContract fromFunctionContract(
       List<Behavior> enclosing, FunctionContract fcontract) {
     assert FluentIterable.from(fcontract.getEnsures().getPredicate().getUsedBuiltins())
             .filter(Result.class)
@@ -79,7 +79,7 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    return preStatePredicate.simplify();
+    return preStatePredicate;
   }
 
   private ACSLPredicate getPostStateRepresentation() {
@@ -96,7 +96,7 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    return postStatePredicate.simplify();
+    return postStatePredicate;
   }
 
   @Override
@@ -109,7 +109,7 @@ public class StatementContract implements ACSLAnnotation {
               completenessClause.getPredicateRepresentation(),
               BinaryOperator.AND);
     }
-    return completenessPredicate.simplify();
+    return completenessPredicate;
   }
 
   @Override

@@ -17,9 +17,9 @@ public class Behavior {
 
   public Behavior(String pName, EnsuresClause ens, RequiresClause req, AssumesClause ass) {
     name = pName;
-    ensuresClause = ens;
-    requiresClause = req;
-    assumesClause = ass;
+    ensuresClause = new EnsuresClause(ens.getPredicate().simplify());
+    requiresClause = new RequiresClause(req.getPredicate().simplify());
+    assumesClause = new AssumesClause(ass.getPredicate().simplify());
   }
 
   public String getName() {

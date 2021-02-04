@@ -52,7 +52,7 @@ public class CompletenessClause {
     } else {
       throw new AssertionError("Unknown kind: " + kind);
     }
-    return predicateRepresentation.simplify();
+    return predicateRepresentation;
   }
 
   public ACSLPredicate getPredicateRepresentation() {

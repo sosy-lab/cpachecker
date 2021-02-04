@@ -21,7 +21,7 @@ public class LoopInvariant {
   }
 
   public LoopInvariant and(ACSLPredicate p) {
-    return new LoopInvariant(predicate.and(p).simplify());
+    return new LoopInvariant(predicate.and(p));
   }
 
   @Override
