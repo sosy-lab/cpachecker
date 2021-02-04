@@ -52,7 +52,7 @@ public class arithmeticStrategy implements strategyInterface {
   }
   */
 
-  final class StartStopNodesGhostCFA {
+  static final class StartStopNodesGhostCFA {
     private final CFANode startNode;
     private final CFANode stopNode;
 
@@ -149,6 +149,9 @@ public class arithmeticStrategy implements strategyInterface {
   }
 
   private Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
+    if (loopStartNode.getNumLeavingEdges() != 2) {
+      return Optional.empty();
+    }
     CFANode nextNode0 = loopStartNode.getLeavingEdge(0).getSuccessor();
     CFANode nextNode1 = loopStartNode.getLeavingEdge(1).getSuccessor();
     boolean nextNode0Valid = true;
@@ -178,10 +181,13 @@ public class arithmeticStrategy implements strategyInterface {
   private Map<String, Integer> getLoopVariableDeltas(
       final AbstractState pState, final Integer loopBranchIndex) {
     Map<String, Integer> loopVariableDelta = new HashMap<>();
-    CFANode loopStartNode = AbstractStates.extractLocation(pState).getLeavingEdge(0).getSuccessor();
+    CFANode loopStartNode =
+        AbstractStates.extractLocation(pState).getLeavingEdge(loopBranchIndex).getSuccessor();
     // Calculate deltas in one Loop Iteration
-    CFANode currentNode = loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor();
-    while (currentNode != loopStartNode) {
+    CFANode currentNode = loopStartNode;
+    boolean initial = true;
+    while (currentNode != loopStartNode || initial) {
+      initial = false;
       CFAEdge edge = currentNode.getLeavingEdge(0);
       if (edge instanceof CStatementEdge) {
         CStatement statement = ((CStatementEdge) edge).getStatement();
@@ -273,12 +279,13 @@ public class arithmeticStrategy implements strategyInterface {
     CFAEdge loopIngoingConditionEdge =
         AbstractStates.extractLocation(pState).getLeavingEdge(loopBranchIndex);
     CFAEdge loopIngoingConditionDummyEdge =
-        new CStatementEdge(
+        new CAssumeEdge(
             loopIngoingConditionEdge.getDescription(),
-            ((CStatementEdge) loopIngoingConditionEdge).getStatement(),
             FileLocation.DUMMY,
             startNode,
-            currentEndNode);
+            currentEndNode,
+            ((CAssumeEdge) loopIngoingConditionEdge).getExpression(),
+            ((CAssumeEdge) loopIngoingConditionEdge).getTruthAssumption());
     startNode.addLeavingEdge(loopIngoingConditionDummyEdge);
     currentEndNode.addEnteringEdge(loopIngoingConditionDummyEdge);
     CFANode currentStartNode = currentEndNode;
@@ -338,21 +345,23 @@ public class arithmeticStrategy implements strategyInterface {
                 1 - loopBranchIndex); // loopBranchIndex is either 0 or 1, so we negate it here to
     // get the other Edge
     CFAEdge loopOutgoingConditionDummyEdgeStart =
-        new CStatementEdge(
-            loopOutgoingConditionEdge.getDescription(),
-            ((CStatementEdge) loopOutgoingConditionEdge).getStatement(),
+        new CAssumeEdge(
+            loopIngoingConditionEdge.getDescription(),
             FileLocation.DUMMY,
             startNode,
-            endNode);
+            endNode,
+            ((CAssumeEdge) loopIngoingConditionEdge).getExpression(),
+            ((CAssumeEdge) loopIngoingConditionEdge).getTruthAssumption());
     startNode.addLeavingEdge(loopOutgoingConditionDummyEdgeStart);
     endNode.addEnteringEdge(loopOutgoingConditionDummyEdgeStart);
     CFAEdge loopOutgoingConditionDummyEdgeEndSummary =
-        new CStatementEdge(
+        new CAssumeEdge(
             loopOutgoingConditionEdge.getDescription(),
-            ((CStatementEdge) loopOutgoingConditionEdge).getStatement(),
             FileLocation.DUMMY,
             currentStartNode,
-            endNode);
+            endNode,
+            ((CAssumeEdge) loopOutgoingConditionEdge).getExpression(),
+            ((CAssumeEdge) loopOutgoingConditionEdge).getTruthAssumption());
     currentStartNode.addLeavingEdge(loopOutgoingConditionDummyEdgeEndSummary);
     endNode.addEnteringEdge(loopOutgoingConditionDummyEdgeEndSummary);
     return new StartStopNodesGhostCFA(startNode, endNode);

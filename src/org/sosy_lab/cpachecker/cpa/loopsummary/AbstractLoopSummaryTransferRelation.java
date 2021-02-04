@@ -90,6 +90,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     }
     Optional<Collection<? extends AbstractState>> summarizedState = strategies.get(currentStrategyForCFANode.get(node)).summarizeLoopState(pState, pPrecision, transferRelation);
     while (summarizedState.isEmpty()) {
+      currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
       summarizedState =
           strategies
               .get(currentStrategyForCFANode.get(node))

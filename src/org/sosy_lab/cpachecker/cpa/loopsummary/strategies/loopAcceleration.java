@@ -22,7 +22,7 @@ public class loopAcceleration implements strategyInterface {
       AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
     // TODO Auto-generated method stub
-    return null;
+    return Optional.empty();
   }
 
 }
