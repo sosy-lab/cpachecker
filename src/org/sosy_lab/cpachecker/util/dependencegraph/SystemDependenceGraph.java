@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -988,18 +989,17 @@ public final class SystemDependenceGraph<P, T, V> {
       Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
       Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
 
-      if (pFormalInNode.getType() != NodeType.FORMAL_IN) {
-        throw new IllegalArgumentException("pFormalInNode does not have type FORMAL_IN");
-      }
-
-      if (pFormalOutNode.getType() != NodeType.FORMAL_OUT) {
-        throw new IllegalArgumentException("pFormalOutNode does not have type FORMAL_OUT");
-      }
+      Preconditions.checkArgument(
+          pFormalInNode.getType() == NodeType.FORMAL_IN,
+          "pFormalInNode does not have type FORMAL_IN");
+      Preconditions.checkArgument(
+          pFormalOutNode.getType() == NodeType.FORMAL_OUT,
+          "pFormalOutNode does not have type FORMAL_OUT");
 
       GraphNode<P, T, V> formalOutGraphNode = graphNodes.get(pFormalOutNode.getId());
-      if (!formalOutGraphNode.getNode().equals(pFormalOutNode)) {
-        throw new IllegalArgumentException("pFormalOutNode does not belong to this SDG builder");
-      }
+      Preconditions.checkArgument(
+          formalOutGraphNode.getNode().equals(pFormalOutNode),
+          "pFormalOutNode does not belong to this SDG builder");
 
       for (GraphEdge<P, T, V> outEdge : formalOutGraphNode.getLeavingEdges()) {
         if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
