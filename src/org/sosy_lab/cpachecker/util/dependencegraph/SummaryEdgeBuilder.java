@@ -33,14 +33,14 @@ final class SummaryEdgeBuilder {
    * Compute summary edges reachable from a specified start procedure and insert them into a {@link
    * SystemDependenceGraph}.
    *
-   * @param <P> the procedure type of the SDG.
-   * @param <T> the statement type of the SDG.
-   * @param <V> the variable type of the SDG.
-   * @param pBuilder the SDG builder used to insert summary edges.
-   * @param pCallGraph the call graph of the program.
+   * @param <P> the procedure type of the SDG
+   * @param <T> the statement type of the SDG
+   * @param <V> the variable type of the SDG
+   * @param pBuilder the SDG builder used to insert summary edges
+   * @param pCallGraph the call graph of the program
    * @param pStartProcedure the start procedure of the program (only summary edges reachable from
-   *     this procedure are inserted).
-   * @param pMethod the method used from computing summary edges.
+   *     this procedure are inserted)
+   * @param pMethod the method used from computing summary edges
    */
   static <P, T, V> void insertSummaryEdges(
       SystemDependenceGraph.Builder<P, T, V> pBuilder,
@@ -107,7 +107,7 @@ final class SummaryEdgeBuilder {
     SINGLE,
 
     /**
-     * Find multiple summary edges at once. This may be useful for methods that have mutiple
+     * Find multiple summary edges at once. This may be useful for methods that have multiple
      * formal-in/out nodes.
      */
     BATCH;
