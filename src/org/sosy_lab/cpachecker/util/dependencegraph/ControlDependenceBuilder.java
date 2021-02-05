@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitR
 
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
+ *
+ * @param <V> the variable type of the SDG
  */
 final class ControlDependenceBuilder<V> {
 
@@ -65,11 +67,11 @@ final class ControlDependenceBuilder<V> {
    * Compute control dependencies for a specified function and insert them into a {@link
    * SystemDependenceGraph}.
    *
-   * @param pBuilder the SDG builder used to insert dependencies.
+   * @param pBuilder the SDG builder used to insert dependencies
    * @param pEntryNode the function (specified by its entry node) to compute control dependencies
-   *     for.
+   *     for
    * @param pDependOnBothAssumptions whether to always depend on both assume edges of a branching,
-   *     even if it would be sufficient to only depend on one of the assume edges.
+   *     even if it would be sufficient to only depend on one of the assume edges
    */
   static void insertControlDependencies(
       SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?> pBuilder,
