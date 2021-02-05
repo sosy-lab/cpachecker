@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -39,7 +40,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
   private Optional<BooleanFormula> precondition;
-  private List<BooleanFormula> atoms;
+  private final ImmutableList<BooleanFormula> atoms;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
@@ -69,7 +70,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     rankedList = pFaults;
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
-    atoms = new ArrayList<>();
+    atoms = ImmutableList.of();
   }
 
   /**
@@ -102,7 +103,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
-    atoms = new ArrayList<>();
+    atoms = ImmutableList.of();
   }
 
   /**
@@ -129,7 +130,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       Set<Fault> pFaults,
       FaultScoring pScoring,
       BooleanFormula pPrecondition,
-      List<BooleanFormula> pAtoms,
+      ImmutableList<BooleanFormula> pAtoms,
       CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),

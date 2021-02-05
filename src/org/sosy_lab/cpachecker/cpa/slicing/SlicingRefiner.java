@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.slicing;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -17,7 +19,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -414,10 +415,7 @@ public class SlicingRefiner implements Refiner {
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     Set<CFAEdge> relevantEdges = new HashSet<>();
 
-    List<CFAEdge> cexConstraints =
-        innerEdges.stream()
-            .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toList());
+    List<CAssumeEdge> cexConstraints = from(innerEdges).filter(CAssumeEdge.class).toList();
 
     if (takeEagerSlice) {
       criteriaEdges.addAll(cexConstraints);
