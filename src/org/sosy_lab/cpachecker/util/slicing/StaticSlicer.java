@@ -131,6 +131,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> visitedSdgNodes =
+        new HashSet<>();
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -149,6 +151,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                   public SystemDependenceGraph.VisitResult visitNode(
                       SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
                           pNode) {
+
+                    visitedSdgNodes.add(pNode);
 
                     Optional<CFAEdge> optCfaEdge = pNode.getStatement();
                     if (optCfaEdge.isPresent()) {
@@ -223,8 +227,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     sdg.traverse(startNodes, phase1Visitor);
 
     startNodes.clear();
-    for (CFAEdge criteriaEdge : relevantEdges) {
-      startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
+    if (partiallyRelevantEdges) {
+      startNodes.addAll(visitedSdgNodes);
+    } else {
+      for (CFAEdge criteriaEdge : relevantEdges) {
+        startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
+      }
     }
 
     sdg.traverse(startNodes, phase2Visitor);
