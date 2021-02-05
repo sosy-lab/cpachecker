@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Class representing a call graph.
@@ -330,13 +329,13 @@ final class CallGraph<P> {
 
       sb.append("predecessors=");
       List<P> predecessorProcedures =
-          predecessors.stream().map(Node::getProcedure).collect(Collectors.toList());
+          predecessors.stream().map(Node::getProcedure).collect(ImmutableList.toImmutableList());
       sb.append(predecessorProcedures.toString());
       sb.append(',');
 
       sb.append("successors=");
       List<P> successorProcedures =
-          successors.stream().map(Node::getProcedure).collect(Collectors.toList());
+          successors.stream().map(Node::getProcedure).collect(ImmutableList.toImmutableList());
       sb.append(successorProcedures.toString());
 
       sb.append(']');
