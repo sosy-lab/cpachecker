@@ -107,6 +107,9 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
+          new PropertyAddingCmdLineArgument("-clang")
+              .settingProperty("parser.useClang", "true")
+              .withDescription("use clang together with llvm frontend"),
           new PropertyAddingCmdLineArgument("-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),

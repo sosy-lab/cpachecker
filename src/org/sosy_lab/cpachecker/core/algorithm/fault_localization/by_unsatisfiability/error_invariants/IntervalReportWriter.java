@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -35,7 +36,7 @@ public class IntervalReportWriter extends FaultReportWriter {
           pFault.stream()
               .map(FaultContribution::correspondingEdge)
               .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
-              .collect(Collectors.toList());
+              .collect(ImmutableList.toImmutableList());
       return intervalToHtml((Interval) pFault, pFault.getInfos(), edges);
     } else {
       return super.toHtml(pFault);

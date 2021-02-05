@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
-import org.sosy_lab.cpachecker.util.faultlocalization.InformationProvider;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -62,6 +61,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
+import org.sosy_lab.cpachecker.util.faultlocalization.InformationProvider;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceScoring;
@@ -285,11 +285,11 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
 
-      List<BooleanFormula> nondets = tf.getEntries().toAtomList()
-          .stream()
-          .filter(f -> f.toString().contains("__VERIFIER_nondet"))
-          .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
-          .collect(Collectors.toList());
+      ImmutableList<BooleanFormula> nondets =
+          tf.getEntries().toAtomList().stream()
+              .filter(f -> f.toString().contains("__VERIFIER_nondet"))
+              .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
+              .collect(ImmutableList.toImmutableList());
       FaultLocalizationInfo info = new FaultLocalizationInfo(
           errorIndicators,
           scoring,

@@ -318,12 +318,7 @@ public abstract class TraceFormula {
    * @return all trace elements from start up to position end as boolean formula
    */
   public BooleanFormula slice(int start, int end) {
-    List<BooleanFormula> atoms = entries.toAtomList();
-    BooleanFormula slice = bmgr.makeTrue();
-    for (int i = start; i < end; i++) {
-      slice = bmgr.and(atoms.get(i), slice);
-    }
-    return slice;
+    return bmgr.and(entries.toAtomList().subList(start, end));
   }
 
   public int traceSize() {

@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,9 +33,11 @@ public class TestTargetProvider implements Statistics {
   private final TestTargetType type;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
+  private int numNonOptimizedTargets = -1;
   private boolean printTargets = false;
   private boolean runParallel;
   private TestTargetAdaption optimization;
+  private Timer optimizationTimer = new Timer();
 
   private TestTargetProvider(
       final CFA pCfa,
@@ -55,7 +58,7 @@ public class TestTargetProvider implements Statistics {
       default:
         edgeCriterion = type.getEdgeCriterion();
     }
-    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption);
+    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, optimization);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -71,7 +74,15 @@ public class TestTargetProvider implements Statistics {
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
+
+    numNonOptimizedTargets = edges.size();
+
+    optimizationTimer.start();
+    try {
     edges = pAdaption.adaptTestTargets(edges);
+    } finally {
+      optimizationTimer.stopIfRunning();
+    }
     return edges;
   }
 
@@ -131,9 +142,13 @@ public class TestTargetProvider implements Statistics {
     double testTargetCoverage =
         initialTestTargets.isEmpty() ? 0 : (double) numCovered / initialTestTargets.size();
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
+    if (numNonOptimizedTargets >= 0) {
+      pOut.println("Number of total test targets before optimization: " + numNonOptimizedTargets);
+    }
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
     pOut.println("Number of uncovered test targets: " + uncoveredTargets.size());
+    pOut.println("Total time for test goal reduction:     " + optimizationTimer);
 
     if (printTargets) {
     pOut.println("Initial test targets: ");

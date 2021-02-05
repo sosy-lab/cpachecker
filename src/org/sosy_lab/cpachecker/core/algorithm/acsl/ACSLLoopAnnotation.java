@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,7 +30,7 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
   ACSLLoopAnnotation(
       LoopInvariant invariant, Map<List<Behavior>, LoopInvariant> pAdditionalInvariants) {
     lInvariant = new LoopInvariant(invariant.getPredicate().simplify());
-    Builder<List<Behavior>, LoopInvariant> builder =
+    ImmutableMap.Builder<List<Behavior>, LoopInvariant> builder =
         ImmutableMap.builderWithExpectedSize(pAdditionalInvariants.size());
     for (Entry<List<Behavior>, LoopInvariant> entry : pAdditionalInvariants.entrySet()) {
       builder.put(entry.getKey(), new LoopInvariant(entry.getValue().getPredicate().simplify()));

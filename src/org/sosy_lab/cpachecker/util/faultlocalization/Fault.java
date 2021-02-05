@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ForwardingSet;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -16,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
@@ -34,7 +34,8 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   /**
    * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
    * However, the implementation can be arbitrary.
-   * @see FaultRankingUtils#assignScoreTo(Fault) 
+   *
+   * @see FaultRankingUtils#assignScoreTo(Fault)
    */
   private double score;
 
@@ -121,25 +122,22 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   private String listDistinctLinesAndJoin(){
-    return errorSet
-        .stream()
-        .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
-        .sorted()
-        .distinct()
-        .mapToObj(l -> (Integer)l + "")
-        .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
-          int lastIndex = list.size() - 1;
-          if (lastIndex < 1) {
-            return String.join("", list);
-          }
-          if (lastIndex == 1) {
-            return String.join(" and ", list);
-          }
-          return String.join(" and ",
-              String.join(", ", list.subList(0, lastIndex)),
-              list.get(lastIndex));
-        }))
-        + " (Score: " + (int)(score*100) + ")";
+    List<String> lines =
+        errorSet.stream()
+            .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .sorted()
+            .distinct()
+            .mapToObj(String::valueOf)
+            .collect(ImmutableList.toImmutableList());
+
+    String result;
+    if (lines.size() <= 2) {
+      result = String.join(" and ", lines);
+    } else {
+      int lastIndex = lines.size() - 1;
+      result = String.join(", ", lines.subList(0, lastIndex) + " and " + lines.get(lastIndex));
+    }
+    return result + " (Score: " + (int) (score * 100) + ")";
   }
 
   /**

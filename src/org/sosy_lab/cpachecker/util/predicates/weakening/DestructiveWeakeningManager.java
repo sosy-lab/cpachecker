@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -81,11 +80,10 @@ public class DestructiveWeakeningManager {
       Set<BooleanFormula> selectors,
       Set<BooleanFormula> toAbstract
   ) {
-    return bfmgr.and(
-        selectors.stream().filter(
-            sel -> !toAbstract.contains(sel)
-        ).map(bfmgr::not).collect(Collectors.toList())
-    );
+    return selectors.stream()
+        .filter(sel -> !toAbstract.contains(sel))
+        .map(bfmgr::not)
+        .collect(bfmgr.toConjunction());
   }
 
   /**

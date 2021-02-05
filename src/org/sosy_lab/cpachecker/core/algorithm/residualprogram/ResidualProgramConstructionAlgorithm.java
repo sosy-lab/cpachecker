@@ -498,6 +498,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                         "analysis.entryFunction",
                         AbstractStates.extractLocation(root).getFunctionName())
                     .setOption("parser.usePreprocessor", "true")
+                    .setOption("parser.useClang", "true")
                     .setOption("analysis.useLoopStructure", "false")
                     .build(),
                 logger,

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
@@ -573,7 +572,7 @@ public class CPAMain {
             .splitToList(cmdLineOptions.getOrDefault(SPECIFICATION_OPTION, ""));
 
     List<String> propertyFiles =
-        specificationFiles.stream().filter(file -> file.endsWith(".prp")).collect(toList());
+        from(specificationFiles).filter(file -> file.endsWith(".prp")).toList();
     if (propertyFiles.isEmpty()) {
       return ImmutableSet.of();
     }
