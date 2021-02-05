@@ -28,7 +28,13 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
-/** Class to export {@link SystemDependenceGraph} instances as dot files. */
+/**
+ * Exporter to export {@link SystemDependenceGraph} instances as dot files.
+ *
+ * @param <P> the procedure type of the SDG
+ * @param <T> the statement type of the SDG
+ * @param <V> the variable type of the SDG
+ */
 abstract class SdgDotExporter<P, T, V> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles;
@@ -62,14 +68,14 @@ abstract class SdgDotExporter<P, T, V> {
    *
    * <p>Quotation marks are automatically escaped.
    *
-   * @param pProcedure the procedure to get the label for.
-   * @return the value of the dot file label for the specified procedure.
+   * @param pProcedure the procedure to get the label for
+   * @return the value of the dot file label for the specified procedure
    */
   protected abstract String getProcedureLabel(P pProcedure);
 
   /**
-   * Returns syle, shape, color, and possibly other attributes (except label) for the specified node
-   * in a dot file compatible format.
+   * Returns style, shape, color, and possibly other attributes (except label) for the specified
+   * node in a dot file compatible format.
    *
    * <p>The returned style string can be empty. All occurrences of the substring <code>"{color}"
    * </code> (quotation marks are not part of the substring) are automatically replaced with the
@@ -81,9 +87,9 @@ abstract class SdgDotExporter<P, T, V> {
    * <li><code>"style=\"bold,dashed\",shape=\"ellipse\",color=\"{color}\""</code>
    * </ol>
    *
-   * @param pNode the node to get the style for.
-   * @return dot file compatible syle, shape, color, and possibly other attributes (except label)
-   *     for the node.
+   * @param pNode the node to get the style for
+   * @return dot file compatible style, shape, color, and possibly other attributes (except label)
+   *     for the node
    */
   protected abstract String getNodeStyle(Node<P, T, V> pNode);
 
@@ -92,28 +98,26 @@ abstract class SdgDotExporter<P, T, V> {
    *
    * <p>Quotation marks are automatically escaped.
    *
-   * @param pNode the node to get the label for.
-   * @return the value of the dot file label for the specified node.
+   * @param pNode the node to get the label for
+   * @return the value of the dot file label for the specified node
    */
   protected abstract String getNodeLabel(Node<P, T, V> pNode);
 
   /**
    * Returns whether the specified node is highlighted.
    *
-   * @param pNode the node to check the highlighting for.
-   * @return {@code true} if the specified node is highlighted; otherwise, {@code false} is
-   *     returned.
+   * @param pNode the node to check the highlighting for
+   * @return {@code true} if the specified node is highlighted; otherwise, {@code false} is returned
    */
   protected abstract boolean isHighlighted(Node<P, T, V> pNode);
 
   /**
    * Returns whether the edge (specified by its type, predecessor and successor) is highlighted.
    *
-   * @param pEdgeType the type of the edge.
-   * @param pPredecessor the predecessor of the edge.
-   * @param pSuccessor the successor of the edge.
-   * @return {@code true} if the specified edge is highlighted; otherwise, {@code false} is
-   *     returned.
+   * @param pEdgeType the type of the edge
+   * @param pPredecessor the predecessor of the edge
+   * @param pSuccessor the successor of the edge
+   * @return {@code true} if the specified edge is highlighted; otherwise, {@code false} is returned
    */
   protected abstract boolean isHighlighted(
       EdgeType pEdgeType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
@@ -312,10 +316,10 @@ abstract class SdgDotExporter<P, T, V> {
   /**
    * Exports the specified {@link SystemDependenceGraph} as a dot file.
    *
-   * @param pSdg the system dependence graph to export.
-   * @param pPath the file the SDG is written to.
+   * @param pSdg the system dependence graph to export
+   * @param pPath the file the SDG is written to
    * @param pLogger the logger used for logging exceptions and other notable messages occurring
-   *     during export of the SDG.
+   *     during export of the SDG
    */
   void export(SystemDependenceGraph<P, T, V> pSdg, Path pPath, LogManager pLogger) {
 
