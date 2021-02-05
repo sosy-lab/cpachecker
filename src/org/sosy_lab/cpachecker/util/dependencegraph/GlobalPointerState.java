@@ -143,10 +143,10 @@ abstract class GlobalPointerState {
     return ImmutableSet.copyOf(possiblePointees);
   }
 
-  public static GlobalPointerState createFlowInsensitive(CFA pCfa)
-      throws CPAException, InterruptedException {
+  public static GlobalPointerState createFlowInsensitive(
+      CFA pCfa, ShutdownNotifier pShutdownNotifier) throws CPAException, InterruptedException {
 
-    return FlowInsensitivePointerState.create(pCfa);
+    return FlowInsensitivePointerState.create(pCfa, pShutdownNotifier);
   }
 
   public static GlobalPointerState createFlowSensitive(
@@ -215,7 +215,8 @@ abstract class GlobalPointerState {
       return pPointerState;
     }
 
-    private static GlobalPointerState create(CFA pCfa) throws CPAException, InterruptedException {
+    private static GlobalPointerState create(CFA pCfa, ShutdownNotifier pShutdownNotifier)
+        throws CPAException, InterruptedException {
 
       Collection<CFAEdge> edges = getAllEdges(pCfa);
       PointerState pointerState = PointerState.INITIAL_STATE;
@@ -227,6 +228,10 @@ abstract class GlobalPointerState {
         changed = false;
 
         for (CFAEdge edge : edges) {
+
+          if (pShutdownNotifier.shouldShutdown()) {
+            return null;
+          }
 
           PointerState nextPointerState = next(pointerState, edge);
 
@@ -336,6 +341,10 @@ abstract class GlobalPointerState {
         CFANode node = AbstractStates.extractLocation(state);
 
         for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+
+          if (pShutdownNotifier.shouldShutdown()) {
+            return null;
+          }
 
           PointerState currentPointerState = pointerStates.get(edge);
 

@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -96,7 +97,7 @@ public class SlicerFactory implements StatisticsProvider {
   private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation>
       createDependenceGraph(
           LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-          throws InterruptedException, InvalidConfigurationException {
+          throws CPAException, InvalidConfigurationException {
 
     final CSystemDependenceGraphBuilder depGraphBuilder =
         new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
@@ -115,7 +116,7 @@ public class SlicerFactory implements StatisticsProvider {
    */
   public Slicer create(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws InterruptedException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException {
     SlicerOptions options = new SlicerOptions(pConfig);
 
     final SlicingCriteriaExtractor extractor;

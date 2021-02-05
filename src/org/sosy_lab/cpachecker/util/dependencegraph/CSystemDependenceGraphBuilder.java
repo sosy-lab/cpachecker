@@ -23,20 +23,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -63,12 +60,16 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -137,20 +138,21 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   @Option(
       secure = true,
-      name = "pointerAnalysisTimeout",
-      description = "The maximum duration the pointer analysis is allowed to run in milliseconds.")
-  private int pointerAnalysisTimeout = 30_000;
+      name = "pointerAnalysisTime",
+      description =
+          "The maximum duration a single pointer analysis method is allowed to run (use seconds or"
+              + " specify a unit; 0 for infinite).")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
+  private TimeSpan pointerAnalysisTime = TimeSpan.ofSeconds(0);
 
   @Option(
       secure = true,
       name = "pointerStateComputationMethods",
       description =
-          "The computation methods used for the pointer analysis. All specified methods are run in"
-              + " parallel. If the first computation method is able to create a pointer state in"
-              + " time (see pointerAnalysisTimeout), this pointer state is used and all other"
-              + " computations are canceled. Otherwise, all results of the following computation"
-              + " methods are checked in the specified order and the first valid pointer state is"
-              + " chosen.")
+          "The computation methods used for the pointer analysis. The specified methods are run"
+              + " after each other in the specified order, until a method is able to create a valid"
+              + " pointer state. The time limit for every method is the same and set by"
+              + " pointerAnalysisTime.")
   private List<PointerStateComputationMethod> pointerStateComputationMethods =
       ImmutableList.of(PointerStateComputationMethod.FLOW_SENSITIVE);
 
@@ -203,7 +205,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   public SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> build()
-      throws InterruptedException {
+      throws CPAException {
 
     dependenceGraphConstructionTimer.start();
 
@@ -256,56 +258,49 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return Optional.of(node.getFunction());
   }
 
-  // TODO: simplifiy code; use better waiting method
-  private GlobalPointerState createGlobalPointerState() throws InterruptedException {
+  private GlobalPointerState createGlobalPointerState() throws CPAException {
 
     GlobalPointerState pointerState = null;
     if (considerPointees) {
 
-      if (!pointerStateComputationMethods.isEmpty()) {
+      for (PointerStateComputationMethod method : pointerStateComputationMethods) {
 
-        ExecutorService executorService =
-            Executors.newFixedThreadPool(pointerStateComputationMethods.size());
-        List<Future<GlobalPointerState>> futures = new ArrayList<>();
-
-        for (PointerStateComputationMethod method : pointerStateComputationMethods) {
-          if (method == PointerStateComputationMethod.FLOW_SENSITIVE) {
-            futures.add(
-                executorService.submit(
-                    () -> GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier)));
-          } else if (method == PointerStateComputationMethod.FLOW_INSENSITIVE) {
-            futures.add(
-                executorService.submit(() -> GlobalPointerState.createFlowInsensitive(cfa)));
-          } else {
-            throw new AssertionError("Invalid PointerStateComputationMethod: " + method);
-          }
+        final ResourceLimitChecker pointerTimeChecker;
+        final ShutdownNotifier pointerShutdownNotifier;
+        if (!pointerAnalysisTime.isEmpty()) {
+          ShutdownManager pointerShutdownManager =
+              ShutdownManager.createWithParent(shutdownNotifier);
+          pointerShutdownNotifier = pointerShutdownManager.getNotifier();
+          ResourceLimit timeLimit = WalltimeLimit.fromNowOn(pointerAnalysisTime);
+          pointerTimeChecker =
+              new ResourceLimitChecker(pointerShutdownManager, ImmutableList.of(timeLimit));
+          pointerTimeChecker.start();
+        } else {
+          pointerShutdownNotifier = shutdownNotifier;
+          pointerTimeChecker = null;
         }
 
         try {
-
-          for (int i = 0; i < futures.size(); i++) {
-
-            int timeout = i == 0 ? pointerAnalysisTimeout : 0;
-            try {
-              pointerState = futures.get(i).get(timeout, TimeUnit.MILLISECONDS);
-            } catch (TimeoutException ex) {
-              logger.logUserException(
-                  Level.WARNING,
-                  ex,
-                  "pointer analysis computation timeout: " + pointerStateComputationMethods.get(i));
-            }
-
-            if (pointerState != null) {
-              for (i = i + 1; i < futures.size(); i++) {
-                futures.get(i).cancel(true);
-              }
-            }
+          if (method == PointerStateComputationMethod.FLOW_SENSITIVE) {
+            pointerState =
+                GlobalPointerState.createFlowSensitive(cfa, logger, pointerShutdownNotifier);
+          } else if (method == PointerStateComputationMethod.FLOW_INSENSITIVE) {
+            pointerState = GlobalPointerState.createFlowInsensitive(cfa, pointerShutdownNotifier);
+          } else {
+            throw new AssertionError("Invalid PointerStateComputationMethod: " + method);
           }
-
-        } catch (ExecutionException ex) {
-          logger.logUserException(Level.WARNING, ex, "GlobalPointerState computation failed");
+        } catch (InterruptedException ex) {
+          if (shutdownNotifier.shouldShutdown()) {
+            break;
+          }
         } finally {
-          executorService.shutdownNow();
+          if (pointerTimeChecker != null) {
+            pointerTimeChecker.cancel();
+          }
+        }
+
+        if (pointerState != null) {
+          break;
         }
       }
 
@@ -575,7 +570,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
-      throws InterruptedException {
+      throws CPAException {
 
     GlobalPointerState pointerState = createGlobalPointerState();
     if (pointerState != null) {

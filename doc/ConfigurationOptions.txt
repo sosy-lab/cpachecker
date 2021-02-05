@@ -3317,16 +3317,14 @@ dependencegraph.flowdeps.use = true
 # dependence graph.
 dependencegraph.onlyReachableFunctions = false
 
-# The maximum duration the pointer analysis is allowed to run in
-# milliseconds.
-dependencegraph.pointerAnalysisTimeout = 30_000
+# The maximum duration a single pointer analysis method is allowed to run
+# (use seconds or specify a unit; 0 for infinite).
+dependencegraph.pointerAnalysisTime = 0s
 
-# The computation methods used for the pointer analysis. All specified
-# methods are run in parallel. If the first computation method is able to
-# create a pointer state in time (see pointerAnalysisTimeout), this pointer
-# state is used and all other computations are canceled. Otherwise, all
-# results of the following computation methods are checked in the specified
-# order and the first valid pointer state is chosen.
+# The computation methods used for the pointer analysis. The specified
+# methods are run after each other in the specified order, until a method is
+# able to create a valid pointer state. The time limit for every method is
+# the same and set by pointerAnalysisTime.
 dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
 # ignore declarations when detecting modifications, be careful when variables
