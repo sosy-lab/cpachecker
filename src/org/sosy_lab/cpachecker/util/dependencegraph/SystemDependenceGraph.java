@@ -330,7 +330,7 @@ public final class SystemDependenceGraph<P, T, V> {
   public ForwardsVisitOnceVisitor<P, T, V> createVisitOnceVisitor(
       ForwardsVisitor<P, T, V> pDelegateVisitor) {
 
-    Objects.requireNonNull("pDelegateVisitor must not be null");
+    Objects.requireNonNull(pDelegateVisitor, "pDelegateVisitor must not be null");
 
     return new ForwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
   }
@@ -349,7 +349,7 @@ public final class SystemDependenceGraph<P, T, V> {
   public BackwardsVisitOnceVisitor<P, T, V> createVisitOnceVisitor(
       BackwardsVisitor<P, T, V> pDelegateVisitor) {
 
-    Objects.requireNonNull("pDelegateVisitor must not be null");
+    Objects.requireNonNull(pDelegateVisitor, "pDelegateVisitor must not be null");
 
     return new BackwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
   }
@@ -834,7 +834,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * <p>How a single node is inserted: {@code builder.node(...);}
    *
    * <p>How an edge is inserted: {@code builder.node(...).depends(...).on(...);}. Nodes are inserted
-   * if they have not already been inserted.
+   * as needed if they have not already been inserted.
    *
    * @param <P> the procedure type for the SDG
    * @param <T> the statement type for the SDG
@@ -979,17 +979,27 @@ public final class SystemDependenceGraph<P, T, V> {
      * @param pFormalInNode the formal-in node that the formal-out node depends on
      * @param pFormalOutNode the formal-out node that depends on the formal-in node
      * @throws NullPointerException if any of the parameters is {@code null}
+     * @throws IllegalArgumentException if {@code pFormalInNode.getType() != NodeType.FORMAL_IN}, or
+     *     {@code pFormalOutNode.getType() != NodeType.FORMAL_OUT}, or {@code pFormalOutNode} does
+     *     not belong to this SDG builder
      */
     void insertActualSummaryEdges(Node<P, T, V> pFormalInNode, Node<P, T, V> pFormalOutNode) {
 
       Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
       Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
 
-      assert pFormalInNode.getType() == NodeType.FORMAL_IN;
-      assert pFormalOutNode.getType() == NodeType.FORMAL_OUT;
+      if (pFormalInNode.getType() != NodeType.FORMAL_IN) {
+        throw new IllegalArgumentException("pFormalInNode does not have type FORMAL_IN");
+      }
+
+      if (pFormalOutNode.getType() != NodeType.FORMAL_OUT) {
+        throw new IllegalArgumentException("pFormalOutNode does not have type FORMAL_OUT");
+      }
 
       GraphNode<P, T, V> formalOutGraphNode = graphNodes.get(pFormalOutNode.getId());
-      assert formalOutGraphNode.getNode().equals(pFormalOutNode);
+      if (!formalOutGraphNode.getNode().equals(pFormalOutNode)) {
+        throw new IllegalArgumentException("pFormalOutNode does not belong to this SDG builder");
+      }
 
       for (GraphEdge<P, T, V> outEdge : formalOutGraphNode.getLeavingEdges()) {
         if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
