@@ -20,6 +20,7 @@ import threading
 from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
+
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, "vcloud"))
 import benchexec
 import benchexec.tooladapter
