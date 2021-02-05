@@ -82,7 +82,8 @@ public final class ModificationsRcdState
   @Override
   public int hashCode() {
 
-    return Objects.hash(locationInOriginalCfa, locationInGivenCfa, hasRelevantModification);
+    return Objects.hash(
+        locationInOriginalCfa, locationInGivenCfa, changedVarsInGivenCfa, hasRelevantModification);
   }
 
   @Override

@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.modificationsrcd;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -20,18 +22,28 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -81,7 +93,6 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
           potSucc = findMatchingSuccessor(pCfaEdge, edgeInOriginal, changedVarsInGiven);
           if (potSucc.isPresent()) {
 
-            // Check that no changed variable is used (TODO)
             if (variablesAreUsedInEdge(edgeInOriginal, changedVarsInGiven)) {
               break;
             }
@@ -150,11 +161,23 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         }
       }
 
-      // ==TODO: MORE CASES HERE ==========================================
-      // ==================================================================
-      // ==================================================================
-      // ==================================================================
-      // ==================================================================
+      // TODO: case assignment was deleted
+
+      if (pEdgeInGiven.getPredecessor().getNumLeavingEdges() == 1) {
+        Optional<String> added = checkEdgeAddedAssignment(pEdgeInGiven, originalEdge);
+        if (added.isPresent()) {
+          ImmutableSet<String> changedVarsInSuccessor =
+              new ImmutableSet.Builder<String>()
+                  .addAll(pChangedVarsInGiven)
+                  .add(added.orElseThrow())
+                  .build();
+          return Optional.of(
+              new ModificationsRcdState(
+                  pEdgeInGiven.getSuccessor(),
+                  originalEdge.getPredecessor(), // !!
+                  changedVarsInSuccessor));
+        }
+      }
 
       // assume that variables are not renamed
       // only new declarations are added and existing declarations are deleted
@@ -250,6 +273,45 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     return Optional.empty();
   }
 
+  @SuppressWarnings("unused") // TODO: remove annotation when done
+  private Optional<String> checkEdgeDeletedAssignment(
+      final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
+
+    // check if pEdgeInOriginal is a variable assignment
+    if ((pEdgeInOriginal instanceof CStatementEdge)
+        && CFAEdgeUtils.getLeftHandVariable(pEdgeInOriginal) != null) {
+
+      // check if pEdgeInOriginal has successor edge equal to pEdgeInGiven
+      CFANode successorInOriginal = pEdgeInOriginal.getSuccessor();
+      for (int i = 0; i < successorInOriginal.getNumLeavingEdges(); i++) {
+        if (edgesMatch(pEdgeInGiven, successorInOriginal.getLeavingEdge(i))) {
+          return Optional.of(CFAEdgeUtils.getLeftHandVariable(pEdgeInOriginal));
+        }
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  private Optional<String> checkEdgeAddedAssignment(
+      final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
+
+    // check if pEdgeInGiven is a variable assignment
+    if ((pEdgeInGiven instanceof CStatementEdge)
+        && CFAEdgeUtils.getLeftHandVariable(pEdgeInGiven) != null) {
+
+      // check if pEdgeInGiven has successor edge equal to pEdgeInOriginal
+      CFANode successorInGiven = pEdgeInGiven.getSuccessor();
+      for (int i = 0; i < successorInGiven.getNumLeavingEdges(); i++) {
+        if (edgesMatch(pEdgeInOriginal, successorInGiven.getLeavingEdge(i))) {
+          return Optional.of(CFAEdgeUtils.getLeftHandVariable(pEdgeInGiven));
+        }
+      }
+    }
+
+    return Optional.empty();
+  }
+
   private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
     CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
         originalSuccessor = pEdgeInOriginal.getSuccessor();
@@ -273,10 +335,13 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         && givenSuccessor.getFunctionName().equals(originalSuccessor.getFunctionName());
   }
 
-  @SuppressWarnings("unused") // TODO: remove annotation when done
   private boolean variablesAreUsedInEdge(final CFAEdge pEdge, final ImmutableSet<String> pVars) {
 
-    CAstNode expressionToCheck;
+    // visitor and its return value
+    VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
+    Set<String> usedVars = new HashSet<>();
+
+    // TODO, var check unnecessary
 
     ALeftHandSide lhs = CFAEdgeUtils.getLeftHandSide(pEdge); // might be null if not an assignment
     CRightHandSide rhs = CFAEdgeUtils.getRightHandSide(pEdge);
@@ -284,13 +349,71 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         && lhs instanceof CIdExpression
         && CFAEdgeUtils.getLeftHandVariable(pEdge) != null
         && rhs != null) {
-      expressionToCheck = rhs;
-    } else if (pEdge.getRawAST().isPresent()) {
-      expressionToCheck = (CAstNode) pEdge.getRawAST().get();
-    } else {
-      return false;
+
+      if (rhs instanceof CExpression) {
+        usedVars = ((CExpression) rhs).accept(visitor);
+      } else if (rhs instanceof CFunctionCallExpression) {
+        CFunctionCallExpression cfce = (CFunctionCallExpression) rhs;
+        usedVars = Sets.newHashSet(cfce.getDeclaration().getQualifiedName());
+        for (CExpression exp : cfce.getParameterExpressions()) {
+          usedVars.addAll(exp.accept(visitor));
+        }
+
+      } else {
+        return !pVars.isEmpty(); // fallback, shouldn't happen
+      }
+
+    } else { // EdgeType is..
+      if (pEdge instanceof CDeclarationEdge
+          || pEdge instanceof CFunctionReturnEdge) { // DeclarationEdge, FunctionReturnEdge
+        return false;
+      } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
+        CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orNull();
+        if (exp != null) {
+          usedVars = exp.accept(visitor);
+        } else {
+          return false; // fallback, shouldn't happen
+        }
+      } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
+        usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
+      } else if (pEdge instanceof CStatementEdge) { // StatementEdge
+        CStatement stmt = ((CStatementEdge) pEdge).getStatement();
+
+        if (stmt instanceof CExpressionStatement) {
+          usedVars = ((CExpressionStatement) stmt).getExpression().accept(visitor);
+        } else {
+          if (stmt instanceof CAssignment) {
+            CLeftHandSide lhs2 = ((CAssignment) stmt).getLeftHandSide();
+            if (!(lhs2 instanceof CIdExpression)) {
+              usedVars.addAll(lhs2.accept(visitor));
+            }
+            if (stmt instanceof CExpressionAssignmentStatement) {
+              usedVars.addAll(
+                  ((CExpressionAssignmentStatement) stmt).getRightHandSide().accept(visitor));
+            }
+          }
+          if (stmt instanceof CFunctionCall) {
+            CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+            usedVars.add(funCall.getDeclaration().getQualifiedName());
+            for (CExpression exp : funCall.getParameterExpressions()) {
+              usedVars.addAll(exp.accept(visitor));
+            }
+          }
+        }
+
+      } else if (pEdge instanceof BlankEdge) { // BlankEdge
+        return false;
+      } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
+        for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
+          usedVars.addAll(exp.accept(visitor));
+        }
+      } else if (pEdge instanceof CFunctionSummaryEdge) { // CallToReturnEdge
+        return false; // TODO ?
+      }
     }
 
-    return true; // TODO, dummy return value
+    return !Collections.disjoint(usedVars, pVars);
   }
+
+
 }
