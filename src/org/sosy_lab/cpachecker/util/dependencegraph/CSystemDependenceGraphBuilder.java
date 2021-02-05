@@ -217,7 +217,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     if (considerFlowDeps) {
       flowDependenceTimer.start();
       try {
-        insertFlowDependecies(reachableFunctions);
+        insertFlowDependencies(reachableFunctions);
       } finally {
         flowDependenceTimer.stop();
       }
@@ -431,7 +431,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  /** Insert declartion edge between a function and the corresponding function declaration edge. */
+  /** Insert declaration edge between a function and the corresponding function declaration edge. */
   private void insertFunctionDeclarationEdge(
       ImmutableMap<String, CFAEdge> pDeclarationEdges, FunctionEntryNode pEntryNode) {
 
@@ -496,82 +496,85 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         .on(NodeType.STATEMENT, callerFunction, summaryEdge, Optional.empty());
   }
 
-  // TODO: split up into smaller/simpler methods; use less parameters; no unnecessary optionals
   private void insertUseSummaryEdges(
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
-      Optional<AFunctionDeclaration> pDefFunction,
-      Optional<AFunctionDeclaration> pUseFunction,
-      Optional<CFAEdge> pDefEdge,
-      Optional<CFAEdge> pUseEdge,
-      NodeType pDefNodeType,
-      Optional<MemoryLocation> pDefNodeVariable,
+      CFAEdge pDefEdge,
+      CFAEdge pUseEdge,
+      MemoryLocation pCause,
       EdgeType pEdgeType,
-      MemoryLocation pCause) {
+      NodeType pDefNodeType,
+      Optional<MemoryLocation> pDefNodeVariable) {
 
-    CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pUseEdge.orElseThrow();
-    CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
-    EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
+    Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
+    Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
+    Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
+    Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
+
+    CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pUseEdge;
     Optional<MemoryLocation> returnVariable = getReturnVariable(summaryEdge);
 
-    if (defUseData.getUses().contains(pCause)) {
+    // add dependencies for actual-out nodes that use pCause
+    EdgeDefUseData defUseDataWithoutParams =
+        defUseExtractor.extract(getFunctionCallWithoutParameters(summaryEdge));
+    if (defUseDataWithoutParams.getUses().contains(pCause)) {
       builder
-          .node(NodeType.ACTUAL_OUT, pUseFunction, pUseEdge, returnVariable)
+          .node(NodeType.ACTUAL_OUT, defFunction, useEdge, returnVariable)
           .depends(pEdgeType, Optional.of(pCause))
-          .on(pDefNodeType, pDefFunction, pDefEdge, pDefNodeVariable);
+          .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
     } else {
-      for (CExpression pointeeExpression : defUseData.getPointeeUses()) {
+      for (CExpression pointeeExpression : defUseDataWithoutParams.getPointeeUses()) {
         if (pPointerState
-            .getPossiblePointees(pUseEdge.orElseThrow(), pointeeExpression)
+            .getPossiblePointees(useEdge.orElseThrow(), pointeeExpression)
             .contains(pCause)) {
           builder
-              .node(NodeType.ACTUAL_OUT, pUseFunction, pUseEdge, returnVariable)
+              .node(NodeType.ACTUAL_OUT, useFunction, useEdge, returnVariable)
               .depends(pEdgeType, Optional.of(pCause))
-              .on(pDefNodeType, pDefFunction, pDefEdge, pDefNodeVariable);
+              .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
         }
       }
     }
 
+    // add dependency for foreign use of pCause
     if (pForeignDefUseData
         .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
         .contains(pCause)) {
       builder
-          .node(NodeType.ACTUAL_IN, pUseFunction, pUseEdge, Optional.of(pCause))
+          .node(NodeType.ACTUAL_IN, useFunction, useEdge, Optional.of(pCause))
           .depends(pEdgeType, Optional.of(pCause))
-          .on(pDefNodeType, pDefFunction, pDefEdge, pDefNodeVariable);
+          .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
     }
 
+    // add dependencies for parameters that use pCause
     List<CParameterDeclaration> params = summaryEdge.getFunctionEntry().getFunctionParameters();
-    List<CExpression> expressions =
-        summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
-
+    CFunctionCallExpression funcCallExpr = summaryEdge.getExpression().getFunctionCallExpression();
+    List<CExpression> expressions = funcCallExpr.getParameterExpressions();
+    // params.size() != expressions.size() for varargs
     for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
-      EdgeDefUseData argumentDefUseData = defUseExtractor.extract(expressions.get(index));
-      Optional<MemoryLocation> paramVariable =
-          Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
+      EdgeDefUseData argDefUseData = defUseExtractor.extract(expressions.get(index));
+      MemoryLocation paramMemLoc = MemoryLocation.valueOf(params.get(index).getQualifiedName());
+      Optional<MemoryLocation> paramVariable = Optional.of(paramMemLoc);
 
-      if (argumentDefUseData.getUses().contains(pCause)) {
+      if (argDefUseData.getUses().contains(pCause)) {
         builder
-            .node(NodeType.ACTUAL_IN, pUseFunction, pUseEdge, paramVariable)
+            .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
             .depends(pEdgeType, Optional.of(pCause))
-            .on(pDefNodeType, pDefFunction, pDefEdge, pDefNodeVariable);
+            .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
       } else {
-        for (CExpression pointeeExpression : argumentDefUseData.getPointeeUses()) {
-          if (pPointerState
-              .getPossiblePointees(pUseEdge.orElseThrow(), pointeeExpression)
-              .contains(pCause)) {
+        for (CExpression pointeeExpression : argDefUseData.getPointeeUses()) {
+          if (pPointerState.getPossiblePointees(pUseEdge, pointeeExpression).contains(pCause)) {
             builder
-                .node(NodeType.ACTUAL_IN, pUseFunction, pUseEdge, paramVariable)
+                .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
                 .depends(pEdgeType, Optional.of(pCause))
-                .on(pDefNodeType, pDefFunction, pDefEdge, pDefNodeVariable);
+                .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
           }
         }
       }
     }
   }
 
-  private void insertFlowDependecies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
+  private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
       throws InterruptedException {
 
     GlobalPointerState pointerState = createGlobalPointerState();
@@ -663,14 +666,12 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                 insertUseSummaryEdges(
                     pointerState,
                     foreignDefUseData,
-                    defFunction,
-                    useFunction,
-                    defEdge,
-                    useEdge,
-                    defNodeType,
-                    defNodeVariable,
+                    pDefEdge,
+                    pUseEdge,
+                    pCause,
                     edgeType,
-                    pCause);
+                    defNodeType,
+                    defNodeVariable);
 
               } else {
                 builder
