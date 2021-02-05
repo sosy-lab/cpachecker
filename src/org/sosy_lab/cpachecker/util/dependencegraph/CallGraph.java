@@ -64,7 +64,7 @@ final class CallGraph<P> {
     successorCallNode.addPredecessor(predecessorCallNode);
   }
 
-  public static <P, N> CallGraph<P> createCallGraph(
+  static <P, N> CallGraph<P> createCallGraph(
       Function<? super N, ? extends Iterable<? extends SuccessorResult<? extends P, ? extends N>>>
           pSuccessorFunction,
       Collection<? extends N> pStartNodes) {
@@ -104,15 +104,15 @@ final class CallGraph<P> {
     return new CallGraph<>(ImmutableList.copyOf(nodes), ImmutableMap.copyOf(nodeMap));
   }
 
-  public Optional<Node<P>> getNode(P pProcedure) {
+  Optional<Node<P>> getNode(P pProcedure) {
     return Optional.ofNullable(nodeMap.get(pProcedure));
   }
 
-  public Node<P> getNodeById(int pId) {
+  Node<P> getNodeById(int pId) {
     return nodes.get(pId);
   }
 
-  public ImmutableSet<P> getReachableFrom(Collection<? extends P> pProcedures) {
+  ImmutableSet<P> getReachableFrom(Collection<? extends P> pProcedures) {
 
     Deque<Node<P>> waitlist = new ArrayDeque<>();
     Set<Node<P>> waitlisted = new HashSet<>();
@@ -138,7 +138,7 @@ final class CallGraph<P> {
     return builder.build();
   }
 
-  public ImmutableSet<P> getRecursiveProcedures() {
+  ImmutableSet<P> getRecursiveProcedures() {
 
     Deque<Node<P>> waitlist = new ArrayDeque<>();
     Multimap<Node<P>, Node<P>> callers = HashMultimap.create(); // node -> its (transitive) callers
@@ -176,7 +176,7 @@ final class CallGraph<P> {
     return ImmutableSet.copyOf(recursiveProcedures);
   }
 
-  public ImmutableList<P> getPostOrder(P pStart) {
+  ImmutableList<P> getPostOrder(P pStart) {
 
     Node<P> startNode = nodeMap.get(pStart);
 
@@ -214,7 +214,7 @@ final class CallGraph<P> {
     return getClass().getSimpleName() + nodes.toString();
   }
 
-  public static final class SuccessorResult<P, N> {
+  static final class SuccessorResult<P, N> {
 
     private final Type type;
 
@@ -232,11 +232,11 @@ final class CallGraph<P> {
       sucessor = pSucessor;
     }
 
-    public static <P, N> SuccessorResult<P, N> createNonCallSuccessor(P pProcedure, N pSuccessor) {
+    static <P, N> SuccessorResult<P, N> createNonCallSuccessor(P pProcedure, N pSuccessor) {
       return new SuccessorResult<>(Type.NON_CALL_EDGE, pProcedure, pProcedure, pSuccessor);
     }
 
-    public static <P, N> SuccessorResult<P, N> createCallSuccessor(
+    static <P, N> SuccessorResult<P, N> createCallSuccessor(
         P pCallerProcedure, P pCalleeProcedure, N pSuccessor) {
       return new SuccessorResult<>(Type.CALL_EDGE, pCallerProcedure, pCalleeProcedure, pSuccessor);
     }
@@ -263,7 +263,7 @@ final class CallGraph<P> {
     }
   }
 
-  public static final class Node<P> {
+  static final class Node<P> {
 
     private int id;
     private final P procedure;
@@ -294,19 +294,19 @@ final class CallGraph<P> {
       successors = ImmutableList.copyOf(successors);
     }
 
-    public int getId() {
+    int getId() {
       return id;
     }
 
-    public P getProcedure() {
+    P getProcedure() {
       return procedure;
     }
 
-    public ImmutableList<Node<P>> getPredecessors() {
+    ImmutableList<Node<P>> getPredecessors() {
       return ImmutableList.copyOf(predecessors);
     }
 
-    public ImmutableList<Node<P>> getSuccessors() {
+    ImmutableList<Node<P>> getSuccessors() {
       return ImmutableList.copyOf(successors);
     }
 
