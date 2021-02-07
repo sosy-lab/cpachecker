@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.util.loopInformation;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,19 +17,27 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -67,9 +74,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   private Timer timeToAnalyze;
   private TimeSpan analyzeTime;
 
-  private static final String OUTPUT_NAME_SYMBOL_CUT = ":";
-
-  private static final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
   private static final int ONLY_ENTERING_EDGE = 0;
   private static final int POSITION_OF_VARIABLE_IN_ARRAY_ZERO = 0;
   private static final int POSITION_OF_VARIABLE_IN_ARRAY_ONE = 1;
@@ -133,8 +137,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   private LoopType findLoopType(CFANode firstNode) {
     LoopType tempLoopType = null;
 
-    if (firstNode.getNumEnteringEdges() > 0
-        && firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().equals("while")) {
+    if (firstNode.getNumEnteringEdges() > 0 && firstNode.getEnteringEdge(0) instanceof BlankEdge) {
       tempLoopType = LoopType.WHILE;
     } else {
       CFANode temp = firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
@@ -226,105 +229,41 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           }
 
           if (variablenameNotContainsCPAchecker) {
-            if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null) {
-              if (CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().contains("[")) {
-                String tmpType =
-                    Iterables.get(
-                        Splitter.on(')')
-                            .split(CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString()),
-                        0);
-                tmpType = Iterables.get(Splitter.on('(').split(tmpType), 1);
-                String tmpName =
-                    Iterables.get(
-                        Splitter.onPattern(OUTPUT_NAME_SYMBOL_CUT)
-                            .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
-                        OUTPUT_VARIABLE_ARRAY_POSITION);
-                String tmpArraySize =
-                    arrayLength(CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString());
-                tmpO.add(new LoopVariables(tmpName, tmpType, node, true, tmpArraySize, null));
+
+            if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+              AStatementEdge x = (AStatementEdge) node.getLeavingEdge(i);
+              CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
+              if (c.getLeftHandSide() instanceof CIdExpression
+                  || c.getLeftHandSide() instanceof CArraySubscriptExpression) {
+                tmpO.add(checkForValues(c.getLeftHandSide(), node));
               } else {
-                if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)).contains(":")) {
-                  String tempName =
-                      Iterables.get(
-                          Splitter.onPattern(OUTPUT_NAME_SYMBOL_CUT)
-                              .split(CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))),
-                          OUTPUT_VARIABLE_ARRAY_POSITION);
-                  String tempType = CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString();
-                  tmpO.add(new LoopVariables(tempName, tempType, node, false, null, null));
-                } else {
-                  String tempName = CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i));
-                  tmpO.add(new LoopVariables(tempName, null, node, false, null, null));
-                }
+                // Exception for debugging
               }
-            } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null) {
-              if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
-                  .getClass()
-                  .getName()
-                  .contains("Array")) {
-                String tempName =
-                    Iterables.get(
-                        Splitter.on('[')
-                            .split(CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).toString()),
-                        0);
-                String tempType =
-                    CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
-                        .getExpressionType()
-                        .toString();
-                tmpO.add(new LoopVariables(tempName, tempType, node, true, null, null));
-              }
-            }
           }
         }
       }
     }
+    }
+
     for (CFANode n : cfa.getAllNodes()) {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
           for (LoopVariables o : tmpO) {
-            if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null) {
-              if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
-                  && o.getVariableName()
-                      .equals(
-                          Iterables.get(
-                              Splitter.on(':')
-                                  .split(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e))),
-                              2))) {
 
-                if (o.getIsArray() && o.getArrayLength() == null) {
-                  String arraySize =
-                      arrayLength(CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString());
-                  o.setArrayLength(arraySize);
-                }
-                o.setInitializationLine(
-                    ((ADeclarationEdge) n.getLeavingEdge(e))
-                        .getDeclaration()
-                        .getFileLocation()
-                        .getStartingLineInOrigin());
+            ADeclarationEdge dec = (ADeclarationEdge) n.getLeavingEdge(e);
+            CSimpleDeclaration v = (CSimpleDeclaration) dec.getDeclaration();
 
-              } else if (!CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
-                  && o.getVariableName()
-                      .equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)))) {
+            if (o.getVariableName().equals(v.getName())) {
 
-                if (o.getIsArray() && o.getArrayLength() == null) {
-                  String arraySize =
-                      arrayLength(CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString());
-                  o.setArrayLength(arraySize);
-                }
-                if (o.getVariableType() == null) {
-                  String tempType = CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString();
-                  o.setVariableType(tempType);
-                }
-
-                o.setInitializationLine(
-                    ((ADeclarationEdge) n.getLeavingEdge(e))
-                        .getDeclaration()
-                        .getFileLocation()
-                        .getStartingLineInOrigin());
+              o.setInitializationLine(
+                  ((ADeclarationEdge) n.getLeavingEdge(e))
+                      .getDeclaration()
+                      .getFileLocation()
+                      .getStartingLineInOrigin());
               }
             }
           }
         }
-      }
     }
     List<LoopVariables> removeDO = new ArrayList<>();
     for (LoopVariables o : tmpO) {
@@ -347,14 +286,27 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return tmpO;
   }
 
-  /**
-   * Gets the length of the array out of the string that this method gets
-   *
-   * @param x CFAEdgeUtils.leftHandType String
-   * @return Array-length in String representation
-   */
-  private String arrayLength(String x) {
-    return Iterables.get(Splitter.on(']').split(Iterables.get(Splitter.on('[').split(x), 1)), 0);
+  private LoopVariables checkForValues(CExpression expression, CFANode node) {
+
+    LoopVariables loopVariable = null;
+    if (expression instanceof CIdExpression) {
+      CIdExpression var = (CIdExpression) expression;
+      loopVariable =
+          new LoopVariables(
+              var.getName(), var.getExpressionType().toString(), node, false, null, null);
+    } else if (expression instanceof CArraySubscriptExpression) {
+      CArraySubscriptExpression var = (CArraySubscriptExpression) expression;
+      CArrayType array = (CArrayType) var.getArrayExpression().getExpressionType();
+        loopVariable =
+            new LoopVariables(
+                var.getArrayExpression().toString(),
+                var.getExpressionType().toString(),
+                node,
+                true,
+                String.valueOf(array.getLengthAsInt().getAsInt()),
+                null);
+    }
+    return loopVariable;
   }
 
   private int getAllNumberOutputs(List<LoopVariables> pOutput) {
@@ -410,73 +362,113 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    * @return returns a list with the names of all the input variables
    */
   private List<String> getAllInputs(List<CFANode> loopNodes) {
+
     List<String> temp = new ArrayList<>();
     for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
-                || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
-            && CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)) != null) {
-          if (CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i))
-              .toString()
-              .contains("operand")) {
-            getInputFromRightHandSide(
-                temp, CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)).toString());
+        if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+          AStatementEdge x = (AStatementEdge) node.getLeavingEdge(i);
+          CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
+
+          if (c.getRightHandSide() instanceof CBinaryExpression) {
+            CBinaryExpression pE = (CBinaryExpression) c.getRightHandSide();
+
+            CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+            CExpression rVarInBinaryExp = pE.getOperand2();
+
+            if (lVarInBinaryExp instanceof CIdExpression
+                || lVarInBinaryExp instanceof CArraySubscriptExpression) {
+              if (lVarInBinaryExp instanceof CIdExpression) {
+                CIdExpression lVar = (CIdExpression) lVarInBinaryExp;
+                temp.add(lVar.getName());
+              } else {
+                CArraySubscriptExpression lVar = (CArraySubscriptExpression) lVarInBinaryExp;
+                temp.add(lVar.getArrayExpression().toString());
+              }
+            }
+            if (rVarInBinaryExp instanceof CIdExpression
+                || rVarInBinaryExp instanceof CArraySubscriptExpression) {
+              if (rVarInBinaryExp instanceof CIdExpression) {
+                CIdExpression rVar = (CIdExpression) rVarInBinaryExp;
+                temp.add(rVar.getName());
+              } else {
+                CArraySubscriptExpression rVar = (CArraySubscriptExpression) rVarInBinaryExp;
+                temp.add(rVar.getArrayExpression().toString());
+              }
+            }
+          } else if (c.getRightHandSide() instanceof CIdExpression
+              || c.getRightHandSide() instanceof CArraySubscriptExpression) {
+            if (c.getRightHandSide() instanceof CIdExpression) {
+              CIdExpression var = (CIdExpression) c.getRightHandSide();
+              temp.add(var.getName());
+            } else {
+              CArraySubscriptExpression var = (CArraySubscriptExpression) c.getRightHandSide();
+              temp.add(var.getArrayExpression().toString());
+            }
           } else {
-            temp.add(CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)).toString());
+            // exception missing
           }
+
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-          String edgeCode = node.getLeavingEdge(VALID_STATE).getCode();
-          temp.add(
-              Iterables.get(Splitter.on(' ').split(edgeCode), POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
-          temp.add(
-              Iterables.get(Splitter.on(' ').split(edgeCode), POSITION_OF_VARIABLE_IN_ARRAY_TWO));
+
+          AssumeEdge x = (AssumeEdge) node.getLeavingEdge(i);
+          CExpression c = (CExpression) x.getExpression();
+
+          if (c instanceof CBinaryExpression) {
+            CBinaryExpression pE = (CBinaryExpression) c;
+
+            CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+            CExpression rVarInBinaryExp = pE.getOperand2();
+
+            if (lVarInBinaryExp instanceof CIdExpression
+                || lVarInBinaryExp instanceof CArraySubscriptExpression) {
+              if (lVarInBinaryExp instanceof CIdExpression) {
+                CIdExpression lVar = (CIdExpression) lVarInBinaryExp;
+                temp.add(lVar.getName());
+              } else {
+                CArraySubscriptExpression lVar = (CArraySubscriptExpression) lVarInBinaryExp;
+                temp.add(lVar.getArrayExpression().toString());
+              }
+            }
+            if (rVarInBinaryExp instanceof CIdExpression
+                || rVarInBinaryExp instanceof CArraySubscriptExpression) {
+              if (rVarInBinaryExp instanceof CIdExpression) {
+                CIdExpression rVar = (CIdExpression) rVarInBinaryExp;
+                temp.add(rVar.getName());
+              } else {
+                CArraySubscriptExpression rVar = (CArraySubscriptExpression) rVarInBinaryExp;
+                temp.add(rVar.getArrayExpression().toString());
+              }
+            }
+          } else if (c instanceof CIdExpression || c instanceof CArraySubscriptExpression) {
+            if (c instanceof CIdExpression) {
+              CIdExpression var = (CIdExpression) c;
+              temp.add(var.getName());
+            } else {
+              CArraySubscriptExpression var = (CArraySubscriptExpression) c;
+              temp.add(var.getArrayExpression().toString());
+            }
+          } else {
+            // exception missing
+          }
+
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-          if (!node.getLeavingEdge(i).getCode().contains("()")) {
-            temp.add(
-                Iterables.get(
-                    Splitter.on(')')
-                        .split(
-                            Iterables.get(
-                                Splitter.on('(').split(node.getLeavingEdge(i).getCode()),
-                                POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
-                    POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
+
+          FunctionCallEdge x = (FunctionCallEdge) node.getLeavingEdge(i);
+
+          for (AExpression var : x.getArguments()) {
+            temp.add(var.toString());
           }
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.ReturnStatementEdge)) {
-          temp.add(
-              Iterables.get(
-                  Splitter.on(' ').split(node.getLeavingEdge(i).getCode()),
-                  POSITION_OF_VARIABLE_IN_ARRAY_ONE));
+
+          AReturnStatement x = (AReturnStatement) node.getLeavingEdge(i);
+          if (x.getReturnValue().isPresent()) {
+            temp.add(x.getReturnValue().toString());
+          }
         }
       }
     }
     return temp;
-  }
-
-  /**
-   * extracts the crucial information from the Variable-Right-Hand-Side String and adds them to a
-   * InputVariable-List
-   *
-   * @param temp List where the information will be saved after extracting it
-   * @param stringSplit String that has to be worked on by this method
-   */
-  private void getInputFromRightHandSide(List<String> temp, String stringSplit) {
-    List<String> tempStorage = Splitter.on(',').splitToList(stringSplit);
-    List<String> tempS = new ArrayList<>();
-
-    for (int i = 0; i < tempStorage.size(); i++) {
-      if (tempStorage.get(i).contains("operand")) {
-        tempS.add(
-            Iterables.get(
-                Splitter.on(']')
-                    .split(
-                        Iterables.get(
-                            Splitter.on('[').split(tempStorage.get(i)),
-                            POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
-                POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
-      }
-    }
-
-    temp.addAll(tempS);
   }
 
   /**
@@ -565,6 +557,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             && !nodes.contains(tempNode)) {
           nodes.add(tempNode);
         }
+
+
         for (int i = 1; i < tempNode.getNumLeavingEdges(); i++) {
           if (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
               && tempNode.getLeavingEdge(VALID_STATE).getCode().contains("==")) {
