@@ -1,4 +1,12 @@
-const d3 = require("d3");
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+ const d3 = require("d3");
 const dagreD3 = require("dagre-d3");
 
 // Use D3 zoom behavior to add pan event
