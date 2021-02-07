@@ -6,10 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Workers of ./raw_workers/ transformed into a data url to
-// deal with Chrome being unable to load WebWorkers when opened using
-// the file:// protocol https://stackoverflow.com/questions/21408510/chrome-cant-load-web-worker
-
 import { argWorkerData, cfaWorkerData } from "./workerData";
 
 const handleWorkerMessage = (msg, worker, callback) => {
