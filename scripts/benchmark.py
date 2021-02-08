@@ -34,6 +34,19 @@ benchexec.tools.__path__ = [
     os.path.join(os.path.dirname(__file__), "benchmark", "tools")
 ] + benchexec.tools.__path__
 
+_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+
+def download_required_jars():
+    # install cloud and dependencies
+    ant = subprocess.Popen(
+        ["ant", "resolve-benchmark-dependencies"],
+        cwd=_ROOT_DIR,
+        shell=vcloudutil.is_windows(),  # noqa: S602
+    )
+    ant.communicate()
+    ant.wait()
+
 
 class Benchmark(benchexec.benchexec.BenchExec):
     """
@@ -157,7 +170,15 @@ class Benchmark(benchexec.benchexec.BenchExec):
                 webclient = True
                 import benchmark.webclient_executor as executor
             else:
-                import vcloud.benchmarkclient_executor as executor
+
+                download_required_jars()
+
+                import benchmark.benchmarkclient_executor as executor
+
+                executor.set_vcloud_jar_path(
+                    os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
+                )
+
             logging.debug(
                 "This is CPAchecker's benchmark.py (based on benchexec %s) "
                 "using the VerifierCloud %s API.",
