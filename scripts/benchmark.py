@@ -26,7 +26,7 @@ import benchexec.model
 import benchexec.tooladapter
 import benchexec.tools
 import benchexec.util
-from vcloud import vcloudutil
+from benchmark import vcloudutil
 
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
