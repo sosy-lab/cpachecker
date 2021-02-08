@@ -50,6 +50,14 @@ public enum TestTargetAdaption {
   BASIC_ESSENTIAL_EDGE {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+      TestTargetMinimizerBasicEssential testTargetReducer = new TestTargetMinimizerBasicEssential();
+      Set<CFAEdge> reducedTargets = testTargetReducer.reduceTargets(targets);
+      return reducedTargets;
+    }
+  },
+  ESSENTIAL_EDGE {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       TestTargetMinimizerEssential testTargetReducer = new TestTargetMinimizerEssential();
       Set<CFAEdge> reducedTargets = testTargetReducer.reduceTargets(targets, pCfa);
       return reducedTargets;
