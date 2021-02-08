@@ -26,7 +26,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 /**
  * Exporter to export {@link SystemDependenceGraph} instances as dot files.
@@ -255,35 +254,20 @@ abstract class SdgDotExporter<P, T, V> {
 
     Map<Node<P, T, V>, Long> visitedNodes = new HashMap<>();
     Multimap<Optional<P>, Node<P, T, V>> procedureNodes = ArrayListMultimap.create();
-    StatCounter counter = new StatCounter("Node Counter");
 
-    pSdg.traverse(
-        pSdg.getNodes(),
-        new SystemDependenceGraph.ForwardsVisitor<P, T, V>() {
-
-          @Override
-          public VisitResult visitNode(Node<P, T, V> pNode) {
-
-            visitedNodes.put(pNode, counter.getValue());
-            counter.inc();
-            procedureNodes.put(pNode.getProcedure(), pNode);
-
-            return VisitResult.SKIP;
-          }
-
-          @Override
-          public VisitResult visitEdge(
-              EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
-            return VisitResult.SKIP;
-          }
-        });
+    long counter = 0;
+    for (Node<P, T, V> node : pSdg.getNodes()) {
+      visitedNodes.put(node, counter);
+      counter++;
+      procedureNodes.put(node.getProcedure(), node);
+    }
 
     for (Optional<P> procedure : procedureNodes.keySet()) {
 
       pWriter.write("subgraph cluster_f");
-      pWriter.write(String.valueOf(counter.getValue()));
+      pWriter.write(String.valueOf(counter));
       pWriter.write(" {\n");
-      counter.inc();
+      counter++;
 
       String procedureLabel =
           procedure.isPresent() ? getProcedureLabel(procedure.orElseThrow()) : "";
