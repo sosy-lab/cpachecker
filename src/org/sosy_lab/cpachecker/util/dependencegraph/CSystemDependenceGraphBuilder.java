@@ -494,16 +494,15 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private void insertUseSummaryEdges(
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
-      CFAEdge pDefEdge,
+      NodeType pDefNodeType,
+      Optional<AFunctionDeclaration> pDefFunction,
+      Optional<CFAEdge> pDefEdge,
+      Optional<MemoryLocation> pDefVariable,
       CFAEdge pUseEdge,
       MemoryLocation pCause,
-      EdgeType pEdgeType,
-      NodeType pDefNodeType,
-      Optional<MemoryLocation> pDefNodeVariable) {
+      EdgeType pEdgeType) {
 
-    Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
     Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
-    Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
     Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
 
     CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pUseEdge;
@@ -514,9 +513,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         defUseExtractor.extract(getFunctionCallWithoutParameters(summaryEdge));
     if (defUseDataWithoutParams.getUses().contains(pCause)) {
       builder
-          .node(NodeType.ACTUAL_OUT, defFunction, useEdge, returnVariable)
+          .node(NodeType.ACTUAL_OUT, pDefFunction, useEdge, returnVariable)
           .depends(pEdgeType, Optional.of(pCause))
-          .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
+          .on(pDefNodeType, pDefFunction, pDefEdge, pDefVariable);
     } else {
       for (CExpression pointeeExpression : defUseDataWithoutParams.getPointeeUses()) {
         if (pPointerState
@@ -525,7 +524,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           builder
               .node(NodeType.ACTUAL_OUT, useFunction, useEdge, returnVariable)
               .depends(pEdgeType, Optional.of(pCause))
-              .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
+              .on(pDefNodeType, pDefFunction, pDefEdge, pDefVariable);
         }
       }
     }
@@ -537,7 +536,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       builder
           .node(NodeType.ACTUAL_IN, useFunction, useEdge, Optional.of(pCause))
           .depends(pEdgeType, Optional.of(pCause))
-          .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
+          .on(pDefNodeType, pDefFunction, pDefEdge, pDefVariable);
     }
 
     // add dependencies for parameters that use pCause
@@ -555,14 +554,14 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         builder
             .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
             .depends(pEdgeType, Optional.of(pCause))
-            .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
+            .on(pDefNodeType, pDefFunction, pDefEdge, pDefVariable);
       } else {
         for (CExpression pointeeExpression : argDefUseData.getPointeeUses()) {
           if (pPointerState.getPossiblePointees(pUseEdge, pointeeExpression).contains(pCause)) {
             builder
                 .node(NodeType.ACTUAL_IN, useFunction, useEdge, paramVariable)
                 .depends(pEdgeType, Optional.of(pCause))
-                .on(pDefNodeType, defFunction, defEdge, pDefNodeVariable);
+                .on(pDefNodeType, pDefFunction, pDefEdge, pDefVariable);
           }
         }
       }
@@ -661,12 +660,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                 insertUseSummaryEdges(
                     pointerState,
                     foreignDefUseData,
-                    pDefEdge,
+                    defNodeType,
+                    defFunction,
+                    defEdge,
+                    defNodeVariable,
                     pUseEdge,
                     pCause,
-                    edgeType,
-                    defNodeType,
-                    defNodeVariable);
+                    edgeType);
 
               } else {
                 builder
