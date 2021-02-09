@@ -13,17 +13,21 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public final class ModificationsRcdState
-    implements AvoidanceReportingState, AbstractQueryableState,
-                                           Graphable {
+    implements AvoidanceReportingState,
+        AbstractQueryableState,
+        LatticeAbstractState<ModificationsRcdState>,
+        Graphable {
 
   private boolean hasRelevantModification;
   private CFANode locationInGivenCfa;
@@ -144,5 +148,20 @@ public final class ModificationsRcdState
   @Override
   public boolean shouldBeHighlighted() {
     return hasRelevantModification;
+  }
+
+  @Override
+  public ModificationsRcdState join(ModificationsRcdState pOther)
+      throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean isLessOrEqual(ModificationsRcdState pOther)
+      throws CPAException, InterruptedException {
+    return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
+        && Objects.equals(locationInGivenCfa, pOther.locationInGivenCfa)
+        && hasRelevantModification == pOther.hasRelevantModification
+        && changedVarsInGivenCfa.containsAll(pOther.changedVarsInGivenCfa);
   }
 }

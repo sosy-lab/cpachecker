@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -65,6 +65,7 @@ public class ModificationsRcdCPA implements ConfigurableProgramAnalysis {
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfaForComparison;
   private final TransferRelation transfer;
+  private final DelegateAbstractDomain<ModificationsRcdState> domain;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ModificationsRcdCPA.class);
@@ -77,6 +78,7 @@ public class ModificationsRcdCPA implements ConfigurableProgramAnalysis {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    domain = DelegateAbstractDomain.getInstance();
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -111,7 +113,7 @@ public class ModificationsRcdCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new FlatLatticeDomain();
+    return domain;
   }
 
   @Override
