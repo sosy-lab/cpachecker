@@ -18,12 +18,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -60,52 +62,61 @@ public class TestCPA extends AbstractCPA {
   }
 
   private static class InvariantSamplingState implements AbstractState, Graphable {
-//    private Map<String, String> state;
+    private Map<String, String> state;
 
     public InvariantSamplingState() {
-//      this.state = new HashMap<String, String>();
+      state = new HashMap<String, String>();
     }
 
-    public InvariantSamplingState(InvariantSamplingState currentState, CDeclaration declaration) {
-//      this.state = currentState.state; // new HashMap<String, String>();
-//      this.state = currentState.getState();
-//      this.state.put(declaration.getName(), declaration.getInitializer().toString());
-//      this.state.put(declaration.getName(), "test");
+    public InvariantSamplingState(
+        InvariantSamplingState currentState,
+        CVariableDeclaration declaration) {
+      state = currentState.getState();
+      state.put(declaration.getOrigName(), declaration.getInitializer().toString());
     }
 
-    public InvariantSamplingState(InvariantSamplingState currentState, CStatementEdge statementEdge) {
-
+    public InvariantSamplingState(
+        InvariantSamplingState currentState, CExpressionAssignmentStatement statement
+    ) {
+      state = currentState.getState();
+      // statement.getRightHandSide()
     }
 
-//    @Override
-//    public int hashCode() {
-//      return 1;
-//    }
+    @Override
+    public boolean equals(Object obj) {
+      if (!(obj instanceof InvariantSamplingState)) {
+        return false;
+      }
 
-//    public Map<String, String> getState() {
-//      return state;
-//    }
-//
-//    public String toString() {
-//      StringBuilder sb = new StringBuilder();
-//      Iterator<Entry<String, String>> iter = state.entrySet().iterator();
-//      while (iter.hasNext()) {
-//        Entry<String, String> entry = iter.next();
-//        sb.append(entry.getKey());
-//        sb.append('=').append('"');
-//        sb.append(entry.getValue());
-//        sb.append('"');
-//        if (iter.hasNext()) {
-//          sb.append(',').append(' ');
-//        }
-//      }
-//      return sb.toString();
-//    }
+      InvariantSamplingState state2 = (InvariantSamplingState) obj;
+
+      return state.equals(state2.getState());
+    }
+
+    public Map<String, String> getState() {
+      return state;
+    }
+
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append('\n');
+      Iterator<Entry<String, String>> iter = state.entrySet().iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        sb.append(entry.getKey());
+        sb.append('=').append('"');
+        sb.append(entry.getValue());
+        sb.append('"');
+        if (iter.hasNext()) {
+          sb.append('\n');
+        }
+      }
+      return sb.toString();
+    }
 
     @Override
     public String toDOTLabel() {
-      return "hello";
-//      return toString();
+      return toString();
     }
 
     @Override
@@ -116,18 +127,16 @@ public class TestCPA extends AbstractCPA {
 
   private static class InvariantSamplingTransferRelation
       extends ForwardingTransferRelation<InvariantSamplingState, InvariantSamplingState, Precision>
-      implements TransferRelation
-  {
+      implements TransferRelation {
 
     @Override
     protected InvariantSamplingState handleDeclarationEdge(
         CDeclarationEdge edge, CDeclaration declaration
     ) {
-      return new InvariantSamplingState();
-//      if (declaration instanceof CVariableDeclaration) {
-//        return new InvariantSamplingState(this.getState(), (CVariableDeclaration) declaration);
-//      }
-//      return this.getState();
+      if (declaration instanceof CVariableDeclaration) {
+        return new InvariantSamplingState(this.getState(), (CVariableDeclaration) declaration);
+      }
+      return this.getState();
     }
 
     @Override
@@ -141,6 +150,11 @@ public class TestCPA extends AbstractCPA {
     protected InvariantSamplingState handleStatementEdge(
         CStatementEdge edge, CStatement statement
     ) {
+      if (statement instanceof CExpressionAssignmentStatement) {
+        return new InvariantSamplingState(
+            this.getState(), (CExpressionAssignmentStatement) statement
+        );
+      }
       return this.getState();
     }
 
