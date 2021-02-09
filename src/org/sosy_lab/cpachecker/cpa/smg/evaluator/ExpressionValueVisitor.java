@@ -484,11 +484,8 @@ class ExpressionValueVisitor
             TypeUtils.getRealExpressionType(cast.getOperand()))) {
       List<SMGValueAndState> castedValueAndStates = new ArrayList<>(smgValueAndStates.size());
       for (SMGValueAndState valueAndState : smgValueAndStates) {
-        if (valueAndState instanceof SMGAddressValueAndState) {
-          castedValueAndStates.add(
-              SMGValueAndState.of(
-                  valueAndState.getSmgState(),
-                  ((SMGAddressValueAndState) valueAndState).getObject()));
+        if (valueAndState instanceof SMGAddressValueAndState) { //FIXME
+          castedValueAndStates.add(valueAndState);
         }
       }
       return castedValueAndStates;
