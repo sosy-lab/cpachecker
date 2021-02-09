@@ -165,6 +165,7 @@ class PointerVisitor extends ExpressionValueVisitor {
         smgExpressionEvaluator.evaluateAddress(
             getInitialSmgState(), getCfaEdge(), arrayExpression)) {
 
+      //FIXME: if address is symbolic
       SMGAddressValue arrayAddress = arrayAddressAndState.getObject();
       SMGState newState = arrayAddressAndState.getSmgState();
 
@@ -207,6 +208,7 @@ class PointerVisitor extends ExpressionValueVisitor {
     for (SMGAddressAndState addressOfFieldAndState :
         smgExpressionEvaluator.getAddressOfField(getInitialSmgState(), getCfaEdge(), lValue)) {
 
+      //FIXME: if address is symbolic
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
       SMGState newState = addressOfFieldAndState.getSmgState();
 

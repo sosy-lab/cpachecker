@@ -643,6 +643,7 @@ public class SMGStateTest {
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
 
+    //FIXME: if address is symbolic
     SMGAddressValue pt_obtained =
         Iterables.getOnlyElement(state.getPointerFromValue(pt.getValue())).getObject();
     assertThat(pt.getObject()).isEqualTo(pt_obtained.getObject());

@@ -290,6 +290,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         // assign external value to param
         for (SMGAddressValueAndState addressOfFieldAndState :
             evaluateAddress(pSmgState, pCfaEdge, param)) {
+          //FIXME: if address is symbolic
           SMGAddress smgAddress = addressOfFieldAndState.getObject().getAddress();
 
           // Check that write will be correct

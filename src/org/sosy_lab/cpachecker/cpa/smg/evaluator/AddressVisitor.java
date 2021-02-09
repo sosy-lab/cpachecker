@@ -138,6 +138,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
   static List<SMGAddressAndState> asAddressAndStateList(List<SMGAddressValueAndState> lst) {
     List<SMGAddressAndState> result = new ArrayList<>();
     for (SMGAddressValueAndState addressValueAndState : lst) {
+      //FIXME: if address is symbolic
       result.add(
           SMGAddressAndState.of(
               addressValueAndState.getSmgState(), addressValueAndState.getObject().getAddress()));

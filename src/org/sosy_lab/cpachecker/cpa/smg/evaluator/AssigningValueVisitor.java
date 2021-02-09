@@ -170,6 +170,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
         return;
       }
 
+      //FIXME: if address is symbolic
       SMGAddress addressOfField = addressOfFields.get(0).getObject();
 
       if (addressOfField.isUnknown()) {
@@ -237,6 +238,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
       return;
     }
 
+    //FIXME: if address is symbolic
     SMGAddress addressOfField = addressOfFields.get(0).getObject();
 
     if (addressOfField.isUnknown()) {

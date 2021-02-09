@@ -67,9 +67,6 @@ public class AssumeVisitor extends ExpressionValueVisitor {
             smgExpressionEvaluator.evaluateExpressionValue(
                 getInitialSmgState(), edge, leftSideExpression)) {
           SMGValue leftSideVal = leftSideValAndState.getObject();
-          if (leftSideValAndState instanceof SMGAbstractObjectAndState.SMGAddressValueAndState && leftSideVal.isUnknown()) {
-            leftSideVal = ((SMGAbstractObjectAndState.SMGAddressValueAndState) leftSideValAndState).getValue();
-          }
           SMGState newState = leftSideValAndState.getSmgState();
 
           for (SMGValueAndState rightSideValAndState :

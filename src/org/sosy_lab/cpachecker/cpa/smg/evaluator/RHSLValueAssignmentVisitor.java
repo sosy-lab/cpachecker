@@ -27,6 +27,7 @@ class RHSLValueAssignmentVisitor extends LValueAssignmentVisitor {
       throws CPATransferException {
     List<SMGAddressAndState> results = new ArrayList<>();
     for (SMGAddressAndState address : super.visit(pLValue)) {
+      //FIXME: if address is symbolic
       if (address.getObject().isUnknown()) {
         address =
             SMGAddressAndState.withUnknownAddress(address.getSmgState().withUnknownDereference());

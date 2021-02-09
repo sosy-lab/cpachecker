@@ -53,6 +53,14 @@ public abstract class SMGAbstractObjectAndState<T> {
       symbolicValue = pSymbolicValue;
     }
 
+//    @Override
+//    public SMGValue getObject() {
+//      SMGValue value = super.getObject();
+//      if (value.isUnknown()) {
+//        value = symbolicValue;
+//      }
+//      return value;
+//    }
     @Override
     public SMGAddressValue getObject() {
       return (SMGAddressValue) super.getObject();

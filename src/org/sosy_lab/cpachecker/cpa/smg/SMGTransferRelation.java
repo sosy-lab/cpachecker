@@ -288,6 +288,7 @@ public class SMGTransferRelation
           ImmutableList.builderWithExpectedSize(addressAndValues.size());
 
       for (SMGAddressAndState addressAndValue : addressAndValues) {
+        //FIXME: if address is symbolic
         SMGAddress address = addressAndValue.getObject();
         SMGState newState2 = addressAndValue.getSmgState();
 
@@ -767,6 +768,7 @@ public class SMGTransferRelation
     LValueAssignmentVisitor visitor =
         expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, pState);
     for (SMGAddressAndState addressOfFieldAndState : lValue.accept(visitor)) {
+      //FIXME: if address is symbolic
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
       pState = addressOfFieldAndState.getSmgState();
 

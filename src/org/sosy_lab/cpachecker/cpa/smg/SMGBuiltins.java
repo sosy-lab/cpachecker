@@ -145,6 +145,7 @@ public class SMGBuiltins {
                 evaluateMemset(
                     expValueAndState.getSmgState(),
                     cfaEdge,
+                    //FIXME: if address is symbolic
                     bufferAddressAndState.getObject(),
                     countValueAndState.getObject(),
                     chAndState.getObject(),
@@ -524,6 +525,7 @@ public class SMGBuiltins {
     List<SMGState> resultStates = new ArrayList<>();
     for (SMGAddressValueAndState addressAndState :
         expressionEvaluator.evaluateAddress(pState, cfaEdge, pointerExp)) {
+      //FIXME: if address is symbolic
       SMGAddressValue address = addressAndState.getObject();
       SMGState currentState = addressAndState.getSmgState();
 
@@ -627,7 +629,9 @@ public class SMGBuiltins {
             evaluateExplicitValue(sourceStr2AndState.getSmgState(), pCfaEdge, sizeExpr)) {
 
           SMGState currentState = sizeValueAndState.getSmgState();
+          //FIXME: if address is symbolic
           SMGAddressValue targetObject = targetStr1AndState.getObject();
+          //FIXME: if address is symbolic
           SMGAddressValue sourceObject = sourceStr2AndState.getObject();
           SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
 
@@ -809,7 +813,9 @@ public class SMGBuiltins {
         // iterate over all chars and compare them
         result.add(
             evaluateStrcmp(
+                //FIXME: if address is symbolic
                 firstValueAndState.getObject(),
+                //FIXME: if address is symbolic
                 secondValueAndState.getObject(),
                 secondValueAndState.getSmgState()));
       }

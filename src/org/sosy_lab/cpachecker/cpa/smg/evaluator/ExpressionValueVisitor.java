@@ -100,6 +100,7 @@ class ExpressionValueVisitor
     for (SMGAddressAndState addressAndState :
         smgExpressionEvaluator.evaluateArraySubscriptAddress(
             getInitialSmgState(), getCfaEdge(), exp)) {
+      //FIXME: if address is symbolic
       SMGAddress address = addressAndState.getObject();
       SMGState newState = addressAndState.getSmgState();
 
@@ -156,6 +157,7 @@ class ExpressionValueVisitor
         smgExpressionEvaluator.getAddressOfField(getInitialSmgState(), getCfaEdge(), fieldReference);
 
     for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates) {
+      //FIXME: if address is symbolic
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
       SMGState newState = addressOfFieldAndState.getSmgState();
 
@@ -220,6 +222,7 @@ class ExpressionValueVisitor
                 SMGZeroValue.INSTANCE,
                 TypeUtils.getRealExpressionType(idExpression),
                 cfaEdge);
+        //FIXME: if address is symbolic
         result.getSmgState().addElementToCurrentChain(result.getObject());
 
         return singletonList(result);
@@ -503,6 +506,7 @@ class ExpressionValueVisitor
     List<SMGAddressAndState> addressAndStates = exp.accept(v);
 
     for (SMGAddressAndState addressAndState : addressAndStates) {
+      //FIXME: if address is symbolic
       SMGAddress address = addressAndState.getObject();
       SMGState newState = addressAndState.getSmgState();
 
@@ -536,6 +540,7 @@ class ExpressionValueVisitor
 
     for (SMGAddressValueAndState addressAndState : addressAndStates) {
 
+      //FIXME: if address is symbolic
       SMGAddressValue address = addressAndState.getObject();
       SMGState newState = addressAndState.getSmgState();
 

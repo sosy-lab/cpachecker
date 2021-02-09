@@ -162,6 +162,7 @@ public class SMGExpressionEvaluator {
     for (SMGAddressValueAndState fieldOwnerAddressAndState :
         evaluateAddress(pSmgState, cfaEdge, fieldOwner)) {
 
+      //FIXME: if address is symbolic
       SMGAddressValue fieldOwnerAddress = fieldOwnerAddressAndState.getObject();
       SMGState newState = fieldOwnerAddressAndState.getSmgState();
       String fieldName = fieldReference.getFieldName();
@@ -403,6 +404,7 @@ public class SMGExpressionEvaluator {
     List<? extends SMGValueAndState> result = evaluateAssumptionValue(newState, cfaEdge, rValue);
 
     if (result.size() == 1) {
+      //FIXME: if address is symbolic
       return result.get(0).getObject();
     } else {
       return SMGUnknownValue.INSTANCE;
@@ -462,6 +464,7 @@ public class SMGExpressionEvaluator {
           for (SMGAddressValueAndState addressValueAndState :
               evaluateAddress(initialSmgState, cfaEdge, address)) {
 
+            //FIXME: if address is symbolic
           SMGAddressValue addressValue = addressValueAndState.getObject();
           SMGState newState = addressValueAndState.getSmgState();
             for (SMGExplicitValueAndState offsetValueAndState :
@@ -538,6 +541,7 @@ public class SMGExpressionEvaluator {
 
     for (SMGAddressValueAndState arrayAddressAndState :
         evaluateAddress(initialSmgState, cfaEdge, exp.getArrayExpression())) {
+      //FIXME: if address is symbolic
       SMGAddressValue arrayAddress = arrayAddressAndState.getObject();
 
       CExpression subscriptExpression = exp.getSubscriptExpression();
@@ -604,6 +608,7 @@ public class SMGExpressionEvaluator {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGAddressAndState addressAndState : pAddresses) {
       SMGState state = addressAndState.getSmgState();
+      //FIXME: if address is symbolic
       SMGAddress address = addressAndState.getObject();
       if (address.isUnknown()) {
         result.add(SMGAddressValueAndState.of(state));
@@ -654,6 +659,7 @@ public class SMGExpressionEvaluator {
     SMGValue pAddressValue = pAddressValueAndState.getObject();
     SMGState smgState = pAddressValueAndState.getSmgState();
 
+    //FIXME: if address is symbolic
     if (pAddressValue instanceof SMGAddressValue) {
       return singletonList(SMGAddressValueAndState.of(smgState, (SMGAddressValue) pAddressValue));
     }

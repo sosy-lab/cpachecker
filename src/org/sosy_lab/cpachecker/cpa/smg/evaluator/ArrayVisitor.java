@@ -123,6 +123,7 @@ class ArrayVisitor extends AddressVisitor
       List<SMGAddressAndState> result = new ArrayList<>();
       for (SMGAddressAndState addressAndState : addressAndStates) {
 
+        //FIXME: if address is symbolic
         SMGAddress address = addressAndState.getObject();
         SMGState newState = addressAndState.getSmgState();
 

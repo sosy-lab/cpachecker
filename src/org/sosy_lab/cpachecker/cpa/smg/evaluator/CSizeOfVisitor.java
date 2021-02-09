@@ -100,6 +100,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor {
 
         assert !addressOfFieldAndState.isEmpty();
 
+        //FIXME: if address is symbolic
         SMGAddress addressOfField = addressOfFieldAndState.get(0).getObject();
 
         if (addressOfField.isUnknown()) {
