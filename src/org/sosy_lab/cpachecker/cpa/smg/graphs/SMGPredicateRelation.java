@@ -270,13 +270,13 @@ public final class SMGPredicateRelation {
 
     @Override
     public String toString() {
-      return "SymbolicRelation{"
-          + "symbolicValue1="
+      return "{"
+          + "S_"
           + valueOne
-          + ", symbolicValue2="
+          + " "
+          + operator.getOperator()
+          + " S_"
           + valueTwo
-          + ", operator="
-          + operator
           + '}';
     }
 
@@ -340,14 +340,14 @@ public final class SMGPredicateRelation {
 
     @Override
     public String toString() {
-      return "ExplicitRelation{"
-          + "symbolicValue="
+      return "{"
+          + "S_"
           + symbolicValue
-          + ", explicitValue="
+          + " "
+          + operator.getOperator()
+          + " "
           + explicitValue
-          + ", operator="
-          + operator
-          + '}';
+          + "}";
     }
 
     public SMGType getSymbolicSMGType() {
