@@ -17,16 +17,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -275,39 +271,13 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
   // If the assignments differ, the returned variable describes which variable was changed.
   private Optional<String> checkEdgeChangedAssignment(
       final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    if ((pEdgeInGiven instanceof CStatementEdge) && (pEdgeInOriginal instanceof CStatementEdge)) {
-      CStatement stmtInOriginal = ((CStatementEdge) pEdgeInOriginal).getStatement();
-      CStatement stmtInGiven = ((CStatementEdge) pEdgeInGiven).getStatement();
-
-      CLeftHandSide lhsInOriginal;
-      CLeftHandSide lhsInGiven;
-      if ((stmtInGiven instanceof CExpressionAssignmentStatement)
-          && (stmtInOriginal instanceof CExpressionAssignmentStatement)) {
-        lhsInOriginal = ((CExpressionAssignmentStatement) stmtInOriginal).getLeftHandSide();
-        lhsInGiven = ((CExpressionAssignmentStatement) stmtInGiven).getLeftHandSide();
-      } else if ((stmtInGiven instanceof CFunctionCallAssignmentStatement)
-          && (stmtInOriginal instanceof CFunctionCallAssignmentStatement)) {
-        lhsInOriginal = ((CFunctionCallAssignmentStatement) stmtInOriginal).getLeftHandSide();
-        lhsInGiven = ((CFunctionCallAssignmentStatement) stmtInGiven).getLeftHandSide();
-      } else {
-        return Optional.empty();
-      }
-
-      if ((lhsInGiven instanceof AIdExpression) && (lhsInOriginal instanceof AIdExpression)) {
-        ASimpleDeclaration declInOriginal = ((AIdExpression) lhsInOriginal).getDeclaration();
-        ASimpleDeclaration declInGiven = ((AIdExpression) lhsInGiven).getDeclaration();
-
-        if ((declInOriginal instanceof AVariableDeclaration)
-            && (declInGiven instanceof AVariableDeclaration)
-            && ((AVariableDeclaration) declInOriginal)
-                .getName()
-                .equals(((AVariableDeclaration) declInGiven).getName())
-            && successorsMatch(pEdgeInGiven, pEdgeInOriginal)) {
-          return Optional.of(((AVariableDeclaration) declInOriginal).getName());
-        }
+    if (pEdgeInOriginal instanceof CStatementEdge) {
+      String lhsInOriginal = CFAEdgeUtils.getLeftHandVariable(pEdgeInOriginal);
+      String lhsInGiven = CFAEdgeUtils.getLeftHandVariable(pEdgeInGiven);
+      if (lhsInOriginal != null && lhsInGiven != null && lhsInOriginal.equals(lhsInGiven)) {
+        return Optional.of(lhsInOriginal);
       }
     }
-
     return Optional.empty();
   }
 
@@ -319,14 +289,16 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
 
     // check if pEdgeInOriginal is a variable assignment
-    if ((pEdgeInOriginal instanceof CStatementEdge)
-        && CFAEdgeUtils.getLeftHandVariable(pEdgeInOriginal) != null) {
+    if (pEdgeInOriginal instanceof CStatementEdge) {
+      String lhsInOriginal = CFAEdgeUtils.getLeftHandVariable(pEdgeInOriginal);
+      if (lhsInOriginal != null) {
 
-      // check if pEdgeInOriginal has successor edge equal to pEdgeInGiven
-      CFANode successorInOriginal = pEdgeInOriginal.getSuccessor();
-      for (int i = 0; i < successorInOriginal.getNumLeavingEdges(); i++) {
-        if (edgesMatch(pEdgeInGiven, successorInOriginal.getLeavingEdge(i))) {
-          return Optional.of(CFAEdgeUtils.getLeftHandVariable(pEdgeInOriginal));
+        // check if pEdgeInOriginal has successor edge equal to pEdgeInGiven
+        for (CFAEdge edgeLeavingOrigSuccessor :
+            CFAUtils.leavingEdges(pEdgeInOriginal.getSuccessor())) {
+          if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
+            return Optional.of(lhsInOriginal);
+          }
         }
       }
     }
@@ -342,14 +314,16 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
 
     // check if pEdgeInGiven is a variable assignment
-    if ((pEdgeInGiven instanceof CStatementEdge)
-        && CFAEdgeUtils.getLeftHandVariable(pEdgeInGiven) != null) {
+    if (pEdgeInGiven instanceof CStatementEdge) {
+      String lhsInGiven = CFAEdgeUtils.getLeftHandVariable(pEdgeInGiven);
+      if (lhsInGiven != null) {
 
-      // check if pEdgeInGiven has successor edge equal to pEdgeInOriginal
-      CFANode successorInGiven = pEdgeInGiven.getSuccessor();
-      for (int i = 0; i < successorInGiven.getNumLeavingEdges(); i++) {
-        if (edgesMatch(pEdgeInOriginal, successorInGiven.getLeavingEdge(i))) {
-          return Optional.of(CFAEdgeUtils.getLeftHandVariable(pEdgeInGiven));
+        // check if pEdgeInGiven has successor edge equal to pEdgeInOriginal
+        for (CFAEdge edgeLeavingGivenSuccessor :
+            CFAUtils.leavingEdges(pEdgeInGiven.getSuccessor())) {
+          if (edgesMatch(edgeLeavingGivenSuccessor, pEdgeInOriginal)) {
+            return Optional.of(lhsInGiven);
+          }
         }
       }
     }
