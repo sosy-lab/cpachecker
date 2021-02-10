@@ -21,15 +21,21 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -417,9 +423,20 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     Set<String> usedVars = new HashSet<>();
 
     // EdgeType is..
-    if (pEdge instanceof CDeclarationEdge
-        || pEdge instanceof CFunctionReturnEdge) { // DeclarationEdge, FunctionReturnEdge
-      return false;
+    if (pEdge instanceof CDeclarationEdge) { // DeclarationEdge
+      CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
+
+      if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
+        return false;
+      } else if (decl instanceof CVariableDeclaration) {
+        CInitializer initl = ((CVariableDeclaration) decl).getInitializer();
+        if (initl instanceof CInitializerExpression) {
+          usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
+        } else {
+          return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+        }
+      }
+
     } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
       CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orNull();
       if (exp != null) {
@@ -436,9 +453,9 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         usedVars = ((CExpressionStatement) stmt).getExpression().accept(visitor);
       } else {
         if (stmt instanceof CAssignment) {
-          CLeftHandSide lhs2 = ((CAssignment) stmt).getLeftHandSide();
-          if (!(lhs2 instanceof CIdExpression)) {
-            usedVars.addAll(lhs2.accept(visitor));
+          CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+          if (!(lhs instanceof CIdExpression)) {
+            usedVars.addAll(lhs.accept(visitor));
           }
           if (stmt instanceof CExpressionAssignmentStatement) {
             usedVars.addAll(
@@ -460,8 +477,9 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
         usedVars.addAll(exp.accept(visitor));
       }
-    } else if (pEdge instanceof CFunctionSummaryEdge) { // CallToReturnEdge
-      return false; // TODO ?
+    } else if (pEdge instanceof CFunctionSummaryEdge
+        || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
+      return false;
     }
 
     return !Collections.disjoint(usedVars, pVars);

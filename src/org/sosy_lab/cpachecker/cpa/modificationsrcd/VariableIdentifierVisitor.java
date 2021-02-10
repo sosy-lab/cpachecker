@@ -59,9 +59,7 @@ public class VariableIdentifierVisitor extends DefaultCExpressionVisitor<Set<Str
 
   @Override
   public Set<String> visit(CFieldReference pE) throws NoException {
-    Set<String> set = pE.getFieldOwner().accept(this);
-    set.add(pE.getFieldName()); // TODO: what is this exactly?
-    return set;
+    return pE.getFieldOwner().accept(this);
   }
 
   @Override
