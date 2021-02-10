@@ -67,6 +67,6 @@ public class ClangPreprocessor extends Preprocessor {
   }
 
   private String extractVersionNumberFromLlvmJ() {
-    return LLVMLibrary.JNA_LIBRARY_NAME.substring(5);
+    return LLVMLibrary.JNA_LIBRARY_NAME.substring("LLVM-".length());
   }
 }
