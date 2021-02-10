@@ -144,22 +144,9 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
 
       // edges describe the same operation
       if (edgesMatch(pEdgeInGiven, originalEdge)) {
-
-        ModificationsRcdState matchingSuccessor = new ModificationsRcdState(
-            pEdgeInGiven.getSuccessor(), originalEdge.getSuccessor(), pChangedVarsInGiven);
-        // Check whether the following operation in the original CFA is a deleted variable
-        // assignment. If it is, the node in the original CFA will be skipped and the successor node
-        // returned instead.
-        // This cannot be done well later (when searching for the successors of the
-        // matchingSuccessor) because the operations in the result would not match the given CFA and
-        // after the skipped edge a node with multiple outgoing edges might follow.
-        Optional<ModificationsRcdState> stateAfterSkip =
-            skipOutgoingDeletedAssignmentEdge(matchingSuccessor);
-        if (stateAfterSkip.isPresent()) {
-          return stateAfterSkip;
-        } else {
-          return Optional.of(matchingSuccessor);
-        }
+        return Optional.of(
+            new ModificationsRcdState(
+                pEdgeInGiven.getSuccessor(), originalEdge.getSuccessor(), pChangedVarsInGiven));
       }
 
       // edges represent different assignments of the same variable
@@ -173,25 +160,17 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
                   .add(changed.orElseThrow())
                   .build();
 
-          ModificationsRcdState matchingSuccessor =
+          return Optional.of(
               new ModificationsRcdState(
-                  pEdgeInGiven.getSuccessor(), originalEdge.getSuccessor(), changedVarsInSuccessor);
-          // Check whether the following operation in the original CFA is a deleted variable
-          // assignment. If it is, the node in the original CFA will be skipped and the successor
-          // node returned instead.
-          Optional<ModificationsRcdState> stateAfterSkip =
-              skipOutgoingDeletedAssignmentEdge(matchingSuccessor);
-          if (stateAfterSkip.isPresent()) {
-            return stateAfterSkip;
-          } else {
-            return Optional.of(matchingSuccessor);
-          }
+                  pEdgeInGiven.getSuccessor(),
+                  originalEdge.getSuccessor(),
+                  changedVarsInSuccessor));
         }
       }
 
-      // a variable assignment was added to the given CFA: the edge in the given CFA is a new
-      // variable assignment and the edge in the original CFA matches an outgoing edge of the
-      // successor node of the given CFA
+      // a variable assignment was added to the CFA: the edge in the given CFA is a new variable
+      // assignment and the edge in the original CFA matches an outgoing edge of the successor node
+      // of the given CFA
       if (pEdgeInGiven.getPredecessor().getNumLeavingEdges() == 1) {
         Optional<String> added = checkEdgeAddedAssignment(pEdgeInGiven, originalEdge);
         if (added.isPresent()) {
@@ -205,6 +184,32 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
                   pEdgeInGiven.getSuccessor(),
                   originalEdge.getPredecessor(), // do not move on in the original CFA!
                   changedVarsInSuccessor));
+        }
+      }
+
+      // a variable assignment was deleted from the CFA: the edge in the original CFA is a variable
+      // assignment and the edge in the given CFA matches an outgoing edge of the successor node of
+      // the original CFA
+      if (originalEdge.getPredecessor().getNumLeavingEdges() == 1) {
+        Optional<String> deleted = checkEdgeDeletedAssignment(pEdgeInGiven, originalEdge);
+        if (deleted.isPresent()) {
+          ImmutableSet<String> changedVarsInSuccessor =
+              new ImmutableSet.Builder<String>()
+                  .addAll(pChangedVarsInGiven)
+                  .add(deleted.orElseThrow())
+                  .build();
+          // move on one by one node in the given, and by two nodes in the original CPA;
+          // find out which edge is matching
+          for (CFAEdge edgeLeavingOrigSuccessor :
+              CFAUtils.leavingEdges(originalEdge.getSuccessor())) {
+            if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
+              return Optional.of(
+                  new ModificationsRcdState(
+                      pEdgeInGiven.getSuccessor(),
+                      edgeLeavingOrigSuccessor.getSuccessor(),
+                      changedVarsInSuccessor));
+            }
+          }
         }
       }
 
@@ -306,49 +311,10 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     return Optional.empty();
   }
 
-  // Check whether the original CFA has only one outgoing variable assignment edge and the edge is
-  // deleted in the given CFA. If that is the case, an Optional of a ModificationsRcdState is
-  // returned, in which the node in the original is replaced by the successor and the set of changed
-  // variables is changed accordingly.
-  private Optional<ModificationsRcdState> skipOutgoingDeletedAssignmentEdge(
-      final ModificationsRcdState pState) {
-
-    if (!pState.hasRelevantModification()) {
-      CFANode nodeInGiven = pState.getLocationInGivenCfa();
-      CFANode nodeInOriginal = pState.getLocationInOriginalCfa();
-      ImmutableSet<String> changedVarsInGiven = pState.getChangedVarsInGivenCfa();
-
-      if (nodeInOriginal.getNumLeavingEdges() == 1 && nodeInGiven.getNumLeavingEdges() > 0) {
-        CFAEdge edgeInOriginal = nodeInOriginal.getLeavingEdge(0);
-        CFAEdge edgeInGiven =
-            nodeInGiven.getLeavingEdge(0); // some edge, not necessarily the only one
-
-        if (edgesMatch(edgeInGiven, edgeInOriginal)
-            || variablesAreUsedInEdge(edgeInOriginal, changedVarsInGiven)) {
-          // TODO remove used vars check from if stmt because unnecessary?
-          return Optional.empty();
-        }
-
-        Optional<String> deleted = checkEdgeDeletedAssignment(edgeInGiven, edgeInOriginal);
-        if (deleted.isPresent()) {
-          ImmutableSet<String> changedVarsInSuccessor =
-              new ImmutableSet.Builder<String>()
-                  .addAll(changedVarsInGiven)
-                  .add(deleted.orElseThrow())
-                  .build();
-          return Optional.of(
-              new ModificationsRcdState(
-                  nodeInGiven, edgeInOriginal.getSuccessor(), changedVarsInSuccessor));
-        }
-      }
-    }
-
-    return Optional.empty();
-  }
-
-  // Check whether a variable assignment was deleted in the given CFA and return an Optional of the
+  // Check whether a variable assignment was deleted from the CFA and return an Optional of the
   // changed variable if that is the case.
   // Check whether edges are unequal with !edgesMatch(pEdgeInGiven, pEdgeInOriginal) before calling!
+  // (Method assumes that there is only one outgoing edge if an outgoing edge is an assignment.)
   private Optional<String> checkEdgeDeletedAssignment(
       final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
 
@@ -368,9 +334,10 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     return Optional.empty();
   }
 
-  // Check whether a variable assignment was added to the given CFA and return an Optional of the
-  // changed variable if that is the case.
+  // Check whether a variable assignment was added to the CFA and return an Optional of the changed
+  // variable if that is the case.
   // Check whether edges are unequal with !edgesMatch(pEdgeInGiven, pEdgeInOriginal) before calling!
+  // (Method assumes that there is only one outgoing edge if an outgoing edge is an assignment.)
   private Optional<String> checkEdgeAddedAssignment(
       final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
 
@@ -442,7 +409,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       if (exp != null) {
         usedVars = exp.accept(visitor);
       } else {
-        return false; // fallback, shouldn't happen
+        return !pVars.isEmpty(); // fallback, shouldn't happen
       }
     } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
       usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
