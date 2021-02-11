@@ -23,21 +23,25 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFAWithACSLAnnotationLocations cfa;
-  private final ACSLTermToCExpressionVisitor visitor;
+  private final ACSLTermToCExpressionVisitor acslVisitor;
+  private final ToCExpressionVisitor expressionTreeVisitor;
   private final boolean usePureExpressionsOnly;
   private final boolean ignoreTargetStates;
 
   public ACSLTransferRelation(
       CFAWithACSLAnnotationLocations pCFA,
-      ACSLTermToCExpressionVisitor pVisitor,
+      ACSLTermToCExpressionVisitor pACSLVisitor,
+      ToCExpressionVisitor pExpressionTreeVisitor,
       boolean pUsePureExpressionsOnly,
       boolean pIgnoreTargetStates) {
     cfa = pCFA;
-    visitor = pVisitor;
+    acslVisitor = pACSLVisitor;
+    expressionTreeVisitor = pExpressionTreeVisitor;
     usePureExpressionsOnly = pUsePureExpressionsOnly;
     ignoreTargetStates = pIgnoreTargetStates;
   }
@@ -53,9 +57,9 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
           FluentIterable.from(annotationsForEdge)
               .filter(x -> x.getPredicateRepresentation().getUsedBuiltins().isEmpty())
               .toSet();
-      return ImmutableList.of(new ACSLState(annotations, visitor));
+      return ImmutableList.of(new ACSLState(annotations, acslVisitor, expressionTreeVisitor));
     }
-    return ImmutableList.of(new ACSLState(annotationsForEdge, visitor));
+    return ImmutableList.of(new ACSLState(annotationsForEdge, acslVisitor, expressionTreeVisitor));
   }
 
   @Override

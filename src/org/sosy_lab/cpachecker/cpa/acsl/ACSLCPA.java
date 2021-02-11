@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /**
  * This CPA is for deriving invariants from ACSL annotations.
@@ -50,7 +51,8 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private boolean ignoreTargetStates = false;
 
   private final CFAWithACSLAnnotationLocations cfa;
-  private final ACSLTermToCExpressionVisitor visitor;
+  private final ACSLTermToCExpressionVisitor acslVisitor;
+  private final ToCExpressionVisitor expressionTreeVisitor;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ACSLCPA.class);
@@ -65,13 +67,15 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       cfa = new CFAWithACSLAnnotationLocations(pCFA, ImmutableMap.of());
       pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
-    visitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
+    acslVisitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
+    expressionTreeVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), pLogManager);
     pConfig.inject(this);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ACSLTransferRelation(cfa, visitor, usePureExpressionsOnly, ignoreTargetStates);
+    return new ACSLTransferRelation(
+        cfa, acslVisitor, expressionTreeVisitor, usePureExpressionsOnly, ignoreTargetStates);
   }
 
   @Override
@@ -89,6 +93,6 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       }
       annotations.addAll(annotationsForEdge);
     }
-    return new ACSLState(annotations, visitor);
+    return new ACSLState(annotations, acslVisitor, expressionTreeVisitor);
   }
 }
