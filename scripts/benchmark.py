@@ -57,11 +57,7 @@ class Benchmark(VcloudBenchmarkBase):
 
     DEFAULT_OUTPUT_PATH = "test/results/"
 
-    def create_argument_parser(self):
-        parser = super(Benchmark, self).create_argument_parser()
-        vcloud_args = parser.add_argument_group(
-            "Options for using VerifierCloud from benchmark.py"
-        )
+    def add_vcloud_args(self, vcloud_args):
         vcloud_args.add_argument(
             "--cloud",
             dest="cloud",
@@ -100,8 +96,8 @@ class Benchmark(VcloudBenchmarkBase):
             type=int,
             help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).",
         )
-
-        return parser
+        # add arguments from the base class.
+        super(Benchmark, self).add_vcloud_args(vcloud_args)
 
     def get_param_name(self, pname):
         return "--" + pname
