@@ -112,7 +112,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private Path initialPrecisionFile = null;
 
   @Option(secure = true, description = "get an initial precision from a predicate analysis file")
-  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
   @Option(
@@ -187,36 +187,21 @@ public class ValueAnalysisCPA extends AbstractCPA
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
     }
 
-    // Initialize precision from a predicate analysis
+    // Initialize precision
     VariableTrackingPrecision initialPrecision =
         VariableTrackingPrecision.createRefineablePrecision(
             pConfig,
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
+
     if (initialPredicatePrecisionFile != null){
-
-      // create precision with empty, refinable component precision
-
-      // create managers for the predicate map parser for parsing the predicates from the given
-      // predicate precision file
-      Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
-      FormulaManagerView formulaManager = solver.getFormulaManager();
-      RegionManager regionManager = new BDDManagerFactory(this.config, this.logger).createRegionManager();
-      AbstractionManager abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
-
-      // get the predicate precision from given file
-      PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, formulaManager, abstractionManager, new InitialPredicatesOptions());
-      PredicatePrecision predPrec = null;
-      try {
-        predPrec = mapParser.parsePredicates(initialPredicatePrecisionFile);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPredicatePrecisionFile);
-      } catch (PredicateParsingFailedException pE) {
-        logger.logUserException(Level.WARNING, pE, "Could not parse predicate precision from file named " + initialPredicatePrecisionFile);
-      }
-
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
+      // otherwise return empty precision
+      Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
+      FormulaManagerView formulaManager = solver.getFormulaManager();
+      PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
+
       if (predPrec != null) {
         return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
       }
@@ -228,6 +213,26 @@ public class ValueAnalysisCPA extends AbstractCPA
       // refine the refinable component precision with increment from file
       return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
+  }
+
+  private PredicatePrecision readAndParsePredPrecFile(
+      final Configuration pConfig, final CFA pCfa, final Solver solver, final FormulaManagerView pFMgr) throws InvalidConfigurationException {
+
+    // create managers for the predicate map parser for parsing the predicates from the given
+    // predicate precision file
+    RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
+    AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
+    // get the predicate precision from given file
+    PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+    PredicatePrecision predPrec = PredicatePrecision.empty();
+    try {
+      predPrec = mapParser.parsePredicates(initialPredicatePrecisionFile);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPredicatePrecisionFile);
+    } catch (PredicateParsingFailedException pE) {
+      logger.logUserException(Level.WARNING, pE, "Could not parse predicate precision from file named " + initialPredicatePrecisionFile);
+    }
+    return predPrec;
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
@@ -242,7 +247,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     // Get the variables from the predicate precision
     for (AbstractionPredicate pred : predicates) {
-      for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {
+      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
         trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }
