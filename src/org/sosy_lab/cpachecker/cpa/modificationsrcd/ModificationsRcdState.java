@@ -132,12 +132,13 @@ public final class ModificationsRcdState
       }
       sb.append("}");
     } else if (!changedVarsInGivenCfa.isEmpty()) {
-      sb.append("Changed reaching definitions: ");
+      sb.append("Reaching changed definitions: ");
       sb.append("{");
       for (String v : changedVarsInGivenCfa) {
         sb.append(v);
         sb.append(", ");
       }
+      sb.setLength(sb.length() - 2); // remove last ", "
       sb.append("}");
     } else {
       sb.append("No modification");

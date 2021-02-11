@@ -194,6 +194,12 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
                   .addAll(pChangedVarsInGiven)
                   .add(deleted.orElseThrow())
                   .build();
+          // if the variable which was changed in the deleted assignment is used in pEdgeInGiven, we
+          // have the use of a changed variable and therefore return without a found matching
+          // successor
+          if (variablesAreUsedInEdge(pEdgeInGiven, ImmutableSet.of(deleted.orElseThrow()))) {
+            return Optional.empty();
+          }
           // move on one by one node in the given, and by two nodes in the original CPA;
           // find out which edge is matching
           for (CFAEdge edgeLeavingOrigSuccessor :
