@@ -163,6 +163,6 @@ public final class ModificationsRcdState
     return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, pOther.locationInGivenCfa)
         && hasRelevantModification == pOther.hasRelevantModification
-        && changedVarsInGivenCfa.containsAll(pOther.changedVarsInGivenCfa);
+        && pOther.changedVarsInGivenCfa.containsAll(changedVarsInGivenCfa);
   }
 }
