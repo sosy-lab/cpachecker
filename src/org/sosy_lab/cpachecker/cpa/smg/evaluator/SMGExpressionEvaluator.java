@@ -314,8 +314,8 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      long longValue = value.asNumericValue().longValue();
-      result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(longValue)));
+      BigInteger bigInteger = value.asNumericValue().bigInteger();
+      result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 
     for (SMGState additionalState : visitor.getSmgStatesToBeProccessed()) {
