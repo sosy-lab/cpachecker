@@ -380,13 +380,8 @@ def execute(command, quiet=False):
     """
     if not quiet:
         logging.info(" ".join(command))
-    p = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
-    )
-    returncode = p.wait()
-    output = p.stdout.read()
-    err_output = p.stderr.read()
-    return ExecutionResult(returncode, output, err_output)
+    p = subprocess.run(command, capture_output=True, universal_newlines=True)
+    return ExecutionResult(p.returncode, p.stdout, p.stderr)
 
 
 def analyze_result(test_result, harness, specification):
