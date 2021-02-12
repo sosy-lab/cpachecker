@@ -23,7 +23,7 @@ from concurrent.futures import as_completed
 
 import benchexec
 import benchexec.tooladapter
-import vcloudutil
+from . import vcloudutil
 from .webclient import (
     WebInterface,
     WebClientError,
