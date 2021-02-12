@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsrcd;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -140,28 +142,11 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
 
       // edges describe the same operation
       if (edgesMatch(pEdgeInGiven, originalEdge)) {
+        ImmutableSet<String> changedVarsInSuccessor =
+            removeVariableFromSetIfAssignedInEdge(originalEdge, pChangedVarsInGiven);
         return Optional.of(
             new ModificationsRcdState(
-                pEdgeInGiven.getSuccessor(), originalEdge.getSuccessor(), pChangedVarsInGiven));
-      }
-
-      // edges represent different assignments of the same variable
-      if (originalEdge.getPredecessor().getNumLeavingEdges() == 1
-          && pEdgeInGiven.getPredecessor().getNumLeavingEdges() == 1) {
-        Optional<String> changed = checkEdgeChangedAssignment(pEdgeInGiven, originalEdge);
-        if (changed.isPresent()) {
-          ImmutableSet<String> changedVarsInSuccessor =
-              new ImmutableSet.Builder<String>()
-                  .addAll(pChangedVarsInGiven)
-                  .add(changed.orElseThrow())
-                  .build();
-
-          return Optional.of(
-              new ModificationsRcdState(
-                  pEdgeInGiven.getSuccessor(),
-                  originalEdge.getSuccessor(),
-                  changedVarsInSuccessor));
-        }
+                pEdgeInGiven.getSuccessor(), originalEdge.getSuccessor(), changedVarsInSuccessor));
       }
 
       // a variable assignment was added to the CFA: the edge in the given CFA is a new variable
@@ -205,6 +190,8 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
           for (CFAEdge edgeLeavingOrigSuccessor :
               CFAUtils.leavingEdges(originalEdge.getSuccessor())) {
             if (edgesMatch(pEdgeInGiven, edgeLeavingOrigSuccessor)) {
+              changedVarsInSuccessor =
+                  removeVariableFromSetIfAssignedInEdge(pEdgeInGiven, changedVarsInSuccessor);
               return Optional.of(
                   new ModificationsRcdState(
                       pEdgeInGiven.getSuccessor(),
@@ -212,6 +199,25 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
                       changedVarsInSuccessor));
             }
           }
+        }
+      }
+
+      // edges represent different assignments of the same variable (assignment was replaced)
+      if (originalEdge.getPredecessor().getNumLeavingEdges() == 1
+          && pEdgeInGiven.getPredecessor().getNumLeavingEdges() == 1) {
+        Optional<String> changed = checkEdgeChangedAssignment(pEdgeInGiven, originalEdge);
+        if (changed.isPresent()) {
+          ImmutableSet<String> changedVarsInSuccessor =
+              new ImmutableSet.Builder<String>()
+                  .addAll(pChangedVarsInGiven)
+                  .add(changed.orElseThrow())
+                  .build();
+
+          return Optional.of(
+              new ModificationsRcdState(
+                  pEdgeInGiven.getSuccessor(),
+                  originalEdge.getSuccessor(),
+                  changedVarsInSuccessor));
         }
       }
 
@@ -358,6 +364,21 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
 
     return givenSuccessor.getClass() == originalSuccessor.getClass()
         && givenSuccessor.getFunctionName().equals(originalSuccessor.getFunctionName());
+  }
+
+  // Check whether the edge is an assignment to one of the given variables and return an Optional of
+  // that variable.
+  private ImmutableSet<String> removeVariableFromSetIfAssignedInEdge(
+      final CFAEdge pEdge, final ImmutableSet<String> pVars) {
+
+    if (pEdge instanceof CStatementEdge) {
+      String lhs = CFAEdgeUtils.getLeftHandVariable(pEdge);
+      if (lhs != null && pVars.contains(lhs)) {
+        return FluentIterable.from(pVars).filter(Predicates.not(Predicates.equalTo(lhs))).toSet();
+      }
+    }
+
+    return pVars;
   }
 
   // Check whether one of the given variables is used in the edge. If the edge is an assignment that
