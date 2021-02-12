@@ -40,13 +40,11 @@ _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 def download_required_jars():
     # install cloud and dependencies
-    ant = subprocess.Popen(
+    subprocess.run(
         ["ant", "resolve-benchmark-dependencies"],
         cwd=_ROOT_DIR,
         shell=vcloudutil.is_windows(),  # noqa: S602
     )
-    ant.communicate()
-    ant.wait()
 
 
 class Benchmark(VcloudBenchmarkBase):
@@ -145,10 +143,13 @@ class Benchmark(VcloudBenchmarkBase):
                     script = tool_locator.find_executable("cpa.sh", subdir="scripts")
                     base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
                     build_file = os.path.join(base_dir, "build.xml")
-                    if os.path.exists(build_file) and subprocess.call(
-                        ["ant", "-q", "jar"],
-                        cwd=base_dir,
-                        shell=vcloudutil.is_windows(),  # noqa: S602
+                    if (
+                        os.path.exists(build_file)
+                        and subprocess.run(
+                            ["ant", "-q", "jar"],
+                            cwd=base_dir,
+                            shell=vcloudutil.is_windows(),  # noqa: S602
+                        ).returncode
                     ):
                         sys.exit(
                             "Failed to build CPAchecker, please fix the build first."
