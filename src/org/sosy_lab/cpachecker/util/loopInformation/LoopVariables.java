@@ -8,38 +8,54 @@
 
 package org.sosy_lab.cpachecker.util.loopInformation;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class LoopVariables {
 
-  private String variableName;
+  private AExpression variable;
   private CFANode variableNode;
-  private String variableType;
   private boolean isArray;
-  private String arrayLength;
+  private Integer arrayLength;
   private Integer initializationLine;
 
   public LoopVariables(
-      String variableName,
-      String variableType,
+      AExpression variable,
       CFANode variableNode,
       boolean isArray,
-      String arrayLength,
+      Integer arrayLength,
       Integer initializationLine) {
-    this.variableName = variableName;
-    this.variableType = variableType;
+    this.variable = variable;
     this.variableNode = variableNode;
     this.isArray = isArray;
     this.arrayLength = arrayLength;
     this.initializationLine = initializationLine;
   }
 
-  public String getVariableName() {
-    return variableName;
+  public AExpression getVariableExpression() {
+    return variable;
   }
 
-  public String getVariableType() {
-    return variableType;
+  public String getVariableNameAsString() {
+    String name = null;
+    if (variable instanceof CIdExpression) {
+      name = ((CIdExpression) variable).getName();
+    } else if (variable instanceof CArraySubscriptExpression) {
+      name = ((CArraySubscriptExpression) variable).getArrayExpression().toString();
+    }
+    return name;
+  }
+
+  public String getVariableTypeAsString() {
+    String type = null;
+    if(variable instanceof CIdExpression) {
+      type = ((CIdExpression)variable).getExpressionType().toString();
+    }else if(variable instanceof CArraySubscriptExpression) {
+      type = ((CArraySubscriptExpression) variable).getExpressionType().toString();
+    }
+    return type;
   }
 
   public CFANode getVariableNode() {
@@ -50,7 +66,7 @@ public class LoopVariables {
     return isArray;
   }
 
-  public String getArrayLength() {
+  public Integer getArrayLength() {
     return arrayLength;
   }
 
@@ -58,12 +74,8 @@ public class LoopVariables {
     return initializationLine;
   }
 
-  public void setVariableName(String pVariableName) {
-    variableName = pVariableName;
-  }
-
-  public void setVariableType(String pVariableType) {
-    variableType = pVariableType;
+  public void setVariableExpression(AExpression pVariableName) {
+    variable = pVariableName;
   }
 
   public void setVariableNode(CFANode pVariableNode) {
@@ -74,7 +86,7 @@ public class LoopVariables {
     isArray = pIsArray;
   }
 
-  public void setArrayLength(String pArrayLength) {
+  public void setArrayLength(Integer pArrayLength) {
     arrayLength = pArrayLength;
   }
 
@@ -85,9 +97,9 @@ public class LoopVariables {
   @Override
   public String toString() {
     return "LoopVariables [variableName="
-        + variableName
+        + getVariableNameAsString()
         + ", variableType="
-        + variableType
+        + getVariableTypeAsString()
         + ", isArray="
         + isArray
         + ", arrayLength="

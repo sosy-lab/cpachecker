@@ -75,9 +75,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   private TimeSpan analyzeTime;
 
   private static final int ONLY_ENTERING_EDGE = 0;
-  private static final int POSITION_OF_VARIABLE_IN_ARRAY_ZERO = 0;
-  private static final int POSITION_OF_VARIABLE_IN_ARRAY_ONE = 1;
-  private static final int POSITION_OF_VARIABLE_IN_ARRAY_TWO = 2;
   private static final int VALID_STATE = 0;
   private static final int ERROR_STATE = 1;
   private static final int LAST_POSITION_OF_LIST = 1;
@@ -145,7 +142,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
       while (flag) {
         if (temp.getNumEnteringEdges() > 0
-            && temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().contains("for")) {
+            && temp.getEnteringEdge(ONLY_ENTERING_EDGE) instanceof BlankEdge) {
           tempLoopType = LoopType.FOR;
           setForStart(temp);
           flag = false;
@@ -253,7 +250,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             ADeclarationEdge dec = (ADeclarationEdge) n.getLeavingEdge(e);
             CSimpleDeclaration v = (CSimpleDeclaration) dec.getDeclaration();
 
-            if (o.getVariableName().equals(v.getName())) {
+            if (o.getVariableNameAsString().equals(v.getName())) {
 
               o.setInitializationLine(
                   ((ADeclarationEdge) n.getLeavingEdge(e))
@@ -272,7 +269,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
         removeDO.add(o);
       } else {
         for (LoopVariables tempO : removeDO) {
-          if (tempO.getVariableName().equals(o.getVariableName())
+          if (tempO.getVariableNameAsString().equals(o.getVariableNameAsString())
               && tempO.getInitializationLine().equals(o.getInitializationLine())) {
             flag = false;
           }
@@ -291,20 +288,11 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     LoopVariables loopVariable = null;
     if (expression instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) expression;
-      loopVariable =
-          new LoopVariables(
-              var.getName(), var.getExpressionType().toString(), node, false, null, null);
+      loopVariable = new LoopVariables(var, node, false, null, null);
     } else if (expression instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression var = (CArraySubscriptExpression) expression;
       CArrayType array = (CArrayType) var.getArrayExpression().getExpressionType();
-        loopVariable =
-            new LoopVariables(
-                var.getArrayExpression().toString(),
-                var.getExpressionType().toString(),
-                node,
-                true,
-                String.valueOf(array.getLengthAsInt().getAsInt()),
-                null);
+      loopVariable = new LoopVariables(var, node, true, array.getLengthAsInt().getAsInt(), null);
     }
     return loopVariable;
   }
@@ -313,7 +301,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     int tmpInt = 0;
     for (LoopVariables tmp : pOutput) {
       if (tmp.getIsArray()) {
-        tmpInt = tmpInt + Integer.parseInt(tmp.getArrayLength());
+        tmpInt = tmpInt + tmp.getArrayLength();
 
       } else {
         tmpInt = tmpInt + 1;
@@ -338,10 +326,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
     for (LoopVariables o : loopO) {
       for (String i : inputs) {
-        if (o.getVariableName().contentEquals(i)) {
+        if (o.getVariableNameAsString().contentEquals(i)) {
           boolean flagNO = true;
           for (LoopVariables v : temp) {
-            if (o.getVariableName().equals(v.getVariableName())) {
+            if (o.getVariableNameAsString().equals(v.getVariableNameAsString())) {
               flagNO = false;
             }
           }
@@ -512,7 +500,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
         // we add the number of array-cells to the number of paths in case there is an array
         // in the loop. this is an over-approximation that could be refined if you know the
         // amount of array values that will be used later on
-        paths += Integer.parseInt(z.getArrayLength());
+        paths += z.getArrayLength();
       }
     }
     return paths;

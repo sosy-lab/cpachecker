@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopType;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopVariables;
 
+// TODO Rework
+
 /**
  * This class takes a file and changes all of the loops in a advanced abstraction to make the
  * program verifiable for specific cpa's
@@ -128,7 +130,7 @@ public class LoopAbstraction {
     boolean flagDouble = true;
     for (LoopData lD : loopInfo.getLoopData()) {
       for (LoopVariables io : lD.getInputsOutputs()) {
-        switch (io.getVariableType()) {
+        switch (io.getVariableTypeAsString()) {
           case "int":
           case "signed int":
             if (flagInt) {
@@ -571,12 +573,12 @@ public class LoopAbstraction {
     }
     for (LoopVariables x : variables) {
       if (x.getIsArray()) {
-        String tempString = x.getVariableType();
+        String tempString = x.getVariableTypeAsString();
         if (x.getInitializationLine() >= lineNumber && !preUsedVariables.contains(x)) {
           tmp +=
               tempString
                   + " "
-                  + x.getVariableName()
+                  + x.getVariableNameAsString()
                   + "["
                   + x.getArrayLength()
                   + "]"
@@ -588,9 +590,9 @@ public class LoopAbstraction {
             "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
                 + x.getArrayLength()
                 + "; __cpachecker_tmp_i++){"
-                + x.getVariableName()
+                + x.getVariableNameAsString()
                 + "[__cpachecker_tmp_i]";
-        switch (x.getVariableType()) {
+        switch (x.getVariableTypeAsString()) {
           case "int":
           case "signed int":
             tmp += "=__VERIFIER_nondet_int();}" + System.lineSeparator();
@@ -634,11 +636,16 @@ public class LoopAbstraction {
         }
       } else {
         if (x.getInitializationLine() >= lineNumber && !preUsedVariables.contains(x)) {
-          tmp += x.getVariableType() + " " + x.getVariableName() + ";" + System.lineSeparator();
+          tmp +=
+              x.getVariableTypeAsString()
+                  + " "
+                  + x.getVariableNameAsString()
+                  + ";"
+                  + System.lineSeparator();
           preUsedVariables.add(x);
         }
-        tmp += x.getVariableName();
-        switch (x.getVariableType()) {
+        tmp += x.getVariableNameAsString();
+        switch (x.getVariableTypeAsString()) {
           case "int":
           case "signed int":
             tmp += "=__VERIFIER_nondet_int();" + System.lineSeparator();
@@ -701,30 +708,30 @@ public class LoopAbstraction {
         // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
         // namens ist
         if (thisLine != null
-            && thisLine.contains(s.getVariableName() + "[")
-            && thisLine.contains(s.getVariableType())) {
+            && thisLine.contains(s.getVariableNameAsString() + "[")
+            && thisLine.contains(s.getVariableTypeAsString())) {
           String tmpArray = Iterables.get(Splitter.on('=').split(thisLine), 1);
           thisLine =
-              s.getVariableType()
+              s.getVariableTypeAsString()
                   + " __cpachecker_tmp_array["
                   + s.getArrayLength()
                   + "] = "
                   + tmpArray;
-          thisLine = thisLine + " " + s.getVariableName() + " = __cpachecker_tmp_array;";
+          thisLine = thisLine + " " + s.getVariableNameAsString() + " = __cpachecker_tmp_array;";
         }
       } else {
         if (thisLine != null
-            && thisLine.contains(s.getVariableType())
+            && thisLine.contains(s.getVariableTypeAsString())
             && thisLine.contains(";")
-            && thisLine.contains(s.getVariableName())) {
-          thisLine = Iterables.get(Splitter.on(s.getVariableType()).split(thisLine), 1);
+            && thisLine.contains(s.getVariableNameAsString())) {
+          thisLine = Iterables.get(Splitter.on(s.getVariableTypeAsString()).split(thisLine), 1);
           uVFlag = true;
         }
         if (thisLine != null
             && (thisLine.startsWith(" ") || thisLine.startsWith(""))
-            && thisLine.endsWith(s.getVariableName() + ";")
+            && thisLine.endsWith(s.getVariableNameAsString() + ";")
             && uVFlag) {
-          thisLine = s.getVariableName() + "=" + s.getVariableName() + ";";
+          thisLine = s.getVariableNameAsString() + "=" + s.getVariableNameAsString() + ";";
         }
       }
     }
@@ -767,9 +774,9 @@ public class LoopAbstraction {
     String variable = "";
     for (LoopVariables x : preUsedVariables) {
       if (Iterables.get(Splitter.on(';').split(loopD.getCondition()), 0)
-          .contains(x.getVariableName())) {
+          .contains(x.getVariableNameAsString())) {
         flag = false;
-        variable = x.getVariableType();
+        variable = x.getVariableTypeAsString();
       }
     }
     if (abstractionLevel.equals("naive")) {
