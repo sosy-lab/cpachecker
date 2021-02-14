@@ -22,10 +22,9 @@ FROM ubuntu:20.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-      npm \
       nodejs \
-      openjdk-11-jre-headless \
-      firefox
+      npm \
+      openjdk-11-jre-headless
 
 # Workaround for Chromium installation so we don't need snap
 RUN apt-get install -y software-properties-common &&  \
