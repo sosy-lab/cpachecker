@@ -350,7 +350,9 @@ def execute(command, quiet=False):
     """
     if not quiet:
         logging.info(" ".join(command))
-    return subprocess.run(command, capture_output=True, universal_newlines=True)
+    return subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
+    )
 
 
 def analyze_result(test_result, harness, specification):
