@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -126,7 +127,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
                           pCfa.getMainFunction(),
                           ShutdownManager.createWithParent(pShutdownNotifier),
                           new AggregatedReachedSets(),
-                          List.of(
+                          ImmutableList.of(
                                 "analysis.testGoalConverter",
                                 "cpa",
                                 "specification",
@@ -143,7 +144,9 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
                         backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
                         backwardsCpa = backwardsCpaTriple.getSecond();
-                } catch (Exception e) {
+                } catch(RuntimeException e) {
+                        throw e;
+                } catch(Exception e) {
                         backwardsCpaAlgorithm = null;
                         backwardsCpa = null;
                 }
