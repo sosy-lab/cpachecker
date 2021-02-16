@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -212,7 +211,6 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
          * is only read once when constructing @see{CPAchecker}.
          * @return A reached set that has the PROGRAM_SINKS as initial states
          */
-        @Nonnull
         private ReachedSet buildBackwardsReachedSet() throws InterruptedException {
                 var reachedSet = new PartitionedReachedSet(TraversalMethod.DFS);
                 var initialLocations =

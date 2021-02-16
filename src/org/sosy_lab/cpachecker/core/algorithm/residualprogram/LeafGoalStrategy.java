@@ -47,8 +47,9 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
                         reachedNodes.add(argState);
 
                         var state = AbstractStates.extractStateByType(argState, LocationState.class);
-                        if(state == null)
-                            continue; //Should never happen
+                        if(state == null) {
+                                continue; //Should never happen
+                        }
 
                         var label = state.getLocationNode();
 
@@ -63,8 +64,9 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
                         }
 
                         for (var it: argState.getChildren()) {
-                                if(!reachedNodes.contains(it))
+                                if(!reachedNodes.contains(it)) {
                                         waitList.add(it);
+                                }
                         }
                 }
 

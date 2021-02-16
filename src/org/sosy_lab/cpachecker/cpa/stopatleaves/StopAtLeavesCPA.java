@@ -8,14 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.stopatleaves;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -23,6 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+
 /**
  * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA
  */
@@ -36,7 +32,7 @@ public class StopAtLeavesCPA extends AbstractCPA {
                         new FlatLatticeDomain(StopAtLeavesState.CONTINUE),
                         null /* never used */);
 
-                relation = new StopAtLeavesRelation(Collections.emptyList());
+                relation = new StopAtLeavesRelation(ImmutableList.of());
         }
 
         public static CPAFactory factory() {
