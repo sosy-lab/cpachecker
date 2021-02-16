@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -100,7 +100,7 @@ public class AdditionalInfoExtractor {
           edgeWithAdditionalInfo.addInfo(
               SMGConvertingTags.NOTE,
               SMGAdditionalInfo.of(
-                  getNoteMessageOnElement(prevSMGState.getHeap(), elem), Level.NOTE));
+                  getNoteMessageOnElement(prevSMGState.getHeap(), elem), Level.WARNING));
 
         } else {
           toCheck.add(elem);
