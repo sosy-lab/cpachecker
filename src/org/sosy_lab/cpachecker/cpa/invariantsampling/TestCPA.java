@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.invariantsampling;
 
-import java.util.HashMap;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,6 +64,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix = "invariantsampling")
 public class TestCPA extends AbstractCPA {
@@ -261,72 +265,93 @@ public class TestCPA extends AbstractCPA {
   }
 
   private static class InvariantSamplingState implements AbstractState, Graphable {
-    private Map<String, Integer> state;
 
-    private LeftHandSideInvariantSamplingVisitor leftVisitor = new LeftHandSideInvariantSamplingVisitor();
-    private RightHandSideInvariantSamplingVisitor rightVisitor = new RightHandSideInvariantSamplingVisitor();
+    private final ImmutableMap<String, Integer> state;
 
     public InvariantSamplingState() {
-      state = new HashMap<String, Integer>();
+      state = ImmutableMap.of();
     }
 
-    public InvariantSamplingState(
-        InvariantSamplingState currentState,
-        CVariableDeclaration declaration
-    ) {
-      state = currentState.getState();
+    public static InvariantSamplingState newInvariantSamplingState(
+        InvariantSamplingState currentState, CVariableDeclaration declaration) throws CPAException {
+      RightHandSideInvariantSamplingVisitor rightVisitor =
+          new RightHandSideInvariantSamplingVisitor();
       String variableName = declaration.getName();
       Integer value;
       try {
         value = declaration.getInitializer().accept(rightVisitor);
-      } catch (Exception pE) {
-        return;
+      } catch (Exception e) {
+        throw new CPAException("Could not determine declaration for InvariantSamplingState", e);
       }
-      if (variableName != null && value != null) {
-        state.put(variableName, value);
-      }
+      return new InvariantSamplingState(currentState, variableName, value);
     }
 
-    public InvariantSamplingState(
-        InvariantSamplingState currentState, CExpressionAssignmentStatement statement
-    ) {
-      state = currentState.getState();
+    private InvariantSamplingState(
+        InvariantSamplingState currentState, String variableName, Integer value) {
+      checkNotNull(variableName != null);
+      checkNotNull(value != null);
+      ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+      builder.put(variableName, value);
+      for (Entry<String, Integer> entry : currentState.getState().entrySet()) {
+        if (!entry.getKey().equals(variableName)) {
+          builder.put(entry);
+        }
+      }
+      state = builder.build();
+    }
+
+    public static InvariantSamplingState newInvariantSamplingState(
+        InvariantSamplingState currentState, CExpressionAssignmentStatement statement) throws CPAException {
+      LeftHandSideInvariantSamplingVisitor leftVisitor = new LeftHandSideInvariantSamplingVisitor();
+      RightHandSideInvariantSamplingVisitor rightVisitor =
+          new RightHandSideInvariantSamplingVisitor();
 
       String variableName;
       Integer value;
       try {
         variableName = statement.getLeftHandSide().accept(leftVisitor);
-      } catch (Exception pE) {
-        // this should never happen?
-        return;
-      }
-      try {
         value = statement.getRightHandSide().accept(rightVisitor);
-      } catch (Exception pE) {
-        // TODO as we do not know what the variable evaluates to we should just remove it
-        return;
+      } catch (Exception e) {
+        throw new CPAException("Could not determine assignment for InvariantSamplingState", e);
       }
-      if (variableName != null && value != null) {
-        state.put(variableName, value);
-      }
+      return new InvariantSamplingState(currentState, variableName, value);
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((state == null) ? 0 : state.hashCode());
+      return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof InvariantSamplingState)) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
         return false;
       }
-
-      InvariantSamplingState state2 = (InvariantSamplingState) obj;
-
-      boolean equals = state.equals(state2.getState());
-      return equals;
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      InvariantSamplingState other = (InvariantSamplingState) obj;
+      if (state == null) {
+        if (other.state != null) {
+          return false;
+        }
+      } else if (!state.equals(other.state)) {
+        return false;
+      }
+      return true;
     }
 
     public Map<String, Integer> getState() {
       return state;
     }
 
+    @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
       sb.append('\n');
@@ -361,12 +386,16 @@ public class TestCPA extends AbstractCPA {
 
     @Override
     protected InvariantSamplingState handleDeclarationEdge(
-        CDeclarationEdge edge, CDeclaration declaration
-    ) {
+        CDeclarationEdge edge, CDeclaration declaration) throws CPATransferException {
+      try {
       if (declaration instanceof CVariableDeclaration) {
-        return new InvariantSamplingState(this.getState(), (CVariableDeclaration) declaration);
+          return InvariantSamplingState.newInvariantSamplingState(
+              this.getState(), (CVariableDeclaration) declaration);
       }
       return this.getState();
+      } catch (CPAException e) {
+        throw new CPATransferException("Could not generate successor for invariant sampling", e);
+      }
     }
 
     @Override
@@ -377,15 +406,17 @@ public class TestCPA extends AbstractCPA {
     }
 
     @Override
-    protected InvariantSamplingState handleStatementEdge(
-        CStatementEdge edge, CStatement statement
-    ) {
+    protected InvariantSamplingState handleStatementEdge(CStatementEdge edge, CStatement statement)
+        throws CPATransferException {
+      try {
       if (statement instanceof CExpressionAssignmentStatement) {
-        return new InvariantSamplingState(
-            this.getState(), (CExpressionAssignmentStatement) statement
-        );
+        return InvariantSamplingState.newInvariantSamplingState(
+            this.getState(), (CExpressionAssignmentStatement) statement);
       }
       return this.getState();
+      } catch (CPAException e) {
+        throw new CPATransferException("Could not generate successor for invariant sampling", e);
+      }
     }
 
   }
