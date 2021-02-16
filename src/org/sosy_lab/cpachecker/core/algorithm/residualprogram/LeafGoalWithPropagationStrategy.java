@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +39,7 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
         public Map<LeafStates, List<CFANode>> findGoals(List<ARGState> pWaitlist, final Set<String> coveredGoals) {
                 var waitList = pWaitlist.stream()
                   .map(AbstractStates::extractLocation)
-                  .collect(Collectors.toCollection(LinkedList::new));
+                  .collect(Collectors.toList());
                 Set<CFANode> reachedNodes = new HashSet<>();
 
                 var nodes = new HashMap<NodeStates, HashSet<CFANode>>();
@@ -51,7 +50,7 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
                 var removableNodes = new HashSet<CFANode>();
 
                 while (!waitList.isEmpty()) {
-                        var node = waitList.pop();
+                        var node = waitList.remove(0);
                         reachedNodes.add(node);
 
                         var childrenNodes = Stream.iterate(0, n -> n + 1)
@@ -84,7 +83,7 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
                                 .limit(node.getNumEnteringEdges())
                                 .map(i -> node.getEnteringEdge(i).getPredecessor())
                                 .filter(n -> !reachedNodes.contains(n) && !waitList.contains(n))
-                                .collect(Collectors.toCollection(LinkedList::new))
+                                .collect(Collectors.toList())
                         );
                 }
 
