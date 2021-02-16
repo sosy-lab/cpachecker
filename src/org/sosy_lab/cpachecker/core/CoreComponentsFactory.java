@@ -472,7 +472,7 @@ public class CoreComponentsFactory {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if(testGoalConverter) {
-        algorithm = new TestGoalToConditionConverterAlgorithm(config, logger, shutdownNotifier, specification,
+        algorithm = new TestGoalToConditionConverterAlgorithm(config, logger, shutdownNotifier,
             cfa, algorithm, cpa);
       }
 

@@ -100,8 +100,13 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
         private final IGoalFindingStrategy goalFindingStrategy;
 
-        public TestGoalToConditionConverterAlgorithm(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                Specification pSpecification, CFA pCfa, Algorithm pOuter, ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException {
+        public TestGoalToConditionConverterAlgorithm(
+            Configuration pConfig,
+            LogManager pLogger,
+            ShutdownNotifier pShutdownNotifier,
+            CFA pCfa,
+            Algorithm pOuter,
+            ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException {
 
                 super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied(), pCfa);
                 pConfig.inject(this);

@@ -29,12 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class StopAtLeavesCPA extends AbstractCPA {
         StopAtLeavesRelation relation;
 
-        private StopAtLeavesCPA(
-                Configuration pConfig,
-                ShutdownNotifier shutdownNotifier,
-                LogManager pLogger,
-                CFA pCfa,
-                Specification pSpecification) {
+        private StopAtLeavesCPA() {
                 super(
                         "join",
                         "sep",
