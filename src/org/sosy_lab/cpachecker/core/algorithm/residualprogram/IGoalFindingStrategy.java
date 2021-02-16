@@ -22,11 +22,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface IGoalFindingStrategy {
         /**
          * Finds all goals that are interesting for our analysis.
-         * @param waitlist A list of all exit nodes of the program.
+         * @param pWaitlist A list of all exit nodes of the program.
          * @return A map of all intersting goals, partitioned into covered/ not covered.
-         * @throws CPAException
-         * @throws InterruptedException
          */
-        public Map<LeafStates, List<CFANode>> findGoals(List<ARGState> pWaitlist, final Set<String> coveredGoals)
+         Map<LeafStates, List<CFANode>> findGoals(List<ARGState> pWaitlist, final Set<String> coveredGoals)
           throws CPAException, InterruptedException;
 }

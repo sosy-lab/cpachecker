@@ -47,6 +47,9 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
                         reachedNodes.add(argState);
 
                         var state = AbstractStates.extractStateByType(argState, LocationState.class);
+                        if(state == null)
+                            continue; //Should never happen
+
                         var label = state.getLocationNode();
 
                         if(label instanceof CLabelNode && ((CLabelNode) label).getLabel().matches("^GOAL_[0-9]+$")) {

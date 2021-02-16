@@ -41,7 +41,7 @@ public class StopAtLeavesRelation extends SingleEdgeTransferRelation {
                 return Collections.singleton(StopAtLeavesState.CONTINUE);
     }
 
-        public void setLeaves(List<CFANode> pLeaves) {
+    public void setLeaves(List<CFANode> pLeaves) {
                 leaves = pLeaves;
         }
 }

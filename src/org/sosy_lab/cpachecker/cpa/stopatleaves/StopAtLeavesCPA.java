@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,8 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA
  */
 public class StopAtLeavesCPA extends AbstractCPA {
-        private List<CFANode> leaves;
-
         StopAtLeavesRelation relation;
 
         private StopAtLeavesCPA(
@@ -37,14 +34,12 @@ public class StopAtLeavesCPA extends AbstractCPA {
                 ShutdownNotifier shutdownNotifier,
                 LogManager pLogger,
                 CFA pCfa,
-                Specification pSpecification)
-                throws InvalidConfigurationException {
+                Specification pSpecification) {
                 super(
                         "join",
                         "sep",
                         new FlatLatticeDomain(StopAtLeavesState.CONTINUE),
                         null /* never used */);
-                //pConfig.inject(this);
 
                 relation = new StopAtLeavesRelation(Collections.emptyList());
         }
@@ -61,7 +56,6 @@ public class StopAtLeavesCPA extends AbstractCPA {
         }
 
         public void setLeaves(List<CFANode> pLeaves) {
-                leaves = pLeaves;
                 relation.setLeaves(pLeaves);
         }
 

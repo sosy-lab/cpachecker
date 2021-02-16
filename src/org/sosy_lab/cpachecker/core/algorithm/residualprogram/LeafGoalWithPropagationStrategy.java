@@ -59,10 +59,6 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
                           .map(i -> node.getLeavingEdge(i).getSuccessor())
                           .collect(Collectors.toList());
 
-                        var childrenNodesString = childrenNodes.stream()
-                          .map(Object::toString)
-                          .collect(Collectors.joining(","));
-
                         if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
                             && node instanceof CLabelNode && ((CLabelNode) node).getLabel().matches("^GOAL_[0-9]+$")) {
                                 if (coveredGoals.contains(((CLabelNode) node).getLabel())) {

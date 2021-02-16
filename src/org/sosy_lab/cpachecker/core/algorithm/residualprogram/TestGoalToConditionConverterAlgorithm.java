@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
-import static java.util.stream.Collectors.partitioningBy;
-
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,7 +15,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -162,10 +159,9 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
                         var stopAtLeavesCpa = CPAs.retrieveCPAOrFail(outerCpa, StopAtLeavesCPA.class, StopAtLeavesCPA.class);
                         stopAtLeavesCpa.setLeaves(leafGoals.get(LeafStates.UNCOVERED));
-                        var result = outerAlgorithm.run(reachedSet);
 
 
-                        return result;
+                        return outerAlgorithm.run(reachedSet);
                 } catch(Exception e) {
                         throw new CPAException(e.getLocalizedMessage());
                 }
@@ -202,9 +198,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
                 //We're doing a backwards analysis; hence the first state here is the end of the ARG
                 waitList.add((ARGState) reachedSet.getFirstState());
 
-                var result = goalFindingStrategy.findGoals(waitList, coveredGoals);
-
-                return result;
+                return goalFindingStrategy.findGoals(waitList, coveredGoals);
         }
 
         /**
