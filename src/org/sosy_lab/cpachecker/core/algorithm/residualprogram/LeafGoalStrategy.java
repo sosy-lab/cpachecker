@@ -42,7 +42,7 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
                 leafGoals.put(LeafStates.UNCOVERED, new ArrayList<>());
 
                 while(!waitList.isEmpty()) {
-                        var argState = waitList.pop();
+                        var argState = waitList.remove(0);
                         reachedNodes.add(argState);
 
                         var state = AbstractStates.extractStateByType(argState, LocationState.class);
@@ -52,14 +52,17 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
 
                         var label = state.getLocationNode();
 
-                        if(label instanceof CLabelNode && ((CLabelNode) label).getLabel().matches("^GOAL_[0-9]+$")) {
-                                if(coveredGoals.contains(((CLabelNode) label).getLabel())) {
-                                        leafGoals.get(LeafStates.COVERED).add(label);
-                                } else {
-                                        leafGoals.get(LeafStates.UNCOVERED).add(label);
-                                }
+                        if(label instanceof CLabelNode) {
+                                var lbl = (CLabelNode) label;
+                                if(lbl.getLabel().matches("^GOAL_[0-9]+$")) {
+                                        if (coveredGoals.contains(lbl.getLabel())) {
+                                                leafGoals.get(LeafStates.COVERED).add(label);
+                                        } else {
+                                                leafGoals.get(LeafStates.UNCOVERED).add(label);
+                                        }
 
-                                continue;
+                                        continue;
+                                }
                         }
 
                         for (var it: argState.getChildren()) {
