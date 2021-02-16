@@ -18,7 +18,7 @@ public enum StopAtLeavesState implements AbstractQueryableState {
     CONTINUE(false),
     STOP(true);
 
-    boolean shouldStop;
+    final boolean shouldStop;
 
     public boolean isShouldStop() {
         return shouldStop;
