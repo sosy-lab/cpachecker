@@ -198,7 +198,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
                 backwardsCpaAlgorithm.run(reachedSet);
 
-                ArrayList<ARGState> waitList = new ArrayList<>();
+                List<ARGState> waitList = new ArrayList<>();
                 //We're doing a backwards analysis; hence the first state here is the end of the ARG
                 waitList.add((ARGState) reachedSet.getFirstState());
 
