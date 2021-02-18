@@ -49,191 +49,196 @@ import org.sosy_lab.cpachecker.util.CPAs;
 /**
  * Algorithm to convert a list of covered test goal labels to a condition.
  */
-@Options(prefix="conditional_testing")
+@Options(prefix = "conditional_testing")
 public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
-        /**
-         * States a goal can be in.
-         */
-        enum LeafStates {
-                COVERED(true),
-                UNCOVERED(false);
+  private final Algorithm outerAlgorithm;
+  private final ConfigurableProgramAnalysis outerCpa;
+  private final IGoalFindingStrategy goalFindingStrategy;
+  @Option(
+      secure = true,
+      name = "strategy",
+      required = true,
+      description = "The strategy to use"
+  )
+  Strategy strategy;
+  private Algorithm backwardsCpaAlgorithm;
+  private ConfigurableProgramAnalysis backwardsCpa;
+  @Option(
+      secure = true,
+      required = true,
+      name = "inputfile",
+      description = "The input file with all goals that were previously reached")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path inputfile;
 
-                LeafStates(boolean b) {
-                        isCovered = b;
-                }
+  public TestGoalToConditionConverterAlgorithm(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Algorithm pOuter,
+      ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException {
 
-                private final boolean isCovered;
+    super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied(), pCfa);
+    pConfig.inject(this);
 
-                public boolean isCovered() {
-                        return isCovered;
-                }
-        }
+    switch (strategy) {
+      case NAIVE:
+        goalFindingStrategy = new LeafGoalStrategy();
+        break;
+      case PROPAGATION:
+        goalFindingStrategy = new LeafGoalWithPropagationStrategy();
+        break;
+      default:
+        throw new InvalidConfigurationException("A strategy must be selected!");
+    }
+    try {
+      var backwardsCpaTriple = this.createAlgorithm(
+          Path.of("config/components/goalConverterBackwardsSearch.properties"),
+          pCfa.getMainFunction(),
+          ShutdownManager.createWithParent(pShutdownNotifier),
+          new AggregatedReachedSets(),
+          ImmutableList.of(
+              "analysis.testGoalConverter",
+              "cpa",
+              "specification",
+              "ARGCPA.cpa",
+              "cpa.property_reachability.noFollowBackwardsUnreachable",
+              "analysis.initialStatesFor",
+              "CompositeCPA.cpas",
+              "cpa.callstack.traverseBackwards",
+              "analysis.collectAssumptions",
+              "assumptions.automatonFile"
+          ),
+          new HashSet<>()
+      );
 
-        /**
-         * A list of the strategy to use. Is used by our configuration.
-         * Note: Actually this is bad style. We should rather use reflection. If someone were
-         * to implement a new strategy they also would have to modify this enum which shouldn't be necessary.
-         */
-        public enum Strategy {
-                NAIVE, PROPAGATION
-        }
+      backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
+      backwardsCpa = backwardsCpaTriple.getSecond();
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      backwardsCpaAlgorithm = null;
+      backwardsCpa = null;
+    }
 
-        private Algorithm backwardsCpaAlgorithm;
-        private ConfigurableProgramAnalysis backwardsCpa;
+    if (pOuter == null || pOuterCpa == null) {
+      throw new InvalidConfigurationException("A valid pOuter algorithm must be specified!");
+    }
 
-        private final Algorithm outerAlgorithm;
-        private final ConfigurableProgramAnalysis outerCpa;
+    outerAlgorithm = pOuter;
+    outerCpa = pOuterCpa;
+  }
 
-        @Option(
-          secure = true,
-          name = "inputfile",
-          description = "The input file with all goals that were previously reached")
-        @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-        private Path inputfile;
+  @Override
+  public AlgorithmStatus run(ReachedSet reachedSet)
+      throws CPAException, InterruptedException {
+    try {
+      var leafGoals = getPartitionedLeafGoals();
 
-        @Option(
-          secure = true,
-          name = "strategy",
-          description = "The strategy to use"
-        )
-        Strategy strategy;
-
-        private final IGoalFindingStrategy goalFindingStrategy;
-
-        public TestGoalToConditionConverterAlgorithm(
-            Configuration pConfig,
-            LogManager pLogger,
-            ShutdownNotifier pShutdownNotifier,
-            CFA pCfa,
-            Algorithm pOuter,
-            ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException {
-
-                super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied(), pCfa);
-                pConfig.inject(this);
-
-                switch (strategy) {
-                        case NAIVE:
-                                goalFindingStrategy = new LeafGoalStrategy();
-                                break;
-                        case PROPAGATION:
-                                goalFindingStrategy = new LeafGoalWithPropagationStrategy();
-                                break;
-                        default:
-                                throw new InvalidConfigurationException("A strategy must be selected!");
-                }
-                try {
-                        var backwardsCpaTriple = this.createAlgorithm(
-                          Path.of("config/components/goalConverterBackwardsSearch.properties"),
-                          pCfa.getMainFunction(),
-                          ShutdownManager.createWithParent(pShutdownNotifier),
-                          new AggregatedReachedSets(),
-                          ImmutableList.of(
-                                "analysis.testGoalConverter",
-                                "cpa",
-                                "specification",
-                                "ARGCPA.cpa",
-                                "cpa.property_reachability.noFollowBackwardsUnreachable",
-                                "analysis.initialStatesFor",
-                                "CompositeCPA.cpas",
-                                "cpa.callstack.traverseBackwards",
-                                "analysis.collectAssumptions",
-                                "assumptions.automatonFile"
-                          ),
-                          new HashSet<>()
-                        );
-
-                        backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
-                        backwardsCpa = backwardsCpaTriple.getSecond();
-                } catch(RuntimeException e) {
-                        throw e;
-                } catch(Exception e) {
-                        backwardsCpaAlgorithm = null;
-                        backwardsCpa = null;
-                }
-
-                if(pOuter == null || pOuterCpa == null) {
-                        throw new InvalidConfigurationException("A valid pOuter algorithm must be specified!");
-                }
-
-                outerAlgorithm = pOuter;
-                outerCpa = pOuterCpa;
-        }
-
-        @Override public AlgorithmStatus run(ReachedSet reachedSet)
-          throws CPAException, InterruptedException {
-                try {
-                        var leafGoals = getPartitionedLeafGoals();
-
-                        var stopAtLeavesCpa = CPAs.retrieveCPAOrFail(outerCpa, StopAtLeavesCPA.class, StopAtLeavesCPA.class);
-                        stopAtLeavesCpa.setLeaves(leafGoals.get(LeafStates.UNCOVERED));
+      var stopAtLeavesCpa =
+          CPAs.retrieveCPAOrFail(outerCpa, StopAtLeavesCPA.class, StopAtLeavesCPA.class);
+      stopAtLeavesCpa.setLeaves(leafGoals.get(LeafStates.UNCOVERED));
 
 
-                        return outerAlgorithm.run(reachedSet);
-                } catch(Exception e) {
-                        throw new CPAException(e.getLocalizedMessage());
-                }
-        }
+      return outerAlgorithm.run(reachedSet);
+    } catch (Exception e) {
+      throw new CPAException(e.getLocalizedMessage());
+    }
+  }
 
-        /**
-         * Reads the input file and extracts all covered goals.
-         * @return A list of all covered goals.
-         * @throws CPAException when file could not be read or another IO error occurs.
-         */
-        private Set<String> getCoveredGoals() throws CPAException {
+  /**
+   * Reads the input file and extracts all covered goals.
+   *
+   * @return A list of all covered goals.
+   * @throws CPAException when file could not be read or another IO error occurs.
+   */
+  private Set<String> getCoveredGoals() throws CPAException {
 
-                try (var lines = Files.lines(inputfile)) {
-                        return lines.collect(Collectors.toSet());
-                } catch(IOException e) {
-                        throw new CPAException(e.getLocalizedMessage());
-                }
-        }
+    try (var lines = Files.lines(inputfile)) {
+      return lines.collect(Collectors.toSet());
+    } catch (IOException e) {
+      throw new CPAException(e.getLocalizedMessage());
+    }
+  }
 
-        /**
-         * Gets all leaf goals in the program. They are partitioned into LeafStates.COVERED and LeaftStates.UNCOVERED.
-         * @return A map with two keys (COVERED, UNCOVERED) of all leaf goals
-         * @throws CPAException Thrown when there is an error in the cpa algorithm
-         */
-        private Map<LeafStates, List<CFANode>> getPartitionedLeafGoals()
-          throws CPAException, InterruptedException {
+  /**
+   * Gets all leaf goals in the program. They are partitioned into LeafStates.COVERED and LeaftStates.UNCOVERED.
+   *
+   * @return A map with two keys (COVERED, UNCOVERED) of all leaf goals
+   * @throws CPAException Thrown when there is an error in the cpa algorithm
+   */
+  private Map<LeafStates, List<CFANode>> getPartitionedLeafGoals()
+      throws CPAException, InterruptedException {
 
-                var reachedSet = buildBackwardsReachedSet();
-                var coveredGoals = getCoveredGoals();
+    var reachedSet = buildBackwardsReachedSet();
+    var coveredGoals = getCoveredGoals();
 
-                backwardsCpaAlgorithm.run(reachedSet);
+    backwardsCpaAlgorithm.run(reachedSet);
 
-                List<ARGState> waitList = new ArrayList<>();
-                //We're doing a backwards analysis; hence the first state here is the end of the ARG
-                waitList.add((ARGState) reachedSet.getFirstState());
+    List<ARGState> waitList = new ArrayList<>();
+    //We're doing a backwards analysis; hence the first state here is the end of the ARG
+    waitList.add((ARGState) reachedSet.getFirstState());
 
-                return goalFindingStrategy.findGoals(waitList, coveredGoals);
-        }
+    return goalFindingStrategy.findGoals(waitList, coveredGoals);
+  }
 
-        /**
-         * This function builds a reached set that has PROGRAM_SINKS as initial states.
-         * We need to build it by hand since the option <pre>analysis.initialStatesFor = PROGRAM_SINKS</pre>
-         * is only read once when constructing @see{CPAchecker}.
-         * @return A reached set that has the PROGRAM_SINKS as initial states
-         */
-        private ReachedSet buildBackwardsReachedSet() throws InterruptedException {
-                var reachedSet = new PartitionedReachedSet(TraversalMethod.DFS);
-                var initialLocations =
-                  ImmutableSet.<CFANode>builder()
-                        .addAll(
-                          CFAUtils.getProgramSinks(
-                                cfa, cfa.getLoopStructure().orElseThrow(), cfa.getMainFunction()))
-                        .build();
+  /**
+   * This function builds a reached set that has PROGRAM_SINKS as initial states.
+   * We need to build it by hand since the option <pre>analysis.initialStatesFor = PROGRAM_SINKS</pre>
+   * is only read once when constructing @see{CPAchecker}.
+   *
+   * @return A reached set that has the PROGRAM_SINKS as initial states
+   */
+  private ReachedSet buildBackwardsReachedSet() throws InterruptedException {
+    var reachedSet = new PartitionedReachedSet(TraversalMethod.DFS);
+    var initialLocations =
+        ImmutableSet.<CFANode>builder()
+            .addAll(
+                CFAUtils.getProgramSinks(
+                    cfa, cfa.getLoopStructure().orElseThrow(), cfa.getMainFunction()))
+            .build();
 
-                for (var loc: initialLocations) {
-                        var partition = StateSpacePartition.getDefaultPartition();
-                        var state = backwardsCpa.getInitialState(loc, partition);
-                        var precision = backwardsCpa.getInitialPrecision(loc, partition);
-                        reachedSet.add(state, precision);
-                }
+    for (var loc : initialLocations) {
+      var partition = StateSpacePartition.getDefaultPartition();
+      var state = backwardsCpa.getInitialState(loc, partition);
+      var precision = backwardsCpa.getInitialPrecision(loc, partition);
+      reachedSet.add(state, precision);
+    }
 
-                return reachedSet;
-        }
+    return reachedSet;
+  }
 
-        @Override public void collectStatistics(Collection<Statistics> statsCollection) {
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
 
-        }
+  }
+
+  /**
+   * States a goal can be in.
+   */
+  enum LeafStates {
+    COVERED(true),
+    UNCOVERED(false);
+
+    private final boolean isCovered;
+
+    LeafStates(boolean b) {
+      isCovered = b;
+    }
+
+    public boolean isCovered() {
+      return isCovered;
+    }
+  }
+
+  /**
+   * A list of the strategy to use. Is used by our configuration.
+   * Note: Actually this is bad style. We should rather use reflection. If someone were
+   * to implement a new strategy they also would have to modify this enum which shouldn't be necessary.
+   */
+  public enum Strategy {
+    NAIVE,
+    PROPAGATION
+  }
 }

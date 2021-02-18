@@ -402,6 +402,7 @@ public class ConfigurationFileChecks {
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
+    final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -448,6 +449,8 @@ public class ConfigurationFileChecks {
       if (!Strings.isNullOrEmpty(spec)) {
         assertThat(spec).endsWith("specification/modifications-present.spc");
       }
+    } else if(isConditionalTesting) {
+      assertThat(spec).endsWith("specification/StopAtLeaves.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
