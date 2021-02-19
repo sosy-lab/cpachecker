@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -272,6 +273,20 @@ public class TestCPA extends AbstractCPA {
       state = ImmutableMap.of();
     }
 
+    private InvariantSamplingState(
+        InvariantSamplingState currentState, String variableName, Integer value) {
+      checkNotNull(variableName);
+      checkNotNull(value);
+      ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+      builder.put(variableName, value);
+      for (Entry<String, Integer> entry : currentState.getState().entrySet()) {
+        if (!entry.getKey().equals(variableName)) {
+          builder.put(entry);
+        }
+      }
+      state = builder.build();
+    }
+
     public static InvariantSamplingState newInvariantSamplingState(
         InvariantSamplingState currentState, CVariableDeclaration declaration) throws CPAException {
       RightHandSideInvariantSamplingVisitor rightVisitor =
@@ -284,20 +299,6 @@ public class TestCPA extends AbstractCPA {
         throw new CPAException("Could not determine declaration for InvariantSamplingState", e);
       }
       return new InvariantSamplingState(currentState, variableName, value);
-    }
-
-    private InvariantSamplingState(
-        InvariantSamplingState currentState, String variableName, Integer value) {
-      checkNotNull(variableName != null);
-      checkNotNull(value != null);
-      ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-      builder.put(variableName, value);
-      for (Entry<String, Integer> entry : currentState.getState().entrySet()) {
-        if (!entry.getKey().equals(variableName)) {
-          builder.put(entry);
-        }
-      }
-      state = builder.build();
     }
 
     public static InvariantSamplingState newInvariantSamplingState(
@@ -417,6 +418,11 @@ public class TestCPA extends AbstractCPA {
       } catch (CPAException e) {
         throw new CPATransferException("Could not generate successor for invariant sampling", e);
       }
+    }
+
+    @Override
+    protected InvariantSamplingState handleReturnStatementEdge(CReturnStatementEdge edge) {
+      return this.getState();
     }
 
   }
