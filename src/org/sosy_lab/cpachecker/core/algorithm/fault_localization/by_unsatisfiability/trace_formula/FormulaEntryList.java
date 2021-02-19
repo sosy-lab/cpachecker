@@ -105,7 +105,6 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     private final int atomId;
 
     public FormulaEntry(int pAtomId,  SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
-      Preconditions.checkNotNull(pAtomId);
       Preconditions.checkNotNull(pSSAMap);
       map = pSSAMap;
       selector = pSelector;
