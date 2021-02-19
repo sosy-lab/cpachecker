@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -26,20 +27,23 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
-  private List<Fault> rankedList;
+  private boolean sortIntended;
+  private ImmutableList<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
   /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
-  private Optional<BooleanFormula> precondition;
+  private final Optional<BooleanFormula> precondition;
   private final ImmutableList<BooleanFormula> atoms;
 
   /**
@@ -57,7 +61,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * <p>To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target
    * state by this or simply call {@link #apply()} on an instance of this class.
    *
-   * @param pFaults Ranked list of faults obtained by a fault localization algorithm
+   * @param pFaults Ranked list of faults obtained by a fault localization algorithm. The list will
+   *                be stored immutable internally.
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(List<Fault> pFaults, CounterexampleInfo pParent) {
@@ -67,7 +72,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    rankedList = pFaults;
+    rankedList = ImmutableList.copyOf(pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
     atoms = ImmutableList.of();
@@ -161,12 +166,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     }
   }
 
-  /**
-   * Sort faults by the index returned by {@link Fault#getIntendedIndex()}. The index has to be set
-   * manually in advance.
-   */
-  public void sortIntended() {
-    rankedList.sort(Comparator.comparingInt(Fault::getIntendedIndex));
+  public void setSortIntended(boolean pIntended) {
+    sortIntended = pIntended;
   }
 
   @Override
@@ -197,8 +198,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   public void faultsToJSON(Writer pWriter) throws IOException {
     List<Map<String, Object>> faults = new ArrayList<>();
-    for (int i = 0; i < rankedList.size(); i++) {
-      Fault fault = rankedList.get(i);
+    List<Fault> ranked = getRankedList();
+    for (int i = 0; i < ranked.size(); i++) {
+      Fault fault = ranked.get(i);
       Map<String, Object> faultMap = new HashMap<>();
       faultMap.put("rank", (i+1));
       faultMap.put("score", (int) (100 * fault.getScore()));
@@ -234,8 +236,16 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     }
   }
 
-  public List<Fault> getRankedList() {
-    return rankedList;
+  /**
+   * Return the ranked list of faults. If sort intended label is set, return a sorted copy sorted
+   * by {@link Fault#getIntendedIndex()}. The index has to be set manually in advance.
+   * @return an immutable list of faults sorted by intended index or score
+   */
+  public ImmutableList<Fault> getRankedList() {
+    if (sortIntended) {
+      return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), rankedList);
+    }
+    return ImmutableList.copyOf(rankedList);
   }
 
   public FaultReportWriter getHtmlWriter() {
