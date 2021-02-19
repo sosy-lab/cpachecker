@@ -185,7 +185,7 @@ class PointerVisitor extends ExpressionValueVisitor {
           result.add(SMGAddressValueAndState.of(newState));
         } else {
           SMGExplicitValue arrayOffset = arrayAddress.getOffset();
-          int typeSize =
+          long typeSize =
               smgExpressionEvaluator.getBitSizeof(
                   getCfaEdge(), TypeUtils.getRealExpressionType(lValue), newState, lValue);
           SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);

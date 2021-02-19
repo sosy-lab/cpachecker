@@ -644,13 +644,13 @@ public class SMGBuiltins {
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
               SMGValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-              int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
-              int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
-              int availableSource = sourceSize - sourceRangeOffset;
+              long sourceRangeOffset = sourceObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long availableSource = sourceSize - sourceRangeOffset;
 
-              int targetRangeOffset = targetObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
-              int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
-              int availableTarget = targetSize - targetRangeOffset;
+              long targetRangeOffset = targetObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
                 if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {

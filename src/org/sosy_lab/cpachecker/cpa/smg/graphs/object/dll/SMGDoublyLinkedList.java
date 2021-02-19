@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 
 public class SMGDoublyLinkedList extends SMGAbstractList<SMGDoublyLinkedListShape> {
 
-  public SMGDoublyLinkedList(int pSize, long pHfo, long pNfo, long pPfo,
+  public SMGDoublyLinkedList(long pSize, long pHfo, long pNfo, long pPfo,
       int pMinLength, int level) {
     super(
         pSize,
