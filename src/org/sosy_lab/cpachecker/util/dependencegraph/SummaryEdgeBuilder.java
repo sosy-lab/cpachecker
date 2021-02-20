@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -282,8 +283,10 @@ final class SummaryEdgeBuilder {
     @Override
     public void run(List<N> pFormalOutNodes, boolean pRecursive, SummaryEdgeConsumer<N> pConsumer) {
 
-      assert !pFormalOutNodes.isEmpty();
-      assert pFormalOutNodes.size() <= MAX_BATCH_SIZE;
+      Preconditions.checkArgument(!pFormalOutNodes.isEmpty(), "pFormalOutNodes must not be empty");
+      Preconditions.checkArgument(
+          pFormalOutNodes.size() <= MAX_BATCH_SIZE,
+          "pFormalOutNodes must not contain more than MAX_BATCH_SIZE nodes");
 
       procedureId = getProcedureId(pFormalOutNodes.get(0).getId());
       recursive = pRecursive;
