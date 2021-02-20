@@ -74,13 +74,14 @@ final class SummaryEdgeBuilder {
     }
 
     List<N> selectedFormalOutNodes = new ArrayList<>();
-
+    // insert summary edges for all formal-out nodes
     for (int index = 0; index < orderedFormalOutNodes.size(); index++) {
 
       N node = orderedFormalOutNodes.get(index);
       int procedureId = procedureIds[node.getId()];
       selectedFormalOutNodes.add(node);
 
+      // select up to batchSize formal-out nodes that are from a single procedure
       while (index + 1 < orderedFormalOutNodes.size()
           && selectedFormalOutNodes.size() < batchSize) {
 
@@ -118,6 +119,17 @@ final class SummaryEdgeBuilder {
     void accept(N pFormalInNode, N pFormalOutNode);
   }
 
+  /**
+   * A summary edge finder traverses a SDG and finds summary edges between formal-in and formal-out
+   * nodes.
+   *
+   * <p>A list of formal-out nodes is specified for each run. The allowed list size may depend on
+   * the implementation of summary edge finder. If a summary edge between a formal-in and formal-out
+   * node is found by a summary edge finder, the {@link SummaryEdgeConsumer} specified for the run
+   * is called.
+   *
+   * <p>Implementation must implement the run method.
+   */
   private abstract static class SummaryEdgeFinder<N extends Node<?, ?, ?>> {
 
     private final SystemDependenceGraph.Builder<?, ?, ?, N> builder;
@@ -254,8 +266,12 @@ final class SummaryEdgeBuilder {
     private int procedureId;
     private boolean recursive;
 
+    // every element in states is used as a bitset and states[node.getId()] == state of node,
+    // if a bit is set, the formal-out node corresponding to the bit is reachable from the node
     private final long[] states;
+    // all states with index < statesDirtyMin have not set bits
     private int statesDirtyMin;
+    // all states with index > statesDirtyMax have not set bits
     private int statesDirtyMax;
 
     private BatchSummaryEdgeFinder(
