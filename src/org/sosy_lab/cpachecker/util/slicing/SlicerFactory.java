@@ -97,11 +97,11 @@ public class SlicerFactory implements StatisticsProvider {
 
     final CSystemDependenceGraphBuilder depGraphBuilder =
         new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
-
-    CSystemDependenceGraph sdg = depGraphBuilder.build();
-    depGraphBuilder.collectStatistics(stats);
-
-    return sdg;
+    try {
+      return depGraphBuilder.build();
+    } finally {
+      depGraphBuilder.collectStatistics(stats);
+    }
   }
 
   /**
