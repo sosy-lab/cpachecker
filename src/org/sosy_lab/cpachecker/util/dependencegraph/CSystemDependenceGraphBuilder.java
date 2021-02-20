@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -17,10 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +33,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -175,24 +171,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
 
     defUseExtractor =
-        new EdgeDefUseData.Extractor() {
-
-          private final Map<Equivalence.Wrapper<Object>, EdgeDefUseData> cache = new HashMap<>();
-          private final EdgeDefUseData.Extractor delegateExtractor =
-              EdgeDefUseData.createExtractor(considerPointees);
-
-          @Override
-          public EdgeDefUseData extract(CFAEdge pEdge) {
-            return cache.computeIfAbsent(
-                Equivalence.identity().wrap(pEdge), key -> delegateExtractor.extract(pEdge));
-          }
-
-          @Override
-          public EdgeDefUseData extract(CAstNode pAstNode) {
-            return cache.computeIfAbsent(
-                Equivalence.identity().wrap(pAstNode), key -> delegateExtractor.extract(pAstNode));
-          }
-        };
+        new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(considerPointees));
 
     // If you add additional types of dependencies, they should probably be added to this check,
     // as well
@@ -309,7 +288,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
 
     } else {
-      pointerState = GlobalPointerState.EMPTY;
+      pointerState = GlobalPointerState.IGNORE_POINTERS;
     }
 
     return pointerState;
@@ -342,7 +321,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private ImmutableMap<String, CFAEdge> getDeclarationEdges(List<CFAEdge> pGlobalEdges) {
 
-    Map<String, CFAEdge> declarationEdges = new HashMap<>();
+    ImmutableMap.Builder<String, CFAEdge> declarationEdges = ImmutableMap.builder();
 
     for (CFAEdge edge : pGlobalEdges) {
       if (edge instanceof CDeclarationEdge) {
@@ -358,7 +337,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
     }
 
-    return ImmutableMap.copyOf(declarationEdges);
+    return declarationEdges.build();
   }
 
   private CFunctionCallEdge getCallEdge(CFunctionSummaryEdge pSummaryEdge) {
@@ -568,35 +547,15 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
-      throws CPAException {
+  private void insertFlowDependency(
+      GlobalPointerState pointerState,
+      ForeignDefUseData foreignDefUseData,
+      CFAEdge pDefEdge,
+      CFAEdge pUseEdge,
+      MemoryLocation pCause,
+      boolean pIsDeclaration) {
 
-    GlobalPointerState pointerState = createGlobalPointerState();
-    if (pointerState != null) {
-      usedGlobalPointerState = pointerState.getClass().getSimpleName();
-    } else {
-      return;
-    }
-
-    ForeignDefUseData foreignDefUseData =
-        ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
-
-    ImmutableList<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
-    ImmutableMap<String, CFAEdge> declarationEdges = getDeclarationEdges(globalEdges);
-
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-
-      if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
-        continue;
-      }
-
-      DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
-
-      insertFunctionDeclarationEdge(declarationEdges, entryNode);
-
-      DependenceConsumer dependenceConsumer =
-          (pDefEdge, pUseEdge, pCause, pIsDeclaration) -> {
-            Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
+    Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
             Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
             Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
             Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
@@ -675,7 +634,38 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
                     .on(defNodeType, defFunction, defEdge, defNodeVariable);
               }
             }
-          };
+  }
+
+  private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
+      throws CPAException {
+
+    GlobalPointerState pointerState = createGlobalPointerState();
+    if (pointerState != null) {
+      usedGlobalPointerState = pointerState.getClass().getSimpleName();
+    } else {
+      return;
+    }
+
+    ForeignDefUseData foreignDefUseData =
+        ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
+
+    ImmutableList<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
+    ImmutableMap<String, CFAEdge> declarationEdges = getDeclarationEdges(globalEdges);
+
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
+        continue;
+      }
+
+      DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
+
+      insertFunctionDeclarationEdge(declarationEdges, entryNode);
+
+      DependenceConsumer dependenceConsumer =
+          (pDefEdge, pUseEdge, pCause, pIsDeclaration) ->
+              insertFlowDependency(
+                  pointerState, foreignDefUseData, pDefEdge, pUseEdge, pCause, pIsDeclaration);
 
       boolean isMain = entryNode.equals(cfa.getMainFunction());
 
@@ -744,48 +734,95 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
             if (dependenceGraphConstructionTimer.getUpdateCount() > 0) {
 
-              put(pOut, 3, dependenceGraphConstructionTimer);
-              put(pOut, 4, flowDependenceTimer);
-              put(pOut, 4, controlDependenceTimer);
-              put(pOut, 4, summaryEdgeTimer);
+              int initialIndentation = 3;
+              int detailsIndentation = initialIndentation + 1;
+
+              put(pOut, initialIndentation, dependenceGraphConstructionTimer);
+              put(pOut, detailsIndentation, flowDependenceTimer);
+              put(pOut, detailsIndentation, controlDependenceTimer);
+              put(pOut, detailsIndentation, summaryEdgeTimer);
 
               int entryNodeCount = systemDependenceGraph.getNodeCount(NodeType.ENTRY);
-              put(pOut, 4, "Number of entry nodes", String.valueOf(entryNodeCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of entry nodes",
+                  String.valueOf(entryNodeCount));
 
               int statementCount = systemDependenceGraph.getNodeCount(NodeType.STATEMENT);
-              put(pOut, 4, "Number of statement nodes", String.valueOf(statementCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of statement nodes",
+                  String.valueOf(statementCount));
 
               int formalInCount = systemDependenceGraph.getNodeCount(NodeType.FORMAL_IN);
-              put(pOut, 4, "Number of formal-in nodes", String.valueOf(formalInCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of formal-in nodes",
+                  String.valueOf(formalInCount));
 
               int formalOutCount = systemDependenceGraph.getNodeCount(NodeType.FORMAL_OUT);
-              put(pOut, 4, "Number of formal-out nodes", String.valueOf(formalOutCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of formal-out nodes",
+                  String.valueOf(formalOutCount));
 
               int actualInCount = systemDependenceGraph.getNodeCount(NodeType.ACTUAL_IN);
-              put(pOut, 4, "Number of actual-in nodes", String.valueOf(actualInCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of actual-in nodes",
+                  String.valueOf(actualInCount));
 
               int actualOutCount = systemDependenceGraph.getNodeCount(NodeType.ACTUAL_OUT);
-              put(pOut, 4, "Number of actual-out nodes", String.valueOf(actualOutCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of actual-out nodes",
+                  String.valueOf(actualOutCount));
 
               int flowDepCount = systemDependenceGraph.getEdgeCount(EdgeType.FLOW_DEPENDENCY);
-              put(pOut, 4, "Number of flow dependencies", String.valueOf(flowDepCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of flow dependencies",
+                  String.valueOf(flowDepCount));
 
               int controlDepCount = systemDependenceGraph.getEdgeCount(EdgeType.CONTROL_DEPENDENCY);
-              put(pOut, 4, "Number of control dependencies", String.valueOf(controlDepCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of control dependencies",
+                  String.valueOf(controlDepCount));
 
               int declEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.DECLARATION_EDGE);
-              put(pOut, 4, "Number of declaration edges", String.valueOf(declEdgeCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of declaration edges",
+                  String.valueOf(declEdgeCount));
 
               int callEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.CALL_EDGE);
-              put(pOut, 4, "Number of call edges", String.valueOf(callEdgeCount));
+              put(pOut, detailsIndentation, "Number of call edges", String.valueOf(callEdgeCount));
 
               int paramEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.PARAMETER_EDGE);
-              put(pOut, 4, "Number of parameter edges", String.valueOf(paramEdgeCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of parameter edges",
+                  String.valueOf(paramEdgeCount));
 
               int summaryEdgeCount = systemDependenceGraph.getEdgeCount(EdgeType.SUMMARY_EDGE);
-              put(pOut, 4, "Number of summary edges", String.valueOf(summaryEdgeCount));
+              put(
+                  pOut,
+                  detailsIndentation,
+                  "Number of summary edges",
+                  String.valueOf(summaryEdgeCount));
 
-              put(pOut, 4, "Used GlobalPointerState", usedGlobalPointerState);
+              put(pOut, detailsIndentation, "Used GlobalPointerState", usedGlobalPointerState);
             }
           }
 

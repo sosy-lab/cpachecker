@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 abstract class GlobalPointerState {
 
-  public static final GlobalPointerState EMPTY = new EmptyPointerState();
+  public static final GlobalPointerState IGNORE_POINTERS = new IgnorePointersPointerState();
 
   public abstract ImmutableSet<MemoryLocation> getPossiblePointees(
       CFAEdge pEdge, CExpression pExpression);
@@ -386,7 +386,7 @@ abstract class GlobalPointerState {
     }
   }
 
-  private static final class EmptyPointerState extends GlobalPointerState {
+  private static final class IgnorePointersPointerState extends GlobalPointerState {
 
     @Override
     public ImmutableSet<MemoryLocation> getPossiblePointees(

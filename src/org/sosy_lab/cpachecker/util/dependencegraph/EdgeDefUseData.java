@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.base.Equivalence;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -174,6 +177,29 @@ final class EdgeDefUseData {
     public EdgeDefUseData extract(CFAEdge pEdge);
 
     public EdgeDefUseData extract(CAstNode pAstNode);
+  }
+
+  public static final class CachingExtractor implements Extractor {
+
+    private final Extractor delegateExtractor;
+    private final Map<Equivalence.Wrapper<Object>, EdgeDefUseData> cache;
+
+    public CachingExtractor(Extractor pDelegateExtractor) {
+      delegateExtractor = pDelegateExtractor;
+      cache = new HashMap<>();
+    }
+
+    @Override
+    public EdgeDefUseData extract(CFAEdge pEdge) {
+      return cache.computeIfAbsent(
+          Equivalence.identity().wrap(pEdge), key -> delegateExtractor.extract(pEdge));
+    }
+
+    @Override
+    public EdgeDefUseData extract(CAstNode pAstNode) {
+      return cache.computeIfAbsent(
+          Equivalence.identity().wrap(pAstNode), key -> delegateExtractor.extract(pAstNode));
+    }
   }
 
   private static final class EdgeDefUseDataException extends RuntimeException {
