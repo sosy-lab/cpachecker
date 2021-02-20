@@ -33,8 +33,9 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitR
  * @param <P> the procedure type of the SDG
  * @param <T> the statement type of the SDG
  * @param <V> the variable type of the SDG
+ * @param <N> the node type of the SDG
  */
-abstract class SdgDotExporter<P, T, V> {
+abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T, V>> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles;
   private static final ImmutableMap<EdgeType, String> edgeLabels;
@@ -204,27 +205,26 @@ abstract class SdgDotExporter<P, T, V> {
   }
 
   private void writeEdges(
-      Writer pWriter, SystemDependenceGraph<P, T, V> pSdg, Map<Node<P, T, V>, Long> pVisitedNodes)
+      Writer pWriter, SystemDependenceGraph<V, N> pSdg, Map<Node<P, T, V>, Long> pVisitedNodes)
       throws IOException {
 
     StringBuilder sb = new StringBuilder();
 
-    for (Node<P, T, V> node : pSdg.getNodes()) {
+    for (N node : pSdg.getNodes()) {
 
       sb.setLength(0);
 
       pSdg.traverse(
           ImmutableSet.of(node),
-          new SystemDependenceGraph.ForwardsVisitor<P, T, V>() {
+          new SystemDependenceGraph.ForwardsVisitor<N>() {
 
             @Override
-            public VisitResult visitNode(Node<P, T, V> pNode) {
+            public VisitResult visitNode(N pNode) {
               return VisitResult.CONTINUE;
             }
 
             @Override
-            public VisitResult visitEdge(
-                EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
+            public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
 
               sb.append(nodeId(pVisitedNodes, pPredecessor));
               sb.append(" -> ");
@@ -245,7 +245,7 @@ abstract class SdgDotExporter<P, T, V> {
     }
   }
 
-  private void write(Writer pWriter, SystemDependenceGraph<P, T, V> pSdg) throws IOException {
+  private void write(Writer pWriter, SystemDependenceGraph<V, N> pSdg) throws IOException {
 
     pWriter.write("digraph SystemDependenceGraph {\n");
     pWriter.write("rankdir=LR;\n");
@@ -305,7 +305,7 @@ abstract class SdgDotExporter<P, T, V> {
    * @param pLogger the logger used for logging exceptions and other notable messages occurring
    *     during export of the SDG
    */
-  void export(SystemDependenceGraph<P, T, V> pSdg, Path pPath, LogManager pLogger) {
+  void export(SystemDependenceGraph<V, N> pSdg, Path pPath, LogManager pLogger) {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       write(writer, pSdg);

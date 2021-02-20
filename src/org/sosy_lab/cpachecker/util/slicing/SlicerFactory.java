@@ -17,14 +17,11 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Factory class for creating {@link Slicer} objects. The concrete <code>Slicer</code> that is
@@ -94,16 +91,14 @@ public class SlicerFactory implements StatisticsProvider {
     stats = new ArrayList<>();
   }
 
-  private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation>
-      createDependenceGraph(
-          LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-          throws CPAException, InvalidConfigurationException {
+  private CSystemDependenceGraph createDependenceGraph(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
+      throws CPAException, InvalidConfigurationException {
 
     final CSystemDependenceGraphBuilder depGraphBuilder =
         new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
 
-    SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> sdg =
-        depGraphBuilder.build();
+    CSystemDependenceGraph sdg = depGraphBuilder.build();
     depGraphBuilder.collectStatistics(stats);
 
     return sdg;
@@ -138,7 +133,7 @@ public class SlicerFactory implements StatisticsProvider {
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {
       case STATIC:
-        SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> dependenceGraph =
+        CSystemDependenceGraph dependenceGraph =
             createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
         return new StaticSlicer(
             extractor,

@@ -156,10 +156,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private List<PointerStateComputationMethod> pointerStateComputationMethods =
       ImmutableList.of(PointerStateComputationMethod.FLOW_SENSITIVE);
 
-  private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, MemoryLocation>
+  private final SystemDependenceGraph.Builder<
+          AFunctionDeclaration, CFAEdge, MemoryLocation, CSystemDependenceGraph.Node>
       builder;
-  private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation>
-      systemDependenceGraph = SystemDependenceGraph.empty();
+  private SystemDependenceGraph<MemoryLocation, CSystemDependenceGraph.Node> systemDependenceGraph =
+      SystemDependenceGraph.empty();
   private String usedGlobalPointerState = "none";
 
   public CSystemDependenceGraphBuilder(
@@ -201,11 +202,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               + " to build a meaningful dependence graph");
     }
 
-    builder = SystemDependenceGraph.builder();
+    builder = SystemDependenceGraph.builder(CSystemDependenceGraph.Node::new);
   }
 
-  public SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> build()
-      throws CPAException {
+  public CSystemDependenceGraph build() throws CPAException {
 
     dependenceGraphConstructionTimer.start();
 
@@ -247,7 +247,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       new CSdgDotExporter().export(systemDependenceGraph, exportDot, logger);
     }
 
-    return systemDependenceGraph;
+    return new CSystemDependenceGraph(systemDependenceGraph);
   }
 
   private static Optional<AFunctionDeclaration> getOptionalFunction(CFAEdge pEdge) {
@@ -802,7 +802,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   private static final class CSdgDotExporter
-      extends SdgDotExporter<AFunctionDeclaration, CFAEdge, MemoryLocation> {
+      extends SdgDotExporter<
+          AFunctionDeclaration, CFAEdge, MemoryLocation, CSystemDependenceGraph.Node> {
 
     @Override
     protected String getProcedureLabel(AFunctionDeclaration pContext) {

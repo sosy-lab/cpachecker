@@ -35,16 +35,16 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitR
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
  *
- * @param <V> the variable type of the SDG
+ * @param <N> the node type of the SDG
  */
-final class ControlDependenceBuilder<V> {
+final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdge, ?>> {
 
-  private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, V> builder;
+  private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, N> builder;
   private final Optional<AFunctionDeclaration> procedure;
   private final Set<CFAEdge> dependentEdges;
 
   private ControlDependenceBuilder(
-      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, V> pBuilder,
+      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, N> pBuilder,
       FunctionEntryNode pEntryNode) {
 
     builder = pBuilder;
@@ -74,7 +74,7 @@ final class ControlDependenceBuilder<V> {
    *     even if it would be sufficient to only depend on one of the assume edges
    */
   static void insertControlDependencies(
-      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?> pBuilder,
+      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, ?> pBuilder,
       FunctionEntryNode pEntryNode,
       boolean pDependOnBothAssumptions) {
 
@@ -206,7 +206,7 @@ final class ControlDependenceBuilder<V> {
     }
 
     Set<CFAEdge> entryNodeDependent = new HashSet<>();
-    Node<AFunctionDeclaration, CFAEdge, V> entryNode =
+    N entryNode =
         builder.node(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty()).getNode();
 
     builder.traverse(
@@ -214,7 +214,7 @@ final class ControlDependenceBuilder<V> {
         new ForwardsVisitor<>() {
 
           @Override
-          public VisitResult visitNode(Node<AFunctionDeclaration, CFAEdge, V> pNode) {
+          public VisitResult visitNode(N pNode) {
 
             if (pNode.getType() == NodeType.ENTRY) {
               return VisitResult.CONTINUE;
@@ -229,11 +229,7 @@ final class ControlDependenceBuilder<V> {
           }
 
           @Override
-          public VisitResult visitEdge(
-              EdgeType pType,
-              Node<AFunctionDeclaration, CFAEdge, V> pPredecessor,
-              Node<AFunctionDeclaration, CFAEdge, V> pSuccessor) {
-
+          public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
             return pType == EdgeType.CONTROL_DEPENDENCY ? VisitResult.CONTINUE : VisitResult.SKIP;
           }
         });

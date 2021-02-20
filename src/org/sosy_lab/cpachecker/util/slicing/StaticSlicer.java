@@ -23,7 +23,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
-  private SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> sdg;
+  private CSystemDependenceGraph sdg;
 
   private StatCounter sliceCount = new StatCounter("Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
@@ -70,7 +70,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      SystemDependenceGraph<AFunctionDeclaration, CFAEdge, MemoryLocation> pSdg,
+      CSystemDependenceGraph pSdg,
       boolean pPartiallyRelevantEdges)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
@@ -105,15 +105,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     return abortCallEdges;
   }
 
-  private Multimap<
-          CFAEdge, SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>>
-      getNodesPerCfaEdge() {
+  private Multimap<CFAEdge, CSystemDependenceGraph.Node> getNodesPerCfaEdge() {
 
-    Multimap<CFAEdge, SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>>
-        nodesPerCfaNode = ArrayListMultimap.create();
+    Multimap<CFAEdge, CSystemDependenceGraph.Node> nodesPerCfaNode = ArrayListMultimap.create();
 
-    for (SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation> node :
-        sdg.getNodes()) {
+    for (CSystemDependenceGraph.Node node : sdg.getNodes()) {
       Optional<CFAEdge> optCfaEdge = node.getStatement();
       if (optCfaEdge.isPresent()) {
         nodesPerCfaNode.put(optCfaEdge.orElseThrow(), node);
@@ -131,8 +127,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
-    Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> visitedSdgNodes =
-        new HashSet<>();
+    Set<CSystemDependenceGraph.Node> visitedSdgNodes = new HashSet<>();
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -141,84 +136,72 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       criteriaEdges.addAll(getAbortCallEdges(pCfa));
     }
 
-    SystemDependenceGraph.BackwardsVisitor<AFunctionDeclaration, CFAEdge, MemoryLocation>
-        phase1Visitor =
-            sdg.createVisitOnceVisitor(
-                new SystemDependenceGraph.BackwardsVisitor<
-                    AFunctionDeclaration, CFAEdge, MemoryLocation>() {
+    SystemDependenceGraph.BackwardsVisitor<CSystemDependenceGraph.Node> phase1Visitor =
+        sdg.createVisitOnceVisitor(
+            new CSystemDependenceGraph.BackwardsVisitor() {
 
-                  @Override
-                  public SystemDependenceGraph.VisitResult visitNode(
-                      SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
-                          pNode) {
+              @Override
+              public SystemDependenceGraph.VisitResult visitNode(
+                  CSystemDependenceGraph.Node pNode) {
 
-                    visitedSdgNodes.add(pNode);
+                visitedSdgNodes.add(pNode);
 
-                    Optional<CFAEdge> optCfaEdge = pNode.getStatement();
-                    if (optCfaEdge.isPresent()) {
-                      relevantEdges.add(optCfaEdge.orElseThrow());
-                    }
+                Optional<CFAEdge> optCfaEdge = pNode.getStatement();
+                if (optCfaEdge.isPresent()) {
+                  relevantEdges.add(optCfaEdge.orElseThrow());
+                }
 
-                    return SystemDependenceGraph.VisitResult.CONTINUE;
-                  }
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
 
-                  @Override
-                  public SystemDependenceGraph.VisitResult visitEdge(
-                      SystemDependenceGraph.EdgeType pType,
-                      SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
-                          pPredecessor,
-                      SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
-                          pSuccessor) {
+              @Override
+              public SystemDependenceGraph.VisitResult visitEdge(
+                  SystemDependenceGraph.EdgeType pType,
+                  CSystemDependenceGraph.Node pPredecessor,
+                  CSystemDependenceGraph.Node pSuccessor) {
 
-                    if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
-                      return SystemDependenceGraph.VisitResult.SKIP;
-                    }
+                if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
+                  return SystemDependenceGraph.VisitResult.SKIP;
+                }
 
-                    return SystemDependenceGraph.VisitResult.CONTINUE;
-                  }
-                });
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
+            });
 
-    SystemDependenceGraph.BackwardsVisitor<AFunctionDeclaration, CFAEdge, MemoryLocation>
-        phase2Visitor =
-            sdg.createVisitOnceVisitor(
-                new SystemDependenceGraph.BackwardsVisitor<
-                    AFunctionDeclaration, CFAEdge, MemoryLocation>() {
+    SystemDependenceGraph.BackwardsVisitor<CSystemDependenceGraph.Node> phase2Visitor =
+        sdg.createVisitOnceVisitor(
+            new CSystemDependenceGraph.BackwardsVisitor() {
 
-                  @Override
-                  public SystemDependenceGraph.VisitResult visitNode(
-                      SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
-                          pNode) {
+              @Override
+              public SystemDependenceGraph.VisitResult visitNode(
+                  CSystemDependenceGraph.Node pNode) {
 
-                    Optional<CFAEdge> optCfaEdge = pNode.getStatement();
-                    if (optCfaEdge.isPresent()) {
-                      relevantEdges.add(optCfaEdge.orElseThrow());
-                    }
+                Optional<CFAEdge> optCfaEdge = pNode.getStatement();
+                if (optCfaEdge.isPresent()) {
+                  relevantEdges.add(optCfaEdge.orElseThrow());
+                }
 
-                    return SystemDependenceGraph.VisitResult.CONTINUE;
-                  }
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
 
-                  @Override
-                  public SystemDependenceGraph.VisitResult visitEdge(
-                      SystemDependenceGraph.EdgeType pType,
-                      SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
-                          pPredecessor,
-                      SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>
-                          pSuccessor) {
+              @Override
+              public SystemDependenceGraph.VisitResult visitEdge(
+                  SystemDependenceGraph.EdgeType pType,
+                  CSystemDependenceGraph.Node pPredecessor,
+                  CSystemDependenceGraph.Node pSuccessor) {
 
-                    if (partiallyRelevantEdges
-                        && (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-                            || pType == EdgeType.CALL_EDGE)) {
-                      return SystemDependenceGraph.VisitResult.SKIP;
-                    }
+                if (partiallyRelevantEdges
+                    && (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
+                        || pType == EdgeType.CALL_EDGE)) {
+                  return SystemDependenceGraph.VisitResult.SKIP;
+                }
 
-                    return SystemDependenceGraph.VisitResult.CONTINUE;
-                  }
-                });
+                return SystemDependenceGraph.VisitResult.CONTINUE;
+              }
+            });
 
-    Set<SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>> startNodes =
-        new HashSet<>();
-    Multimap<CFAEdge, SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation>>
-        nodesPerCfaEdge = getNodesPerCfaEdge();
+    Set<CSystemDependenceGraph.Node> startNodes = new HashSet<>();
+    Multimap<CFAEdge, CSystemDependenceGraph.Node> nodesPerCfaEdge = getNodesPerCfaEdge();
 
     for (CFAEdge criteriaEdge : criteriaEdges) {
       startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));

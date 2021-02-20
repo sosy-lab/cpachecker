@@ -37,24 +37,23 @@ import java.util.function.Function;
  * <p>SDGs are traversed by calling the methods {@link #traverse(Collection, ForwardsVisitor)} or
  * {@link #traverse(Collection, BackwardsVisitor)}.
  *
- * @param <P> the procedure type of the SDG
- * @param <T> the statement type of the SDG
  * @param <V> the variable type of the SDG
+ * @param <N> the node type of the SDG
  */
-public final class SystemDependenceGraph<P, T, V> {
+public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?, V>> {
 
   // list of nodes where the node's index is equal to its id
-  private final ImmutableList<Node<P, T, V>> nodes;
+  private final ImmutableList<N> nodes;
   // list of nodes where the graph node's index is equal to its id
-  private final ImmutableList<GraphNode<P, T, V>> graphNodes;
+  private final ImmutableList<GraphNode<V, N>> graphNodes;
 
   // counters for nodes and edges per type
   private final TypeCounter<NodeType> nodeTypeCounter;
   private final TypeCounter<EdgeType> edgeTypeCounter;
 
   private SystemDependenceGraph(
-      ImmutableList<Node<P, T, V>> pNodes,
-      ImmutableList<GraphNode<P, T, V>> pGraphNodes,
+      ImmutableList<N> pNodes,
+      ImmutableList<GraphNode<V, N>> pGraphNodes,
       TypeCounter<NodeType> pNodeTypeCounter,
       TypeCounter<EdgeType> pEdgeTypeCounter) {
 
@@ -65,7 +64,19 @@ public final class SystemDependenceGraph<P, T, V> {
     edgeTypeCounter = pEdgeTypeCounter;
   }
 
-  private static <P, T, V> void throwExceptionForUnknownNode(Node<P, T, V> pNode) {
+  /**
+   * Creates a new {@link SystemDependenceGraph} instance from the specified SDG.
+   *
+   * <p>The constructed SDG is a copy of the specified SDG. This non-private constructor is required
+   * for subclasses of {@link SystemDependenceGraph}.
+   *
+   * @param pSdg a SDG to create a copy of
+   */
+  protected SystemDependenceGraph(SystemDependenceGraph<V, N> pSdg) {
+    this(pSdg.nodes, pSdg.graphNodes, pSdg.nodeTypeCounter, pSdg.edgeTypeCounter);
+  }
+
+  private static <N extends Node<?, ?, ?>> void throwExceptionForUnknownNode(N pNode) {
     throw new IllegalArgumentException("SystemDependenceGraph does not contain node: " + pNode);
   }
 
@@ -73,8 +84,8 @@ public final class SystemDependenceGraph<P, T, V> {
    * Gets the corresponding {@link GraphNode} for the specified {@link Node}. Throws runtime
    * exception if the graph node does not exist or the specified node is {@code null}.
    */
-  private static <P, T, V> GraphNode<P, T, V> getGraphNode(
-      List<GraphNode<P, T, V>> pGraphNodes, Node<P, T, V> pNode) {
+  private static <V, N extends Node<?, ?, V>> GraphNode<V, N> getGraphNode(
+      List<GraphNode<V, N>> pGraphNodes, N pNode) {
 
     Objects.requireNonNull(pNode, "node must not be null");
 
@@ -82,7 +93,7 @@ public final class SystemDependenceGraph<P, T, V> {
       throwExceptionForUnknownNode(pNode);
     }
 
-    GraphNode<P, T, V> graphNode = pGraphNodes.get(pNode.getId());
+    GraphNode<V, N> graphNode = pGraphNodes.get(pNode.getId());
 
     if (!graphNode.getNode().equals(pNode)) {
       throwExceptionForUnknownNode(pNode);
@@ -94,12 +105,11 @@ public final class SystemDependenceGraph<P, T, V> {
   /**
    * Returns a new {@link SystemDependenceGraph} instance that contains no nodes and no edges.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
    * @param <V> the variable type of the SDG
+   * @param <N> the node type of the SDG
    * @return a new SDG that contains no nodes and no edges
    */
-  public static <P, T, V> SystemDependenceGraph<P, T, V> empty() {
+  public static <V, N extends Node<?, ?, V>> SystemDependenceGraph<V, N> empty() {
     return new SystemDependenceGraph<>(
         ImmutableList.of(),
         ImmutableList.of(),
@@ -118,8 +128,27 @@ public final class SystemDependenceGraph<P, T, V> {
    * @param <V> the variable type for the SDG
    * @return a new SDG builder
    */
-  public static <P, T, V> Builder<P, T, V> builder() {
-    return new Builder<>();
+  public static <P, T, V> Builder<P, T, V, Node<P, T, V>> builder() {
+    return new Builder<>(Function.identity());
+  }
+
+  /**
+   * Returns a builder that can be used to create {@link SystemDependenceGraph} instances.
+   *
+   * <p>The returned builder can be used to create exactly one SDG. Reusing the builder to create
+   * multiple SDGs is not possible.
+   *
+   * @param <P> the procedure type for the SDG
+   * @param <T> the statement type for the SDG
+   * @param <V> the variable type for the SDG
+   * @param <N> the node type for the SDG
+   * @param pNodeCreationFunction function that transforms {@link SystemDependenceGraph.Node}
+   *     instances to instances of {@code N}
+   * @return a new SDG builder
+   */
+  public static <P, T, V, N extends Node<P, T, V>> Builder<P, T, V, N> builder(
+      Function<Node<P, T, V>, N> pNodeCreationFunction) {
+    return new Builder<>(pNodeCreationFunction);
   }
 
   /**
@@ -127,7 +156,7 @@ public final class SystemDependenceGraph<P, T, V> {
    *
    * @return the number of nodes in this SDG
    */
-  public int getNodeCount() {
+  public final int getNodeCount() {
     return nodes.size();
   }
 
@@ -139,7 +168,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @return the number of nodes of the specified type in this SDG
    * @throws NullPointerException if {@code pType == null}
    */
-  public int getNodeCount(NodeType pType) {
+  public final int getNodeCount(NodeType pType) {
 
     Objects.requireNonNull(pType, "pType must not be null");
 
@@ -153,7 +182,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @return the number of edges of the specified type in this SDG
    * @throws NullPointerException if {@code pType == null}
    */
-  public int getEdgeCount(EdgeType pType) {
+  public final int getEdgeCount(EdgeType pType) {
 
     Objects.requireNonNull(pType, "pType must not be null");
 
@@ -165,7 +194,7 @@ public final class SystemDependenceGraph<P, T, V> {
    *
    * @return an immutable collection of all nodes in this SDG
    */
-  public ImmutableCollection<Node<P, T, V>> getNodes() {
+  public final ImmutableCollection<N> getNodes() {
     return nodes;
   }
 
@@ -178,7 +207,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @return the node with the specified id in this SDG
    * @throws IllegalArgumentException if {@code pId < 0 || pId >= getNodeCount()}
    */
-  public Node<P, T, V> getNodeById(int pId) {
+  public final N getNodeById(int pId) {
 
     if (pId < 0 || pId >= getNodeCount()) {
       throw new IllegalArgumentException("SDG does not contain node with id: " + pId);
@@ -198,7 +227,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @throws NullPointerException if {@code pNode == null}
    * @throws IllegalArgumentException if the specified node does not belong to this SDG
    */
-  public ImmutableSet<V> getDefs(Node<P, T, V> pNode) {
+  public final ImmutableSet<V> getDefs(N pNode) {
     return ImmutableSet.copyOf(getGraphNode(graphNodes, pNode).getDefs());
   }
 
@@ -213,7 +242,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @throws NullPointerException if {@code pNode == null}
    * @throws IllegalArgumentException if the specified node does not belong to this SDG
    */
-  public ImmutableSet<V> getUses(Node<P, T, V> pNode) {
+  public final ImmutableSet<V> getUses(N pNode) {
     return ImmutableSet.copyOf(getGraphNode(graphNodes, pNode).getUses());
   }
 
@@ -221,41 +250,41 @@ public final class SystemDependenceGraph<P, T, V> {
    * Traverses the SDG specified by the graph nodes using the specified start nodes, visitor, and
    * direction.
    */
-  private static <P, T, V> void traverse(
-      List<GraphNode<P, T, V>> pGraphNodes,
-      Collection<Node<P, T, V>> pStartNodes,
-      Visitor<P, T, V> pVisitor,
+  private static <V, N extends Node<?, ?, V>> void traverse(
+      List<GraphNode<V, N>> pGraphNodes,
+      Collection<N> pStartNodes,
+      Visitor<N> pVisitor,
       boolean pForwards) {
 
     Objects.requireNonNull(pStartNodes, "pStartNodes must not be null");
     Objects.requireNonNull(pVisitor, "pVisitor must not be null");
 
-    Deque<GraphNode<P, T, V>> waitlist = new ArrayDeque<>();
+    Deque<GraphNode<V, N>> waitlist = new ArrayDeque<>();
 
-    for (Node<P, T, V> node : pStartNodes) {
+    for (N node : pStartNodes) {
       waitlist.add(getGraphNode(pGraphNodes, node));
     }
 
     while (!waitlist.isEmpty()) {
 
-      GraphNode<P, T, V> graphNode = waitlist.remove();
+      GraphNode<V, N> graphNode = waitlist.remove();
       VisitResult nodeVisitResult = pVisitor.visitNode(graphNode.getNode());
 
       if (nodeVisitResult == VisitResult.CONTINUE) {
 
-        List<GraphEdge<P, T, V>> edges =
+        List<GraphEdge<V, N>> edges =
             pForwards ? graphNode.getLeavingEdges() : graphNode.getEnteringEdges();
 
-        for (GraphEdge<P, T, V> edge : edges) {
+        for (GraphEdge<V, N> edge : edges) {
 
-          GraphNode<P, T, V> predecessor = edge.getPredecessor();
-          GraphNode<P, T, V> successor = edge.getSuccessor();
+          GraphNode<V, N> predecessor = edge.getPredecessor();
+          GraphNode<V, N> successor = edge.getSuccessor();
           VisitResult edgeVisitResult =
               pVisitor.visitEdge(edge.getType(), predecessor.getNode(), successor.getNode());
 
           if (edgeVisitResult == VisitResult.CONTINUE) {
 
-            GraphNode<P, T, V> next = pForwards ? successor : predecessor;
+            GraphNode<V, N> next = pForwards ? successor : predecessor;
             waitlist.add(next);
 
           } else if (nodeVisitResult == VisitResult.TERMINATE) {
@@ -289,7 +318,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @throws IllegalArgumentException if any of the nodes contained in {@code pStartNodes} does not
    *     belong to this SDG
    */
-  public void traverse(Collection<Node<P, T, V>> pStartNodes, ForwardsVisitor<P, T, V> pVisitor) {
+  public final void traverse(Collection<N> pStartNodes, ForwardsVisitor<N> pVisitor) {
     traverse(graphNodes, pStartNodes, pVisitor, true);
   }
 
@@ -313,7 +342,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @throws IllegalArgumentException if any of the nodes contained in {@code pStartNodes} does not
    *     belong to this SDG
    */
-  public void traverse(Collection<Node<P, T, V>> pStartNodes, BackwardsVisitor<P, T, V> pVisitor) {
+  public final void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
     traverse(graphNodes, pStartNodes, pVisitor, false);
   }
 
@@ -328,8 +357,8 @@ public final class SystemDependenceGraph<P, T, V> {
    * @return a new visit-once-visitor that wraps the specified visitor
    * @throws NullPointerException if {@code pDelegateVisitor == null}
    */
-  public ForwardsVisitOnceVisitor<P, T, V> createVisitOnceVisitor(
-      ForwardsVisitor<P, T, V> pDelegateVisitor) {
+  public final ForwardsVisitOnceVisitor<N> createVisitOnceVisitor(
+      ForwardsVisitor<N> pDelegateVisitor) {
 
     Objects.requireNonNull(pDelegateVisitor, "pDelegateVisitor must not be null");
 
@@ -347,8 +376,8 @@ public final class SystemDependenceGraph<P, T, V> {
    * @return a new visit-once-visitor that wraps the specified visitor
    * @throws NullPointerException if {@code pDelegateVisitor == null}
    */
-  public BackwardsVisitOnceVisitor<P, T, V> createVisitOnceVisitor(
-      BackwardsVisitor<P, T, V> pDelegateVisitor) {
+  public final BackwardsVisitOnceVisitor<N> createVisitOnceVisitor(
+      BackwardsVisitor<N> pDelegateVisitor) {
 
     Objects.requireNonNull(pDelegateVisitor, "pDelegateVisitor must not be null");
 
@@ -485,7 +514,7 @@ public final class SystemDependenceGraph<P, T, V> {
    * @param <T> the statement type of the SDG
    * @param <V> the variable type of the SDG
    */
-  public static final class Node<P, T, V> {
+  public static class Node<P, T, V> {
 
     private final int id;
     private final NodeType type;
@@ -512,13 +541,25 @@ public final class SystemDependenceGraph<P, T, V> {
     }
 
     /**
+     * Creates a new {@link SystemDependenceGraph.Node} instance from the specified node.
+     *
+     * <p>The constructed node is a copy of the specified node. This non-private constructor is
+     * required for subclasses of {@link SystemDependenceGraph.Node}.
+     *
+     * @param pNode a node to create a copy of
+     */
+    protected Node(Node<P, T, V> pNode) {
+      this(pNode.id, pNode.type, pNode.procedure, pNode.statement, pNode.variable);
+    }
+
+    /**
      * Returns the id of this node.
      *
      * <p>Node ids are unique inside a system dependence graph.
      *
      * @return the id of this node
      */
-    public int getId() {
+    public final int getId() {
       return id;
     }
 
@@ -527,7 +568,7 @@ public final class SystemDependenceGraph<P, T, V> {
      *
      * @return the type of the node
      */
-    public NodeType getType() {
+    public final NodeType getType() {
       return type;
     }
 
@@ -538,7 +579,7 @@ public final class SystemDependenceGraph<P, T, V> {
      *
      * @return the procedure of the node
      */
-    public Optional<P> getProcedure() {
+    public final Optional<P> getProcedure() {
       return procedure;
     }
 
@@ -549,7 +590,7 @@ public final class SystemDependenceGraph<P, T, V> {
      *
      * @return the statement of the node.
      */
-    public Optional<T> getStatement() {
+    public final Optional<T> getStatement() {
       return statement;
     }
 
@@ -560,17 +601,17 @@ public final class SystemDependenceGraph<P, T, V> {
      *
      * @return the variable of the node
      */
-    public Optional<V> getVariable() {
+    public final Optional<V> getVariable() {
       return variable;
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
       return hash;
     }
 
     @Override
-    public boolean equals(Object pObject) {
+    public final boolean equals(Object pObject) {
 
       if (this == pObject) {
         return true;
@@ -595,7 +636,7 @@ public final class SystemDependenceGraph<P, T, V> {
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
       return String.format(
           Locale.ENGLISH,
           "%s[id=%d, type=%s, procedure=%s, statement=%s, variable=%s]",
@@ -613,17 +654,17 @@ public final class SystemDependenceGraph<P, T, V> {
    * and leaving edges. This class is private to the SDG class, use {@link Visitor} for graph
    * traversals and {@link Node} to refer to SDG nodes outside the SDG class.
    */
-  private static final class GraphNode<P, T, V> {
+  private static final class GraphNode<V, N extends Node<?, ?, V>> {
 
-    private final Node<P, T, V> node;
+    private final N node;
 
-    private List<GraphEdge<P, T, V>> enteringEdges;
-    private List<GraphEdge<P, T, V>> leavingEdges;
+    private List<GraphEdge<V, N>> enteringEdges;
+    private List<GraphEdge<V, N>> leavingEdges;
 
     private Set<V> defs;
     private Set<V> uses;
 
-    private GraphNode(Node<P, T, V> pNode) {
+    private GraphNode(N pNode) {
 
       node = pNode;
 
@@ -634,7 +675,7 @@ public final class SystemDependenceGraph<P, T, V> {
       uses = new HashSet<>();
     }
 
-    private Node<P, T, V> getNode() {
+    private N getNode() {
       return node;
     }
 
@@ -642,13 +683,13 @@ public final class SystemDependenceGraph<P, T, V> {
       return enteringEdges.size();
     }
 
-    private List<GraphEdge<P, T, V>> getEnteringEdges() {
+    private List<GraphEdge<V, N>> getEnteringEdges() {
       return enteringEdges;
     }
 
-    private boolean hasEnteringEdgeFrom(EdgeType pType, GraphNode<P, T, V> pPredecessor) {
+    private boolean hasEnteringEdgeFrom(EdgeType pType, GraphNode<V, N> pPredecessor) {
 
-      for (GraphEdge<P, T, V> graphEdge : enteringEdges) {
+      for (GraphEdge<V, N> graphEdge : enteringEdges) {
         // identity comparison between graph nodes is intended here
         // inside a single SDG, equality can be determined by their identity
         if (graphEdge.getType() == pType && graphEdge.getPredecessor() == pPredecessor) {
@@ -659,7 +700,7 @@ public final class SystemDependenceGraph<P, T, V> {
       return false;
     }
 
-    private void addEnteringEdge(GraphEdge<P, T, V> pEdge) {
+    private void addEnteringEdge(GraphEdge<V, N> pEdge) {
       enteringEdges.add(pEdge);
     }
 
@@ -667,13 +708,13 @@ public final class SystemDependenceGraph<P, T, V> {
       return leavingEdges.size();
     }
 
-    private List<GraphEdge<P, T, V>> getLeavingEdges() {
+    private List<GraphEdge<V, N>> getLeavingEdges() {
       return leavingEdges;
     }
 
-    private boolean hasLeavingEdgeTo(EdgeType pType, GraphNode<P, T, V> pSuccessor) {
+    private boolean hasLeavingEdgeTo(EdgeType pType, GraphNode<V, N> pSuccessor) {
 
-      for (GraphEdge<P, T, V> graphEdge : leavingEdges) {
+      for (GraphEdge<V, N> graphEdge : leavingEdges) {
         // identity comparison between graph nodes is intended here
         // inside a single SDG, equality can be determined by their identity
         if (graphEdge.getType() == pType && graphEdge.getSuccessor() == pSuccessor) {
@@ -684,7 +725,7 @@ public final class SystemDependenceGraph<P, T, V> {
       return false;
     }
 
-    private void addLeavingEdge(GraphEdge<P, T, V> pEdge) {
+    private void addLeavingEdge(GraphEdge<V, N> pEdge) {
       leavingEdges.add(pEdge);
     }
 
@@ -739,7 +780,7 @@ public final class SystemDependenceGraph<P, T, V> {
         return false;
       }
 
-      GraphNode<?, ?, ?> other = (GraphNode<?, ?, ?>) obj;
+      GraphNode<?, ?> other = (GraphNode<?, ?>) obj;
       return node.equals(other.node);
     }
 
@@ -761,15 +802,14 @@ public final class SystemDependenceGraph<P, T, V> {
    * This class is used to represent an edge between two graph nodes ({@link GraphNode}). This class
    * is private, use {@link Visitor} for graph traversals.
    */
-  private static final class GraphEdge<P, T, V> {
+  private static final class GraphEdge<V, N extends Node<?, ?, V>> {
 
     private final EdgeType type;
 
-    private final GraphNode<P, T, V> predecessor;
-    private final GraphNode<P, T, V> successor;
+    private final GraphNode<V, N> predecessor;
+    private final GraphNode<V, N> successor;
 
-    private GraphEdge(
-        EdgeType pType, GraphNode<P, T, V> pPredecessor, GraphNode<P, T, V> pSuccessor) {
+    private GraphEdge(EdgeType pType, GraphNode<V, N> pPredecessor, GraphNode<V, N> pSuccessor) {
 
       type = pType;
 
@@ -781,11 +821,11 @@ public final class SystemDependenceGraph<P, T, V> {
       return type;
     }
 
-    private GraphNode<P, T, V> getPredecessor() {
+    private GraphNode<V, N> getPredecessor() {
       return predecessor;
     }
 
-    private GraphNode<P, T, V> getSuccessor() {
+    private GraphNode<V, N> getSuccessor() {
       return successor;
     }
 
@@ -809,7 +849,7 @@ public final class SystemDependenceGraph<P, T, V> {
         return false;
       }
 
-      GraphEdge<?, ?, ?> other = (GraphEdge<?, ?, ?>) pObject;
+      GraphEdge<?, ?> other = (GraphEdge<?, ?>) pObject;
       return type == other.type
           && Objects.equals(predecessor, other.predecessor)
           && Objects.equals(successor, other.successor);
@@ -841,18 +881,22 @@ public final class SystemDependenceGraph<P, T, V> {
    * @param <T> the statement type for the SDG
    * @param <V> the variable type for the SDG
    */
-  public static final class Builder<P, T, V> {
+  public static final class Builder<P, T, V, N extends Node<P, T, V>> {
+
+    private final Function<Node<P, T, V>, N> nodeCreationFunction;
 
     // list of nodes where the node's index is equal to its id
-    private final List<Node<P, T, V>> nodes;
+    private final List<N> nodes;
     // list of nodes where the graph node's index is equal to its id
-    private final List<GraphNode<P, T, V>> graphNodes;
-    private final Map<NodeMapKey<P, T, V>, GraphNode<P, T, V>> nodeMap;
+    private final List<GraphNode<V, N>> graphNodes;
+    private final Map<NodeMapKey<P, T, V>, GraphNode<V, N>> nodeMap;
 
     private final TypeCounter<NodeType> nodeTypeCounter;
     private final TypeCounter<EdgeType> edgeTypeCounter;
 
-    private Builder() {
+    private Builder(Function<Node<P, T, V>, N> pNodeCreationFunction) {
+
+      nodeCreationFunction = pNodeCreationFunction;
 
       nodes = new ArrayList<>();
       graphNodes = new ArrayList<>();
@@ -862,18 +906,22 @@ public final class SystemDependenceGraph<P, T, V> {
       edgeTypeCounter = new TypeCounter<>(EdgeType.values().length);
     }
 
+    private GraphNode<V, N> newGraphNode(NodeMapKey<P, T, V> pNodeKey) {
+      Node<P, T, V> node = pNodeKey.createNode(nodes.size());
+      return new GraphNode<>(nodeCreationFunction.apply(node));
+    }
+
     /**
      * Creates and inserts a {@link GraphNode} and {@link Node} for the specified parameters if such
      * a node does not already exist. In all cases it returns a graph node fitting the specified
      * parameters.
      */
-    private GraphNode<P, T, V> graphNode(
+    private GraphNode<V, N> graphNode(
         NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       NodeMapKey<P, T, V> nodeKey = new NodeMapKey<>(pType, pProcedure, pStatement, pVariable);
-      GraphNode<P, T, V> graphNode =
-          nodeMap.computeIfAbsent(nodeKey, key -> new GraphNode<>(key.createNode(nodes.size())));
-      Node<P, T, V> node = graphNode.getNode();
+      GraphNode<V, N> graphNode = nodeMap.computeIfAbsent(nodeKey, this::newGraphNode);
+      N node = graphNode.getNode();
 
       if (node.getId() == nodes.size()) {
         
@@ -891,8 +939,8 @@ public final class SystemDependenceGraph<P, T, V> {
      * Also, updates the defs and uses of the nodes by using the cause.
      */
     private void insertEdge(
-        GraphNode<P, T, V> pPredecessor,
-        GraphNode<P, T, V> pSuccessor,
+        GraphNode<V, N> pPredecessor,
+        GraphNode<V, N> pSuccessor,
         EdgeType pType,
         Optional<V> pCause) {
 
@@ -905,7 +953,7 @@ public final class SystemDependenceGraph<P, T, V> {
       }
 
       if (insertEdge) {
-        GraphEdge<P, T, V> edge = new GraphEdge<>(pType, pPredecessor, pSuccessor);
+        GraphEdge<V, N> edge = new GraphEdge<>(pType, pPredecessor, pSuccessor);
         pPredecessor.addLeavingEdge(edge);
         pSuccessor.addEnteringEdge(edge);
       }
@@ -923,15 +971,15 @@ public final class SystemDependenceGraph<P, T, V> {
       return nodes.size();
     }
 
-    ImmutableList<Node<P, T, V>> getNodes() {
+    ImmutableList<N> getNodes() {
       return ImmutableList.copyOf(nodes);
     }
 
-    void traverse(Collection<Node<P, T, V>> pStartNodes, ForwardsVisitor<P, T, V> pVisitor) {
+    void traverse(Collection<N> pStartNodes, ForwardsVisitor<N> pVisitor) {
       SystemDependenceGraph.traverse(graphNodes, pStartNodes, pVisitor, true);
     }
 
-    void traverse(Collection<Node<P, T, V>> pStartNodes, BackwardsVisitor<P, T, V> pVisitor) {
+    void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
       SystemDependenceGraph.traverse(graphNodes, pStartNodes, pVisitor, false);
     }
 
@@ -984,7 +1032,7 @@ public final class SystemDependenceGraph<P, T, V> {
      *     {@code pFormalOutNode.getType() != NodeType.FORMAL_OUT}, or {@code pFormalOutNode} does
      *     not belong to this SDG builder
      */
-    void insertActualSummaryEdges(Node<P, T, V> pFormalInNode, Node<P, T, V> pFormalOutNode) {
+    void insertActualSummaryEdges(N pFormalInNode, N pFormalOutNode) {
 
       Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
       Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
@@ -996,15 +1044,15 @@ public final class SystemDependenceGraph<P, T, V> {
           pFormalOutNode.getType() == NodeType.FORMAL_OUT,
           "pFormalOutNode does not have type FORMAL_OUT");
 
-      GraphNode<P, T, V> formalOutGraphNode = graphNodes.get(pFormalOutNode.getId());
+      GraphNode<V, N> formalOutGraphNode = graphNodes.get(pFormalOutNode.getId());
       Preconditions.checkArgument(
           formalOutGraphNode.getNode().equals(pFormalOutNode),
           "pFormalOutNode does not belong to this SDG builder");
 
-      for (GraphEdge<P, T, V> outEdge : formalOutGraphNode.getLeavingEdges()) {
+      for (GraphEdge<V, N> outEdge : formalOutGraphNode.getLeavingEdges()) {
         if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
 
-          GraphNode<P, T, V> actualOutGraphNode = outEdge.getSuccessor();
+          GraphNode<V, N> actualOutGraphNode = outEdge.getSuccessor();
           assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
 
           NodeMapKey<P, T, V> actualInNodeKey =
@@ -1013,7 +1061,7 @@ public final class SystemDependenceGraph<P, T, V> {
                   actualOutGraphNode.getNode().getProcedure(),
                   actualOutGraphNode.getNode().getStatement(),
                   pFormalInNode.getVariable());
-          GraphNode<P, T, V> actualInGraphNode = nodeMap.get(actualInNodeKey);
+          GraphNode<V, N> actualInGraphNode = nodeMap.get(actualInNodeKey);
 
           if (actualInGraphNode != null) {
             insertEdge(
@@ -1058,9 +1106,9 @@ public final class SystemDependenceGraph<P, T, V> {
      *
      * @return the finished SDG created by this builder
      */
-    public SystemDependenceGraph<P, T, V> build() {
+    public SystemDependenceGraph<V, N> build() {
 
-      for (GraphNode<P, T, V> graphNode : graphNodes) {
+      for (GraphNode<?, ?> graphNode : graphNodes) {
         graphNode.finish();
       }
 
@@ -1077,9 +1125,9 @@ public final class SystemDependenceGraph<P, T, V> {
      */
     public final class EdgeChooser {
 
-      private final GraphNode<P, T, V> graphNode;
+      private final GraphNode<V, N> graphNode;
 
-      private EdgeChooser(GraphNode<P, T, V> pGraphNode) {
+      private EdgeChooser(GraphNode<V, N> pGraphNode) {
         graphNode = pGraphNode;
       }
 
@@ -1112,7 +1160,7 @@ public final class SystemDependenceGraph<P, T, V> {
        *
        * @return the previously chosen node
        */
-      public Node<P, T, V> getNode() {
+      public N getNode() {
         return graphNode.getNode();
       }
     }
@@ -1123,12 +1171,12 @@ public final class SystemDependenceGraph<P, T, V> {
      */
     public final class DependencyChooser {
 
-      private final GraphNode<P, T, V> graphNode;
+      private final GraphNode<V, N> graphNode;
       private final EdgeType edgeType;
       private final Optional<V> cause;
 
       private DependencyChooser(
-          GraphNode<P, T, V> pGraphNode, EdgeType pEdgeType, Optional<V> pCause) {
+          GraphNode<V, N> pGraphNode, EdgeType pEdgeType, Optional<V> pCause) {
         graphNode = pGraphNode;
         edgeType = pEdgeType;
         cause = pCause;
@@ -1307,14 +1355,12 @@ public final class SystemDependenceGraph<P, T, V> {
    * must implement the {@link ForwardsVisitor} or {@link BackwardsVisitor} interface to be used for
    * SDG traversal.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
-   * @param <V> the variable type of the SDG
+   * @param <N> the node type of the SDG
    * @see VisitResult
    * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
    * @see SystemDependenceGraph#traverse(Collection, BackwardsVisitor)
    */
-  public interface Visitor<P, T, V> {
+  public interface Visitor<N extends Node<?, ?, ?>> {
 
     /**
      * Accepts visited nodes during system dependence graph traversal.
@@ -1322,7 +1368,7 @@ public final class SystemDependenceGraph<P, T, V> {
      * @param pNode the visited node
      * @return a {@link VisitResult} to guide the SDG traversal
      */
-    public VisitResult visitNode(Node<P, T, V> pNode);
+    public VisitResult visitNode(N pNode);
 
     /**
      * Accepts visited edges during system dependence graph traversal.
@@ -1335,45 +1381,40 @@ public final class SystemDependenceGraph<P, T, V> {
      * @param pSuccessor the successor of the visited edge
      * @return a {@link VisitResult} to guide the SDG traversal
      */
-    public VisitResult visitEdge(
-        EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
+    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor);
   }
 
   /**
    * Represents a {@link Visitor} that can be used for forward traversals of system dependence
    * graphs.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
-   * @param <V> the variable type of the SDG
+   * @param <N> the node type of the SDG
    * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
    */
-  public interface ForwardsVisitor<P, T, V> extends Visitor<P, T, V> {}
+  public interface ForwardsVisitor<N extends Node<?, ?, ?>> extends Visitor<N> {}
 
   /**
    * Represents a {@link Visitor} that can be used for backward traversals of system dependence
    * graphs.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
-   * @param <V> the variable type of the SDG
+   * @param <N> the node type of the SDG
    * @see SystemDependenceGraph#traverse(Collection, BackwardsVisitor)
    */
-  public interface BackwardsVisitor<P, T, V> extends Visitor<P, T, V> {}
+  public interface BackwardsVisitor<N extends Node<?, ?, ?>> extends Visitor<N> {}
 
   /**
    * Implementation of the visit-once-visitor. Extended by {@link ForwardsVisitOnceVisitor} and
    * {@link BackwardsVisitOnceVisitor}.
    */
-  private abstract static class VisitOnceVisitor<P, T, V> implements Visitor<P, T, V> {
+  private abstract static class VisitOnceVisitor<N extends Node<?, ?, ?>> implements Visitor<N> {
 
     private final boolean forwards;
-    private final Visitor<P, T, V> delegateVisitor;
+    private final Visitor<N> delegateVisitor;
 
     private final byte[] visited;
     private byte visitedMarker;
 
-    private VisitOnceVisitor(boolean pForwards, Visitor<P, T, V> pDelegateVisitor, int pNodeCount) {
+    private VisitOnceVisitor(boolean pForwards, Visitor<N> pDelegateVisitor, int pNodeCount) {
 
       forwards = pForwards;
       delegateVisitor = pDelegateVisitor;
@@ -1393,12 +1434,12 @@ public final class SystemDependenceGraph<P, T, V> {
       }
     }
 
-    private boolean isVisited(Node<P, T, V> pNode) {
+    private boolean isVisited(N pNode) {
       return visited[pNode.getId()] == visitedMarker;
     }
 
     @Override
-    public VisitResult visitNode(Node<P, T, V> pNode) {
+    public VisitResult visitNode(N pNode) {
 
       if (!isVisited(pNode)) {
 
@@ -1411,14 +1452,13 @@ public final class SystemDependenceGraph<P, T, V> {
     }
 
     @Override
-    public VisitResult visitEdge(
-        EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
+    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
 
       VisitResult visitResult = delegateVisitor.visitEdge(pType, pPredecessor, pSuccessor);
 
       if (visitResult == VisitResult.CONTINUE) {
 
-        Node<P, T, V> nextNode = forwards ? pSuccessor : pPredecessor;
+        N nextNode = forwards ? pSuccessor : pPredecessor;
 
         if (isVisited(nextNode)) {
           return VisitResult.SKIP;
@@ -1436,16 +1476,14 @@ public final class SystemDependenceGraph<P, T, V> {
    * multiple traversals of the same SDG. Visit-once-visitors only work for the SDG they were
    * created for.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
-   * @param <V> the variable type of the SDG
+   * @param <N> the node type of the SDG
    * @see SystemDependenceGraph#createVisitOnceVisitor(ForwardsVisitor)
    * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
    */
-  public static final class ForwardsVisitOnceVisitor<P, T, V> extends VisitOnceVisitor<P, T, V>
-      implements ForwardsVisitor<P, T, V> {
+  public static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
+      extends VisitOnceVisitor<N> implements ForwardsVisitor<N> {
 
-    ForwardsVisitOnceVisitor(ForwardsVisitor<P, T, V> pDelegateVisitor, int pNodeCount) {
+    ForwardsVisitOnceVisitor(ForwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
       super(true, pDelegateVisitor, pNodeCount);
     }
 
@@ -1459,13 +1497,12 @@ public final class SystemDependenceGraph<P, T, V> {
     }
 
     @Override
-    public VisitResult visitNode(Node<P, T, V> pNode) {
+    public VisitResult visitNode(N pNode) {
       return super.visitNode(pNode);
     }
 
     @Override
-    public VisitResult visitEdge(
-        EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
+    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
       return super.visitEdge(pType, pPredecessor, pSuccessor);
     }
   }
@@ -1477,16 +1514,14 @@ public final class SystemDependenceGraph<P, T, V> {
    * multiple traversals of the same SDG. Visit-once-visitors only work for the SDG they were
    * created for.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
-   * @param <V> the variable type of the SDG
+   * @param <N> the node type of the SDG
    * @see SystemDependenceGraph#createVisitOnceVisitor(BackwardsVisitor)
    * @see SystemDependenceGraph#traverse(Collection, BackwardsVisitor)
    */
-  public static final class BackwardsVisitOnceVisitor<P, T, V> extends VisitOnceVisitor<P, T, V>
-      implements BackwardsVisitor<P, T, V> {
+  public static final class BackwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
+      extends VisitOnceVisitor<N> implements BackwardsVisitor<N> {
 
-    BackwardsVisitOnceVisitor(BackwardsVisitor<P, T, V> pDelegateVisitor, int pNodeCount) {
+    BackwardsVisitOnceVisitor(BackwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
       super(false, pDelegateVisitor, pNodeCount);
     }
 
@@ -1500,13 +1535,12 @@ public final class SystemDependenceGraph<P, T, V> {
     }
 
     @Override
-    public VisitResult visitNode(Node<P, T, V> pNode) {
+    public VisitResult visitNode(N pNode) {
       return super.visitNode(pNode);
     }
 
     @Override
-    public VisitResult visitEdge(
-        EdgeType pType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor) {
+    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
       return super.visitEdge(pType, pPredecessor, pSuccessor);
     }
   }
