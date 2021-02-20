@@ -595,7 +595,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       insertFunctionDeclarationEdge(declarationEdges, entryNode);
 
       DependenceConsumer dependenceConsumer =
-          (pDefEdge, pUseEdge, pCause, pDeclaration) -> {
+          (pDefEdge, pUseEdge, pCause, pIsDeclaration) -> {
             Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
             Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
             Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
@@ -609,7 +609,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             } else {
 
               EdgeType edgeType =
-                  pDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
+                  pIsDeclaration ? EdgeType.DECLARATION_EDGE : EdgeType.FLOW_DEPENDENCY;
               NodeType defNodeType;
               Optional<MemoryLocation> defNodeVariable = Optional.empty();
 

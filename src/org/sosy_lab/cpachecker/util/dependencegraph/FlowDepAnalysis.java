@@ -274,7 +274,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   }
 
   private void handleDependence(
-      CFAEdge pEdge, Def<MemoryLocation, CFAEdge> pDef, boolean pDeclaration) {
+      CFAEdge pEdge, Def<MemoryLocation, CFAEdge> pDef, boolean pIsDeclaration) {
 
     MemoryLocation variable = pDef.getVariable();
     Set<ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> defs = new HashSet<>();
@@ -284,7 +284,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
       Optional<CFAEdge> optDefEdge = def.getEdge();
       if (optDefEdge.isPresent()) {
-        dependenceConsumer.accept(optDefEdge.orElseThrow(), pEdge, variable, pDeclaration);
+        dependenceConsumer.accept(optDefEdge.orElseThrow(), pEdge, variable, pIsDeclaration);
       }
     }
   }
@@ -427,8 +427,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   @FunctionalInterface
   public interface DependenceConsumer {
-
-    void accept(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause, boolean pDeclaration);
+    void accept(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause, boolean pIsDeclaration);
   }
 
   private static final class SingleFunctionGraph
