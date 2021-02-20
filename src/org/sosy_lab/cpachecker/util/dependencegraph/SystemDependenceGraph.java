@@ -37,8 +37,11 @@ import java.util.function.Function;
  * <p>SDGs are traversed by calling the methods {@link #traverse(Collection, ForwardsVisitor)} or
  * {@link #traverse(Collection, BackwardsVisitor)}.
  *
- * @param <V> the variable type of the SDG
- * @param <N> the node type of the SDG
+ * @param <V> The type of variables in this SDG. Variables are defined and used. Dependencies exist
+ *     between defs and subsequent uses. Furthermore, formal-in/out and actual-in/out nodes exist
+ *     for specific variables.
+ * @param <N> The node type of this SDG. The node type must be a subclass of {@link
+ *     SystemDependenceGraph.Node} or {@link SystemDependenceGraph.Node} itself.
  */
 public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?, V>> {
 
@@ -384,7 +387,132 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     return new BackwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
   }
 
-  /** Type of a system dependence graph node. */
+  /**
+   * Type of a system dependence graph node.
+   *
+   * <p>C program example to show the different node types (the resulting nodes depend on the used
+   * construction method, so real result may differ):
+   *
+   * <pre>
+   * int global = 1;
+   *
+   * int foo(int p) {
+   *   global += p;
+   *   return global;
+   * }
+   *
+   * int main() {
+   *   int x = 2;
+   *   int y = foo(x);
+   * }
+   * </pre>
+   *
+   * <table>
+   *   <tr>
+   *     <th>Type</th>
+   *     <th>Procedure</th>
+   *     <th>Statement</th>
+   *     <th>Variable</th>
+   *   </tr>
+   *   <tr>
+   *   <tr>
+   *     <th>{@code STATEMENT}</th>
+   *     <th>-</th>
+   *     <th>{@code int global = 0;}</th>
+   *     <th>-</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code ENTRY}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>-</th>
+   *     <th>-</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code FORMAL_IN}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>-</th>
+   *     <th>{@code foo::p}</th>
+   *   </tr>
+   *    <tr>
+   *     <th>{@code FORMAL_IN}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>-</th>
+   *     <th>{@code global}</th>
+   *   </tr>
+   *    <tr>
+   *     <th>{@code STATEMENT}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>{@code global += p;}</th>
+   *     <th>-</th>
+   *   </tr>
+   *    <tr>
+   *     <th>{@code STATEMENT}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>{@code return global;}</th>
+   *     <th>-</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code FORMAL_OUT}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>-</th>
+   *     <th>{@code foo::__retval__}</th>
+   *   </tr>
+   *    <tr>
+   *     <th>{@code FORMAL_OUT}</th>
+   *     <th>{@code int foo(int)}</th>
+   *     <th>-</th>
+   *     <th>{@code global}</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code ENTRY}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>-</th>
+   *     <th>-</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code STATEMENT}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>{@code int x = 5;}</th>
+   *     <th>-</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code STATEMENT}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>{@code int y = foo(x);}</th>
+   *     <th>-</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code ACTUAL_IN}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>{@code int y = foo(x);}</th>
+   *     <th>{@code foo::p}</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code ACTUAL_IN}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>{@code int y = foo(x);}</th>
+   *     <th>{@code global}</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code ACTUAL_OUT}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>{@code int y = foo(x);}</th>
+   *     <th>{@code foo::__retval__}</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code ACTUAL_OUT}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>{@code int y = foo(x);}</th>
+   *     <th>{@code global}</th>
+   *   </tr>
+   *   <tr>
+   *     <th>{@code FORMAL_OUT}</th>
+   *     <th>{@code int main()}</th>
+   *     <th>-</th>
+   *     <th>{@code main::__retval__}</th>
+   *   </tr>
+   * </table>
+   */
   public enum NodeType {
 
     /**
@@ -402,7 +530,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     ENTRY,
 
     /**
-     * Type of regular statement nodes.
+     * Type of regular statement, expression, and declaration nodes.
      *
      * <ul>
      *   <li>Procedure: optional (*)
@@ -417,7 +545,10 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     STATEMENT,
 
     /**
-     * Type of node the represents a variable used by a procedure on the procedure side.
+     * Type of nodes that represent variables that are visible to or defined by some procedure
+     * caller and used inside the procedure.
+     *
+     * <p>This is the case for e.g. parameters and used global variables.
      *
      * <ul>
      *   <li>Procedure: required
@@ -428,7 +559,10 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     FORMAL_IN,
 
     /**
-     * Type of node the represents a variable defined by a procedure on the procedure side.
+     * Type of nodes that represent variables that are visible to some procedure caller and defined
+     * inside the procedure.
+     *
+     * <p>This is the case for e.g. return values and modified global variables.
      *
      * <ul>
      *   <li>Procedure: required
@@ -439,7 +573,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     FORMAL_OUT,
 
     /**
-     * Type of node that represents a variable used by a procedure on the caller side.
+     * Type of nodes that represent variables at a specific call sites and are connected to {@code
+     * FORMAL_IN} nodes.
      *
      * <ul>
      *   <li>Procedure: required
@@ -450,7 +585,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     ACTUAL_IN,
 
     /**
-     * Type of node that represents a variable defined by a procedure on the caller side.
+     * Type of nodes that represent variables at a specific call sites and are connected to {@code
+     * FORMAL_OUT} nodes.
      *
      * <ul>
      *   <li>Procedure: required
@@ -510,9 +646,16 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   /**
    * Represents a single node in a system dependence graph.
    *
-   * @param <P> the procedure type of the SDG
-   * @param <T> the statement type of the SDG
-   * @param <V> the variable type of the SDG
+   * @param <P> The type of procedures in the SDG. Typically, programs are organized into
+   *     procedures, functions, or similar constructs that consist of statements, expressions, and
+   *     declarations. In an SDG, all these compound constructs are refered to as procedures and are
+   *     of the type specified by this type parameter.
+   * @param <T> The statement type of the SDG. Typically, programs consist of statements,
+   *     expressions, and declarations. In an SDG, all these parts are refered to as statements and
+   *     are of the type specified by this type parameter.
+   * @param <V> The type of variables in the SDG. Variables are defined and used. Dependencies exist
+   *     between defs and subsequent uses. Furthermore, formal-in/out and actual-in/out nodes exist
+   *     for specific variables.
    */
   public static class Node<P, T, V> {
 
