@@ -121,11 +121,11 @@ final class ControlDependenceBuilder<V> {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
 
-                  Optional<CFAEdge> dependetStatement = Optional.of(dependentEdge);
+                  Optional<CFAEdge> dependentStatement = Optional.of(dependentEdge);
                   Optional<CFAEdge> controlStatement = Optional.of(assumeEdge);
 
                   builder
-                      .node(NodeType.STATEMENT, procedure, dependetStatement, Optional.empty())
+                      .node(NodeType.STATEMENT, procedure, dependentStatement, Optional.empty())
                       .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
                       .on(NodeType.STATEMENT, procedure, controlStatement, Optional.empty());
 
@@ -175,11 +175,11 @@ final class ControlDependenceBuilder<V> {
         for (CFAEdge assumeEdge : assumeEdgesWithoutDominator) {
           if (!assumeEdge.equals(dependentEdge)) {
 
-            Optional<CFAEdge> dependetStatement = Optional.of(dependentEdge);
+            Optional<CFAEdge> dependentStatement = Optional.of(dependentEdge);
             Optional<CFAEdge> controlStatement = Optional.of(assumeEdge);
 
             builder
-                .node(NodeType.STATEMENT, procedure, dependetStatement, Optional.empty())
+                .node(NodeType.STATEMENT, procedure, dependentStatement, Optional.empty())
                 .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
                 .on(NodeType.STATEMENT, procedure, controlStatement, Optional.empty());
 
