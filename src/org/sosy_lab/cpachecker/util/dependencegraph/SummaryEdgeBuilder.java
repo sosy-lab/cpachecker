@@ -28,6 +28,19 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitR
 /** Class for computing summary edges and inserting them into a {@link SystemDependenceGraph}. */
 final class SummaryEdgeBuilder {
 
+  /** Method for computing summary edges. */
+  public enum Method {
+
+    /** Find summary edges one by one. */
+    SINGLE,
+
+    /**
+     * Find multiple summary edges at once. This may be useful for methods that have multiple
+     * formal-in/out nodes.
+     */
+    BATCH;
+  }
+
   private SummaryEdgeBuilder() {}
 
   /**
@@ -99,19 +112,6 @@ final class SummaryEdgeBuilder {
       summaryEdgeFinder.run(selectedFormalOutNodes, recursive, pBuilder::insertActualSummaryEdges);
       selectedFormalOutNodes.clear();
     }
-  }
-
-  /** Method for computing summary edges. */
-  public enum Method {
-
-    /** Find summary edges one by one. */
-    SINGLE,
-
-    /**
-     * Find multiple summary edges at once. This may be useful for methods that have multiple
-     * formal-in/out nodes.
-     */
-    BATCH;
   }
 
   @FunctionalInterface

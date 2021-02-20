@@ -159,6 +159,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       SystemDependenceGraph.empty();
   private String usedGlobalPointerState = "none";
 
+  private enum PointerStateComputationMethod {
+    FLOW_SENSITIVE,
+    FLOW_INSENSITIVE;
+  }
+
   public CSystemDependenceGraphBuilder(
       final CFA pCfa,
       final Configuration pConfig,
@@ -831,11 +836,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             return ""; // empty name for nice output under CFACreator statistics
           }
         });
-  }
-
-  private enum PointerStateComputationMethod {
-    FLOW_SENSITIVE,
-    FLOW_INSENSITIVE;
   }
 
   private static final class CSdgDotExporter
