@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  */
 public class CallHierarchyScoring implements FaultScoring {
 
-  private Map<CFAEdge, Integer> mapEdgeToPosition;
-  private int firstErrorEdge;
+  private final Map<CFAEdge, Integer> mapEdgeToPosition;
+  private final int firstErrorEdge;
 
   /**
    * Reward fault contributions that are closer to the error in the counterexample
