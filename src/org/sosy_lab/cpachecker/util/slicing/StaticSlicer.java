@@ -50,6 +50,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * <p>For a given slicing criterion CFA edge g, the slice consists of all CFA edges that influences
  * the values of variables used by g and whether g get executed.
  *
+ * <p>Implementation detail: this slicing method is based on "Interprocedural Slicing Using
+ * Dependence Graphs" (Horwitz et al.).
+ *
  * @see SlicerFactory
  */
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
@@ -126,8 +129,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     slicingTime.start();
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
-    Set<CFAEdge> relevantEdges = new HashSet<>();
-    Set<CSystemDependenceGraph.Node> visitedSdgNodes = new HashSet<>();
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -136,70 +137,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       criteriaEdges.addAll(getAbortCallEdges(pCfa));
     }
 
-    SystemDependenceGraph.BackwardsVisitor<CSystemDependenceGraph.Node> phase1Visitor =
-        sdg.createVisitOnceVisitor(
-            new CSystemDependenceGraph.BackwardsVisitor() {
-
-              @Override
-              public SystemDependenceGraph.VisitResult visitNode(
-                  CSystemDependenceGraph.Node pNode) {
-
-                visitedSdgNodes.add(pNode);
-
-                Optional<CFAEdge> optCfaEdge = pNode.getStatement();
-                if (optCfaEdge.isPresent()) {
-                  relevantEdges.add(optCfaEdge.orElseThrow());
-                }
-
-                return SystemDependenceGraph.VisitResult.CONTINUE;
-              }
-
-              @Override
-              public SystemDependenceGraph.VisitResult visitEdge(
-                  SystemDependenceGraph.EdgeType pType,
-                  CSystemDependenceGraph.Node pPredecessor,
-                  CSystemDependenceGraph.Node pSuccessor) {
-
-                if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
-                  return SystemDependenceGraph.VisitResult.SKIP;
-                }
-
-                return SystemDependenceGraph.VisitResult.CONTINUE;
-              }
-            });
-
-    SystemDependenceGraph.BackwardsVisitor<CSystemDependenceGraph.Node> phase2Visitor =
-        sdg.createVisitOnceVisitor(
-            new CSystemDependenceGraph.BackwardsVisitor() {
-
-              @Override
-              public SystemDependenceGraph.VisitResult visitNode(
-                  CSystemDependenceGraph.Node pNode) {
-
-                Optional<CFAEdge> optCfaEdge = pNode.getStatement();
-                if (optCfaEdge.isPresent()) {
-                  relevantEdges.add(optCfaEdge.orElseThrow());
-                }
-
-                return SystemDependenceGraph.VisitResult.CONTINUE;
-              }
-
-              @Override
-              public SystemDependenceGraph.VisitResult visitEdge(
-                  SystemDependenceGraph.EdgeType pType,
-                  CSystemDependenceGraph.Node pPredecessor,
-                  CSystemDependenceGraph.Node pSuccessor) {
-
-                if (partiallyRelevantEdges
-                    && (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-                        || pType == EdgeType.CALL_EDGE)) {
-                  return SystemDependenceGraph.VisitResult.SKIP;
-                }
-
-                return SystemDependenceGraph.VisitResult.CONTINUE;
-              }
-            });
-
     Set<CSystemDependenceGraph.Node> startNodes = new HashSet<>();
     Multimap<CFAEdge, CSystemDependenceGraph.Node> nodesPerCfaEdge = getNodesPerCfaEdge();
 
@@ -207,18 +144,24 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
     }
 
-    sdg.traverse(startNodes, phase1Visitor);
+    Set<CFAEdge> relevantEdges = new HashSet<>();
+    Phase1Visitor phase1Visitor = new Phase1Visitor();
+    sdg.traverse(startNodes, sdg.createVisitOnceVisitor(phase1Visitor));
+    relevantEdges.addAll(phase1Visitor.getRelevantEdges());
 
     startNodes.clear();
+    // phase 2 start with the result from phase 1
     if (partiallyRelevantEdges) {
-      startNodes.addAll(visitedSdgNodes);
+      startNodes.addAll(phase1Visitor.getVisitedSdgNodes());
     } else {
       for (CFAEdge criteriaEdge : relevantEdges) {
         startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
       }
     }
 
-    sdg.traverse(startNodes, phase2Visitor);
+    Phase2Visitor phase2Visitor = new Phase2Visitor(relevantEdges);
+    sdg.traverse(startNodes, sdg.createVisitOnceVisitor(phase2Visitor));
+    relevantEdges.addAll(phase2Visitor.getRelevantEdges());
 
     final Slice slice =
         new StaticSlicerSlice(
@@ -311,6 +254,109 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     @Override
     public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
       return true;
+    }
+  }
+
+  /**
+   * Represents a SDG visitor for slicing phase 1.
+   *
+   * <p>{@code CritP}: all procedures that contain a criteria edges
+   *
+   * <p>{@code CallP}: all procedures that directly or transitively call a procedure in {@code
+   * CritP}
+   *
+   * <p>Phase 1 identifies SDG nodes that can reach any criteria edge and are either from {@code p,
+   * p in CritP}, or from {@code p', p' in CritP}. For a more comprehensive description, see
+   * "Interprocedural Slicing Using Dependence Graphs" (Horwitz et al.).
+   */
+  private static final class Phase1Visitor implements CSystemDependenceGraph.BackwardsVisitor {
+
+    private final Set<CFAEdge> relevantEdges;
+    private final Set<CSystemDependenceGraph.Node> visitedSdgNodes;
+
+    private Phase1Visitor() {
+      relevantEdges = new HashSet<>();
+      visitedSdgNodes = new HashSet<>();
+    }
+
+    private Set<CFAEdge> getRelevantEdges() {
+      return relevantEdges;
+    }
+
+    private Set<CSystemDependenceGraph.Node> getVisitedSdgNodes() {
+      return visitedSdgNodes;
+    }
+
+    @Override
+    public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
+
+      visitedSdgNodes.add(pNode);
+      pNode.getStatement().ifPresent(relevantEdges::add);
+
+      return SystemDependenceGraph.VisitResult.CONTINUE;
+    }
+
+    @Override
+    public SystemDependenceGraph.VisitResult visitEdge(
+        SystemDependenceGraph.EdgeType pType,
+        CSystemDependenceGraph.Node pPredecessor,
+        CSystemDependenceGraph.Node pSuccessor) {
+
+      // don't "descend" into called procedures
+      if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
+        return SystemDependenceGraph.VisitResult.SKIP;
+      }
+
+      return SystemDependenceGraph.VisitResult.CONTINUE;
+    }
+  }
+
+  /**
+   * Represents a SDG visitor for slicing phase 2.
+   *
+   * <p>{@code CritP}: all procedures that contain a criteria edges
+   *
+   * <p>{@code CallP}: all procedures that directly or transitively call a procedure in {@code
+   * CritP}
+   *
+   * <p>Phase 2 identifies SDG nodes that can reach any criteria edge and are from procedures
+   * (transitively) called inside {@code p, p in CritP}, or from procedures called inside {@code p',
+   * p' in CallP}. For a more comprehensive description, see "Interprocedural Slicing Using
+   * Dependence Graphs" (Horwitz et al.).
+   */
+  private static final class Phase2Visitor implements CSystemDependenceGraph.BackwardsVisitor {
+
+    private final Set<CFAEdge> relevantEdges;
+
+    private Phase2Visitor(Set<CFAEdge> pRelevantEdges) {
+      relevantEdges = new HashSet<>(pRelevantEdges);
+    }
+
+    private Set<CFAEdge> getRelevantEdges() {
+      return relevantEdges;
+    }
+
+    @Override
+    public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
+
+      pNode.getStatement().ifPresent(relevantEdges::add);
+
+      return SystemDependenceGraph.VisitResult.CONTINUE;
+    }
+
+    @Override
+    public SystemDependenceGraph.VisitResult visitEdge(
+        SystemDependenceGraph.EdgeType pType,
+        CSystemDependenceGraph.Node pPredecessor,
+        CSystemDependenceGraph.Node pSuccessor) {
+
+      // don't "ascend" into calling procedures
+      if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
+          || pType == EdgeType.CALL_EDGE) {
+        return SystemDependenceGraph.VisitResult.SKIP;
+      }
+
+      return SystemDependenceGraph.VisitResult.CONTINUE;
     }
   }
 }
