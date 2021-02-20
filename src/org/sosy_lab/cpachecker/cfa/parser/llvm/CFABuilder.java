@@ -1109,8 +1109,13 @@ public class CFABuilder {
         operation = BinaryOperator.SHIFT_LEFT;
         break;
       case LShr: // Logical shift right
-      case AShr: // arithmetic shift right
-        // TODO Differentiate between logical and arithmetic shift somehow
+        // GNU C performs a logical shift for unsigned types
+        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
+        operand1Exp = getExpression(operand1, op1type, pFileName);
+        // $FALL-THROUGH$
+      case AShr: // Arithmetic shift right
+        // GNU C performs an arithmetic shift for signed types
+        // op1type is signed by default for integers and vectors of integer type
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
       case And:
@@ -1232,7 +1237,8 @@ public class CFABuilder {
         if (!pItem.isExternallyInitialized() || pItem.isGlobalConstant()) {
             return getAssignedIdExpression(pItem, pExpectedType, pFileName);
         } else {
-            throw new UnsupportedOperationException("LLVM parsing does not support this global variable: " + pItem);
+        throw new UnsupportedOperationException(
+            "LLVM parsing does not support this global variable: " + pItem);
         }
     } else {
       throw new UnsupportedOperationException("LLVM parsing does not support constant " + pItem);
