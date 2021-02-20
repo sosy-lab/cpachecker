@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -79,7 +80,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   private static final int ERROR_STATE = 1;
   private static final int LAST_POSITION_OF_LIST = 1;
   private static final int FIRST_POSITION_OF_LIST = 0;
-  private static final int EMPTY_LIST = 0;
   private static final int NO_IF_CASE = -1;
 
   public LoopData(
@@ -209,8 +209,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
     for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
-                || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
+        if ((node.getLeavingEdge(i) instanceof AStatementEdge
+                || node.getLeavingEdge(i) instanceof ADeclarationEdge)
             && (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
                 || CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null)) {
           boolean variablenameNotContainsCPAchecker = true;
@@ -227,7 +227,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
           if (variablenameNotContainsCPAchecker) {
 
-            if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+            if (node.getLeavingEdge(i) instanceof AStatementEdge) {
               AStatementEdge x = (AStatementEdge) node.getLeavingEdge(i);
               CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
               if (c.getLeftHandSide() instanceof CIdExpression
@@ -244,7 +244,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
     for (CFANode n : cfa.getAllNodes()) {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
-        if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
+        if (n.getLeavingEdge(e) instanceof ADeclarationEdge) {
           for (LoopVariables o : tmpO) {
 
             ADeclarationEdge dec = (ADeclarationEdge) n.getLeavingEdge(e);
@@ -354,10 +354,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     List<String> temp = new ArrayList<>();
     for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+        if (node.getLeavingEdge(i) instanceof AStatementEdge) {
           AStatementEdge x = (AStatementEdge) node.getLeavingEdge(i);
-          CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
-
+          if (node.getLeavingEdge(i) instanceof CExpressionAssignmentStatement) {
+            CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
           if (c.getRightHandSide() instanceof CBinaryExpression) {
             CBinaryExpression pE = (CBinaryExpression) c.getRightHandSide();
 
@@ -392,6 +392,12 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             } else {
               CArraySubscriptExpression var = (CArraySubscriptExpression) c.getRightHandSide();
               temp.add(var.getArrayExpression().toString());
+            }
+            } else if (node.getLeavingEdge(i) instanceof CFunctionCallStatement) {
+              CFunctionCallStatement cf = (CFunctionCallStatement) x.getStatement();
+              for (CExpression ce : cf.getFunctionCallExpression().getParameterExpressions()) {
+                temp.add(ce.toString());
+              }
             }
           } else {
             // exception missing
@@ -684,7 +690,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
         node = temp.get(FIRST_POSITION_OF_LIST);
         temp.remove(FIRST_POSITION_OF_LIST);
 
-        if (temp.size() > EMPTY_LIST) {
+        if (!temp.isEmpty()) {
           boolean notNodeToEndCondition = true;
 
           for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -752,7 +758,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
         node = forCondition.get(FIRST_POSITION_OF_LIST);
         forCondition.remove(FIRST_POSITION_OF_LIST);
 
-        if (forCondition.size() > EMPTY_LIST) {
+        if (!forCondition.isEmpty()) {
           boolean notNodeToEndCondition = true;
 
           for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -818,9 +824,18 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
     boolean tmpEndless = endless;
     boolean onlyRandomOperator = true;
+    List<CFANode> conditionNodes = new ArrayList<>();
+
     for (CFANode n : condNodes) {
-      if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
-        onlyRandomOperator = false;
+      if (n.getLeavingEdge(VALID_STATE) instanceof AssumeEdge) {
+        AssumeEdge edge = (AssumeEdge) n.getLeavingEdge(VALID_STATE);
+        if (edge.getExpression() instanceof CBinaryExpression) {
+        CBinaryExpression bin = (CBinaryExpression) edge.getExpression();
+          if (!bin.getOperand1().toString().contains("CPAchecker_TMP")) {
+            onlyRandomOperator = false;
+            conditionNodes.add(n);
+          }
+        }
       }
     }
 
@@ -828,13 +843,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       setOnlyRandomCondition(true);
       setEndless(false);
       tmpEndless = true;
-    }
-
-    List<CFANode> conditionNodes = new ArrayList<>();
-    for (CFANode n : condNodes) {
-      if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
-        conditionNodes.add(n);
-      }
     }
 
     boolean canAccelerate = false;
