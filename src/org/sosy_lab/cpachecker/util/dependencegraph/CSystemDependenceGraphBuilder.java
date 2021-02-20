@@ -189,21 +189,15 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     builder = SystemDependenceGraph.builder(CSystemDependenceGraph.Node::new);
   }
 
-  public CSystemDependenceGraph build() throws CPAException {
-
-    dependenceGraphConstructionTimer.start();
-
-    CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
-    ImmutableSet<AFunctionDeclaration> reachableFunctions = ImmutableSet.of();
-    if (onlyReachableFunctions) {
-      reachableFunctions =
-          callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
-    }
+  private void insertDependencies(
+      CallGraph<AFunctionDeclaration> pCallGraph,
+      ImmutableSet<AFunctionDeclaration> pReachableFunctions)
+      throws CPAException {
 
     if (considerFlowDeps) {
       flowDependenceTimer.start();
       try {
-        insertFlowDependencies(reachableFunctions);
+        insertFlowDependencies(pReachableFunctions);
       } finally {
         flowDependenceTimer.stop();
       }
@@ -212,20 +206,43 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     if (considerControlDeps) {
       controlDependenceTimer.start();
       try {
-        insertControlDependencies(reachableFunctions);
+        insertControlDependencies(pReachableFunctions);
       } finally {
         controlDependenceTimer.stop();
       }
     }
 
     summaryEdgeTimer.start();
+    try {
+      SummaryEdgeBuilder.insertSummaryEdges(
+          builder,
+          pCallGraph,
+          cfa.getMainFunction().getFunction(),
+          SummaryEdgeBuilder.Method.BATCH);
+    } finally {
+      summaryEdgeTimer.stop();
+    }
+  }
 
-    SummaryEdgeBuilder.insertSummaryEdges(
-        builder, callGraph, cfa.getMainFunction().getFunction(), SummaryEdgeBuilder.Method.BATCH);
-    summaryEdgeTimer.stop();
+  public CSystemDependenceGraph build() throws CPAException {
 
-    systemDependenceGraph = builder.build();
-    dependenceGraphConstructionTimer.stop();
+    dependenceGraphConstructionTimer.start();
+
+    try {
+
+      CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
+      ImmutableSet<AFunctionDeclaration> reachableFunctions = ImmutableSet.of();
+      if (onlyReachableFunctions) {
+        reachableFunctions =
+            callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
+      }
+
+      insertDependencies(callGraph, reachableFunctions);
+      systemDependenceGraph = builder.build();
+
+    } finally {
+      dependenceGraphConstructionTimer.stop();
+    }
 
     if (exportDot != null) {
       new CSdgDotExporter().export(systemDependenceGraph, exportDot, logger);
