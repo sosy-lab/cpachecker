@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,34 +21,34 @@ import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph.SuccessorResult;
 
 final class CallGraphUtils {
 
-  static CallGraph<AFunctionDeclaration> createCallGraph(CFA pCfa) {
+  /**
+   * Returns a list of {@link SuccessorResult}s for a specified {@link CFANode}. The returned list
+   * contains such a result for every successor of the specified CFA-node. These results can be used
+   * to create a {@link CallGraph}.
+   */
+  private static List<SuccessorResult<AFunctionDeclaration, CFANode>> getSuccessorResults(
+      CFANode pNode) {
 
-    return CallGraph.createCallGraph(
-        new CFASuccessorFunction(), ImmutableSet.of(pCfa.getMainFunction()));
+    List<CallGraph.SuccessorResult<AFunctionDeclaration, CFANode>> edges = new ArrayList<>();
+    for (CFAEdge edge : CFAUtils.leavingEdges(pNode)) {
+
+      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        CFANode successor = edge.getSuccessor();
+        edges.add(
+            CallGraph.SuccessorResult.createCallSuccessor(
+                pNode.getFunction(), successor.getFunction(), successor));
+      } else {
+        edges.add(
+            CallGraph.SuccessorResult.createNonCallSuccessor(
+                pNode.getFunction(), edge.getSuccessor()));
+      }
+    }
+
+    return edges;
   }
 
-  private static final class CFASuccessorFunction
-      implements Function<CFANode, List<CallGraph.SuccessorResult<AFunctionDeclaration, CFANode>>> {
-
-    @Override
-    public List<SuccessorResult<AFunctionDeclaration, CFANode>> apply(CFANode pNode) {
-
-      List<CallGraph.SuccessorResult<AFunctionDeclaration, CFANode>> edges = new ArrayList<>();
-      for (CFAEdge edge : CFAUtils.leavingEdges(pNode)) {
-
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          CFANode successor = edge.getSuccessor();
-          edges.add(
-              CallGraph.SuccessorResult.createCallSuccessor(
-                  pNode.getFunction(), successor.getFunction(), successor));
-        } else {
-          edges.add(
-              CallGraph.SuccessorResult.createNonCallSuccessor(
-                  pNode.getFunction(), edge.getSuccessor()));
-        }
-      }
-
-      return edges;
-    }
+  static CallGraph<AFunctionDeclaration> createCallGraph(CFA pCfa) {
+    return CallGraph.createCallGraph(
+        CallGraphUtils::getSuccessorResults, ImmutableSet.of(pCfa.getMainFunction()));
   }
 }

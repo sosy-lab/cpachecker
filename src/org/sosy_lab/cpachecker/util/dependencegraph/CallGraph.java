@@ -42,7 +42,8 @@ final class CallGraph<P> {
     nodeMap = pNodeMap;
   }
 
-  private static <P> Node<P> node(List<Node<P>> pNodes, Map<P, Node<P>> pNodeMap, P pProcedure) {
+  private static <P> Node<P> createNodeIfAbsent(
+      List<Node<P>> pNodes, Map<P, Node<P>> pNodeMap, P pProcedure) {
 
     Node<P> node = pNodeMap.computeIfAbsent(pProcedure, key -> new Node<>(pNodes.size(), key));
 
@@ -56,8 +57,8 @@ final class CallGraph<P> {
   private static <P> void insertEdge(
       List<Node<P>> pNodes, Map<P, Node<P>> pNodeMap, P pPredecessor, P pSuccessor) {
 
-    Node<P> predecessorCallNode = node(pNodes, pNodeMap, pPredecessor);
-    Node<P> successorCallNode = node(pNodes, pNodeMap, pSuccessor);
+    Node<P> predecessorCallNode = createNodeIfAbsent(pNodes, pNodeMap, pPredecessor);
+    Node<P> successorCallNode = createNodeIfAbsent(pNodes, pNodeMap, pSuccessor);
 
     predecessorCallNode.addSuccessor(successorCallNode);
     successorCallNode.addPredecessor(predecessorCallNode);
@@ -195,9 +196,9 @@ final class CallGraph<P> {
 
       Node<P> caller = stack.peek();
 
-      for (Node<P> calee : caller.getSuccessors()) {
-        if (stacked.add(calee)) {
-          stack.push(calee);
+      for (Node<P> callee : caller.getSuccessors()) {
+        if (stacked.add(callee)) {
+          stack.push(callee);
           continue outer;
         }
       }
