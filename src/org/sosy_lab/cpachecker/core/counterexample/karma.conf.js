@@ -84,11 +84,15 @@ module.exports = function (config) {
       enabled: true,
       usePhantomJS: false,
       preferHeadless: true,
-      // Start Chromium with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
+      // Start Chromium and Chrome with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
       postDetection: (availableBrowsers) => {
         if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
           availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] =
             "ChromiumHeadlessNoSandbox";
+        }
+        if (isDocker && availableBrowsers.includes("ChromeHeadless")) {
+          availableBrowsers[availableBrowsers.indexOf("ChromeHeadless")] =
+            "ChromeHeadlessNoSandbox";
         }
         return availableBrowsers.filter(
           (browser) =>
@@ -119,6 +123,10 @@ module.exports = function (config) {
         base: "ChromiumHeadless",
         flags: ["--no-sandbox"],
       },
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox']
+      }
     },
 
     // Continuous Integration mode

@@ -18,15 +18,16 @@
 # to make sure that the tests are also executable on a standard Ubuntu easily.
 FROM ubuntu:20.04
 
-# Prevent Ubuntu to wait for user input during setup
+# Prevent Ubuntu from waiting for user input during setup
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
       nodejs \
       npm \
-      openjdk-11-jre-headless
+      openjdk-11-jre-headless \
+      wget
 
-# Workaround for Chromium installation so we don't need snap
-RUN apt-get install -y software-properties-common &&  \
-      add-apt-repository ppa:saiarcot895/chromium-beta && \
-      apt-get install -y chromium-browser
+RUN apt-get install -y wget && \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get install -y ./google-chrome-stable_current_amd64.deb && \
+    rm google-chrome-stable_current_amd64.deb
