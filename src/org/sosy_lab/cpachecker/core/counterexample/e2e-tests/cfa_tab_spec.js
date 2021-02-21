@@ -30,7 +30,12 @@ describe("CFA testing", function () {
       browser.wait(
         element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))
       );
-      browser.actions().mouseMove(element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))).click();
+      browser
+        .actions()
+        .mouseMove(
+          element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))
+        )
+        .click();
       element(
         by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select/option[2]')
       ).click();
@@ -44,7 +49,12 @@ describe("CFA testing", function () {
 
     it("Display CFA dropdown test-2", function () {
       element(by.id("set-tab-1")).click();
-      browser.actions().mouseMove(element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))).click();
+      browser
+        .actions()
+        .mouseMove(
+          element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))
+        )
+        .click();
       element(
         by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select/option[1]')
       ).click();

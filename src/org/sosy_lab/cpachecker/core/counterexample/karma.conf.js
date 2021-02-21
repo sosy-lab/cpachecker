@@ -124,9 +124,9 @@ module.exports = function (config) {
         flags: ["--no-sandbox"],
       },
       ChromeHeadlessNoSandbox: {
-        base: 'ChromeHeadless',
-        flags: ['--no-sandbox']
-      }
+        base: "ChromeHeadless",
+        flags: ["--no-sandbox"],
+      },
     },
 
     // Continuous Integration mode

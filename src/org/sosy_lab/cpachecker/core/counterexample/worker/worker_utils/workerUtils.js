@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
- const d3 = require("d3");
+const d3 = require("d3");
 const dagreD3 = require("dagre-d3");
 
 // Use D3 zoom behavior to add pan event

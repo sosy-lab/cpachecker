@@ -78,7 +78,7 @@
 		],
 		"rules": {
 			"prettier/prettier": "error",
-			"require-jsdoc" : 0
+			"require-jsdoc": 0
 		}
 	}
 }
