@@ -16,6 +16,7 @@ import "datatables.net-dt/css/jquery.dataTables.min.css";
 import "@fortawesome/fontawesome-free/js/all.min";
 import $ from "jquery";
 import "angular";
+import "angular-sanitize";
 import "bootstrap";
 import "datatables.net";
 import "code-prettify";
@@ -44,6 +45,7 @@ if (isDevEnv) {
 const argJson = window.argJson;
 const sourceFiles = window.sourceFiles;
 const cfaJson = window.cfaJson;
+const dependencies = require("dependencies");
 
 // CFA graph variable declarations
 var functions = cfaJson.functionNames;
@@ -191,7 +193,7 @@ let argTabDisabled = false;
     });
   });
 
-  const app = angular.module("report", []);
+  const app = angular.module("report", ["ngSanitize"]);
 
   const reportController = app.controller("ReportController", [
     "$rootScope",
@@ -1257,6 +1259,35 @@ let argTabDisabled = false;
       $scope.sourceFileIsSet = function (value) {
         return value === $scope.selectedSourceFile;
       };
+    },
+  ]);
+
+  const aboutController = app.controller("AboutController", [
+    "$rootScope",
+    "$scope",
+    function ($rootScope, $scope, $location, $anchorScroll) {
+      $scope.dependencies = dependencies;
+      $scope.knownLicenses = [
+        "0BSD",
+        "Apache-2.0",
+        "BSD-2-Clause",
+        "BSD-3-Clause",
+        "CC0-1.0",
+        "CC-BY-3.0",
+        "CC-BY-4.0",
+        "ISC",
+        "MIT",
+        "OFL-1.1",
+      ];
+      $scope.linkifyLicenses = (licenses) =>
+        licenses
+          .split(/([A-Za-z0-9.-]+)/)
+          .filter((license) => license)
+          .map((s) =>
+            $scope.knownLicenses.includes(s) ? $scope.linkifyLicense(s) : s
+          );
+      $scope.linkifyLicense = (license) =>
+        `<a href="https://spdx.org/licenses/${license}" target="_blank" rel="noopener noreferrer">${license}</a>`;
     },
   ]);
 })();

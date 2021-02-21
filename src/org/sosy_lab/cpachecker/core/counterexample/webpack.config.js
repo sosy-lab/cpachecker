@@ -12,6 +12,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const path = require("path");
 const devFolder = "development_data/";
+const licenseFolder = "dependency_data/";
 
 module.exports = {
   mode: "production",
@@ -80,6 +81,10 @@ module.exports = {
   resolve: {
     alias: {
       devData: path.resolve(__dirname, devFolder + "data.json"),
+      dependencies: path.resolve(
+        __dirname,
+        licenseFolder + "dependencies.json"
+      ),
     },
   },
 };

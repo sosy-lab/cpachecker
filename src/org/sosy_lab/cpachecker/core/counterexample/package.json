@@ -36,6 +36,7 @@
 		"@fortawesome/fontawesome-free": "^5.15.1",
 		"angular": "^1.8.1",
 		"angular-mocks": "^1.8.2",
+		"angular-sanitize": "^1.8.2",
 		"bootstrap": "^4.5.2",
 		"code-prettify": "^0.1.0",
 		"css-loader": "^5.0.1",

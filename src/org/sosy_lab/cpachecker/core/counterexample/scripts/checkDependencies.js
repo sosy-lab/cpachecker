@@ -154,23 +154,27 @@ checker.init(
         [...new Set(dependencies.map(prettyPrintLicense))].join(", "),
         dependencyData.length
       );
-      fs.mkdir("./dependency_licenses", () => {
-        fs.writeFile(
-          "./dependency_licenses/licenses.json",
-          dependencyData,
-          (err) => {
-            if (err) {
-              console.log(err);
-              process.exit(1);
+      fs.mkdir(
+        "./dependency_data",
+        () => {
+          fs.writeFile(
+            "./dependency_data/dependencies.json",
+            dependencyData,
+            (err) => {
+              if (err) {
+                console.log(err);
+                process.exit(1);
+              }
             }
+          );
+        },
+        (err) => {
+          if (err) {
+            console.log(err);
+            process.exit(1);
           }
-        );
-      }, err => {
-        if (err) {
-          console.log(err);
-          process.exit(1);
         }
-      });
+      );
     }
   }
 );

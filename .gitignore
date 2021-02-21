@@ -77,5 +77,5 @@ a.out
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
 
-/src/org/sosy_lab/cpachecker/core/counterexample/dependency_licenses/licenses.json
+/src/org/sosy_lab/cpachecker/core/counterexample/dependency_data/dependencies.json
 node_modules/
