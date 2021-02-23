@@ -60,6 +60,18 @@ public class StatementContract implements ACSLAnnotation {
         fcontract.getCompletenessClauses());
   }
 
+  public List<Behavior> getEnclosingBehaviors() {
+    return enclosingBehaviors;
+  }
+
+  public List<Behavior> getBehaviors() {
+    return ownBehaviors;
+  }
+
+  public boolean isPreStateRepresentation() {
+    return usePreStateRepresentation;
+  }
+
   @Override
   public ACSLPredicate getPredicateRepresentation() {
     return usePreStateRepresentation ? getPreStateRepresentation() : getPostStateRepresentation();

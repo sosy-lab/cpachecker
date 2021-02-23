@@ -105,6 +105,10 @@ public class FunctionContract implements ACSLAnnotation {
     return completenessPredicate;
   }
 
+  public boolean isPreStateRepresentation() {
+    return usePreStateRepresentation;
+  }
+
   public RequiresClause getRequires() {
     return requiresClause;
   }

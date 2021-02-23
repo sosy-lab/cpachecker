@@ -12,7 +12,6 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import java.io.File;
@@ -24,15 +23,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
@@ -40,11 +40,15 @@ import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 
 parser code {:
 
@@ -52,92 +56,109 @@ parser code {:
     private ACSLTermToCExpressionVisitor visitor;
     // Maps function names to behaviors declared in the function contract or in statement contracts
     // inside the function along with the node where the originating contract is annotated
-    private final Multimap<String, Pair<Behavior, CFANode>> behaviors = LinkedHashMultimap.create();
+    private final Set<Behavior> behaviors = new HashSet();
     private CFAWithACSLAnnotationLocations cfa;
     private LogManager logger;
     private List<IASTFileLocation> orderedLocs;
+    private List<CFAEdge> orderedCFALocs;
     private final Set<Integer> annotationsToSkip = new HashSet<>();
 
     private ACSLParser(ACSLScanner pScanner, SymbolFactory sf, CFAWithACSLAnnotationLocations pCfa,
-      List<IASTFileLocation> pOrderedLocs, LogManager pLogger) {
+      List<IASTFileLocation> pOrderedLocs, List<CFAEdge> pOrderedCFALocs, LogManager pLogger) {
         super(pScanner, sf);
         scanner = pScanner;
         cfa = pCfa;
         logger = pLogger;
         visitor = new ACSLTermToCExpressionVisitor(cfa, logger);
         orderedLocs = pOrderedLocs;
+        orderedCFALocs = pOrderedCFALocs;
     }
 
-    public static CFA parseACSLAnnotations(List<String> files, CFA pCfa, LogManager logger) throws CParserException, IOException {
-      Comparator<IASTFileLocation> locationComparator =
-          (loc1, loc2) -> Integer.compare(loc1.getNodeOffset(), loc2.getNodeOffset());
+  public static CFA parseACSLAnnotations(List<String> files, CFA pCfa, LogManager logger)
+      throws CParserException, IOException {
 
-      for (String filename : files) {
-        Reader reader = new FileReader(new File(filename), StandardCharsets.UTF_8);
-        ComplexSymbolFactory sf = new ComplexSymbolFactory();
-        ACSLScanner scanner = new ACSLScanner(reader);
-        if (pCfa instanceof CFAWithACSLAnnotationLocations) {
-          CFAWithACSLAnnotationLocations cfaWithLocs = (CFAWithACSLAnnotationLocations) pCfa;
+    assert pCfa instanceof CFAWithACSLAnnotationLocations : "No location information available!";
+    CFAWithACSLAnnotationLocations cfaWithLocs = (CFAWithACSLAnnotationLocations) pCfa;
+    ComplexSymbolFactory sf = new ComplexSymbolFactory();
 
-          List<IASTFileLocation> orderedLocs =
-              new ArrayList<>(cfaWithLocs.getCommentPositions().keySet());
-          orderedLocs.sort(locationComparator);
-          orderedLocs = FluentIterable.from(orderedLocs).filter(x -> x.getFileName().equals(filename)).toList();
-          ACSLParser parser = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs, logger);
-          List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
-          int skipped = 0;
-          for (int i = 0; i < orderedLocs.size(); i++) {
-            if (parser.shouldSkip(i)) {
-              skipped++;
-              continue;
-            }
-            if (annotations.get(i) instanceof ACSLAssertion) {
-              handleAssertion(cfaWithLocs, orderedLocs.get(i), (ACSLAssertion) annotations.get(i));
-            } else {
-              cfaWithLocs
-                  .getEdgesToAnnotations()
-                  .put(
-                      cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)).getSecond(),
-                      annotations.get(i));
-            }
-          }
-          logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
+    Stream<IASTFileLocation> orderedAnnotationLocs =
+        cfaWithLocs.getCommentPositions().stream()
+            .sorted((loc1, loc2) -> Integer.compare(loc1.getNodeOffset(), loc2.getNodeOffset()));
 
-          convertFunctionContractsIfNecessary(cfaWithLocs);
+    EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
+    CFATraversal.dfs().traverseOnce(cfaWithLocs.getMainFunction(), edgeVisitor);
+    ImmutableList<CFAEdge> orderedCFALocs =
+        edgeVisitor.getVisitedEdges().stream()
+            .sorted(
+                (edge1, edge2) ->
+                    Integer.compare(
+                        edge1.getFileLocation().getNodeOffset(),
+                        edge2.getFileLocation().getNodeOffset()))
+            .collect(ImmutableList.toImmutableList());
 
-          adjustAnnotationLocations(cfaWithLocs, filename);
+    for (String filename : files) {
+      Reader reader = new FileReader(new File(filename), StandardCharsets.UTF_8);
+      ACSLScanner scanner = new ACSLScanner(reader);
+      ImmutableList<IASTFileLocation> orderedLocs =
+          orderedAnnotationLocs
+              .filter(x -> x.getFileName().equals(filename))
+              .collect(ImmutableList.toImmutableList());
+      ACSLParser parser =
+          new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs, orderedCFALocs, logger);
+      List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
+      int skipped = 0;
+      for (int i = 0; i < orderedLocs.size(); i++) {
+        if (parser.shouldSkip(i)) {
+          skipped++;
+          continue;
+        }
+        if (annotations.get(i) instanceof ACSLAssertion) {
+          handleAssertion(
+              cfaWithLocs, orderedCFALocs, orderedLocs.get(i), (ACSLAssertion) annotations.get(i));
         } else {
-          throw new AssertionError("No location information available!");
-        }
-      }
-
-      return pCfa;
-    }
-
-    private static void convertFunctionContractsIfNecessary(
-        CFAWithACSLAnnotationLocations cfaWithLocs) {
-      ImmutableList<CFAEdge> keys =
-          ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().keySet());
-      for (CFAEdge edge : keys) {
-        Collection<ACSLAnnotation> annotations =
-            ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().get(edge));
-        for (ACSLAnnotation annotation : annotations) {
-          if (annotation instanceof FunctionContract) {
-            if (edge.getPredecessor().getNumEnteringEdges() != 1
-                || !edge.getPredecessor()
-                    .getEnteringEdge(0)
-                    .getDescription()
-                    .equals("Function start dummy edge")) {
-              StatementContract statementContract =
-                  StatementContract.fromFunctionContract(
-                      ImmutableList.of(), (FunctionContract) annotation);
-              cfaWithLocs.getEdgesToAnnotations().remove(edge, annotation);
-              cfaWithLocs.getEdgesToAnnotations().put(edge, statementContract);
+          CFAEdge edgeForAnnotation = null;
+          for (CFAEdge edge : orderedCFALocs) {
+            if (edge.getFileLocation().getNodeOffset() > orderedLocs.get(i).getNodeOffset()) {
+              edgeForAnnotation = edge;
+              break;
             }
           }
+          // Only assertions may be placed at the end of a file,
+          // so there should be another edge after the current annotation
+          assert edgeForAnnotation != null;
+          cfaWithLocs.getEdgesToAnnotations().put(edgeForAnnotation, annotations.get(i));
+        }
+      }
+      logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
+      convertFunctionContractsIfNecessary(cfaWithLocs);
+      adjustAnnotationLocations(cfaWithLocs, filename);
+      checkBehaviors(cfaWithLocs.getEdgesToAnnotations(), cfaWithLocs);
+    }
+    return pCfa;
+  }
+
+  private static void convertFunctionContractsIfNecessary(
+      CFAWithACSLAnnotationLocations cfaWithLocs) {
+    ImmutableList<CFAEdge> keys =
+        ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().keySet());
+    for (CFAEdge edge : keys) {
+      if (edge instanceof CDeclarationEdge
+          && ((CDeclarationEdge) edge).getDeclaration() instanceof CFunctionDeclaration) {
+        continue;
+      }
+      Collection<ACSLAnnotation> annotations =
+          ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().get(edge));
+      for (ACSLAnnotation annotation : annotations) {
+        if (annotation instanceof FunctionContract) {
+          StatementContract statementContract =
+              StatementContract.fromFunctionContract(
+                  ImmutableList.of(), (FunctionContract) annotation);
+          cfaWithLocs.getEdgesToAnnotations().remove(edge, annotation);
+          cfaWithLocs.getEdgesToAnnotations().put(edge, statementContract);
         }
       }
     }
+  }
 
     /**
      * Add, move and remove ACSL annotations to, between and from CFAEdges as necessary to match
@@ -158,7 +179,8 @@ parser code {:
               continue;
             }
             if (annotation instanceof FunctionContract) {
-              if (handleFunctionContract(cfaWithLocs, key, (FunctionContract) annotation)) {
+              if (handleFunctionContract(
+                  cfaWithLocs, (CDeclarationEdge) key, (FunctionContract) annotation)) {
                 toRemove.add(annotation);
               }
             } else if (annotation instanceof StatementContract) {
@@ -182,22 +204,27 @@ parser code {:
       }
     }
 
-    private static boolean handleFunctionContract(
-        CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, FunctionContract annotation) {
-      // Add function contracts to function exits as well because some clauses have to be
-      // evaluated in the post-state
-      FunctionExitNode exit =
-          cfaWithLocs.getFunctionHead(edge.getSuccessor().getFunctionName()).getExitNode();
-      for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
-        CFAEdge currentEdge = exit.getEnteringEdge(i);
-        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
-      }
-      // currently we always have to move function contracts since they get matched to
-      // one edge too late
-      assert edge.getPredecessor().getNumEnteringEdges() == 1;
-      cfaWithLocs.getEdgesToAnnotations().put(edge.getPredecessor().getEnteringEdge(0), annotation.getCopyForPreState());
-      return true;
+  private static boolean handleFunctionContract(
+      CFAWithACSLAnnotationLocations cfaWithLocs,
+      CDeclarationEdge edge,
+      FunctionContract annotation) {
+    // Annotation is currently placed on declaration edge for the function
+    // -> move it to the function entry
+    String functionName = edge.getDeclaration().getName();
+    FunctionEntryNode entry = cfaWithLocs.getAllFunctions().get(functionName);
+    assert entry.getNumLeavingEdges() == 1;
+    cfaWithLocs
+        .getEdgesToAnnotations()
+        .put(entry.getLeavingEdge(0), annotation.getCopyForPreState());
+    // Add function contracts to function exits as well because some clauses have to be
+    // evaluated in the post-state
+    FunctionExitNode exit = entry.getExitNode();
+    for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
+      CFAEdge currentEdge = exit.getEnteringEdge(i);
+      cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
     }
+    return true;
+  }
 
     private static boolean handleStatementContract(
         CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, StatementContract annotation) {
@@ -301,77 +328,180 @@ parser code {:
       return false;
     }
 
-    /**
-     * Adds the given assertion to the correct edges in the CFA.
-     *
-     * @param cfaWithLocs A CFA holding location information about the annotation.
-     * @param loc The location at which the annotation was originally placed.
-     * @param annotation The annotation to be handled.
-     */
-    private static void handleAssertion(
-        CFAWithACSLAnnotationLocations cfaWithLocs, IASTFileLocation loc, ACSLAssertion annotation)
-        throws IOException {
-      CFAEdge prev = cfaWithLocs.getCommentPositions().get(loc).getFirst();
-      CFAEdge next = cfaWithLocs.getCommentPositions().get(loc).getSecond();
-      int stackDiff = prev.getPredecessor().getStatementStackDepth() - next.getPredecessor().getStatementStackDepth();
-      if (stackDiff > 0) {
-        // annotation is either placed at very end of block or directly after block
-        String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
-        String fileContentAfterAnnotation = fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
-        int closingBraces = 0;
-        while(fileContentAfterAnnotation.stripLeading().charAt(0) == '}') {
-          closingBraces++;
-          fileContentAfterAnnotation = fileContentAfterAnnotation.stripLeading().substring(1);
-        }
-        int seekedDepth = next.getPredecessor().getStatementStackDepth() + closingBraces;
-        if (prev.getPredecessor().getStatementStackDepth() == seekedDepth) {
-          cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
-          return;
-        }
-        Deque<CFAEdge> waitlist = new ArrayDeque<>();
-        Set<CFAEdge> reached = new HashSet<>();
-        Set<CFAEdge> result = new HashSet<>();
-        waitlist.add(prev);
-        while (!waitlist.isEmpty()) {
-          CFAEdge current = waitlist.poll();
-          reached.add(current);
-          if (current.getPredecessor().getStatementStackDepth() == seekedDepth) {
-            for (int i = 0; i < current.getPredecessor().getNumLeavingEdges(); i++) {
-              CFAEdge candidate = current.getPredecessor().getLeavingEdge(i);
-              if (candidate != current) {
-                result.add(candidate);
-              }
+  /**
+   * Adds the given assertion to the correct edges in the CFA.
+   *
+   * @param cfaWithLocs A CFA holding location information about the annotation.
+   * @param loc The location at which the annotation was originally placed.
+   * @param annotation The annotation to be handled.
+   */
+  private static void handleAssertion(
+      CFAWithACSLAnnotationLocations cfaWithLocs,
+      List<CFAEdge> orderedCFALocs,
+      IASTFileLocation loc,
+      ACSLAssertion annotation)
+      throws IOException {
+    CFAEdge prev = null;
+    CFAEdge next = null;
+    // We can start with the second edge because we have at least one edge with node offset zero,
+    // and an assertion will surely never be placed before the start of the file
+    for (int i = 1; i < orderedCFALocs.size(); i++) {
+      if (orderedCFALocs.get(i).getFileLocation().getNodeOffset() > loc.getNodeOffset()) {
+        prev = orderedCFALocs.get(i - 1);
+        next = orderedCFALocs.get(i);
+        break;
+      }
+    }
+    if (prev == null) {
+      prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
+      // TODO: There is not actually a next edge in this case. Is the upcoming adjustment good
+      // enough?
+      next = orderedCFALocs.get(orderedCFALocs.size() - 1);
+    }
+    int stackDiff =
+        prev.getPredecessor().getStatementStackDepth()
+            - next.getPredecessor().getStatementStackDepth();
+    if (stackDiff > 0) {
+      // annotation is either placed at very end of block or directly after block
+      String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
+      String fileContentAfterAnnotation =
+          fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
+      int closingBraces = 0;
+      while (fileContentAfterAnnotation.stripLeading().charAt(0) == '}') {
+        closingBraces++;
+        fileContentAfterAnnotation = fileContentAfterAnnotation.stripLeading().substring(1);
+      }
+      int seekedDepth = next.getPredecessor().getStatementStackDepth() + closingBraces;
+      if (prev.getPredecessor().getStatementStackDepth() == seekedDepth) {
+        cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
+        return;
+      }
+      Deque<CFAEdge> waitlist = new ArrayDeque<>();
+      Set<CFAEdge> reached = new HashSet<>();
+      Set<CFAEdge> result = new HashSet<>();
+      waitlist.add(prev);
+      while (!waitlist.isEmpty()) {
+        CFAEdge current = waitlist.poll();
+        reached.add(current);
+        if (current.getPredecessor().getStatementStackDepth() == seekedDepth) {
+          for (int i = 0; i < current.getPredecessor().getNumLeavingEdges(); i++) {
+            CFAEdge candidate = current.getPredecessor().getLeavingEdge(i);
+            if (candidate != current) {
+              result.add(candidate);
             }
-          } else if (current.getPredecessor().getStatementStackDepth() > seekedDepth) {
-            for (int i = 0; i < current.getPredecessor().getNumEnteringEdges(); i++) {
-              CFAEdge predEdge = current.getPredecessor().getEnteringEdge(i);
-              if (!reached.contains(predEdge)) {
-                waitlist.add(predEdge);
-              }
+          }
+        } else if (current.getPredecessor().getStatementStackDepth() > seekedDepth) {
+          for (int i = 0; i < current.getPredecessor().getNumEnteringEdges(); i++) {
+            CFAEdge predEdge = current.getPredecessor().getEnteringEdge(i);
+            if (!reached.contains(predEdge)) {
+              waitlist.add(predEdge);
             }
           }
         }
-        for (CFAEdge edge : result) {
-          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
-          if (prev.getSuccessor().getNumLeavingEdges() > 0
-              && prev.getSuccessor().getLeavingEdge(0).getSuccessor().equals(edge.getSuccessor())) {
-            // annotation is placed after if- or else-block
-            cfaWithLocs.getEdgesToAnnotations().put(prev.getSuccessor().getLeavingEdge(0), annotation);
-          }
+      }
+      for (CFAEdge edge : result) {
+        cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+        if (prev.getSuccessor().getNumLeavingEdges() > 0
+            && prev.getSuccessor().getLeavingEdge(0).getSuccessor().equals(edge.getSuccessor())) {
+          // annotation is placed after if- or else-block
+          cfaWithLocs
+              .getEdgesToAnnotations()
+              .put(prev.getSuccessor().getLeavingEdge(0), annotation);
         }
-      } else {
-        CFANode predecessor = next.getPredecessor();
-        for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
-          CFAEdge currentEdge = predecessor.getEnteringEdge(i);
-          while (currentEdge.getFileLocation().getNodeOffset()
-              == next.getFileLocation().getNodeOffset()) {
-            assert currentEdge.getPredecessor().getNumEnteringEdges() == 1;
-            currentEdge = currentEdge.getPredecessor().getEnteringEdge(0);
-          }
-          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+      }
+    } else {
+      CFANode predecessor = next.getPredecessor();
+      for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
+        CFAEdge currentEdge = predecessor.getEnteringEdge(i);
+        while (currentEdge.getFileLocation().getNodeOffset()
+            == next.getFileLocation().getNodeOffset()) {
+          assert currentEdge.getPredecessor().getNumEnteringEdges() == 1;
+          currentEdge = currentEdge.getPredecessor().getEnteringEdge(0);
+        }
+        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+      }
+    }
+  }
+
+  /**
+   * Make sure that all behaviors are actually in scope when they are referenced.
+   *
+   * This function should only be called after the locations of all annotations have been fixed.
+   */
+  public static void checkBehaviors(
+      Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations, CFAWithACSLAnnotationLocations cfa) {
+    Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
+    // First, collect all behaviors where they are introduced
+    for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
+      ACSLAnnotation annotation = entry.getValue();
+      if (annotation instanceof FunctionContract) {
+        FunctionContract fcontract = (FunctionContract) annotation;
+        if (!fcontract.isPreStateRepresentation()) {
+          // Behaviors are stored in post-state representation as well, but no need to add twice
+          continue;
+        }
+        for (Behavior behavior : fcontract.getBehaviors()) {
+          behaviorDeclarations.put(
+              behavior.getName(),
+              cfa.getFunctionHead(entry.getKey().getPredecessor().getFunctionName())
+                  .getLeavingEdge(0));
+        }
+      } else if (annotation instanceof StatementContract) {
+        StatementContract scontract = (StatementContract) annotation;
+        if (!scontract.isPreStateRepresentation()) {
+          // Behaviors are stored in post-state representation as well, but are declared
+          // where pre-state representation is placed
+          continue;
+        }
+        for (Behavior behavior : scontract.getBehaviors()) {
+          behaviorDeclarations.put(behavior.getName(), entry.getKey());
         }
       }
     }
+    // Now check whether all referenced behaviors are still in scope
+    for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
+      ACSLAnnotation annotation = entry.getValue();
+      if (annotation instanceof StatementContract) {
+        StatementContract scontract = (StatementContract) annotation;
+        if (!scontract.isPreStateRepresentation()) {
+          // No need to check twice, a behavior is either in scope for the whole statement or for
+          // none of it
+          continue;
+        }
+        for (Behavior behavior : scontract.getEnclosingBehaviors()) {
+          assert behaviorDeclarations.containsKey(behavior.getName())
+              : "Unknown behavior: " + behavior.getName();
+          assert inSameScope(
+                  behaviorDeclarations.get(behavior.getName()).getSuccessor(),
+                  entry.getKey().getSuccessor(),
+                  cfa)
+              : "Statement contract\n" + scontract + "\nis not in scope of " + behavior.getName();
+        }
+      } else if (annotation instanceof ACSLLoopAnnotation) {
+        ACSLLoopAnnotation loopAnnotation = (ACSLLoopAnnotation) annotation;
+        for (Behavior behavior : loopAnnotation.getReferencedBehaviors()) {
+          assert behaviorDeclarations.containsKey(behavior.getName())
+              : "Unknown behavior: " + behavior.getName();
+          assert inSameScope(
+                  behaviorDeclarations.get(behavior.getName()).getSuccessor(),
+                  entry.getKey().getSuccessor(),
+                  cfa)
+              : "Loop annotation\n" + loopAnnotation + "\nis not in scope of " + behavior.getName();
+        }
+      } else if (annotation instanceof ACSLAssertion) {
+        ACSLAssertion assertion = (ACSLAssertion) annotation;
+        for (Behavior behavior : assertion.getEnclosingBehaviors()) {
+          assert behaviorDeclarations.containsKey(behavior.getName())
+              : "Unknown behavior: " + behavior.getName();
+          assert inSameScope(
+                  behaviorDeclarations.get(behavior.getName()).getSuccessor(),
+                  entry.getKey().getSuccessor(),
+                  cfa)
+              : "Assertion\n" + assertion + "\nis not in scope of " + behavior.getName();
+        }
+      }
+    }
+  }
 
     public List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
       try {
@@ -386,46 +516,40 @@ parser code {:
       }
     }
 
-    public CFANode getCurrentNode() {
-      return cfa.getCommentPositions()
-          .get(orderedLocs.get(scanner.getCurrentAnnotation()))
-          .getSecond()
-          .getSuccessor();
-    }
-
-    public void putBehavior(String functionName, Pair<Behavior, CFANode> p) {
-      behaviors.put(functionName, p);
-    }
-
-    public List<Behavior> getAllBehaviors(String functionName) {
-      List<Behavior> result = new ArrayList<>();
-      for (Pair<Behavior, CFANode> pair : behaviors.get(functionName)) {
-        result.add(pair.getFirst());
+  public String getCurrentFunctionName() {
+    int currentOffset = orderedLocs.get(scanner.getCurrentAnnotation()).getNodeOffset();
+    int currentLength = orderedLocs.get(scanner.getCurrentAnnotation()).getNodeLength();
+    for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
+      if (function.getFileLocation().getNodeOffset() < currentOffset
+          && function.getFileLocation().getNodeOffset() + function.getFileLocation().getNodeLength()
+              > currentOffset + currentLength) {
+        return function.getFunctionName();
       }
-      return result;
     }
+    throw new AssertionError("Current annotation is outside any function");
+  }
 
-    public Behavior getBehavior(String functionName, String behaviorName, CFANode currentNode) {
-      for (Pair<Behavior, CFANode> p : behaviors.get(functionName)) {
-        Behavior b = p.getFirst();
-        if (b.getName().equals(behaviorName)) {
-          CFANode origin = p.getSecond();
-          if (inSameScope(origin, currentNode)) {
-            return b;
-          }
-        }
+  public void putBehavior(Behavior behavior) {
+    behaviors.add(behavior);
+  }
+
+  public Behavior getBehavior(String behaviorName) {
+    for (Behavior behavior : behaviors) {
+      if (behavior.getName().equals(behaviorName)) {
+        return behavior;
       }
-      throw new AssertionError("Unknown behavior identifier: " + behaviorName);
     }
+    throw new AssertionError("Unknown behavior identifier: " + behaviorName);
+  }
 
-    private boolean inSameScope(CFANode oldNode, CFANode newNode) {
+    private static boolean inSameScope(CFANode oldNode, CFANode newNode, CFA cfa) {
       if (newNode.getStatementStackDepth() < oldNode.getStatementStackDepth()) {
         return false;
       }
-      return getInnermostScopeOf(oldNode).contains(newNode);
+      return getInnermostScopeOf(oldNode, cfa).contains(newNode);
     }
 
-    private Set<CFANode> getInnermostScopeOf(CFANode pNode) {
+    private static Set<CFANode> getInnermostScopeOf(CFANode pNode, CFA cfa) {
       Set<CFANode> inScope = new HashSet<>();
       Set<CFANode> borderNodes = new HashSet<>();
       Set<CFAEdge> initialWaitset = new HashSet<>();
@@ -580,13 +704,11 @@ annotation ::= fcontract:f {: RESULT = f; :}
             | assertion:a {: RESULT = a; :};
 assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
             | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                                             CFANode node = parser.getCurrentNode();
-                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
                                                                              RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, enclosingBehaviors, p); :}
             | NEXTCONTRACT CHECK predicate:p SEMI                         {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, p); :}
             | NEXTCONTRACT behavior_identifiers:i CHECK predicate:p SEMI  {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                                             CFANode node = parser.getCurrentNode();
-                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
                                                                              RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, enclosingBehaviors, p); :};
 loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new ACSLLoopAnnotation(c, b); :}
                 | NEXTCONTRACT loop_behaviors:b                 {: RESULT = new ACSLLoopAnnotation(b); :}
@@ -594,23 +716,20 @@ loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new 
 fcontract ::= NEXTCONTRACT clauses:c                {: RESULT = c.build(); :};
 scontract ::= NEXTCONTRACT behavior_identifiers:i clauses:c
                                                     {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                       CFANode node = parser.getCurrentNode();
-                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
                                                        RESULT = StatementContract.fromFunctionContract(enclosingBehaviors, c.build()); :};
 behavior_identifiers ::= FOR identifiers:i COLON PRED_START {: RESULT = i; :};
 identifiers ::= identifiers:is COMMA IDENTIFIER:i    {: is.add(i); RESULT = is; :}
             | IDENTIFIER:i      {: List<String> identifiers = new ArrayList<>();
                                    identifiers.add(i); RESULT = identifiers; :};
 loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: List<Behavior> holdsFor = new ArrayList<>(i.size());
-                                                                               CFANode node = parser.getCurrentNode();
                                                                                for(String id : i) {
-                                                                               holdsFor.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                                               holdsFor.add(parser.getBehavior(id)); }
                                                                                b.put(holdsFor, c); RESULT = b; :}
                 | behavior_identifiers:i loop_clauses:c                     {: Map<List<Behavior>, LoopInvariant> loopBehaviors = new HashMap<>();
                                                                                List<Behavior> holdsFor = new ArrayList<>(i.size());
-                                                                               CFANode node = parser.getCurrentNode();
                                                                                for(String id : i) {
-                                                                               holdsFor.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                                               holdsFor.add(parser.getBehavior(id)); }
                                                                                loopBehaviors.put(holdsFor, c); RESULT = loopBehaviors; :};
 loop_clauses ::= loop_clauses:c LINVARIANT predicate:p SEMI {: RESULT = c.and(p); :}
             | LINVARIANT predicate:p SEMI                   {: assert p.isAllowedIn(LoopInvariant.class); RESULT = new LoopInvariant(p); :};
@@ -626,22 +745,17 @@ behaviors ::=
             | /* nothing */                         {: RESULT = new HashSet<>(); :};
 behavior ::= BEHAVIOR IDENTIFIER:i COLON PRED_START behavior_body:bb   {: bb.setBehaviorName(i);
                                                                           Behavior b = bb.build();
-                                                                          CFANode node = parser.getCurrentNode();
-                                                                          parser.putBehavior(node.getFunctionName(), Pair.of(b, node)); RESULT = b; :};
+                                                                          parser.putBehavior(b); RESULT = b; :};
 completeness_clauses ::= completeness_clauses:cs completeness_clause:c  {: cs.add(c); RESULT = cs; :}
                         | /* nothing */                                 {: RESULT = new HashSet<>(); :};
 completeness_clause ::= COMPLETE_BEHAVIORS identifiers:i SEMI {: List<Behavior> behaviors = new ArrayList<>(i.size());
-                                                                 CFANode node = parser.getCurrentNode();
-                                                               for (String id : i) { behaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
                                                                RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.COMPLETE); :}
-                        | COMPLETE_BEHAVIORS SEMI {: RESULT = new CompletenessClause(
-                        ImmutableList.copyOf((parser.getAllBehaviors(parser.getCurrentNode().getFunctionName()))), CompletenessClause.RelationKind.COMPLETE); :}
+                        | COMPLETE_BEHAVIORS SEMI {: RESULT = new CompletenessClause(ImmutableList.of(), CompletenessClause.RelationKind.COMPLETE); :}
                         | DISJOINT_BEHAVIORS identifiers:i SEMI {: List<Behavior> behaviors = new ArrayList<>(i.size());
-                                                                   CFANode node = parser.getCurrentNode();
-                                                               for (String id : i) { behaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
                                                                RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.DISJOINT); :}
-                        | DISJOINT_BEHAVIORS SEMI {: RESULT = new CompletenessClause(
-                        ImmutableList.copyOf((parser.getAllBehaviors(parser.getCurrentNode().getFunctionName()))), CompletenessClause.RelationKind.DISJOINT); :};
+                        | DISJOINT_BEHAVIORS SEMI {: RESULT = new CompletenessClause(ImmutableList.of(), CompletenessClause.RelationKind.DISJOINT); :};
 behavior_body ::= ass_clauses:a req_clauses:r ens_clauses:e
                                                     {: RESULT = new BehaviorBuilder().addAll(a).addAll(r).addAll(e); :};
 ass_clauses ::=
@@ -731,7 +845,7 @@ desc_base ::= term:t1 desc_rel_op:op term:t2  {: RESULT = new ACSLSimplePredicat
 term ::= PRED_START term:t                              {: RESULT = t; :}
         | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
         | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
-        | IDENTIFIER:i                                  {: Identifier identifier = new Identifier(i, parser.getCurrentNode().getFunctionName());
+        | IDENTIFIER:i                                  {: Identifier identifier = new Identifier(i, parser.getCurrentFunctionName());
                                                            checkIdentifier(identifier); RESULT = identifier; :}
         | term:t1 LBRACKET term:t2 RBRACKET             {: RESULT = new ArrayAccess(t1, t2); :}
         | unary_op:op term:t                            {: RESULT = new ACSLUnaryTerm(t, op); :}
@@ -741,7 +855,7 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | LPAREN term:t RPAREN                          {: RESULT = t; :}
         | OLD LPAREN term:t RPAREN                      {: RESULT = new At(t, ACSLDefaultLabel.OLD); :}
-        | RETVAL                                        {: RESULT = new Result(parser.getCurrentNode().getFunctionName()); :};
+        | RETVAL                                        {: RESULT = new Result(parser.getCurrentFunctionName()); :};
 log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | OR    {: RESULT = BinaryOperator.OR; :}
         | IMP   {: RESULT = BinaryOperator.IMP; :}

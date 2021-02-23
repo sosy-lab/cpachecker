@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class ACSLLoopAnnotation implements ACSLAnnotation {
 
@@ -36,6 +38,14 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
       builder.put(entry.getKey(), new LoopInvariant(entry.getValue().getPredicate().simplify()));
     }
     additionalInvariants = builder.build();
+  }
+
+  public Set<Behavior> getReferencedBehaviors() {
+    Set<Behavior> referencedBehaviors = new HashSet<>();
+    for (List<Behavior> behaviors : additionalInvariants.keySet()) {
+      referencedBehaviors.addAll(behaviors);
+    }
+    return referencedBehaviors;
   }
 
   @Override
