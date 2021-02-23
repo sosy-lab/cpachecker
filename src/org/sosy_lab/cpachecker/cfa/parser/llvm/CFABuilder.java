@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
+import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
+import static org.sosy_lab.llvm_j.Value.OpCode.LShr;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
@@ -1109,13 +1113,17 @@ public class CFABuilder {
         operation = BinaryOperator.SHIFT_LEFT;
         break;
       case LShr: // Logical shift right
-        // GNU C performs a logical shift for unsigned types
-        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
-        operand1Exp = getExpression(operand1, op1type, pFileName);
-        // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
+        if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
+          throw new UnsupportedOperationException();
+        }
         // GNU C performs an arithmetic shift for signed types
-        // op1type is signed by default for integers and vectors of integer type
+        // op1type is signed by default for integer types
+        if (pOpCode == LShr) {
+          // GNU C performs a logical shift for unsigned types
+          op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
+          operand1Exp = getExpression(operand1, op1type, pFileName);
+        }
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
       case And:
