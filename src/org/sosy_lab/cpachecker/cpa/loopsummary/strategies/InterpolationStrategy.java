@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -23,5 +25,14 @@ public class InterpolationStrategy implements StrategyInterface {
       throws CPATransferException, InterruptedException {
     // TODO Auto-generated method stub
     return Optional.empty();
+  }
+
+  public Optional<HashMap<String, Collection<Integer>>> getPointsForVariables(
+      final int amntOfPointsPerVariable, final CFANode pLoopStartNode) {
+    HashMap<String, Collection<Integer>> variablesToDataPoints = new HashMap<>();
+    // TODO Calculate the Data Points for each Loop Iteration
+    // If the amount of Loop unrolling is less than amntOfPointsPerVariable
+    // the empty optional should be returned
+    return Optional.of(variablesToDataPoints);
   }
 }
