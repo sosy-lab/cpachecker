@@ -448,6 +448,8 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     } else if (pEdge instanceof CFunctionSummaryEdge
         || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
       return false;
+    } else {
+      return !pVars.isEmpty();
     }
 
     return !Collections.disjoint(usedVars, pVars);
