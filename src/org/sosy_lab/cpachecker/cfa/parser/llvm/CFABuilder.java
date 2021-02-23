@@ -1117,6 +1117,9 @@ public class CFABuilder {
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
           throw new UnsupportedOperationException();
         }
+        // operand2 should always be treated as an unsigned value
+        op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned = */ true);
+        operand2Exp = getExpression(operand2, op2type, pFileName);
         // GNU C performs an arithmetic shift for signed types
         // op1type is signed by default for integer types
         if (pOpCode == LShr) {
