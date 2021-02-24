@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -341,9 +341,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return ImmutableList.copyOf(declEdges);
   }
 
-  private ImmutableMap<String, CFAEdge> getDeclarationEdges(List<CFAEdge> pGlobalEdges) {
+  private ImmutableMultimap<String, CFAEdge> getFunctionDeclarationEdges(
+      ImmutableList<CFAEdge> pGlobalEdges) {
 
-    ImmutableMap.Builder<String, CFAEdge> declarationEdges = ImmutableMap.builder();
+    ImmutableMultimap.Builder<String, CFAEdge> declarationEdges = ImmutableMultimap.builder();
 
     for (CFAEdge edge : pGlobalEdges) {
       if (edge instanceof CDeclarationEdge) {
@@ -351,7 +352,22 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         if (declaration instanceof CFunctionDeclaration) {
           String name = ((CFunctionDeclaration) declaration).getQualifiedName();
           declarationEdges.put(name, edge);
-        } else if (declaration instanceof CComplexTypeDeclaration) {
+        }
+      }
+    }
+
+    return declarationEdges.build();
+  }
+
+  private ImmutableMultimap<String, CFAEdge> getComplexTypeDeclarationEdges(
+      ImmutableList<CFAEdge> pGlobalEdges) {
+
+    ImmutableMultimap.Builder<String, CFAEdge> declarationEdges = ImmutableMultimap.builder();
+
+    for (CFAEdge edge : pGlobalEdges) {
+      if (edge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        if (declaration instanceof CComplexTypeDeclaration) {
           CComplexType globalType = ((CComplexTypeDeclaration) declaration).getType();
           String name = globalType.getQualifiedName();
           declarationEdges.put(name, edge);
@@ -427,23 +443,26 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  /** Insert declaration edge between a function and the corresponding function declaration edge. */
+  /**
+   * Insert declaration edge between a function and the corresponding function declaration edges.
+   */
   private void insertFunctionDeclarationEdge(
-      ImmutableMap<String, CFAEdge> pDeclarationEdges, FunctionEntryNode pEntryNode) {
+      ImmutableMultimap<String, CFAEdge> pDeclarationEdges, FunctionEntryNode pEntryNode) {
 
-    CFAEdge functionDeclarationEdge = pDeclarationEdges.get(pEntryNode.getFunctionName());
-    builder
-        .node(
-            NodeType.ENTRY,
-            Optional.of(pEntryNode.getFunction()),
-            Optional.empty(),
-            Optional.empty())
-        .depends(EdgeType.DECLARATION_EDGE, Optional.empty())
-        .on(
-            NodeType.STATEMENT,
-            getOptionalFunction(functionDeclarationEdge),
-            Optional.of(functionDeclarationEdge),
-            Optional.empty());
+    for (CFAEdge functionDeclarationEdge : pDeclarationEdges.get(pEntryNode.getFunctionName())) {
+      builder
+          .node(
+              NodeType.ENTRY,
+              Optional.of(pEntryNode.getFunction()),
+              Optional.empty(),
+              Optional.empty())
+          .depends(EdgeType.DECLARATION_EDGE, Optional.empty())
+          .on(
+              NodeType.STATEMENT,
+              getOptionalFunction(functionDeclarationEdge),
+              Optional.of(functionDeclarationEdge),
+              Optional.empty());
+    }
   }
 
   private void insertDefSummaryUseCallEdges(
@@ -672,7 +691,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
 
     ImmutableList<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
-    ImmutableMap<String, CFAEdge> declarationEdges = getDeclarationEdges(globalEdges);
+    ImmutableMultimap<String, CFAEdge> functionDeclarationEdges =
+        getFunctionDeclarationEdges(globalEdges);
+    ImmutableMultimap<String, CFAEdge> complexTypeDeclarationEdges =
+        getComplexTypeDeclarationEdges(globalEdges);
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
@@ -682,7 +704,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
 
-      insertFunctionDeclarationEdge(declarationEdges, entryNode);
+      insertFunctionDeclarationEdge(functionDeclarationEdges, entryNode);
 
       DependenceConsumer dependenceConsumer =
           (pDefEdge, pUseEdge, pCause, pIsDeclaration) ->
@@ -699,7 +721,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               defUseExtractor,
               pointerState,
               foreignDefUseData,
-              declarationEdges,
+              complexTypeDeclarationEdges,
               dependenceConsumer)
           .run();
     }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
@@ -48,7 +49,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private final EdgeDefUseData.Extractor defUseExtractor;
   private final GlobalPointerState pointerState;
   private final ForeignDefUseData foreignDefUseData;
-  private final Map<String, CFAEdge> declarationEdges;
+  private final ImmutableMultimap<String, CFAEdge> complexTypeDeclarationEdges;
 
   private final DependenceConsumer dependenceConsumer;
 
@@ -64,7 +65,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       EdgeDefUseData.Extractor pDefUseExtractor,
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
-      Map<String, CFAEdge> pDeclarationEdges,
+      ImmutableMultimap<String, CFAEdge> pComplexTypeDeclarationEdges,
       DependenceConsumer pDependenceConsumer) {
 
     super(SingleFunctionGraph.INSTANCE, pDomTree, pDomFrontiers);
@@ -75,7 +76,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     defUseExtractor = pDefUseExtractor;
     pointerState = pPointerState;
     foreignDefUseData = pForeignDefUseData;
-    declarationEdges = pDeclarationEdges;
+    complexTypeDeclarationEdges = pComplexTypeDeclarationEdges;
 
     dependenceConsumer = pDependenceConsumer;
 
@@ -363,9 +364,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
       if (!declaration.isGlobal() && type instanceof CComplexType) {
         CComplexType complexType = (CComplexType) type;
-        CFAEdge typeDeclarationEdge = declarationEdges.get(complexType.getQualifiedName());
-
-        if (typeDeclarationEdge != null) {
+        for (CFAEdge typeDeclarationEdge :
+            complexTypeDeclarationEdges.get(complexType.getQualifiedName())) {
           dependenceConsumer.accept(
               typeDeclarationEdge,
               pEdge,
