@@ -128,9 +128,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     slicingTime.start();
 
-    Set<CFAEdge> criteriaEdges = new HashSet<>();
-
-    criteriaEdges.addAll(pSlicingCriteria);
+    Set<CFAEdge> criteriaEdges = new HashSet<>(pSlicingCriteria);
 
     // TODO: make this configurable
     if (!criteriaEdges.isEmpty()) {
@@ -144,10 +142,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       startNodes.addAll(nodesPerCfaEdge.get(criteriaEdge));
     }
 
-    Set<CFAEdge> relevantEdges = new HashSet<>();
     Phase1Visitor phase1Visitor = new Phase1Visitor();
     sdg.traverse(startNodes, sdg.createVisitOnceVisitor(phase1Visitor));
-    relevantEdges.addAll(phase1Visitor.getRelevantEdges());
+    Set<CFAEdge> relevantEdges = new HashSet<>(phase1Visitor.getRelevantEdges());
 
     startNodes.clear();
     // phase 2 start with the result from phase 1
