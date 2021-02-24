@@ -760,11 +760,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return true;
       }
 
-      if (pObject == null) {
-        return false;
-      }
-
-      if (getClass() != pObject.getClass()) {
+      if (!(pObject instanceof Node)) {
         return false;
       }
 
