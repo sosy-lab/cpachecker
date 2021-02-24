@@ -131,7 +131,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       description =
           "Whether to include only functions reachable from the main function in the dependence"
               + " graph.")
-  private boolean onlyReachableFunctions = false;
+  private boolean onlyReachableFunctions = true;
 
   @Option(
       secure = true,

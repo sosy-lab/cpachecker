@@ -3316,7 +3316,7 @@ dependencegraph.flowdeps.use = true
 
 # Whether to include only functions reachable from the main function in the
 # dependence graph.
-dependencegraph.onlyReachableFunctions = false
+dependencegraph.onlyReachableFunctions = true
 
 # The maximum duration a single pointer analysis method is allowed to run
 # (use seconds or specify a unit; 0 for infinite).
