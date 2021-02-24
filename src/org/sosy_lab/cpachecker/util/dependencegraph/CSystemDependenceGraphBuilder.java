@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
@@ -344,7 +345,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private ImmutableMultimap<String, CFAEdge> getFunctionDeclarationEdges(
       ImmutableList<CFAEdge> pGlobalEdges) {
 
-    ImmutableMultimap.Builder<String, CFAEdge> declarationEdges = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<String, CFAEdge> declarationEdges =
+        ImmutableListMultimap.builder();
 
     for (CFAEdge edge : pGlobalEdges) {
       if (edge instanceof CDeclarationEdge) {
@@ -362,7 +364,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private ImmutableMultimap<String, CFAEdge> getComplexTypeDeclarationEdges(
       ImmutableList<CFAEdge> pGlobalEdges) {
 
-    ImmutableMultimap.Builder<String, CFAEdge> declarationEdges = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<String, CFAEdge> declarationEdges =
+        ImmutableListMultimap.builder();
 
     for (CFAEdge edge : pGlobalEdges) {
       if (edge instanceof CDeclarationEdge) {
