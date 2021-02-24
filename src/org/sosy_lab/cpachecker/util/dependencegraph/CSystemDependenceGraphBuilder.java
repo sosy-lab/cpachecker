@@ -234,8 +234,12 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       CallGraph<AFunctionDeclaration> callGraph = CallGraphUtils.createCallGraph(cfa);
       ImmutableSet<AFunctionDeclaration> reachableFunctions = ImmutableSet.of();
       if (onlyReachableFunctions) {
-        reachableFunctions =
-            callGraph.getReachableFrom(ImmutableSet.of(cfa.getMainFunction().getFunction()));
+        AFunctionDeclaration mainFunction = cfa.getMainFunction().getFunction();
+        ImmutableSet.Builder<AFunctionDeclaration> reachableFunctionsBuilder =
+            ImmutableSet.builder();
+        reachableFunctionsBuilder.add(mainFunction);
+        reachableFunctionsBuilder.addAll(callGraph.getReachableFrom(ImmutableSet.of(mainFunction)));
+        reachableFunctions = reachableFunctionsBuilder.build();
       }
 
       insertDependencies(callGraph, reachableFunctions);
