@@ -120,9 +120,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       name = "considerPointees",
       description =
           "Whether to consider pointees. Only if this option is set to true, a pointer analysis is"
-              + " run during dependence graph construction. If this option is set to false,"
-              + " pointers are ignored and the resulting dependence graph misses all dependencies"
-              + " where pointers are involved in.")
+              + " run during SDG construction and dependencies of pointees are inserted into the"
+              + " SDG. If this option is set to false, pointers are completely ignored and the"
+              + " resulting SDG is an under-approximation that lacks all pointee dependencies.")
   private boolean considerPointees = true;
 
   @Option(
@@ -146,10 +146,22 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       secure = true,
       name = "pointerStateComputationMethods",
       description =
-          "The computation methods used for the pointer analysis. The specified methods are run"
-              + " after each other in the specified order, until a method is able to create a valid"
-              + " pointer state. The time limit for every method is the same and set by"
-              + " pointerAnalysisTime.")
+          "The computation methods used for pointer analysis. If no method is specified, an"
+              + " imprecise over-approximation of the global pointer state is created without"
+              + " running any actual pointer analysis. If at least one computation method is"
+              + " specified, the first one in the list is run with the time limit set by"
+              + " 'dependencegraph.pointerAnalysisTime'. If this method is able to create a valid"
+              + " global pointer state in time, the state is used and no other methods are run."
+              + " Otherwise, if a second computation method is specified, the second method is run"
+              + " with the same time limit. If the method is able to create a valid global pointer"
+              + " state in time, the state is used and no other methods are run. The same is true"
+              + " for all subsequent computation methods specified in the list. If no computation"
+              + " method is able to create a valid global pointer state in time, an imprecise"
+              + " over-approximation of the global pointer state is created without running any"
+              + " actual pointer analysis. A pointer analysis is only run if"
+              + " 'dependencegraph.considerPointees' is set to true. Available computation"
+              + " methods: PointerStateComputationMethod.FLOW_SENSITIVE,"
+              + " PointerStateComputationMethod.FLOW_INSENSITIVE")
   private List<PointerStateComputationMethod> pointerStateComputationMethods =
       ImmutableList.of(PointerStateComputationMethod.FLOW_SENSITIVE);
 
