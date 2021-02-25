@@ -480,8 +480,9 @@ class MainCPAStatistics implements Statistics {
               + mostFrequentLocationCount
               + " (at node "
               + mostFrequentLocation
-              + ": "
-              + mostFrequentLocation.describeFileLocation()
+              + (mostFrequentLocation != null
+                  ? (": " + mostFrequentLocation.describeFileLocation())
+                  : "")
               + ")");
 
       long functions = locations.stream().map(CFANode::getFunctionName).distinct().count();
