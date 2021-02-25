@@ -432,7 +432,11 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         }
         if (stmt instanceof CFunctionCall) {
           CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
-          usedVars.add(funCall.getDeclaration().getQualifiedName());
+          CFunctionDeclaration funDecl = funCall.getDeclaration();
+          if (funDecl == null) { // e.g., if a function pointer is used
+            return !pVars.isEmpty(); // not implemented
+          }
+          usedVars.add(funDecl.getQualifiedName());
           for (CExpression exp : funCall.getParameterExpressions()) {
             usedVars.addAll(exp.accept(visitor));
           }
