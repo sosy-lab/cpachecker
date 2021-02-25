@@ -168,7 +168,9 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
-      logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
+      logger.log(
+          Level.WARNING,
+          "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
       programCpuTime = -1;
     }
     /*
@@ -466,12 +468,29 @@ class MainCPAStatistics implements Statistics {
 
     if (!locations.isEmpty()) {
       int locs = locations.size();
-      out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
+      out.println(
+          "  Number of reached locations:   "
+              + locs
+              + " ("
+              + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size())
+              + ")");
       out.println("    Avg states per location:     " + reachedSize / locs);
-      out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
+      out.println(
+          "    Max states per location:     "
+              + mostFrequentLocationCount
+              + " (at node "
+              + mostFrequentLocation
+              + ": "
+              + mostFrequentLocation.describeFileLocation()
+              + ")");
 
       long functions = locations.stream().map(CFANode::getFunctionName).distinct().count();
-      out.println("  Number of reached functions:   " + functions + " (" + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions()) + ")");
+      out.println(
+          "  Number of reached functions:   "
+              + functions
+              + " ("
+              + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions())
+              + ")");
     }
 
     if (reached instanceof PartitionedReachedSet) {
@@ -525,12 +544,16 @@ class MainCPAStatistics implements Statistics {
       StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "CPU time for analysis:        "
+            + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     if (resultAnalysisTime.getNumberOfIntervals() > 0) {
       out.println("Time for analyzing result:    " + resultAnalysisTime);
     }
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "Total CPU time for CPAchecker:"
+            + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Time for statistics:          " + statisticsTime);
   }
 
