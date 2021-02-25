@@ -170,7 +170,7 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      4, // pointer
+      8, // pointer
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       );
