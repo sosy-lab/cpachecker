@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.counterexample;
 
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -18,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -45,6 +48,8 @@ public final class ConcreteState {
   private final Map<LeftHandSide, Address> variableAddressMap;
   private final ConcreteExpressionEvaluator analysisConcreteExpressionEvaluation;
   private final MemoryName memoryNameAllocator;
+  @Nullable
+  private final MachineModel machineModel;
 
   /**
    * Creates an object of this class.
@@ -59,11 +64,12 @@ public final class ConcreteState {
   public ConcreteState(Map<LeftHandSide, Object> pVariables,
       Map<String, Memory> pAllocatedMemory,
       Map<LeftHandSide, Address> pVariableAddressMap,
-      MemoryName pMemoryName) {
+      MemoryName pMemoryName, MachineModel pMachineModel) {
     variableAddressMap = ImmutableMap.copyOf(pVariableAddressMap);
     allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
     variables = ImmutableMap.copyOf(pVariables);
     memoryNameAllocator = pMemoryName;
+    machineModel = pMachineModel;
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
   }
 
@@ -80,12 +86,14 @@ public final class ConcreteState {
   public ConcreteState(Map<LeftHandSide, Object> pVariables,
       Map<String, Memory> pAllocatedMemory,
       Map<LeftHandSide, Address> pVariableAddressMap,
-      MemoryName pMemoryName, ConcreteExpressionEvaluator pAnalysisConcreteExpressionEvaluation) {
+      MemoryName pMemoryName, ConcreteExpressionEvaluator pAnalysisConcreteExpressionEvaluation,
+      MachineModel pMachineModel) {
     variableAddressMap = ImmutableMap.copyOf(pVariableAddressMap);
     allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
     variables = ImmutableMap.copyOf(pVariables);
     memoryNameAllocator = pMemoryName;
     analysisConcreteExpressionEvaluation = pAnalysisConcreteExpressionEvaluation;
+    machineModel = pMachineModel;
   }
 
   private ConcreteState() {
@@ -93,8 +101,31 @@ public final class ConcreteState {
     allocatedMemory = ImmutableMap.of();
     variables = ImmutableMap.of();
     memoryNameAllocator = (pExp) -> "";
-
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
+    machineModel = null;
+
+  }
+
+  /**
+   * Creates an object of this class.
+   *
+   *
+   * @param pVariables a map that assigns variables a concrete value, without the need to assign a concrete address to a variable.
+   * @param pAllocatedMemory a map that assigns the allocated memory to its name.
+   * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
+   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide},
+   * calculate the memory that contains the value.
+   */
+  public ConcreteState(Map<LeftHandSide, Object> pVariables,
+     Map<String, Memory> pAllocatedMemory,
+     Map<LeftHandSide, Address> pVariableAddressMap,
+     MemoryName pMemoryName) {
+    variableAddressMap = ImmutableMap.copyOf(pVariableAddressMap);
+    allocatedMemory = ImmutableMap.copyOf(pAllocatedMemory);
+    variables = ImmutableMap.copyOf(pVariables);
+    memoryNameAllocator = pMemoryName;
+    analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
+    machineModel = null;
   }
 
   /**
