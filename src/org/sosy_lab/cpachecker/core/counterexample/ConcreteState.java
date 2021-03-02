@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
@@ -51,7 +50,6 @@ public final class ConcreteState {
   private final Map<LeftHandSide, Address> variableAddressMap;
   private final ConcreteExpressionEvaluator analysisConcreteExpressionEvaluation;
   private final MemoryName memoryNameAllocator;
-  @Nullable
   private final MachineModel machineModel;
 
   /**
