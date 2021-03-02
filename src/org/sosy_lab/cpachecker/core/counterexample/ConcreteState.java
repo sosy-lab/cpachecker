@@ -13,6 +13,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
@@ -23,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
 /**
  * This class is used to represent the partial concrete memory of a C program at a statement
@@ -147,6 +150,34 @@ public final class ConcreteState {
     Memory memory = allocatedMemory.get(memoryName);
 
     if (memory.hasValue(address)) {
+      if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(memoryName)){
+        Preconditions.checkArgument(machineModel != null, "Sound computation of heap values with byte array encodings requires the machine model.");
+
+        //For ByteArray heap encoding actual values needs to be computed.
+        int typeSizeInByte = machineModel.getSizeof(exp.getExpressionType()).intValueExact();
+        //TODO missing handling for unaligned bitfields
+         if(typeSizeInByte == 1){
+          //no special handling needed for byte size values
+          return memory.getValue(address);
+        }
+        //read bytes one by one
+        int offset = 0;
+        int ret = 0;
+        while(offset < typeSizeInByte){
+          BigInteger byteJunk = (BigInteger) memory.getValue(address.addOffset(BigInteger.valueOf(offset)));
+          int shiftBy;
+          //handle endianness
+          if(machineModel.getEndianness() == ByteOrder.BIG_ENDIAN){
+            shiftBy = 8 * (typeSizeInByte - 1 - offset++);
+          }else{
+            shiftBy = 8 * offset++;
+          }
+          //bitwise left shift byte junks and adding up return value
+          ret += byteJunk.intValueExact() << shiftBy;
+        }
+        return BigInteger.valueOf(ret);
+      }
+
       return memory.getValue(address);
     }
 
