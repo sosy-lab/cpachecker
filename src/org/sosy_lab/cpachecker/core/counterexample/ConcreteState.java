@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -50,6 +51,7 @@ public final class ConcreteState {
   private final Map<LeftHandSide, Address> variableAddressMap;
   private final ConcreteExpressionEvaluator analysisConcreteExpressionEvaluation;
   private final MemoryName memoryNameAllocator;
+  @Nullable
   private final MachineModel machineModel;
 
   /**
