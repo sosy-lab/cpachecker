@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 
 parser code {:
 
@@ -271,62 +271,37 @@ parser code {:
       return remove;
     }
 
-    /**
-     * Adds the given annotation to the correct edges in the CFA and signals to remove it from the
-     * current one if necessary.
-     *
-     * @param cfaWithLocs A CFA holding location information about the annotation.
-     * @param edge The edge on which the annotation was originally placed.
-     * @param annotation The annotation to be handled.
-     * @return true if the annotation should be removed from the current edge, false otherwise.
-     */
-    private static boolean handleLoopAnnotation(
-        CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
-      CFANode successor = edge.getSuccessor();
-      if (!successor.isLoopStart()) {
-        if (edge.getDescription().equals("for")) {
-          assert successor.getNumLeavingEdges() == 1;
-          CFANode next = successor.getLeavingEdge(0).getSuccessor();
-          for (int i = 0; i < next.getNumEnteringEdges(); i++) {
-            cfaWithLocs.getEdgesToAnnotations().put(next.getEnteringEdge(i), annotation);
-          }
-          // loop invariant only has to hold after initilization, so remove it from here
-          return true;
-        } else {
-          boolean isDoWhile = false;
-          for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
-            if (successor.getEnteringEdge(i).getDescription().equals("do")) {
-              isDoWhile = true;
-              // loop invariant should also hold on first iteration
-              cfaWithLocs.getEdgesToAnnotations().put(successor.getEnteringEdge(i), annotation);
-              break;
-            }
-          }
-          assert isDoWhile;
-        }
-      } else {
-        assert edge.getDescription().equals("while");
-        for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
-          CFAEdge currentEdge = successor.getEnteringEdge(i);
-          if (currentEdge != edge) {
-            cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
-          }
+  /**
+   * Adds the given annotation to the correct edges in the CFA and signals to remove it from the
+   * current one if necessary.
+   *
+   * @param cfaWithLocs A CFA holding location information about the annotation.
+   * @param edge The edge on which the annotation was originally placed.
+   * @param annotation The annotation to be handled.
+   * @return true if the annotation should be removed from the current edge, false otherwise.
+   */
+  private static boolean handleLoopAnnotation(
+      CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
+    CFANode successor = edge.getSuccessor();
+    if (edge.getDescription().equals("for")) {
+      assert successor.getNumLeavingEdges() == 1;
+      CFANode next = successor.getLeavingEdge(0).getSuccessor();
+      for (int i = 0; i < next.getNumEnteringEdges(); i++) {
+        cfaWithLocs.getEdgesToAnnotations().put(next.getEnteringEdge(i), annotation);
+      }
+      // loop invariant only has to hold after initialization, so remove it from here
+      return true;
+    } else {
+      assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
+      for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
+        CFAEdge currentEdge = successor.getEnteringEdge(i);
+        if (!currentEdge.equals(edge)) {
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
-      // ACSL doesn't guarantee that a loop invariant still holds when the loop is left
-      // but if such a thing is desired something akin to the following could be used:
-
-      // LoopStructure loopStructure = cfaWithLocs.getLoopStructure().orElseThrow();
-      // assert loopStructure.getAllLoopHeads().contains(key.getSuccessor());
-      // Set<Loop> loops = loopStructure.getLoopsForLoopHead(key.getSuccessor());
-      // for (Loop loop : loops) {
-      //  for (CFAEdge edge : loop.getOutgoingEdges()) {
-      //    // Loop invariant still has to hold after last iteration
-      //    cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
-      //  }
-      // }
       return false;
     }
+  }
 
   /**
    * Adds the given assertion to the correct edges in the CFA.
@@ -335,93 +310,111 @@ parser code {:
    * @param loc The location at which the annotation was originally placed.
    * @param annotation The annotation to be handled.
    */
-  private static void handleAssertion(
-      CFAWithACSLAnnotationLocations cfaWithLocs,
-      List<CFAEdge> orderedCFALocs,
-      IASTFileLocation loc,
-      ACSLAssertion annotation)
-      throws IOException {
-    CFAEdge prev = null;
-    CFAEdge next = null;
-    // We can start with the second edge because we have at least one edge with node offset zero,
-    // and an assertion will surely never be placed before the start of the file
-    for (int i = 1; i < orderedCFALocs.size(); i++) {
-      if (orderedCFALocs.get(i).getFileLocation().getNodeOffset() > loc.getNodeOffset()) {
-        prev = orderedCFALocs.get(i - 1);
-        next = orderedCFALocs.get(i);
-        break;
-      }
-    }
-    if (prev == null) {
-      prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
-      // TODO: There is not actually a next edge in this case. Is the upcoming adjustment good
-      // enough?
-      next = orderedCFALocs.get(orderedCFALocs.size() - 1);
-    }
-    int stackDiff =
-        prev.getPredecessor().getStatementStackDepth()
-            - next.getPredecessor().getStatementStackDepth();
-    if (stackDiff > 0) {
-      // annotation is either placed at very end of block or directly after block
-      String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
-      String fileContentAfterAnnotation =
-          fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
-      int closingBraces = 0;
-      while (fileContentAfterAnnotation.stripLeading().charAt(0) == '}') {
-        closingBraces++;
-        fileContentAfterAnnotation = fileContentAfterAnnotation.stripLeading().substring(1);
-      }
-      int seekedDepth = next.getPredecessor().getStatementStackDepth() + closingBraces;
-      if (prev.getPredecessor().getStatementStackDepth() == seekedDepth) {
-        cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
-        return;
-      }
-      Deque<CFAEdge> waitlist = new ArrayDeque<>();
-      Set<CFAEdge> reached = new HashSet<>();
-      Set<CFAEdge> result = new HashSet<>();
-      waitlist.add(prev);
-      while (!waitlist.isEmpty()) {
-        CFAEdge current = waitlist.poll();
-        reached.add(current);
-        if (current.getPredecessor().getStatementStackDepth() == seekedDepth) {
-          for (int i = 0; i < current.getPredecessor().getNumLeavingEdges(); i++) {
-            CFAEdge candidate = current.getPredecessor().getLeavingEdge(i);
-            if (candidate != current) {
-              result.add(candidate);
-            }
-          }
-        } else if (current.getPredecessor().getStatementStackDepth() > seekedDepth) {
-          for (int i = 0; i < current.getPredecessor().getNumEnteringEdges(); i++) {
-            CFAEdge predEdge = current.getPredecessor().getEnteringEdge(i);
-            if (!reached.contains(predEdge)) {
-              waitlist.add(predEdge);
-            }
-          }
-        }
-      }
-      for (CFAEdge edge : result) {
-        cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
-        if (prev.getSuccessor().getNumLeavingEdges() > 0
-            && prev.getSuccessor().getLeavingEdge(0).getSuccessor().equals(edge.getSuccessor())) {
-          // annotation is placed after if- or else-block
-          cfaWithLocs
-              .getEdgesToAnnotations()
-              .put(prev.getSuccessor().getLeavingEdge(0), annotation);
-        }
-      }
-    } else {
-      CFANode predecessor = next.getPredecessor();
-      for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
-        CFAEdge currentEdge = predecessor.getEnteringEdge(i);
-        while (currentEdge.getFileLocation().getNodeOffset()
-            == next.getFileLocation().getNodeOffset()) {
-          assert currentEdge.getPredecessor().getNumEnteringEdges() == 1;
-          currentEdge = currentEdge.getPredecessor().getEnteringEdge(0);
-        }
-        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
-      }
-    }
-  }
+   private static void handleAssertion(
+       CFAWithACSLAnnotationLocations cfaWithLocs,
+       List<CFAEdge> orderedCFALocs,
+       IASTFileLocation loc,
+       ACSLAssertion annotation)
+       throws IOException {
+     CFAEdge prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
+     CFAEdge next = null;
+     // We can start with the second edge because we have at least one edge with node offset zero,
+     // and an assertion will surely never be placed before the start of the file
+     for (int i = 1; i < orderedCFALocs.size(); i++) {
+       if (orderedCFALocs.get(i).getFileLocation().getNodeOffset() > loc.getNodeOffset()) {
+         prev = orderedCFALocs.get(i - 1);
+         next = orderedCFALocs.get(i);
+         break;
+       }
+     }
+     if (next == null
+         || prev.getPredecessor().getStatementStackDepth()
+             > next.getPredecessor().getStatementStackDepth()) {
+       // Annotation is either placed at very end of a block or directly after a block
+       String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
+       String fileContentAfterAnnotation =
+           fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
+       int seekedDepth = 0;
+       while (fileContentAfterAnnotation.length() > 0
+           && fileContentAfterAnnotation.charAt(0) != '{') {
+         if (fileContentAfterAnnotation.charAt(0) == '}') {
+           seekedDepth++;
+         }
+         fileContentAfterAnnotation = fileContentAfterAnnotation.substring(1).stripLeading();
+       }
+       if (prev.getPredecessor().getStatementStackDepth() == seekedDepth) {
+         // Annotation is placed at very end of innermost block
+         cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
+       } else {
+         handleAssertionAfterBlockEnd(cfaWithLocs, annotation, prev, seekedDepth);
+       }
+     } else {
+       CFANode node = next.getPredecessor();
+       for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+         CFAEdge currentEdge = node.getEnteringEdge(i);
+         cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+       }
+     }
+   }
+
+   private static void handleAssertionAfterBlockEnd(
+       CFAWithACSLAnnotationLocations cfaWithLocs,
+       ACSLAssertion annotation,
+       CFAEdge prev,
+       int seekedDepth) {
+     boolean afterLoop = false;
+     for (LoopStructure.Loop loop :
+         cfaWithLocs
+             .getLoopStructure()
+             .get()
+             .getLoopsForFunction(prev.getSuccessor().getFunctionName())) {
+       if (afterLoop) {
+         break;
+       }
+       if (!loop.getInnerLoopEdges().contains(prev)) {
+         continue;
+       }
+       for (CFAEdge inEdge : loop.getIncomingEdges()) {
+         String description = inEdge.getDescription();
+         if (description.equals("while")
+             || description.equals("for")
+             || description.equals("do")
+             || (inEdge.getPredecessor().getNumEnteringEdges() == 1
+                 && inEdge.getPredecessor().getEnteringEdge(0).getDescription().equals("for"))) {
+           for (CFAEdge outEdge : loop.getOutgoingEdges()) {
+             if (outEdge.getPredecessor().getStatementStackDepth() == seekedDepth) {
+               cfaWithLocs.getEdgesToAnnotations().put(outEdge, annotation);
+               afterLoop = true;
+             }
+           }
+           break;
+         }
+       }
+     }
+     if (!afterLoop) {
+       Queue<CFAEdge> waitlist = new ArrayDeque<>();
+       Set<CFAEdge> reached = new HashSet<>();
+       waitlist.add(prev);
+       while (!waitlist.isEmpty()) {
+         CFAEdge current = waitlist.poll();
+         reached.add(current);
+         if (current.getSuccessor().getStatementStackDepth() == seekedDepth) {
+           for (int i = 0; i < current.getSuccessor().getNumEnteringEdges(); i++) {
+             cfaWithLocs
+                 .getEdgesToAnnotations()
+                 .put(current.getSuccessor().getEnteringEdge(i), annotation);
+           }
+         } else if (current.getSuccessor().getStatementStackDepth() > seekedDepth) {
+           for (int i = 0; i < current.getSuccessor().getNumLeavingEdges(); i++) {
+             CFAEdge edge = current.getSuccessor().getLeavingEdge(i);
+             if (!reached.contains(edge)) {
+               waitlist.add(edge);
+             }
+           }
+         }
+       }
+     }
+   }
 
   /**
    * Make sure that all behaviors are actually in scope when they are referenced.
@@ -518,15 +511,12 @@ parser code {:
 
   public String getCurrentFunctionName() {
     int currentOffset = orderedLocs.get(scanner.getCurrentAnnotation()).getNodeOffset();
-    int currentLength = orderedLocs.get(scanner.getCurrentAnnotation()).getNodeLength();
-    for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
-      if (function.getFileLocation().getNodeOffset() < currentOffset
-          && function.getFileLocation().getNodeOffset() + function.getFileLocation().getNodeLength()
-              > currentOffset + currentLength) {
-        return function.getFunctionName();
+    for (int i = 0; i < orderedCFALocs.size(); i++) {
+      if (orderedCFALocs.get(i).getFileLocation().getNodeOffset() > currentOffset) {
+        return orderedCFALocs.get(i).getSuccessor().getFunctionName();
       }
     }
-    throw new AssertionError("Current annotation is outside any function");
+    return orderedCFALocs.get(orderedCFALocs.size() - 1).getSuccessor().getFunctionName();
   }
 
   public void putBehavior(Behavior behavior) {
