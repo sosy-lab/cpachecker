@@ -35,12 +35,14 @@ public class ACSLParserTest {
 
   private final String programName;
   private final boolean shouldSucceed;
+  private final int numAnnotations;
   private final CFACreator cfaCreator;
 
-  public ACSLParserTest(String pProgramName, boolean pShouldSucceed)
+  public ACSLParserTest(String pProgramName, boolean pShouldSucceed, int pNumAnnotations)
       throws InvalidConfigurationException {
     programName = pProgramName;
     shouldSucceed = pShouldSucceed;
+    numAnnotations = pNumAnnotations;
     Configuration config =
         TestDataTools.configurationForTest()
             .loadFromResource(ACSLParserTest.class, "acslToWitness.properties")
@@ -52,14 +54,32 @@ public class ACSLParserTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(new Object[] {"abs.c", true});
-    b.add(new Object[] {"abs2.c", true});
-    b.add(new Object[] {"even.c", true});
-    b.add(new Object[] {"even2.c", true});
-    b.add(new Object[] {"nested.c", true});
-    b.add(new Object[] {"simple.c", true});
-    b.add(new Object[] {"badVariable.c", false});
+    b.add(succeedingTask("abs.c", 1));
+    b.add(succeedingTask("abs2.c", 1));
+    b.add(succeedingTask("even.c", 1));
+    b.add(succeedingTask("even2.c", 1));
+    b.add(succeedingTask("nested.c", 2));
+    b.add(succeedingTask("simple.c", 3));
+    b.add(failingTask("badVariable.c"));
+
+    b.add(succeedingTask("after_if.c", 1));
+    b.add(succeedingTask("after_else.c", 1));
+    b.add(succeedingTask("after_loop.c", 1));
+    b.add(succeedingTask("after_loop2.c", 1));
+    b.add(succeedingTask("at_end.c", 1));
+    b.add(succeedingTask("end_of_do_while.c", 1));
+    b.add(succeedingTask("after_for_loop.c", 1));
+    b.add(succeedingTask("after_for_loop2.c", 1));
+    b.add(succeedingTask("in_middle.c", 1));
     return b.build();
+  }
+
+  private static Object[] succeedingTask(String program, int numAnnotations) {
+    return new Object[] {program, true, numAnnotations};
+  }
+
+  private static Object[] failingTask(String program) {
+    return new Object[] {program, false, 0};
   }
 
   @Test
@@ -70,9 +90,8 @@ public class ACSLParserTest {
       CFAWithACSLAnnotationLocations cfaWithLocs =
           (CFAWithACSLAnnotationLocations) cfaCreator.parseFileAndCreateCFA(files);
       assertThat(shouldSucceed).isTrue();
-      assertThat(cfaWithLocs.getCommentPositions().size()).isGreaterThan(0);
-      assertThat(cfaWithLocs.getEdgesToAnnotations().keySet().size())
-          .isAtLeast(cfaWithLocs.getCommentPositions().size());
+      assertThat(cfaWithLocs.getCommentPositions().size()).isEqualTo(numAnnotations);
+      assertThat(cfaWithLocs.getEdgesToAnnotations().keySet().size()).isAtLeast(numAnnotations);
     } catch (AssertionError e) {
       assertThat(shouldSucceed).isFalse();
     }
