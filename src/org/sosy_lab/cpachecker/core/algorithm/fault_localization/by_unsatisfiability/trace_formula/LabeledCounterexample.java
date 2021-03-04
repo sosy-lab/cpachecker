@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -31,7 +32,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     ENDIF
   }
 
-  private List<LabeledFormula> annotatedCounterexample;
+  private final List<LabeledFormula> annotatedCounterexample;
 
   /**
    * The LabeledCounterexample adds the labels IF and ENDIF to fitting statements in the
@@ -59,9 +60,8 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
             pCfa.getMainFunction().getExitNode(), CFAUtils::successorsOf, CFAUtils::predecessorsOf);
 
     List<CFANode> path =
-        withoutPrecond.toEdgeList().stream()
-            .map(e -> e.getPredecessor())
-            .collect(Collectors.toList());
+        Collections3.transformedImmutableListCopy(
+            withoutPrecond.toEdgeList(), CFAEdge::getPredecessor);
     List<List<FormulaLabel>> labels = new ArrayList<>();
     for (int i = 0; i < path.size(); i++) {
       labels.add(new ArrayList<>());
@@ -108,8 +108,8 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
   static class LabeledFormula {
 
-    private FormulaEntry entry;
-    private List<FormulaLabel> labels;
+    private final FormulaEntry entry;
+    private final List<FormulaLabel> labels;
 
     /**
      * Adds a label to a FormulaEntry
@@ -149,7 +149,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
     @Override
     public String toString() {
-      String labelString = labels.stream().map(l -> l.toString()).collect(Collectors.joining(","));
+      String labelString = labels.stream().map(Enum::toString).collect(Collectors.joining(","));
       return "LabeledFormula{" + "entry=" + entry + ", labels=" + labelString + '}';
     }
   }

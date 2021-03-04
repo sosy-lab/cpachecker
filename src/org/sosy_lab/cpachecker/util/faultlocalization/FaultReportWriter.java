@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,7 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
@@ -71,11 +71,11 @@ public class FaultReportWriter {
 
   public String toHtml(Fault fault) {
     // list of all edges in fault sorted by line number
-    List<CFAEdge> edges = fault
-        .stream()
-        .map(FaultContribution::correspondingEdge)
-        .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
-        .collect(Collectors.toList());
+    List<CFAEdge> edges =
+        fault.stream()
+            .map(FaultContribution::correspondingEdge)
+            .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
+            .collect(ImmutableList.toImmutableList());
     return toHtml(fault.getInfos(), edges);
   }
 
@@ -200,23 +200,16 @@ public class FaultReportWriter {
   }
 
   private String listLineNumbersAndJoin(Collection<Integer> lineNumbers) {
-    return lineNumbers.stream()
-        .sorted()
-        .map(i -> String.valueOf(i))
-        .collect(
-            Collectors.collectingAndThen(
-                Collectors.toList(),
-                list -> {
-                  int lastIndex = list.size() - 1;
-                  if (lastIndex < 1) {
-                    return String.join("", list);
-                  }
-                  if (lastIndex == 1) {
-                    return String.join(" and ", list);
-                  }
-                  return String.join(
-                      " and ", String.join(", ", list.subList(0, lastIndex)), list.get(lastIndex));
-                }));
+    List<String> sortedNumbers =
+        lineNumbers.stream().sorted().map(String::valueOf).collect(ImmutableList.toImmutableList());
+
+    if (sortedNumbers.size() <= 2) {
+      return String.join(" and ", sortedNumbers);
+    }
+    int lastIndex = sortedNumbers.size() - 1;
+    return String.join(", ", sortedNumbers.subList(0, lastIndex))
+        + " and "
+        + sortedNumbers.get(lastIndex);
   }
 
 }

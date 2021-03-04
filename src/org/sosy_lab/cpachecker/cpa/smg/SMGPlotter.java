@@ -164,7 +164,7 @@ public final class SMGPlotter {
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
     offset += 2;
-    sb.append(newLineWithOffset("label = \"Location: " + location.replace("\"", "\\\"") + "\";"));
+    sb.append(newLineWithOffset("label = \"" + location.replace("\"", "\\\"") + "\";"));
     sb.append(newLineWithOffset("rankdir=LR;"));
 
     addStackSubgraph(smg, sb);
@@ -193,7 +193,7 @@ public final class SMGPlotter {
       if (!value.isZero()) {
         for (SMGValue neqValue : smg.getNeqsForValue(value)) {
           if (! processed.contains(neqValue)) {
-            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
+            sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue, explicitValues)));
           }
         }
         processed.add(value);
@@ -259,7 +259,9 @@ public final class SMGPlotter {
   }
 
   private void addStackItemSubgraph(CLangStackFrame pStackFrame, StringBuilder pSb, int pIndex) {
-    pSb.append(newLineWithOffset("subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + "{"));
+    pSb.append(
+        newLineWithOffset(
+            "subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + " {"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
     pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
@@ -290,8 +292,8 @@ public final class SMGPlotter {
       objectIndex.put(obj, new SMGObjectNode("struct" + structId + ":item_" + key));
     }
     return String.format(
-        "struct%s [shape=record, height=%d, label=\"%s\"];%n",
-        structId, nodes.size(), Joiner.on(" | ").join(nodes));
+        "struct%s [shape=record, height=%.2f, label=\"%s\"];%n",
+        structId, .5 * nodes.size(), Joiner.on(" | ").join(nodes));
   }
 
   private void addGlobalObjectSubgraph(UnmodifiableCLangSMG pSmg, StringBuilder pSb) {
@@ -323,29 +325,39 @@ public final class SMGPlotter {
 
   private static String smgValueAsDot(
       SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String explicitValue = "";
-    if (explicitValues.containsKey(value)) {
-      explicitValue = " : " + explicitValues.get(value).getAsLong();
+    String label = "#" + value.asDotId();
+    String color = "red";
+    if (value instanceof SMGKnownExpValue) {
+      label = value.toString();
+      color = "green";
+    } else if (explicitValues.containsKey(value)) {
+      label += " : " + explicitValues.get(value).getAsLong();
+      color = "black";
+    } else if (value instanceof SMGKnownAddressValue) {
+      label += "\\n" + ((SMGKnownAddressValue) value).getObject();
+      color = "blue";
     }
-    String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue;
-    if (value instanceof SMGKnownAddressValue) {
-      SMGKnownAddressValue kav = (SMGKnownAddressValue) value;
-      return prefix + "\\n" + kav.getObject() + "\"];";
-    } else {
-      return prefix + "\"];";
-    }
+    return String.format("value_%s[color=%s label=\"%s\"];", value.asDotId(), color, label);
   }
 
-  private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
-    String targetNode;
-    String returnString = "";
+  private static String neqRelationAsDot(
+      SMGValue v1,
+      SMGValue v2,
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+    String toNodeStr, toNode;
     if (v2.isZero()) {
-      targetNode = newNullLabel();
-      returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
+      final String newLabel = newNullLabel();
+      toNode = newLabel;
+      toNodeStr = newLabel + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];";
     } else {
-      targetNode = "value_" + v2.asDotId();
+      toNodeStr = smgValueAsDot(v2, explicitValues);
+      toNode = "value_" + v2.asDotId();
     }
-    return returnString + "value_" + v1.asDotId() + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
+    return String.format(
+        "%s%n  value_%s -> %s [color=\"red\", fontcolor=\"red\", label=\"neq\"];",
+        toNodeStr,
+        v1.asDotId(),
+        toNode);
   }
 
   private String newLineWithOffset(String pLine) {

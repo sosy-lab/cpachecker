@@ -93,8 +93,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -111,18 +109,35 @@ public class CFACreator {
 
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
 
-  @Option(secure=true, name="parser.usePreprocessor",
-      description="For C files, run the preprocessor on them before parsing. " +
-                  "Note that all file numbers printed by CPAchecker will refer to the pre-processed file, not the original input file.")
+  @Option(
+      secure = true,
+      name = "parser.usePreprocessor",
+      description =
+          "For C files, run the preprocessor on them before parsing. Note that all line numbers"
+              + " printed by CPAchecker will refer to the pre-processed file, not the original"
+              + " input file.")
   private boolean usePreprocessor = false;
 
-  @Option(secure=true, name="parser.readLineDirectives",
-      description="For C files, read #line preprocessor directives and use their information for outputting line numbers."
-          + " (Always enabled when pre-processing is used.)")
+  @Option(
+      secure = true,
+      name = "parser.useClang",
+      description =
+          "For C files, convert to LLVM IR with clang first and then use the LLVM parser.")
+  private boolean useClang = false;
+
+  @Option(
+      secure = true,
+      name = "parser.readLineDirectives",
+      description =
+          "For C files, read #line preprocessor directives and use their information for"
+              + " outputting line numbers. (Always enabled when pre-processing is used.)")
   private boolean readLineDirectives = false;
 
-  @Option(secure=true, name="analysis.entryFunction", regexp="^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
-      description="entry function")
+  @Option(
+      secure = true,
+      name = "analysis.entryFunction",
+      regexp = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
+      description = "entry function")
   private String mainFunctionName = "main";
 
   @Option(secure=true, name="analysis.machineModel",
@@ -257,13 +272,6 @@ public class CFACreator {
   private boolean findLiveVariables = false;
 
   @Option(
-    secure = true,
-    name = "cfa.createDependenceGraph",
-    description = "Whether to create dependence graph for the CFA of the program"
-  )
-  private boolean createDependenceGraph = false;
-
-  @Option(
       secure = true,
       name = "cfa.addLabels",
       description = "Add custom labels to the CFA"
@@ -354,14 +362,19 @@ public class CFACreator {
 
       outerParser =
           new CParserWithLocationMapper(
-              config, logger, outerParser, readLineDirectives || usePreprocessor);
+              config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
 
       if (usePreprocessor) {
         CPreprocessor preprocessor = new CPreprocessor(config, logger);
         outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
       }
 
-      parser = outerParser;
+      if (useClang) {
+          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
+        parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+      } else {
+        parser = outerParser;
+      }
 
       break;
     case LLVM:
@@ -416,7 +429,8 @@ public class CFACreator {
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
+    Preconditions.checkArgument(
+        !sourceFiles.isEmpty(), "At least one source file must be provided!");
 
     stats.totalTime.start();
     try {
@@ -540,30 +554,9 @@ public class CFACreator {
                                                 config));
     }
 
-    Optional<DependenceGraph> depGraph;
-    if (createDependenceGraph) {
-      if (!varClassification.isPresent()) {
-        logger.log(
-            Level.WARNING,
-            "Variable Classification not present. Consider turning this on "
-                + "to improve dependence graph construction.");
-      }
-      final DependenceGraphBuilder depGraphBuilder =
-          DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
-      try {
-        depGraph = Optional.of(depGraphBuilder.build());
-      } catch (CPAException pE) {
-        throw new CParserException(pE);
-      } finally {
-        depGraphBuilder.collectStatistics(stats.statisticsCollection);
-      }
-    } else {
-      depGraph = Optional.empty();
-    }
-
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, depGraph);
+    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
     // check the super CFA starting at the main function
     stats.checkTime.start();
@@ -579,7 +572,8 @@ public class CFACreator {
       exportCFAAsync(immutableCFA);
     }
 
-    logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
+    logger.log(
+        Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
     return immutableCFA;
   }
@@ -608,7 +602,6 @@ public class CFACreator {
     final ParseResult parseResult;
 
     parseResult = parser.parseString("test", program);
-
     if (parseResult.isEmpty()) {
       switch (language) {
       case JAVA:
@@ -640,7 +633,8 @@ public class CFACreator {
       // programdenotations are separated from each other and a prefix for
       // static variables is generated
       if (language != Language.C) {
-        throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+        throw new InvalidConfigurationException(
+            "Multiple program files not supported for languages other than C.");
       }
 
       parseResult = ((CParser) parser).parseFile(sourceFiles);
@@ -670,7 +664,6 @@ public class CFACreator {
   private MutableCFA postProcessingOnMutableCFAs(
       MutableCFA cfa, final List<Pair<ADeclaration, String>> globalDeclarations)
       throws InvalidConfigurationException, CParserException {
-
     // remove all edges which don't have any effect on the program
     if (simplifyCfa) {
       CFASimplifier.simplifyCFA(cfa);
@@ -751,7 +744,8 @@ public class CFACreator {
   private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
 
-    Preconditions.checkArgument(sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
+    Preconditions.checkArgument(
+        sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
     String mainClassName = sourceFiles.get(0);
 
     // try specified function
@@ -772,7 +766,8 @@ public class CFACreator {
     mainFunction = cfas.get(mainClassName + JAVA_MAIN_METHOD_CFA_SUFFIX);
 
     if (mainFunction == null) {
-      throw new InvalidConfigurationException("No main method in given main class found, please specify one.");
+      throw new InvalidConfigurationException(
+          "No main method in given main class found, please specify one.");
     }
 
     return mainFunction;
@@ -877,7 +872,8 @@ public class CFACreator {
     // insert one node to start the series of declarations
     CFANode cur = new CFANode(firstNode.getFunction());
     cfa.addNode(cur);
-    final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
+    final CFAEdge newFirstEdge =
+        new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
 
     // create a series of GlobalDeclarationEdges, one for each declaration

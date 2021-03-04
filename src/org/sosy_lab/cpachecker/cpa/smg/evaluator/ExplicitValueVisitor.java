@@ -14,6 +14,7 @@ import java.util.List;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -21,9 +22,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
@@ -85,8 +89,14 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     if (pValue.isUnknown()) {
       return SMGUnknownValue.INSTANCE;
     }
+    if (pValue instanceof SMGKnownExpValue) {
+      return (SMGExplicitValue) pValue;
+    }
     Preconditions.checkState(
-        pValue instanceof SMGKnownSymbolicValue, "known value has invalid type");
+        pValue instanceof SMGKnownSymbolicValue,
+        "known value '%s' has invalid type '%s'",
+        pValue,
+        pValue.getClass());
     if (!getState().isExplicit((SMGKnownSymbolicValue) pValue)) {
       return SMGUnknownValue.INSTANCE;
     }
@@ -100,10 +110,11 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     Value value = super.visit(binaryExp);
 
-    if (value.isUnknown() && binaryExp.getOperator().isLogicalOperator()) {
-      /* We may be able to get an explicit Value from pointer comaprisons. */
+    if (value.isUnknown()) {
+      if (binaryExp.getOperator().isLogicalOperator()) {
+        /* We may be able to get an explicit Value from pointer comparisons. */
 
-      List<? extends SMGValueAndState> symValueAndStates;
+        List<? extends SMGValueAndState> symValueAndStates;
 
       try {
         symValueAndStates =
@@ -123,6 +134,35 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         return new NumericValue(1);
       } else if (symValue.equals(SMGZeroValue.INSTANCE)) {
         return new NumericValue(0);
+      }
+      } else if (BinaryOperator.MINUS == binaryExp.getOperator()) {
+        /* We may be able to get an explicit Value from pointer comparisons. */
+        // TODO without the redirection to the explicit value visitor above,
+        // we could also directly solve this and avoid those special cases.
+
+        List<? extends SMGValueAndState> symValueAndStates;
+
+        try {
+          symValueAndStates =
+              smgExpressionEvaluator.evaluateAssumptionValue(getState(), edge, binaryExp);
+        } catch (CPATransferException e) {
+          UnrecognizedCodeException e2 =
+              new UnrecognizedCodeException("SMG cannot be evaluated", binaryExp);
+          e2.initCause(e);
+          throw e2;
+        }
+
+        // TODO the next line sets a backtracking point within a visitor.
+        // This is a really bad idea and makes the control flow really ugly.
+        // I have no idea whether and how this worked at any time. We should avoid this.
+        SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
+        SMGValue symValue = symValueAndState.getObject();
+        setState(symValueAndState.getSmgState());
+
+        CType type1 = binaryExp.getOperand1().getExpressionType().getCanonicalType();
+        if (symValue instanceof SMGKnownExpValue && type1 instanceof CPointerType) {
+          return new NumericValue(((SMGKnownExpValue) symValue).getValue());
+        }
       }
     }
 

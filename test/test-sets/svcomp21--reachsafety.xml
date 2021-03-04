@@ -27,6 +27,7 @@ SPDX-License-Identifier: Apache-2.0
   <resultfiles>**.graphml*</resultfiles>
   <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">termination.compressWitness=true</option>
 
   <option name="-heap">10000M</option>
   <option name="-timelimit">900s</option>

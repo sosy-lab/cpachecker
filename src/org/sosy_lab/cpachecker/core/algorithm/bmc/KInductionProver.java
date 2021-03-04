@@ -738,10 +738,7 @@ class KInductionProver implements AutoCloseable {
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
                   fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
-              modelBuilder.put(
-                  actualName,
-                  new ModelValue(
-                      actualName, fmgr.dumpFormula(assignment).toString(), assignment::toString));
+              modelBuilder.put(actualName, new ModelValue(actualName, assignment, fmgr));
             }
           }
         }

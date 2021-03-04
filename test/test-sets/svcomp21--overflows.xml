@@ -19,7 +19,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-benchmark"/>
   </rundefinition>
 
-  <resultfiles>**.graphml</resultfiles>
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">termination.compressWitness=true</option>
 
   <tasks name="NoOverflows-BitVectors">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>

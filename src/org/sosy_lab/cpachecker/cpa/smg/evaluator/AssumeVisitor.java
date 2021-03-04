@@ -72,7 +72,22 @@ public class AssumeVisitor extends ExpressionValueVisitor {
           for (SMGValueAndState rightSideValAndState :
               smgExpressionEvaluator.evaluateExpressionValue(newState, edge, rightSideExpression)) {
             SMGValue rightSideVal = rightSideValAndState.getObject();
-          newState = rightSideValAndState.getSmgState();
+            newState = rightSideValAndState.getSmgState();
+
+            // if we already know the value, we should use it.
+            // TODO why does the visitor above create the symbolic value in the first place?
+            if (leftSideVal instanceof SMGKnownSymbolicValue) {
+              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) leftSideVal;
+              if (newState.isExplicit(expValue)) {
+                leftSideVal = newState.getExplicit(expValue);
+              }
+            }
+            if (rightSideVal instanceof SMGKnownSymbolicValue) {
+              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) rightSideVal;
+              if (newState.isExplicit(expValue)) {
+                rightSideVal = newState.getExplicit(expValue);
+              }
+            }
 
             for (SMGValueAndState resultValueAndState :
                 evaluateBinaryAssumption(newState, binaryOperator, leftSideVal, rightSideVal)) {
@@ -106,10 +121,23 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                         rightSideOriginType, newState, edge, smgExpressionEvaluator);
                 rightSideSMGType = new SMGType(leftSideSMGType, rightSideOriginSMGType);
               }
+
+              // TODO
+              // The following predicate relation is a completely unsound assumption,
+              // because we know nothing about the calling context, not even, if we are in a negated (!) expression.
+              // This might clearly be a bug, but I could currently not find a better way to solve this.
+              // The code works well for expressions that are not nested, like "a==b" or "a!=b",
+              // but is invalid for "(a==b)==c".
+              // There exists code in SMGTransferRelation.strenghten
+              // that even needs to negate an edge to get correct results.
+
+              //FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
-                  leftSideVal,
+                  // next line: use the symbolic value here and not the potential explicit one.
+                  leftSideValAndState.getObject(),
                   leftSideSMGType,
-                  rightSideVal,
+                  // next line: use the symbolic value here and not the potential explicit one.
+                  rightSideValAndState.getObject(),
                   rightSideSMGType,
                   binaryOperator,
                   edge);
@@ -224,7 +252,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         if (isPointerOp1 && isPointerOp2) {
           isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
-        } else if (isPointerOp1 && !pV2.isUnknown()) {
+        } else if (isPointerOp1 && !pV2.isUnknown() && pV2 instanceof SMGKnownSymbolicValue) {
           SMGKnownExpValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
           if (explicit2 != null) {
             isTrue =
@@ -235,7 +263,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                     pOp);
             isFalse = !isTrue;
           }
-        } else if (isPointerOp2 && !pV1.isUnknown()) {
+        } else if (isPointerOp2 && !pV1.isUnknown() && pV1 instanceof SMGKnownSymbolicValue) {
           SMGKnownExpValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
             if (explicit1 != null) {
             isTrue =

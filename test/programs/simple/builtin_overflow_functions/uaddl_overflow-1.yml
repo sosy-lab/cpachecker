@@ -9,7 +9,7 @@
 format_version: '1.0'
 
 # old file name: uaddl_overflow_true-unreach-label.c
-input_files: 'uaddl_overflow-1.c'
+input_files: 'uaddl_overflow-1.i'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp

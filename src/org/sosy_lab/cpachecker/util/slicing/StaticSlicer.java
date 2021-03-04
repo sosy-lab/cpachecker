@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
@@ -20,8 +22,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -29,6 +37,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -60,33 +69,67 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
-      CFA pCfa)
+      DependenceGraph pDependenceGraph)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
-    depGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
+    if (pDependenceGraph == null) {
+      throw new InvalidConfigurationException("Dependence graph required, but missing");
+    }
 
+    depGraph = pDependenceGraph;
+  }
+
+  private static Set<CFAEdge> getAbortCallEdges(CFA pCfa) {
+
+    Set<CFAEdge> abortCallEdges = new HashSet<>();
+
+    for (CFANode node : pCfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (edge instanceof CStatementEdge) {
+          CStatement statement = ((CStatementEdge) edge).getStatement();
+          if (statement instanceof CFunctionCallStatement) {
+            CFunctionDeclaration declaration =
+                ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
+            if (declaration != null && declaration.getQualifiedName().equals("abort")) {
+              abortCallEdges.add(edge);
+            }
+          }
+        }
+      }
+    }
+
+    return abortCallEdges;
   }
 
   @Override
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
+
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
     slicingTime.start();
+
+    Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
+    DependenceGraph.ReachedSet depReachedSet = DependenceGraph.ReachedSet.empty();
+
+    criteriaEdges.addAll(pSlicingCriteria);
+
+    // TODO: make this configurable
+    if (!criteriaEdges.isEmpty()) {
+      criteriaEdges.addAll(getAbortCallEdges(pCfa));
+    }
+
     try {
       // Heuristic: Reverse to make states that are deeper in the path first - these
       // have a higher chance of including earlier states in their dependences
-      ImmutableList<CFAEdge> criteriaEdges =
+      ImmutableList<CFAEdge> sortedCriteriaEdges =
           ImmutableList.sortedCopyOf(
               Comparator.comparingInt(edge -> edge.getPredecessor().getReversePostorderId()),
-              pSlicingCriteria);
+              criteriaEdges);
 
-      for (CFAEdge g : criteriaEdges) {
+      for (CFAEdge g : sortedCriteriaEdges) {
         if (relevantEdges.contains(g)) {
           // If the relevant edges contain g, then all dependences of g are also already included
           // and we can skip it (this is only true as long as no function call/return edge is a
@@ -95,10 +138,15 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         } else {
           realSlices++;
         }
-        relevantEdges.addAll(depGraph.getReachable(g, TraversalDirection.BACKWARD));
+
+        depReachedSet =
+            DependenceGraph.ReachedSet.combine(
+                depReachedSet, depGraph.getReachable(g, TraversalDirection.BACKWARD));
+        relevantEdges.addAll(depReachedSet.getReachedCfaEdges());
       }
 
-      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
+      final Slice slice =
+          new StaticSlicerSlice(pCfa, ImmutableSet.copyOf(criteriaEdges), depReachedSet);
       slicingTime.stop();
 
       sliceEdgesNumber.setNextValue(relevantEdges.size());
@@ -154,5 +202,46 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
             return StaticSlicer.class.getSimpleName();
           }
         });
+  }
+
+  private static final class StaticSlicerSlice implements Slice {
+
+    private final CFA originalCfa;
+    private final ImmutableCollection<CFAEdge> criteriaEdges;
+    private final DependenceGraph.ReachedSet reachedSet;
+
+    private StaticSlicerSlice(
+        CFA pOriginalCfa,
+        ImmutableCollection<CFAEdge> pCriteriaEdges,
+        DependenceGraph.ReachedSet pReachedSet) {
+      originalCfa = pOriginalCfa;
+      criteriaEdges = pCriteriaEdges;
+      reachedSet = pReachedSet;
+    }
+
+    @Override
+    public CFA getOriginalCfa() {
+      return originalCfa;
+    }
+
+    @Override
+    public ImmutableCollection<CFAEdge> getUsedCriteria() {
+      return criteriaEdges;
+    }
+
+    @Override
+    public ImmutableSet<CFAEdge> getRelevantEdges() {
+      return reachedSet.getReachedCfaEdges();
+    }
+
+    @Override
+    public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+      if (pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge) {
+        return reachedSet.contains(pEdge, pMemoryLocation);
+      }
+
+      return true;
+    }
   }
 }

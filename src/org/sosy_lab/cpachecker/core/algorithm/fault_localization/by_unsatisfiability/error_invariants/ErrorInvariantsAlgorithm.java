@@ -10,7 +10,18 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -67,7 +78,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   private final LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
-  private List<SSAMap> maps;
+  private ImmutableList<SSAMap> maps;
 
   // Memorize already processed interpolants to minimize solver calls
   private final Multimap<BooleanFormula, Integer> memorize;
@@ -144,9 +155,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       sortedIntervals.add(current);
     }
 
-    // sort the intervals and calculate abstrace error trace
+    // sort the intervals and calculate abstract error trace
     sortedIntervals.sort(Comparator.comparingInt(Interval::getStart));
-    List<Selector> selectors = errorTrace.getEntries().toSelectorList();
+    ImmutableList<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
@@ -229,7 +240,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
    */
   private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace) {
     // Stores description of last interval
-    List<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
+    ImmutableList<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
     Selector prev = allSelectors.get(0);
     Set<Fault> faults = new HashSet<>();
     for (int i = 0; i < abstractTrace.size(); i++) {
@@ -257,7 +268,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         }
         curr.replaceErrorSet(contributions);
         curr.setIntendedIndex(i);
-        faults.add(curr);
+        // precondition has an own entry in FLInfo -> exclude it from here
+        if (i != 0 || !curr.invariant.equals(errorTrace.getPrecondition())) {
+          faults.add(curr);
+        }
       }
     }
 

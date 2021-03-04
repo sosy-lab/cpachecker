@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -1802,10 +1801,8 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
-    } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
-      result = "builtin functions for arithmetic with overflow handling";
-    }
-
+    } 
+    
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {
       logger.logfOnce(
           Level.WARNING,
