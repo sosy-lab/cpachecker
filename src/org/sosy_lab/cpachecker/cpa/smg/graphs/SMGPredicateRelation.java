@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -19,23 +20,69 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 
 /** Utility class for representation comparisons of SMGValues */
 public final class SMGPredicateRelation {
-  /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
-  private final SetMultimap<Pair<SMGValue, SMGValue>, SymbolicRelation> smgValuesRelation =
-      HashMultimap.create();
+  public static class SMGValuesPair implements Comparable<SMGValuesPair> {
+    private final SMGValue first;
+    private final SMGValue second;
 
-  private final SetMultimap<SMGValue, SMGValue> smgValuesDependency = HashMultimap.create();
-  private final SetMultimap<SMGValue, ExplicitRelation> smgExplicitValueRelation =
-      HashMultimap.create();
+    private SMGValuesPair(SMGValue pFirst, SMGValue pSecond) {
+      first = pFirst;
+      second = pSecond;
+    }
+
+    static SMGValuesPair of(SMGValue pFirst, SMGValue pSecond) {
+      checkNotNull(pFirst);
+      checkNotNull(pSecond);
+      return new SMGValuesPair(pFirst, pSecond);
+    }
+
+    public SMGValue getFirst() {
+      return first;
+    }
+
+    public SMGValue getSecond() {
+      return second;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (!(pO instanceof SMGValuesPair)) {
+        return false;
+      }
+      SMGValuesPair that = (SMGValuesPair) pO;
+      return first.equals(that.first) && second.equals(that.second);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(first, second);
+    }
+
+    @Override
+    public int compareTo(SMGValuesPair pSMGValuesPair) {
+      int cmp = first.compareTo(pSMGValuesPair.first);
+      return cmp == 0 ? second.compareTo(pSMGValuesPair.second) : cmp;
+    }
+  }
+  /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
+  private PersistentMultimap<SMGValuesPair, SymbolicRelation> smgValuesRelation =
+      PersistentMultimap.of();
+
+  private PersistentMultimap<SMGValue, SMGValue> smgValuesDependency = PersistentMultimap.of();
+  private PersistentMultimap<SMGValue, ExplicitRelation> smgExplicitValueRelation =
+      PersistentMultimap.of();
 
   /** Copy PredRelation */
   public void putAll(SMGPredicateRelation pPred) {
-    smgValuesRelation.putAll(pPred.smgValuesRelation);
-    smgValuesDependency.putAll(pPred.smgValuesDependency);
-    smgExplicitValueRelation.putAll(pPred.smgExplicitValueRelation);
+    smgValuesRelation = pPred.smgValuesRelation;
+    smgValuesDependency = pPred.smgValuesDependency;
+    smgExplicitValueRelation = pPred.smgExplicitValueRelation;
   }
 
   public void addRelation(
@@ -76,14 +123,14 @@ public final class SMGPredicateRelation {
     SymbolicRelation relation =
         new SymbolicRelation(pOne, pSMGTypeOne, pTwo, pSMGTypeTwo, pOperator);
     if (!smgValuesDependency.containsEntry(pOne, pTwo)) {
-      smgValuesRelation.put(Pair.of(pOne, pTwo), relation);
-      smgValuesRelation.put(Pair.of(pTwo, pOne), relation);
-      smgValuesDependency.put(pOne, pTwo);
-      smgValuesDependency.put(pTwo, pOne);
+      smgValuesRelation = smgValuesRelation.putAndCopy(SMGValuesPair.of(pOne, pTwo), relation);
+      smgValuesRelation = smgValuesRelation.putAndCopy(SMGValuesPair.of(pTwo, pOne), relation);
+      smgValuesDependency = smgValuesDependency.putAndCopy(pOne, pTwo);
+      smgValuesDependency = smgValuesDependency.putAndCopy(pTwo, pOne);
     } else {
-      if (!smgValuesRelation.containsEntry(Pair.of(pOne, pTwo), relation)) {
-        smgValuesRelation.put(Pair.of(pOne, pTwo), relation);
-        smgValuesRelation.put(Pair.of(pTwo, pOne), relation);
+      if (!smgValuesRelation.containsEntry(SMGValuesPair.of(pOne, pTwo), relation)) {
+        smgValuesRelation = smgValuesRelation.putAndCopy(SMGValuesPair.of(pOne, pTwo), relation);
+        smgValuesRelation = smgValuesRelation.putAndCopy(SMGValuesPair.of(pTwo, pOne), relation);
       }
     }
   }
@@ -97,31 +144,42 @@ public final class SMGPredicateRelation {
       ExplicitRelation relation =
           new ExplicitRelation(pSymbolicValue, pSymbolicSMGType, pExplicitValue, pOp);
       if (!smgExplicitValueRelation.containsEntry(pSymbolicValue, relation)) {
-        smgExplicitValueRelation.put(pSymbolicValue, relation);
+        smgExplicitValueRelation = smgExplicitValueRelation.putAndCopy(pSymbolicValue, relation);
       }
     }
   }
 
   public void removeValue(SMGValue pValue) {
-    for (SMGValue pOposit : smgValuesDependency.removeAll(pValue)) {
+    for (SMGValue pOposit : smgValuesDependency.get(pValue)) {
 
-      smgValuesDependency.remove(pOposit, pValue);
+      smgValuesDependency = smgValuesDependency.removeAndCopy(pOposit, pValue);
 
-      smgValuesRelation.removeAll(Pair.of(pOposit, pValue));
-      smgValuesRelation.removeAll(Pair.of(pValue, pOposit));
+      smgValuesRelation = smgValuesRelation.removeAndCopy(SMGValuesPair.of(pOposit, pValue));
+      smgValuesRelation = smgValuesRelation.removeAndCopy(SMGValuesPair.of(pValue, pOposit));
     }
-    smgExplicitValueRelation.removeAll(pValue);
+    smgValuesDependency = smgValuesDependency.removeAndCopy(pValue);
+    smgExplicitValueRelation = smgExplicitValueRelation.removeAndCopy(pValue);
   }
 
   /** replace the old value with a fresh value. */
   public void replace(SMGValue fresh, SMGValue old) {
-    for (SMGValue relatedValue : smgValuesDependency.removeAll(old)) {
-      smgValuesDependency.remove(relatedValue, old);
-      smgValuesRelation.removeAll(Pair.of(old, relatedValue));
-      // TODO: modify predicates on merge values
-      smgValuesRelation.removeAll(Pair.of(relatedValue, old));
+    for (SMGValue relatedValue : smgValuesDependency.get(old)) {
+      smgValuesDependency = smgValuesDependency.removeAndCopy(relatedValue, old);
+      ImmutableSet<SymbolicRelation> symbolicRelations =
+          smgValuesRelation.get(SMGValuesPair.of(old, relatedValue));
+      for (SymbolicRelation symbolicRelation : symbolicRelations) {
+        SymbolicRelation newRelation = symbolicRelation.replace(fresh, old);
+        addSymbolicRelation(
+            newRelation.getFirstValue(),
+            newRelation.getFirstValSMGType(),
+            newRelation.getSecondValue(),
+            newRelation.getSecondValSMGType(),
+            newRelation.getOperator());
+      }
+      smgValuesRelation = smgValuesRelation.removeAndCopy(SMGValuesPair.of(old, relatedValue));
+      smgValuesRelation = smgValuesRelation.removeAndCopy(SMGValuesPair.of(relatedValue, old));
     }
-    for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(old)) {
+    for (ExplicitRelation explicitRelation : smgExplicitValueRelation.get(old)) {
       if (!fresh.isZero()) {
         addExplicitRelation(
             fresh,
@@ -130,17 +188,21 @@ public final class SMGPredicateRelation {
             explicitRelation.getOperator());
       }
     }
+    smgValuesDependency = smgValuesDependency.removeAndCopy(old);
+    smgExplicitValueRelation = smgExplicitValueRelation.removeAndCopy(old);
   }
 
   /** Returns closure list of symbolic values which affects pRelation */
   public Set<SMGValue> closureDependencyFor(SMGPredicateRelation pRelation) {
     Set<SMGValue> toAdd = new HashSet<>();
-    for (Entry<SMGValue, SMGValue> entry : pRelation.smgValuesDependency.entries()) {
+    for (Entry<SMGValue, ImmutableSet<SMGValue>> entry : pRelation.smgValuesDependency.entries()) {
       SMGValue key = entry.getKey();
-      SMGValue value = entry.getValue();
-      if (key.compareTo(value) > 0) {
-        toAdd.add(key);
-        toAdd.add(value);
+      ImmutableSet<SMGValue> values = entry.getValue();
+      for (SMGValue value : values) {
+        if (key.compareTo(value) > 0) {
+          toAdd.add(key);
+          toAdd.add(value);
+        }
       }
     }
     Set<SMGValue> result = new HashSet<>();
@@ -187,7 +249,7 @@ public final class SMGPredicateRelation {
     return smgExplicitValueRelation.values();
   }
 
-  public Set<Entry<Pair<SMGValue, SMGValue>, SymbolicRelation>> getValuesRelations() {
+  public Set<Entry<SMGValuesPair, ImmutableSet<SymbolicRelation>>> getValuesRelations() {
     return smgValuesRelation.entries();
   }
 
@@ -214,7 +276,7 @@ public final class SMGPredicateRelation {
   }
 
   public boolean hasRelation(SMGValue pSymbolicValue) {
-    return smgValuesDependency.containsKey(pSymbolicValue);
+    return smgValuesDependency.contains(pSymbolicValue);
   }
 
   static public class SymbolicRelation {
@@ -288,6 +350,15 @@ public final class SMGPredicateRelation {
     public SMGType getSecondValSMGType() {
       return secondValSMGType;
     }
+
+    public SymbolicRelation replace(SMGValue pFresh, SMGValue pOld) {
+      if (valueOne.equals(pOld)) {
+        return new SymbolicRelation(pFresh, firstValSMGType, valueTwo, secondValSMGType, operator);
+      } else {
+        assert valueTwo.equals(pOld);
+        return new SymbolicRelation(valueOne, firstValSMGType, pFresh, secondValSMGType, operator);
+      }
+    }
   }
 
   public static class ExplicitRelation {
@@ -357,8 +428,8 @@ public final class SMGPredicateRelation {
   }
 
   public void clear() {
-    smgExplicitValueRelation.clear();
-    smgValuesDependency.clear();
-    smgValuesRelation.clear();
+    smgExplicitValueRelation = PersistentMultimap.of();
+    smgValuesDependency = PersistentMultimap.of();
+    smgValuesRelation = PersistentMultimap.of();
   }
 }

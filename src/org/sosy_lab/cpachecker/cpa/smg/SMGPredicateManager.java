@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,12 +23,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.ExplicitRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.SMGValuesPair;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.SymbolicRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -243,10 +244,13 @@ public class SMGPredicateManager {
       return result;
     }
 
-    for (Entry<Pair<SMGValue, SMGValue>, SymbolicRelation> entry : pRelation.getValuesRelations()) {
+    for (Entry<SMGValuesPair, ImmutableSet<SymbolicRelation>> entry :
+        pRelation.getValuesRelations()) {
       if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) >= 0) {
-        SymbolicRelation value = entry.getValue();
-        result = addPredicateToFormula(result, value, conjunction);
+        ImmutableSet<SymbolicRelation> values = entry.getValue();
+        for (SymbolicRelation value : values) {
+          result = addPredicateToFormula(result, value, conjunction);
+        }
       }
     }
 

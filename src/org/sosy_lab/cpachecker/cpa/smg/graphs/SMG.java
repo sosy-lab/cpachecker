@@ -628,6 +628,6 @@ public class SMG implements UnmodifiableSMG {
   }
 
   public boolean arePossibleEquals(SMGObject pObject1, SMGObject pObject2) {
-    return possibleEquals.contains(pObject1, pObject2);
+    return possibleEquals.containsEntry(pObject1, pObject2);
   }
 }
