@@ -154,6 +154,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -213,6 +214,9 @@ analysis.algorithm.faultlocalization.by_distance = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
+
+# Use an algorithm that tries to learn loop invariants.
+analysis.algorithm.invariantsampling = false
 
 # use nontermination witness validator to check a violation witness for
 # termination
@@ -3426,6 +3430,9 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
+
+# Determines which stop operator to use for the invariant sampling analysis.
+invariantsampling.stopType = "sep"
 
 # Specify the class code path to search for java class or interface
 # definitions
