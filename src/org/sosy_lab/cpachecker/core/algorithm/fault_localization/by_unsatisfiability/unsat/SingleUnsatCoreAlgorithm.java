@@ -10,11 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
@@ -27,6 +22,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class SingleUnsatCoreAlgorithm
     implements FaultLocalizerWithTraceFormula, StatisticsProvider {
@@ -60,7 +60,7 @@ public class SingleUnsatCoreAlgorithm
         solver.unsatCore(toVerify).stream()
             .filter(l -> selectorFactory.selectorOf(l).isPresent())
             .map(l -> selectorFactory.selectorOf(l).orElseThrow())
-            .collect(Collectors.toList());
+            .collect(ImmutableList.toImmutableList());
 
     stats.totalTime.stop();
     Set<Fault> resultSet = new HashSet<>();
