@@ -12,16 +12,6 @@ import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -280,9 +270,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     logger.log(Level.INFO, "Abstract error trace:\n" + abstractErrorTrace);
     logger.log(Level.FINEST, "tfresult=" + Arrays.toString(abstractTrace
             .stream()
-            .filter(tr -> !(tr instanceof Interval))
-            .map(fc -> ((Selector)fc).getIndex())
-            .collect(Collectors.toList())
+            .filter(tr -> tr instanceof Selector)
+            .map(fc -> ((Selector)fc).correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .sorted()
             .toArray()));
     return faults;
   }

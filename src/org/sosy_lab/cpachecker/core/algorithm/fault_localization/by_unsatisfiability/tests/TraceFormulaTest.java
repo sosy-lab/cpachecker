@@ -99,7 +99,7 @@ public class TraceFormulaTest {
   }
 
   @Test
-  public void tesCorrectCalculationOfPreAndPostCondition() throws Exception {
+  public void testCorrectCalculationOfPreAndPostCondition() throws Exception {
     // precondition values
     final String preconditionValues = "4, 4, 4, 1, 2, 2, 2, 1, 1, 2, 2, 2, 3";
     // post-condition is on line 47
