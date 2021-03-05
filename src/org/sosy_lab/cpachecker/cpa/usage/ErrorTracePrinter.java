@@ -316,7 +316,8 @@ public abstract class ErrorTracePrinter {
         logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
         return ImmutableList.of();
       }
-      return aPath.getInnerEdges();
+      // Full path for effects
+      return aPath.getFullPath();
     }
   }
 
