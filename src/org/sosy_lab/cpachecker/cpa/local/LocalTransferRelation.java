@@ -291,12 +291,12 @@ public class LocalTransferRelation
 
     } else if (isConservativeFunction) {
 
-      List<CExpression> parameters = right.getParameterExpressions();
       // Usually it looks like 'priv = netdev_priv(dev)'
       // Other cases will be handled if they appear
-      CExpression targetParam = parameters.get(0);
+      CParameterDeclaration decl = right.getDeclaration().getParameters().get(0);
       // TODO How it works with *a = f(b) ?
-      AbstractIdentifier paramId = createId(targetParam, dereference);
+      LocalVariableIdentifier paramId =
+          new LocalVariableIdentifier(decl.getName(), decl.getType(), funcName, dereference);
       alias(pSuccessor, leftId, paramId);
       return true;
     }
@@ -419,6 +419,8 @@ public class LocalTransferRelation
   }
 
   private DataType getMemoryType(AbstractIdentifier id) {
+    // Use state-field, as it is not updated properly at return edges and we need to extract the
+    // value of an inner variable
     DataType type = state.getType(id);
     if (type == null) {
       if (id instanceof ConstantIdentifier) {
