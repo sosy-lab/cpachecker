@@ -41,6 +41,12 @@ public final class UsageConfiguration {
     secure = true)
   private boolean processCoveredUsages = true;
 
+  @Option(
+    name = "useConcurrentExtraction",
+    description = "Use several threads for usage extraction",
+    secure = true)
+  private boolean useConcurrentExtraction = true;
+
   public UsageConfiguration(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -63,5 +69,9 @@ public final class UsageConfiguration {
 
   public boolean getProcessCoveredUsages() {
     return processCoveredUsages;
+  }
+
+  public boolean useConcurrentExtraction() {
+    return useConcurrentExtraction;
   }
 }

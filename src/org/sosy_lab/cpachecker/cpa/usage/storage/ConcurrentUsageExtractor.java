@@ -48,6 +48,7 @@ public class ConcurrentUsageExtractor {
   private BAMDataManager manager;
   private UsageProcessor usageProcessor;
   private final boolean processCoveredUsages;
+  private final boolean useConcurrentExtraction;
 
   private final StatTimer totalTimer = new StatTimer("Time for extracting usages");
   private final AtomicInteger processingSteps;
@@ -68,10 +69,11 @@ public class ConcurrentUsageExtractor {
       ConfigurableProgramAnalysis pCpa,
       LogManager pLogger,
       UsageContainer pContainer,
-      boolean pCovered) {
+      UsageConfiguration pConfig) {
     logger = pLogger;
     container = pContainer;
-    processCoveredUsages = pCovered;
+    processCoveredUsages = pConfig.getProcessCoveredUsages();
+    useConcurrentExtraction = pConfig.useConcurrentExtraction();
 
     BAMCPA bamCpa = CPAs.retrieveCPA(pCpa, BAMCPA.class);
     if (bamCpa != null) {
@@ -95,8 +97,8 @@ public class ConcurrentUsageExtractor {
     usageProcessor.updateRedundantUnsafes(container.getNotInterestingUnsafes());
 
     numberOfActiveTasks.incrementAndGet();
-    ExecutorService service =
-        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    int threads = useConcurrentExtraction ? Runtime.getRuntime().availableProcessors() : 1;
+    ExecutorService service = Executors.newFixedThreadPool(threads);
     service.submit(
         new ReachedSetExecutor(firstState, emptyDelta, processedSets, service, ImmutableList.of()));
 

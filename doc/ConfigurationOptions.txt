@@ -3154,6 +3154,9 @@ cpa.usage.unsafedetector.intLock = no default value
 cpa.usage.unsafedetector.unsafeMode = RACE
   enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
 
+# Use several threads for usage extraction
+cpa.usage.useConcurrentExtraction = true
+
 # use sound regions as identifiers
 cpa.usage.useSoundRegions = false
 

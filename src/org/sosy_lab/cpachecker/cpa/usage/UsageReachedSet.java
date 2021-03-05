@@ -44,7 +44,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private static final ImmutableSet<Property> RACE_PROPERTY = ImmutableSet.of(new RaceProperty());
 
   private final LogManager logger;
-  private final boolean processCoveredUsages;
+  private final UsageConfiguration usageConfig;
   private ConcurrentUsageExtractor extractor = null;
 
   private final UsageContainer container;
@@ -54,7 +54,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
     super(waitlistFactory);
     logger = pLogger;
     container = new UsageContainer(pConfig, logger);
-    processCoveredUsages = pConfig.getProcessCoveredUsages();
+    usageConfig = pConfig;
   }
 
   @Override
@@ -111,7 +111,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   @Override
   public void finalize(ConfigurableProgramAnalysis pCpa) {
-    extractor = new ConcurrentUsageExtractor(pCpa, logger, container, processCoveredUsages);
+    extractor = new ConcurrentUsageExtractor(pCpa, logger, container, usageConfig);
   }
 
   public void printStatistics(StatisticsWriter pWriter) {
