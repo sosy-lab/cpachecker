@@ -90,7 +90,7 @@ public class AlternativePrecondition {
       if (entry.getSelector() == null || formula == null) {
         return false;
       }
-      CFAEdge edge = entry.getSelector().getEdge();
+      CFAEdge edge = entry.getSelector().correspondingEdge();
 
       FormulaManagerView fmgr = context.getSolver().getFormulaManager();
       Map<String, Formula> formulaVariables = fmgr.extractVariables(formula);

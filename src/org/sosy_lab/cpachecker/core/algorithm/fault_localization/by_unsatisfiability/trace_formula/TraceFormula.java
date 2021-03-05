@@ -239,7 +239,7 @@ public abstract class TraceFormula {
                           if (entry instanceof FormulaEntryList.PreconditionEntry || entry.getSelector() == null) {
                             return false;
                           }
-                          return entry.getSelector().getEdge().equals(curr);
+                          return entry.getSelector().correspondingEdge().equals(curr);
                         },
                         FormulaEntryList.FormulaEntry::getAtom));
             context

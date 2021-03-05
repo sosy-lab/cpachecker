@@ -21,16 +21,11 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public class Selector extends FaultContribution implements AbstractTraceElement {
 
   private final String name;
-  private final CFAEdge edge;
   private BooleanFormula formula;
   private BooleanFormula selectorFormula;
   private final BooleanFormula edgeFormula;
   private final FormulaContext context;
   private final int index;
-
-  public CFAEdge getEdge() {
-    return edge;
-  }
 
   public String getName() {
     return name;
@@ -57,7 +52,6 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     selectorFormula = pSelectorFormula;
     edgeFormula = pEdgeFormula;
     context = pContext;
-    edge = pEdge;
   }
 
   /**

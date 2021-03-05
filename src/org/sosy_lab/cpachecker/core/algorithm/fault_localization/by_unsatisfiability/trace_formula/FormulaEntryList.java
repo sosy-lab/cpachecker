@@ -82,7 +82,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   public ImmutableList<CFAEdge> toEdgeList() {
-    return toTStream(entry -> entry.selector).map(Selector::getEdge).collect(ImmutableList.toImmutableList());
+    return toTStream(entry -> entry.selector).map(Selector::correspondingEdge).collect(ImmutableList.toImmutableList());
   }
 
   private <T> Stream<T> toTStream(Function<FormulaEntry, T> mapping) {
