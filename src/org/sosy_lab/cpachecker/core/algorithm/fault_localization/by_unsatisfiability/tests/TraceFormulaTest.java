@@ -117,7 +117,7 @@ public class TraceFormulaTest {
   @Test
   public void testErrorInvariantsOnFlowSensitiveTrace() throws Exception {
     // Selector indices that are part of a fault
-    final String resultSelectors = "[1, 3]";
+    final String resultSelectors = "[13, 17]";
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
@@ -128,7 +128,7 @@ public class TraceFormulaTest {
   @Test
   public void testErrorInvariantsOnDefaultTrace() throws Exception {
     // Selector indices that are part of a fault
-    final String resultSelector = "[3]";
+    final String resultSelector = "[17]";
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
@@ -139,7 +139,7 @@ public class TraceFormulaTest {
   @Test
   public void testMaxSatSelectorTrace() throws Exception {
     // Selector indices that are part of a fault
-    final String resultSelectors = "[0, 1, 2, 3]";
+    final String resultSelectors = "[12, 13, 14, 17]";
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.MAXSAT,
