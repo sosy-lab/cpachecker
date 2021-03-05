@@ -33,7 +33,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private boolean sortIntended;
-  private ImmutableList<Fault> rankedList;
+  private final ImmutableList<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
   /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
@@ -64,11 +64,11 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    */
   public FaultLocalizationInfo(List<Fault> pFaults, CounterexampleInfo pParent) {
     super(
-        pParent.isSpurious(),
-        pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
-        pParent.isPreciseCounterExample(),
-        CFAPathWithAdditionalInfo.empty());
+            pParent.isSpurious(),
+            pParent.getTargetPath(),
+            pParent.getCFAPathWithAssignments(),
+            pParent.isPreciseCounterExample(),
+            CFAPathWithAdditionalInfo.empty());
     rankedList = ImmutableList.copyOf(pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
@@ -95,13 +95,13 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(
-      Set<Fault> pFaults, FaultScoring pRanking, CounterexampleInfo pParent) {
+          Set<Fault> pFaults, FaultScoring pRanking, CounterexampleInfo pParent) {
     super(
-        pParent.isSpurious(),
-        pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
-        pParent.isPreciseCounterExample(),
-        CFAPathWithAdditionalInfo.empty());
+            pParent.isSpurious(),
+            pParent.getTargetPath(),
+            pParent.getCFAPathWithAssignments(),
+            pParent.isPreciseCounterExample(),
+            CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
@@ -129,17 +129,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(
-      Set<Fault> pFaults,
-      FaultScoring pScoring,
-      BooleanFormula pPrecondition,
-      ImmutableList<BooleanFormula> pAtoms,
-      CounterexampleInfo pParent) {
+          Set<Fault> pFaults,
+          FaultScoring pScoring,
+          BooleanFormula pPrecondition,
+          ImmutableList<BooleanFormula> pAtoms,
+          CounterexampleInfo pParent) {
     super(
-        pParent.isSpurious(),
-        pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
-        pParent.isPreciseCounterExample(),
-        CFAPathWithAdditionalInfo.empty());
+            pParent.isSpurious(),
+            pParent.getTargetPath(),
+            pParent.getCFAPathWithAssignments(),
+            pParent.isPreciseCounterExample(),
+            CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pScoring, pFaults);
     precondition = Optional.of(pPrecondition);
     atoms = pAtoms;
@@ -183,12 +183,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @return FaultLocalizationOutputs of the CFAEdges.
    */
   public static Set<Fault> transform(
-      Set<Set<CFAEdge>> pErrorIndicators) {
+          Set<Set<CFAEdge>> pErrorIndicators) {
     Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
       transformed.add(
-          new Fault(
-              Collections3.transformedImmutableSetCopy(errorIndicator, FaultContribution::new)));
+              new Fault(
+                      Collections3.transformedImmutableSetCopy(errorIndicator, FaultContribution::new)));
     }
     return transformed;
   }
@@ -220,9 +220,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     if(fc != null){
       if(fc.hasReasons()){
         elem.put(
-            "additional",
-            "<br><br><strong>Additional information provided:</strong><br>"
-                + htmlWriter.toHtml(fc));
+                "additional",
+                "<br><br><strong>Additional information provided:</strong><br>"
+                        + htmlWriter.toHtml(fc));
       }
     }
     if(mapEdgeToRankedFaultIndex.containsKey(edge)){
@@ -263,8 +263,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   public void writePrecondition(Writer writer) throws IOException {
     JSON.writeJSONString(Collections.singletonMap("fl-precondition",
-        precondition.isPresent() ?
-            InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms) :
-            ""), writer);
+            precondition.isPresent() ?
+                    InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms) :
+                    ""), writer);
   }
 }
