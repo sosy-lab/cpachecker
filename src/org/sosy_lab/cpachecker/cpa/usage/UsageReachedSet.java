@@ -20,10 +20,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.usage.storage.ConcurrentUsageExtractor;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -111,6 +113,11 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   @Override
   public void finalize(ConfigurableProgramAnalysis pCpa) {
+    BAMCPA bamCPA = CPAs.retrieveCPA(pCpa, BAMCPA.class);
+    if (bamCPA != null) {
+      UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
+      uCpa.getStats().setBAMCPA(bamCPA);
+    }
     extractor = new ConcurrentUsageExtractor(pCpa, logger, container, usageConfig);
   }
 
