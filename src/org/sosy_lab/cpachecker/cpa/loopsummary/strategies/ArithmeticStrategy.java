@@ -55,24 +55,6 @@ public class ArithmeticStrategy implements StrategyInterface {
   }
   */
 
-  static final class StartStopNodesGhostCFA {
-    private final CFANode startNode;
-    private final CFANode stopNode;
-
-    public StartStopNodesGhostCFA(CFANode startNode, CFANode stopNode) {
-      this.startNode = startNode;
-      this.stopNode = stopNode;
-    }
-
-    public CFANode getStartNode() {
-      return startNode;
-    }
-
-    public CFANode getStopNode() {
-      return stopNode;
-    }
-  }
-
   public ArithmeticStrategy() {}
 
   // Returns the bound in the form 0 < x where x is the CExpression returned
@@ -338,7 +320,7 @@ public class ArithmeticStrategy implements StrategyInterface {
     return oldUnrollingNode;
   }
 
-  private StartStopNodesGhostCFA summaryCFA(
+  private GhostCFA summaryCFA(
       final AbstractState pState,
       final Map<String, Integer> loopVariableDelta,
       final CExpression loopBound,
@@ -481,7 +463,7 @@ public class ArithmeticStrategy implements StrategyInterface {
     currentStartNodeGhostCFA.addLeavingEdge(loopIngoingConditionDummyEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeFalse);
 
-    return new StartStopNodesGhostCFA(startNodeGhostCFA, endNodeGhostCFA);
+    return new GhostCFA(startNodeGhostCFA, endNodeGhostCFA);
   }
 
   private boolean linearArithemticExpression(final CExpression expression) {
@@ -603,7 +585,7 @@ public class ArithmeticStrategy implements StrategyInterface {
       return Optional.empty();
     }
 
-    StartStopNodesGhostCFA startStopCFANodesGhostCFA =
+    GhostCFA startStopCFANodesGhostCFA =
         summaryCFA(pState, loopVariableDelta, loopBound, boundDelta, loopBranchIndex);
 
     LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);

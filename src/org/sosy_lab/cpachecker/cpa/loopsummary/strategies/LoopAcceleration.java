@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LoopAcceleration implements StrategyInterface {
 
+  public LoopAcceleration() {}
+
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
       AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
