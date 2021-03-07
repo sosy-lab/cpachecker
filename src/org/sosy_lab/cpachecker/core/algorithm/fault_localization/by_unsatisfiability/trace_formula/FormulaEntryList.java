@@ -8,21 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ForwardingList;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
-  private List<FormulaEntry> entries;
+  private final List<FormulaEntry> entries;
 
   public FormulaEntryList() {
     entries = new ArrayList<>();
@@ -30,11 +33,6 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
   public FormulaEntryList(List<FormulaEntry> pList) {
     entries = new ArrayList<>(pList);
-  }
-
-  public void addEntry(
-      int pos, int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
-    entries.add(pos, new FormulaEntry(pAtomId, pSSAMap, pSelector, pAtom));
   }
 
   public void addEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
@@ -72,27 +70,26 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     return values;
   }
 
-  public List<BooleanFormula> toAtomList() {
-    return toTList(entry -> entry.atom);
+  public ImmutableList<BooleanFormula> toAtomList() {
+    return toTStream(entry -> entry.atom).collect(ImmutableList.toImmutableList());
   }
 
-  public List<SSAMap> toSSAMapList() {
-    return toTList(entry -> entry.map);
+  public ImmutableList<SSAMap> toSSAMapList() {
+    return toTStream(entry -> entry.map).collect(ImmutableList.toImmutableList());
   }
 
-  public List<Selector> toSelectorList() {
-    return toTList(entry -> entry.selector);
+  public ImmutableList<Selector> toSelectorList() {
+    return toTStream(entry -> entry.selector).collect(ImmutableList.toImmutableList());
   }
 
-  public List<CFAEdge> toEdgeList() {
-    return toTList(entry -> entry.selector.getEdge());
+  public ImmutableList<CFAEdge> toEdgeList() {
+    return toTStream(entry -> entry.selector).map(Selector::getEdge).collect(ImmutableList.toImmutableList());
   }
 
-  private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
+  private <T> Stream<T> toTStream(Function<FormulaEntry, T> mapping) {
     return entries.stream()
-        .map(mapping::apply)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+        .map(mapping)
+        .filter(Objects::nonNull);
   }
 
   @Override
@@ -102,12 +99,13 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
   public static class FormulaEntry {
 
-    private SSAMap map;
-    private Selector selector;
-    private BooleanFormula atom;
-    private int atomId;
+    private final SSAMap map;
+    private final @Nullable Selector selector;
+    private @Nullable BooleanFormula atom;
+    private final int atomId;
 
-    public FormulaEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
+    public FormulaEntry(int pAtomId,  SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
+      Preconditions.checkNotNull(pSSAMap);
       map = pSSAMap;
       selector = pSelector;
       atom = pAtom;
@@ -118,19 +116,11 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
       return atomId;
     }
 
-    public void setMap(SSAMap pMap) {
-      map = pMap;
-    }
-
-    public void setSelector(Selector pSelector) {
-      selector = pSelector;
-    }
-
     public void setAtom(BooleanFormula pAtom) {
       atom = pAtom;
     }
 
-    public Selector getSelector() {
+    public @Nullable Selector getSelector() {
       return selector;
     }
 
@@ -138,7 +128,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
       return map;
     }
 
-    public BooleanFormula getAtom() {
+    public @Nullable BooleanFormula getAtom() {
       return atom;
     }
 

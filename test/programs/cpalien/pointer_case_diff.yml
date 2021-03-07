@@ -8,9 +8,8 @@
 
 format_version: '1.0'
 
-# compiled with clang-3.9
-input_files: 'switch-case.ll'
+input_files: 'pointer_cast_diff.c'
 
 properties:
-  - property_file: ../../config/properties/unreach-call.prp
+  - property_file: ../../config/properties/valid-memsafety.prp
     expected_verdict: true

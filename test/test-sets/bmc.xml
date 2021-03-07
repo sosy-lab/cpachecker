@@ -130,6 +130,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="-setprop">cpa.predicate.createFormulaEncodingEagerly=false</option>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="-setprop">solver.solver=boolector</option>
   </rundefinition>
   <rundefinition name="k10-boolector">
@@ -138,6 +139,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="-setprop">cpa.predicate.createFormulaEncodingEagerly=false</option>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="-setprop">solver.solver=boolector</option>
   </rundefinition>
 

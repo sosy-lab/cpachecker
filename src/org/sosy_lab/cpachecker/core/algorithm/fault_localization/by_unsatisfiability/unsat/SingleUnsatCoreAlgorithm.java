@@ -9,11 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
 import com.google.common.base.VerifyException;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
@@ -55,10 +56,8 @@ public class SingleUnsatCoreAlgorithm
 
     // calculate an arbitrary UNSAT-core and filter the ones with selectors
     List<Selector> unsatCore =
-        solver.unsatCore(toVerify).stream()
-            .filter(l -> Selector.of(l).isPresent())
-            .map(l -> Selector.of(l).orElseThrow())
-            .collect(Collectors.toList());
+        Optionals.presentInstances(solver.unsatCore(toVerify).stream().map(Selector::of))
+            .collect(ImmutableList.toImmutableList());
 
     stats.totalTime.stop();
     Set<Fault> resultSet = new HashSet<>();
