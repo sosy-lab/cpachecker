@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This is a Docker image for running the Javascript end-to-end tests.
+# This is a Docker image for running the Javascript unit tests.
 # It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
 # and will be used by CI as declared in .gitlab-ci.yml.
 #
@@ -27,7 +27,6 @@ RUN apt-get update && apt-get install -y \
       npm \
       wget
 
-RUN apt-get install -y wget && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     apt-get install -y ./google-chrome-stable_current_amd64.deb && \
     rm google-chrome-stable_current_amd64.deb

@@ -27,7 +27,6 @@ RUN apt-get update && apt-get install -y \
       openjdk-11-jre-headless \
       wget
 
-RUN apt-get install -y wget && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     apt-get install -y ./google-chrome-stable_current_amd64.deb && \
     rm google-chrome-stable_current_amd64.deb
