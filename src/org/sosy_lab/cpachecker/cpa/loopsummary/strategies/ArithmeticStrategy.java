@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,13 +32,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ArithmeticStrategy implements StrategyInterface {
+public class ArithmeticStrategy extends AbstractStrategy {
 
   // private final LocationStateFactory locationStateFactory;
   // TODO is this needed, because then we get initalization problems
@@ -135,7 +129,8 @@ public class ArithmeticStrategy implements StrategyInterface {
     }
   }
 
-  private Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
+  @Override
+  protected Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
     if (loopStartNode.getNumLeavingEdges() != 2) {
       return Optional.empty();
     }
@@ -241,45 +236,19 @@ public class ArithmeticStrategy implements StrategyInterface {
     }
   }
 
-  public AbstractState overwriteLocationState(AbstractState pState, LocationState locState) {
-    List<AbstractState> allWrappedStatesByCompositeState = new ArrayList<>();
-    for (AbstractState a :
-        ((CompositeState) ((ARGState) pState).getWrappedState()).getWrappedStates()) {
-      if (a instanceof LocationState) {
-        allWrappedStatesByCompositeState.add(locState);
-      } else {
-        allWrappedStatesByCompositeState.add(a);
-      }
-    }
-    AbstractState wrappedCompositeState = new CompositeState(allWrappedStatesByCompositeState);
-    return new ARGState(wrappedCompositeState, null);
-  }
-
-  private CAssumeEdge overwriteStartEndStateEdge(
-      CAssumeEdge edge, boolean truthAssignment, CFANode startNode, CFANode endNode) {
-    return new CAssumeEdge(
-        edge.getDescription(),
-        FileLocation.DUMMY,
-        startNode,
-        endNode,
-        edge.getExpression(),
-        truthAssignment);
-  }
-
-  private CStatementEdge overwriteStartEndStateEdge(
-      CStatementEdge edge, CFANode startNode, CFANode endNode) {
-    return new CStatementEdge(
-        edge.getRawStatement(), edge.getStatement(), FileLocation.DUMMY, startNode, endNode);
-  }
-
-  private CFANode unrollLoopOnce(CFANode loopStartNode, CFANode endNodeGhostCFA, CFANode startNodeGhostCFA) {
+  @Override
+  protected CFANode unrollLoopOnce(
+      CFANode loopStartNode,
+      Integer loopBranchIndex,
+      CFANode endNodeGhostCFA,
+      CFANode startNodeGhostCFA) {
     CFANode currentNode = loopStartNode;
     boolean initial = true;
     CFANode currentUnrollingNode = CFANode.newDummyCFANode("LSU");
     CFANode oldUnrollingNode = startNodeGhostCFA;
     while (currentNode != loopStartNode || initial) {
-      CFAEdge currentLoopEdge = currentNode.getLeavingEdge(0);
       if (initial) {
+        CFAEdge currentLoopEdge = currentNode.getLeavingEdge(loopBranchIndex);
         assert currentLoopEdge instanceof CAssumeEdge;
         CFAEdge tmpLoopEdgeFalse =
             overwriteStartEndStateEdge(
@@ -294,6 +263,7 @@ public class ArithmeticStrategy implements StrategyInterface {
         currentNode = currentLoopEdge.getSuccessor();
         initial = false;
       } else {
+        CFAEdge currentLoopEdge = currentNode.getLeavingEdge(0);
         CFAEdge tmpLoopEdge;
         if (currentLoopEdge instanceof CStatementEdge) {
           tmpLoopEdge =
@@ -386,9 +356,9 @@ public class ArithmeticStrategy implements StrategyInterface {
     currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingConditionEdgeFalse);
     loopUnrollingCurrentNode.addEnteringEdge(twiceLoopUnrollingConditionEdgeFalse);
     loopUnrollingCurrentNode =
-        unrollLoopOnce(loopStartNode, loopUnrollingCurrentNode, endNodeGhostCFA);
+        unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
     loopUnrollingCurrentNode =
-        unrollLoopOnce(loopStartNode, loopUnrollingCurrentNode, endNodeGhostCFA);
+        unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
     loopIngoingConditionDummyEdgeFalse =
         overwriteStartEndStateEdge(
             (CAssumeEdge) loopIngoingConditionEdge,
@@ -399,7 +369,7 @@ public class ArithmeticStrategy implements StrategyInterface {
     endNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeFalse);
 
     currentStartNodeGhostCFA =
-        unrollLoopOnce(loopStartNode, currentEndNodeGhostCFA, endNodeGhostCFA);
+        unrollLoopOnce(loopStartNode, loopBranchIndex, currentEndNodeGhostCFA, endNodeGhostCFA);
     currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS6");
 
     // Make Summary
@@ -409,7 +379,7 @@ public class ArithmeticStrategy implements StrategyInterface {
               FileLocation.DUMMY,
               true,
               CStorageClass.EXTERN,
-              CNumericTypes.INT,
+              CNumericTypes.INT, // TODO improve this
               set.getKey(),
               set.getKey(),
               set.getKey(),
@@ -452,7 +422,7 @@ public class ArithmeticStrategy implements StrategyInterface {
     }
 
     currentStartNodeGhostCFA =
-        unrollLoopOnce(loopStartNode, currentStartNodeGhostCFA, endNodeGhostCFA);
+        unrollLoopOnce(loopStartNode, loopBranchIndex, currentStartNodeGhostCFA, endNodeGhostCFA);
 
     loopIngoingConditionDummyEdgeFalse =
         overwriteStartEndStateEdge(
@@ -585,43 +555,12 @@ public class ArithmeticStrategy implements StrategyInterface {
       return Optional.empty();
     }
 
-    GhostCFA startStopCFANodesGhostCFA =
+    GhostCFA ghostCFA =
         summaryCFA(pState, loopVariableDelta, loopBound, boundDelta, loopBranchIndex);
 
-    LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
-    LocationState newLocationState =
-        new LocationState(
-            startStopCFANodesGhostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
-    AbstractState dummyStateStart = overwriteLocationState(pState, newLocationState);
-    @SuppressWarnings("unchecked")
-    ArrayList<AbstractState> dummyStatesEndCollection =
-        new ArrayList<>(
-            pTransferRelation.getAbstractSuccessors(
-                dummyStateStart,
-                pPrecision)); // TODO Can you write Collection<AbstractState> insetad of
-                              // Collection<?
-                         // extends AbstractState>
-    Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
-    LocationState afterLoopLocationState =
-        new LocationState(
-            startStopCFANodesGhostCFA.getStopNode(), oldLocationState.getFollowFunctionCalls());
-    // Iterate till the end of the ghost CFA
-    while (!dummyStatesEndCollection.isEmpty()) {
-      ArrayList<AbstractState> newStatesNotFinished = new ArrayList<>();
-      Iterator<? extends AbstractState> iterator = dummyStatesEndCollection.iterator();
-      while (iterator.hasNext()) {
-          AbstractState stateGhostCFA = iterator.next();
-        if (AbstractStates.extractLocation(stateGhostCFA)
-            == startStopCFANodesGhostCFA.getStopNode()) {
-          realStatesEndCollection.add(
-              overwriteLocationState(stateGhostCFA, afterLoopLocationState));
-        } else {
-          newStatesNotFinished.addAll(
-              pTransferRelation.getAbstractSuccessors(stateGhostCFA, pPrecision));
-        }
-      }
-      dummyStatesEndCollection = newStatesNotFinished;
-    }
+    Collection<AbstractState> realStatesEndCollection =
+        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation);
+
     return Optional.of(realStatesEndCollection);
   }
 

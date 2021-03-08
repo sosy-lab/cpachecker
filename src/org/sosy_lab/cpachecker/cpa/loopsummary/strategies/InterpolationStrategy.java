@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class InterpolationStrategy implements StrategyInterface {
+public class InterpolationStrategy extends AbstractStrategy {
 
   public InterpolationStrategy() {}
 

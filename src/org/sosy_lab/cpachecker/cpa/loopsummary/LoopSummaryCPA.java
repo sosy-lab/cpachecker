@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.ArithmeticStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.InterpolationStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopAcceleration;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 
 @Options(prefix = "cpa.loopsummary")
@@ -49,6 +50,7 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
           Arrays.asList(
               new ArithmeticStrategy(),
               new InterpolationStrategy(),
+              new NaiveLoopAcceleration(),
               new LoopAcceleration(),
               new BaseStrategy()));
 

@@ -15,7 +15,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class BaseStrategy implements StrategyInterface {
+public class BaseStrategy extends AbstractStrategy {
+
+  public BaseStrategy() {}
 
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(

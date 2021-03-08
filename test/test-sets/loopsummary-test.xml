@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-heap">10000M</option>
  
   <rundefinition name="loopsummary">
-    <option name="-valueAnalysis-loopsummary.properties"/>
+    <option name="-config">config/valueAnalysis-loopsummary.properties</option>
   </rundefinition>
 
   <rundefinition name="sv-comp21">
