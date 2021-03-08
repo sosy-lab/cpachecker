@@ -218,11 +218,10 @@ public class ConfigurationFileChecks {
             .filter(resource -> resource.getResourceName().endsWith(".properties"))
             .filter(resource -> resource.getResourceName().contains("cpachecker"))
             .map(ResourceInfo::url);
-    try (@SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
-        Stream<Path> configFiles =
-            Files.walk(CONFIG_DIR)
-                .filter(path -> path.getFileName().toString().endsWith(".properties"))
-                .sorted()) {
+    try (Stream<Path> configFiles =
+        Files.walk(CONFIG_DIR)
+            .filter(path -> path.getFileName().toString().endsWith(".properties"))
+            .sorted()) {
       return Stream.concat(configResources, configFiles).toArray();
     }
   }
@@ -285,6 +284,7 @@ public class ConfigurationFileChecks {
     checkOption(config, "java.sourcepath");
     checkOption(config, "java.version");
     checkOption(config, "parser.usePreprocessor");
+    checkOption(config, "parser.useClang");
 
     if (!configFile.toString().contains("ldv")) {
       // LDV configs are specific to their use case, so these options are allowed

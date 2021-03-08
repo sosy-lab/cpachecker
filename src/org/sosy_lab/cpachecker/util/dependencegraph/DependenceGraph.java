@@ -32,7 +32,6 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -234,21 +233,19 @@ public final class DependenceGraph implements Serializable {
     return ReachedSet.fromMutable(reachable);
   }
 
-  private Collection<DGNode> getAdjacentNeighbors(
+  private ImmutableSet<DGNode> getAdjacentNeighbors(
       final DGNode pNode, final TraversalDirection pDirection) {
     return getAdjacentNeighbors(
         pNode, pDirection, dgEdge -> true);
   }
 
-  private Collection<DGNode> getAdjacentNeighbors(
+  private ImmutableSet<DGNode> getAdjacentNeighbors(
       DGNode pNode, TraversalDirection pDirection, Predicate<DependenceType> pIsEdgeOfInterest) {
 
-    return getAdjacentNodes(pNode, pDirection)
-        .entrySet()
-        .stream()
+    return getAdjacentNodes(pNode, pDirection).entrySet().stream()
         .filter(e -> pIsEdgeOfInterest.test(e.getValue()))
         .map(e -> e.getKey())
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private Map<DGNode, DependenceType> getAdjacentNodes(

@@ -790,7 +790,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
 
     for (AbstractionPredicate pred : predicates) {
-      for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {
+      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
           trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }

@@ -13,6 +13,7 @@ import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 
 public class CompoundException extends CPAException {
 
@@ -29,6 +30,7 @@ public class CompoundException extends CPAException {
     return exceptions;
   }
 
+  @SuppressForbidden(value = "result of Collectors.toList() is only read, needs to support null")
   private static String getMessage(List<CPAException> pExceptions) {
     Preconditions.checkArgument(
         pExceptions.size() > 1,
