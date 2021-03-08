@@ -1072,6 +1072,7 @@ public class CFABuilder {
   private CExpression createFromArithmeticOp(
       final Value pItem, final OpCode pOpCode, final String pFileName) throws LLVMException {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
+    CType internalExpressionType = expressionType;
 
     // TODO: Currently we only support flat expressions, no nested ones. Make this work
     // in the future.
@@ -1131,6 +1132,7 @@ public class CFABuilder {
           // op1type is signed by default for integer types
           assert isSignedIntegerType(op1type);
         }
+        internalExpressionType = op1type; // otherwise op1type is overwritten later
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
       case And:
@@ -1146,13 +1148,15 @@ public class CFABuilder {
         throw new AssertionError("Unhandled operation " + pOpCode);
     }
 
-    return new CBinaryExpression(
-        getLocation(pItem, pFileName),
-        expressionType,
-        expressionType, // calculation type is expression type in LLVM
-        operand1Exp,
-        operand2Exp,
-        operation);
+    CBinaryExpression expression =
+        new CBinaryExpression(
+            getLocation(pItem, pFileName),
+            internalExpressionType,
+            internalExpressionType, // calculation type is expression type in LLVM
+            operand1Exp,
+            operand2Exp,
+            operation);
+    return castToExpectedType(expression, expressionType, getLocation(pItem, pFileName));
   }
 
   private CExpression getExpression(
