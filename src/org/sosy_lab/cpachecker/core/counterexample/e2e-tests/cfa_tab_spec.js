@@ -29,7 +29,7 @@ describe('CFA testing', function () {
             browser.wait(EC.presenceOf(element(by.id('set-tab-1'))))
             element(by.id('set-tab-1')).click();
             browser.wait(element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select')));
-            element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select')).click();
+            browser.actions().mouseMove(element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))).click();
             element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select/option[2]')).click();
             expect(element(by.xpath('//*[@id="cfa-svg-main0"]')).isDisplayed()).toBeTruthy();
             expect(element(by.xpath('//*[@id="cfa-svg-__Main1"]')).isDisplayed()).toBeFalsy();
@@ -38,7 +38,7 @@ describe('CFA testing', function () {
 
         it('Display CFA dropdown test-2', function () {
             element(by.id('set-tab-1')).click();
-            element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select')).click();
+            browser.actions().mouseMove(element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))).click();
             element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select/option[1]')).click();
             expect(element(by.xpath('//*[@id="cfa-graph-main0"]')).isDisplayed()).toBeTruthy();
             expect(element(by.xpath('//*[@id="cfa-graph-__Main1"]')).isDisplayed()).toBeTruthy();
