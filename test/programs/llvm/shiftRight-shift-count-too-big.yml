@@ -12,5 +12,6 @@ format_version: '1.0'
 input_files: 'shiftRight-shift-count-too-big.ll'
 
 properties:
-  - property_file: ../../config/properties/def-behavior.prp
+  - property_file: ../../../config/properties/def-behavior.prp
     expected_verdict: false
+    
