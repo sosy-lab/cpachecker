@@ -1119,10 +1119,12 @@ public class CFABuilder {
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
           throw new UnsupportedOperationException();
         }
-        long op2value = operand2.constIntGetSExtValue();
-        int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
-        if (op2value < 0 || op2value >= bitwidthOp1) {
-          throw new LLVMException("Shift count is negative or >= width of type");
+        if (operand2.isConstantInt()) {
+          long op2value = operand2.constIntGetSExtValue();
+          int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
+          if (op2value < 0 || op2value >= bitwidthOp1) {
+            throw new LLVMException("Shift count is negative or >= width of type");
+          }
         }
         // operand2 should always be treated as an unsigned value
         op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned = */ true);
