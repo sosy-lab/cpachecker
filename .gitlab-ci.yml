@@ -146,7 +146,7 @@ build-docker:test:java-node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
     IMAGE: /test:java-node
 
-build-docker:test:java-node:
+build-docker:test:node:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
