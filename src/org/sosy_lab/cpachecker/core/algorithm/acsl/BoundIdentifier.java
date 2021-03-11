@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -13,15 +13,19 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class Identifier implements ACSLTerm {
+public class BoundIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;
-  // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
+  private final Type type;
+  private final Binder.Quantifier quantifier;
 
-  public Identifier(String pName, String pFunctionName) {
+  public BoundIdentifier(
+      String pName, String pFunctionName, Type pType, Binder.Quantifier pQuantifier) {
     name = pName;
     functionName = pFunctionName;
+    type = pType;
+    quantifier = pQuantifier;
   }
 
   @Override
@@ -31,8 +35,8 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Identifier) {
-      Identifier other = (Identifier) o;
+    if (o instanceof BoundIdentifier) {
+      BoundIdentifier other = (BoundIdentifier) o;
       return name.equals(other.name);
     }
     return false;
@@ -40,7 +44,7 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public int hashCode() {
-    return 29 * name.hashCode() * name.hashCode() + 29;
+    return 31 * name.hashCode() * name.hashCode() + 17;
   }
 
   public String getName() {
@@ -49,6 +53,14 @@ public class Identifier implements ACSLTerm {
 
   public String getFunctionName() {
     return functionName;
+  }
+
+  public Type getType() {
+    return type;
+  }
+
+  public Binder.Quantifier getQuantifier() {
+    return quantifier;
   }
 
   @Override
@@ -67,12 +79,7 @@ public class Identifier implements ACSLTerm {
   }
 
   @Override
-  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
-    for (Binder binder : binders) {
-      if (binder.getVariables().contains(name)) {
-        return new BoundIdentifier(name, functionName, binder.getType(), quantifier);
-      }
-    }
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier pQuantifier) {
     return this;
   }
 }

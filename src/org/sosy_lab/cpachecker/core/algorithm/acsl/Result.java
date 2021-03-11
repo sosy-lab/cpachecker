@@ -59,4 +59,9 @@ public class Result implements ACSLBuiltin {
   public Set<ACSLBuiltin> getUsedBuiltins() {
     return ImmutableSet.of(this);
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return this;
+  }
 }

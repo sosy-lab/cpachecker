@@ -140,4 +140,12 @@ public class ACSLBinaryTerm implements ACSLTerm {
     ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
     return builder.addAll(left.getUsedBuiltins()).addAll(right.getUsedBuiltins()).build();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new ACSLBinaryTerm(
+        (ACSLTerm) left.apply(binders, quantifier),
+        (ACSLTerm) right.apply(binders, quantifier),
+        operator);
+  }
 }

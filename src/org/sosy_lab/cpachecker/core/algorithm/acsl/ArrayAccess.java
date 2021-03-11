@@ -65,4 +65,10 @@ public class ArrayAccess implements ACSLTerm {
     ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
     return builder.addAll(array.getUsedBuiltins()).addAll(index.getUsedBuiltins()).build();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new ArrayAccess(
+        (ACSLTerm) array.apply(binders, quantifier), (ACSLTerm) index.apply(binders, quantifier));
+  }
 }

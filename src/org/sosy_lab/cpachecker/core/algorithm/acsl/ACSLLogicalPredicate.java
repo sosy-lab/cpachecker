@@ -176,4 +176,13 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     builder.addAll(left.getUsedBuiltins()).addAll(right.getUsedBuiltins());
     return builder.build();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new ACSLLogicalPredicate(
+        (ACSLPredicate) left.apply(binders, quantifier),
+        (ACSLPredicate) right.apply(binders, quantifier),
+        operator,
+        isNegated());
+  }
 }

@@ -66,4 +66,9 @@ public class ACSLUnaryTerm implements ACSLTerm {
   public Set<ACSLBuiltin> getUsedBuiltins() {
     return term.getUsedBuiltins();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new ACSLUnaryTerm((ACSLTerm) term.apply(binders, quantifier), operator);
+  }
 }

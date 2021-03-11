@@ -116,4 +116,13 @@ public class TernaryCondition extends ACSLPredicate {
         .addAll(otherwise.getUsedBuiltins())
         .build();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new TernaryCondition(
+        (ACSLPredicate) condition.apply(binders, quantifier),
+        (ACSLPredicate) then.apply(binders, quantifier),
+        (ACSLPredicate) otherwise.apply(binders, quantifier),
+        isNegated());
+  }
 }

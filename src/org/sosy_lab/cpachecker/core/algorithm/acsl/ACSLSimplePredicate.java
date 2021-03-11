@@ -88,4 +88,9 @@ public class ACSLSimplePredicate extends ACSLPredicate {
   public Set<ACSLBuiltin> getUsedBuiltins() {
     return term.getUsedBuiltins();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new ACSLSimplePredicate((ACSLTerm) term.apply(binders, quantifier), isNegated());
+  }
 }

@@ -25,8 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -179,6 +181,25 @@ public class ACSLTermToCExpressionVisitor {
       } else {
         throw new AssertionError("Unknown variable identifier: " + identifier.getName());
       }
+    }
+    return result;
+  }
+
+  public CExpression visit(BoundIdentifier boundIdentifier) {
+    CExpression result = cache.get(boundIdentifier);
+    if (result == null) {
+      // TODO: Dummy implementation as placeholder, remove this later
+      CVariableDeclaration declaration =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              CStorageClass.AUTO,
+              CNumericTypes.INT,
+              boundIdentifier.getName(),
+              boundIdentifier.getName(),
+              boundIdentifier.getFunctionName() + "::" + boundIdentifier.getName(),
+              null);
+      result = new CIdExpression(FileLocation.DUMMY, declaration);
     }
     return result;
   }

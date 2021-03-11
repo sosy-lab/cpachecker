@@ -63,4 +63,9 @@ public class Cast implements ACSLTerm {
   public Set<ACSLBuiltin> getUsedBuiltins() {
     return term.getUsedBuiltins();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new Cast(type, (ACSLTerm) term.apply(binders, quantifier));
+  }
 }

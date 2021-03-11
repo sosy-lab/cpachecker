@@ -143,6 +143,11 @@ public abstract class ACSLPredicate implements LogicExpression {
     public Set<ACSLBuiltin> getUsedBuiltins() {
       return ImmutableSet.of();
     }
+
+    @Override
+    public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+      return this;
+    }
   }
 
   private static class FALSE extends ACSLPredicate {
@@ -205,6 +210,11 @@ public abstract class ACSLPredicate implements LogicExpression {
     @Override
     public Set<ACSLBuiltin> getUsedBuiltins() {
       return ImmutableSet.of();
+    }
+
+    @Override
+    public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+      return this;
     }
   }
 }

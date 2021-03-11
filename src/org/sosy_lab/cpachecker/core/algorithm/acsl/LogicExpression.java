@@ -25,4 +25,10 @@ public interface LogicExpression {
    */
   Set<ACSLBuiltin> getUsedBuiltins();
 
+  /**
+   * Replaces all identifiers that are captured by the given binders with bound identifiers
+   * and returns the new logic expression.
+   */
+  LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier);
+
 }

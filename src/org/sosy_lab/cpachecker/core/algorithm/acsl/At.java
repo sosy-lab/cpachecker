@@ -49,7 +49,8 @@ public class At extends ACSLPredicate implements ACSLBuiltin {
 
   @Override
   public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
-    throw new UnsupportedOperationException("There is currently no concrete translation of \\at available");
+    throw new UnsupportedOperationException(
+        "There is currently no concrete translation of \\at available");
   }
 
   @Override
@@ -87,5 +88,10 @@ public class At extends ACSLPredicate implements ACSLBuiltin {
     builder.addAll(inner.getUsedBuiltins());
     builder.add(this);
     return builder.build();
+  }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return new At(inner.apply(binders, quantifier), label, isNegated());
   }
 }

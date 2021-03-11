@@ -58,4 +58,9 @@ public class StringLiteral implements ACSLTerm {
   public Set<ACSLBuiltin> getUsedBuiltins() {
     return ImmutableSet.of();
   }
+
+  @Override
+  public LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier) {
+    return this;
+  }
 }
