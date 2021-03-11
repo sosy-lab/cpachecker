@@ -1139,7 +1139,8 @@ public class CFABuilder {
           // op1type is signed by default for integer types
           assert isSignedIntegerType(op1type);
         }
-        internalExpressionType = op1type; // otherwise op1type is overwritten later
+        // calculate the shift with the signedness of op1type
+        internalExpressionType = machineModel.applyIntegerPromotion(op1type);
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
       case And:
