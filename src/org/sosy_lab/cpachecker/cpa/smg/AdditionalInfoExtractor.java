@@ -143,9 +143,16 @@ public class AdditionalInfoExtractor {
   private boolean isStackObject(UnmodifiableCLangSMG smg, SMGObject pObject) {
     String regionLabel = pObject.getLabel();
     for (CLangStackFrame frame : smg.getStackFrames()) {
-      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)
-          || pObject == frame.getReturnObject()) {
+      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
+  private boolean isReturnObject(UnmodifiableCLangSMG smg, SMGObject pObject) {
+    for (CLangStackFrame frame : smg.getStackFrames()) {
+      if (pObject == frame.getReturnObject()) {
         return true;
       }
     }
@@ -161,6 +168,10 @@ public class AdditionalInfoExtractor {
         return "Function parameter " + smgObject.getLabel();
       } else if (smgObject.getLabel().contains("alloc")) {
         return "Allocate " + smgObject.getLabel();
+      } else if (isStackObject(smg, smgObject)) {
+        return "Variable " + smgObject.getLabel();
+      } else if (isReturnObject(smg, smgObject)) {
+        return "Return value from function";
       } else {
         return "Create object for " + smgObject.getLabel();
       }
