@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isSignedIntegerType;
 import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
-import static org.sosy_lab.llvm_j.Value.OpCode.LShr;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
