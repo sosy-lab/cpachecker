@@ -1120,7 +1120,11 @@ public class CFABuilder {
         // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
-          throw new UnsupportedOperationException();
+          throw new UnsupportedOperationException(
+              "Right shifts are only supported for integer types, but operands were "
+                  + op1type
+                  + " and "
+                  + op2type);
         }
         if (operand2.isConstantInt()) {
           long op2value = operand2.constIntGetSExtValue();
@@ -1136,7 +1140,8 @@ public class CFABuilder {
 
         // GNU C performs an arithmetic shift for signed types
         // op1type is signed by default for integer types
-        assert pOpCode != AShr || isSignedIntegerType(op1type);
+        assert pOpCode != AShr || isSignedIntegerType(op1type)
+            : "First operand of right shift wasn't signed in the case of an arithmetic right shift";
 
         // calculate the shift with the signedness of op1type
         internalExpressionType = machineModel.applyIntegerPromotion(op1type);
