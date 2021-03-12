@@ -476,13 +476,7 @@ public class SMGBuiltins {
       int size = sizeAndState.getObject().getAsInt();
       SMGState currentState = sizeAndState.getSmgState();
 
-      // TODO line numbers are not unique when we have multiple input files!
-      String allocation_label =
-          functionName
-              + "_ID"
-              + SMGCPA.getNewValue()
-              + "_Line:"
-              + functionCall.getFileLocation().getStartingLineInOrigin();
+      String allocation_label = functionName + "_ID" + SMGCPA.getNewValue();
       SMGEdgePointsTo new_address =
           currentState.addNewHeapAllocation(
               size * machineModel.getSizeofCharInBits(), allocation_label);

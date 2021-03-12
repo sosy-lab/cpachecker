@@ -153,16 +153,17 @@ public class AdditionalInfoExtractor {
   }
 
   private String getNoteMessageOnElement(UnmodifiableCLangSMG smg, Object elem) {
-    if (elem instanceof SMGEdge) {
-      return "Assign edge";
-    } else if (elem instanceof Integer || elem instanceof SMGValue) {
-      return "Assign value";
+    if (elem instanceof SMGEdge || elem instanceof Integer || elem instanceof SMGValue) {
+      return "Assign";
     } else if (elem instanceof SMGObject) {
       SMGObject smgObject = (SMGObject) elem;
       if (isFunctionParameter(smg, smgObject)) {
-        return "Function parameter";
+        return "Function parameter " + smgObject.getLabel();
+      } else if (smgObject.getLabel().contains("alloc")) {
+        return "Allocate " + smgObject.getLabel();
+      } else {
+        return "Create object for " + smgObject.getLabel();
       }
-      return "Object creation";
     }
     return null;
   }
