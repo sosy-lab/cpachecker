@@ -205,12 +205,6 @@ public class ConfigurationFileChecks {
         defaultUserUnit=TimeUnit.SECONDS,
         min=-1)
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
-
-    @Option(
-        secure = true,
-        name = "conditional_testing.inputfile",
-        description = "The input file with all goals that were previously reached")
-    private Path conditionalTestingInputfile = Path.of("Goals.txt");
   }
 
   private static final Path CONFIG_DIR = Paths.get("config");
