@@ -115,11 +115,8 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
       backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
       backwardsCpa = backwardsCpaTriple.getSecond();
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      backwardsCpaAlgorithm = null;
-      backwardsCpa = null;
+    } catch(InterruptedException | CPAException | IOException e) {
+      throw new InvalidConfigurationException("Couldn't create backwards CPA algorithm!", e);
     }
 
     if (pOuter == null || pOuterCpa == null) {
