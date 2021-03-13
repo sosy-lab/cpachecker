@@ -22,26 +22,26 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityTransferRelation
  */
 public class StopAtLeavesRelation extends SingleEdgeTransferRelation {
-    private List<CFANode> leaves;
+  private List<CFANode> leaves;
 
-    public StopAtLeavesRelation(List<CFANode> pLeaves) {
-        leaves = pLeaves;
+  public StopAtLeavesRelation(List<CFANode> pLeaves) {
+    leaves = pLeaves;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+
+    var leaf = cfaEdge.getSuccessor();
+    if (leaves.contains(leaf)) {
+      return Collections.singleton(StopAtLeavesState.STOP);
     }
 
-    @Override public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-        AbstractState state, Precision precision, CFAEdge cfaEdge)
-        throws CPATransferException, InterruptedException
-        {
+    return Collections.singleton(StopAtLeavesState.CONTINUE);
+  }
 
-                var leaf = cfaEdge.getSuccessor();
-                if(leaves.contains(leaf)) {
-                        return Collections.singleton(StopAtLeavesState.STOP);
-                }
-
-                return Collections.singleton(StopAtLeavesState.CONTINUE);
-    }
-
-    public void setLeaves(List<CFANode> pLeaves) {
-                leaves = pLeaves;
-        }
+  public void setLeaves(List<CFANode> pLeaves) {
+    leaves = pLeaves;
+  }
 }

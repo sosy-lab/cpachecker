@@ -23,35 +23,35 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA
  */
 public class StopAtLeavesCPA extends AbstractCPA {
-        StopAtLeavesRelation relation;
+  StopAtLeavesRelation relation;
 
-        private StopAtLeavesCPA() {
-                super(
-                        "join",
-                        "sep",
-                        new FlatLatticeDomain(StopAtLeavesState.CONTINUE),
-                        null /* never used */);
+  private StopAtLeavesCPA() {
+    super(
+        "join",
+        "sep",
+        new FlatLatticeDomain(StopAtLeavesState.CONTINUE),
+        null /* never used */);
 
-                relation = new StopAtLeavesRelation(ImmutableList.of());
-        }
+    relation = new StopAtLeavesRelation(ImmutableList.of());
+  }
 
-        public static CPAFactory factory() {
-                return AutomaticCPAFactory.forType(StopAtLeavesCPA.class);
-        }
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(StopAtLeavesCPA.class);
+  }
 
-        @Override
-        public AbstractState getInitialState(
-                CFANode node, StateSpacePartition partition) throws InterruptedException {
+  @Override
+  public AbstractState getInitialState(
+      CFANode node, StateSpacePartition partition) throws InterruptedException {
 
-                return StopAtLeavesState.CONTINUE;
-        }
+    return StopAtLeavesState.CONTINUE;
+  }
 
-        public void setLeaves(List<CFANode> pLeaves) {
-                relation.setLeaves(pLeaves);
-        }
+  public void setLeaves(List<CFANode> pLeaves) {
+    relation.setLeaves(pLeaves);
+  }
 
-        @Override
-        public TransferRelation getTransferRelation() {
-                return relation;
-        }
+  @Override
+  public TransferRelation getTransferRelation() {
+    return relation;
+  }
 }

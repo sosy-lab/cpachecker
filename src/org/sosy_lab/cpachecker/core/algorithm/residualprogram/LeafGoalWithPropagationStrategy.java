@@ -26,100 +26,105 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * Finds all un-/covered goals based on propagation.
  */
 public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
-        /**
-         * Returns a map of (un-)/covered goals based on propagation. This means that first all
-         * leaf nodes are calculated. If all of a node's children share the same state then the
-         * parent is also in this state.
-         * @param pWaitlist An initial list of ARGstates to check. Should be the exit node(s)
-         * of the function.
-         * @param coveredGoals A list of all covered goals (or rather their corresponding labels).
-         * @return A map of (un-)/covered goals.
-         */
-        @Override
-        public Map<LeafStates, List<CFANode>> findGoals(List<ARGState> pWaitlist, final Set<String> coveredGoals) {
-                var waitList = pWaitlist.stream()
-                  .map(AbstractStates::extractLocation)
-                  .collect(Collectors.toList());
-                Set<CFANode> reachedNodes = new HashSet<>();
+  /**
+   * Returns a map of (un-)/covered goals based on propagation. This means that first all
+   * leaf nodes are calculated. If all of a node's children share the same state then the
+   * parent is also in this state.
+   *
+   * @param pWaitlist    An initial list of ARGstates to check. Should be the exit node(s)
+   *                     of the function.
+   * @param coveredGoals A list of all covered goals (or rather their corresponding labels).
+   * @return A map of (un-)/covered goals.
+   */
+  @Override
+  public Map<LeafStates, List<CFANode>> findGoals(
+      List<ARGState> pWaitlist,
+      final Set<String> coveredGoals) {
+    var waitList = pWaitlist.stream()
+        .map(AbstractStates::extractLocation)
+        .collect(Collectors.toCollection(ArrayList::new));
+    Set<CFANode> reachedNodes = new HashSet<>();
 
-                var nodes = new HashMap<NodeStates, HashSet<CFANode>>();
-                nodes.put(NodeStates.VIRGIN, new HashSet<>());
-                nodes.put(NodeStates.UNCOVERED, new HashSet<>());
-                nodes.put(NodeStates.COVERED, new HashSet<>());
+    var nodes = new HashMap<NodeStates, HashSet<CFANode>>();
+    nodes.put(NodeStates.VIRGIN, new HashSet<>());
+    nodes.put(NodeStates.UNCOVERED, new HashSet<>());
+    nodes.put(NodeStates.COVERED, new HashSet<>());
 
-                var removableNodes = new HashSet<CFANode>();
+    var removableNodes = new HashSet<CFANode>();
 
-                while (!waitList.isEmpty()) {
-                        var node = waitList.remove(0);
-                        reachedNodes.add(node);
+    while (!waitList.isEmpty()) {
+      var node = waitList.remove(0);
+      reachedNodes.add(node);
 
-                        var childrenNodes = Stream.iterate(0, n -> n + 1)
-                          .limit(node.getNumLeavingEdges())
-                          .map(i -> node.getLeavingEdge(i).getSuccessor())
-                          .collect(Collectors.toList());
+      var childrenNodes = Stream.iterate(0, n -> n + 1)
+          .limit(node.getNumLeavingEdges())
+          .map(i -> node.getLeavingEdge(i).getSuccessor())
+          .collect(Collectors.toList());
 
-                        if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
-                            && node instanceof CLabelNode && ((CLabelNode) node).getLabel().matches("^GOAL_[0-9]+$")) {
-                                if (coveredGoals.contains(((CLabelNode) node).getLabel())) {
-                                        nodes.get(NodeStates.COVERED).add(node);
-                                } else {
-                                        nodes.get(NodeStates.UNCOVERED).add(node);
-                                }
-
-                        } else if (childrenNodes.isEmpty() || nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)) {
-                                nodes.get(NodeStates.VIRGIN).add(node);
-                        } else if (nodes.get(NodeStates.COVERED).containsAll(childrenNodes)) {
-                                nodes.get(NodeStates.COVERED).add(node);
-                        } else if (nodes.get(NodeStates.UNCOVERED).containsAll(childrenNodes)) {
-                                nodes.get(NodeStates.UNCOVERED).add(node);
-                        } else {
-                                continue;
-                        }
-
-                        removableNodes.addAll(childrenNodes);
-
-                        waitList.addAll(
-                          Stream.iterate(0, i -> i + 1)
-                                .limit(node.getNumEnteringEdges())
-                                .map(i -> node.getEnteringEdge(i).getPredecessor())
-                                .filter(n -> !reachedNodes.contains(n) && !waitList.contains(n))
-                                .collect(Collectors.toList())
-                        );
-                }
-
-                nodes.get(NodeStates.COVERED).removeAll(removableNodes);
-                nodes.get(NodeStates.UNCOVERED).removeAll(removableNodes);
-
-                Map<LeafStates, List<CFANode>> leafGoals = new HashMap<>();
-                leafGoals.put(LeafStates.COVERED, new ArrayList<>(nodes.get(NodeStates.COVERED)));
-                leafGoals.put(LeafStates.UNCOVERED, new ArrayList<>(nodes.get(NodeStates.UNCOVERED)));
-
-                return leafGoals;
+      if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
+          && node instanceof CLabelNode && ((CLabelNode) node).getLabel()
+          .matches("^GOAL_[0-9]+$")) {
+        if (coveredGoals.contains(((CLabelNode) node).getLabel())) {
+          nodes.get(NodeStates.COVERED).add(node);
+        } else {
+          nodes.get(NodeStates.UNCOVERED).add(node);
         }
 
+      } else if (childrenNodes.isEmpty() || nodes.get(NodeStates.VIRGIN)
+          .containsAll(childrenNodes)) {
+        nodes.get(NodeStates.VIRGIN).add(node);
+      } else if (nodes.get(NodeStates.COVERED).containsAll(childrenNodes)) {
+        nodes.get(NodeStates.COVERED).add(node);
+      } else if (nodes.get(NodeStates.UNCOVERED).containsAll(childrenNodes)) {
+        nodes.get(NodeStates.UNCOVERED).add(node);
+      } else {
+        continue;
+      }
 
-        /**
-         * All states a node can be in.
-         */
-        private enum NodeStates {
-                /**
-                 * There was no label/ goal prior to this node and we don't know if it covered or not.
-                 */
-                VIRGIN,
+      removableNodes.addAll(childrenNodes);
 
-                /**
-                 * The node is uncovered.
-                 */
-                UNCOVERED,
+      waitList.addAll(
+          Stream.iterate(0, i -> i + 1)
+              .limit(node.getNumEnteringEdges())
+              .map(i -> node.getEnteringEdge(i).getPredecessor())
+              .filter(n -> !reachedNodes.contains(n) && !waitList.contains(n))
+              .collect(Collectors.toList())
+      );
+    }
 
-                /**
-                 * The node is covered.
-                 */
-                COVERED,
+    nodes.get(NodeStates.COVERED).removeAll(removableNodes);
+    nodes.get(NodeStates.UNCOVERED).removeAll(removableNodes);
 
-                /**
-                 * Thid node's children are both covered and uncovered.
-                 */
-                BOTH
-        }
+    Map<LeafStates, List<CFANode>> leafGoals = new HashMap<>();
+    leafGoals.put(LeafStates.COVERED, new ArrayList<>(nodes.get(NodeStates.COVERED)));
+    leafGoals.put(LeafStates.UNCOVERED, new ArrayList<>(nodes.get(NodeStates.UNCOVERED)));
+
+    return leafGoals;
+  }
+
+
+  /**
+   * All states a node can be in.
+   */
+  private enum NodeStates {
+    /**
+     * There was no label/ goal prior to this node and we don't know if it covered or not.
+     */
+    VIRGIN,
+
+    /**
+     * The node is uncovered.
+     */
+    UNCOVERED,
+
+    /**
+     * The node is covered.
+     */
+    COVERED,
+
+    /**
+     * Thid node's children are both covered and uncovered.
+     */
+    BOTH
+  }
 }

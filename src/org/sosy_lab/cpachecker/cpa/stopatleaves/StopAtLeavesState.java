@@ -15,44 +15,44 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * @see org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState
  */
 public enum StopAtLeavesState implements AbstractQueryableState {
-    CONTINUE(false),
-    STOP(true);
+  CONTINUE(false),
+  STOP(true);
 
-    final boolean shouldStop;
+  final boolean shouldStop;
 
-    public boolean isShouldStop() {
-        return shouldStop;
+  StopAtLeavesState(boolean pShouldStop) {
+    shouldStop = pShouldStop;
+  }
+
+  public boolean isShouldStop() {
+    return shouldStop;
+  }
+
+  @Override
+  public String getCPAName() {
+    return "StopAtLeavesState";
+  }
+
+  @Override
+  public boolean checkProperty(String property) throws InvalidQueryException {
+    if (!property.equals("at leaf")) {
+      throw new InvalidQueryException("Invalid query!");
     }
 
-    StopAtLeavesState(boolean pShouldStop) {
-        shouldStop = pShouldStop;
+    return shouldStop;
+  }
+
+  @Override
+  public Object evaluateProperty(String property) throws InvalidQueryException {
+    if (!property.equals("at leaf")) {
+      throw new InvalidQueryException("Invalid query!");
     }
 
-    @Override
-    public String getCPAName() {
-        return "StopAtLeavesState";
-    }
+    return shouldStop;
+  }
 
-    @Override
-    public boolean checkProperty(String property) throws InvalidQueryException {
-        if(!property.equals("at leaf")) {
-            throw new InvalidQueryException("Invalid query!");
-        }
-
-        return shouldStop;
-    }
-
-    @Override
-    public Object evaluateProperty(String property) throws InvalidQueryException {
-        if(!property.equals("at leaf")) {
-            throw new InvalidQueryException("Invalid query!");
-        }
-
-        return shouldStop;
-    }
-
-    @Override
-    public void modifyProperty(String modification) throws InvalidQueryException {
-        throw new InvalidQueryException("Invalid query!");
-    }
+  @Override
+  public void modifyProperty(String modification) throws InvalidQueryException {
+    throw new InvalidQueryException("Invalid query!");
+  }
 }

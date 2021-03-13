@@ -154,7 +154,6 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
    * @throws CPAException when file could not be read or another IO error occurs.
    */
   private Set<String> getCoveredGoals() throws CPAException {
-
     try (var lines = Files.lines(inputfile)) {
       return lines.collect(Collectors.toSet());
     } catch (IOException e) {
