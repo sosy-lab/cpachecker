@@ -16,6 +16,7 @@ variables:
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.5.1
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  FF_USE_FASTZIP: "true"
 
 .pip-cache: &pip-cache
   cache:
