@@ -2468,6 +2468,10 @@ cpa.predicate.refinement.sliceBlockFormulas = false
 # predicates from interpolants
 cpa.predicate.refinement.splitItpAtoms = false
 
+# Stop after n-th spurious counterexample. If 0, precision is never refined.
+# If -1, never stop.
+cpa.predicate.refinement.stopAfter = -1
+
 # Strategy how to interact with the intepolating prover. The analysis must
 # support the strategy, otherwise the result will be useless!
 # - SEQ_CPACHECKER: Generate an inductive sequence of interpolants by asking

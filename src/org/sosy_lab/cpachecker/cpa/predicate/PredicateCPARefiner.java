@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -111,6 +112,14 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   )
   private boolean useUCBRefinement = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Stop after n-th spurious counterexample. If 0, precision is never refined. If -1, never"
+              + " stop.")
+  @IntegerOption(min = -1)
+  private int stopAfter = -1;
+
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -119,8 +128,13 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
 
-  private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
-  private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
+  private final StatInt totalPrefixes =
+      new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatTimer prefixSelectionTime =
+      new StatTimer("Selecting infeasible sliced prefixes");
+
+  /** Number of performed refinements */
+  private int refinements = 0;
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private final Set<ImmutableList<CFANode>> lastErrorPaths = new HashSet<>();
@@ -243,6 +257,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     totalRefinement.start();
 
     try {
+      refinements++;
       final ImmutableList<CFANode> errorPath =
           allStatesTrace.asStatesList().stream()
               .map(AbstractStates::extractLocation)
@@ -282,7 +297,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
               allStatesTrace, abstractionStatesTrace, formulas, repeatedCounterexample);
 
       // if error is spurious refine
-      if (counterexample.isSpurious()) {
+      if (counterexample.isSpurious() && (stopAfter < 0 || refinements <= stopAfter)) {
         logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
         boolean trackFurtherCEX =

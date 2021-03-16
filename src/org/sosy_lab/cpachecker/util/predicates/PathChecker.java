@@ -135,14 +135,13 @@ public class PathChecker {
   public CounterexampleInfo handleFeasibleCounterexample(final ARGPath allStatesTrace,
       CounterexampleTraceInfo counterexample, boolean branchingOccurred)
           throws InterruptedException {
-    checkArgument(!counterexample.isSpurious());
-
     ARGPath targetPath;
 
     if (alwaysUseImpreciseCounterexamples) {
       return createImpreciseCounterexample(allStatesTrace, counterexample);
     }
 
+    checkArgument(!counterexample.isSpurious());
     if (branchingOccurred) {
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
@@ -239,8 +238,10 @@ public class PathChecker {
     }
     CounterexampleInfo cex =
         CounterexampleInfo.feasibleImprecise(imprecisePath);
-    addCounterexampleFormula(pInfo, cex);
-    addCounterexampleModel(pInfo, cex);
+    if (!alwaysUseImpreciseCounterexamples) {
+      addCounterexampleFormula(pInfo, cex);
+      addCounterexampleModel(pInfo, cex);
+    }
     return cex;
   }
 
