@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import java.util.Set;
-
 public interface LogicExpression {
 
   /**
@@ -19,16 +17,5 @@ public interface LogicExpression {
    * @return true if the logic expression may be used in a clause of the given type, false otherwise
    */
   boolean isAllowedIn(Class<?> clauseType);
-
-  /**
-   * Returns a set of all the ACSL built-ins that are used in the logic expression.
-   */
-  Set<ACSLBuiltin> getUsedBuiltins();
-
-  /**
-   * Replaces all identifiers that are captured by the given binders with bound identifiers
-   * and returns the new logic expression.
-   */
-  LogicExpression apply(Set<Binder> binders, Binder.Quantifier quantifier);
 
 }

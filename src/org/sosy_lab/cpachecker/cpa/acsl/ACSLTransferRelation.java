@@ -17,7 +17,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicateToExpressionTreeVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.BuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -28,14 +29,14 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFAWithACSLAnnotationLocations cfa;
-  private final ACSLTermToCExpressionVisitor acslVisitor;
+  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
   private final boolean usePureExpressionsOnly;
   private final boolean ignoreTargetStates;
 
   public ACSLTransferRelation(
       CFAWithACSLAnnotationLocations pCFA,
-      ACSLTermToCExpressionVisitor pACSLVisitor,
+      ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
       ToCExpressionVisitor pExpressionTreeVisitor,
       boolean pUsePureExpressionsOnly,
       boolean pIgnoreTargetStates) {
@@ -53,9 +54,10 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
     Set<ACSLAnnotation> annotationsForEdge =
         ImmutableSet.copyOf(cfa.getEdgesToAnnotations().get(cfaEdge));
     if (usePureExpressionsOnly) {
+      BuiltinCollectingVisitor visitor = new BuiltinCollectingVisitor();
       Set<ACSLAnnotation> annotations =
           FluentIterable.from(annotationsForEdge)
-              .filter(x -> x.getPredicateRepresentation().getUsedBuiltins().isEmpty())
+              .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())
               .toSet();
       return ImmutableList.of(new ACSLState(annotations, acslVisitor, expressionTreeVisitor));
     }

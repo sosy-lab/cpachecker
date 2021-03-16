@@ -769,9 +769,11 @@ predicate ::= PRED_START TRUE                                       {: RESULT = 
 	| PRED_START NEG predicate:p                                {: RESULT = p.negate(); :} %prec NEG
 	| PRED_START LPAREN predicate:p RPAREN                      {: RESULT = p; :}
 	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :}
-	| PRED_START FORALL binders:b SEMI predicate:p              {: RESULT = (ACSLPredicate) p.apply(b, Binder.Quantifier.FORALL); :}
-	| PRED_START EXISTS binders:b SEMI predicate:p              {: RESULT = (ACSLPredicate) p.apply(b, Binder.Quantifier.EXISTS); :}
-	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = new At(p, ACSLDefaultLabel.OLD); :};
+	| PRED_START FORALL binders:b SEMI predicate:p              {: BinderApplicationVisitor visitor = new BinderApplicationVisitor(b, Binder.Quantifier.FORALL);
+	                                                               RESULT = p.accept(visitor); :}
+	| PRED_START EXISTS binders:b SEMI predicate:p              {: BinderApplicationVisitor visitor = new BinderApplicationVisitor(b, Binder.Quantifier.EXISTS);
+	                                                               RESULT = p.accept(visitor); :}
+	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = new PredicateAt(p, ACSLDefaultLabel.OLD); :};
 asc_comp_predicate ::= asc_comp_predicate:p asc_rel_op:op term:t    {: ACSLTerm innerLeft;
                                                                        if (p instanceof ACSLSimplePredicate) {
                                                                         innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
@@ -869,7 +871,7 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | term:t1 arith_op:op term:t2                   {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | LPAREN term:t RPAREN                          {: RESULT = t; :}
-        | OLD LPAREN term:t RPAREN                      {: RESULT = new At(t, ACSLDefaultLabel.OLD); :}
+        | OLD LPAREN term:t RPAREN                      {: RESULT = new TermAt(t, ACSLDefaultLabel.OLD); :}
         | RETVAL                                        {: RESULT = new Result(parser.getCurrentFunctionName()); :};
 log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | OR    {: RESULT = BinaryOperator.OR; :}

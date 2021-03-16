@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicate;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
@@ -41,12 +42,15 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class AutomatonACSLParser {
 
-  private CFAWithACSLAnnotationLocations cfa;
-  private LogManager logger;
+  private final CFAWithACSLAnnotationLocations cfa;
+  private final LogManager logger;
+  private final ACSLPredicateToExpressionTreeVisitor visitor;
 
   public AutomatonACSLParser(CFAWithACSLAnnotationLocations pCFA, LogManager pLogger) {
     cfa = pCFA;
     logger = pLogger;
+    ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, logger);
+    visitor = new ACSLPredicateToExpressionTreeVisitor(termVisitor);
   }
 
   public Automaton parseAsAutomaton(CFA original) {
@@ -63,11 +67,10 @@ public class AutomatonACSLParser {
             Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(leavingEdge);
             if (!annotations.isEmpty()) {
               ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-              ACSLTermToCExpressionVisitor visitor = new ACSLTermToCExpressionVisitor(cfa, logger);
               List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
               for (ACSLAnnotation annotation : annotations) {
                 ACSLPredicate predicate = annotation.getPredicateRepresentation();
-                representations.add(predicate.toExpressionTree(visitor));
+                representations.add(predicate.accept(visitor));
               }
               @SuppressWarnings("unchecked")
               ExpressionTree<AExpression> inv =

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicate;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeReportingState {
 
   private final ImmutableSet<ACSLAnnotation> annotations;
-  private final ACSLTermToCExpressionVisitor acslVisitor;
+  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
 
   public ACSLState(
       Set<ACSLAnnotation> pAnnotations,
-      ACSLTermToCExpressionVisitor pACSLVisitor,
+      ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
       ToCExpressionVisitor pExpressionTreeVisitor) {
     annotations = ImmutableSet.copyOf(pAnnotations);
     acslVisitor = pACSLVisitor;
@@ -59,7 +59,11 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
     for (ACSLAnnotation annotation : annotations) {
       ACSLPredicate predicate = annotation.getPredicateRepresentation();
-      representations.add(predicate.toExpressionTree(acslVisitor));
+      try {
+        representations.add(predicate.accept(acslVisitor));
+      } catch (UnrecognizedCodeException e) {
+        throw new AssertionError("Could not convert predicate to expression tree: " + predicate);
+      }
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     return factory.and(representations);

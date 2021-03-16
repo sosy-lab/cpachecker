@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 public interface ACSLTerm extends LogicExpression {
 
-  CExpression accept(ACSLTermToCExpressionVisitor visitor) throws UnrecognizedCodeException;
+  <R, X extends Exception> R accept(ACSLTermVisitor<R, X> visitor) throws X;
 
 }

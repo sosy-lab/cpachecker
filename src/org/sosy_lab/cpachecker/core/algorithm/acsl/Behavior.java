@@ -38,7 +38,8 @@ public class Behavior {
 
   public ACSLPredicate getPostStatePredicate() {
     ACSLPredicate ensuresPredicate = ensuresClause.getPredicate();
-    ACSLPredicate negatedAssumesPredicate = new At(assumesClause.getPredicate(), ACSLDefaultLabel.OLD).negate();
+    ACSLPredicate negatedAssumesPredicate =
+        new PredicateAt(assumesClause.getPredicate(), ACSLDefaultLabel.OLD).negate();
     return new ACSLLogicalPredicate(ensuresPredicate, negatedAssumesPredicate, BinaryOperator.OR);
   }
 
