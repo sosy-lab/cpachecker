@@ -174,7 +174,9 @@ javascript-e2e-tests:
     - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
-    - "./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
+      # Due to a problem with the symlinks on the gitlab runners, we temporarily install protractor globally to ensure the symlink is present.
+    - npm install protractor -g
+    - "webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
   script:
     - npm run e2e-test
   cache:
