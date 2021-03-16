@@ -183,6 +183,8 @@ public class ValueAnalysisCPA extends AbstractCPA
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+      logger.log(Level.INFO,"both precisionfiles are null");
+
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
     }
 
@@ -194,9 +196,12 @@ public class ValueAnalysisCPA extends AbstractCPA
                 pConfig, pCfa.getVarClassification(), getClass()));
 
     if (initialPredicatePrecisionFile != null){
+
+      logger.log(Level.INFO,"initialPredicateprecision is not null");
+
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
-      // otherwise return empty precision
+      // otherwise return empty precision if given predicate precision is empty
       Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
       FormulaManagerView formulaManager = solver.getFormulaManager();
       PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
@@ -210,6 +215,9 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
 
     else {
+
+      logger.log(Level.INFO,"initialprecision is not null");
+
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
       return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
