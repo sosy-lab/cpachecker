@@ -897,13 +897,6 @@ conditional.verifier.generatorConfig = no default value
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
 
-# The input file with all goals that were previously reached
-conditional_testing.inputfile = no default value
-
-# The strategy to use
-conditional_testing.strategy = no default value
-  enum:     [NAIVE, PROPAGATION]
-
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -3626,21 +3619,6 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
-# The command line for calling the clang preprocessor. May contain binary
-# name and arguments, but won't be expanded by a shell. The source file name
-# will be appended to this string. Clang needs to print the output to stdout.
-# The command line for calling the clang processor. May contain binary name
-# and arguments, but won't be expanded by a shell. The source file name will
-# be appended to this string. The clang needs to print the output to stdout.
-parser.clang = no default value
-
-# Directory where to dump the results of the processor.
-parser.clang.dumpDirectory = no default value
-
-# Whether to dump the results of the preprocessor to disk.
-# Whether to dump the results of the processor to disk for debugging.
-parser.clang.dumpResults = no default value
-
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -3653,7 +3631,6 @@ parser.preprocessor = "cpp"
 
 # Directory where to dump the results of the preprocessor.
 parser.preprocessor.dumpDirectory = "preprocessed"
-parser.preprocessor.dumpDirectory = no default value
 
 # Whether to dump the results of the preprocessor to disk for debugging.
 parser.preprocessor.dumpResults = false
