@@ -1,6 +1,5 @@
-# This file is part of CPAchecker,
-# a tool for configurable software verification:
-# https://cpachecker.sosy-lab.org
+# This file is part of BenchExec, a framework for reliable benchmarking:
+# https://github.com/sosy-lab/benchexec
 #
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 #
@@ -59,6 +58,7 @@ def parse_vcloud_run_result(values):
 
 
 def parse_frequency_value(s):
+    # Contrary to benchexec.util.parse_frequency_value, this handles float values.
     if not s:
         return s
     s = s.strip()
@@ -69,7 +69,7 @@ def parse_frequency_value(s):
     unit = s[pos:].strip()
     if not unit or unit == "Hz":
         return int(number)
-    elif unit == "KHz":
+    elif unit == "kHz":
         return int(number * 1000)
     elif unit == "MHz":
         return int(number * 1000 * 1000)
@@ -77,7 +77,7 @@ def parse_frequency_value(s):
         return int(number * 1000 * 1000 * 1000)
     else:
         raise ValueError(
-            "unknown unit: {} (allowed are Hz, KHz, MHz, and GHz)".format(unit)
+            "unknown unit: {} (allowed are Hz, kHz, MHz, and GHz)".format(unit)
         )
 
 

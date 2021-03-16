@@ -45,7 +45,7 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-457-g2465cf3"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-469-g2da6c474"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="3.7.7" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="3.7.7" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="3.8.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="3.8.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -117,9 +117,9 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="1.1.1"
+        <dependency org="com.google.truth" name="truth" rev="1.1.2"
                     conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.1.1"
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.1.2"
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
@@ -158,17 +158,17 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.38.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.39" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.41" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.7.0" conf="runtime->runtime-without-gpl; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.7.0-73-gcc96cbd4" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case:
-             <dependency org="org.sosy_lab" name="java-smt" rev="3.6.0" conf="runtime->runtime; contrib->sources">
+             <dependency org="org.sosy_lab" name="java-smt" rev="3.7.0-61-gea80187e" conf="runtime->runtime; contrib->sources">
         -->
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
@@ -188,10 +188,6 @@ SPDX-License-Identifier: Apache-2.0
             <exclude org="org.apache.xmlgraphics" module="batik-css"/>
             <exclude org="org.apache.xmlgraphics" module="batik-util"/>
         </dependency>
-
-        <!-- Several JARs declare animal-sniffer-annotations.jar as dependency in their manifest although they do not really need it.
-             As long as this is the case we need to provide the JAR, otherwise javac complains. -->
-        <dependency org="org.codehaus.mojo" name="animal-sniffer-annotations" rev="1.18" conf="runtime->default;"/>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.5.1"/>

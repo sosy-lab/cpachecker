@@ -154,6 +154,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -3610,6 +3611,14 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
+# The command line for calling the clang preprocessor. May contain binary
+# name and arguments, but won't be expanded by a shell. The source file name
+# will be appended to this string. Clang needs to print the output to stdout.
+parser.clang = "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout"
+
+# Whether to dump the results of the preprocessor to disk.
+parser.clang.dumpResults = true
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -3634,8 +3643,12 @@ parser.readLineDirectives = false
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
 
+# For C files, convert to LLVM IR with clang first and then use the LLVM
+# parser.
+parser.useClang = false
+
 # For C files, run the preprocessor on them before parsing. Note that all
-# file numbers printed by CPAchecker will refer to the pre-processed file,
+# line numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
 

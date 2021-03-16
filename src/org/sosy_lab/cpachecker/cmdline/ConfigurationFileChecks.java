@@ -284,6 +284,7 @@ public class ConfigurationFileChecks {
     checkOption(config, "java.sourcepath");
     checkOption(config, "java.version");
     checkOption(config, "parser.usePreprocessor");
+    checkOption(config, "parser.useClang");
 
     if (!configFile.toString().contains("ldv")) {
       // LDV configs are specific to their use case, so these options are allowed
