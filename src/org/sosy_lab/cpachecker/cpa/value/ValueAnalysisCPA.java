@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -181,7 +182,6 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
-
     if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
       logger.log(Level.INFO,"both precisionfiles are null");
 
@@ -202,11 +202,18 @@ public class ValueAnalysisCPA extends AbstractCPA
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
+
+      logger.log(Level.INFO,"before creating solver");
       Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
+      logger.log(Level.INFO,"before getforumulamanager");
       FormulaManagerView formulaManager = solver.getFormulaManager();
       PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
 
       if (predPrec != null) {
+
+        logger.log(Level.INFO,"refine with predicate precision");
+
+        logger.log(Level.INFO,convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
         return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
       }
       else {
@@ -220,6 +227,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
+      logger.log(Level.INFO,restoreMappingFromFile(pCfa));
       return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
   }
@@ -229,11 +237,16 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     // create managers for the predicate map parser for parsing the predicates from the given
     // predicate precision file
-    RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
+    //TODO: maybe adjust the pconfig to config for predicates
+    //TODO: check if right regionmanager is being created for this
+    RegionManager regionManager = new SymbolicRegionManager(solver);
+
+    //RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
     // get the predicate precision from given file
     PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
     PredicatePrecision predPrec = PredicatePrecision.empty();
+
     try {
       predPrec = mapParser.parsePredicates(initialPredicatePrecisionFile);
     } catch (IOException e) {
@@ -241,15 +254,19 @@ public class ValueAnalysisCPA extends AbstractCPA
     } catch (PredicateParsingFailedException pE) {
       logger.logUserException(Level.WARNING, pE, "Could not parse predicate precision from file named " + initialPredicatePrecisionFile);
     }
+
+    solver.close();
+
     return predPrec;
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
       final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
     Collection<AbstractionPredicate> predicates = new HashSet<>();
+
+    predicates.addAll(pPredPrec.getLocalPredicates().values());
     predicates.addAll(pPredPrec.getGlobalPredicates());
     predicates.addAll(pPredPrec.getFunctionPredicates().values());
-    predicates.addAll(pPredPrec.getLocalPredicates().values());
 
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
     CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
