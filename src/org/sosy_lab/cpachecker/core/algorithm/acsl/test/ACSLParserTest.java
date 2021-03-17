@@ -90,7 +90,7 @@ public class ACSLParserTest {
       CFAWithACSLAnnotationLocations cfaWithLocs =
           (CFAWithACSLAnnotationLocations) cfaCreator.parseFileAndCreateCFA(files);
       assertThat(shouldSucceed).isTrue();
-      assertThat(cfaWithLocs.getCommentPositions().size()).isEqualTo(numAnnotations);
+      assertThat(cfaWithLocs.getCommentPositions()).hasSize(numAnnotations);
       assertThat(cfaWithLocs.getEdgesToAnnotations().keySet().size()).isAtLeast(numAnnotations);
     } catch (AssertionError e) {
       assertThat(shouldSucceed).isFalse();

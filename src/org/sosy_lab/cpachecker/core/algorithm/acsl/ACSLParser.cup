@@ -336,7 +336,7 @@ parser code {:
        String fileContentAfterAnnotation =
            fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
        int seekedDepth = 0;
-       while (fileContentAfterAnnotation.length() > 0
+       while (!fileContentAfterAnnotation.isEmpty()
            && fileContentAfterAnnotation.charAt(0) != '{') {
          if (fileContentAfterAnnotation.charAt(0) == '}') {
            seekedDepth++;
@@ -367,7 +367,7 @@ parser code {:
      for (LoopStructure.Loop loop :
          cfaWithLocs
              .getLoopStructure()
-             .get()
+             .orElseThrow()
              .getLoopsForFunction(prev.getSuccessor().getFunctionName())) {
        if (afterLoop) {
          break;
