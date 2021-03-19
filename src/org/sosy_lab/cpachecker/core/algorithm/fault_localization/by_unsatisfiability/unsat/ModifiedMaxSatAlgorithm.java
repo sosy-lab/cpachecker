@@ -81,7 +81,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
                 + Arrays.toString(
                     hard.stream()
                         .flatMap(Collection::stream)
-                        .map(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+                        .map(fc -> "line " + fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
                         .sorted()
                         .toArray()));
     return hard;

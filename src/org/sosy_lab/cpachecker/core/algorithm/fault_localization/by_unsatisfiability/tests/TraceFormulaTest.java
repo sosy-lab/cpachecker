@@ -101,7 +101,10 @@ public class TraceFormulaTest {
   @Test
   public void testCorrectCalculationOfPreAndPostCondition() throws Exception {
     // precondition values
-    final String preconditionValues = "4, 4, 4, 1, 2, 2, 2, 1, 1, 2, 2, 2, 3";
+    final String preconditionValues = "__VERIFIER_nondet_int!2@: 4, main::number@2: 4, main::copyForCheck@2: 4, " +
+            "main::test@2: 1, main::i@2: 2, isPrime::n@2: 2, isPrime::i@2: 2, " +
+            "isPrime::__retval__@2: 1, main::__CPAchecker_TMP_0@2: 1, main::test@3: 2, " +
+            "main::number@3: 2, main::i@3: 2, main::i@4: 3";
     // post-condition is on line 47
     final String postConditionLocation = "line 47";
     checkIfExpectedValuesMatchResultValues(
@@ -116,34 +119,34 @@ public class TraceFormulaTest {
 
   @Test
   public void testErrorInvariantsOnFlowSensitiveTrace() throws Exception {
-    // Selector indices that are part of a fault
-    final String resultSelectors = "[13, 17]";
+    // Lines that are presumably part of a fault
+    final String faultyLines = "[line 13, line 17]";
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelectors).build());
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, faultyLines).build());
   }
 
   @Test
   public void testErrorInvariantsOnDefaultTrace() throws Exception {
-    // Selector indices that are part of a fault
-    final String resultSelector = "[17]";
+    // Lines that are presumably part of a fault
+    final String faultyLines = "[line 17]";
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelector).build());
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, faultyLines).build());
   }
 
   @Test
   public void testMaxSatSelectorTrace() throws Exception {
-    // Selector indices that are part of a fault
-    final String resultSelectors = "[12, 13, 14, 17]";
+    // Lines that are presumably part of a fault
+    final String faultyLines = "[line 12, line 13, line 14, line 17]";
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, resultSelectors).build());
+        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, faultyLines).build());
   }
 }

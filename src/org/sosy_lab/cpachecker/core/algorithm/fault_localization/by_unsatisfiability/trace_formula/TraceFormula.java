@@ -173,7 +173,7 @@ public abstract class TraceFormula {
       prover.push(bmgr.and(entries.toAtomList()));
       Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-        context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment.getValue());
+        context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
         if (formula.toString().contains("__VERIFIER_nondet")) {
           precond = bmgr.and(precond, formula);
