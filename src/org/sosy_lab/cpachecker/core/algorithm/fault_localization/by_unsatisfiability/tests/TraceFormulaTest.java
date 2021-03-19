@@ -101,10 +101,10 @@ public class TraceFormulaTest {
   @Test
   public void testCorrectCalculationOfPreAndPostCondition() throws Exception {
     // precondition values
-    final String preconditionValues = "__VERIFIER_nondet_int!2@: 4, main::number@2: 4, main::copyForCheck@2: 4, " +
-            "main::test@2: 1, main::i@2: 2, isPrime::n@2: 2, isPrime::i@2: 2, " +
-            "isPrime::__retval__@2: 1, main::__CPAchecker_TMP_0@2: 1, main::test@3: 2, " +
-            "main::number@3: 2, main::i@3: 2, main::i@4: 3";
+    final String preconditionValues = "__VERIFIER_nondet_int!2@: 4, main::number@2: 4, main::copyForCheck@2: 4, "
+            + "main::test@2: 1, main::i@2: 2, isPrime::n@2: 2, isPrime::i@2: 2, "
+            + "isPrime::__retval__@2: 1, main::__CPAchecker_TMP_0@2: 1, main::test@3: 2, "
+            + "main::number@3: 2, main::i@3: 2, main::i@4: 3";
     // post-condition is on line 47
     final String postConditionLocation = "line 47";
     checkIfExpectedValuesMatchResultValues(
