@@ -559,7 +559,7 @@ public class ArithmeticStrategy extends AbstractStrategy {
         summaryCFA(pState, loopVariableDelta, loopBound, boundDelta, loopBranchIndex);
 
     Collection<AbstractState> realStatesEndCollection =
-        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation);
+        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);
 
     return Optional.of(realStatesEndCollection);
   }

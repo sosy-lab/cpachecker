@@ -41,6 +41,9 @@ public abstract class AbstractStrategy implements StrategyInterface {
     reachableNodesIndex1.add(loopStartNode.getLeavingEdge(1).getSuccessor());
     Integer loopBranchIndex = -1;
     while (loopBranchIndex == -1) {
+      if (reachableNodesIndex1.isEmpty() && reachableNodesIndex0.isEmpty()) {
+        return Optional.empty();
+      }
       ArrayList<CFANode> newReachableNodesIndex0 = new ArrayList<>();
       for (CFANode s : reachableNodesIndex0) {
         if (s == loopStartNode) {
@@ -105,12 +108,14 @@ public abstract class AbstractStrategy implements StrategyInterface {
       GhostCFA ghostCFA,
       final AbstractState pState,
       final Precision pPrecision,
-      TransferRelation pTransferRelation)
+      TransferRelation pTransferRelation,
+      int loopBranchIndex)
       throws CPATransferException, InterruptedException {
     LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
-    LocationState newLocationState =
+    LocationState newLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
+    LocationState ghostStartLocationState =
         new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
-    AbstractState dummyStateStart = overwriteLocationState(pState, newLocationState);
+    AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState);
     @SuppressWarnings("unchecked")
     ArrayList<AbstractState> dummyStatesEndCollection =
         new ArrayList<>(
@@ -121,7 +126,11 @@ public abstract class AbstractStrategy implements StrategyInterface {
     // extends AbstractState>
     Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
     LocationState afterLoopLocationState =
-        new LocationState(ghostCFA.getStopNode(), oldLocationState.getFollowFunctionCalls());
+        new LocationState(
+            AbstractStates.extractLocation(pState)
+                .getLeavingEdge(1 - loopBranchIndex)
+                .getSuccessor(),
+            newLocationState.getFollowFunctionCalls());
     // Iterate till the end of the ghost CFA
     while (!dummyStatesEndCollection.isEmpty()) {
       ArrayList<AbstractState> newStatesNotFinished = new ArrayList<>();

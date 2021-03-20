@@ -15,14 +15,17 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -92,8 +95,26 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
               null);
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, pc);
       CExpression rightHandSide =
-          CIntegerLiteralExpression.createDummyLiteral(
-              0, CNumericTypes.INT); // TODO Set Variables to nondet
+          (CExpression)
+              new CFunctionCallExpression(
+                  FileLocation.DUMMY,
+                  CNumericTypes.INT,
+                  new CIdExpression(
+                      FileLocation.DUMMY,
+                      new CFunctionDeclaration(
+                          FileLocation.DUMMY,
+                          new CFunctionTypeWithNames(
+                              CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
+                          "__VERIFIER_nondet_int",
+                          new ArrayList<CParameterDeclaration>())),
+                  new ArrayList<CExpression>(),
+                  new CFunctionDeclaration(
+                      FileLocation.DUMMY,
+                      new CFunctionTypeWithNames(
+                          CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
+                      "__VERIFIER_nondet_int",
+                      "__VERIFIER_nondet_int",
+                      new ArrayList<CParameterDeclaration>())); // TODO Improve this
       CExpressionAssignmentStatement cStatementEdge =
           new CExpressionAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
       CFAEdge dummyEdge =
@@ -148,7 +169,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
         buildGhostCFA(modifiedVariables, loopStartNode, loopBranchIndex);
 
     Collection<AbstractState> realStatesEndCollection =
-        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation);
+        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);
 
     return Optional.of(realStatesEndCollection);
   }
