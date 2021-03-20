@@ -216,4 +216,9 @@ public abstract class AbstractStrategy implements StrategyInterface {
 
     return endLoopUnrollingNode;
   }
+
+  @Override
+  public Optional<GhostCFA> getGhostCFA(final AbstractState pState) {
+    return Optional.empty();
+  }
 }

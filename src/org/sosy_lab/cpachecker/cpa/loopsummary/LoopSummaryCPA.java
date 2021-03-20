@@ -54,6 +54,21 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
               new LoopAcceleration(),
               new BaseStrategy()));
 
+  @Option(
+      name = "lookaheadamntnodes",
+      secure = true,
+      description =
+          "Lookahead a certain amount of nodes in order to see if one can summarize some nodes inside to summarize the current node"
+              + "This must be done in order to summarize loops inside loops")
+  private int lookaheadamntnodes = 10;
+
+  @Option(
+      name = "lookaheaditerations",
+      secure = true,
+      description =
+          "The amount of iterations one wants to summarize the ahead lookep CFA nodes in order to summarize loops inside loops")
+  private int lookaheaditerations = 10;
+
   private LoopSummaryCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration config,
@@ -67,7 +82,15 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
 
-    transfer = new LoopSummaryTransferRelation(this, pShutdownNotifier, factory, strategies);
+    transfer =
+        new LoopSummaryTransferRelation(
+            this,
+            pShutdownNotifier,
+            factory,
+            strategies,
+            lookaheadamntnodes,
+            lookaheaditerations,
+            pCfa);
   }
 
   @Override

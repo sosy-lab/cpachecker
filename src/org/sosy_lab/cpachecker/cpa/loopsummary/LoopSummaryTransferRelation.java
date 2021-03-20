@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,8 +33,17 @@ public class LoopSummaryTransferRelation extends AbstractLoopSummaryTransferRela
       LoopSummaryCPA loopSummaryCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      ArrayList<StrategyInterface> strategies) {
-    super(loopSummaryCpa, pShutdownNotifier, strategies);
+      ArrayList<StrategyInterface> strategies,
+      int pLookaheadamntnodes,
+      int pLookaheaditerations,
+      CFA pCfa) {
+    super(
+        loopSummaryCpa,
+        pShutdownNotifier,
+        strategies,
+        pLookaheadamntnodes,
+        pLookaheaditerations,
+        pCfa);
     algorithmFactory = pFactory;
     stats = loopSummaryCpa.getStatistics();
   }

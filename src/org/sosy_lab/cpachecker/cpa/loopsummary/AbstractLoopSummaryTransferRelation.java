@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
@@ -59,18 +60,38 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
+
+  @SuppressWarnings("unused")
+  private final CFA originalCFA;
+
+  @SuppressWarnings("unused")
+  private CFANode startNodeGhostCFA;
+
   private ArrayList<StrategyInterface> strategies;
   private Map<CFANode, Integer> currentStrategyForCFANode;
+
+  @SuppressWarnings("unused")
+  private int lookaheadAmntNodes;
+
+  @SuppressWarnings("unused")
+  private int lookaheadIterations;
 
   protected AbstractLoopSummaryTransferRelation(
       AbstractLoopSummaryCPA pLoopSummaryCPA,
       ShutdownNotifier pShutdownNotifier,
-      ArrayList<StrategyInterface> pStrategies) {
+      ArrayList<StrategyInterface> pStrategies,
+      int pLookaheadamntnodes,
+      int pLookaheaditerations,
+      CFA pCfa) {
     super(pLoopSummaryCPA.getWrappedCpa().getTransferRelation());
     logger = pLoopSummaryCPA.getLogger();
     shutdownNotifier = pShutdownNotifier;
     strategies = pStrategies;
     currentStrategyForCFANode = new HashMap<>();
+    lookaheadAmntNodes = pLookaheadamntnodes;
+    lookaheadIterations = pLookaheaditerations;
+    originalCFA = pCfa;
+    startNodeGhostCFA = CFANode.newDummyCFANode("STARTNODEINTERN");
   }
 
   @Override

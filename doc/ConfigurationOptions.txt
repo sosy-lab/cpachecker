@@ -1829,6 +1829,15 @@ cpa.loopbound.startAtBound = 0
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
 
+# Lookahead a certain amount of nodes in order to see if one can summarize
+# some nodes inside to summarize the current nodeThis must be done in order
+# to summarize loops inside loops
+cpa.loopsummary.lookaheadamntnodes = 10
+
+# The amount of iterations one wants to summarize the ahead lookep CFA nodes
+# in order to summarize loops inside loops
+cpa.loopsummary.lookaheaditerations = 10
+
 # Strategies to be used in the Summary. The order of the strategies marks in
 # which order they are tried
 cpa.loopsummary.strategies = new ArrayList<>(
