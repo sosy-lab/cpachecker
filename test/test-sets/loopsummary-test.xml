@@ -15,12 +15,12 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-heap">10000M</option>
  
   <rundefinition name="loopsummary-value">
-	  <option name="-config">config/loopsummary/valueAnalysis-loopsummary.properties</option>
+	  <option name="-config">config/loop-summary/valueAnalysis-loopsummary.properties</option>
 	  <option name="-setprop">counterexample.export.enabled=false</option>
   </rundefinition>
 
   <rundefinition name="loopsummary-predicate">
-	  <option name="-config">config/loopsummary/predicateAnalysis-loopsummary.properties</option>
+	  <option name="-config">config/loop-summary/predicateAnalysis-loopsummary.properties</option>
 	  <option name="-setprop">counterexample.export.enabled=false</option>
   </rundefinition>
 

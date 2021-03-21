@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -42,9 +43,11 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     HashSet<String> modifiedVariables = new HashSet<>();
     ArrayList<CFANode> reachedNodes = new ArrayList<>();
     reachedNodes.add(loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor());
+    Collection<CFANode> seenNodes = new HashSet<>();
     while (!reachedNodes.isEmpty()) {
       ArrayList<CFANode> newReachableNodes = new ArrayList<>();
       for (CFANode s : reachedNodes) {
+        seenNodes.add(s);
         if (s != loopStartNode) {
           for (int i = 0; i < s.getNumLeavingEdges(); i++) {
             if (s != loopStartNode) {
@@ -56,7 +59,9 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
                   modifiedVariables.add(((CIdExpression) leftSide).getName());
                 }
               }
-              newReachableNodes.add(edge.getSuccessor());
+              if (!seenNodes.contains(edge.getSuccessor())) {
+                newReachableNodes.add(edge.getSuccessor());
+              }
             }
           }
         }
@@ -94,29 +99,28 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
               variableName,
               null);
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, pc);
-      CExpression rightHandSide =
-          (CExpression)
-              new CFunctionCallExpression(
+      CFunctionCallExpression rightHandSide =
+          new CFunctionCallExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              new CIdExpression(
                   FileLocation.DUMMY,
-                  CNumericTypes.INT,
-                  new CIdExpression(
-                      FileLocation.DUMMY,
-                      new CFunctionDeclaration(
-                          FileLocation.DUMMY,
-                          new CFunctionTypeWithNames(
-                              CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
-                          "__VERIFIER_nondet_int",
-                          new ArrayList<CParameterDeclaration>())),
-                  new ArrayList<CExpression>(),
                   new CFunctionDeclaration(
                       FileLocation.DUMMY,
                       new CFunctionTypeWithNames(
                           CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
                       "__VERIFIER_nondet_int",
-                      "__VERIFIER_nondet_int",
-                      new ArrayList<CParameterDeclaration>())); // TODO Improve this
-      CExpressionAssignmentStatement cStatementEdge =
-          new CExpressionAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
+                      new ArrayList<CParameterDeclaration>())),
+              new ArrayList<CExpression>(),
+              new CFunctionDeclaration(
+                  FileLocation.DUMMY,
+                  new CFunctionTypeWithNames(
+                      CNumericTypes.INT, new ArrayList<CParameterDeclaration>(), false),
+                  "__VERIFIER_nondet_int",
+                  "__VERIFIER_nondet_int",
+                  new ArrayList<CParameterDeclaration>())); // TODO Improve this
+      CFunctionCallAssignmentStatement cStatementEdge =
+          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
       CFAEdge dummyEdge =
           new CStatementEdge(
               variableName + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
@@ -142,10 +146,18 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     CFAEdge startConditionLoopCFAEdgeFalse =
         overwriteStartEndStateEdge(
             (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
-            true,
+            false,
             currentNode,
             endNodeGhostCFA);
     currentNode.addLeavingEdge(startConditionLoopCFAEdgeFalse);
+    endNodeGhostCFA.addEnteringEdge(startConditionLoopCFAEdgeFalse);
+    startConditionLoopCFAEdgeFalse =
+        overwriteStartEndStateEdge(
+            (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
+            false,
+            startNodeGhostCFA,
+            endNodeGhostCFA);
+    startNodeGhostCFA.addLeavingEdge(startConditionLoopCFAEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(startConditionLoopCFAEdgeFalse);
     return new GhostCFA(startNodeGhostCFA, endNodeGhostCFA);
   }

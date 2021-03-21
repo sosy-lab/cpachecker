@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -29,8 +30,8 @@ public abstract class LoopSummaryPredicateRefiner implements Refiner {
   @SuppressWarnings("resource")
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    BAMPredicateCPA predicateCpa =
-        CPAs.retrieveCPAOrFail(pCpa, BAMPredicateCPA.class, BAMPredicateRefiner.class);
+    LoopSummaryCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, LoopSummaryCPA.class, LoopSummaryPredicateRefiner.class);
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
     Solver solver = predicateCpa.getSolver();
@@ -39,7 +40,7 @@ public abstract class LoopSummaryPredicateRefiner implements Refiner {
     BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
 
     RefinementStrategy strategy =
-        new BAMPredicateAbstractionRefinementStrategy(
+        new LoopSummaryRefinementStrategy(
             config, logger, solver, predicateCpa.getPredicateManager());
 
     return new PredicateCPARefinerFactory(pCpa)

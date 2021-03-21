@@ -73,7 +73,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     return super.getWrappedCpa();
   }
 
-  LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 

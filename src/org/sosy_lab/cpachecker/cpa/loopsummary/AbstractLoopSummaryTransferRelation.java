@@ -109,7 +109,16 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     if (!currentStrategyForCFANode.containsKey(node)) {
       currentStrategyForCFANode.put(node, 0);
     }
-    Optional<Collection<? extends AbstractState>> summarizedState = strategies.get(currentStrategyForCFANode.get(node)).summarizeLoopState(pState, pPrecision, transferRelation);
+    /*
+     * Problems when executing scripts/cpa.sh -config config/predicateAnalysis--overflow.properties -setprop limits.time.cpu=900s -setprop counterexample.export.enabled=false test/programs/benchmarks/termination-crafted/2Nested-2.c
+     * Result is True, while correct result is False
+     *
+     */
+
+    Optional<Collection<? extends AbstractState>> summarizedState =
+        strategies
+            .get(currentStrategyForCFANode.get(node))
+            .summarizeLoopState(pState, pPrecision, transferRelation);
     while (summarizedState.isEmpty()) {
       currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
       summarizedState =

@@ -29,6 +29,9 @@ import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.InterpolationStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "cpa.loopsummary")
 public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
@@ -98,4 +101,23 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
     return transfer;
   }
 
+  public Configuration getConfiguration() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public Solver getSolver() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public PathFormulaManager getPathFormulaManager() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public PredicateAbstractionManager getPredicateManager() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }

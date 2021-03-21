@@ -112,7 +112,6 @@ public abstract class AbstractStrategy implements StrategyInterface {
       int loopBranchIndex)
       throws CPATransferException, InterruptedException {
     LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
-    LocationState newLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
     LocationState ghostStartLocationState =
         new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
     AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState);
@@ -130,7 +129,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
             AbstractStates.extractLocation(pState)
                 .getLeavingEdge(1 - loopBranchIndex)
                 .getSuccessor(),
-            newLocationState.getFollowFunctionCalls());
+            oldLocationState.getFollowFunctionCalls());
     // Iterate till the end of the ghost CFA
     while (!dummyStatesEndCollection.isEmpty()) {
       ArrayList<AbstractState> newStatesNotFinished = new ArrayList<>();
