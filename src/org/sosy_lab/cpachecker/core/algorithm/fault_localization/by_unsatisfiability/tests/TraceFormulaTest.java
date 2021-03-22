@@ -142,7 +142,7 @@ public class TraceFormulaTest {
     expected.forEach((key, value) -> {
           switch (key) {
             case TFRESULT:
-              {
+            {
               @SuppressWarnings("unchecked")
               ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
               ImmutableList<Integer> foundLines = ImmutableList.copyOf(lines);
@@ -154,8 +154,9 @@ public class TraceFormulaTest {
               assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
               break;
             }
+
             case TFPOSTCONDITION:
-              {
+            {
               @SuppressWarnings("unchecked")
               ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
               ImmutableList<Integer> foundLines = found.get(key)
@@ -165,7 +166,9 @@ public class TraceFormulaTest {
               assertThat(foundLines).containsExactlyElementsIn(expectedLines);
               break;
             }
-            case TFPRECONDITION: {
+
+            case TFPRECONDITION:
+            {
               @SuppressWarnings("unchecked")
               ImmutableList<String> expectedLines = (ImmutableList<String>) value;
               ImmutableList<String> foundLines = found.get(key)
@@ -174,7 +177,8 @@ public class TraceFormulaTest {
                       .collect(ImmutableList.toImmutableList());
               assertThat(foundLines).containsExactlyElementsIn(expectedLines);
               break;
-             }
+            }
+
             default: throw new AssertionError("Unknown log keyword: " + key);
           }
         });
