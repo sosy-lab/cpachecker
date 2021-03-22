@@ -94,7 +94,7 @@ public class TraceFormulaTest {
                     entries.put(key, value);
                   } else {
                     value = value.replace("[", "").replace("]", "");
-                    Splitter.on(", ").splitToStream(value).forEach(loc -> entries.put(key, Integer.parseInt(loc)));
+                    Splitter.on(", ").splitToList(value).forEach(loc -> entries.put(key, Integer.parseInt(loc)));
                   }
                 }
               }
@@ -103,11 +103,12 @@ public class TraceFormulaTest {
   }
 
   private void checkIfExpectedValuesMatchResultValues(
-      String program,
-      FLAlgorithm algorithm,
-      Map<String, String> options,
-      Map<LogKeys, Object> expected)
-      throws Exception {
+          String program,
+          FLAlgorithm algorithm,
+          Map<String, String> options,
+          Map<LogKeys, Object> expected)
+          throws Exception {
+
     TestResults test = runFaultLocalization(program, algorithm, options);
     FluentIterable<AbstractState> states = AbstractStates.getTargetStates(test.getCheckerResult().getReached());
     CounterexampleInfo cex = states.transform(state -> ((ARGState)state).getCounterexampleInformation()).first().get().orElseThrow();
@@ -115,21 +116,21 @@ public class TraceFormulaTest {
 
     Multimap<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
 
-    List<String> lines = new ArrayList<>();
+    List<Integer> lines = new ArrayList<>();
     for (Fault fault: faultInfo.getRankedList()) {
       switch (algorithm) {
         case ERRINV: {
           if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
             // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
             Selector traceElement = (Selector) fault.stream().findFirst().orElseThrow();
-            lines.add(Integer.toString(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin()));
+            lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
           break;
         }
         case MAXSAT: {
           for (FaultContribution contribution: fault) {
             Selector traceElement = (Selector) contribution;
-            lines.add(Integer.toString(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin()));
+            lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
           break;
         }
@@ -139,12 +140,21 @@ public class TraceFormulaTest {
       }
     }
 
-    expected.forEach(
-        (key, value) -> {
+    expected.forEach((key, value) -> {
           switch (key) {
-            case TFPOSTCONDITION: // fall-through
             case TFRESULT: {
-              ImmutableList<Integer> expectedLines = (ImmutableList) value;
+              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+              ImmutableList<Integer> foundLines = ImmutableList.copyOf(lines);
+              ImmutableList<Integer> foundLinesLog = found.get(key)
+                      .stream()
+                      .map(val -> (Integer)val)
+                      .collect(ImmutableList.toImmutableList());
+              assertThat(expectedLines).containsExactlyElementsIn(foundLines);
+              assertThat(expectedLines).containsExactlyElementsIn(foundLinesLog);
+              break;
+            }
+            case TFPOSTCONDITION: {
+              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
               ImmutableList<Integer> foundLines = found.get(key)
                       .stream()
                       .map(val -> (Integer)val)
@@ -153,10 +163,10 @@ public class TraceFormulaTest {
               break;
             }
             case TFPRECONDITION: {
-              ImmutableList<String> expectedLines = (ImmutableList) value;
+              ImmutableList<String> expectedLines = (ImmutableList<String>) value;
               ImmutableList<String> foundLines = found.get(key)
                       .stream()
-                      .map(val -> val.toString())
+                      .map(Object::toString)
                       .collect(ImmutableList.toImmutableList());
               assertThat(expectedLines).containsExactlyElementsIn(foundLines);
               break;
