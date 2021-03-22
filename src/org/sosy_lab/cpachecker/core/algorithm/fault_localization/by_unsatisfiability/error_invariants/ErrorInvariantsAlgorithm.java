@@ -271,7 +271,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     logger.log(Level.FINEST, "tfresult=" + Arrays.toString(abstractTrace
             .stream()
             .filter(tr -> tr instanceof Selector)
-            .map(fc -> "line " + ((Selector)fc).correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .map(fc -> ((Selector)fc).correspondingEdge().getFileLocation().getStartingLineInOrigin())
             .sorted()
             .toArray()));
     return faults;

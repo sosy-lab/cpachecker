@@ -11,16 +11,30 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -65,8 +79,8 @@ public class TraceFormulaTest {
     return CPATestRunner.run(config, program.toString(), logLevel);
   }
 
-  private Map<LogKeys, String> findFLPatterns(String log, Set<LogKeys> keywords) {
-    Map<LogKeys, String> entries = new HashMap<>();
+  private Multimap<LogKeys, Object> findFLPatterns(String log, Set<LogKeys> keywords) {
+    Multimap<LogKeys, Object> entries = ArrayListMultimap.create();
     Splitter.on("\n")
         .split(log)
         .forEach(
@@ -76,7 +90,12 @@ public class TraceFormulaTest {
                 LogKeys key = LogKeys.valueOf(result.get(0).toUpperCase());
                 String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
                 if (keywords.contains(key)) {
-                  entries.merge(key, value, (val1, val2) -> val1 + ", " + val2);
+                  if (key == LogKeys.TFPRECONDITION) {
+                    entries.put(key, value);
+                  } else {
+                    value = value.replace("[", "").replace("]", "");
+                    Splitter.on(", ").splitToStream(value).forEach(loc -> entries.put(key, Integer.parseInt(loc)));
+                  }
                 }
               }
             });
@@ -87,31 +106,80 @@ public class TraceFormulaTest {
       String program,
       FLAlgorithm algorithm,
       Map<String, String> options,
-      Map<LogKeys, String> expected)
+      Map<LogKeys, Object> expected)
       throws Exception {
     TestResults test = runFaultLocalization(program, algorithm, options);
-    Map<LogKeys, String> found = findFLPatterns(test.getLog(), expected.keySet());
+    FluentIterable<AbstractState> states = AbstractStates.getTargetStates(test.getCheckerResult().getReached());
+    CounterexampleInfo cex = states.transform(state -> ((ARGState)state).getCounterexampleInformation()).first().get().orElseThrow();
+    FaultLocalizationInfo faultInfo = (FaultLocalizationInfo) cex;
+
+    Multimap<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
+
+    List<String> lines = new ArrayList<>();
+    for (Fault fault: faultInfo.getRankedList()) {
+      switch (algorithm) {
+        case ERRINV: {
+          if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
+            // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
+            Selector traceElement = (Selector) fault.stream().findFirst().orElseThrow();
+            lines.add(Integer.toString(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin()));
+          }
+          break;
+        }
+        case MAXSAT: {
+          for (FaultContribution contribution: fault) {
+            Selector traceElement = (Selector) contribution;
+            lines.add(Integer.toString(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin()));
+          }
+          break;
+        }
+        default: {
+          throw new AssertionError(algorithm + " is not a valid algorithm.");
+        }
+      }
+    }
+
     expected.forEach(
         (key, value) -> {
-          String compare = found.get(key);
-          assertThat(compare).isEqualTo(value);
+          switch (key) {
+            case TFPOSTCONDITION: // fall-through
+            case TFRESULT: {
+              ImmutableList<Integer> expectedLines = (ImmutableList) value;
+              ImmutableList<Integer> foundLines = found.get(key)
+                      .stream()
+                      .map(val -> (Integer)val)
+                      .collect(ImmutableList.toImmutableList());
+              assertThat(expectedLines).containsExactlyElementsIn(foundLines);
+              break;
+            }
+            case TFPRECONDITION: {
+              ImmutableList<String> expectedLines = (ImmutableList) value;
+              ImmutableList<String> foundLines = found.get(key)
+                      .stream()
+                      .map(val -> val.toString())
+                      .collect(ImmutableList.toImmutableList());
+              assertThat(expectedLines).containsExactlyElementsIn(foundLines);
+              break;
+            }
+            default: throw new AssertionError("Unknown log keyword: " + key);
+          }
         });
   }
 
   @Test
   public void testCorrectCalculationOfPreAndPostCondition() throws Exception {
     // precondition values
-    final String preconditionValues = "__VERIFIER_nondet_int!2@: 4, main::number@2: 4, main::copyForCheck@2: 4, "
-            + "main::test@2: 1, main::i@2: 2, isPrime::n@2: 2, isPrime::i@2: 2, "
-            + "isPrime::__retval__@2: 1, main::__CPAchecker_TMP_0@2: 1, main::test@3: 2, "
-            + "main::number@3: 2, main::i@3: 2, main::i@4: 3";
+    final ImmutableList<String> preconditionValues = ImmutableList.of("__VERIFIER_nondet_int!2@: 4",
+            "main::number@2: 4", "main::copyForCheck@2: 4", "main::test@2: 1", "main::i@2: 2",
+            "isPrime::n@2: 2", "isPrime::i@2: 2", "isPrime::__retval__@2: 1", "main::__CPAchecker_TMP_0@2: 1",
+            "main::test@3: 2", "main::number@3: 2", "main::i@3: 2", "main::i@4: 3");
     // post-condition is on line 47
-    final String postConditionLocation = "line 47";
+    final ImmutableList<Integer> postConditionLocation = ImmutableList.of(47);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_pre-post-condition.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder()
+        ImmutableMap.<LogKeys, Object>builder()
             .put(LogKeys.TFPRECONDITION, preconditionValues)
             .put(LogKeys.TFPOSTCONDITION, postConditionLocation)
             .build());
@@ -120,33 +188,33 @@ public class TraceFormulaTest {
   @Test
   public void testErrorInvariantsOnFlowSensitiveTrace() throws Exception {
     // Lines that are presumably part of a fault
-    final String faultyLines = "[line 13, line 17]";
+    List<Integer> faultyLines = ImmutableList.of(13, 17);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, faultyLines).build());
+        ImmutableMap.<LogKeys, Object>builder().put(LogKeys.TFRESULT, faultyLines).build());
   }
 
   @Test
   public void testErrorInvariantsOnDefaultTrace() throws Exception {
     // Lines that are presumably part of a fault
-    final String faultyLines = "[line 17]";
+    List<Integer> faultyLines = ImmutableList.of(17);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.ERRINV,
         ImmutableMap.of("faultLocalization.by_traceformula.errorInvariants.disableFSTF", "true"),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, faultyLines).build());
+        ImmutableMap.<LogKeys, Object>builder().put(LogKeys.TFRESULT, faultyLines).build());
   }
 
   @Test
   public void testMaxSatSelectorTrace() throws Exception {
     // Lines that are presumably part of a fault
-    final String faultyLines = "[line 12, line 13, line 14, line 17]";
+    List<Integer> faultyLines = ImmutableList.of(12, 13, 14, 17);
     checkIfExpectedValuesMatchResultValues(
         "unit_test_traces.c",
         FLAlgorithm.MAXSAT,
         ImmutableMap.of(),
-        ImmutableMap.<LogKeys, String>builder().put(LogKeys.TFRESULT, faultyLines).build());
+        ImmutableMap.<LogKeys, Object>builder().put(LogKeys.TFRESULT, faultyLines).build());
   }
 }

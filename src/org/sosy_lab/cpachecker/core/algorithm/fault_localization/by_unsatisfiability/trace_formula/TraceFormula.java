@@ -224,7 +224,7 @@ public abstract class TraceFormula {
               .getLogger()
               .log(
                   Level.FINEST,
-                  "tfpostcondition=line " + curr.getFileLocation().getStartingLineInOrigin());
+                  "tfpostcondition=" + curr.getFileLocation().getStartingLineInOrigin());
           postConditionOffset = i;
         } else {
           // as soon as curr is on another line or the edge type changes, break. Otherwise add to
