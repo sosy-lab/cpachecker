@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
@@ -119,30 +118,32 @@ public class TraceFormulaTest {
     List<Integer> lines = new ArrayList<>();
     for (Fault fault: faultInfo.getRankedList()) {
       switch (algorithm) {
-        case ERRINV: {
+
+        case ERRINV:
           if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
             // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
             Selector traceElement = (Selector) fault.stream().findFirst().orElseThrow();
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
           break;
-        }
-        case MAXSAT: {
+
+        case MAXSAT:
           for (FaultContribution contribution: fault) {
             Selector traceElement = (Selector) contribution;
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
           break;
-        }
-        default: {
+
+        default:
           throw new AssertionError(algorithm + " is not a valid algorithm.");
-        }
       }
     }
 
     expected.forEach((key, value) -> {
           switch (key) {
-            case TFRESULT: {
+            case TFRESULT:
+              {
+              @SuppressWarnings("unchecked")
               ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
               ImmutableList<Integer> foundLines = ImmutableList.copyOf(lines);
               ImmutableList<Integer> foundLinesLog = found.get(key)
@@ -153,7 +154,9 @@ public class TraceFormulaTest {
               assertThat(expectedLines).containsExactlyElementsIn(foundLinesLog);
               break;
             }
-            case TFPOSTCONDITION: {
+            case TFPOSTCONDITION:
+              {
+              @SuppressWarnings("unchecked")
               ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
               ImmutableList<Integer> foundLines = found.get(key)
                       .stream()
@@ -163,6 +166,7 @@ public class TraceFormulaTest {
               break;
             }
             case TFPRECONDITION: {
+              @SuppressWarnings("unchecked")
               ImmutableList<String> expectedLines = (ImmutableList<String>) value;
               ImmutableList<String> foundLines = found.get(key)
                       .stream()
@@ -170,7 +174,7 @@ public class TraceFormulaTest {
                       .collect(ImmutableList.toImmutableList());
               assertThat(expectedLines).containsExactlyElementsIn(foundLines);
               break;
-            }
+             }
             default: throw new AssertionError("Unknown log keyword: " + key);
           }
         });
