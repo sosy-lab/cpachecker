@@ -150,8 +150,8 @@ public class TraceFormulaTest {
                       .stream()
                       .map(val -> (Integer)val)
                       .collect(ImmutableList.toImmutableList());
-              assertThat(expectedLines).containsExactlyElementsIn(foundLines);
-              assertThat(expectedLines).containsExactlyElementsIn(foundLinesLog);
+              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
+              assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
               break;
             }
             case TFPOSTCONDITION:
@@ -162,7 +162,7 @@ public class TraceFormulaTest {
                       .stream()
                       .map(val -> (Integer)val)
                       .collect(ImmutableList.toImmutableList());
-              assertThat(expectedLines).containsExactlyElementsIn(foundLines);
+              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
               break;
             }
             case TFPRECONDITION: {
@@ -172,7 +172,7 @@ public class TraceFormulaTest {
                       .stream()
                       .map(Object::toString)
                       .collect(ImmutableList.toImmutableList());
-              assertThat(expectedLines).containsExactlyElementsIn(foundLines);
+              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
               break;
              }
             default: throw new AssertionError("Unknown log keyword: " + key);
