@@ -176,7 +176,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2020-11-22-raf891fcd33" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-03-22-r6b052ca16b" conf="runtime->runtime; contrib->sources"/>
 
         <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
             <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
