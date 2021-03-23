@@ -203,17 +203,14 @@ public class ValueAnalysisCPA extends AbstractCPA
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
 
-      logger.log(Level.INFO,"before creating solver");
       Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
-      logger.log(Level.INFO,"before getforumulamanager");
       FormulaManagerView formulaManager = solver.getFormulaManager();
       PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
 
       if (!predPrec.isEmpty()) {
 
-        logger.log(Level.INFO,"refine with converted predicate precision to value precision: ");
+        logger.log(Level.INFO,"now convert precision and then refining ... ");
 
-        logger.log(Level.INFO,convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
         return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
       }
       else {
@@ -227,7 +224,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
-      logger.log(Level.INFO,restoreMappingFromFile(pCfa));
       return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
   }
@@ -261,8 +257,10 @@ public class ValueAnalysisCPA extends AbstractCPA
       return predPrec;
     }
 
+    /*
     logger.log(Level.INFO, "result precision: ");
     logger.log(Level.INFO, predPrec);
+    */
 
     solver.close();
 
@@ -271,6 +269,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
       final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
+    logger.log(Level.INFO, "now starting to convert precision ...");
     Collection<AbstractionPredicate> predicates = new HashSet<>();
 
     predicates.addAll(pPredPrec.getLocalPredicates().values());
@@ -280,12 +279,17 @@ public class ValueAnalysisCPA extends AbstractCPA
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
     CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
 
+    logger.log(Level.INFO, "before for loop ...");
+
     // Get the variables from the predicate precision
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
         trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }
+
+    logger.log(Level.INFO, "finished converting and now starting to refine ...");
+
     return trackedVariables;
   }
 
