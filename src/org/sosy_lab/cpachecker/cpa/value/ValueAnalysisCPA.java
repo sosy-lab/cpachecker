@@ -209,9 +209,9 @@ public class ValueAnalysisCPA extends AbstractCPA
       FormulaManagerView formulaManager = solver.getFormulaManager();
       PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
 
-      if (predPrec != null) {
+      if (!predPrec.isEmpty()) {
 
-        logger.log(Level.INFO,"refine with predicate precision");
+        logger.log(Level.INFO,"refine with converted predicate precision to value precision: ");
 
         logger.log(Level.INFO,convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
         return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
@@ -239,21 +239,30 @@ public class ValueAnalysisCPA extends AbstractCPA
     // predicate precision file
     //TODO: maybe adjust the pconfig to config for predicates
     //TODO: check if right regionmanager is being created for this
-    RegionManager regionManager = new SymbolicRegionManager(solver);
+    //RegionManager regionManager = new SymbolicRegionManager(solver);
 
-    //RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
+    RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
     // get the predicate precision from given file
+
+    //TODO: check if mapParser might be wrong
     PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
     PredicatePrecision predPrec = PredicatePrecision.empty();
+
+    logger.log(Level.INFO, "Now trying to parse predicate precision ...");
 
     try {
       predPrec = mapParser.parsePredicates(initialPredicatePrecisionFile);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPredicatePrecisionFile);
+      return predPrec;
     } catch (PredicateParsingFailedException pE) {
       logger.logUserException(Level.WARNING, pE, "Could not parse predicate precision from file named " + initialPredicatePrecisionFile);
+      return predPrec;
     }
+
+    logger.log(Level.INFO, "result precision: ");
+    logger.log(Level.INFO, predPrec);
 
     solver.close();
 
