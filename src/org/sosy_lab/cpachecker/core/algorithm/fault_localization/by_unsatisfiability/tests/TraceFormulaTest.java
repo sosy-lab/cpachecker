@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.tests;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
@@ -146,10 +147,7 @@ public class TraceFormulaTest {
               @SuppressWarnings("unchecked")
               ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
               ImmutableList<Integer> foundLines = ImmutableList.copyOf(lines);
-              ImmutableList<Integer> foundLinesLog = found.get(key)
-                      .stream()
-                      .map(val -> (Integer)val)
-                      .collect(ImmutableList.toImmutableList());
+              ImmutableList<Integer> foundLinesLog = transformedImmutableListCopy(found.get(key), val -> (Integer)val);
               assertThat(foundLines).containsExactlyElementsIn(expectedLines);
               assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
               break;
@@ -159,10 +157,7 @@ public class TraceFormulaTest {
             {
               @SuppressWarnings("unchecked")
               ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLines = found.get(key)
-                      .stream()
-                      .map(val -> (Integer)val)
-                      .collect(ImmutableList.toImmutableList());
+              ImmutableList<Integer> foundLines = transformedImmutableListCopy(found.get(key), val -> (Integer)val);
               assertThat(foundLines).containsExactlyElementsIn(expectedLines);
               break;
             }
