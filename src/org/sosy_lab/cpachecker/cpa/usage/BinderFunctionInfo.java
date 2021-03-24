@@ -13,8 +13,9 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -92,7 +93,7 @@ public class BinderFunctionInfo {
     return linkInfo != null;
   }
 
-  public Optional<Pair<AbstractIdentifier, AbstractIdentifier>> constructIdentifiers(
+  public Collection<Pair<AbstractIdentifier, AbstractIdentifier>> constructIdentifiers(
       final CExpression left,
       final List<CExpression> params,
       IdentifierCreator creator) {
@@ -101,9 +102,9 @@ public class BinderFunctionInfo {
     AbstractIdentifier idFrom = constructIdentifier(linkInfo.getFirst(), left, params, creator);
 
     if (idIn == null || idFrom == null) {
-      return Optional.empty();
+      return ImmutableSet.of();
     }
-    return Optional.of(Pair.of(idIn, idFrom));
+    return ImmutableSet.of(Pair.of(idIn, idFrom));
   }
 
   private AbstractIdentifier constructIdentifier(

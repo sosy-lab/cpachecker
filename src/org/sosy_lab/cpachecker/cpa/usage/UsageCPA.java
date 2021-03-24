@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
 import org.sosy_lab.cpachecker.util.identifiers.RegionBasedIdentifierCreator;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-@Options
+@Options(prefix = "cpa.usage")
 public class UsageCPA extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysisWithBAM, ConfigurableProgramAnalysisTM,
     StatisticsProvider {
@@ -76,13 +76,22 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Option(
     description = "use sound regions as identifiers",
-    name = "cpa.usage.useSoundRegions",
     secure = true)
   private boolean useSoundRegions = false;
 
   @Option(description = "A path to precision", name = "precision.path", secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private Path outputFileName = Paths.get("localsave");
+
+  @Option(
+    description = "bind arguments of functions with passed variables",
+    secure = true)
+  private boolean bindArgsFunctions = false;
+
+  @Option(
+    description = "do not use initial variable in analysis if found an alias for it",
+    secure = true)
+  private boolean filterAliases = false;
 
   private UsageCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -103,7 +112,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pCfa,
             lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator(), statistics);
-    this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator(), statistics);
+    this.mergeOperator =
+        new UsageMergeOperator(pCpa.getMergeOperator(), statistics, bindArgsFunctions);
 
     this.precisionAdjustment =
         new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment(), statistics);
@@ -120,7 +130,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             pLogger,
             statistics,
-            creator);
+            creator,
+            bindArgsFunctions);
 
     PresisionParser parser = new PresisionParser(cfa, logger);
     localMap = parser.parse(outputFileName);
@@ -189,7 +200,12 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
+    if (filterAliases) {
+      return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
+    } else {
+      return UsageStateConservative
+          .createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
+    }
   }
 
   @Override
