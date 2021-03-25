@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.MemoryHandler;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -53,10 +54,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor.MemoryLocationEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -66,10 +69,12 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.MemoryLocationLocator;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.MemoryRegion;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -205,13 +210,20 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
       FormulaManagerView formulaManager = solver.getFormulaManager();
-      PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
+
+      RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
+      AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
+
+      //PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
+
+      PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager, abstractionManager);
+
 
       if (!predPrec.isEmpty()) {
 
         logger.log(Level.INFO,"now convert precision and then refining ... ");
 
-        return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
+        return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, abstractionManager));
       }
       else {
         return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
@@ -229,7 +241,8 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private PredicatePrecision readAndParsePredPrecFile(
-      final Configuration pConfig, final CFA pCfa, final Solver solver, final FormulaManagerView pFMgr) throws InvalidConfigurationException {
+      final Configuration pConfig, final CFA pCfa, final Solver solver,
+      final FormulaManagerView pFMgr, final AbstractionManager pAbstractionManager) throws InvalidConfigurationException {
 
     // create managers for the predicate map parser for parsing the predicates from the given
     // predicate precision file
@@ -237,12 +250,13 @@ public class ValueAnalysisCPA extends AbstractCPA
     //TODO: check if right regionmanager is being created for this
     //RegionManager regionManager = new SymbolicRegionManager(solver);
 
-    RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
-    AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
+    //RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
+    //AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
+
     // get the predicate precision from given file
 
     //TODO: check if mapParser might be wrong
-    PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+    PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, pAbstractionManager, new InitialPredicatesOptions());
     PredicatePrecision predPrec = PredicatePrecision.empty();
 
     logger.log(Level.INFO, "Now trying to parse predicate precision ...");
@@ -268,7 +282,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
-      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
+      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr, final AbstractionManager pAbstractionManager) {
     logger.log(Level.INFO, "now starting to convert precision ...");
     Collection<AbstractionPredicate> predicates = new HashSet<>();
 
@@ -278,6 +292,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
     CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
+
+    logger.log(Level.INFO, predicates);
 
     logger.log(Level.INFO, "before for loop ...");
 
