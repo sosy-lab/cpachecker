@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
