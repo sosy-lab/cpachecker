@@ -161,10 +161,12 @@ class CFABuilder extends ASTVisitor {
 
     ast.accept(this);
 
-    for (IASTComment comment : ast.getComments()) {
-      String commentString = String.valueOf(comment.getComment());
-      if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-        acslCommentPositions.add(comment.getFileLocation());
+    if (options.shouldCollectACSLAnnotations()) {
+      for (IASTComment comment : ast.getComments()) {
+        String commentString = String.valueOf(comment.getComment());
+        if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
+          acslCommentPositions.add(comment.getFileLocation());
+        }
       }
     }
 
