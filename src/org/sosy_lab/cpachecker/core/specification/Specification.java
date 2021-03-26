@@ -176,7 +176,10 @@ public final class Specification {
             "Could not load automaton from file: " + e.getMessage(), e);
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
-      automata = ImmutableList.of(acslParser.parseAsAutomaton(cfa));
+      assert acslParser.areIsomorphicCFAs(cfa)
+          : "CFAs of task program and annotated program differ, "
+              + "annotated program is probably unrelated to this task";
+      automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(

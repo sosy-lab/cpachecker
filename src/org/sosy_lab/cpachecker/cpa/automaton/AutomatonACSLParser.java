@@ -39,6 +39,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
+/**
+ * Class to create an invariant specification automaton (ISA) from a CFA containing ACSL
+ * annotations.
+ */
 public class AutomatonACSLParser {
 
   private CFAWithACSLAnnotationLocations cfa;
@@ -49,10 +53,11 @@ public class AutomatonACSLParser {
     logger = pLogger;
   }
 
-  public Automaton parseAsAutomaton(CFA original) {
-    assert areIsomorphicCFAs(original)
-        : "CFAs of task program and annotated program differ, "
-        + "annotated program is probably unrelated to this task";
+  /**
+   * Builds an ISA from the stored CFA that checks whether the contained ACSL annotations are
+   * fulfilled.
+   */
+  public Automaton parseAsAutomaton() {
     try {
       String automatonName = "ACSLInvariantsAutomaton";
       String initialStateName = "VALID";
@@ -92,12 +97,13 @@ public class AutomatonACSLParser {
       final ExpressionTree<AExpression> pInvariant)
       throws UnrecognizedCodeException {
     CExpression cExpr = pInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-    if (!(pInvariant instanceof LeafExpression<?>) || ((LeafExpression<?>) pInvariant).assumeTruth()) {
+    if (!(pInvariant instanceof LeafExpression<?>)
+        || ((LeafExpression<?>) pInvariant).assumeTruth()) {
       // we must swap the c expression only when assume truth is true
       // because we are only interested in the negated expression anyway
-        cExpr =
-            new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
-                .negateExpressionAndSimplify(cExpr);
+      cExpr =
+          new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
+              .negateExpressionAndSimplify(cExpr);
     }
     pTransitions.add(createAutomatonInvariantErrorTransition(pEdge, ImmutableList.of(cExpr)));
   }
@@ -105,7 +111,8 @@ public class AutomatonACSLParser {
   private AutomatonTransition createAutomatonInvariantErrorTransition(
       final CFAEdge pEdge, final List<AExpression> pAssumptions) {
     return new AutomatonTransition.Builder(
-            new AutomatonBoolExpr.MatchCFAEdgeExact(pEdge.getRawStatement()), AutomatonInternalState.ERROR)
+            new AutomatonBoolExpr.MatchCFAEdgeExact(pEdge.getRawStatement()),
+            AutomatonInternalState.ERROR)
         .withAssumptions(pAssumptions)
         .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
         .build();
@@ -113,7 +120,7 @@ public class AutomatonACSLParser {
 
   public static boolean isACSLAnnotatedFile(Path file) throws InvalidConfigurationException {
     try {
-      String fileContent =  Files.readString(file);
+      String fileContent = Files.readString(file);
       return fileContent.contains("/*@") || fileContent.contains("//@");
     } catch (IOException e) {
       throw new WitnessParseException(e);
@@ -123,8 +130,8 @@ public class AutomatonACSLParser {
   /**
    * Determines whether the given CFA is isomorphic to the one stored in this.cfa.
    *
-   * Relies on CFAs being created deterministically, i.e., node and edge orders
-   * are assumed to stay the same.
+   * <p>Relies on CFAs being created deterministically, i.e., node and edge orders are assumed to
+   * stay the same.
    */
   public boolean areIsomorphicCFAs(CFA other) {
     if (cfa.getAllNodes().size() != other.getAllNodes().size()) {
@@ -132,10 +139,11 @@ public class AutomatonACSLParser {
     }
     Iterator<CFANode> nodes = cfa.getAllNodes().iterator();
     Iterator<CFANode> other_nodes = other.getAllNodes().iterator();
-    while(nodes.hasNext()) {
+    while (nodes.hasNext()) {
       CFANode node = nodes.next();
       CFANode other_node = other_nodes.next();
-      if (node.getNumLeavingEdges() != other_node.getNumLeavingEdges() || node.getNumEnteringEdges() != other_node.getNumEnteringEdges()) {
+      if (node.getNumLeavingEdges() != other_node.getNumLeavingEdges()
+          || node.getNumEnteringEdges() != other_node.getNumEnteringEdges()) {
         return false;
       }
       for (int i = 0; i < node.getNumEnteringEdges(); i++) {
