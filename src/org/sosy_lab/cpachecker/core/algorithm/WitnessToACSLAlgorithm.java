@@ -89,8 +89,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     }
 
     for (ExpressionTreeLocationInvariant c : invariants) {
-      // TODO: Could be in a dummy function
-      files.add(c.getLocation().getFunction().getFileLocation().getFileName());
+      String filename = c.getLocation().getFunction().getFileLocation().getFileName();
+      File f = new File(filename);
+      if (f.isFile()) {
+        files.add(filename);
+      }
     }
 
     for (String file : files) {
