@@ -16,5 +16,11 @@ public interface ACSLAnnotation {
    */
   ACSLPredicate getPredicateRepresentation();
 
+  /**
+   * Returns a predicate representation of the completeness clauses of the annotation.
+   *
+   * <p>The returned predicate should be logically equivalent to true if all of the completeness
+   * clauses are fulfilled.
+   */
   ACSLPredicate getCompletenessPredicate();
 }
