@@ -1100,9 +1100,6 @@ cpa.abe.checkTargetStates = true
 # Cache formulas produced by path formula manager
 cpa.abe.useCachingPathFormulaManager = true
 
-# do not return a successor if another analysis finds a target state
-cpa.acsl.ignoreTargetStates = false
-
 # only store pure C expressions without ACSL-specific constructs
 cpa.acsl.usePureExpressionsOnly = true
 
@@ -3627,6 +3624,9 @@ parser.clang = "clang -S -emit-llvm -o /dev/stdout"
 
 # Whether to dump the results of the preprocessor to disk.
 parser.clang.dumpResults = true
+
+# Whether to collect ACSL annotations if present
+parser.collectACSLAnnotations = false
 
 # C dialect for parser
 parser.dialect = GNUC
