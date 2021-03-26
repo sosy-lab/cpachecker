@@ -44,7 +44,7 @@ public class At extends ACSLPredicate implements ACSLBuiltin {
 
   @Override
   public int hashCode() {
-    return 7 * inner.hashCode();
+    return 7 * inner.hashCode() * label.hashCode();
   }
 
   @Override

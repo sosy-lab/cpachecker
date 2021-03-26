@@ -34,7 +34,7 @@ public class Type {
 
   @Override
   public int hashCode() {
-    return 17 * typeName.hashCode();
+    return 17 * typeName.hashCode() * typeName.hashCode();
   }
 
   @Override

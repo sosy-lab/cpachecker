@@ -32,7 +32,7 @@ public class Result implements ACSLBuiltin {
 
   @Override
   public int hashCode() {
-    return 3 * functionName.hashCode() + 3;
+    return 3 * functionName.hashCode() * functionName.hashCode() + 3;
   }
 
   @Override

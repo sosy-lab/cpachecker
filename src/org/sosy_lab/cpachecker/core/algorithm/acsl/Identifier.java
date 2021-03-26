@@ -33,14 +33,16 @@ public class Identifier implements ACSLTerm {
   public boolean equals(Object o) {
     if (o instanceof Identifier) {
       Identifier other = (Identifier) o;
-      return name.equals(other.name);
+      return name.equals(other.name) && functionName.equals(other.functionName);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return 29 * name.hashCode() * name.hashCode() + 29;
+    return 29 * name.hashCode() * name.hashCode()
+        + 13 * functionName.hashCode() * functionName.hashCode()
+        + 29;
   }
 
   public String getName() {
