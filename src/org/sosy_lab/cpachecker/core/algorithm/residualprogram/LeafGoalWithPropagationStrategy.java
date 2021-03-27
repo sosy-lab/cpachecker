@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,11 +40,11 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
    */
   @Override
   public Map<LeafStates, List<CFANode>> findGoals(
-      List<ARGState> pWaitlist,
+      Deque<ARGState> pWaitlist,
       final Set<String> coveredGoals) {
     var waitList = pWaitlist.stream()
         .map(AbstractStates::extractLocation)
-        .collect(Collectors.toCollection(ArrayList::new));
+        .collect(Collectors.toCollection(ArrayDeque::new));
     Set<CFANode> reachedNodes = new HashSet<>();
 
     var nodes = new HashMap<NodeStates, HashSet<CFANode>>();
@@ -53,7 +55,7 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
     var removableNodes = new HashSet<CFANode>();
 
     while (!waitList.isEmpty()) {
-      var node = waitList.remove(0);
+      var node = waitList.removeFirst();
       reachedNodes.add(node);
 
       var childrenNodes = Stream.iterate(0, n -> n + 1)

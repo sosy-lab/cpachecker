@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -172,7 +174,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
     backwardsCpaAlgorithm.run(reachedSet);
 
-    List<ARGState> waitList = new ArrayList<>();
+    Deque<ARGState> waitList = new ArrayDeque<>();
     //We're doing a backwards analysis; hence the first state here is the end of the ARG
     waitList.add((ARGState) reachedSet.getFirstState());
 

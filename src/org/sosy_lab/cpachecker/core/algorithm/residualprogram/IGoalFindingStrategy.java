@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
+import java.util.Deque;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,6 @@ public interface IGoalFindingStrategy {
    * @param pWaitlist A list of all exit nodes of the program.
    * @return A map of all intersting goals, partitioned into covered/ not covered.
    */
-  Map<LeafStates, List<CFANode>> findGoals(List<ARGState> pWaitlist, final Set<String> coveredGoals)
+  Map<LeafStates, List<CFANode>> findGoals(Deque<ARGState> pWaitlist, final Set<String> coveredGoals)
       throws CPAException, InterruptedException;
 }
