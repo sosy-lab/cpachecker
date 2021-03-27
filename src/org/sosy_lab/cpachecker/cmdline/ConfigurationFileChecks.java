@@ -28,6 +28,7 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
 import com.google.common.truth.Expect;
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -345,10 +346,9 @@ public class ConfigurationFileChecks {
   @Before
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
-    copyFile(
-        "/dev/null",
-        tempFolder.getRoot().getAbsolutePath(),
-        "Goals.txt");
+
+    new File(tempFolder.getRoot().getAbsolutePath() + "/Goals.txt").createNewFile();
+
     copyFile(
         "config/specification/AssumptionGuidingAutomaton.spc",
         tempFolder.newFolder("config").getAbsolutePath(),
