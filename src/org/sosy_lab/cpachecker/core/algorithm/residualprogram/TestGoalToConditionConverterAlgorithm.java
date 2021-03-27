@@ -77,7 +77,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Algorithm pOuter,
-      ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException, InterruptedException {
 
     super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied(), pCfa);
     pConfig.inject(this);
@@ -115,7 +115,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
       backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
       backwardsCpa = backwardsCpaTriple.getSecond();
-    } catch(InterruptedException | CPAException | IOException e) {
+    } catch(CPAException | IOException e) {
       throw new InvalidConfigurationException("Couldn't create backwards CPA algorithm!", e);
     }
 
@@ -139,7 +139,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
 
       return outerAlgorithm.run(reachedSet);
-    } catch (Exception e) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException(e.getLocalizedMessage());
     }
   }
