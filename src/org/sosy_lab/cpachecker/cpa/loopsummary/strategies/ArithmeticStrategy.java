@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -50,8 +51,8 @@ public class ArithmeticStrategy extends AbstractStrategy {
   }
   */
 
-  public ArithmeticStrategy(final LogManager pLogger) {
-    super(pLogger);
+  public ArithmeticStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+    super(pLogger, pShutdownNotifier);
   }
 
   // Returns the bound in the form 0 < x where x is the CExpression returned
@@ -221,7 +222,11 @@ public class ArithmeticStrategy extends AbstractStrategy {
       final Map<String, Integer> loopVariableDelta, final CExpression loopBound) {
     if (!(loopBound instanceof CBinaryExpression)) {
       if (loopBound instanceof CIdExpression) {
-        return loopVariableDelta.get(((CIdExpression) loopBound).getName());
+        if (loopVariableDelta.containsKey(((CIdExpression) loopBound).getName())) {
+          return loopVariableDelta.get(((CIdExpression) loopBound).getName());
+        } else {
+          return 0;
+        }
       } else {
         return 0;
       }

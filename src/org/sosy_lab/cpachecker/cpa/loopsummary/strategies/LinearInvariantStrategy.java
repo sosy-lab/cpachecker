@@ -17,9 +17,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class BaseStrategy extends AbstractStrategy {
+public class LinearInvariantStrategy extends AbstractStrategy {
 
-  public BaseStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+  public LinearInvariantStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     super(pLogger, pShutdownNotifier);
   }
 
@@ -27,6 +27,7 @@ public class BaseStrategy extends AbstractStrategy {
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
       AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
-    return Optional.of(pTransferRelation.getAbstractSuccessors(pState, pPrecision));
+    // TODO Auto-generated method stub
+    return Optional.empty();
   }
 }

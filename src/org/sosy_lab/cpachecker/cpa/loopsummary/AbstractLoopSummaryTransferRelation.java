@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -124,6 +125,43 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
      *
      */
 
+    /*
+    * When executing
+    *
+    * scripts/cpa.sh -heap 10000M -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -preprocess -timelimit 900s -spec test/programs/benchmarks/properties/no-overflow.prp -64 test/programs/benchmarks/uthash-2.0.2/uthash_JEN_test7-2.c
+    *
+    * Exception in thread "main" java.lang.AssertionError: Found imprecise counterexample in PredicateCPA. If this is expected for this configuration (e.g., because of UF-based heap encoding), set counterexample.export.allowImpreciseCounterexamples=true. Otherwise please report this as a bug.
+       at org.sosy_lab.cpachecker.util.predicates.PathChecker.createImpreciseCounterexample(PathChecker.java:204)
+       at org.sosy_lab.cpachecker.util.predicates.PathChecker.handleFeasibleCounterexample(PathChecker.java:126)
+       at org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.performRefinementForPath(PredicateCPARefiner.java:314)
+       at org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner.performRefinementForPath(AbstractARGBasedRefiner.java:157)
+       at org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner.performRefinement(AbstractARGBasedRefiner.java:102)
+       at org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.refine(CEGARAlgorithm.java:294)
+       at org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.run(CEGARAlgorithm.java:240)
+       at org.sosy_lab.cpachecker.core.CPAchecker.runAlgorithm(CPAchecker.java:532)
+       at org.sosy_lab.cpachecker.core.CPAchecker.run(CPAchecker.java:399)
+       at org.sosy_lab.cpachecker.cmdline.CPAMain.main(CPAMain.java:170)
+    *
+    */
+
+    /*
+     * For some reason busybox-1.22.0/ls-incomplete-2.c cannot be parsed when calling
+     * scripts/cpa.sh -heap 10000M -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -preprocess -timelimit 900s -spec test/programs/benchmarks/properties/no-overflow.prp -64 test/programs/benchmarks/busybox-1.22.0/ls-incomplete-2.c
+     *
+     */
+
+    /*
+     * How do you do the refinement in this case?
+     *
+     */
+
+    /*
+     * scripts/cpa.sh -heap 10000M -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -preprocess -timelimit 900s -spec test/programs/benchmarks/properties/no-overflow.prp -64 test/programs/benchmarks/loop-zilu/benchmark27_linear.c
+     *
+     * Does not use a summary strategy even though it should use the arithemtic strategy
+     *
+     */
+
     Optional<Collection<? extends AbstractState>> summarizedState =
         strategies
             .get(currentStrategyForCFANode.get(node))
@@ -134,6 +172,13 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
           strategies
               .get(currentStrategyForCFANode.get(node))
               .summarizeLoopState(pState, pPrecision, transferRelation);
+      if (currentStrategyForCFANode.get(node) + 1 != strategies.size()
+          && !summarizedState.isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Using summary Strategy: "
+                + strategies.get(currentStrategyForCFANode.get(node)).getClass());
+      }
     }
     return summarizedState.get();
   }

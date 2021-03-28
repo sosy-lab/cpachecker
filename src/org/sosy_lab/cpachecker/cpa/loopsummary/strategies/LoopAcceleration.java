@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
 import java.util.Collection;
 import java.util.Optional;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -18,8 +19,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LoopAcceleration extends AbstractStrategy {
 
-  public LoopAcceleration(final LogManager pLogger) {
-    super(pLogger);
+  public LoopAcceleration(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+    super(pLogger, pShutdownNotifier);
   }
 
   @Override

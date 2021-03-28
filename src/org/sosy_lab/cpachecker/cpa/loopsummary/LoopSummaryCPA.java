@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.ArithmeticStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.InterpolationStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LinearInvariantStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
@@ -41,7 +42,7 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
 
   private final LoopSummaryTransferRelation transfer;
 
-  // TODO wie kann man die Klassen angeben
+  // TODO wie kann man die argumente angeben
   @Option(
       name = "strategies",
       secure = true,
@@ -75,11 +76,12 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
     super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
 
-    strategies.add(new ArithmeticStrategy(pLogger));
-    strategies.add(new InterpolationStrategy(pLogger));
-    strategies.add(new NaiveLoopAcceleration(pLogger));
-    strategies.add(new LoopAcceleration(pLogger));
-    strategies.add(new BaseStrategy(pLogger));
+    strategies.add(new ArithmeticStrategy(pLogger, pShutdownNotifier));
+    strategies.add(new LinearInvariantStrategy(pLogger, pShutdownNotifier));
+    strategies.add(new InterpolationStrategy(pLogger, pShutdownNotifier));
+    strategies.add(new NaiveLoopAcceleration(pLogger, pShutdownNotifier));
+    strategies.add(new LoopAcceleration(pLogger, pShutdownNotifier));
+    strategies.add(new BaseStrategy(pLogger, pShutdownNotifier));
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
 
