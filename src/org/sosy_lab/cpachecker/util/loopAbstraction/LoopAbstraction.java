@@ -95,7 +95,7 @@ public class LoopAbstraction {
   public void changeFileToAbstractFile(
       LoopInformation loopInfo,
       LogManager logger,
-      String abstractionLevel,
+      AbstractionLevel abstractionLevel,
       boolean automate,
       boolean onlyAccL) {
     totalTime.start();
@@ -118,115 +118,14 @@ public class LoopAbstraction {
     String content =
         "extern void __VERIFIER_error() __attribute__ ((__noreturn__));" + System.lineSeparator();
 
-    boolean flagInt = true;
-    boolean flaguInt = true;
-    boolean flagChar = true;
-    boolean flaguChar = true;
-    boolean flagShort = true;
-    boolean flaguShort = true;
-    boolean flagLong = true;
-    boolean flaguLong = true;
-    boolean flagLongLong = true;
-    boolean flagDouble = true;
-    for (LoopData lD : loopInfo.getLoopData()) {
-      for (LoopVariables io : lD.getInputsOutputs()) {
-        switch (io.getVariableTypeAsString()) {
-          case "int":
-          case "signed int":
-            if (flagInt) {
-              content +=
-                  "extern unsigned int __VERIFIER_nondet_int(void);" + System.lineSeparator();
-              content += "extern void __VERIFIER_assume(int cond);" + System.lineSeparator();
-              flagInt = false;
-            }
-            break;
-          case "unsigned":
-          case "unsigned int":
-            if (flaguInt) {
-              content +=
-                  "extern unsigned int __VERIFIER_nondet_uint(void);" + System.lineSeparator();
-              content +=
-                  "extern void __VERIFIER_assume(unsigned int cond);" + System.lineSeparator();
-              flagInt = false;
-            }
-            break;
-          case "char":
-          case "signed char":
-            if (flagChar) {
-              content += "extern char __VERIFIER_nondet_char(void);" + System.lineSeparator();
-              content += "extern void __VERIFIER_assume(char cond);" + System.lineSeparator();
-              flagChar = false;
-            }
-            break;
-          case "unsigned char":
-            if (flaguChar) {
-              content += "extern char __VERIFIER_nondet_uchar(void);" + System.lineSeparator();
-              content +=
-                  "extern void __VERIFIER_assume(unsigned char cond);" + System.lineSeparator();
-              flagChar = false;
-            }
-            break;
-          case "short":
-          case "signed short":
-            if (flagShort) {
-              content += "extern short __VERIFIER_nondet_short(void);" + System.lineSeparator();
-              content += "extern void __VERIFIER_assume(short cond);" + System.lineSeparator();
-              flagShort = false;
-            }
-            break;
-          case "unsigned short":
-            if (flaguShort) {
-              content += "extern short __VERIFIER_nondet_ushort(void);" + System.lineSeparator();
-              content +=
-                  "extern void __VERIFIER_assume(unsigned short cond);" + System.lineSeparator();
-              flagShort = false;
-            }
-            break;
-          case "long":
-          case "signed long":
-            if (flagLong) {
-              content += "extern long __VERIFIER_nondet_long(void);" + System.lineSeparator();
-              content += "extern void __VERIFIER_assume(long cond);" + System.lineSeparator();
-              flagLong = false;
-            }
-            break;
-          case "unsigned long":
-            if (flaguLong) {
-              content += "extern long __VERIFIER_nondet_ulong(void);" + System.lineSeparator();
-              content +=
-                  "extern void __VERIFIER_assume(unsigned long cond);" + System.lineSeparator();
-              flagLong = false;
-            }
-            break;
-          case "long double":
-            if (flagLongLong) {
-              content +=
-                  "extern long double __VERIFIER_nondet_long_double(void);"
-                      + System.lineSeparator();
-              content +=
-                  "extern void __VERIFIER_assume(long double cond);" + System.lineSeparator();
-              flagLongLong = false;
-            }
-            break;
-          case "double":
-            if (flagDouble) {
-              content += "extern double __VERIFIER_nondet_double(void);" + System.lineSeparator();
-              content += "extern void __VERIFIER_assume(double cond);" + System.lineSeparator();
-              flagDouble = false;
-            }
-            break;
-          case "float":
-            if (flagDouble) {
-              content += "extern double __VERIFIER_nondet_float(void);" + System.lineSeparator();
-              content += "extern void __VERIFIER_assume(float cond);" + System.lineSeparator();
-              flagDouble = false;
-            }
-            break;
-          default:
-            break; // does nothing
-        }
-      }
-    }
+    content += "extern signed int __VERIFIER_nondet_int(void);" + System.lineSeparator();
+    content += "extern char __VERIFIER_nondet_char(void);" + System.lineSeparator();
+    content += "extern short __VERIFIER_nondet_short(void);" + System.lineSeparator();
+    content += "extern long __VERIFIER_nondet_long(void);" + System.lineSeparator();
+    content += "extern long double __VERIFIER_nondet_long_double(void);" + System.lineSeparator();
+    content += "extern double __VERIFIER_nondet_double(void);" + System.lineSeparator();
+    content += "extern float __VERIFIER_nondet_float(void);" + System.lineSeparator();
+    content += "extern void __VERIFIER_assume(signed int cond);" + System.lineSeparator();
 
     try (Reader freader = Files.newBufferedReader(Paths.get(fileLocation))) {
       try (BufferedReader reader = new BufferedReader(freader)) {
@@ -563,10 +462,10 @@ public class LoopAbstraction {
    *     assigned
    */
   private String undeterministicVariables(
-      LoopData loopD, List<LoopVariables> preUsedVariables, String abstractionLevel) {
+      LoopData loopD, List<LoopVariables> preUsedVariables, AbstractionLevel abstractionLevel) {
     String tmp = "";
     List<LoopVariables> variables = null;
-    if (abstractionLevel.equals("naive")) {
+    if (abstractionLevel.equals(AbstractionLevel.NAIVE)) {
       variables = loopD.getOutputs();
     } else {
       variables = loopD.getInputsOutputs();
@@ -745,8 +644,8 @@ public class LoopAbstraction {
    * @param abstractionLevel naive or advanced will get different results
    * @return string that is the new abstracted header of the while loop
    */
-  private String whileCondition(LoopData loopD, String abstractionLevel) {
-    if (abstractionLevel.equals("naive")) {
+  private String whileCondition(LoopData loopD, AbstractionLevel abstractionLevel) {
+    if (abstractionLevel.equals(AbstractionLevel.NAIVE)) {
       return "if(" + loopD.getCondition() + "){" + System.lineSeparator();
     } else {
       return "for(int cpachecker_i=0; cpachecker_i <"
@@ -769,7 +668,7 @@ public class LoopAbstraction {
    * @return string that is the new abstracted header of the for loop
    */
   private String forCondition(
-      LoopData loopD, List<LoopVariables> preUsedVariables, String abstractionLevel) {
+      LoopData loopD, List<LoopVariables> preUsedVariables, AbstractionLevel abstractionLevel) {
     boolean flag = true;
     String variable = "";
     for (LoopVariables x : preUsedVariables) {
@@ -779,7 +678,7 @@ public class LoopAbstraction {
         variable = x.getVariableTypeAsString();
       }
     }
-    if (abstractionLevel.equals("naive")) {
+    if (abstractionLevel.equals(AbstractionLevel.NAIVE)) {
       if (flag) {
         return Iterables.get(Splitter.on(';').split(loopD.getCondition()), 0)
             + ";"

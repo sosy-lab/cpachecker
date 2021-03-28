@@ -29,9 +29,8 @@ public class LoopAbstractionHeader implements StatisticsProvider {
   @Option(
       secure = true,
       name = "shouldAbstract",
-      values = {"naive", "advanced", "none"},
       description = "AbstractLoops to be able to process them")
-  private String shouldAbstract = "none";
+  private AbstractionLevel shouldAbstract = AbstractionLevel.NONE;
 
   @Option(
       secure = true,
@@ -61,7 +60,7 @@ public class LoopAbstractionHeader implements StatisticsProvider {
     config.inject(this);
 
     loopAbstraction = new LoopAbstraction(config);
-    if (!shouldAbstract.equals("none")) {
+    if (!shouldAbstract.equals(AbstractionLevel.NONE)) {
       loopAbstraction.changeFileToAbstractFile(loopI, logger, shouldAbstract, automate, accLoops);
       abstractedSource = loopAbstraction.getAbstractedSource();
     } else {
@@ -78,4 +77,10 @@ public class LoopAbstractionHeader implements StatisticsProvider {
   public String getAbstractedSource() {
     return abstractedSource;
   }
+}
+
+enum AbstractionLevel {
+  NONE,
+  NAIVE,
+  ADVANCED
 }

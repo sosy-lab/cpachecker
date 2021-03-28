@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -354,7 +353,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     List<String> temp = new ArrayList<>();
     for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if (node.getLeavingEdge(i) instanceof AStatementEdge) {
+        switch(node.getLeavingEdge(i).getEdgeType()) {
+          case StatementEdge:
           AStatementEdge x = (AStatementEdge) node.getLeavingEdge(i);
           if (node.getLeavingEdge(i) instanceof CExpressionAssignmentStatement) {
             CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
@@ -402,11 +402,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           } else {
             // exception missing
           }
-
-        } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-
-          AssumeEdge x = (AssumeEdge) node.getLeavingEdge(i);
-          CExpression c = (CExpression) x.getExpression();
+          break;
+          case AssumeEdge:
+            AssumeEdge assume = (AssumeEdge) node.getLeavingEdge(i);
+            CExpression c = (CExpression) assume.getExpression();
 
           if (c instanceof CBinaryExpression) {
             CBinaryExpression pE = (CBinaryExpression) c;
@@ -445,25 +444,27 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           } else {
             // exception missing
           }
+          break;
+          case FunctionCallEdge:
+            FunctionCallEdge function = (FunctionCallEdge) node.getLeavingEdge(i);
 
-        } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-
-          FunctionCallEdge x = (FunctionCallEdge) node.getLeavingEdge(i);
-
-          for (AExpression var : x.getArguments()) {
+            for (AExpression var : function.getArguments()) {
             temp.add(var.toString());
           }
-        } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.ReturnStatementEdge)) {
-
-          AReturnStatement x = (AReturnStatement) node.getLeavingEdge(i);
-          if (x.getReturnValue().isPresent()) {
-            temp.add(x.getReturnValue().toString());
+          break;
+          case ReturnStatementEdge:
+            AReturnStatement returnStatement = (AReturnStatement) node.getLeavingEdge(i);
+            if (returnStatement.getReturnValue().isPresent()) {
+              temp.add(returnStatement.getReturnValue().toString());
           }
+        break;
+          default:
+            break;
         }
       }
     }
     return temp;
-  }
+    }
 
   /**
    * This method looks for all the possible path that the loop can go in one iteration
@@ -544,16 +545,15 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
       while (lookingForNodes) {
 
-        if (tempNode.getLeavingEdge(0) instanceof AssumeEdge
-            && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor()) && !nodes.contains(tempNode)){
-          nodes.add(tempNode);
-        } else if (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
-            && tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
-            && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
-            && !nodes.contains(tempNode)) {
+        if ((tempNode.getLeavingEdge(0) instanceof AssumeEdge
+                && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+                && !nodes.contains(tempNode))
+            || (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
+                && tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
+                && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
+                && !nodes.contains(tempNode))) {
           nodes.add(tempNode);
         }
-
 
         for (int i = 1; i < tempNode.getNumLeavingEdges(); i++) {
           if (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
@@ -603,11 +603,13 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       }
     }
     if (!nodes.isEmpty()) {
-      if (LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger) != NO_IF_CASE) {
+      UtilIfAfterLoopCondition ifAfter = new UtilIfAfterLoopCondition();
+      int smallestIf = ifAfter.getSmallestIf(nodes, pLogger);
+      if (smallestIf != NO_IF_CASE) {
         List<CFANode> tempNodeList = new ArrayList<>();
         for (CFANode node : nodes) {
           if (node.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin()
-              < LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger)) {
+              < smallestIf) {
             tempNodeList.add(node);
           } else {
             conditionEnd.add(node);
@@ -731,11 +733,11 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       List<CFANode> forCondition = new ArrayList<>();
       for (Iterator<CFANode> tempIterator = temp.iterator(); tempIterator.hasNext(); ) {
         CFANode temps = tempIterator.next();
-        if (temps.getLeavingEdge(VALID_STATE).getCode().contains("<")
-            || temps.getLeavingEdge(VALID_STATE).getCode().contains(">")
-            || temps.getLeavingEdge(VALID_STATE).getCode().contains("==")
-            || temps.getLeavingEdge(VALID_STATE).getCode().contains("!=")
-            || temps.getLeavingEdge(VALID_STATE).getCode().contentEquals("")) {
+
+        List<String> operator = List.of("<", ">", "==", "!=");
+
+        if (operator.contains(temps.getLeavingEdge(VALID_STATE).getCode())
+            || temps.getLeavingEdge(VALID_STATE).getCode().equals("")) {
           forCondition.add(temps);
           tempIterator.remove();
         }
@@ -871,8 +873,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
                   temp.add(true);
                   }
                 } else if (lVarInBinaryExp instanceof CCharLiteralExpression) {
-                  if (((CCharLiteralExpression) lVarInBinaryExp).getValue() > pathNumber
-                      || ((CCharLiteralExpression) lVarInBinaryExp).getValue() > outputNumber) {
+                  if (((CCharLiteralExpression) lVarInBinaryExp).getCharacter() > pathNumber
+                      || ((CCharLiteralExpression) lVarInBinaryExp).getCharacter() > outputNumber) {
                     temp.add(true);
                   }
                 } else if (lVarInBinaryExp instanceof CFloatLiteralExpression) {

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.loopAbstraction;
 
 import java.io.PrintStream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -34,8 +33,7 @@ public class AbstractionStatistic implements Statistics {
   }
 
   @Override
-  public @Nullable String getName() {
-    // TODO Auto-generated method stub
+  public String getName() {
     return name;
   }
 }

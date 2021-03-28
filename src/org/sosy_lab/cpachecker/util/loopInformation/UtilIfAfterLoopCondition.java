@@ -23,19 +23,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * This class looks for if cases directly after loops since they aren't any different in the cfa to
- * the loop condition, so this class will look for it in the file itself
+ * The Method getSmallestIf will look for if's in the loop and return the smallest lineNumber, to be
+ * able to differentiate between them and the condition, since they aren't any different in the cfa
+ * to the loop condition, so this class will look for it in the file itself. The other methods are
+ * to help out getSmallestIf.
  */
-public class LoopGetIfAfterLoopCondition {
+public final class UtilIfAfterLoopCondition {
 
-  private static FileLocation fileLocation;
-  private static int smallestLineNumber;
-  private static int biggestLineNumber;
-  private static List<Integer> linesWithIf;
-  private static int smallestIf;
-  private static LogManager logger;
+  private final int NO_IF = -1;
 
-  private static void readFile() {
+  protected UtilIfAfterLoopCondition() {}
+
+  private List<Integer> readFile(
+      FileLocation fileLocation, int smallestLineNumber, int biggestLineNumber, LogManager logger) {
+    List<Integer> allLinesWithIf = new ArrayList<>();
     try (Reader freader =
         Files.newBufferedReader(Paths.get(fileLocation.getFileName()), Charset.defaultCharset())) {
       try (BufferedReader reader = new BufferedReader(freader)) {
@@ -44,7 +45,12 @@ public class LoopGetIfAfterLoopCondition {
         while (line != null) {
           line = reader.readLine();
           if (lineNumber >= smallestLineNumber && lineNumber <= biggestLineNumber && line != null) {
-            findIf(line, lineNumber);
+            int temp = findIf(line, lineNumber);
+            if (temp != NO_IF) {
+              allLinesWithIf.add(temp);
+            }
+
+            ;
           }
           lineNumber++;
         }
@@ -53,9 +59,11 @@ public class LoopGetIfAfterLoopCondition {
       logger.logUserException(
           Level.WARNING, e, "Something is not working with the file you try to import");
     }
+
+    return allLinesWithIf;
   }
 
-  private static int findSmallestIfLineNumber(List<Integer> ifLines) {
+  private int findSmallestIfLineNumber(List<Integer> ifLines) {
     if (!ifLines.isEmpty()) {
       int small = ifLines.get(0);
       for (Integer v : ifLines) {
@@ -69,14 +77,18 @@ public class LoopGetIfAfterLoopCondition {
     }
   }
 
-  private static void findIf(String text, int lineNumber) {
+  private int findIf(String text, int lineNumber) {
+    int lineNumberTemp = lineNumber;
     String temp = Iterables.get(Splitter.on('(').split(text), 0);
     if (temp.contains("if")) {
-      linesWithIf.add(lineNumber);
+      return lineNumberTemp;
+    } else {
+      lineNumberTemp = NO_IF;
+      return lineNumberTemp;
     }
   }
 
-  private static int getSmallestLineNumber(List<CFANode> nodes) {
+  private int getSmallestLineNumber(List<CFANode> nodes) {
     int small = -1;
     for (CFANode node : nodes) {
       if (node.getNumLeavingEdges() > 0) {
@@ -94,7 +106,7 @@ public class LoopGetIfAfterLoopCondition {
     return small;
   }
 
-  private static int getBiggestLineNumber(List<CFANode> nodes) {
+  private int getBiggestLineNumber(List<CFANode> nodes) {
     int big = -1;
     for (CFANode node : nodes) {
       if (node.getNumLeavingEdges() > 0) {
@@ -120,19 +132,21 @@ public class LoopGetIfAfterLoopCondition {
    * @param pLogger logger that logs exceptions
    * @return returns the line-number the if case starts, there are no if cases if it returns -1
    */
-  public static int getSmallestIf(List<CFANode> nodes, LogManager pLogger) {
-    logger = pLogger;
+  public int getSmallestIf(List<CFANode> nodes, LogManager pLogger) {
+    FileLocation fileLocation = null;
+    LogManager logger = pLogger;
+
     for (CFANode n : nodes) {
       if (n.getNumLeavingEdges() > 0) {
         fileLocation = n.getLeavingEdge(0).getFileLocation();
         break;
       }
     }
-    smallestLineNumber = getSmallestLineNumber(nodes);
-    biggestLineNumber = getBiggestLineNumber(nodes);
-    linesWithIf = new ArrayList<>();
-    readFile();
-    smallestIf = findSmallestIfLineNumber(linesWithIf);
+    int smallestLineNumber = getSmallestLineNumber(nodes);
+    int biggestLineNumber = getBiggestLineNumber(nodes);
+    List<Integer> linesWithIf =
+        readFile(fileLocation, smallestLineNumber, biggestLineNumber, logger);
+    int smallestIf = findSmallestIfLineNumber(linesWithIf);
     return smallestIf;
   }
 }

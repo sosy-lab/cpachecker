@@ -29,18 +29,18 @@ public class LoopStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    pOut.println("Startnode:" + loopData.getLoopStart());
-    pOut.println("Endnode:" + loopData.getLoopEnd());
-    pOut.println("Looptype:" + loopData.getLoopType());
-    pOut.println("Innerloop:" + loopData.getInnerLoop());
-    pOut.println("Loopcondition:" + loopData.getCondition());
-    pOut.println("Failed loop state:" + loopData.getFaileState());
-    pOut.println("Amount of paths in loop:" + loopData.getAmountOfPaths());
-    pOut.println("Nodes in loop:" + loopData.getNodesInLoop());
-    pOut.println("IO-Variables:" + loopData.getInputsOutputs());
-    pOut.println("Outputvariables:" + loopData.getOutputs());
-    pOut.println("Can loop be accelerated:" + loopData.getCanBeAccelerated());
-    pOut.println("Time to analyze loop in ms:" + timeToAnalyze);
+    pOut.println("Startnode:                    " + loopData.getLoopStart());
+    pOut.println("Endnode:                      " + loopData.getLoopEnd());
+    pOut.println("Looptype:                     " + loopData.getLoopType());
+    pOut.println("Innerloop:                    " + loopData.getInnerLoop());
+    pOut.println("Loopcondition:                " + loopData.getCondition());
+    pOut.println("Failed loop state:            " + loopData.getFaileState());
+    pOut.println("Amount of paths in loop:      " + loopData.getAmountOfPaths());
+    pOut.println("Nodes in loop:                " + loopData.getNodesInLoop());
+    pOut.println("IO-Variables:                 " + loopData.getInputsOutputs());
+    pOut.println("Outputvariables:              " + loopData.getOutputs());
+    pOut.println("Can loop be accelerated:      " + loopData.getCanBeAccelerated());
+    pOut.println("Time to analyze loop in ms:   " + timeToAnalyze);
   }
 
   @Override
