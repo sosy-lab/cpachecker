@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -49,7 +50,9 @@ public class ArithmeticStrategy extends AbstractStrategy {
   }
   */
 
-  public ArithmeticStrategy() {}
+  public ArithmeticStrategy(final LogManager pLogger) {
+    super(pLogger);
+  }
 
   // Returns the bound in the form 0 < x where x is the CExpression returned
   private Optional<CExpression> bound(final CFANode pLoopStartNode) {
@@ -236,61 +239,11 @@ public class ArithmeticStrategy extends AbstractStrategy {
     }
   }
 
-  @Override
-  protected CFANode unrollLoopOnce(
-      CFANode loopStartNode,
-      Integer loopBranchIndex,
-      CFANode endNodeGhostCFA,
-      CFANode startNodeGhostCFA) {
-    CFANode currentNode = loopStartNode;
-    boolean initial = true;
-    CFANode currentUnrollingNode = CFANode.newDummyCFANode("LSU");
-    CFANode oldUnrollingNode = startNodeGhostCFA;
-    while (currentNode != loopStartNode || initial) {
-      if (initial) {
-        CFAEdge currentLoopEdge = currentNode.getLeavingEdge(loopBranchIndex);
-        assert currentLoopEdge instanceof CAssumeEdge;
-        CFAEdge tmpLoopEdgeFalse =
-            overwriteStartEndStateEdge(
-                (CAssumeEdge) currentLoopEdge, false, oldUnrollingNode, endNodeGhostCFA);
-        oldUnrollingNode.addLeavingEdge(tmpLoopEdgeFalse);
-        endNodeGhostCFA.addEnteringEdge(tmpLoopEdgeFalse);
-        CFAEdge tmpLoopEdgeTrue =
-            overwriteStartEndStateEdge(
-                (CAssumeEdge) currentLoopEdge, true, oldUnrollingNode, currentUnrollingNode);
-        oldUnrollingNode.addLeavingEdge(tmpLoopEdgeTrue);
-        currentUnrollingNode.addEnteringEdge(tmpLoopEdgeTrue);
-        currentNode = currentLoopEdge.getSuccessor();
-        initial = false;
-      } else {
-        CFAEdge currentLoopEdge = currentNode.getLeavingEdge(0);
-        CFAEdge tmpLoopEdge;
-        if (currentLoopEdge instanceof CStatementEdge) {
-          tmpLoopEdge =
-              overwriteStartEndStateEdge(
-                  (CStatementEdge) currentLoopEdge, oldUnrollingNode, currentUnrollingNode);
-        } else {
-          assert currentLoopEdge instanceof BlankEdge;
-          tmpLoopEdge =
-              new BlankEdge(
-                  currentLoopEdge.getRawStatement(),
-                  FileLocation.DUMMY,
-                  oldUnrollingNode,
-                  currentUnrollingNode,
-                  currentLoopEdge.getDescription());
-        }
-        oldUnrollingNode.addLeavingEdge(tmpLoopEdge);
-        currentUnrollingNode.addEnteringEdge(tmpLoopEdge);
-        currentNode = currentLoopEdge.getSuccessor();
-      }
-      oldUnrollingNode = currentUnrollingNode;
-      currentUnrollingNode = CFANode.newDummyCFANode("LSU");
-    }
+  // There was a method unrollLoopOnce which overrided the unroll loop once method in the abstract
+  // class, see it if there is some error, it was still here in commit
+  // a272d189e10d05880102c4a29450c113f9f80bee
 
-    return oldUnrollingNode;
-  }
-
-  private GhostCFA summaryCFA(
+  private Optional<GhostCFA> summaryCFA(
       final AbstractState pState,
       final Map<String, Integer> loopVariableDelta,
       final CExpression loopBound,
@@ -355,10 +308,21 @@ public class ArithmeticStrategy extends AbstractStrategy {
 
     currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingConditionEdgeFalse);
     loopUnrollingCurrentNode.addEnteringEdge(twiceLoopUnrollingConditionEdgeFalse);
-    loopUnrollingCurrentNode =
+    Optional<CFANode> loopUnrollingSuccess = unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopUnrollingCurrentNode =
+          loopUnrollingSuccess.get();
+    }
+
+    loopUnrollingSuccess =
         unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
-    loopUnrollingCurrentNode =
-        unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopUnrollingCurrentNode = loopUnrollingSuccess.get();
+    }
     loopIngoingConditionDummyEdgeFalse =
         overwriteStartEndStateEdge(
             (CAssumeEdge) loopIngoingConditionEdge,
@@ -368,9 +332,14 @@ public class ArithmeticStrategy extends AbstractStrategy {
     loopUnrollingCurrentNode.addLeavingEdge(loopIngoingConditionDummyEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeFalse);
 
-    currentStartNodeGhostCFA =
+    loopUnrollingSuccess =
         unrollLoopOnce(loopStartNode, loopBranchIndex, currentEndNodeGhostCFA, endNodeGhostCFA);
-    currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS6");
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopUnrollingCurrentNode = loopUnrollingSuccess.get();
+    }
+    currentStartNodeGhostCFA = CFANode.newDummyCFANode("LS6");
 
     // Make Summary
     for (Map.Entry<String, Integer> set : loopVariableDelta.entrySet()) {
@@ -421,8 +390,15 @@ public class ArithmeticStrategy extends AbstractStrategy {
       CFANodeCounter += 1;
     }
 
-    currentStartNodeGhostCFA =
+    loopUnrollingSuccess =
         unrollLoopOnce(loopStartNode, loopBranchIndex, currentStartNodeGhostCFA, endNodeGhostCFA);
+
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+
+      currentStartNodeGhostCFA = loopUnrollingSuccess.get();
+    }
 
     loopIngoingConditionDummyEdgeFalse =
         overwriteStartEndStateEdge(
@@ -433,7 +409,7 @@ public class ArithmeticStrategy extends AbstractStrategy {
     currentStartNodeGhostCFA.addLeavingEdge(loopIngoingConditionDummyEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeFalse);
 
-    return new GhostCFA(startNodeGhostCFA, endNodeGhostCFA);
+    return Optional.of(new GhostCFA(startNodeGhostCFA, endNodeGhostCFA));
   }
 
   private boolean linearArithemticExpression(final CExpression expression) {
@@ -555,8 +531,15 @@ public class ArithmeticStrategy extends AbstractStrategy {
       return Optional.empty();
     }
 
-    GhostCFA ghostCFA =
+    GhostCFA ghostCFA;
+    Optional<GhostCFA> ghostCFASuccess =
         summaryCFA(pState, loopVariableDelta, loopBound, boundDelta, loopBranchIndex);
+
+    if (ghostCFASuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      ghostCFA = ghostCFASuccess.get();
+    }
 
     Collection<AbstractState> realStatesEndCollection =
         transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);

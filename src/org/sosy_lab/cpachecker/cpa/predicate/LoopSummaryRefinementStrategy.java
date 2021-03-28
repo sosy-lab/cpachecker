@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -36,6 +37,8 @@ public class LoopSummaryRefinementStrategy extends PredicateAbstractionRefinemen
       List<BooleanFormula> pInterpolants,
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
+
+    logger.log(Level.INFO, "Doing Refinement");
 
     // overriding this method is needed, as it is possible
     // to get two or even more successive spurious counterexamples,

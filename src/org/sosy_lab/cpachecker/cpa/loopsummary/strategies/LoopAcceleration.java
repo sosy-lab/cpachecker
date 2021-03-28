@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
 import java.util.Collection;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -17,7 +18,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LoopAcceleration extends AbstractStrategy {
 
-  public LoopAcceleration() {}
+  public LoopAcceleration(final LogManager pLogger) {
+    super(pLogger);
+  }
 
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(

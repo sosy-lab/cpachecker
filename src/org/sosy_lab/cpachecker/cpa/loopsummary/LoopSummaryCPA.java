@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,14 +47,7 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
       secure = true,
       description =
           "Strategies to be used in the Summary. The order of the strategies marks in which order they are tried")
-  private ArrayList<StrategyInterface> strategies =
-      new ArrayList<>(
-          Arrays.asList(
-              new ArithmeticStrategy(),
-              new InterpolationStrategy(),
-              new NaiveLoopAcceleration(),
-              new LoopAcceleration(),
-              new BaseStrategy()));
+  private ArrayList<StrategyInterface> strategies = new ArrayList<>();
 
   @Option(
       name = "lookaheadamntnodes",
@@ -82,6 +74,12 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
       throws InvalidConfigurationException {
     super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
+
+    strategies.add(new ArithmeticStrategy(pLogger));
+    strategies.add(new InterpolationStrategy(pLogger));
+    strategies.add(new NaiveLoopAcceleration(pLogger));
+    strategies.add(new LoopAcceleration(pLogger));
+    strategies.add(new BaseStrategy(pLogger));
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
 

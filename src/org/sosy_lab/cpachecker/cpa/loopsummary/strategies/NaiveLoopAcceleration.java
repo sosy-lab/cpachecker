@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -37,9 +39,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class NaiveLoopAcceleration extends AbstractStrategy {
 
-  public NaiveLoopAcceleration() {}
+  public NaiveLoopAcceleration(final LogManager pLogger) {
+    super(pLogger);
+  }
 
-  private HashSet<String> getModifiedVariables(CFANode loopStartNode, Integer loopBranchIndex) {
+
+  private Optional<HashSet<String>> getModifiedVariables(
+      CFANode loopStartNode, Integer loopBranchIndex) {
     HashSet<String> modifiedVariables = new HashSet<>();
     ArrayList<CFANode> reachedNodes = new ArrayList<>();
     reachedNodes.add(loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor());
@@ -54,7 +60,21 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
               CFAEdge edge = s.getLeavingEdge(i);
               if (edge instanceof CStatementEdge) {
                 CStatement statement = ((CStatementEdge) edge).getStatement();
-                CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
+                CExpression leftSide;
+                if (statement instanceof CFunctionCallAssignmentStatement) {
+                  leftSide = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
+                } else if (statement instanceof CExpressionAssignmentStatement) {
+                  leftSide =
+                      ((CExpressionAssignmentStatement) statement).getLeftHandSide();
+                } else {
+                  logger.log(
+                      Level.INFO,
+                      "Unknown Statement in Naive Loop Accel of type: "
+                          + statement.getClass()
+                          + " \n Statetement has form: "
+                          + statement);
+                  return Optional.empty();
+                }
                 if (leftSide instanceof CIdExpression) { // TODO Generalize
                   modifiedVariables.add(((CIdExpression) leftSide).getName());
                 }
@@ -68,10 +88,10 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
       }
       reachedNodes = newReachableNodes;
     }
-    return modifiedVariables;
+    return Optional.of(modifiedVariables);
   }
 
-  private GhostCFA buildGhostCFA(
+  private Optional<GhostCFA> buildGhostCFA(
       HashSet<String> modifiedVariables, CFANode loopStartNode, Integer loopBranchIndex) {
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode("STARTNODEGHOST");
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode("ENDNODEGHOST");
@@ -137,12 +157,13 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
             newNode);
     currentNode.addLeavingEdge(startConditionLoopCFAEdgeTrue);
     newNode.addEnteringEdge(startConditionLoopCFAEdgeTrue);
-    currentNode =
-        unrollLoopOnce(
-            loopStartNode,
-            loopBranchIndex,
-            endNodeGhostCFA,
-            newNode); // TODO Improve loop unrolling
+    Optional<CFANode> loopUnrollingSuccess =
+        unrollLoopOnce(loopStartNode, loopBranchIndex, endNodeGhostCFA, newNode);
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      currentNode = loopUnrollingSuccess.get();
+    }
     CFAEdge startConditionLoopCFAEdgeFalse =
         overwriteStartEndStateEdge(
             (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
@@ -159,7 +180,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
             endNodeGhostCFA);
     startNodeGhostCFA.addLeavingEdge(startConditionLoopCFAEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(startConditionLoopCFAEdgeFalse);
-    return new GhostCFA(startNodeGhostCFA, endNodeGhostCFA);
+    return Optional.of(new GhostCFA(startNodeGhostCFA, endNodeGhostCFA));
   }
 
   @Override
@@ -175,10 +196,22 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
       loopBranchIndex = loopBranchIndexOptional.get();
     }
 
-    HashSet<String> modifiedVariables = getModifiedVariables(loopStartNode, loopBranchIndex);
+    HashSet<String> modifiedVariables;
+    Optional<HashSet<String>> modifiedVariablesSuccess =
+        getModifiedVariables(loopStartNode, loopBranchIndex);
+    if (modifiedVariablesSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      modifiedVariables = modifiedVariablesSuccess.get();
+    }
 
-    GhostCFA ghostCFA =
-        buildGhostCFA(modifiedVariables, loopStartNode, loopBranchIndex);
+    GhostCFA ghostCFA;
+    Optional<GhostCFA> ghostCFASuccess = buildGhostCFA(modifiedVariables, loopStartNode, loopBranchIndex);
+    if (ghostCFASuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      ghostCFA = ghostCFASuccess.get();
+    }
 
     Collection<AbstractState> realStatesEndCollection =
         transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);

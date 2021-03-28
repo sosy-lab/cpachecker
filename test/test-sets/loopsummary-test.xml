@@ -24,6 +24,16 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">counterexample.export.enabled=false</option>
   </rundefinition>
 
+  <rundefinition name="predicate">
+	  <option name="-config">config/predicateAnalysis--overflow.properties</option>
+	  <option name="-setprop">counterexample.export.enabled=false</option>
+  </rundefinition>
+
+  <rundefinition name="value">
+	  <option name="-config">config/valueAnalysis--overflow.properties</option>
+	  <option name="-setprop">counterexample.export.enabled=false</option>
+  </rundefinition>
+
   <rundefinition name="sv-comp21">
     <option name="-svcomp21"/>
     <option name="-benchmark"/>

@@ -13,6 +13,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,14 +33,23 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public abstract class AbstractStrategy implements StrategyInterface {
 
+  protected final LogManager logger;
+
+  protected AbstractStrategy(final LogManager pLogger) {
+    this.logger = pLogger;
+  }
+
   protected Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
     if (loopStartNode.getNumLeavingEdges() != 2) {
       return Optional.empty();
     }
+    ArrayList<CFANode> reachedNodes = new ArrayList<>();
     ArrayList<CFANode> reachableNodesIndex0 = new ArrayList<>();
     reachableNodesIndex0.add(loopStartNode.getLeavingEdge(0).getSuccessor());
     ArrayList<CFANode> reachableNodesIndex1 = new ArrayList<>();
     reachableNodesIndex1.add(loopStartNode.getLeavingEdge(1).getSuccessor());
+    reachedNodes.add(loopStartNode.getLeavingEdge(1).getSuccessor());
+    reachedNodes.add(loopStartNode.getLeavingEdge(0).getSuccessor());
     Integer loopBranchIndex = -1;
     while (loopBranchIndex == -1) {
       if (reachableNodesIndex1.isEmpty() && reachableNodesIndex0.isEmpty()) {
@@ -51,7 +62,10 @@ public abstract class AbstractStrategy implements StrategyInterface {
           break;
         } else {
           for (int i = 0; i < s.getNumLeavingEdges(); i++) {
-            newReachableNodesIndex0.add(s.getLeavingEdge(i).getSuccessor());
+            if (!reachedNodes.contains(s.getLeavingEdge(i).getSuccessor())) {
+              reachedNodes.add(s.getLeavingEdge(i).getSuccessor());
+              newReachableNodesIndex0.add(s.getLeavingEdge(i).getSuccessor());
+            }
           }
         }
       }
@@ -63,7 +77,10 @@ public abstract class AbstractStrategy implements StrategyInterface {
           break;
         } else {
           for (int i = 0; i < s.getNumLeavingEdges(); i++) {
-            newReachableNodesIndex1.add(s.getLeavingEdge(i).getSuccessor());
+            if (!reachedNodes.contains(s.getLeavingEdge(i).getSuccessor())) {
+              reachedNodes.add(s.getLeavingEdge(i).getSuccessor());
+              newReachableNodesIndex1.add(s.getLeavingEdge(i).getSuccessor());
+            }
           }
         }
       }
@@ -120,7 +137,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
         new ArrayList<>(
             pTransferRelation.getAbstractSuccessors(
                 dummyStateStart,
-                pPrecision)); // TODO Can you write Collection<AbstractState> insetad of
+                pPrecision)); // TODO Can you write Collection<AbstractState> instead of
     // Collection<?
     // extends AbstractState>
     Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
@@ -150,7 +167,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     return realStatesEndCollection;
   }
 
-  protected CFANode unrollLoopOnce(
+  protected Optional<CFANode> unrollLoopOnce(
       CFANode loopStartNode,
       Integer loopBranchIndex,
       CFANode endNodeGhostCFA,
@@ -192,8 +209,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
               tmpLoopEdge =
                   overwriteStartEndStateEdge(
                       (CStatementEdge) currentLoopEdge, p.getFirst(), nextGhostCFANode);
-            } else {
-              assert currentLoopEdge instanceof BlankEdge;
+            } else if (currentLoopEdge instanceof BlankEdge) {
               tmpLoopEdge =
                   new BlankEdge(
                       currentLoopEdge.getRawStatement(),
@@ -201,6 +217,12 @@ public abstract class AbstractStrategy implements StrategyInterface {
                       p.getFirst(),
                       nextGhostCFANode,
                       currentLoopEdge.getDescription());
+            } else {
+              logger.log(
+                  Level.INFO,
+                  "Following edge class was detected when performing loop unrolling, which is not already been checked in a case: "
+                      + currentLoopEdge.getClass());
+              return Optional.empty();
             }
             p.getFirst().addLeavingEdge(tmpLoopEdge);
             nextGhostCFANode.addEnteringEdge(tmpLoopEdge);
@@ -213,7 +235,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
       }
     }
 
-    return endLoopUnrollingNode;
+    return Optional.of(endLoopUnrollingNode);
   }
 
   @Override
