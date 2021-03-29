@@ -100,6 +100,9 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
   /**
    * Compute control dependencies using dominance frontiers created from the post-DomTree and insert
    * these dependencies into the system dependence graph.
+   *
+   * <p>Implementation detail: how post-DomTrees are used to find control dependencies is described
+   * in "The Program Dependence Graph and Its Use in Optimization" (Ferrante et al.)
    */
   private void insertControlDependencies(
       DomTree<CFANode> pPostDomTree,
@@ -193,6 +196,38 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
   /**
    * Insert control dependencies into the SDG such that all statements contained in the function are
    * directly or indirectly control dependent on the SDG function entry node.
+   *
+   * <p>Example (simplified):
+   *
+   * <pre><code>
+   * Function:
+   *
+   * int f(int x) {
+   *   int y;
+   *   if (x > 0) {
+   *     y = x - 1;
+   *   } else {
+   *     y = x + 1;
+   *   }
+   *   return y;
+   * }
+   *
+   * Before invoking this method:
+   *
+   * { ENTRY of f(int) }  { int y; }  { return y; }
+   *
+   * { [x > 0] } -----> { y = x - 1; }
+   *
+   * { [!(x > 0)] } -----> { y = x + 1; }
+   *
+   * After invoking this method:
+   *
+   *                  { int y; } <----- { ENTRY of f(int) } -----> { return y; }
+   *                                        |      |
+   *                                        |      |
+   * { y = x - 1; } <----- { [x > 0] } <-----      -----> { [!(x > 0)] } -----> { y = x + 1; }
+   *
+   * </code></pre>
    */
   private void insertEntryControlDependencies(Set<CFANode> pFunctionNodes) {
 
