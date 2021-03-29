@@ -48,7 +48,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   // list of nodes where the node's index is equal to its id
   private final ImmutableList<N> nodes;
   // list of nodes where the graph node's index is equal to its id
-  private final ImmutableList<GraphNode<V, N>> graphNodes;
+  private final ImmutableList<GraphNode.ImmutableGraphNode<V, N>> graphNodes;
 
   // counters for nodes and edges per type
   private final TypeCounter<NodeType> nodeTypeCounter;
@@ -56,7 +56,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
   private SystemDependenceGraph(
       ImmutableList<N> pNodes,
-      ImmutableList<GraphNode<V, N>> pGraphNodes,
+      ImmutableList<GraphNode.ImmutableGraphNode<V, N>> pGraphNodes,
       TypeCounter<NodeType> pNodeTypeCounter,
       TypeCounter<EdgeType> pEdgeTypeCounter) {
 
@@ -88,7 +88,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * exception if the graph node does not exist or the specified node is {@code null}.
    */
   private static <V, N extends Node<?, ?, V>> GraphNode<V, N> getGraphNode(
-      List<GraphNode<V, N>> pGraphNodes, N pNode) {
+      List<? extends GraphNode<V, N>> pGraphNodes, N pNode) {
 
     Objects.requireNonNull(pNode, "node must not be null");
 
@@ -254,7 +254,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * direction.
    */
   private static <V, N extends Node<?, ?, V>> void traverse(
-      List<GraphNode<V, N>> pGraphNodes,
+      List<? extends GraphNode<V, N>> pGraphNodes,
       Collection<N> pStartNodes,
       Visitor<N> pVisitor,
       boolean pForwards) {
@@ -793,119 +793,33 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * and leaving edges. This class is private to the SDG class, use {@link Visitor} for graph
    * traversals and {@link Node} to refer to SDG nodes outside the SDG class.
    */
-  private static final class GraphNode<V, N extends Node<?, ?, V>> {
+  private abstract static class GraphNode<V, N extends Node<?, ?, V>> {
 
     private final N node;
 
-    private List<GraphEdge<V, N>> enteringEdges;
-    private List<GraphEdge<V, N>> leavingEdges;
-
-    private Set<V> defs;
-    private Set<V> uses;
-
     private GraphNode(N pNode) {
-
       node = pNode;
-
-      enteringEdges = new ArrayList<>();
-      leavingEdges = new ArrayList<>();
-
-      defs = new HashSet<>();
-      uses = new HashSet<>();
     }
 
-    private N getNode() {
+    final N getNode() {
       return node;
     }
 
-    private int getEnteringEdgeCount() {
-      return enteringEdges.size();
-    }
+    abstract List<GraphEdge<V, N>> getEnteringEdges();
 
-    private List<GraphEdge<V, N>> getEnteringEdges() {
-      return enteringEdges;
-    }
+    abstract List<GraphEdge<V, N>> getLeavingEdges();
 
-    private boolean hasEnteringEdgeFrom(EdgeType pType, GraphNode<V, N> pPredecessor) {
+    abstract Set<V> getDefs();
 
-      for (GraphEdge<V, N> graphEdge : enteringEdges) {
-        // identity comparison between graph nodes is intended here
-        // inside a single SDG, equality can be determined by their identity
-        if (graphEdge.getType() == pType && graphEdge.getPredecessor() == pPredecessor) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    private void addEnteringEdge(GraphEdge<V, N> pEdge) {
-      enteringEdges.add(pEdge);
-    }
-
-    private int getLeavingEdgeCount() {
-      return leavingEdges.size();
-    }
-
-    private List<GraphEdge<V, N>> getLeavingEdges() {
-      return leavingEdges;
-    }
-
-    private boolean hasLeavingEdgeTo(EdgeType pType, GraphNode<V, N> pSuccessor) {
-
-      for (GraphEdge<V, N> graphEdge : leavingEdges) {
-        // identity comparison between graph nodes is intended here
-        // inside a single SDG, equality can be determined by their identity
-        if (graphEdge.getType() == pType && graphEdge.getSuccessor() == pSuccessor) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    private void addLeavingEdge(GraphEdge<V, N> pEdge) {
-      leavingEdges.add(pEdge);
-    }
-
-    private Set<V> getDefs() {
-      return defs;
-    }
-
-    private void addDef(V pVariable) {
-      defs.add(pVariable);
-    }
-
-    private Set<V> getUses() {
-      return uses;
-    }
-
-    private void addUse(V pVariable) {
-      uses.add(pVariable);
-    }
-
-    /**
-     * During SDG construction, new connections between nodes are added. After construction has been
-     * completed, the internal mutable lists/sets can be turned into {@link ImmutableList} and
-     * {@link ImmutableSet} instances by calling this method. No more changes can be done to this
-     * graph node after calling this method.
-     */
-    private void finish() {
-
-      enteringEdges = ImmutableList.copyOf(enteringEdges);
-      leavingEdges = ImmutableList.copyOf(leavingEdges);
-
-      defs = ImmutableSet.copyOf(defs);
-      uses = ImmutableSet.copyOf(uses);
-    }
+    abstract Set<V> getUses();
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
       return node.hashCode();
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public final boolean equals(Object obj) {
 
       if (this == obj) {
         return true;
@@ -924,16 +838,139 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
       return String.format(
           Locale.ENGLISH,
           "%s[node=%s, enteringEdges=%s, leavingEdges=%s, defs=%s, uses=%s]",
           getClass().getName(),
           node,
-          enteringEdges,
-          leavingEdges,
-          defs,
-          uses);
+          getEnteringEdges(),
+          getLeavingEdges(),
+          getDefs(),
+          getUses());
+    }
+
+    private static class MutableGraphNode<V, N extends Node<?, ?, V>> extends GraphNode<V, N> {
+
+      private final List<GraphEdge<V, N>> enteringEdges;
+      private final List<GraphEdge<V, N>> leavingEdges;
+
+      private final Set<V> defs;
+      private final Set<V> uses;
+
+      private MutableGraphNode(N pNode) {
+
+        super(pNode);
+
+        enteringEdges = new ArrayList<>();
+        leavingEdges = new ArrayList<>();
+
+        defs = new HashSet<>();
+        uses = new HashSet<>();
+      }
+
+      private int getEnteringEdgeCount() {
+        return enteringEdges.size();
+      }
+
+      @Override
+      List<GraphEdge<V, N>> getEnteringEdges() {
+        return enteringEdges;
+      }
+
+      private boolean hasEnteringEdgeFrom(EdgeType pType, GraphNode<V, N> pPredecessor) {
+
+        for (GraphEdge<V, N> graphEdge : enteringEdges) {
+          // identity comparison between graph nodes is intended here
+          // inside a single SDG, equality can be determined by their identity
+          if (graphEdge.getType() == pType && graphEdge.getPredecessor() == pPredecessor) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      private void addEnteringEdge(GraphEdge<V, N> pEdge) {
+        enteringEdges.add(pEdge);
+      }
+
+      private int getLeavingEdgeCount() {
+        return leavingEdges.size();
+      }
+
+      @Override
+      List<GraphEdge<V, N>> getLeavingEdges() {
+        return leavingEdges;
+      }
+
+      private boolean hasLeavingEdgeTo(EdgeType pType, GraphNode<V, N> pSuccessor) {
+
+        for (GraphEdge<V, N> graphEdge : leavingEdges) {
+          // identity comparison between graph nodes is intended here
+          // inside a single SDG, equality can be determined by their identity
+          if (graphEdge.getType() == pType && graphEdge.getSuccessor() == pSuccessor) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      private void addLeavingEdge(GraphEdge<V, N> pEdge) {
+        leavingEdges.add(pEdge);
+      }
+
+      @Override
+      Set<V> getDefs() {
+        return defs;
+      }
+
+      private void addDef(V pVariable) {
+        defs.add(pVariable);
+      }
+
+      @Override
+      Set<V> getUses() {
+        return uses;
+      }
+
+      private void addUse(V pVariable) {
+        uses.add(pVariable);
+      }
+    }
+
+    private static class ImmutableGraphNode<V, N extends Node<?, ?, V>> extends GraphNode<V, N> {
+
+      private ImmutableList<GraphEdge<V, N>> enteringEdges;
+      private ImmutableList<GraphEdge<V, N>> leavingEdges;
+
+      private ImmutableSet<V> defs;
+      private ImmutableSet<V> uses;
+
+      private ImmutableGraphNode(N pNode) {
+        super(pNode);
+      }
+
+      @Override
+      ImmutableList<GraphEdge<V, N>> getEnteringEdges() {
+        return enteringEdges;
+      }
+
+      @Override
+      ImmutableList<GraphEdge<V, N>> getLeavingEdges() {
+        return leavingEdges;
+      }
+
+      @Override
+      ImmutableSet<V> getDefs() {
+        return defs;
+      }
+
+      @Override
+      ImmutableSet<V> getUses() {
+        return uses;
+      }
     }
   }
 
@@ -1027,8 +1064,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     // list of nodes where the node's index is equal to its id
     private final List<N> nodes;
     // list of nodes where the graph node's index is equal to its id
-    private final List<GraphNode<V, N>> graphNodes;
-    private final Map<NodeMapKey<P, T, V>, GraphNode<V, N>> nodeMap;
+    private final List<GraphNode.MutableGraphNode<V, N>> graphNodes;
+    private final Map<NodeMapKey<P, T, V>, GraphNode.MutableGraphNode<V, N>> nodeMap;
 
     private final TypeCounter<NodeType> nodeTypeCounter;
     private final TypeCounter<EdgeType> edgeTypeCounter;
@@ -1045,9 +1082,9 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       edgeTypeCounter = new TypeCounter<>(EdgeType.values().length);
     }
 
-    private GraphNode<V, N> newGraphNode(NodeMapKey<P, T, V> pNodeKey) {
+    private GraphNode.MutableGraphNode<V, N> newGraphNode(NodeMapKey<P, T, V> pNodeKey) {
       Node<P, T, V> node = pNodeKey.createNode(nodes.size());
-      return new GraphNode<>(nodeCreationFunction.apply(node));
+      return new GraphNode.MutableGraphNode<>(nodeCreationFunction.apply(node));
     }
 
     /**
@@ -1055,11 +1092,12 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * a node does not already exist. In all cases it returns a graph node fitting the specified
      * parameters.
      */
-    private GraphNode<V, N> graphNode(
+    private GraphNode.MutableGraphNode<V, N> graphNode(
         NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       NodeMapKey<P, T, V> nodeKey = new NodeMapKey<>(pType, pProcedure, pStatement, pVariable);
-      GraphNode<V, N> graphNode = nodeMap.computeIfAbsent(nodeKey, this::newGraphNode);
+      GraphNode.MutableGraphNode<V, N> graphNode =
+          nodeMap.computeIfAbsent(nodeKey, this::newGraphNode);
       N node = graphNode.getNode();
 
       if (node.getId() == nodes.size()) {
@@ -1078,8 +1116,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * Also, updates the defs and uses of the nodes by using the cause.
      */
     private void insertEdge(
-        GraphNode<V, N> pPredecessor,
-        GraphNode<V, N> pSuccessor,
+        GraphNode.MutableGraphNode<V, N> pPredecessor,
+        GraphNode.MutableGraphNode<V, N> pSuccessor,
         EdgeType pType,
         Optional<V> pCause) {
 
@@ -1191,7 +1229,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       for (GraphEdge<V, N> outEdge : formalOutGraphNode.getLeavingEdges()) {
         if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
 
-          GraphNode<V, N> actualOutGraphNode = outEdge.getSuccessor();
+          GraphNode.MutableGraphNode<V, N> actualOutGraphNode =
+              (GraphNode.MutableGraphNode<V, N>) outEdge.getSuccessor();
           assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
 
           NodeMapKey<P, T, V> actualInNodeKey =
@@ -1200,7 +1239,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
                   actualOutGraphNode.getNode().getProcedure(),
                   actualOutGraphNode.getNode().getStatement(),
                   pFormalInNode.getVariable());
-          GraphNode<V, N> actualInGraphNode = nodeMap.get(actualInNodeKey);
+          GraphNode.MutableGraphNode<V, N> actualInGraphNode = nodeMap.get(actualInNodeKey);
 
           if (actualInGraphNode != null) {
             insertEdge(
@@ -1247,13 +1286,48 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      */
     public SystemDependenceGraph<V, N> build() {
 
-      for (GraphNode<?, ?> graphNode : graphNodes) {
-        graphNode.finish();
+      ImmutableList.Builder<GraphNode.ImmutableGraphNode<V, N>> immutableGraphNodesBuilder =
+          ImmutableList.builderWithExpectedSize(graphNodes.size());
+      List<ImmutableList.Builder<GraphEdge<V, N>>> immutableEnteringEdges =
+          new ArrayList<>(graphNodes.size());
+      List<ImmutableList.Builder<GraphEdge<V, N>>> immutableLeavingEdges =
+          new ArrayList<>(graphNodes.size());
+
+      for (GraphNode.MutableGraphNode<V, N> mutableGraphNode : graphNodes) {
+        immutableGraphNodesBuilder.add(
+            new GraphNode.ImmutableGraphNode<>(mutableGraphNode.getNode()));
+        immutableEnteringEdges.add(
+            ImmutableList.builderWithExpectedSize(mutableGraphNode.getEnteringEdgeCount()));
+        immutableLeavingEdges.add(
+            ImmutableList.builderWithExpectedSize(mutableGraphNode.getLeavingEdgeCount()));
+      }
+
+      ImmutableList<GraphNode.ImmutableGraphNode<V, N>> immutableGraphNodes =
+          immutableGraphNodesBuilder.build();
+
+      for (GraphNode.MutableGraphNode<V, N> mutableGraphNode : graphNodes) {
+        int predecessorId = mutableGraphNode.getNode().getId();
+        for (GraphEdge<V, N> graphEdge : mutableGraphNode.getLeavingEdges()) {
+          int successorId = graphEdge.getSuccessor().getNode().getId();
+          GraphEdge<V, N> immutableGraphEdge =
+              new GraphEdge<>(
+                  graphEdge.getType(),
+                  immutableGraphNodes.get(predecessorId),
+                  immutableGraphNodes.get(successorId));
+          immutableLeavingEdges.get(predecessorId).add(immutableGraphEdge);
+          immutableEnteringEdges.get(successorId).add(immutableGraphEdge);
+        }
+      }
+
+      for (int index = 0; index < immutableGraphNodes.size(); index++) {
+        GraphNode.ImmutableGraphNode<V, N> immutableGraphNode = immutableGraphNodes.get(index);
+        immutableGraphNode.enteringEdges = immutableEnteringEdges.get(index).build();
+        immutableGraphNode.leavingEdges = immutableLeavingEdges.get(index).build();
       }
 
       return new SystemDependenceGraph<>(
           ImmutableList.copyOf(nodes),
-          ImmutableList.copyOf(graphNodes),
+          immutableGraphNodes,
           nodeTypeCounter.copy(),
           edgeTypeCounter.copy());
     }
@@ -1264,9 +1338,9 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      */
     public final class EdgeChooser {
 
-      private final GraphNode<V, N> graphNode;
+      private final GraphNode.MutableGraphNode<V, N> graphNode;
 
-      private EdgeChooser(GraphNode<V, N> pGraphNode) {
+      private EdgeChooser(GraphNode.MutableGraphNode<V, N> pGraphNode) {
         graphNode = pGraphNode;
       }
 
@@ -1310,12 +1384,12 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      */
     public final class DependencyChooser {
 
-      private final GraphNode<V, N> graphNode;
+      private final GraphNode.MutableGraphNode<V, N> graphNode;
       private final EdgeType edgeType;
       private final Optional<V> cause;
 
       private DependencyChooser(
-          GraphNode<V, N> pGraphNode, EdgeType pEdgeType, Optional<V> pCause) {
+          GraphNode.MutableGraphNode<V, N> pGraphNode, EdgeType pEdgeType, Optional<V> pCause) {
         graphNode = pGraphNode;
         edgeType = pEdgeType;
         cause = pCause;
