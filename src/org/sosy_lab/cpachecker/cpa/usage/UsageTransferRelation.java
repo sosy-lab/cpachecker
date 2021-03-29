@@ -381,7 +381,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
             newLinks.add(Pair.of(idIn, idFrom));
           }
         }
-        return newLinks;
+        return ImmutableSet.copyOf(newLinks);
       }
     }
     return ImmutableSet.of();

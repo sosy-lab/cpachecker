@@ -41,10 +41,10 @@ public class PresisionParser {
   }
 
   public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
-    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new HashMap<>();
     if (file == null) {
-      return localStatistics;
+      return ImmutableMap.of();
     }
+    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new HashMap<>();
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
     cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
 

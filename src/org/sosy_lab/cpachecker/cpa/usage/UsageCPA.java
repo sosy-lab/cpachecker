@@ -91,7 +91,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Option(
     description = "do not use initial variable in analysis if found an alias for it",
     secure = true)
-  private boolean filterAliases = false;
+  private boolean filterAliases = true;
 
   private UsageCPA(
       ConfigurableProgramAnalysis pCpa,
