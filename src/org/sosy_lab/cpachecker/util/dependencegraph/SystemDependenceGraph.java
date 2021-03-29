@@ -944,8 +944,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       private ImmutableSet<V> defs;
       private ImmutableSet<V> uses;
 
-      private ImmutableGraphNode(N pNode) {
+      private ImmutableGraphNode(N pNode, ImmutableSet<V> pDefs, ImmutableSet<V> pUses) {
         super(pNode);
+
+        defs = pDefs;
+        uses = pUses;
       }
 
       @Override
@@ -1291,7 +1294,10 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
       for (GraphNode.MutableGraphNode<V, N> mutableGraphNode : graphNodes) {
         immutableGraphNodesBuilder.add(
-            new GraphNode.ImmutableGraphNode<>(mutableGraphNode.getNode()));
+            new GraphNode.ImmutableGraphNode<>(
+                mutableGraphNode.getNode(),
+                ImmutableSet.copyOf(mutableGraphNode.getDefs()),
+                ImmutableSet.copyOf(mutableGraphNode.getUses())));
         immutableEnteringEdges.add(
             ImmutableList.builderWithExpectedSize(mutableGraphNode.getEnteringEdgeCount()));
         immutableLeavingEdges.add(
