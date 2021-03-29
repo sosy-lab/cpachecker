@@ -1009,7 +1009,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   /**
    * Builder for system dependence graphs. Instances of a builder can only be used once. It's not
    * possible to build multiple SDGs with one and the same builder. Calling {@link #build()}
-   * finished SDG construction.
+   * finishes SDG construction.
    *
    * <p>How a single node is inserted: {@code builder.node(...);}
    *
