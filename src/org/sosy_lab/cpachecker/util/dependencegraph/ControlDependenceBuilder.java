@@ -199,7 +199,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
    *
    * <p>Example (simplified):
    *
-   * <pre><code>
+   * <pre>{@code
    * Function:
    *
    * int f(int x) {
@@ -227,7 +227,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
    *                                        |      |
    * { y = x - 1; } <----- { [x > 0] } <-----      -----> { [!(x > 0)] } -----> { y = x + 1; }
    *
-   * </code></pre>
+   * }</pre>
    */
   private void insertEntryControlDependencies(Set<CFANode> pFunctionNodes) {
 
