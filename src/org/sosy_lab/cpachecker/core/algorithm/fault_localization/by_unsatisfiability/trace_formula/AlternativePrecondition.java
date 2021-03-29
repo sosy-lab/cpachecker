@@ -51,7 +51,7 @@ public class AlternativePrecondition {
       FormulaEntryList pEntries) {
     AlternativePreconditionHelper altpre =
         new AlternativePreconditionHelper(pFormulaContext, pIgnore, pFilter);
-    pEntries.removeIf(entry -> altpre.add(entry));
+    pEntries.removeIf(altpre::add);
     pEntries.addEntry(0, new FormulaEntryList.PreconditionEntry(altpre.preConditionMap));
     BooleanFormulaManager bmgr =
         pFormulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
@@ -60,14 +60,14 @@ public class AlternativePrecondition {
 
   static class AlternativePreconditionHelper {
 
-    private Map<Formula, Integer> variableToIndexMap;
-    private List<BooleanFormula> preCondition;
-    private List<String> ignore;
-    private List<String> filter;
+    private final Map<Formula, Integer> variableToIndexMap;
+    private final List<BooleanFormula> preCondition;
+    private final List<String> ignore;
+    private final List<String> filter;
     private SSAMap preConditionMap;
-    private FormulaContext context;
+    private final FormulaContext context;
 
-    AlternativePreconditionHelper(FormulaContext pContext, String pIngnore, String pFilter) {
+    private AlternativePreconditionHelper(FormulaContext pContext, String pIngnore, String pFilter) {
       context = pContext;
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
@@ -84,9 +84,12 @@ public class AlternativePrecondition {
       }
     }
 
-    boolean add(FormulaEntry entry) {
+    private boolean add(FormulaEntry entry) {
       BooleanFormula formula = entry.getAtom();
       SSAMap currentMap = entry.getMap();
+      if (entry.getSelector() == null || formula == null) {
+        return false;
+      }
       CFAEdge edge = entry.getSelector().getEdge();
 
       FormulaManagerView fmgr = context.getSolver().getFormulaManager();
@@ -115,7 +118,7 @@ public class AlternativePrecondition {
       return false;
     }
 
-    BooleanFormula toFormula() {
+    private BooleanFormula toFormula() {
       return context.getSolver().getFormulaManager().getBooleanFormulaManager().and(preCondition);
     }
 

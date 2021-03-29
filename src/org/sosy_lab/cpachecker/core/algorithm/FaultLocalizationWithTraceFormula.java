@@ -78,7 +78,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class FaultLocalizationWithTraceFormula
     implements Algorithm, StatisticsProvider, Statistics {
 
-  enum AlgorithmTypes {
+  public enum AlgorithmTypes {
     UNSAT, MAXSAT, MAXORG, ERRINV
   }
 
@@ -299,15 +299,7 @@ public class FaultLocalizationWithTraceFormula
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
         info.replaceHtmlWriter(new IntervalReportWriter());
-        info.sortIntended();
-        if (!info.getRankedList().isEmpty()) {
-          Fault first = info.getRankedList().get(0);
-          if (first instanceof ErrorInvariantsAlgorithm.Interval) {
-            if (((ErrorInvariantsAlgorithm.Interval)first).getInvariant().equals(tf.getPrecondition())) {
-              info.getRankedList().remove(0);
-            }
-          }
-        }
+        info.setSortIntended(true);
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
