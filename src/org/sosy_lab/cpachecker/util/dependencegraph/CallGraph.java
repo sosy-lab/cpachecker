@@ -33,19 +33,22 @@ import java.util.function.Function;
  */
 final class CallGraph<P> {
 
-  private final ImmutableList<Node<P>> nodes;
-  private final ImmutableMap<P, Node<P>> nodeMap;
+  private final ImmutableList<Node.ImmutableNode<P>> nodes;
+  private final ImmutableMap<P, Node.ImmutableNode<P>> nodeMap;
 
-  private CallGraph(ImmutableList<Node<P>> pNodes, ImmutableMap<P, Node<P>> pNodeMap) {
+  private CallGraph(
+      ImmutableList<Node.ImmutableNode<P>> pNodes,
+      ImmutableMap<P, Node.ImmutableNode<P>> pNodeMap) {
 
     nodes = pNodes;
     nodeMap = pNodeMap;
   }
 
-  private static <P> Node<P> createNodeIfAbsent(
-      List<Node<P>> pNodes, Map<P, Node<P>> pNodeMap, P pProcedure) {
+  private static <P> Node.MutableNode<P> createNodeIfAbsent(
+      List<Node.MutableNode<P>> pNodes, Map<P, Node.MutableNode<P>> pNodeMap, P pProcedure) {
 
-    Node<P> node = pNodeMap.computeIfAbsent(pProcedure, key -> new Node<>(pNodes.size(), key));
+    Node.MutableNode<P> node =
+        pNodeMap.computeIfAbsent(pProcedure, key -> new Node.MutableNode<>(pNodes.size(), key));
 
     if (pNodeMap.size() > pNodes.size()) {
       pNodes.add(node);
@@ -55,22 +58,27 @@ final class CallGraph<P> {
   }
 
   private static <P> void insertEdge(
-      List<Node<P>> pNodes, Map<P, Node<P>> pNodeMap, P pPredecessor, P pSuccessor) {
+      List<Node.MutableNode<P>> pNodes,
+      Map<P, Node.MutableNode<P>> pNodeMap,
+      P pPredecessor,
+      P pSuccessor) {
 
-    Node<P> predecessorCallNode = createNodeIfAbsent(pNodes, pNodeMap, pPredecessor);
-    Node<P> successorCallNode = createNodeIfAbsent(pNodes, pNodeMap, pSuccessor);
+    Node.MutableNode<P> predecessorCallNode = createNodeIfAbsent(pNodes, pNodeMap, pPredecessor);
+    Node.MutableNode<P> successorCallNode = createNodeIfAbsent(pNodes, pNodeMap, pSuccessor);
 
     predecessorCallNode.addSuccessor(successorCallNode);
     successorCallNode.addPredecessor(predecessorCallNode);
   }
+  
+  
 
   static <P, N> CallGraph<P> createCallGraph(
       Function<? super N, ? extends Iterable<? extends SuccessorResult<? extends P, ? extends N>>>
           pSuccessorFunction,
       Collection<? extends N> pStartNodes) {
 
-    List<Node<P>> nodes = new ArrayList<>();
-    Map<P, Node<P>> nodeMap = new HashMap<>();
+    List<Node.MutableNode<P>> nodes = new ArrayList<>();
+    Map<P, Node.MutableNode<P>> nodeMap = new HashMap<>();
     Deque<N> waitlist = new ArrayDeque<>();
     Set<N> waitlisted = new HashSet<>();
 
@@ -97,11 +105,42 @@ final class CallGraph<P> {
       }
     }
 
-    for (Node<P> node : nodes) {
-      node.finish();
+    ImmutableList.Builder<Node.ImmutableNode<P>> immutableNodesBuilder =
+        ImmutableList.builderWithExpectedSize(nodes.size());
+    List<ImmutableList.Builder<Node<P>>> immutablePredecessors = new ArrayList<>(nodes.size());
+    List<ImmutableList.Builder<Node<P>>> immutableSuccessors = new ArrayList<>(nodes.size());
+    ImmutableMap.Builder<P, Node.ImmutableNode<P>> immutableNodeMapBuilder =
+        ImmutableMap.builderWithExpectedSize(nodeMap.size());
+
+    for (Node.MutableNode<P> mutableNode : nodes) {
+      Node.ImmutableNode<P> immutableNode =
+          new Node.ImmutableNode<>(mutableNode.getId(), mutableNode.getProcedure());
+      immutableNodesBuilder.add(immutableNode);
+      immutablePredecessors.add(
+          ImmutableList.builderWithExpectedSize(mutableNode.getPredecessors().size()));
+      immutableSuccessors.add(
+          ImmutableList.builderWithExpectedSize(mutableNode.getSuccessors().size()));
+      immutableNodeMapBuilder.put(immutableNode.getProcedure(), immutableNode);
     }
 
-    return new CallGraph<>(ImmutableList.copyOf(nodes), ImmutableMap.copyOf(nodeMap));
+    ImmutableList<Node.ImmutableNode<P>> immutableNodes = immutableNodesBuilder.build();
+
+    for (Node.MutableNode<P> mutablePredecessorNode : nodes) {
+      int predecessorId = mutablePredecessorNode.getId();
+      for (Node<P> mutableSuccessorNode : mutablePredecessorNode.getSuccessors()) {
+        int successorId = mutableSuccessorNode.getId();
+        immutablePredecessors.get(successorId).add(immutableNodes.get(predecessorId));
+        immutableSuccessors.get(predecessorId).add(immutableNodes.get(successorId));
+      }
+    }
+
+    for (int index = 0; index < immutableNodes.size(); index++) {
+      Node.ImmutableNode<P> immutableNode = immutableNodes.get(index);
+      immutableNode.predecessors = immutablePredecessors.get(index).build();
+      immutableNode.successors = immutableSuccessors.get(index).build();
+    }
+
+    return new CallGraph<>(immutableNodes, immutableNodeMapBuilder.build());
   }
 
   Optional<Node<P>> getNode(P pProcedure) {
@@ -263,55 +302,31 @@ final class CallGraph<P> {
     }
   }
 
-  static final class Node<P> {
+  abstract static class Node<P> {
 
     private int id;
     private final P procedure;
-
-    private List<Node<P>> predecessors;
-    private List<Node<P>> successors;
 
     private Node(int pId, P pProcedure) {
 
       id = pId;
       procedure = pProcedure;
-
-      predecessors = new ArrayList<>();
-      successors = new ArrayList<>();
     }
 
-    private void addPredecessor(Node<P> pNode) {
-      predecessors.add(pNode);
-    }
-
-    private void addSuccessor(Node<P> pNode) {
-      successors.add(pNode);
-    }
-
-    private void finish() {
-
-      predecessors = ImmutableList.copyOf(predecessors);
-      successors = ImmutableList.copyOf(successors);
-    }
-
-    int getId() {
+    final int getId() {
       return id;
     }
 
-    P getProcedure() {
+    final P getProcedure() {
       return procedure;
     }
 
-    ImmutableList<Node<P>> getPredecessors() {
-      return ImmutableList.copyOf(predecessors);
-    }
+    abstract ImmutableList<Node<P>> getPredecessors();
 
-    ImmutableList<Node<P>> getSuccessors() {
-      return ImmutableList.copyOf(successors);
-    }
+    abstract ImmutableList<Node<P>> getSuccessors();
 
     @Override
-    public String toString() {
+    public final String toString() {
 
       StringBuilder sb = new StringBuilder();
 
@@ -330,18 +345,71 @@ final class CallGraph<P> {
 
       sb.append("predecessors=");
       List<P> predecessorProcedures =
-          predecessors.stream().map(Node::getProcedure).collect(ImmutableList.toImmutableList());
+          getPredecessors().stream()
+              .map(Node::getProcedure)
+              .collect(ImmutableList.toImmutableList());
       sb.append(predecessorProcedures.toString());
       sb.append(',');
 
       sb.append("successors=");
       List<P> successorProcedures =
-          successors.stream().map(Node::getProcedure).collect(ImmutableList.toImmutableList());
+          getSuccessors().stream().map(Node::getProcedure).collect(ImmutableList.toImmutableList());
       sb.append(successorProcedures.toString());
 
       sb.append(']');
 
       return sb.toString();
+    }
+
+    private static final class MutableNode<P> extends Node<P> {
+
+      private final List<Node<P>> predecessors;
+      private final List<Node<P>> successors;
+
+      private MutableNode(int pId, P pProcedure) {
+        super(pId, pProcedure);
+
+        predecessors = new ArrayList<>();
+        successors = new ArrayList<>();
+      }
+
+      @Override
+      ImmutableList<Node<P>> getPredecessors() {
+        return ImmutableList.copyOf(predecessors);
+      }
+
+      private void addPredecessor(Node<P> pNode) {
+        predecessors.add(pNode);
+      }
+
+      @Override
+      ImmutableList<Node<P>> getSuccessors() {
+        return ImmutableList.copyOf(successors);
+      }
+
+      private void addSuccessor(Node<P> pNode) {
+        successors.add(pNode);
+      }
+    }
+
+    private static final class ImmutableNode<P> extends Node<P> {
+
+      private ImmutableList<Node<P>> predecessors;
+      private ImmutableList<Node<P>> successors;
+
+      private ImmutableNode(int pId, P pProcedure) {
+        super(pId, pProcedure);
+      }
+
+      @Override
+      ImmutableList<Node<P>> getPredecessors() {
+        return predecessors;
+      }
+
+      @Override
+      ImmutableList<Node<P>> getSuccessors() {
+        return successors;
+      }
     }
   }
 }
