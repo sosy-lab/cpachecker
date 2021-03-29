@@ -120,9 +120,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       name = "considerPointees",
       description =
           "Whether to consider pointees. Only if this option is set to true, a pointer analysis is"
-              + " run during SDG construction and dependencies of pointees are inserted into the"
-              + " SDG. If this option is set to false, pointers are completely ignored and the"
-              + " resulting SDG is an under-approximation that lacks all pointee dependencies.")
+              + " run during system dependence graph (SDG) construction and dependencies of"
+              + " pointees are inserted into the SDG. If this option is set to false, pointers are"
+              + " completely ignored and the resulting SDG is an under-approximation that lacks"
+              + " all pointee dependencies.")
   private boolean considerPointees = true;
 
   @Option(
