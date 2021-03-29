@@ -819,21 +819,17 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public final boolean equals(Object pObject) {
 
-      if (this == obj) {
+      if (this == pObject) {
         return true;
       }
 
-      if (obj == null) {
+      if (!(pObject instanceof GraphNode)) {
         return false;
       }
 
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-
-      GraphNode<?, ?> other = (GraphNode<?, ?>) obj;
+      GraphNode<?, ?> other = (GraphNode<?, ?>) pObject;
       return node.equals(other.node);
     }
 
