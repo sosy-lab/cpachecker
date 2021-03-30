@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -61,6 +62,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
+  private final LoopSummaryCPAStatistics stats;
 
   @SuppressWarnings("unused")
   private final CFA originalCFA;
@@ -85,6 +87,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
       int pLookaheaditerations,
       CFA pCfa) {
     super(pLoopSummaryCPA.getWrappedCpa().getTransferRelation());
+    stats = pLoopSummaryCPA.getStatistics();
     logger = pLoopSummaryCPA.getLogger();
     shutdownNotifier = pShutdownNotifier;
     strategies = pStrategies;
@@ -110,6 +113,8 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     if (!currentStrategyForCFANode.containsKey(node)) {
       currentStrategyForCFANode.put(node, 0);
     }
+
+
     /*
      * Problems when executing scripts/cpa.sh -config config/predicateAnalysis--overflow.properties -setprop limits.time.cpu=900s -setprop counterexample.export.enabled=false test/programs/benchmarks/termination-crafted/2Nested-2.c
      * Result is True, while correct result is False
@@ -119,7 +124,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     /*
      *
      * Problem when executing following command line
-     * -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -timelimit 900s -stats -spec ../../sv-benchmarks/c/properties/no-overflow.prp -64 ../../sv-benchmarks/c/termination-crafted/Arrays01-EquivalentConstantIndices-1.c
+     * scripts/cpa.sh -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -timelimit 900s -stats -spec ../../sv-benchmarks/c/properties/no-overflow.prp -64 ../../sv-benchmarks/c/termination-crafted/Arrays01-EquivalentConstantIndices-1.c
      *
      * Problem related to precision adjustment
      *
@@ -145,6 +150,29 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     */
 
     /*
+         * scripts/cpa.sh -heap 10000M -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -timelimit 900s -stats -spec test/programs/benchmarks/properties/no-overflow.prp -64 test/programs/benchmarks/termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex2.06.c
+         *
+         * Using summary Strategy: class org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration (LoopSummaryCPA:AbstractLoopSummaryTransferRelation.getAbstractSuccessors, INFO)
+
+    Exception in thread "main" java.util.NoSuchElementException
+        at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1000)
+        at java.base/java.util.Collections$UnmodifiableCollection$1.next(Collections.java:1047)
+        at com.google.common.collect.Iterators.getOnlyElement(Iterators.java:301)
+        at com.google.common.collect.Iterables.getOnlyElement(Iterables.java:254)
+        at org.sosy_lab.cpachecker.cpa.arg.ARGPrecisionAdjustment.elementHasSiblings(ARGPrecisionAdjustment.java:150)
+        at org.sosy_lab.cpachecker.cpa.arg.ARGPrecisionAdjustment.prec(ARGPrecisionAdjustment.java:98)
+        at org.sosy_lab.cpachecker.cpa.arg.ARGPrecisionAdjustment.prec(ARGPrecisionAdjustment.java:54)
+        at org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.handleState(CPAAlgorithm.java:340)
+        at org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.run0(CPAAlgorithm.java:273)
+        at org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.run(CPAAlgorithm.java:245)
+        at org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.run(CEGARAlgorithm.java:229)
+        at org.sosy_lab.cpachecker.core.CPAchecker.runAlgorithm(CPAchecker.java:532)
+        at org.sosy_lab.cpachecker.core.CPAchecker.run(CPAchecker.java:399)
+        at org.sosy_lab.cpachecker.cmdline.CPAMain.main(CPAMain.java:170)
+         *
+         */
+
+    /*
      * For some reason busybox-1.22.0/ls-incomplete-2.c cannot be parsed when calling
      * scripts/cpa.sh -heap 10000M -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -preprocess -timelimit 900s -spec test/programs/benchmarks/properties/no-overflow.prp -64 test/programs/benchmarks/busybox-1.22.0/ls-incomplete-2.c
      *
@@ -156,9 +184,8 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
      */
 
     /*
-     * scripts/cpa.sh -heap 10000M -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -preprocess -timelimit 900s -spec test/programs/benchmarks/properties/no-overflow.prp -64 test/programs/benchmarks/loop-zilu/benchmark27_linear.c
      *
-     * Does not use a summary strategy even though it should use the arithemtic strategy
+     * How do you print the Statistics, the override in the LoopSummaryCPAStatistics does not work.
      *
      */
 
@@ -172,14 +199,16 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
           strategies
               .get(currentStrategyForCFANode.get(node))
               .summarizeLoopState(pState, pPrecision, transferRelation);
-      if (currentStrategyForCFANode.get(node) + 1 != strategies.size()
+      if (!(strategies.get(currentStrategyForCFANode.get(node)) instanceof BaseStrategy)
           && !summarizedState.isEmpty()) {
         logger.log(
             Level.INFO,
             "Using summary Strategy: "
-                + strategies.get(currentStrategyForCFANode.get(node)).getClass());
+                + strategies.get(currentStrategyForCFANode.get(node)).getClass().getName());
       }
     }
+    stats.updateSummariesUsed(
+        strategies.get(currentStrategyForCFANode.get(node)).getClass().getName(), 1);
     return summarizedState.get();
   }
 
