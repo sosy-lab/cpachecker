@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -82,21 +84,17 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   private static final int NO_IF_CASE = -1;
 
   public LoopData(
-      CFANode nameStart,
-      CFANode endCondition,
       CFA cfa,
       List<CFANode> loopNodes,
       Loop loop,
       LogManager pLogger) {
     timeToAnalyze = new Timer();
     timeToAnalyze.start();
-    loopStart = nameStart;
     this.endOfCondition = new ArrayList<>();
+    getStartAndConditionEnd(loopNodes);
     conditionInFor = new ArrayList<>();
     output = new ArrayList<>();
-
     onlyRandomCondition = false;
-    this.endOfCondition.add(endCondition);
     loopInLoop = isInnerLoop(loop, cfa);
     outerLoop = isOuterLoop(loop, cfa);
     loopType = findLoopType(loopStart);
@@ -121,6 +119,47 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             nodesInCondition, loopType, endOfCondition, flagEndless, onlyRandomCondition);
     timeToAnalyze.stop();
     analyzeTime = timeToAnalyze.getLengthOfLastInterval();
+  }
+
+  private void getStartAndConditionEnd(List<CFANode> loopNodes) {
+    CFANode loopHead = loopNodes.get(FIRST_POSITION_OF_LIST);
+    CFAEdge tempEdge = loopHead.getLeavingEdge(VALID_STATE);
+    CFANode tempNode = null;
+    if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
+        || tempEdge.getCode().contains("CPAchecker_TMP")) {
+      while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
+          || tempEdge.getCode().contains("CPAchecker_TMP")) {
+        for (int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
+          if (!tempEdge
+                  .getSuccessor()
+                  .getLeavingEdge(i)
+                  .getEdgeType()
+                  .equals(CFAEdgeType.AssumeEdge)
+              || tempEdge.getCode().contains("CPAchecker_TMP")) {
+            if (tempEdge.getCode().contains("__VERIFIER_nondet_")) {
+              tempNode = tempEdge.getSuccessor().getLeavingEdge(1).getSuccessor();
+            } else if (!tempEdge.getCode().contains("CPAchecker_TMP")) {
+              tempNode = tempEdge.getSuccessor();
+            }
+          }
+        }
+        if (!(tempEdge.getCode().contains("CPAchecker_TMP") && tempEdge.getCode().contains("=="))) {
+          tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
+        } else {
+          tempEdge =
+              tempEdge
+                  .getPredecessor()
+                  .getLeavingEdge(1)
+                  .getSuccessor()
+                  .getLeavingEdge(VALID_STATE);
+        }
+      }
+    } else {
+      tempNode = loopHead;
+    }
+
+    setLoopStart(loopHead);
+    addToLoopEnd(tempNode);
   }
 
   /**
@@ -249,6 +288,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             ADeclarationEdge dec = (ADeclarationEdge) n.getLeavingEdge(e);
             CSimpleDeclaration v = (CSimpleDeclaration) dec.getDeclaration();
 
+
             if (o.getVariableNameAsString().equals(v.getName())) {
 
               o.setInitializationLine(
@@ -283,7 +323,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   }
 
   private LoopVariables checkForValues(CExpression expression, CFANode node) {
-
     LoopVariables loopVariable = null;
     if (expression instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) expression;
@@ -513,6 +552,20 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return paths;
   }
 
+  private boolean checkIfNodesInCondition(
+      CFANode tempNode, List<CFANode> nodes, List<CFANode> loopNodes) {
+
+    return (tempNode.getLeavingEdge(0) instanceof AssumeEdge
+        && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+        && !nodes.contains(tempNode))
+    || (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
+        && tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
+        && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
+        && !nodes.contains(tempNode));
+
+
+  }
+
   /**
    * This method looks for all of the nodes in the condition and even cuts out the nodes that belong
    * to an if-case
@@ -545,13 +598,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
       while (lookingForNodes) {
 
-        if ((tempNode.getLeavingEdge(0) instanceof AssumeEdge
-                && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
-                && !nodes.contains(tempNode))
-            || (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
-                && tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
-                && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
-                && !nodes.contains(tempNode))) {
+        if (checkIfNodesInCondition(tempNode, nodes, loopNodes)) {
           nodes.add(tempNode);
         }
 
@@ -990,7 +1037,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
 
   @Override
   public int compareTo(LoopData otherLoop) {
-    return (this.getLoopStart().getNodeNumber() < otherLoop.getLoopStart().getNodeNumber()
+    return (this.getLoopStart().getLeavingEdge(0).getFileLocation().getStartingLineInOrigin()
+            < otherLoop.getLoopStart().getLeavingEdge(0).getFileLocation().getStartingLineInOrigin()
         ? -1
         : (this.getLoopStart().getNodeNumber() == otherLoop.getLoopStart().getNodeNumber()
             ? 0
@@ -1006,7 +1054,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       return true;
     }
     LoopData ld = (LoopData) otherLoop;
-    if (this.getLoopStart().getNodeNumber() == ld.getLoopStart().getNodeNumber()) {
+    if (this.getLoopStart().getNodeNumber() == ld.getLoopStart().getNodeNumber()
+        && this.getFaileState().getNodeNumber() == ld.getFaileState().getNodeNumber()
+        && this.getAmountOfPaths() == ld.getAmountOfPaths()
+        && this.getNumberOutputs() == ld.getNumberOutputs()) {
       return true;
     } else {
       return false;
@@ -1016,7 +1067,19 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   @Override
   public int hashCode() {
     final int prime = 29;
-    return loopStart.getNodeNumber() * prime;
+    return (loopStart.getNodeNumber()
+            + failedState.getNodeNumber()
+            + amountOfPaths
+            + numberAllOutputs)
+        * prime;
+  }
+
+  private void setLoopStart(CFANode pLoopStart) {
+    loopStart = pLoopStart;
+  }
+
+  private void addToLoopEnd(CFANode pLoopEnd) {
+    endOfCondition.add(pLoopEnd);
   }
 
   public CFANode getLoopStart() {
