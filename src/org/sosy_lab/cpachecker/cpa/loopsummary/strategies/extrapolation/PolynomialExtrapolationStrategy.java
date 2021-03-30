@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
+package org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,16 +28,17 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.GhostCFA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class InterpolationStrategy extends AbstractStrategy {
+public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrategy {
   // See:
   // http://evoq-eval.siam.org/Portals/0/Publications/SIURO/Vol1_Issue1/A_Simple_Expression_for_Multivariate.pdf?ver=2018-03-30-130233-050
 
   final int multinomialDegree;
 
-  public InterpolationStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+  public PolynomialExtrapolationStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     super(pLogger, pShutdownNotifier);
     this.multinomialDegree = 4;
   }

@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -18,17 +20,27 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.ArithmeticStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.InterpolationStrategy;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LinearInvariantStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.ConstantExtrapolationStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.LinearExtrapolationStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.PolynomialExtrapolationStrategy;
 
 @Options(prefix = "cpa.loopsummary")
 public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
+
+  private enum StrategiesEnum {
+    BASE,
+    LOOPACCELERATION,
+    NAIVELOOPACCELERATION,
+    POLYNOMIALEXTRAPOLATION,
+    LINEAREXTRAPOLATION,
+    CONSTANTEXTRAPOLATION
+  }
 
   // TODO wie kann man die argumente angeben
   @Option(
@@ -36,7 +48,17 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
       secure = true,
       description =
           "Strategies to be used in the Summary. The order of the strategies marks in which order they are tried")
-  protected ArrayList<StrategyInterface> strategies = new ArrayList<>();
+  private ArrayList<StrategiesEnum> strategies =
+      new ArrayList<>(
+          Arrays.asList(
+              StrategiesEnum.CONSTANTEXTRAPOLATION,
+              StrategiesEnum.LINEAREXTRAPOLATION,
+              StrategiesEnum.POLYNOMIALEXTRAPOLATION,
+              StrategiesEnum.NAIVELOOPACCELERATION,
+              StrategiesEnum.LOOPACCELERATION,
+              StrategiesEnum.BASE));
+
+  private ArrayList<StrategyInterface> strategiesClass = new ArrayList<>();
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -59,19 +81,28 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     pConfig.inject(this, AbstractLoopSummaryCPA.class);
 
-    strategies.add(new ArithmeticStrategy(pLogger, pShutdownNotifier));
-    strategies.add(new LinearInvariantStrategy(pLogger, pShutdownNotifier));
-    strategies.add(new InterpolationStrategy(pLogger, pShutdownNotifier));
-    strategies.add(new NaiveLoopAcceleration(pLogger, pShutdownNotifier));
-    strategies.add(new LoopAcceleration(pLogger, pShutdownNotifier));
-    strategies.add(new BaseStrategy(pLogger, pShutdownNotifier));
-
-    /* TODO What does this mean
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithLoopSummary)) {
-      throw new InvalidConfigurationException(
-          "Loop Summary needs CPAs that are capable for Loop Summary");
+    for (StrategiesEnum e : strategies) {
+      switch (e) {
+        case BASE:
+          strategiesClass.add(new BaseStrategy(pLogger, pShutdownNotifier));
+          break;
+        case LOOPACCELERATION:
+          strategiesClass.add(new LoopAcceleration(pLogger, pShutdownNotifier));
+          break;
+        case NAIVELOOPACCELERATION:
+          strategiesClass.add(new NaiveLoopAcceleration(pLogger, pShutdownNotifier));
+          break;
+        case POLYNOMIALEXTRAPOLATION:
+          strategiesClass.add(new PolynomialExtrapolationStrategy(pLogger, pShutdownNotifier));
+          break;
+        case LINEAREXTRAPOLATION:
+          strategiesClass.add(new LinearExtrapolationStrategy(pLogger, pShutdownNotifier));
+          break;
+        case CONSTANTEXTRAPOLATION:
+          strategiesClass.add(new ConstantExtrapolationStrategy(pLogger, pShutdownNotifier));
+          break;
+      }
     }
-    */
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -97,6 +128,12 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
   }
 
   ArrayList<StrategyInterface> getStrategies() {
-    return strategies;
+    return strategiesClass;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+    super.collectStatistics(pStatsCollection);
   }
 }

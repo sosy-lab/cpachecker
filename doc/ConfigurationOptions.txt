@@ -1840,7 +1840,14 @@ cpa.loopsummary.lookaheaditerations = 10
 
 # Strategies to be used in the Summary. The order of the strategies marks in
 # which order they are tried
-cpa.loopsummary.strategies = new ArrayList<>()
+cpa.loopsummary.strategies = new ArrayList<>(
+          Arrays.asList(
+              StrategiesEnum.CONSTANTEXTRAPOLATION,
+              StrategiesEnum.LINEAREXTRAPOLATION,
+              StrategiesEnum.POLYNOMIALEXTRAPOLATION,
+              StrategiesEnum.NAIVELOOPACCELERATION,
+              StrategiesEnum.LOOPACCELERATION,
+              StrategiesEnum.BASE))
 
 # test
 cpa.loopsummary.test = false

@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
+import com.google.common.base.Splitter;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.logging.Level;
+import java.util.LinkedHashMap;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -34,7 +35,7 @@ class LoopSummaryCPAStatistics implements Statistics {
   @SuppressWarnings("unused")
   private final AbstractLoopSummaryCPA cpa;
 
-  private final HashMap<String, Integer> strategiesUsed = new HashMap<>();
+  private final LinkedHashMap<String, Integer> strategiesUsed = new LinkedHashMap<>();
 
   public LoopSummaryCPAStatistics(Configuration pConfig, LogManager pLogger, AbstractLoopSummaryCPA pCpa)
       throws InvalidConfigurationException {
@@ -55,15 +56,17 @@ class LoopSummaryCPAStatistics implements Statistics {
     if (strategiesUsed.containsKey(summaryName)) {
       strategiesUsed.put(summaryName, strategiesUsed.get(summaryName) + timesUsed);
     }
-    // logger.log(Level.INFO, strategiesUsed);
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    logger.log(Level.INFO, strategiesUsed);
     out.println("Strategy Statistics:");
     for (String k : strategiesUsed.keySet()) {
-      put(out, "Number of times Strategy " + k + " was used: ", strategiesUsed.get(k));
+      List<String> splitName = Splitter.on('.').splitToList(k);
+      put(
+          out,
+          "Number of times Strategy " + splitName.get(splitName.size() - 1) + " was used: ",
+          strategiesUsed.get(k));
     }
   }
 }
