@@ -58,38 +58,33 @@ public class LoopInformation {
 
   private CFA cfa;
   private List<LoopData> loopData;
-  private final LogManager logger;
-
-  private static final int FIRST_ELEMENT_OF_LIST = 0;
-  private static final int VALID_STATE = 0;
 
   public LoopInformation(Configuration config, LogManager pLogger, CFA cfa)
       throws InvalidConfigurationException {
-    logger = checkNotNull(pLogger);
     config.inject(this);
     this.cfa = cfa;
     loopData = new ArrayList<>();
-    lookForLoops();
+    lookForLoops(checkNotNull(pLogger));
   }
 
   /**
    * This Method looks for all the loops in the specified program, collects the information and
    * "dumps" a information file in the output that gives the user all of the information
    */
-  public void lookForLoops() {
+  public void lookForLoops(LogManager pLogger) {
     ImmutableCollection<Loop> allLoops = cfa.getLoopStructure().orElseThrow().getAllLoops();
 
     for (Loop loop : allLoops) {
       List<CFANode> loopNodes = new ArrayList<>();
       Iterables.addAll(loopNodes, loop.getLoopNodes());
-      loopData.add(new LoopData(cfa, loopNodes, loop, logger));
+      loopData.add(new LoopData(cfa, loopNodes, loop, pLogger));
     }
 
     sortLoopDataList();
-    writeOutputFile();
+    writeOutputFile(pLogger);
   }
 
-  private void writeOutputFile() {
+  private void writeOutputFile(LogManager pLogger) {
     if (dumpfile != null && outputFile) {
       try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
         for (LoopData x : loopData) {
@@ -98,7 +93,7 @@ public class LoopInformation {
         }
 
       } catch (IOException e) {
-        logger.logUserException(
+        pLogger.logUserException(
             Level.WARNING, e, "Could not write variable classification to file");
       }
     }

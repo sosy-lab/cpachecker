@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -125,16 +124,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     CFANode loopHead = loopNodes.get(FIRST_POSITION_OF_LIST);
     CFAEdge tempEdge = loopHead.getLeavingEdge(VALID_STATE);
     CFANode tempNode = null;
-    if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
-        || tempEdge.getCode().contains("CPAchecker_TMP")) {
-      while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)
-          || tempEdge.getCode().contains("CPAchecker_TMP")) {
+    if (tempEdge instanceof AssumeEdge || tempEdge.getCode().contains("CPAchecker_TMP")) {
+      while (tempEdge instanceof AssumeEdge || tempEdge.getCode().contains("CPAchecker_TMP")) {
         for (int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
-          if (!tempEdge
-                  .getSuccessor()
-                  .getLeavingEdge(i)
-                  .getEdgeType()
-                  .equals(CFAEdgeType.AssumeEdge)
+          if (!(tempEdge.getSuccessor().getLeavingEdge(i) instanceof AssumeEdge)
               || tempEdge.getCode().contains("CPAchecker_TMP")) {
             if (tempEdge.getCode().contains("__VERIFIER_nondet_")) {
               tempNode = tempEdge.getSuccessor().getLeavingEdge(1).getSuccessor();
@@ -562,8 +555,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
         && tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
         && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
         && !nodes.contains(tempNode));
-
-
   }
 
   /**
@@ -941,8 +932,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
                   temp.add(true);
                   }
                 } else if (rVarInBinaryExp instanceof CCharLiteralExpression) {
-                  if (((CCharLiteralExpression) rVarInBinaryExp).getValue() > pathNumber
-                      || ((CCharLiteralExpression) rVarInBinaryExp).getValue() > outputNumber) {
+                  if (((CCharLiteralExpression) rVarInBinaryExp).getCharacter() > pathNumber
+                      || ((CCharLiteralExpression) rVarInBinaryExp).getCharacter() > outputNumber) {
                     temp.add(true);
                   }
                 } else if (rVarInBinaryExp instanceof CFloatLiteralExpression) {
@@ -981,8 +972,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
                     temp.add(true);
                   }
                 } else if (lVarInBinaryExp instanceof CCharLiteralExpression) {
-                  if (((CCharLiteralExpression) lVarInBinaryExp).getValue() > pathNumber
-                      || ((CCharLiteralExpression) lVarInBinaryExp).getValue() > outputNumber) {
+                  if (((CCharLiteralExpression) lVarInBinaryExp).getCharacter() > pathNumber
+                      || ((CCharLiteralExpression) lVarInBinaryExp).getCharacter() > outputNumber) {
                     temp.add(true);
                   }
                 } else if (lVarInBinaryExp instanceof CFloatLiteralExpression) {
@@ -1002,8 +993,8 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
                     temp.add(true);
                   }
                 } else if (rVarInBinaryExp instanceof CCharLiteralExpression) {
-                  if (((CCharLiteralExpression) rVarInBinaryExp).getValue() > pathNumber
-                      || ((CCharLiteralExpression) rVarInBinaryExp).getValue() > outputNumber) {
+                  if (((CCharLiteralExpression) rVarInBinaryExp).getCharacter() > pathNumber
+                      || ((CCharLiteralExpression) rVarInBinaryExp).getCharacter() > outputNumber) {
                     temp.add(true);
                   }
                 } else if (rVarInBinaryExp instanceof CFloatLiteralExpression) {
