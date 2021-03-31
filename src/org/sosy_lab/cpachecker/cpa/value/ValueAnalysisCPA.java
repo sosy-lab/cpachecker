@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -22,16 +21,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.MemoryHandler;
+import java.util.logging.LogManager;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jdk.internal.util.Preconditions;
+import org.graalvm.compiler.options.Option;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,12 +52,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor.MemoryLocationEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -69,12 +65,9 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.MemoryLocationLocator;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.MemoryRegion;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -208,26 +201,29 @@ public class ValueAnalysisCPA extends AbstractCPA
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
 
-      Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
-      FormulaManagerView formulaManager = solver.getFormulaManager();
+      try (Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier)) {
+        FormulaManagerView formulaManager = solver.getFormulaManager();
 
+        RegionManager regionManager = new SymbolicRegionManager(solver);
+        AbstractionManager abstractionManager =
+            new AbstractionManager(regionManager, pConfig, logger, solver);
 
-      RegionManager regionManager = new SymbolicRegionManager(solver);
-      AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
+        // PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver,
+        // formulaManager);
 
-      //PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
+        PredicatePrecision predPrec =
+            readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager, abstractionManager);
 
-      PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager, abstractionManager);
+        if (!predPrec.isEmpty()) {
 
+          logger.log(Level.INFO, "now convert precision and then refining ... ");
 
-      if (!predPrec.isEmpty()) {
-
-        logger.log(Level.INFO,"now convert precision and then refining ... ");
-
-        return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, abstractionManager));
-      }
-      else {
-        return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
+          return initialPrecision.withIncrement(
+              convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, abstractionManager));
+        } else {
+          return VariableTrackingPrecision
+              .createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
+        }
       }
     }
 
@@ -276,8 +272,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     logger.log(Level.INFO, "result precision: ");
     logger.log(Level.INFO, predPrec);
     */
-
-    solver.close();
 
     return predPrec;
   }
