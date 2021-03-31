@@ -30,11 +30,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public final class UtilIfAfterLoopCondition {
 
-  private final int NO_IF = -1;
+  private static final int NO_IF = -1;
 
-  protected UtilIfAfterLoopCondition() {}
+  private UtilIfAfterLoopCondition() {}
 
-  private List<Integer> readFile(
+  private static List<Integer> readFile(
       FileLocation fileLocation, int smallestLineNumber, int biggestLineNumber, LogManager logger) {
     List<Integer> allLinesWithIf = new ArrayList<>();
     try (Reader freader =
@@ -49,8 +49,6 @@ public final class UtilIfAfterLoopCondition {
             if (temp != NO_IF) {
               allLinesWithIf.add(temp);
             }
-
-            ;
           }
           lineNumber++;
         }
@@ -63,7 +61,7 @@ public final class UtilIfAfterLoopCondition {
     return allLinesWithIf;
   }
 
-  private int findSmallestIfLineNumber(List<Integer> ifLines) {
+  private static int findSmallestIfLineNumber(List<Integer> ifLines) {
     if (!ifLines.isEmpty()) {
       int small = ifLines.get(0);
       for (Integer v : ifLines) {
@@ -77,7 +75,7 @@ public final class UtilIfAfterLoopCondition {
     }
   }
 
-  private int findIf(String text, int lineNumber) {
+  private static int findIf(String text, int lineNumber) {
     int lineNumberTemp = lineNumber;
     String temp = Iterables.get(Splitter.on('(').split(text), 0);
     if (temp.contains("if")) {
@@ -88,7 +86,7 @@ public final class UtilIfAfterLoopCondition {
     }
   }
 
-  private int getSmallestLineNumber(List<CFANode> nodes) {
+  private static int getSmallestLineNumber(List<CFANode> nodes) {
     int small = -1;
     for (CFANode node : nodes) {
       if (node.getNumLeavingEdges() > 0) {
@@ -106,7 +104,7 @@ public final class UtilIfAfterLoopCondition {
     return small;
   }
 
-  private int getBiggestLineNumber(List<CFANode> nodes) {
+  private static int getBiggestLineNumber(List<CFANode> nodes) {
     int big = -1;
     for (CFANode node : nodes) {
       if (node.getNumLeavingEdges() > 0) {
@@ -132,7 +130,7 @@ public final class UtilIfAfterLoopCondition {
    * @param pLogger logger that logs exceptions
    * @return returns the line-number the if case starts, there are no if cases if it returns -1
    */
-  public int getSmallestIf(List<CFANode> nodes, LogManager pLogger) {
+  public static int getSmallestIf(List<CFANode> nodes, LogManager pLogger) {
     FileLocation fileLocation = null;
     LogManager logger = pLogger;
 

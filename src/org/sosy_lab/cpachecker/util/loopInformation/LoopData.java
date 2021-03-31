@@ -641,8 +641,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       }
     }
     if (!nodes.isEmpty()) {
-      UtilIfAfterLoopCondition ifAfter = new UtilIfAfterLoopCondition();
-      int smallestIf = ifAfter.getSmallestIf(nodes, pLogger);
+      int smallestIf = UtilIfAfterLoopCondition.getSmallestIf(nodes, pLogger);
       if (smallestIf != NO_IF_CASE) {
         List<CFANode> tempNodeList = new ArrayList<>();
         for (CFANode node : nodes) {
