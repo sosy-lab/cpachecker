@@ -213,14 +213,14 @@ public class ValueAnalysisCPA extends AbstractCPA
         // formulaManager);
 
         PredicatePrecision predPrec =
-            readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager, abstractionManager);
+            readAndParsePredPrecFile(pCfa, formulaManager, abstractionManager);
 
         if (!predPrec.isEmpty()) {
 
           logger.log(Level.INFO, "now convert precision and then refining ... ");
 
           return initialPrecision.withIncrement(
-              convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, abstractionManager));
+              convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
         } else {
           return VariableTrackingPrecision
               .createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
@@ -239,8 +239,9 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private PredicatePrecision readAndParsePredPrecFile(
-      final Configuration pConfig, final CFA pCfa, final Solver solver,
-      final FormulaManagerView pFMgr, final AbstractionManager abstractionManager) throws InvalidConfigurationException {
+      final CFA pCfa,
+      final FormulaManagerView pFMgr,
+      final AbstractionManager abstractionManager) {
 
     // create managers for the predicate map parser for parsing the predicates from the given
     // predicate precision file
@@ -278,7 +279,8 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
-      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr, final AbstractionManager pAmgr) {
+      final PredicatePrecision pPredPrec,
+      final FormulaManagerView pFMgr) {
     logger.log(Level.INFO, "now starting to convert precision ...");
     Collection<AbstractionPredicate> predicates = new HashSet<>();
 
