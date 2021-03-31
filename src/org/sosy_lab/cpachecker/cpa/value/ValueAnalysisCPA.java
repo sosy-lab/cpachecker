@@ -211,21 +211,20 @@ public class ValueAnalysisCPA extends AbstractCPA
       Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier);
       FormulaManagerView formulaManager = solver.getFormulaManager();
 
-      /*
-      RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
+
+      RegionManager regionManager = new SymbolicRegionManager(solver);
       AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
-       */
 
       //PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
 
-      PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager);
+      PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver, formulaManager, abstractionManager);
 
 
       if (!predPrec.isEmpty()) {
 
         logger.log(Level.INFO,"now convert precision and then refining ... ");
 
-        return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
+        return initialPrecision.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, abstractionManager));
       }
       else {
         return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
@@ -244,18 +243,19 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private PredicatePrecision readAndParsePredPrecFile(
       final Configuration pConfig, final CFA pCfa, final Solver solver,
-      final FormulaManagerView pFMgr) throws InvalidConfigurationException {
+      final FormulaManagerView pFMgr, final AbstractionManager abstractionManager) throws InvalidConfigurationException {
 
     // create managers for the predicate map parser for parsing the predicates from the given
     // predicate precision file
     //TODO: maybe adjust the pconfig to config for predicates
     //TODO: check if right regionmanager is being created for this
+    /*
     RegionManager regionManager = new SymbolicRegionManager(solver);
     //RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
 
     AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
     // get the predicate precision from given file
-
+*/
     //TODO: check if mapParser might be wrong
     PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
     PredicatePrecision predPrec = PredicatePrecision.empty();
@@ -283,7 +283,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
-      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
+      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr, final AbstractionManager pAmgr) {
     logger.log(Level.INFO, "now starting to convert precision ...");
     Collection<AbstractionPredicate> predicates = new HashSet<>();
 
