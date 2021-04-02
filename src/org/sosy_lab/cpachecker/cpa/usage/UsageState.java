@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -139,18 +140,29 @@ public class UsageState extends AbstractSingleWrapperState
      * If we get **b, having (*b, c), we give *c
      */
     AbstractIdentifier newId = id.cloneWithDereference(0);
+    AbstractIdentifier returnIdentifier;
     if (variableBindingRelation.containsKey(newId)) {
       AbstractIdentifier initialId = variableBindingRelation.get(newId);
       AbstractIdentifier pointsTo =
           initialId.cloneWithDereference(initialId.getDereference() + id.getDereference());
       if (newId.compareTo(initialId.cloneWithDereference(0)) != 0) {
-        return getLinksIfNecessary(pointsTo);
+        returnIdentifier = getLinksIfNecessary(pointsTo);
       } else {
-        return pointsTo;
+        returnIdentifier = pointsTo;
       }
+    } else {
+      returnIdentifier = id;
     }
 
-    return id;
+    if (returnIdentifier instanceof StructureIdentifier) {
+      StructureIdentifier rid = (StructureIdentifier) returnIdentifier;
+      AbstractIdentifier newOwner = getLinksIfNecessary(rid.getOwner());
+      if (newOwner.compareTo(rid.getOwner()) != 0) {
+        returnIdentifier =
+            new StructureIdentifier(rid.getName(), rid.getType(), rid.getDereference(), newOwner);
+      }
+    }
+    return returnIdentifier;
   }
 
   public UsageState copy(final AbstractState pWrappedState) {

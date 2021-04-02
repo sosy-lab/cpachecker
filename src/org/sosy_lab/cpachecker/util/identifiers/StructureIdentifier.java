@@ -98,4 +98,26 @@ public class StructureIdentifier extends SingleIdentifier {
     result.addAll(owner.getComposedIdentifiers());
     return result;
   }
+
+  @Override
+  public int compareTo(AbstractIdentifier pO) {
+    if (pO instanceof GlobalVariableIdentifier
+        || pO instanceof LocalVariableIdentifier
+        || (!(this instanceof StructureFieldIdentifier)
+            && pO instanceof StructureFieldIdentifier)) {
+      return -1;
+    } else if (pO instanceof StructureIdentifier) {
+      int s = super.compareTo(pO);
+      if (s != 0) {
+        return s;
+      }
+      if (owner == null) {
+        assert (((StructureIdentifier) pO).getOwner() == null);
+        return 0;
+      }
+      return owner.compareTo(((StructureIdentifier) pO).getOwner());
+    } else {
+      return 1;
+    }
+  }
 }

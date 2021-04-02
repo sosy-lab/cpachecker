@@ -30,7 +30,8 @@ public class UsageReducer implements Reducer {
     UsageState funElement = (UsageState) pExpandedElement;
     AbstractState red =
         wrappedReducer.getVariableReducedState(funElement.getWrappedState(), pContext, pLocation);
-    return funElement.reduced(red, pLocation.getFunction().getName());
+    // return funElement.reduced(red, pLocation.getFunction().getName());
+    return funElement.copy(red);
   }
 
   @Override
@@ -43,8 +44,9 @@ public class UsageReducer implements Reducer {
           wrappedReducer.getVariableExpandedState(
               funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
 
-    return funRootState
-        .expanded(exp, funReducedState, pReducedContext.getCallNode().getFunction().getName());
+    // return funRootState
+    // .expanded(exp, funReducedState, pReducedContext.getCallNode().getFunction().getName());
+    return funRootState.copy(exp);
   }
 
   @Override
