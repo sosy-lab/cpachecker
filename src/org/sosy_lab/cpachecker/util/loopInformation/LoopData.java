@@ -75,7 +75,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   private Timer timeToAnalyze;
   private TimeSpan analyzeTime;
 
-  private static final int ONLY_ENTERING_EDGE = 0;
+  private static final int ONLY_EDGE = 0;
   private static final int VALID_STATE = 0;
   private static final int ERROR_STATE = 1;
   private static final int LAST_POSITION_OF_LIST = 1;
@@ -168,18 +168,18 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     if (firstNode.getNumEnteringEdges() > 0 && firstNode.getEnteringEdge(0) instanceof BlankEdge) {
       tempLoopType = LoopType.WHILE;
     } else {
-      CFANode temp = firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
+      CFANode temp = firstNode.getEnteringEdge(ONLY_EDGE).getPredecessor();
       boolean flag = true;
 
       while (flag) {
         if (temp.getNumEnteringEdges() > 0
-            && temp.getEnteringEdge(ONLY_ENTERING_EDGE) instanceof BlankEdge) {
+            && temp.getEnteringEdge(ONLY_EDGE) instanceof BlankEdge) {
           tempLoopType = LoopType.FOR;
           setForStart(temp);
           flag = false;
         }
         if (temp.getNumEnteringEdges() > 0) {
-          temp = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
+          temp = temp.getEnteringEdge(ONLY_EDGE).getPredecessor();
         } else {
           flag = false;
         }
@@ -373,6 +373,34 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return temp;
   }
 
+  private String getInputVariableFromBinaryExpression(CBinaryExpression pE) {
+    String inputVariable = "";
+    CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+    CExpression rVarInBinaryExp = pE.getOperand2();
+
+    if (lVarInBinaryExp instanceof CIdExpression
+        || lVarInBinaryExp instanceof CArraySubscriptExpression) {
+      if (lVarInBinaryExp instanceof CIdExpression) {
+        CIdExpression lVar = (CIdExpression) lVarInBinaryExp;
+        inputVariable = lVar.getName();
+      } else {
+        CArraySubscriptExpression lVar = (CArraySubscriptExpression) lVarInBinaryExp;
+        inputVariable = lVar.getArrayExpression().toString();
+      }
+    }
+    if (rVarInBinaryExp instanceof CIdExpression
+        || rVarInBinaryExp instanceof CArraySubscriptExpression) {
+      if (rVarInBinaryExp instanceof CIdExpression) {
+        CIdExpression rVar = (CIdExpression) rVarInBinaryExp;
+        inputVariable = rVar.getName();
+      } else {
+        CArraySubscriptExpression rVar = (CArraySubscriptExpression) rVarInBinaryExp;
+        inputVariable = rVar.getArrayExpression().toString();
+      }
+    }
+    return inputVariable;
+  }
+
   /**
    * This method looks for all of the input-variables in the loop
    *
@@ -392,30 +420,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
             CExpressionAssignmentStatement c = (CExpressionAssignmentStatement) x.getStatement();
           if (c.getRightHandSide() instanceof CBinaryExpression) {
             CBinaryExpression pE = (CBinaryExpression) c.getRightHandSide();
-
-            CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
-            CExpression rVarInBinaryExp = pE.getOperand2();
-
-            if (lVarInBinaryExp instanceof CIdExpression
-                || lVarInBinaryExp instanceof CArraySubscriptExpression) {
-              if (lVarInBinaryExp instanceof CIdExpression) {
-                CIdExpression lVar = (CIdExpression) lVarInBinaryExp;
-                temp.add(lVar.getName());
-              } else {
-                CArraySubscriptExpression lVar = (CArraySubscriptExpression) lVarInBinaryExp;
-                temp.add(lVar.getArrayExpression().toString());
-              }
-            }
-            if (rVarInBinaryExp instanceof CIdExpression
-                || rVarInBinaryExp instanceof CArraySubscriptExpression) {
-              if (rVarInBinaryExp instanceof CIdExpression) {
-                CIdExpression rVar = (CIdExpression) rVarInBinaryExp;
-                temp.add(rVar.getName());
-              } else {
-                CArraySubscriptExpression rVar = (CArraySubscriptExpression) rVarInBinaryExp;
-                temp.add(rVar.getArrayExpression().toString());
-              }
-            }
+                temp.add(getInputVariableFromBinaryExpression(pE));
           } else if (c.getRightHandSide() instanceof CIdExpression
               || c.getRightHandSide() instanceof CArraySubscriptExpression) {
             if (c.getRightHandSide() instanceof CIdExpression) {
@@ -438,33 +443,9 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           case AssumeEdge:
             AssumeEdge assume = (AssumeEdge) node.getLeavingEdge(i);
             CExpression c = (CExpression) assume.getExpression();
-
           if (c instanceof CBinaryExpression) {
             CBinaryExpression pE = (CBinaryExpression) c;
-
-            CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
-            CExpression rVarInBinaryExp = pE.getOperand2();
-
-            if (lVarInBinaryExp instanceof CIdExpression
-                || lVarInBinaryExp instanceof CArraySubscriptExpression) {
-              if (lVarInBinaryExp instanceof CIdExpression) {
-                CIdExpression lVar = (CIdExpression) lVarInBinaryExp;
-                temp.add(lVar.getName());
-              } else {
-                CArraySubscriptExpression lVar = (CArraySubscriptExpression) lVarInBinaryExp;
-                temp.add(lVar.getArrayExpression().toString());
-              }
-            }
-            if (rVarInBinaryExp instanceof CIdExpression
-                || rVarInBinaryExp instanceof CArraySubscriptExpression) {
-              if (rVarInBinaryExp instanceof CIdExpression) {
-                CIdExpression rVar = (CIdExpression) rVarInBinaryExp;
-                temp.add(rVar.getName());
-              } else {
-                CArraySubscriptExpression rVar = (CArraySubscriptExpression) rVarInBinaryExp;
-                temp.add(rVar.getArrayExpression().toString());
-              }
-            }
+              temp.add(getInputVariableFromBinaryExpression(pE));
           } else if (c instanceof CIdExpression || c instanceof CArraySubscriptExpression) {
             if (c instanceof CIdExpression) {
               CIdExpression var = (CIdExpression) c;
@@ -549,12 +530,32 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       CFANode tempNode, List<CFANode> nodes, List<CFANode> loopNodes) {
 
     return (tempNode.getLeavingEdge(0) instanceof AssumeEdge
-        && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
-        && !nodes.contains(tempNode))
-    || (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
-        && tempNode.getLeavingEdge(ERROR_STATE).getCode().contains("CPAchecker_TMP")
-        && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
-        && !nodes.contains(tempNode));
+            && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+            && !nodes.contains(tempNode))
+        || (edgeFromNodeContainsString(tempNode, "CPAchecker_TMP")
+            && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
+            && !nodes.contains(tempNode));
+  }
+
+  private boolean edgeFromNodeContainsString(CFANode node, String string) {
+    boolean contain = false;
+    if(node.getNumLeavingEdges() == 2) {
+      for (int edges = 0; edges < 2; edges++) {
+        AssumeEdge ass = (AssumeEdge) node.getLeavingEdge(edges);
+        if (ass.getTruthAssumption()) {
+          if (node.getLeavingEdge(edges).getCode().contains(string)) {
+            contain = true;
+          }
+        }
+      }
+    } else {
+      if (node.getLeavingEdge(ONLY_EDGE).getCode().contains(string)) {
+        contain = true;
+      } else {
+        contain = false;
+      }
+    }
+    return contain;
   }
 
   /**
@@ -594,12 +595,12 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
         }
 
         for (int i = 1; i < tempNode.getNumLeavingEdges(); i++) {
-          if (tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")
-              && tempNode.getLeavingEdge(VALID_STATE).getCode().contains("==")) {
+          if (edgeFromNodeContainsString(tempNode, "CPAchecker_TMP")
+              && edgeFromNodeContainsString(tempNode, "==")) {
             tempNodes.add(tempNode.getLeavingEdge(1).getSuccessor());
           } else if ((tempNode.getLeavingEdge(i).getSuccessor().getLeavingEdge(VALID_STATE)
                       instanceof AssumeEdge
-                  || tempNode.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP"))
+                  || edgeFromNodeContainsString(tempNode, "CPAchecker_TMP"))
               && !loopNodes.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
 
             tempNodes.add(tempNode.getLeavingEdge(i).getSuccessor());
@@ -680,6 +681,20 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return nodes;
   }
 
+  private String whileCondition(CFANode node, String booleanOperator) {
+
+    String cond = "";
+
+    if (edgeFromNodeContainsString(node, "nondet")) {
+      String tmpType = CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
+      cond = "__VERIFIER_nondet_" + tmpType + "() " + booleanOperator;
+    } else {
+      cond = node.getLeavingEdge(VALID_STATE).getCode() + " " + booleanOperator + " ";
+    }
+
+    return cond;
+  }
+
   /**
    * This method takes all of the nodes in the condition of this loop and returns a readable string
    * that shows the condition of the loop
@@ -701,10 +716,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     if (!onlyRandomC) {
       if (type.equals(LoopType.WHILE)) {
         for (CFANode n : conditionNodes) {
-          if (!n.getLeavingEdge(VALID_STATE).getCode().contains("CPAchecker_TMP")) {
+          if (!edgeFromNodeContainsString(n, "CPAchecker_TMP")) {
             temp.add(n);
           }
-          if (n.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
+          if (edgeFromNodeContainsString(n, "nondet")) {
             temp.add(n);
           }
         }
@@ -733,24 +748,12 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
           }
 
           if (notNodeToEndCondition) {
-            if (node.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
-              String tmpType =
-                  CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
-              cond = cond + "__VERIFIER_nondet_" + tmpType + "() &&";
-            } else {
-              cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " && ";
-            }
+            cond = cond + whileCondition(node, "&&");
           } else {
-            if (node.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
-              String tmpType =
-                  CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
-              cond = cond + "__VERIFIER_nondet_" + tmpType + "() ||";
-            } else {
-              cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " || ";
-            }
+            cond = cond + whileCondition(node, "||");
           }
         } else {
-          if (node.getLeavingEdge(VALID_STATE).getCode().contains("nondet")) {
+          if (edgeFromNodeContainsString(node, "nondet")) {
             String tmpType =
                 CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(VALID_STATE)).toString();
             cond = cond + "__VERIFIER_nondet_" + tmpType + "()";
