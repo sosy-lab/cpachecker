@@ -150,6 +150,7 @@ javascript-unit-tests:
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
+    - npm run build
   script:
     - npm test
   cache:
