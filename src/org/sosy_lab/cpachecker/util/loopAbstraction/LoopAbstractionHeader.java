@@ -78,9 +78,3 @@ public class LoopAbstractionHeader implements StatisticsProvider {
     return abstractedSource;
   }
 }
-
-enum AbstractionLevel {
-  NONE,
-  NAIVE,
-  ADVANCED
-}
