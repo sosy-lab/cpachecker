@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.util.loopInformation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -345,7 +346,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     } else if (expression instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression var = (CArraySubscriptExpression) expression;
       CArrayType array = (CArrayType) var.getArrayExpression().getExpressionType();
-      loopVariable = new LoopVariables(var, node, true, array.getLengthAsInt().getAsInt(), null);
+      loopVariable = new LoopVariables(var, node, true, array.getLengthAsInt().orElseThrow(), null);
     }
     return loopVariable;
   }
@@ -842,10 +843,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
       for (Iterator<CFANode> tempIterator = temp.iterator(); tempIterator.hasNext(); ) {
         CFANode temps = tempIterator.next();
 
-        List<String> operator = List.of("<", ">", "==", "!=");
+        ImmutableList<String> operator = ImmutableList.of("<", ">", "==", "!=");
 
         if (operator.contains(temps.getLeavingEdge(VALID_STATE).getCode())
-            || temps.getLeavingEdge(VALID_STATE).getCode().equals("")) {
+            || temps.getLeavingEdge(VALID_STATE).getCode().isEmpty()) {
           forCondition.add(temps);
           tempIterator.remove();
         }

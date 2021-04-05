@@ -145,13 +145,11 @@ public class LoopAbstraction {
 
                 CFANode endNodeCondition = findLastNodeInCondition(loopD);
                 if (loopD.getLoopType().equals(LoopType.WHILE)) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed();
+                  line = variablesAlreadyUsed(reader);
                   content = content + whileCondition(loopD, abstractionLevel);
                   lineNumber++;
                 } else if (loopD.getLoopType().equals(LoopType.FOR)) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed();
+                  line = variablesAlreadyUsed(reader);
                   content = content + forCondition(loopD, abstractionLevel);
                   lineNumber++;
                 }
@@ -311,7 +309,7 @@ public class LoopAbstraction {
    */
   private void checkForEnd(BufferedReader reader) throws IOException {
     setLine(reader.readLine());
-    setLine(variablesAlreadyUsed());
+    setLine(variablesAlreadyUsed(reader));
     boolean flagEnd =
         getClosed()
             && getLine().contains("}")
@@ -327,7 +325,7 @@ public class LoopAbstraction {
         lineNumber++;
       }
       setLine(reader.readLine());
-      setLine(variablesAlreadyUsed());
+      setLine(variablesAlreadyUsed(reader));
     }
     setClosed(ifCaseClosed());
     addToContent(getLine() + System.lineSeparator());
@@ -339,11 +337,11 @@ public class LoopAbstraction {
    * string content after that.
    *
    * @param reader Buffered reader that reads the file.
-   * @throws IOException Exception that gets thrown if there is a problem with the file-
+   * @throws IOException Exception that gets thrown if there is a problem with the file.
    */
   private void readAndWorkOnLine(BufferedReader reader) throws IOException {
     setLine(reader.readLine());
-    setLine(variablesAlreadyUsed());
+    setLine(variablesAlreadyUsed(reader));
     setClosed(ifCaseClosed());
     addToContent(getLine() + System.lineSeparator());
     lineNumber++;
@@ -518,9 +516,11 @@ public class LoopAbstraction {
    * normally get initialized in this line which would get changed in this method
    *
    * @return returns a line of the program that can be added back to the program-string
+   * @throws IOException Exception that gets thrown if there is a problem with the file.
    */
-  private String variablesAlreadyUsed() {
+  private String variablesAlreadyUsed(BufferedReader reader) throws IOException {
     boolean uVFlag = false;
+    setLine(reader.readLine());
     String thisLine = getLine();
     for (LoopVariables s : getPreUsedVariables()) {
       if (s.getIsArray()) {
