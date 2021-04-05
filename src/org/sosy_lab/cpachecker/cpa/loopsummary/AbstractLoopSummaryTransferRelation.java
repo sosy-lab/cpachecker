@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -109,11 +107,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
   public Collection<? extends AbstractState> getAbstractSuccessors(
       final AbstractState pState, final Precision pPrecision)
       throws InterruptedException, CPATransferException {
-    CFANode node = AbstractStates.extractLocation(pState);
-    if (!currentStrategyForCFANode.containsKey(node)) {
-      currentStrategyForCFANode.put(node, 0);
-    }
-
 
     /*
      * Problems when executing scripts/cpa.sh -config config/predicateAnalysis--overflow.properties -setprop limits.time.cpu=900s -setprop counterexample.export.enabled=false test/programs/benchmarks/termination-crafted/2Nested-2.c
@@ -183,22 +176,44 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
      *
      */
 
-    /*
-     *
-     * How do you print the Statistics, the override in the LoopSummaryCPAStatistics does not work.
-     *
-     */
+    CFANode node = AbstractStates.extractLocation(pState);
+    if (!currentStrategyForCFANode.containsKey(node)) {
+      currentStrategyForCFANode.put(node, 0);
+    }
 
     Optional<Collection<? extends AbstractState>> summarizedState =
         strategies
+            .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
+            .summarizeLoopState(
+                pState, ((LoopSummaryPrecision) pPrecision).getPrecision(), transferRelation);
+    while (summarizedState.isEmpty()) {
+      ((LoopSummaryPrecision) pPrecision).updateStrategy();
+      currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
+      summarizedState =
+          strategies
+              .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
+              .summarizeLoopState(
+                  pState, ((LoopSummaryPrecision) pPrecision).getPrecision(), transferRelation);
+    }
+    stats.updateSummariesUsed(
+        strategies
+            .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
+            .getClass()
+            .getName(),
+        1);
+
+    /*
+     * Precision precision = ((LoopSummaryPrecision) pPrecision).getPrecision();
+     * Optional<Collection<? extends AbstractState>> summarizedState =
+        strategies
             .get(currentStrategyForCFANode.get(node))
-            .summarizeLoopState(pState, pPrecision, transferRelation);
+            .summarizeLoopState(pState, precision, transferRelation);
     while (summarizedState.isEmpty()) {
       currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
       summarizedState =
           strategies
               .get(currentStrategyForCFANode.get(node))
-              .summarizeLoopState(pState, pPrecision, transferRelation);
+              .summarizeLoopState(pState, precision, transferRelation);
       if (!(strategies.get(currentStrategyForCFANode.get(node)) instanceof BaseStrategy)
           && !summarizedState.isEmpty()) {
         logger.log(
@@ -208,7 +223,8 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
       }
     }
     stats.updateSummariesUsed(
-        strategies.get(currentStrategyForCFANode.get(node)).getClass().getName(), 1);
+        strategies.get(currentStrategyForCFANode.get(node)).getClass().getName(), 1);*/
+
     return summarizedState.get();
   }
 

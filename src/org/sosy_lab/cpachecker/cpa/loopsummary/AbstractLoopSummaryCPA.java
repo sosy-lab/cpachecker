@@ -51,11 +51,11 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
   private ArrayList<StrategiesEnum> strategies =
       new ArrayList<>(
           Arrays.asList(
-              StrategiesEnum.CONSTANTEXTRAPOLATION,
+              /*StrategiesEnum.CONSTANTEXTRAPOLATION,
               StrategiesEnum.LINEAREXTRAPOLATION,
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
               StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.LOOPACCELERATION,
+              StrategiesEnum.LOOPACCELERATION,*/
               StrategiesEnum.BASE));
 
   private ArrayList<StrategyInterface> strategiesClass = new ArrayList<>();

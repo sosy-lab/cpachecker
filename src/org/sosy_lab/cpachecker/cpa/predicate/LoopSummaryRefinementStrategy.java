@@ -40,11 +40,7 @@ public class LoopSummaryRefinementStrategy extends PredicateAbstractionRefinemen
 
     logger.log(Level.INFO, "Doing Refinement");
 
-    // overriding this method is needed, as it is possible
-    // to get two or even more successive spurious counterexamples,
-    // which only differ in its abstractions (with 'aggressive caching').
-    // The return-value is irrelevant and never used, because pRepeatedCounterexample is ignored.
-
-    return super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, false);
+    return super.performRefinement(
+        pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
   }
 }

@@ -253,4 +253,30 @@ public class ARGCPA extends AbstractSingleWrapperCPA
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
   }
+
+  // For visibility for Loopsummary
+  public boolean getInCPAEnabledAnalysis() {
+    return inCPAEnabledAnalysis;
+  }
+
+  // For visibility for Loopsummary
+  public boolean getMergeOnWrappedSubsumption() {
+    return mergeOnWrappedSubsumption;
+  }
+
+  // For visibility for Loopsummary
+  @Override
+  public ConfigurableProgramAnalysis getWrappedCpa() {
+    return super.getWrappedCpa();
+  }
+
+  // For visibility for Loopsummary
+  public boolean getCoverTargetStates() {
+    return coverTargetStates;
+  }
+
+  // For visibility for Loopsummary
+  public boolean getKeepCoveredStatesInReached() {
+    return keepCoveredStatesInReached;
+  }
 }
