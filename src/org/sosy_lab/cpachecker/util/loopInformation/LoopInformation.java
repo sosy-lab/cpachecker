@@ -84,6 +84,11 @@ public class LoopInformation {
     writeOutputFile(pLogger);
   }
 
+  /**
+   * Writes the information of the loopdata objects in a new file in the output-directory
+   *
+   * @param pLogger logger that handles exceptions
+   */
   private void writeOutputFile(LogManager pLogger) {
     if (dumpfile != null && outputFile) {
       try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {

@@ -75,6 +75,13 @@ public final class UtilIfAfterLoopCondition {
     }
   }
 
+  /**
+   * Checks for if in the String
+   *
+   * @param text String of the line
+   * @param lineNumber Number of the line as an int
+   * @return returns the lineNumber, if there is no if in the line return -1
+   */
   private static int findIf(String text, int lineNumber) {
     int lineNumberTemp = lineNumber;
     String temp = Iterables.get(Splitter.on('(').split(text), 0);

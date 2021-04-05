@@ -34,15 +34,19 @@ import org.sosy_lab.cpachecker.util.loopInformation.LoopInformation;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopType;
 import org.sosy_lab.cpachecker.util.loopInformation.LoopVariables;
 
-// TODO Rework
-
 /**
- * This class takes a file and changes all of the loops in a advanced abstraction to make the
- * program verifiable for specific cpa's
+ * This class takes a file and abstracts all the loops that have the value canBeAccelerated to make
+ * the program verifiable for specific cpa's
  */
 @Options(prefix = "loopacc")
 public class LoopAbstraction {
+
+  private List<LoopVariables> preUsedVariables = new ArrayList<>();
+  private String content = "";
   private int lineNumber = 1;
+  private String line = "";
+  private boolean closed = true;
+
   private final Timer totalTime;
   private TimeSpan timeToAbstract;
 
@@ -64,31 +68,21 @@ public class LoopAbstraction {
   private int ifWithoutBracket = 0;
   private boolean hasBreak = false;
 
+
+
   public LoopAbstraction(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     totalTime = new Timer();
   }
 
-  // TODO wortwahl nochmal überprüfen
   /**
-   * This method changes all the necessary lines of codes and saves it in a new file
-   *
-   * @param loopInfo Information about all the loops in the file
-   * @param logger logger that logs all the exceptions
-   * @param pathForNewFile systempath to the directory where the new file should be saved
-   * @param abstractionLevel level of abstraction, "naive" and "advanced" possible, naive is a
-   *     bigger overapproximation than advanced
-   * @param automate the file will be overwritten if this is true
-   * @param onlyAccL if this is true only the loops that can be accelerated will be abstracted
-   */
-
-  /**
-   * This method changes all the necessary lines of codes and saves it in a new file
+   * This method changes all the necessary lines of codes needed to abstract the loops and saves it
+   * in a new file
    *
    * @param loopInfo Information about all the loops in the file
    * @param logger logger that logs all the exceptions
    * @param abstractionLevel level of abstraction, "naive" and "advanced" possible, naive is a
-   *     bigger overapproximation than advanced
+   *     bigger over-approximation than advanced
    * @param automate the file will be overwritten if this is true
    * @param onlyAccL if this is true only the loops that can be accelerated will be abstracted
    */
@@ -101,8 +95,6 @@ public class LoopAbstraction {
     totalTime.start();
     List<LoopData> outerLoopTemp = new ArrayList<>();
     List<Integer> loopStarts = new ArrayList<>();
-    List<LoopVariables> preUsedVariables = new ArrayList<>();
-    boolean closed = true;
     for (LoopData loopData : loopInfo.getLoopData()) {
       if (loopData.getLoopType().equals(LoopType.WHILE)) {
         loopStarts.add(
@@ -115,7 +107,7 @@ public class LoopAbstraction {
 
     String fileLocation = loopInfo.getCFA().getFileNames().get(0).toString();
 
-    String content =
+    content =
         "extern void __VERIFIER_error() __attribute__ ((__noreturn__));" + System.lineSeparator();
 
     content += "extern signed int __VERIFIER_nondet_int(void);" + System.lineSeparator();
@@ -130,7 +122,6 @@ public class LoopAbstraction {
     try (Reader freader = Files.newBufferedReader(Paths.get(fileLocation))) {
       try (BufferedReader reader = new BufferedReader(freader)) {
 
-        String line = "";
         boolean accFlag = true;
 
         while (line != null) {
@@ -155,16 +146,16 @@ public class LoopAbstraction {
                 CFANode endNodeCondition = findLastNodeInCondition(loopD);
                 if (loopD.getLoopType().equals(LoopType.WHILE)) {
                   line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
+                  line = variablesAlreadyUsed();
                   content = content + whileCondition(loopD, abstractionLevel);
                   lineNumber++;
                 } else if (loopD.getLoopType().equals(LoopType.FOR)) {
                   line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                  content = content + forCondition(loopD, preUsedVariables, abstractionLevel);
+                  line = variablesAlreadyUsed();
+                  content = content + forCondition(loopD, abstractionLevel);
                   lineNumber++;
                 }
-                content += undeterministicVariables(loopD, preUsedVariables, abstractionLevel);
+                content += assignNonDeterministicValuesToVariables(loopD, abstractionLevel);
 
                 if (!loopD.getIsOuterLoop()) {
                   if (loopD.getLoopType().equals(LoopType.WHILE)) {
@@ -183,75 +174,19 @@ public class LoopAbstraction {
                                 .getEnteringEdge(0)
                                 .getFileLocation()
                                 .getEndingLineInOrigin()) {
-
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      readAndWorkOnLine(reader);
                     }
-                    line = reader.readLine();
-                    line = variablesAlreadyUsed(preUsedVariables, line);
-                    boolean flagEnd =
-                        closed
-                            && line.contains("}")
-                            && (!line.contains("if") || !line.contains("else"));
-                    while (line != null && !flagEnd) {
-                      closed = ifCaseClosed(line, closed);
-                      if (!closed) {
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      } else {
-                        flagEnd = true;
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      }
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                    }
-                    closed = ifCaseClosed(line, closed);
-                    content += line + System.lineSeparator();
-                    lineNumber++;
-
+                    checkForEnd(reader);
                     while (line != null && !line.contains("}")) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      readAndWorkOnLine(reader);
                     }
 
                     content += assumeEnd(loopD);
 
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      boolean flagEnd1 =
-                          closed
-                              && line.contains("}")
-                              && (!line.contains("if") || !line.contains("else"));
-                      while (line != null && !flagEnd1) {
-                        closed = ifCaseClosed(line, closed);
-                        if (!closed) {
-                          content += line + System.lineSeparator();
-                          lineNumber++;
-                        } else {
-                          flagEnd1 = true;
-                          content += line + System.lineSeparator();
-                          lineNumber++;
-                        }
-                        line = reader.readLine();
-                        line = variablesAlreadyUsed(preUsedVariables, line);
-                      }
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      checkForEnd(reader);
                       while (line != null && !line.contains("}")) {
-                        line = reader.readLine();
-                        line = variablesAlreadyUsed(preUsedVariables, line);
-                        closed = ifCaseClosed(line, closed);
-                        content += line + System.lineSeparator();
-                        lineNumber++;
+                        readAndWorkOnLine(reader);
                       }
                       content += assumeEnd(loopD);
                     }
@@ -274,72 +209,18 @@ public class LoopAbstraction {
                                 .getEnteringEdge(0)
                                 .getFileLocation()
                                 .getEndingLineInOrigin()) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      readAndWorkOnLine(reader);
                     }
-                    line = reader.readLine();
-                    line = variablesAlreadyUsed(preUsedVariables, line);
-                    boolean flagEnd =
-                        closed
-                            && line.contains("}")
-                            && (!line.contains("if") || !line.contains("else"));
-                    while (line != null && !flagEnd) {
-                      closed = ifCaseClosed(line, closed);
-                      if (!closed) {
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      } else {
-                        flagEnd = true;
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      }
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                    }
-                    closed = ifCaseClosed(line, closed);
-                    content += line + System.lineSeparator();
-                    lineNumber++;
+                    checkForEnd(reader);
                     while (line != null && !line.contains("}")) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      readAndWorkOnLine(reader);
                     }
                     content += assumeEnd(loopD);
 
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      boolean flagEnd1 =
-                          closed
-                              && line.contains("}")
-                              && (!line.contains("if") || !line.contains("else"));
-                      while (line != null && !flagEnd1) {
-                        closed = ifCaseClosed(line, closed);
-                        if (!closed) {
-                          content += line + System.lineSeparator();
-                          lineNumber++;
-                        } else {
-                          flagEnd1 = true;
-                          content += line + System.lineSeparator();
-                          lineNumber++;
-                        }
-                        line = reader.readLine();
-                        line = variablesAlreadyUsed(preUsedVariables, line);
-                      }
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      checkForEnd(reader);
                       while (line != null && !line.contains("}")) {
-                        line = reader.readLine();
-                        line = variablesAlreadyUsed(preUsedVariables, line);
-                        closed = ifCaseClosed(line, closed);
-                        content += line + System.lineSeparator();
-                        lineNumber++;
+                        readAndWorkOnLine(reader);
                       }
                       content += assumeEnd(loopD);
                     }
@@ -373,12 +254,7 @@ public class LoopAbstraction {
                                 .get(0)
                                 .getFileLocation()
                                 .getStartingLineInOrigin())) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
-                      // lineNumber++;
+                      readAndWorkOnLine(reader);
                     }
                   } else if (loopD.getLoopType().equals(LoopType.WHILE)) {
                     while (lineNumber
@@ -395,11 +271,7 @@ public class LoopAbstraction {
                                 .get(0)
                                 .getFileLocation()
                                 .getStartingLineInOrigin())) {
-                      line = reader.readLine();
-                      line = variablesAlreadyUsed(preUsedVariables, line);
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
+                      readAndWorkOnLine(reader);
                     }
                   }
                 }
@@ -425,12 +297,64 @@ public class LoopAbstraction {
     }
     abstractedSource = content;
     if (exportAbstractedFile) {
-      writeAbstractedFile(content, logger); // TODO: do this in the statistics file output instead
+      writeAbstractedFile(logger);
     }
     totalTime.stop();
     timeToAbstract = totalTime.getLengthOfLastInterval();
   }
 
+  /**
+   * Looks for the end of the loop
+   *
+   * @param reader Buffered reader that reads the file
+   * @throws IOException IOException that gets thrown if there is a problem with the file
+   */
+  private void checkForEnd(BufferedReader reader) throws IOException {
+    setLine(reader.readLine());
+    setLine(variablesAlreadyUsed());
+    boolean flagEnd =
+        getClosed()
+            && getLine().contains("}")
+            && (!getLine().contains("if") || !getLine().contains("else"));
+    while (getLine() != null && !flagEnd) {
+      setClosed(ifCaseClosed());
+      if (!getClosed()) {
+        addToContent(getLine() + System.lineSeparator());
+        lineNumber++;
+      } else {
+        flagEnd = true;
+        addToContent(getLine() + System.lineSeparator());
+        lineNumber++;
+      }
+      setLine(reader.readLine());
+      setLine(variablesAlreadyUsed());
+    }
+    setClosed(ifCaseClosed());
+    addToContent(getLine() + System.lineSeparator());
+    lineNumber++;
+  }
+
+  /**
+   * Reads the line and looks for clues that are needed in this file (e.g. closed) . Adds content to
+   * string content after that.
+   *
+   * @param reader Buffered reader that reads the file.
+   * @throws IOException Exception that gets thrown if there is a problem with the file-
+   */
+  private void readAndWorkOnLine(BufferedReader reader) throws IOException {
+    setLine(reader.readLine());
+    setLine(variablesAlreadyUsed());
+    setClosed(ifCaseClosed());
+    addToContent(getLine() + System.lineSeparator());
+    lineNumber++;
+  }
+
+  /**
+   * Adds the final line to a abstracted loop (assume(!condition))
+   *
+   * @param loopD LoopData, that contains all the information of the loop
+   * @return returns a string that gets added to the content of the abstracted file
+   */
   private String assumeEnd(LoopData loopD) {
     String ass = "";
     if (!loopD.getOnlyRandomCondition()) {
@@ -453,16 +377,14 @@ public class LoopAbstraction {
    * Method that assigns variables non-deterministic values
    *
    * @param loopD all necessary information about this loop
-   * @param preUsedVariables List that collect all the variables that get initialized before their
-   *     Initialization in the program
    * @param abstractionLevel in a naive abstraction level all of the outputs will get
    *     non-deterministic values, in the advanced case only the IO-Variables will get
    *     non-deterministic
    * @return returns a string that get's added to the program-string with non-deterministic values
    *     assigned
    */
-  private String undeterministicVariables(
-      LoopData loopD, List<LoopVariables> preUsedVariables, AbstractionLevel abstractionLevel) {
+  private String assignNonDeterministicValuesToVariables(
+      LoopData loopD, AbstractionLevel abstractionLevel) {
     String tmp = "";
     List<LoopVariables> variables = null;
     if (abstractionLevel.equals(AbstractionLevel.NAIVE)) {
@@ -473,7 +395,7 @@ public class LoopAbstraction {
     for (LoopVariables x : variables) {
       if (x.getIsArray()) {
         String tempString = x.getVariableTypeAsString();
-        if (x.getInitializationLine() >= lineNumber && !preUsedVariables.contains(x)) {
+        if (x.getInitializationLine() >= lineNumber && !getPreUsedVariables().contains(x)) {
           tmp +=
               tempString
                   + " "
@@ -483,7 +405,7 @@ public class LoopAbstraction {
                   + "]"
                   + ";"
                   + System.lineSeparator();
-          preUsedVariables.add(x);
+          addToPreUsedVariables(x);
         }
         tmp +=
             "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
@@ -595,17 +517,13 @@ public class LoopAbstraction {
    * checks if the variable in the line already got used and if that is the case if it would
    * normally get initialized in this line which would get changed in this method
    *
-   * @param preUsedVariables Variables that already got initialized
-   * @param line string that get's checked if there is a variable that needs to be changed
    * @return returns a line of the program that can be added back to the program-string
    */
-  private String variablesAlreadyUsed(List<LoopVariables> preUsedVariables, String line) {
+  private String variablesAlreadyUsed() {
     boolean uVFlag = false;
-    String thisLine = line;
-    for (LoopVariables s : preUsedVariables) {
+    String thisLine = getLine();
+    for (LoopVariables s : getPreUsedVariables()) {
       if (s.getIsArray()) {
-        // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
-        // namens ist
         if (thisLine != null
             && thisLine.contains(s.getVariableNameAsString() + "[")
             && thisLine.contains(s.getVariableTypeAsString())) {
@@ -662,16 +580,13 @@ public class LoopAbstraction {
    * Method to abstract the for-loop-header
    *
    * @param loopD Information about this loop
-   * @param preUsedVariables List of Variables that are already intialized to see if you have to
-   *     initialize the variable on the left of the for-condition
    * @param abstractionLevel naive or abstracted, naive is a bigger over-approximation
    * @return string that is the new abstracted header of the for loop
    */
-  private String forCondition(
-      LoopData loopD, List<LoopVariables> preUsedVariables, AbstractionLevel abstractionLevel) {
+  private String forCondition(LoopData loopD, AbstractionLevel abstractionLevel) {
     boolean flag = true;
     String variable = "";
-    for (LoopVariables x : preUsedVariables) {
+    for (LoopVariables x : getPreUsedVariables()) {
       if (Iterables.get(Splitter.on(';').split(loopD.getCondition()), 0)
           .contains(x.getVariableNameAsString())) {
         flag = false;
@@ -739,20 +654,18 @@ public class LoopAbstraction {
    * checks if there is a if-case that has to be closed, is used to get the __VERIFIER_assume(!) at
    * the right position, it would be in the loop otherwise
    *
-   * @param line line from the program
-   * @param closed boolean that represents if there is an open if-case
    * @return boolean that shows if there is still an open if case or not
    */
-  private boolean ifCaseClosed(String line, boolean closed) {
+  private boolean ifCaseClosed() {
 
-    if (line.contains("break;")) {
+    if (getLine().contains("break;")) {
       hasBreak = true;
     }
 
-    boolean ifCaseC = closed;
+    boolean ifCaseC = getClosed();
 
-    String temp = Iterables.get(Splitter.on('(').split(line), 0);
-    if (!ifCaseC && line.contains("}")) {
+    String temp = Iterables.get(Splitter.on('(').split(getLine()), 0);
+    if (!ifCaseC && getLine().contains("}")) {
       ifCaseC = true;
     }
     if (temp.contains("{") && openIf) {
@@ -763,10 +676,10 @@ public class LoopAbstraction {
       ifWithoutBracket = 0;
       openIf = false;
     }
-    if (temp.contains("if") || line.contains("else")) {
+    if (temp.contains("if") || getLine().contains("else")) {
       ifCaseC = false;
       if (temp.contains("if")) {
-        String temp2 = Iterables.get(Splitter.on("if").split(line), 1);
+        String temp2 = Iterables.get(Splitter.on("if").split(getLine()), 1);
         if (temp2.contains("}")) {
           ifCaseC = true;
         } else if (!temp.contains("{")) {
@@ -774,8 +687,8 @@ public class LoopAbstraction {
           openIf = true;
           ifWithoutBracket += 1;
         }
-      } else if (line.contains("else")) {
-        String temp2 = Iterables.get(Splitter.on("else").split(line), 1);
+      } else if (getLine().contains("else")) {
+        String temp2 = Iterables.get(Splitter.on("else").split(getLine()), 1);
         if (temp2.contains("}") || !temp2.contains("{")) {
           ifCaseC = true;
         }
@@ -784,12 +697,17 @@ public class LoopAbstraction {
     return ifCaseC;
   }
 
-  private void writeAbstractedFile(String content, LogManager logger) {
+  /**
+   * Write changed file content in a new file
+   *
+   * @param logger logger to log exceptions
+   */
+  private void writeAbstractedFile(LogManager logger) {
     if (abstractedFileName == null) {
       return;
     }
     try (Writer fileWriter = Files.newBufferedWriter(abstractedFileName, Charset.defaultCharset())) {
-      String fileContent = content;
+      String fileContent = getContent();
       fileWriter.write(fileContent);
     } catch (IOException e) {
       logger.logUserException(
@@ -797,6 +715,12 @@ public class LoopAbstraction {
     }
   }
 
+  /**
+   * Looks for the last node, that is part of the condition.
+   *
+   * @param loopData loopData object that contains all the informations of the loop
+   * @return returns the last CFANode, that is part of the condition
+   */
   private CFANode findLastNodeInCondition(LoopData loopData) {
     CFANode temp = null;
     if (!loopData.getNodesInCondition().isEmpty()) {
@@ -826,5 +750,37 @@ public class LoopAbstraction {
 
   public String getAbstractedSource() {
     return abstractedSource;
+  }
+
+  private void setLine(String lineContent) {
+    line = lineContent;
+  }
+
+  private void setClosed(boolean newClosed) {
+    closed = newClosed;
+  }
+
+  private void addToContent(String newContent) {
+    content += newContent;
+  }
+
+  private boolean getClosed() {
+    return closed;
+  }
+
+  private String getLine() {
+    return line;
+  }
+
+  private String getContent() {
+    return content;
+  }
+
+  private List<LoopVariables> getPreUsedVariables() {
+    return preUsedVariables;
+  }
+
+  private void addToPreUsedVariables(LoopVariables variable) {
+    preUsedVariables.add(variable);
   }
 }

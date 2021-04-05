@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.loopAbstraction.NotKnownLoopEdgeTypeException;
 
 /** This class collects and saves all of the data in one loop */
 public class LoopData implements Comparable<LoopData>, StatisticsProvider {
@@ -101,8 +103,12 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
     nodesInCondition =
         nodesInCondition(cfa, pLogger, loopStart, loopType, nodesInLoop, endOfCondition, forStart);
-    output = getAllOutputs(cfa, nodesInLoop);
-    inputOutput = getAllIO(output, nodesInLoop);
+    try {
+      output = getAllOutputs(cfa, nodesInLoop);
+      inputOutput = getAllIO(output, nodesInLoop);
+    } catch (NotKnownLoopEdgeTypeException e) {
+      pLogger.log(Level.WARNING, e);
+    }
     numberAllOutputs = getAllNumberOutputs(output);
     amountOfPaths = getAllPaths(nodesInLoop, loopEnd, nodesInCondition, failedState, output);
     canBeAccelerated =
@@ -120,6 +126,11 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     analyzeTime = timeToAnalyze.getLengthOfLastInterval();
   }
 
+  /**
+   * This method looks for the start- and endnode of the condition
+   *
+   * @param loopNodes Nodes that are contained in the loop
+   */
   private void getStartAndConditionEnd(List<CFANode> loopNodes) {
     CFANode loopHead = loopNodes.get(FIRST_POSITION_OF_LIST);
     CFAEdge tempEdge = loopHead.getLeavingEdge(VALID_STATE);
@@ -156,7 +167,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
   }
 
   /**
-   * looks for the looptype of a loop
+   * looks for the loop-type of a loop
    *
    * @param firstNode while loops typically have the "while" in the entering edge of the first cfa
    *     node of the loop
@@ -234,8 +245,11 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    * @param cfa uses the cfa to check when a variable get initialized
    * @param loopNodes checks all of the nodes in a loop for output variables
    * @return returns a list with all of the variable names that are outputs in a loop
+   * @throws NotKnownLoopEdgeTypeException Exception that gets thrown if the edge-type isn't
+   *     implemented in the loop data class
    */
-  private List<LoopVariables> getAllOutputs(CFA cfa, List<CFANode> loopNodes) {
+  private List<LoopVariables> getAllOutputs(CFA cfa, List<CFANode> loopNodes)
+      throws NotKnownLoopEdgeTypeException {
     List<LoopVariables> tmpO = new ArrayList<>();
 
     for (CFANode node : loopNodes) {
@@ -265,7 +279,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
                   || c.getLeftHandSide() instanceof CArraySubscriptExpression) {
                 tmpO.add(checkForValues(c.getLeftHandSide(), node));
               } else {
-                // Exception for debugging
+                throw new NotKnownLoopEdgeTypeException();
               }
           }
         }
@@ -315,6 +329,14 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return tmpO;
   }
 
+  /**
+   * Checks if this is a CIdExpression or a CArraySubscriptExpression and makes a new
+   * LoopVariableObject of the variable
+   *
+   * @param expression CExpression that gets checked
+   * @param node CFANode which contains the edge that contains the variable
+   * @return returns a LoopVariables-Object with the necessary Variable-information
+   */
   private LoopVariables checkForValues(CExpression expression, CFANode node) {
     LoopVariables loopVariable = null;
     if (expression instanceof CIdExpression) {
@@ -328,6 +350,12 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return loopVariable;
   }
 
+  /**
+   * Counts the number of outputs
+   *
+   * @param pOutput List with all the output loopvariables
+   * @return returns the number of all output-variables
+   */
   private int getAllNumberOutputs(List<LoopVariables> pOutput) {
     int tmpInt = 0;
     for (LoopVariables tmp : pOutput) {
@@ -349,8 +377,11 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    * @param loopNodes List of all the nodes in the loop to filter out the input variables with the
    *     getAllInputs method
    * @return returns a list of variables that are inputs and outputs at the same time
+   * @throws NotKnownLoopEdgeTypeException Exception that gets thrown if the edge-type isn't
+   *     implemented in the loop data class
    */
-  private List<LoopVariables> getAllIO(List<LoopVariables> tmpOutput, List<CFANode> loopNodes) {
+  private List<LoopVariables> getAllIO(List<LoopVariables> tmpOutput, List<CFANode> loopNodes)
+      throws NotKnownLoopEdgeTypeException {
     List<String> inputs = getAllInputs(loopNodes);
     List<LoopVariables> loopO = tmpOutput;
     List<LoopVariables> temp = new ArrayList<>();
@@ -373,6 +404,12 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return temp;
   }
 
+  /**
+   * Gets the name of the input variable as a String
+   *
+   * @param pE BinaryExpression that contains the input variable
+   * @return String with the name of the input variable
+   */
   private String getInputVariableFromBinaryExpression(CBinaryExpression pE) {
     String inputVariable = "";
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
@@ -407,8 +444,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    * @param loopNodes List of all the nodes in the loop to check if either of them has a edge that
    *     uses a variable that qualifies as an input
    * @return returns a list with the names of all the input variables
+   * @throws NotKnownLoopEdgeTypeException Exception that gets thrown if the edge-type isn't
+   *     implemented in the loop data class
    */
-  private List<String> getAllInputs(List<CFANode> loopNodes) {
+  private List<String> getAllInputs(List<CFANode> loopNodes) throws NotKnownLoopEdgeTypeException {
 
     List<String> temp = new ArrayList<>();
     for (CFANode node : loopNodes) {
@@ -437,7 +476,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
               }
             }
           } else {
-            // exception missing
+              throw new NotKnownLoopEdgeTypeException();
           }
           break;
           case AssumeEdge:
@@ -455,7 +494,7 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
               temp.add(var.getArrayExpression().toString());
             }
           } else {
-            // exception missing
+              throw new NotKnownLoopEdgeTypeException();
           }
           break;
           case FunctionCallEdge:
@@ -478,12 +517,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     }
     return temp;
     }
-
-  /**
-   * This method looks for all the possible path that the loop can go in one iteration
-   *
-   * @return number of possible paths in one iteration
-   */
 
   /**
    * This method looks for all the possible path that the loop can go in one iteration
@@ -526,17 +559,39 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return paths;
   }
 
+  /**
+   * Checks if the nodes are part of the condition
+   *
+   * @param tempNode node that gets checked
+   * @param nodes List of CFANodes that already got checked
+   * @param loopNodes List of all CFANodes in the loop
+   * @return boolean that tells you, if a node is part of the condition
+   */
   private boolean checkIfNodesInCondition(
       CFANode tempNode, List<CFANode> nodes, List<CFANode> loopNodes) {
 
-    return (tempNode.getLeavingEdge(0) instanceof AssumeEdge
-            && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
-            && !nodes.contains(tempNode))
-        || (edgeFromNodeContainsString(tempNode, "CPAchecker_TMP")
-            && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
-            && !nodes.contains(tempNode));
+    if(tempNode.getNumLeavingEdges() > 1) {
+      return (tempNode.getLeavingEdge(0) instanceof AssumeEdge
+          && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+          && !nodes.contains(tempNode))
+      || (edgeFromNodeContainsString(tempNode, "CPAchecker_TMP")
+          && loopNodes.contains(tempNode.getLeavingEdge(ERROR_STATE).getSuccessor())
+          && !nodes.contains(tempNode));
+    } else {
+      return (tempNode.getLeavingEdge(0) instanceof AssumeEdge
+          && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+          && !nodes.contains(tempNode));
+    }
   }
 
+  /**
+   * Checks if an edge from a node contains a certain string. Only the "true" edge gets checked in
+   * assume edges
+   *
+   * @param node node, which edges will be checked
+   * @param string string that needs to be checked if it is contained in the edge
+   * @return true if the string is contained, false if it isn't
+   */
   private boolean edgeFromNodeContainsString(CFANode node, String string) {
     boolean contain = false;
     if(node.getNumLeavingEdges() == 2) {
@@ -705,6 +760,19 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    *     condition will be part of the condition string
    * @return string that represents the condition of the loop
    */
+
+  /**
+   * This method takes all of the nodes in the condition of this loop and returns a readable string
+   * that shows the condition of the loop
+   *
+   * @param conditionNodes all Nodes that are part of the condition
+   * @param type type of the loop to determine the way the condition will be put together
+   * @param conditionEnd nodes that are not in the condition to make sure that only nodes in the
+   *     condition will be part of the condition string
+   * @param endless boolean that shows, if the loop is an endless loop or not (condition = 1/true)
+   * @param onlyRandomC boolean that shows, if the condition is only a random condition
+   * @return string that represents the condition of the loop
+   */
   public String nodesToCondition(
       List<CFANode> conditionNodes,
       LoopType type,
@@ -849,7 +917,6 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
    * @return true if the loop should be accelerated or false if it doesn't make that much sense to
    *     accelerate it
    */
-  @SuppressWarnings({"unlikely-arg-type", "deprecation"})
   private boolean canLoopBeAccelerated(
       List<CFANode> condNodes,
       LoopType type,
@@ -1028,16 +1095,26 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     return temp;
   }
 
+  /**
+   * compareTo method, that compares startinglineInOrigin to be able to sort it specifically with
+   * that variable in mind
+   */
   @Override
   public int compareTo(LoopData otherLoop) {
     return (this.getLoopStart().getLeavingEdge(0).getFileLocation().getStartingLineInOrigin()
             < otherLoop.getLoopStart().getLeavingEdge(0).getFileLocation().getStartingLineInOrigin()
         ? -1
-        : (this.getLoopStart().getNodeNumber() == otherLoop.getLoopStart().getNodeNumber()
+        : (this.getLoopStart().getLeavingEdge(0).getFileLocation().getStartingLineInOrigin()
+                == otherLoop
+                    .getLoopStart()
+                    .getLeavingEdge(0)
+                    .getFileLocation()
+                    .getStartingLineInOrigin()
             ? 0
             : 1));
   }
 
+  /** equals method, that compares loopstart, failedState, amountOfPaths and numberOutputs */
   @Override
   public boolean equals(Object otherLoop) {
     if (!(otherLoop instanceof LoopData)) {
@@ -1057,6 +1134,10 @@ public class LoopData implements Comparable<LoopData>, StatisticsProvider {
     }
   }
 
+  /**
+   * hashcode method that takes loopstart, failedState, amountOfPaths and numberAllOutputs in
+   * account
+   */
   @Override
   public int hashCode() {
     final int prime = 29;
