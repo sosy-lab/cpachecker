@@ -148,7 +148,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.9" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.10.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.12" conf="spotbugs->default"/>
@@ -157,8 +157,8 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.38.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.41" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.39.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.41.1" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
