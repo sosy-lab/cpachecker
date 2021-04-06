@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -26,7 +24,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /*
  *
@@ -69,7 +66,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
   private CFANode startNodeGhostCFA;
 
   private ArrayList<StrategyInterface> strategies;
-  private Map<CFANode, Integer> currentStrategyForCFANode;
 
   @SuppressWarnings("unused")
   private int lookaheadAmntNodes;
@@ -89,7 +85,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     logger = pLoopSummaryCPA.getLogger();
     shutdownNotifier = pShutdownNotifier;
     strategies = pStrategies;
-    currentStrategyForCFANode = new HashMap<>();
     lookaheadAmntNodes = pLookaheadamntnodes;
     lookaheadIterations = pLookaheaditerations;
     originalCFA = pCfa;
@@ -176,11 +171,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
      *
      */
 
-    CFANode node = AbstractStates.extractLocation(pState);
-    if (!currentStrategyForCFANode.containsKey(node)) {
-      currentStrategyForCFANode.put(node, 0);
-    }
-
     Optional<Collection<? extends AbstractState>> summarizedState =
         strategies
             .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
@@ -188,7 +178,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
                 pState, ((LoopSummaryPrecision) pPrecision).getPrecision(), transferRelation);
     while (summarizedState.isEmpty()) {
       ((LoopSummaryPrecision) pPrecision).updateStrategy();
-      currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
       summarizedState =
           strategies
               .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
@@ -201,29 +190,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
             .getClass()
             .getName(),
         1);
-
-    /*
-     * Precision precision = ((LoopSummaryPrecision) pPrecision).getPrecision();
-     * Optional<Collection<? extends AbstractState>> summarizedState =
-        strategies
-            .get(currentStrategyForCFANode.get(node))
-            .summarizeLoopState(pState, precision, transferRelation);
-    while (summarizedState.isEmpty()) {
-      currentStrategyForCFANode.put(node, currentStrategyForCFANode.get(node) + 1);
-      summarizedState =
-          strategies
-              .get(currentStrategyForCFANode.get(node))
-              .summarizeLoopState(pState, precision, transferRelation);
-      if (!(strategies.get(currentStrategyForCFANode.get(node)) instanceof BaseStrategy)
-          && !summarizedState.isEmpty()) {
-        logger.log(
-            Level.INFO,
-            "Using summary Strategy: "
-                + strategies.get(currentStrategyForCFANode.get(node)).getClass().getName());
-      }
-    }
-    stats.updateSummariesUsed(
-        strategies.get(currentStrategyForCFANode.get(node)).getClass().getName(), 1);*/
 
     return summarizedState.get();
   }
