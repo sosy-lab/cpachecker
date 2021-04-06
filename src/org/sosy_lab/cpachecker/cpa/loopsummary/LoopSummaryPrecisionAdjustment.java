@@ -15,17 +15,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPrecisionAdjustment;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class LoopSummaryPrecisionAdjustment extends ARGPrecisionAdjustment {
+public class LoopSummaryPrecisionAdjustment implements PrecisionAdjustment {
 
-  public LoopSummaryPrecisionAdjustment(
-      PrecisionAdjustment pWrappedPrecAdjustment,
-      boolean pInCPAEnabledAnalysis,
-      ARGStatistics pStats) {
-    super(pWrappedPrecAdjustment, pInCPAEnabledAnalysis, pStats);
+  private PrecisionAdjustment precisionAdjustementOperator;
+
+  public LoopSummaryPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+    precisionAdjustementOperator = pWrappedPrecAdjustment;
   }
 
   @Override
@@ -35,12 +32,13 @@ public class LoopSummaryPrecisionAdjustment extends ARGPrecisionAdjustment {
       final Function<AbstractState, AbstractState> projection,
       AbstractState fullState)
       throws CPAException, InterruptedException {
-    Optional<PrecisionAdjustmentResult> result = super.prec(
-        pElement,
-        ((LoopSummaryPrecision) oldPrecision).getPrecision(),
-        pElements,
-        projection,
-        fullState);
+    Optional<PrecisionAdjustmentResult> result =
+        precisionAdjustementOperator.prec(
+            pElement,
+            ((LoopSummaryPrecision) oldPrecision).getPrecision(),
+            pElements,
+            projection,
+            fullState);
     if (result.isEmpty()) {
       return result;
     } else {
@@ -52,5 +50,13 @@ public class LoopSummaryPrecisionAdjustment extends ARGPrecisionAdjustment {
                   ((LoopSummaryPrecision) oldPrecision).getStrategyCounter()),
               result.get().action()));
     }
+  }
+
+  @Override
+  public Optional<? extends AbstractState> strengthen(
+      AbstractState pState, Precision pPrecision, Iterable<AbstractState> otherStates)
+      throws CPAException, InterruptedException {
+    return precisionAdjustementOperator.strengthen(
+        pState, ((LoopSummaryPrecision) pPrecision).getPrecision(), otherStates);
   }
 }

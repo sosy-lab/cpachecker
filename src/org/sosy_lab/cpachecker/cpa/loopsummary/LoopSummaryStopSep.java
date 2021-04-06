@@ -9,34 +9,33 @@
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.Collection;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStopSep;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class LoopSummaryStopSep extends ARGStopSep {
+public class LoopSummaryStopSep implements StopOperator, ForcedCoveringStopOperator {
 
-  public LoopSummaryStopSep(
-      StopOperator pWrappedStop,
-      LogManager pLogger,
-      boolean pInCPAEnabledAnalysis,
-      boolean pKeepCoveredStatesInReached,
-      boolean pCoverTargetStates) {
-    super(
-        pWrappedStop,
-        pLogger,
-        pInCPAEnabledAnalysis,
-        pKeepCoveredStatesInReached,
-        pCoverTargetStates);
-    // TODO Auto-generated constructor stub
+  private StopOperator stopOperator;
+
+  public LoopSummaryStopSep(StopOperator pWrappedStop) {
+    stopOperator = pWrappedStop;
   }
 
   @Override
   public boolean stop(
       AbstractState pElement, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
-    return super.stop(pElement, pReached, ((LoopSummaryPrecision) pPrecision).getPrecision());
+    return stopOperator.stop(pElement, pReached, ((LoopSummaryPrecision) pPrecision).getPrecision());
+  }
+
+  @Override
+  public boolean isForcedCoveringPossible(
+      AbstractState pState, AbstractState pReachedState, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    return ((ForcedCoveringStopOperator) stopOperator)
+        .isForcedCoveringPossible(
+            pState, pReachedState, ((LoopSummaryPrecision) pPrecision).getPrecision());
   }
 }

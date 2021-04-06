@@ -8,25 +8,23 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoin;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class LoopSummaryMergeJoin extends ARGMergeJoin {
+public class LoopSummaryMergeJoin implements MergeOperator {
 
-  public LoopSummaryMergeJoin(
-      MergeOperator pWrappedMerge,
-      AbstractDomain pWrappedDomain,
-      boolean pMergeOnWrappedSubsumption) {
-    super(pWrappedMerge, pWrappedDomain, pMergeOnWrappedSubsumption);
+  private MergeOperator mergeOperator;
+
+  public LoopSummaryMergeJoin(MergeOperator pWrappedMerge) {
+    mergeOperator = pWrappedMerge;
   }
 
   @Override
   public AbstractState merge(AbstractState pElement1, AbstractState pElement2, Precision pPrecision)
       throws CPAException, InterruptedException {
-    return super.merge(pElement1, pElement2, ((LoopSummaryPrecision) pPrecision).getPrecision());
+    return mergeOperator.merge(
+        pElement1, pElement2, ((LoopSummaryPrecision) pPrecision).getPrecision());
   }
 }
