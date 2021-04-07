@@ -719,6 +719,10 @@ cegar.maxIterations = -1
 # omitted.
 cegar.refiner = no default value
 
+# Stop after the given number of successful refinements. If 0, there is no
+# limit.
+cegar.stopAfterNSuccessfulRefinements = 0
+
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 

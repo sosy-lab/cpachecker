@@ -25,6 +25,7 @@ import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -153,6 +154,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     )
     private int maxRefinementNum = -1;
 
+    @Option(
+      secure = true,
+      name = "stopAfterNSuccessfulRefinements",
+      description = "Stop after the given number of successful refinements. If 0, there is no limit.")
+    @IntegerOption(min = 0)
+    private int stopAfterNSuccessfulRefinements = 0;
+
     private final AlgorithmFactory algorithmFactory;
     private final LogManager logger;
     private final Refiner refiner;
@@ -184,13 +192,15 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     @Override
     public CEGARAlgorithm newInstance() {
       return new CEGARAlgorithm(
-          algorithmFactory.newInstance(), refiner, logger, globalRefinement, maxRefinementNum);
+          algorithmFactory.newInstance(), refiner, logger, globalRefinement, maxRefinementNum, stopAfterNSuccessfulRefinements);
     }
   }
 
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
   private boolean globalRefinement = false;
   private int maxRefinementNum = -1;
+  private int stopAfterNSuccessfulRefinements = 0;
+
 
   private final LogManager logger;
   private final Algorithm algorithm;
@@ -202,12 +212,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
       Refiner pRefiner,
       LogManager pLogger,
       boolean pGlobalRefinement,
-      int pMaxRefinementNum) {
+      int pMaxRefinementNum,
+      int pStopAfterNSuccessfulRefinements) {
     algorithm = pAlgorithm;
     mRefiner = Preconditions.checkNotNull(pRefiner);
     logger = pLogger;
     globalRefinement = pGlobalRefinement;
     maxRefinementNum = pMaxRefinementNum;
+    stopAfterNSuccessfulRefinements = pStopAfterNSuccessfulRefinements;
 
     // don't store it because we wouldn't know when to unregister anyway
     new CEGARMBean().register();
@@ -255,7 +267,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
           refinedInPreviousIteration  = false;
         }
 
-      } while (refinementSuccessful);
+      } while (refinementSuccessful
+          && (stopAfterNSuccessfulRefinements <= 0
+              || stats.countSuccessfulRefinements < stopAfterNSuccessfulRefinements));
 
     } finally {
       stats.totalTimer.stop();
