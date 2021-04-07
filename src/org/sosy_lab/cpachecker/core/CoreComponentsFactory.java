@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AutomaticProgramRepair;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -326,6 +327,13 @@ public class CoreComponentsFactory {
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.automaticProgramRepair",
+      description = "Try to automatically fix bugs")
+  private boolean useAutomaticProgramRepair = false;
+
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -628,6 +636,9 @@ public class CoreComponentsFactory {
       }
       if(useFaultLocalizationWithTraceFormulas) {
         algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      }
+      if(useAutomaticProgramRepair) {
+        algorithm = new AutomaticProgramRepair(algorithm, logger, cfa);
       }
     }
 

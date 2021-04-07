@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with â€™,â€™ to seperate options. Optionname and value can
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -152,7 +152,7 @@ solver.z3.requireProofs = false
 solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
@@ -198,6 +198,9 @@ analysis.algorithm.MPV = false
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
+
+# Try to automatically fix bugs
+analysis.algorithm.automaticProgramRepair = false
 
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
@@ -573,10 +576,6 @@ bdd.pjbdd.cacheRatio = 0.1
 
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
-
-# Threadsafe reference counting is very costly, with this option gc can be
-# disabled. Only applicable with useInts = true.
-bdd.pjbdd.disableGC = false
 
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
