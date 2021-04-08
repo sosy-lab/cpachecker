@@ -38,7 +38,7 @@ public abstract class Preprocessor {
       name = "preprocessor.dumpDirectory",
       description = "Directory where to dump the results of the preprocessor.")
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path dumpDirectory = Paths.get("preprocessed");
+  protected Path dumpDirectory = Paths.get("preprocessed");
 
   private final LogManager logger;
 
