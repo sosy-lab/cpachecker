@@ -52,9 +52,7 @@ public enum TestTargetAdaption {
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       // basic heuristic that follows paths with forced predecessor/successors and removes
       // unnecessary test targets
-      TestTargetMinimizerBasicEssential testTargetReducer = new TestTargetMinimizerBasicEssential();
-      Set<CFAEdge> reducedTargets = testTargetReducer.reduceTargets(targets);
-      return reducedTargets;
+      return new TestTargetMinimizerBasicEssential().reduceTargets(targets);
     }
   },
   ESSENTIAL_EDGE {
@@ -62,9 +60,7 @@ public enum TestTargetAdaption {
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
       // as possible
-      TestTargetMinimizerEssential testTargetReducer = new TestTargetMinimizerEssential();
-      Set<CFAEdge> reducedTargets = testTargetReducer.reduceTargets(targets, pCfa);
-      return reducedTargets;
+      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa);
     }
   },
 

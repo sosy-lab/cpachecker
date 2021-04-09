@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class TestTargetMinimizerBasicEssential {
 
@@ -21,13 +21,11 @@ public class TestTargetMinimizerBasicEssential {
 
   }
 
-  public Set<CFAEdge> reduceTargets(Set<CFAEdge> testTargets) {
-    Set<CFAEdge> rule1results = new HashSet<>(testTargets);
+  public Set<CFAEdge> reduceTargets(final Set<CFAEdge> testTargets) {
+    Set<CFAEdge> targetsAfterRule1 = new HashSet<>(testTargets);
     // rule 1
-    Iterator<CFAEdge> iter = testTargets.iterator();
 
-    while (iter.hasNext()) {
-      CFAEdge currentEdge = iter.next();
+    for (CFAEdge currentEdge : testTargets) {
 
       CFANode predecessor = currentEdge.getPredecessor();
       // if the predecessor has only a single incoming and outgoing edge we "remove" that incoming
@@ -36,45 +34,40 @@ public class TestTargetMinimizerBasicEssential {
       // predecessor as the new predecessor
       while (predecessor.getNumLeavingEdges() == 1 && predecessor.getNumEnteringEdges() == 1) {
         if (testTargets.contains(predecessor.getEnteringEdge(0))) {
-          rule1results.remove(currentEdge);
+          targetsAfterRule1.remove(currentEdge);
         }
         predecessor = predecessor.getEnteringEdge(0).getPredecessor();
       }
       // if any of the incoming edges to the predecessor are a part of the testgoals and there are
       // no additional outgoing edges
       // then we can remove the edge under investigation from the testgoals
-      if (predecessor.getNumLeavingEdges() != 1) {
-        continue;
-      } else {
-        for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
-          if (testTargets.contains(predecessor.getEnteringEdge(i))) {
-            rule1results.remove(currentEdge);
+      if (predecessor.getNumLeavingEdges() == 1) {
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(predecessor)) {
+          predecessor.getNumEnteringEdges();
+          if (testTargets.contains(enteringEdge)) {
+            targetsAfterRule1.remove(currentEdge);
             break;
           }
         }
 
       }
     }
-    Set<CFAEdge> rule2results = new HashSet<>(rule1results);
-    iter = rule1results.iterator();
-    while (iter.hasNext()) {
-      CFAEdge currentEdge = iter.next();
+    Set<CFAEdge> finalTargets = new HashSet<>(targetsAfterRule1);
+    for (CFAEdge currentEdge : targetsAfterRule1) {
 
       CFANode successor = currentEdge.getSuccessor();
 
       while (successor.getNumLeavingEdges() == 1 && successor.getNumEnteringEdges() == 1) {
         if (testTargets.contains(successor.getLeavingEdge(0))) {
-          rule1results.remove(currentEdge);
+          targetsAfterRule1.remove(currentEdge);
         }
         successor = successor.getLeavingEdge(0).getSuccessor();
       }
 
-      if (successor.getNumEnteringEdges() != 1) {
-        continue;
-      } else {
-        for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-          if (testTargets.contains(successor.getLeavingEdge(i))) {
-            rule2results.remove(currentEdge);
+      if (successor.getNumEnteringEdges() == 1) {
+        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(successor)) {
+          if (testTargets.contains(leavingEdge)) {
+            finalTargets.remove(currentEdge);
             break;
 
           }
@@ -83,7 +76,7 @@ public class TestTargetMinimizerBasicEssential {
       }
     }
 
-    return rule2results;
+    return finalTargets;
   }
 
 }
