@@ -14,12 +14,12 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,6 +36,7 @@ public class TestTargetMinimizerEssential {
 
   }
 
+  // only works correctly if DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(Set<CFAEdge> testTargets, final CFA pCfa) {
 
     // create a copy of the cfa graph that can be minimized using the essential Branch rules
@@ -44,7 +45,7 @@ public class TestTargetMinimizerEssential {
     Map<CFANode, CFANode> nodesMapping = new HashMap<>();
     // maps a dummy edge to the testTarget that can be removed if its dominated by another
     // testTarget
-    Map<CFAEdge, CFAEdge> dummyTestTargetsMapping = new IdentityHashMap<>();
+    Map<CFAEdge, CFAEdge> dummyTestTargetsMapping = new HashMap<>();
 
 
     // a set of nodes that has already been created to prevent duplicates
@@ -77,13 +78,7 @@ public class TestTargetMinimizerEssential {
         }
         // create the new Edge and add it to its predecessor and successor nodes aswell as mapping
         // the original to it
-        CFAEdge newDummyEdge =
-            new BlankEdge(
-                "not null",
-                FileLocation.DUMMY,
-                nodesMapping.get(currentNode),
-                dummySuccessorNode,
-                "not null");
+        CFAEdge newDummyEdge = new DummyCFAEdge(nodesMapping.get(currentNode), dummySuccessorNode);
         nodesMapping.get(currentNode).addLeavingEdge(newDummyEdge);
         dummySuccessorNode.addEnteringEdge(newDummyEdge);
 
@@ -171,13 +166,7 @@ public class TestTargetMinimizerEssential {
         for (int i = 0; i < successorNode.getNumLeavingEdges(); i++) {
           // create a new edge from current Edges start to the successor of its end
           CFAEdge changedEdge = successorNode.getLeavingEdge(i);
-          CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  currentNode,
-                  changedEdge.getSuccessor(),
-                  "");
+          CFAEdge newDummyEdge = new DummyCFAEdge(currentNode, changedEdge.getSuccessor());
 
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
             newDummyEdge = new BlankEdge("", FileLocation.DUMMY, currentNode, currentNode, "");
@@ -207,15 +196,10 @@ public class TestTargetMinimizerEssential {
           CFAEdge changedEdge = successorNode.getEnteringEdge(i);
 
           // create a new edge from current Edges start to the successor of its end
-          CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  changedEdge.getPredecessor(),
-                  currentNode,
-                  "");
+          CFAEdge newDummyEdge = new DummyCFAEdge(changedEdge.getPredecessor(), currentNode);
+
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge = new BlankEdge("", FileLocation.DUMMY, currentNode, currentNode, "");
+            newDummyEdge = new DummyCFAEdge(currentNode, currentNode);
           }
           // remove the edge from its successor and add a new edge from current Node to said
           // successor
@@ -303,21 +287,11 @@ public class TestTargetMinimizerEssential {
           CFAEdge changedEdge = successorNode.getLeavingEdge(i);
           // create a new edge from current Edges start to the successor of its end
           CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  removedEdge.getPredecessor(),
-                  changedEdge.getSuccessor(),
-                  "");
+              new DummyCFAEdge(removedEdge.getPredecessor(), changedEdge.getSuccessor());
 
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
             newDummyEdge =
-                new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    removedEdge.getPredecessor(),
-                    removedEdge.getPredecessor(),
-                    "");
+                new DummyCFAEdge(removedEdge.getPredecessor(), removedEdge.getPredecessor());
           }
 
           if (dummyTestTargetsMapping.containsKey(changedEdge)) {
@@ -422,20 +396,9 @@ public class TestTargetMinimizerEssential {
         for (int i = 0; i < firstEdge.getSuccessor().getNumLeavingEdges(); i++) {
           CFAEdge changedEdge = firstEdge.getSuccessor().getLeavingEdge(i);
           CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  firstEdge.getPredecessor(),
-                  changedEdge.getSuccessor(),
-                  "");
+              new DummyCFAEdge(firstEdge.getPredecessor(), changedEdge.getSuccessor());
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge =
-                new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    firstEdge.getPredecessor(),
-                    firstEdge.getPredecessor(),
-                    "");
+            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
           }
           if (dummyTestTargetsMapping.containsKey(changedEdge)) {
             dummyTestTargetsMapping.put(
@@ -454,20 +417,9 @@ public class TestTargetMinimizerEssential {
             continue;
           }
           CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  changedEdge.getPredecessor(),
-                  firstEdge.getPredecessor(),
-                  "");
+              new DummyCFAEdge(changedEdge.getPredecessor(), firstEdge.getPredecessor());
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge =
-                new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    firstEdge.getPredecessor(),
-                    firstEdge.getPredecessor(),
-                    "");
+            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
           }
           if (dummyTestTargetsMapping.containsKey(changedEdge)) {
             dummyTestTargetsMapping.put(
@@ -566,20 +518,10 @@ public class TestTargetMinimizerEssential {
         for (int i=0;i<firstEdge.getSuccessor().getNumLeavingEdges();i++) {
           CFAEdge changedEdge = firstEdge.getSuccessor().getLeavingEdge(i);
           CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  firstEdge.getPredecessor(),
-                  changedEdge.getSuccessor(),
-                  "");
+              new DummyCFAEdge(firstEdge.getPredecessor(), changedEdge.getSuccessor());
+
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge =
-                new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    firstEdge.getPredecessor(),
-                    firstEdge.getPredecessor(),
-                    "");
+            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
           }
           if (dummyTestTargetsMapping.containsKey(changedEdge)) {
             dummyTestTargetsMapping.put(newDummyEdge, dummyTestTargetsMapping.get(changedEdge));
@@ -596,20 +538,10 @@ public class TestTargetMinimizerEssential {
           }
           CFAEdge changedEdge = firstEdge.getSuccessor().getEnteringEdge(i);
           CFAEdge newDummyEdge =
-              new BlankEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  changedEdge.getPredecessor(),
-                  firstEdge.getPredecessor(),
-                  "");
+              new DummyCFAEdge(changedEdge.getPredecessor(), firstEdge.getPredecessor());
+
           if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge =
-                new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    firstEdge.getPredecessor(),
-                    firstEdge.getPredecessor(),
-                    "");
+            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
           }
           if (dummyTestTargetsMapping.containsKey(changedEdge)) {
             dummyTestTargetsMapping.put(newDummyEdge, dummyTestTargetsMapping.get(changedEdge));

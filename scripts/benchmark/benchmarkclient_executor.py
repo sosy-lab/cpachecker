@@ -1,25 +1,21 @@
-# This file is part of CPAchecker,
-# a tool for configurable software verification:
-# https://cpachecker.sosy-lab.org
+# This file is part of BenchExec, a framework for reliable benchmarking:
+# https://github.com/sosy-lab/benchexec
 #
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 import sys
-
-sys.dont_write_bytecode = True  # prevent creation of .pyc files
-
 import json
 import logging
 import os
 import shutil
 import subprocess
-
 import benchexec.tooladapter
 import benchexec.util
-import benchmark.util as util
+from . import vcloudutil
 
+sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 DEFAULT_CLOUD_TIMELIMIT = 300  # s
 
@@ -29,16 +25,17 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = ""  # empty string matches every model
 
 STOPPED_BY_INTERRUPT = False
 
-_ROOT_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-)
+_JustReprocessResults = False
 
-_justReprocessResults = False
+
+def set_vcloud_jar_path(p):
+    global vcloud_jar
+    vcloud_jar = p
 
 
 def init(config, benchmark):
-    global _justReprocessResults
-    _justReprocessResults = config.reprocessResults
+    global _JustReprocessResults
+    _JustReprocessResults = config.reprocessResults
     tool_locator = benchexec.tooladapter.create_tool_locator(config)
     benchmark.executable = benchmark.tool.executable(tool_locator)
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -55,7 +52,7 @@ def get_system_info():
 
 
 def execute_benchmark(benchmark, output_handler):
-    if not _justReprocessResults:
+    if not _JustReprocessResults:
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         if benchmark.config.debug:
@@ -75,15 +72,6 @@ def execute_benchmark(benchmark, output_handler):
             }
         )
 
-        # install cloud and dependencies
-        ant = subprocess.Popen(
-            ["ant", "resolve-benchmark-dependencies"],
-            cwd=_ROOT_DIR,
-            shell=util.is_windows(),  # noqa: S602
-        )
-        ant.communicate()
-        ant.wait()
-
         # start cloud and wait for exit
         logging.debug("Starting cloud.")
         if benchmark.config.debug:
@@ -92,12 +80,12 @@ def execute_benchmark(benchmark, output_handler):
             logLevel = "INFO"
         # heuristic for heap size: 100 MB and 100 kB per run
         heapSize = benchmark.config.cloudClientHeap + numberOfRuns // 10
-        lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
+        # vcloud_jar is to be set by the calling script, i.e., (vcloud-)benchmark.py
         cmdLine = [
             "java",
             "-Xmx" + str(heapSize) + "m",
             "-jar",
-            lib,
+            vcloud_jar,
             "benchmark",
             "--loglevel",
             logLevel,
@@ -122,7 +110,7 @@ def execute_benchmark(benchmark, output_handler):
         start_time = benchexec.util.read_local_time()
 
         cloud = subprocess.Popen(
-            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()  # noqa: S602
+            cmdLine, stdin=subprocess.PIPE, shell=vcloudutil.is_windows()  # noqa: S602
         )
         try:
             cloud.communicate(cloudInput.encode("utf-8"))
@@ -241,7 +229,7 @@ def getBenchmarkDataForCloud(benchmark):
         # get runs
         for run in runSet.runs:
             cmdline = run.cmdline()
-            cmdline = list(map(util.force_linux_path, cmdline))
+            cmdline = list(map(vcloudutil.force_linux_path, cmdline))
 
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
@@ -353,7 +341,8 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if os.path.exists(run.log_file + ".stdError"):
                 runsProducedErrorOutput = True
 
-            # The directory structure differs between direct and webclient mode when using VCloud.
+            # Execution using this executor produces a different directory name than what
+            # BenchExec expects.
             # Move all output files from "sibling of log-file" to "sibling of parent directory".
             rawPath = run.log_file[: -len(".log")]
             dirname, filename = os.path.split(rawPath)
@@ -394,7 +383,9 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
                 osName = file.readline().split("=")[-1].strip()
                 memory = file.readline().split("=")[-1].strip()
                 cpuName = file.readline().split("=")[-1].strip()
-                frequency = util.parse_frequency_value(file.readline().split("=")[-1])
+                frequency = vcloudutil.parse_frequency_value(
+                    file.readline().split("=")[-1]
+                )
                 cores = file.readline().split("=")[-1].strip()
                 turboBoostSupported = False
                 turboBoostEnabled = False
@@ -435,7 +426,7 @@ def parseCloudRunResultFile(filePath):
                 key, value = line.split("=", 1)
                 yield key, value
 
-    return util.parse_vcloud_run_result(read_items())
+    return vcloudutil.parse_vcloud_run_result(read_items())
 
 
 def bytes_to_mb(mb):

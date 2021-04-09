@@ -140,9 +140,6 @@ public class PolicyIterationManager {
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
   private boolean generateTemplatesUsingConvexHull = false;
 
-  @Option(secure=true, description="Use caching optimization solver")
-  private boolean useCachingOptSolver = false;
-
   @Option(secure=true, description="Compute abstraction for larger templates "
       + "using decomposition")
   private boolean computeAbstractionByDecomposition = false;
@@ -841,7 +838,7 @@ public class PolicyIterationManager {
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
-    try (OptimizationProverEnvironment optEnvironment = newOptProver()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
       optEnvironment.push();
       optEnvironment.addConstraint(startConstraints);
@@ -962,14 +959,6 @@ public class PolicyIterationManager {
         extraInvariant,
         Optional.of(generatorState),
         pSibling);
-  }
-
-  private OptimizationProverEnvironment newOptProver() {
-    if (useCachingOptSolver) {
-      return solver.newCachedOptEnvironment();
-    } else {
-      return solver.newOptEnvironment();
-    }
   }
 
   private PolicyBound updatePolicyBoundDependencies(
