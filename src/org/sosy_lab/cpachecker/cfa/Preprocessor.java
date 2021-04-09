@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,14 +39,28 @@ public abstract class Preprocessor {
       name = "preprocessor.dumpDirectory",
       description = "Directory where to dump the results of the preprocessor.")
   @FileOption(Type.OUTPUT_DIRECTORY)
-  protected Path dumpDirectory = Paths.get("preprocessed");
+  private Path dumpDirectory = Paths.get("preprocessed");
 
   private final LogManager logger;
 
   protected Preprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
+    this(config, pLogger, false);
+  }
+
+  protected Preprocessor(Configuration config, LogManager pLogger, boolean dumpDirectoryRequired)
+      throws InvalidConfigurationException {
     config.inject(this, Preprocessor.class);
     logger = pLogger;
+    if (dumpDirectoryRequired && dumpDirectory == null) {
+      // output was disabled and the dump directory wasn't directly specified,
+      // but is required
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder.copyFrom(config);
+      configBuilder.setOption("parser.preprocessor.dumpDirectory", "preprocessed");
+      config = configBuilder.build();
+      config.inject(this, Preprocessor.class);
+    }
     if (dumpDirectory != null) {
       dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
     }

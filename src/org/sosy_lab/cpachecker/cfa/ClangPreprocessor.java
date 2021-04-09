@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -38,19 +37,9 @@ public class ClangPreprocessor extends Preprocessor {
 
   public ClangPreprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(config, pLogger);
+    // enforce preprocessor output because the LLVM frontend requires it
+    super(config, pLogger, /* dumpDirectoryRequired = */ true);
     config.inject(this);
-
-    if (dumpDirectory == null) {
-      // output was disabled and the dump directory wasn't directly specified
-      // -> enforce preprocessor output because the LLVM frontend requires it
-      ConfigurationBuilder configBuilder = Configuration.builder();
-      configBuilder.copyFrom(config);
-      configBuilder.setOption("parser.preprocessor.dumpDirectory", "preprocessed");
-      config = configBuilder.build();
-      config.inject(this, Preprocessor.class);
-      dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
-    }
   }
 
   public Path preprocessAndGetDumpedFile(String file) throws CParserException, InterruptedException {
