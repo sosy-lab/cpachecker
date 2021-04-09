@@ -22,7 +22,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,22 +44,8 @@ public abstract class Preprocessor {
 
   protected Preprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
-    this(config, pLogger, false);
-  }
-
-  protected Preprocessor(Configuration config, LogManager pLogger, boolean dumpDirectoryRequired)
-      throws InvalidConfigurationException {
     config.inject(this, Preprocessor.class);
     logger = pLogger;
-    if (dumpDirectoryRequired && dumpDirectory == null) {
-      // output was disabled and the dump directory wasn't directly specified,
-      // but is required
-      ConfigurationBuilder configBuilder = Configuration.builder();
-      configBuilder.copyFrom(config);
-      configBuilder.setOption("parser.preprocessor.dumpDirectory", "preprocessed");
-      config = configBuilder.build();
-      config.inject(this, Preprocessor.class);
-    }
     if (dumpDirectory != null) {
       dumpDirectory = dumpDirectory.toAbsolutePath().normalize();
     }
@@ -68,8 +53,12 @@ public abstract class Preprocessor {
 
   public String preprocess(String file) throws CParserException, InterruptedException {
     String result = preprocess0(file);
-    getAndWriteDumpedFile(result, file);
+    getAndWriteDumpFileOfFile(result, file);
     return result;
+  }
+
+  public Path getDumpDirectory() {
+    return dumpDirectory;
   }
 
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
@@ -112,15 +101,11 @@ public abstract class Preprocessor {
     }
   }
 
-  protected Path getAndWriteDumpedFile(String programCode, String file) {
+  protected Path getAndWriteDumpFileOfFile(String programCode, String file) {
     if (dumpResults() && dumpDirectory != null) {
       final Path dumpFile = dumpDirectory.resolve(getDumpFileOfFile(file)).normalize();
       if (dumpFile.startsWith(dumpDirectory)) {
-        try {
-          IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Cannot write result of preprocessing to file");
-        }
+        getAndWriteToGivenDumpFile(programCode, dumpFile);
       } else {
         logger.logf(
             Level.WARNING,
@@ -131,6 +116,15 @@ public abstract class Preprocessor {
       return dumpFile;
     }
     return null;
+  }
+
+  protected Path getAndWriteToGivenDumpFile(String programCode, Path dumpFile) {
+    try {
+      IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Cannot write result of preprocessing to file");
+    }
+    return dumpFile;
   }
 
   protected abstract String getName();

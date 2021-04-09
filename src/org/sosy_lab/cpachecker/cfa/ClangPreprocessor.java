@@ -37,14 +37,19 @@ public class ClangPreprocessor extends Preprocessor {
 
   public ClangPreprocessor(Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
-    // enforce preprocessor output because the LLVM frontend requires it
-    super(config, pLogger, /* dumpDirectoryRequired = */ true);
+    super(config, pLogger);
     config.inject(this);
   }
 
   public Path preprocessAndGetDumpedFile(String file) throws CParserException, InterruptedException {
     String result = preprocess0(file);
-    return getAndWriteDumpedFile(result, file);
+    return getAndWriteDumpFileOfFile(result, file);
+  }
+
+  public Path preprocessAndGetAndWriteToGivenDumpFile(String file, Path dumpFile)
+      throws CParserException, InterruptedException {
+    String result = preprocess0(file);
+    return getAndWriteToGivenDumpFile(result, dumpFile);
   }
 
   @Override
