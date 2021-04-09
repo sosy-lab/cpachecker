@@ -59,7 +59,7 @@ public class TestTargetMinimizerBasicEssential {
 
       while (successor.getNumLeavingEdges() == 1 && successor.getNumEnteringEdges() == 1) {
         if (testTargets.contains(successor.getLeavingEdge(0))) {
-          targetsAfterRule1.remove(currentEdge);
+          finalTargets.remove(currentEdge);
         }
         successor = successor.getLeavingEdge(0).getSuccessor();
       }
