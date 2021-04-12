@@ -347,7 +347,9 @@ public class ConfigurationFileChecks {
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
 
-    new File(tempFolder.getRoot().getAbsolutePath() + "/Goals.txt").createNewFile();
+    if(!new File(tempFolder.getRoot().getAbsolutePath() + "/Goals.txt").createNewFile()) {
+      throw new RuntimeException("File already exists!");
+    }
 
     copyFile(
         "config/specification/AssumptionGuidingAutomaton.spc",
