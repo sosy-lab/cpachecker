@@ -8,7 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 public class GhostCFA {
   private final CFANode startNode;
@@ -17,6 +22,17 @@ public class GhostCFA {
   public GhostCFA(CFANode startNode, CFANode stopNode) {
     this.startNode = startNode;
     this.stopNode = stopNode;
+
+    CFAEdge dummyFalseEdgeForRemovinGhostCFAOnRefinement =
+        new CAssumeEdge(
+            "false GHOST CFA",
+            FileLocation.DUMMY,
+            this.startNode,
+            this.stopNode,
+            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
+            true);
+    this.startNode.addLeavingEdge(dummyFalseEdgeForRemovinGhostCFAOnRefinement);
+    this.stopNode.addEnteringEdge(dummyFalseEdgeForRemovinGhostCFAOnRefinement);
   }
 
   public CFANode getStartNode() {

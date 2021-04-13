@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /*
  *
@@ -170,6 +171,29 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
      * How do you do the refinement in this case?
      *
      */
+
+    for(int i = 0; i < AbstractStates.extractLocation(pState).getNumLeavingEdges(); i++) {
+      if (AbstractStates.extractLocation(pState)
+          .getLeavingEdge(i)
+          .getRawStatement()
+          .equals("true GHOST CFA")) {
+        CFANode startGhotNode =
+            AbstractStates.extractLocation(pState).getLeavingEdge(i).getSuccessor();
+        CFANode stopLoopNode;
+        CFANode stopGhostNode;
+        for (int j = 0; j < startGhotNode.getNumLeavingEdges(); j++) {
+          if (startGhotNode.getLeavingEdge(j).getRawStatement().equals("false GHOST CFA")) {
+            stopGhostNode = startGhotNode.getLeavingEdge(j).getSuccessor();
+            stopLoopNode = stopGhostNode.getLeavingEdge(0).getSuccessor();
+            stopLoopNode.removeEnteringEdge(stopGhostNode.getLeavingEdge(0));
+            stopGhostNode.removeLeavingEdge(stopGhostNode.getLeavingEdge(0));
+            break;
+          }
+        }
+        AbstractStates.extractLocation(pState).removeLeavingEdge(startGhotNode.getEnteringEdge(0));
+        startGhotNode.removeLeavingEdge(startGhotNode.getEnteringEdge(0));
+        }
+      }
 
     Optional<Collection<? extends AbstractState>> summarizedState =
         strategies

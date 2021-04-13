@@ -185,7 +185,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
 
     CFAEdge dummyTrueEdgeEnd =
         new CAssumeEdge(
-            "true",
+            "true GHOST CFA",
             FileLocation.DUMMY,
             ghostCFA.getStopNode(),
             AbstractStates.extractLocation(pState)

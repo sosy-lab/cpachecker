@@ -47,6 +47,8 @@ public class LoopSummaryStrategyRefiner implements Refiner {
 
     final ARGPath path = ARGUtils.getOnePathTo(lastElement);
 
+    // TODO Implement refinement
+
     return false;
   }
 }
