@@ -94,7 +94,9 @@ public class TraceFormulaTest {
                     entries.put(key, value);
                   } else {
                     value = value.replace("[", "").replace("]", "");
-                    Splitter.on(", ").splitToList(value).forEach(loc -> entries.put(key, Integer.parseInt(loc)));
+                    Splitter.on(", ")
+                        .splitToList(value)
+                        .forEach(loc -> entries.put(key, Integer.parseInt(loc)));
                   }
                 }
               }
@@ -140,41 +142,44 @@ public class TraceFormulaTest {
       }
     }
 
-    expected.forEach((key, value) -> {
+    expected.forEach(
+        (key, value) -> {
           switch (key) {
             case TFRESULT:
-            {
-              @SuppressWarnings("unchecked")
-              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLines = ImmutableList.copyOf(lines);
-              ImmutableList<Integer> foundLinesLog = transformedImmutableListCopy(found.get(key), val -> (Integer)val);
-              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-              assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
-              break;
-            }
+              {
+                @SuppressWarnings("unchecked")
+                ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+                ImmutableList<Integer> foundLinesLog =
+                    transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+                assertThat(lines).containsExactlyElementsIn(expectedLines);
+                assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
+                break;
+              }
 
             case TFPOSTCONDITION:
-            {
-              @SuppressWarnings("unchecked")
-              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLines = transformedImmutableListCopy(found.get(key), val -> (Integer)val);
-              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-              break;
-            }
+              {
+                @SuppressWarnings("unchecked")
+                ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+                ImmutableList<Integer> foundLines =
+                    transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+                assertThat(foundLines).containsExactlyElementsIn(expectedLines);
+                break;
+              }
 
             case TFPRECONDITION:
-            {
-              @SuppressWarnings("unchecked")
-              ImmutableList<String> expectedLines = (ImmutableList<String>) value;
-              ImmutableList<String> foundLines = found.get(key)
-                      .stream()
-                      .map(Object::toString)
-                      .collect(ImmutableList.toImmutableList());
-              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-              break;
-            }
+              {
+                @SuppressWarnings("unchecked")
+                ImmutableList<String> expectedValues = (ImmutableList<String>) value;
+                ImmutableList<String> variableValues =
+                    found.get(key).stream()
+                        .map(Object::toString)
+                        .collect(ImmutableList.toImmutableList());
+                assertThat(variableValues).containsExactlyElementsIn(expectedValues);
+                break;
+              }
 
-            default: throw new AssertionError("Unknown log keyword: " + key);
+            default:
+              throw new AssertionError("Unknown log keyword: " + key);
           }
         });
   }
@@ -182,10 +187,21 @@ public class TraceFormulaTest {
   @Test
   public void testCorrectCalculationOfPreAndPostCondition() throws Exception {
     // precondition values
-    final ImmutableList<String> preconditionValues = ImmutableList.of("__VERIFIER_nondet_int!2@: 4",
-            "main::number@2: 4", "main::copyForCheck@2: 4", "main::test@2: 1", "main::i@2: 2",
-            "isPrime::n@2: 2", "isPrime::i@2: 2", "isPrime::__retval__@2: 1", "main::__CPAchecker_TMP_0@2: 1",
-            "main::test@3: 2", "main::number@3: 2", "main::i@3: 2", "main::i@4: 3");
+    final ImmutableList<String> preconditionValues =
+        ImmutableList.of(
+            "__VERIFIER_nondet_int!2@: 4",
+            "main::number@2: 4",
+            "main::copyForCheck@2: 4",
+            "main::test@2: 1",
+            "main::i@2: 2",
+            "isPrime::n@2: 2",
+            "isPrime::i@2: 2",
+            "isPrime::__retval__@2: 1",
+            "main::__CPAchecker_TMP_0@2: 1",
+            "main::test@3: 2",
+            "main::number@3: 2",
+            "main::i@3: 2",
+            "main::i@4: 3");
     // post-condition is on line 47
     final ImmutableList<Integer> postConditionLocation = ImmutableList.of(47);
     checkIfExpectedValuesMatchResultValues(
