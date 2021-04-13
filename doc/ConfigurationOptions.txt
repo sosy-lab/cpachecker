@@ -1842,7 +1842,11 @@ cpa.loopsummary.lookaheaditerations = 10
 # which order they are tried
 cpa.loopsummary.strategies = new ArrayList<>(
           Arrays.asList(
-              
+              StrategiesEnum.CONSTANTEXTRAPOLATION,
+              StrategiesEnum.LINEAREXTRAPOLATION,
+              StrategiesEnum.POLYNOMIALEXTRAPOLATION,
+              StrategiesEnum.NAIVELOOPACCELERATION,
+              StrategiesEnum.LOOPACCELERATION,
               StrategiesEnum.BASE))
 
 # test

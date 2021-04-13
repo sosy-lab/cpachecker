@@ -9,17 +9,30 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryCPA;
+import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryStrategyRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public abstract class LoopSummaryPredicateRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+    LogManager logger;
+    if (pCpa instanceof LoopSummaryCPA) {
+      logger = ((LoopSummaryCPA) pCpa).getLogger();
+    } else {
+      logger = null;
+    }
+    return new LoopSummaryBasedRefiner(
+        AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa),
+        new LoopSummaryStrategyRefiner(),
+        logger);
   }
 
   @SuppressWarnings("resource")
