@@ -10,9 +10,8 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,9 +73,9 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
-    Set<ACSLAnnotation> annotations = new HashSet<>();
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    ImmutableSet.Builder<ACSLAnnotation> annotations = ImmutableSet.builder();
     for (int i = 0; i < node.getNumEnteringEdges(); i++) {
       CFAEdge edge = node.getEnteringEdge(i);
       Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(edge);
@@ -88,6 +87,6 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       }
       annotations.addAll(annotationsForEdge);
     }
-    return new ACSLState(annotations, acslVisitor, expressionTreeVisitor);
+    return new ACSLState(annotations.build(), acslVisitor, expressionTreeVisitor);
   }
 }
