@@ -8,21 +8,21 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.io.Files;
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -57,6 +58,12 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       description = "The witness from which ACSL annotations should be generated.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path witness;
+
+  @Option(
+      secure = true,
+      description = "The directory where generated, ACSL annotated programs are stored.")
+  @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
+  private Path outDir = Paths.get("annotated");
 
   private final Configuration config;
   private final LogManager logger;
@@ -90,8 +97,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
     for (ExpressionTreeLocationInvariant c : invariants) {
       String filename = c.getLocation().getFunction().getFileLocation().getFileName();
-      File f = new File(filename);
-      if (f.isFile()) {
+      if (Files.isRegularFile(Path.of(filename))) {
         files.add(filename);
       }
     }
@@ -119,15 +125,16 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         }
       }
 
-      String fileContent = "";
+      String fileContent;
       try {
-        fileContent = Files.asCharSource(new File(file), Charsets.UTF_8).read();
+        fileContent = Files.readString(Path.of(file));
       } catch (IOException pE) {
-        logger.logfUserException(Level.SEVERE, pE, "Could not read file %s", file);
+        logger.logfUserException(Level.WARNING, pE, "Could not read file %s", file);
+        continue;
       }
 
-      List<Integer> sortedLocations = new ArrayList<>(locationsToInvariants.keySet());
-      Collections.sort(sortedLocations);
+      ImmutableList<Integer> sortedLocations =
+          ImmutableList.sortedCopyOf(locationsToInvariants.keySet());
       Iterator<Integer> invariantLocationsIterator = sortedLocations.iterator();
       Integer currentLocation;
       if (invariantLocationsIterator.hasNext()) {
@@ -167,7 +174,9 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       try {
         writeToFile(file, output);
       } catch (IOException pE) {
-        logger.logfUserException(Level.SEVERE, pE, "Could not write annotations for file %s", file);
+        logger.logfUserException(
+            Level.WARNING, pE, "Could not write annotations for file %s", file);
+        continue;
       }
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -175,18 +184,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
   private void writeToFile(String pathToOriginalFile, List<String> newContent) throws IOException {
     Path path = Path.of(pathToOriginalFile);
-    Path directory = path.getParent();
-    assert directory != null;
-    Path oldFileName = path.getFileName();
-    String newFileName = makeNameForAnnotatedFile(oldFileName.toString());
-
-    File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
-    assert outFile.createNewFile() : String.format("File %s already exists!", outFile);
-    try (Writer out = Files.newWriter(outFile, StandardCharsets.UTF_8)) {
-      for (String line : newContent) {
-        out.append(line.concat("\n"));
-      }
-      out.flush();
+    String newFileName = makeNameForAnnotatedFile(path.getFileName().toString());
+    Path outFile = outDir.resolve(newFileName);
+    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
+      writer.write(String.join("\n", newContent).concat("\n"));
     }
   }
 
@@ -236,11 +237,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
   private Set<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
     CFANode node = inv.getLocation();
-    Set<Integer> locations = new HashSet<>(node.getNumLeavingEdges());
+    ImmutableSet.Builder<Integer> locations = ImmutableSet.builder();
 
     if (node instanceof FunctionEntryNode || node instanceof FunctionExitNode) {
       // Cannot map to a position
-      return locations;
+      return locations.build();
     }
 
     for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -261,6 +262,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       }
     }
 
-    return locations;
+    return locations.build();
   }
 }
