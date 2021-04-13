@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -149,6 +151,18 @@ public abstract class AbstractStrategy implements StrategyInterface {
       TransferRelation pTransferRelation,
       int loopBranchIndex)
       throws CPATransferException, InterruptedException {
+
+    CFAEdge dummyTrueEdgeStart =
+        new CAssumeEdge(
+            "true",
+            FileLocation.DUMMY,
+            AbstractStates.extractLocation(pState),
+            ghostCFA.getStartNode(),
+            CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
+            true);
+    AbstractStates.extractLocation(pState).addLeavingEdge(dummyTrueEdgeStart);
+    ghostCFA.getStartNode().addEnteringEdge(dummyTrueEdgeStart);
+
     LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
     LocationState ghostStartLocationState =
         new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
@@ -168,6 +182,26 @@ public abstract class AbstractStrategy implements StrategyInterface {
                 .getLeavingEdge(1 - loopBranchIndex)
                 .getSuccessor(),
             oldLocationState.getFollowFunctionCalls());
+
+    CFAEdge dummyTrueEdgeEnd =
+        new CAssumeEdge(
+            "true",
+            FileLocation.DUMMY,
+            ghostCFA.getStopNode(),
+            AbstractStates.extractLocation(pState)
+                .getLeavingEdge(1 - loopBranchIndex)
+                .getSuccessor(),
+            CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
+            true);
+    ghostCFA.getStopNode().addLeavingEdge(dummyTrueEdgeEnd);
+    AbstractStates.extractLocation(pState)
+        .getLeavingEdge(1 - loopBranchIndex)
+        .getSuccessor()
+        .addEnteringEdge(dummyTrueEdgeEnd);
+
+    ((ARGState) dummyStateStart).addParent((ARGState) pState);
+    realStatesEndCollection.add(dummyStateStart);
+    realStatesEndCollection.addAll(dummyStatesEndCollection);
     // Iterate till the end of the ghost CFA
     while (!dummyStatesEndCollection.isEmpty()) {
       ArrayList<AbstractState> newStatesNotFinished = new ArrayList<>();
@@ -175,11 +209,14 @@ public abstract class AbstractStrategy implements StrategyInterface {
       while (iterator.hasNext()) {
         AbstractState stateGhostCFA = iterator.next();
         if (AbstractStates.extractLocation(stateGhostCFA) == ghostCFA.getStopNode()) {
-          realStatesEndCollection.add(
-              overwriteLocationState(stateGhostCFA, afterLoopLocationState));
+          AbstractState newState = overwriteLocationState(stateGhostCFA, afterLoopLocationState);
+          ((ARGState) newState).addParent((ARGState) stateGhostCFA);
+          realStatesEndCollection.add(newState);
         } else {
-          newStatesNotFinished.addAll(
-              pTransferRelation.getAbstractSuccessors(stateGhostCFA, pPrecision));
+          Collection<? extends AbstractState> newStates =
+              pTransferRelation.getAbstractSuccessors(stateGhostCFA, pPrecision);
+          newStatesNotFinished.addAll(newStates);
+          realStatesEndCollection.addAll(newStates);
         }
       }
       dummyStatesEndCollection = newStatesNotFinished;

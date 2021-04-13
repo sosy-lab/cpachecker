@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -43,6 +44,7 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    logger.log(Level.INFO, "Performing Double refinement");
     if (!firstRefiner.performRefinement(pReached)) {
       return secondRefiner.performRefinement(pReached);
     } else {

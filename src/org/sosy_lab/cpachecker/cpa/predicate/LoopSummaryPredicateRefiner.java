@@ -31,7 +31,7 @@ public abstract class LoopSummaryPredicateRefiner implements Refiner {
     }
     return new LoopSummaryBasedRefiner(
         AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa),
-        new LoopSummaryStrategyRefiner(),
+        new LoopSummaryStrategyRefiner(logger, pCpa),
         logger);
   }
 
