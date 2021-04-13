@@ -111,7 +111,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
         throw new AssertionError("Unknown type of ExpressionTree.");
       }
     } catch (UnrecognizedCodeException e) {
-      throw new AssertionError(e.getMessage(), e);
+      throw new AssertionError(e);
     }
   }
 }
