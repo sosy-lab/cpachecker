@@ -63,11 +63,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(List<Fault> pFaults, CounterexampleInfo pParent) {
-    super(pParent.isSpurious(),
-            pParent.getTargetPath(),
-            pParent.getCFAPathWithAssignments(),
-            pParent.isPreciseCounterExample(),
-            CFAPathWithAdditionalInfo.empty());
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
     rankedList = ImmutableList.copyOf(pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
@@ -95,11 +96,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    */
   public FaultLocalizationInfo(
           Set<Fault> pFaults, FaultScoring pRanking, CounterexampleInfo pParent) {
-    super(pParent.isSpurious(),
-            pParent.getTargetPath(),
-            pParent.getCFAPathWithAssignments(),
-            pParent.isPreciseCounterExample(),
-            CFAPathWithAdditionalInfo.empty());
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
@@ -127,16 +129,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(
-          Set<Fault> pFaults,
-          FaultScoring pScoring,
-          BooleanFormula pPrecondition,
-          ImmutableList<BooleanFormula> pAtoms,
-          CounterexampleInfo pParent) {
-    super(pParent.isSpurious(),
-            pParent.getTargetPath(),
-            pParent.getCFAPathWithAssignments(),
-            pParent.isPreciseCounterExample(),
-            CFAPathWithAdditionalInfo.empty());
+      Set<Fault> pFaults,
+      FaultScoring pScoring,
+      BooleanFormula pPrecondition,
+      ImmutableList<BooleanFormula> pAtoms,
+      CounterexampleInfo pParent) {
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pScoring, pFaults);
     precondition = Optional.of(pPrecondition);
     atoms = pAtoms;
