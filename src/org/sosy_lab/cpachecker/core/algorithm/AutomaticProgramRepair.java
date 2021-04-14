@@ -9,29 +9,35 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.TreeMultimap;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -39,20 +45,31 @@ public class AutomaticProgramRepair
     implements Algorithm, StatisticsProvider, Statistics {
 
   private final Algorithm algorithm;
+  private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
+  private final Specification specification;
+  private final ShutdownNotifier shutdownNotifier;
 
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
 
   public AutomaticProgramRepair(
       final Algorithm pStoreAlgorithm,
+      final Configuration pConfig,
       final LogManager pLogger,
-      final CFA pCfa){
+      final CFA pCfa,
+      final Specification pSpecification,
+      final ShutdownNotifier pShutdownNotifier
+  )
+      throws InvalidConfigurationException {
 
+    config = pConfig;
     algorithm = pStoreAlgorithm;
     cfa = pCfa;
     logger = pLogger;
+    specification = pSpecification;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -63,78 +80,100 @@ public class AutomaticProgramRepair
 
     try {
       logger.log(Level.INFO, "Starting bug repair...");
+      logger.log(Level.INFO, "STATUS before: " + status.toString());
 
       runAlgorithm();
 
       logger.log(Level.INFO, "Stopping bug repair...");
+    } catch (InvalidConfigurationException e) {
+      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
     } finally{
       totalTime.stop();
     }
     return status;
   }
 
-  private void runAlgorithm(){
-    Iterable<? extends AAstNode> repairCandidates = calcRepairCandidates();
+  private void runAlgorithm()
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    final MutableCFA clonedCFA = cloneCFA();
+    final RepairCandidateCollector repairCandidatesCollector = new RepairCandidateCollector();
 
-    for (AAstNode node : repairCandidates) {
-      logger.log(Level.INFO,  node.toASTString());
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(clonedCFA.getMainFunction(), repairCandidatesCollector);
 
-      if (node instanceof CBinaryExpression){
-        CBinaryExpression binNode = (CBinaryExpression) node;
+    final List<CFANode> repairCandidateNodes =  repairCandidatesCollector.getRepairCandidateNodes();
 
-        if (binNode.getOperator().isLogicalOperator()) {
-          CBinaryExpression patchCandidate = calcFlippedExpression(binNode);
+    logger.log(Level.INFO,  clonedCFA.getAllNodes().size());
 
-          logger.log(Level.INFO, "This might be the cause: " + node.toASTString());
-          logger.log(Level.INFO, "This might fix it: " + patchCandidate.toASTString());
-        }
+    final MutableCFA mutatedCFA = mutateCFA(clonedCFA, repairCandidateNodes);
+    final AlgorithmStatus newStatus = rerun(mutatedCFA);
+
+    logger.log(Level.INFO, "STATUS after: " + newStatus.toString());
+    logger.log(Level.INFO,  mutatedCFA.getAllNodes().size());
+  }
+
+  private AlgorithmStatus rerun(MutableCFA mutatedCFA)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+    final CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+    final ConfigurableProgramAnalysis mutatedCPA = builder.buildCPAs(mutatedCFA, specification, new AggregatedReachedSets());
+    final CPAAlgorithm algo = CPAAlgorithm.create(mutatedCPA, logger, config, shutdownNotifier);
+
+    return algo.run(reachedSetFactory.create());
+  }
+
+  private MutableCFA cloneCFA(){
+    final TreeMultimap<String, CFANode>  nodes = TreeMultimap.create();
+
+    for (final String function : cfa.getAllFunctionNames()) {
+      nodes.putAll(function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
+    }
+
+    return new MutableCFA(cfa.getMachineModel(),
+        cfa.getAllFunctions(),
+        nodes,
+        cfa.getMainFunction(),
+        cfa.getFileNames(),
+        cfa.getLanguage());
+  }
+
+  private MutableCFA mutateCFA(MutableCFA currentCFA, List<CFANode> repairCandidateNodes)  {
+    for (CFANode node : repairCandidateNodes) {
+      if(shouldDelete()){
+        currentCFA.removeNode(node);
       }
     }
+
+    return currentCFA;
   }
 
-  private CBinaryExpression calcFlippedExpression(CBinaryExpression binExp){
-    return new CBinaryExpression(binExp.getFileLocation(),
-        binExp.getExpressionType(),
-        binExp.getCalculationType(),
-        binExp.getOperand1(),
-        binExp.getOperand2(),
-        binExp.getOperator().getOppositLogicalOperator());
-  }
 
-  private Iterable<? extends AAstNode>  calcRepairCandidates(){
-    RepairCandidatesCollector repairCandidatesCollector = new RepairCandidatesCollector();
+  private static class RepairCandidateCollector extends ForwardingCFAVisitor {
+    private final List<CFANode> repairCandidateNodes = new ArrayList<>();
 
-    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), repairCandidatesCollector);
-
-    return repairCandidatesCollector.getRepairCandidates();
-  }
-
-  private static class RepairCandidatesCollector extends ForwardingCFAVisitor {
-    Iterable<? extends AAstNode> repairCandidates = FluentIterable.of() ;
-
-    public RepairCandidatesCollector() {
-      super(new NodeCollectingCFAVisitor());
+    public RepairCandidateCollector() {
+      super(new EdgeCollectingCFAVisitor());
     }
+
 
     @Override
-    public TraversalProcess visitEdge(CFAEdge edge) {
-      Iterable<? extends AAstNode> candidates =
-          FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(edge))
-              .transformAndConcat(CFAUtils::traverseRecursively)
-              .filter(predicate);
-
-      repairCandidates =
-          Iterables.concat(repairCandidates, candidates);
-
-      return super.visitEdge(edge);
+    public TraversalProcess visitNode(CFANode node) {
+      if (isCandidate()) {
+        repairCandidateNodes.add(node);
+      }
+      return super.visitNode(node);
     }
 
-    Predicate<AAstNode> predicate = input -> Math.random() >= 0.7;
-
-    private Iterable<? extends AAstNode> getRepairCandidates() {
-      return repairCandidates;
+    private boolean isCandidate() {
+      return Math.random() >= 0.7;
     }
 
+    private List<CFANode> getRepairCandidateNodes() {
+      return repairCandidateNodes;
+    }
+  }
+
+  private boolean shouldDelete() {
+    return Math.random() >= 0.7;
   }
 
 

@@ -638,7 +638,7 @@ public class CoreComponentsFactory {
         algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
       if(useAutomaticProgramRepair) {
-        algorithm = new AutomaticProgramRepair(algorithm, logger, cfa);
+        algorithm = new AutomaticProgramRepair(algorithm, config, logger, cfa, specification, shutdownNotifier);
       }
     }
 
