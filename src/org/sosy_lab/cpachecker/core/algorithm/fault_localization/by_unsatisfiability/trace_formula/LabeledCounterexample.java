@@ -32,7 +32,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     ENDIF
   }
 
-  private List<LabeledFormula> annotatedCounterexample;
+  private final List<LabeledFormula> annotatedCounterexample;
 
   /**
    * The LabeledCounterexample adds the labels IF and ENDIF to fitting statements in the
@@ -108,8 +108,8 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
   static class LabeledFormula {
 
-    private FormulaEntry entry;
-    private List<FormulaLabel> labels;
+    private final FormulaEntry entry;
+    private final List<FormulaLabel> labels;
 
     /**
      * Adds a label to a FormulaEntry
@@ -149,7 +149,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
     @Override
     public String toString() {
-      String labelString = labels.stream().map(l -> l.toString()).collect(Collectors.joining(","));
+      String labelString = labels.stream().map(Enum::toString).collect(Collectors.joining(","));
       return "LabeledFormula{" + "entry=" + entry + ", labels=" + labelString + '}';
     }
   }

@@ -221,7 +221,7 @@ public abstract class TraceFormula {
                 bmgr.and(
                     entries.removeExtract(
                         entry -> {
-                          if (entry instanceof FormulaEntryList.PreconditionEntry) {
+                          if (entry instanceof FormulaEntryList.PreconditionEntry || entry.getSelector() == null) {
                             return false;
                           }
                           return entry.getSelector().getEdge().equals(curr);

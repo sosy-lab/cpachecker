@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -62,20 +61,20 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
 
-  private ShutdownNotifier shutdownNotifier;
-  private Configuration config;
-  private LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
+  private final LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
   private ImmutableList<SSAMap> maps;
 
   // Memorize already processed interpolants to minimize solver calls
-  private Multimap<BooleanFormula, Integer> memorize;
+  private final Multimap<BooleanFormula, Integer> memorize;
 
-  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
-  private StatCounter searchCalls = new StatCounter("Number of search calls");
-  private StatCounter solverCalls = new StatCounter("Number of solver calls");
-  private StatCounter memoizationCalls =
+  private final StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
+  private final StatCounter searchCalls = new StatCounter("Number of search calls");
+  private final StatCounter solverCalls = new StatCounter("Number of solver calls");
+  private final StatCounter memoizationCalls =
       new StatCounter("Number of interpolant-interval cache hits");
 
   /**
@@ -144,8 +143,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       sortedIntervals.add(current);
     }
 
-    // sort the intervals and calculate abstrace error trace
-    Collections.sort(sortedIntervals, Comparator.comparingInt(i -> i.getStart()));
+    // sort the intervals and calculate abstract error trace
+    sortedIntervals.sort(Comparator.comparingInt(Interval::getStart));
     ImmutableList<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
@@ -257,7 +256,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         }
         curr.replaceErrorSet(contributions);
         curr.setIntendedIndex(i);
-        faults.add(curr);
+        // precondition has an own entry in FLInfo -> exclude it from here
+        if (i != 0 || !curr.invariant.equals(errorTrace.getPrecondition())) {
+          faults.add(curr);
+        }
       }
     }
 
@@ -371,8 +373,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /** Stores the interpolant for a selector and its boundaries */
   public static class Interval extends Fault implements AbstractTraceElement {
 
-    private int start;
-    private int end;
+    private final int start;
+    private final int end;
     private BooleanFormula invariant;
 
     public Interval(int pStart, int pEnd, BooleanFormula pInvariant) {
