@@ -50,14 +50,14 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="30.1-jre"
+        <dependency org="com.google.guava" name="guava" rev="30.1.1-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.6"
                     conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
-        <dependency org="org.sosy_lab" name="pjbdd" rev="v1.0.8"
+        <dependency org="org.sosy_lab" name="pjbdd" rev="v1.0.10-3"
                     conf="runtime->runtime; contrib->sources"/>
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="3.8.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="3.8.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="3.9.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="3.9.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -123,7 +123,7 @@ SPDX-License-Identifier: Apache-2.0
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="30.1-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="30.1.1-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
@@ -148,7 +148,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.9" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.10.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.12" conf="spotbugs->default"/>
@@ -157,8 +157,8 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.38.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.41" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.39.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.41.1" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
@@ -176,7 +176,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2020-11-22-raf891fcd33" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-03-22-r6b052ca16b" conf="runtime->runtime; contrib->sources"/>
 
         <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
             <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
