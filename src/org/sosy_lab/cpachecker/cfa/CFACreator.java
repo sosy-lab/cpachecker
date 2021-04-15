@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
+import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -285,6 +287,10 @@ public class CFACreator {
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
 
+  // data structures for parsing ACSL annotations
+  private final Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> commentPositions = new HashMap<>();
+  private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
+
   private final LogManager logger;
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
@@ -457,8 +463,10 @@ public class CFACreator {
 
       CFA cfa = createCFA(c, mainFunction);
 
-      if (cfa instanceof CFAWithACSLAnnotationLocations) {
-        cfa = ACSLParser.parseACSLAnnotations(sourceFiles, cfa, logger);
+      if (!commentPositions.isEmpty()) {
+        cfa =
+            ACSLParser.parseACSLAnnotations(
+                sourceFiles, cfa, logger, commentPositions, statementStackDepths);
       }
 
       return cfa;
@@ -565,14 +573,11 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
-    final CFA result;
-
     if (pParseResult instanceof ParseResultWithCommentLocations) {
-      result =
-          new CFAWithACSLAnnotationLocations(
-              immutableCFA, ((ParseResultWithCommentLocations) pParseResult).getCommentLocations());
-    } else {
-      result = immutableCFA;
+      commentPositions.putAll(
+          ((ParseResultWithCommentLocations) pParseResult).getCommentLocations());
+      statementStackDepths.putAll(
+          ((ParseResultWithCommentLocations) pParseResult).getStatementStackDepths());
     }
 
     // check the super CFA starting at the main function
@@ -586,13 +591,13 @@ public class CFACreator {
         || ((serializeCfaFile != null) && serializeCfa)
         || (exportCfaPixelFile != null)
         || (exportCfaToCFile != null && exportCfaToC)) {
-      exportCFAAsync(result);
+      exportCFAAsync(immutableCFA);
     }
 
     logger.log(
-        Level.FINE, "DONE, CFA for", result.getNumberOfFunctions(), "functions created.");
+        Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
-    return result;
+    return immutableCFA;
   }
 
   private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {

@@ -159,6 +159,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   // because we move some declarations to the global scope (e.g., static variables)
   private final List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
 
+  // Data structure to keep track of nesting depth of statements,
+  // necessary for ACSL parsing
+  private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
+
   private final FunctionScope scope;
   private final ASTConverter astCreator;
   private final ParseContext parseContext;
@@ -216,6 +220,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     checkState(cfaNodes == null);
     cfaNodes = CFATraversal.dfs().collectNodesReachableFrom(cfa);
     return cfaNodes;
+  }
+
+  Map<CFANode, Integer> getStatementStackDepths() {
+    return statementStackDepths;
   }
 
   boolean didEncounterAsm() {
@@ -308,13 +316,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert (!locStack.isEmpty()) : "not in a function's scope";
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     CFANode nextNode = createEdgeForDeclaration(sd, astCreator.getLocation(sd), prevNode);
 
     assert nextNode != null;
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
@@ -442,7 +450,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final CFANode nextNode = newCFANode();
     locStack.add(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
 
     final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
         startNode, nextNode, "Function start dummy edge");
@@ -460,11 +468,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     encounteredAsm = true;
 
     final CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     final CFANode nextNode = newCFANode();
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
 
     final BlankEdge edge = new BlankEdge(asmCode.getRawSignature(),
         fileloc, prevNode, nextNode, "Ignored inline assembler code");
@@ -492,7 +500,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       CFANode lastNode = locStack.pop();
-      lastNode.setStatementStackDepth(locStack.size() + 1);
+      statementStackDepths.put(lastNode, locStack.size() + 1);
 
       if (isReachableNode(lastNode)) {
         BlankEdge blankEdge = new BlankEdge("",
@@ -562,10 +570,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (statement.getPropertyInParent() == IASTIfStatement.ELSE) {
       // Edge from current location to post if-statement location
       CFANode prevNode = locStack.pop();
-      prevNode.setStatementStackDepth(locStack.size() + 1);
+      statementStackDepths.put(prevNode, locStack.size() + 1);
       CFANode nextNode = locStack.peek();
       if (nextNode != null) {
-        nextNode.setStatementStackDepth(locStack.size());
+        statementStackDepths.put(nextNode, locStack.size());
       }
 
       if (isReachableNode(prevNode)) {
@@ -576,7 +584,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       //  Push the start of the else clause onto our location stack
       CFANode elseNode = elseStack.pop();
       locStack.push(elseNode);
-      elseNode.setStatementStackDepth(locStack.size());
+      statementStackDepths.put(elseNode, locStack.size());
     }
 
     // Handle each kind of expression
@@ -635,7 +643,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
     CFANode lastNode = null;
     String rawSignature = exprStatement.getRawSignature();
 
@@ -651,7 +659,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
     }
     locStack.push(lastNode);
-    lastNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(lastNode, locStack.size());
   }
 
   /**
@@ -713,7 +721,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     CVariableDeclaration localLabel = scope.lookupLocalLabel(labelName);
     if (localLabel != null) {
@@ -722,7 +730,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CLabelNode labelNode = new CLabelNode(cfa.getFunction(), labelName);
     locStack.push(labelNode);
-    labelNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(labelNode, locStack.size());
 
     if (localLabel == null) {
       labelMap.put(labelName, labelNode);
@@ -774,7 +782,7 @@ class CFAFunctionBuilder extends ASTVisitor {
               "Label: " + labelName);
       addToCFA(blankEdge);
       locStack.push(node);
-      node.setStatementStackDepth(locStack.size());
+      statementStackDepths.put(node, locStack.size());
     }
   }
 
@@ -787,7 +795,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     String labelName = gotoStatement.getName().toString();
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
     CFANode labelNode = labelMap.get(labelName);
 
     // check if label is local label
@@ -817,7 +825,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
   }
 
   /**
@@ -827,7 +835,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
     // a return statement leaves all available scopes at once.
@@ -847,7 +855,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
   }
 
   /**
@@ -864,10 +872,10 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if (statement instanceof IASTIfStatement) {
       final CFANode prevNode = locStack.pop();
-      prevNode.setStatementStackDepth(locStack.size() + 1);
+      statementStackDepths.put(prevNode, locStack.size() + 1);
       final CFANode nextNode = locStack.peek();
       if (nextNode != null) {
-        nextNode.setStatementStackDepth(locStack.size());
+        statementStackDepths.put(nextNode, locStack.size());
       }
 
       if (isReachableNode(prevNode)) {
@@ -902,13 +910,13 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-      locStack.peek().setStatementStackDepth(locStack.size());
+      statementStackDepths.put(locStack.peek(), locStack.size());
       scope.leaveBlock();
 
     } else if (statement instanceof IASTWhileStatement
             || statement instanceof IASTDoStatement) {
       CFANode prevNode = locStack.pop();
-      prevNode.setStatementStackDepth(locStack.size() + 1);
+      statementStackDepths.put(prevNode, locStack.size() + 1);
       CFANode startNode = loopStartStack.pop();
 
       if (isReachableNode(prevNode)) {
@@ -919,8 +927,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode nextNode = loopNextStack.pop();
       assert nextNode.equals(locStack.peek());
       if (!locStack.isEmpty()) {
-        nextNode.setStatementStackDepth(locStack.size());
-        locStack.peek().setStatementStackDepth(locStack.size());
+        statementStackDepths.put(nextNode, locStack.size());
+        statementStackDepths.put(locStack.peek(), locStack.size());
       }
     }
     return PROCESS_CONTINUE;
@@ -959,7 +967,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode newCFANode() {
     assert cfa != null;
     CFANode nextNode = new CFANode(cfa.getFunction());
-    nextNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(nextNode, locStack.size() + 1);
     return nextNode;
   }
 
@@ -1100,15 +1108,15 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     CFANode postIfNode = newCFANode();
     locStack.push(postIfNode);
-    postIfNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(postIfNode, locStack.size());
 
     CFANode thenNode = newCFANode();
     locStack.push(thenNode);
-    thenNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(thenNode, locStack.size());
 
     CFANode elseNode;
     // elseNode is the start of the else branch,
@@ -1454,7 +1462,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private void handleWhileStatement(IASTWhileStatement whileStatement, FileLocation fileloc) {
     final CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     createLoop(whileStatement.getCondition(), fileloc);
 
@@ -1469,7 +1477,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private void handleDoWhileStatement(IASTDoStatement doStatement, FileLocation fileloc) {
     final CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     createLoop(doStatement.getCondition(), fileloc);
 
@@ -1499,9 +1507,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // inverse order here!
     locStack.push(postLoopNode);
-    postLoopNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(postLoopNode, locStack.size());
     locStack.push(firstLoopNode);
-    firstLoopNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(firstLoopNode, locStack.size());
 
     createConditionEdges(condition, fileloc,
         loopStart, firstLoopNode, postLoopNode);
@@ -1514,7 +1522,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
     CFANode postLoopNode = loopNextStack.peek();
 
     // on "return" we add the OOSVars after the return edge, because the return can access all vars.
@@ -1527,7 +1535,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
   }
 
   /**
@@ -1537,7 +1545,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
     CFANode loopStartNode = loopStartStack.peek();
 
     BlankEdge blankEdge = new BlankEdge(continueStatement.getRawSignature(),
@@ -1546,7 +1554,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
   }
 
 
@@ -1561,7 +1569,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       final FileLocation fileLocation) {
 
     final CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
     scope.enterBlock();
 
     // loopInit is Node before "counter = 0;"
@@ -1582,7 +1590,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       loopEnd = loopStart;
     }
-    loopEnd.setStatementStackDepth(prevNode.getStatementStackDepth() + 1);
+    statementStackDepths.put(loopEnd, statementStackDepths.get(prevNode) + 1);
     loopStartStack.push(loopEnd);
 
     // firstLoopNode is Node after "counter < 5"
@@ -1594,9 +1602,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // inverse order here!
     locStack.push(postLoopNode);
-    postLoopNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(postLoopNode, locStack.size());
     locStack.push(firstLoopNode);
-    firstLoopNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(firstLoopNode, locStack.size());
 
     createConditionEdgesForForLoop(forStatement.getConditionExpression(),
           fileLocation, loopStart, postLoopNode, firstLoopNode);
@@ -1606,7 +1614,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // leave loop
     final CFANode lastNodeInLoop = locStack.pop();
-    lastNodeInLoop.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(lastNodeInLoop, locStack.size() + 1);
 
     // loopEnd is the Node before "counter++;"
     assert loopEnd.equals(loopStartStack.peek());
@@ -1723,7 +1731,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    prevNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(prevNode, locStack.size() + 1);
 
     CExpression switchExpression = astCreator
         .convertExpressionWithoutSideEffects(statement
@@ -1745,11 +1753,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode postSwitchNode = newCFANode();
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
-    postSwitchNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(postSwitchNode, locStack.size());
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     locStack.push(nextNode);
-    nextNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(nextNode, locStack.size());
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);
@@ -1759,7 +1767,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // leave switch
     final CFANode lastNodeInSwitch = locStack.pop();
-    lastNodeInSwitch.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(lastNodeInSwitch, locStack.size() + 1);
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     final CFANode defaultCaseNode = switchDefaultStack.pop();
     final FileLocation defaultCaseFileLocation = switchDefaultFileLocationStack.pop();
@@ -1826,7 +1834,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
-    oldNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(oldNode, locStack.size() + 1);
     if (oldNode.getNumEnteringEdges() > 0
             || oldNode instanceof CLabelNode) {
       final BlankEdge blankEdge =
@@ -1836,7 +1844,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     switchCaseStack.push(nextCaseStartsAtNode);
     locStack.push(caseNode);
-    caseNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(caseNode, locStack.size());
   }
 
   /**
@@ -1994,7 +2002,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
-    oldNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(oldNode, locStack.size() + 1);
     if (oldNode.getNumEnteringEdges() > 0) {
       final BlankEdge blankEdge =
           new BlankEdge("", onlyFirstLine(fileLocation), oldNode, caseNode, "fall through");
@@ -2002,7 +2010,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     locStack.push(caseNode);
-    caseNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(caseNode, locStack.size());
   }
 
 
@@ -2150,7 +2158,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     scope.enterBlock();
     locStack.push(rootNode);
-    rootNode.setStatementStackDepth(locStack.size());
+    statementStackDepths.put(rootNode, locStack.size());
 
     int locDepth = locStack.size();
     int conditionDepth = elseStack.size();
@@ -2175,7 +2183,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (tempVar == null) {
       lastStatement.accept(this);
       locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
-      locStack.peek().setStatementStackDepth(locStack.size());
+      statementStackDepths.put(locStack.peek(), locStack.size());
       scope.leaveBlock();
       return locStack.pop();
     }
@@ -2194,7 +2202,7 @@ class CFAFunctionBuilder extends ASTVisitor {
             ((IASTExpressionStatement) lastStatement).getExpression());
 
     CFANode middleNode = locStack.pop();
-    middleNode.setStatementStackDepth(locStack.size() + 1);
+    statementStackDepths.put(middleNode, locStack.size() + 1);
     CRightHandSide rhs;
     if (exp instanceof CRightHandSide) {
       middleNode =

@@ -23,18 +23,25 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ParseResultWithCommentLocations extends ParseResult {
 
   private Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> commentLocations;
+  private Map<CFANode, Integer> statementStackDepths;
 
   public ParseResultWithCommentLocations(
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
-      Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> pCommentLocations) {
+      Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> pCommentLocations,
+      Map<CFANode, Integer> pStatementStackDepths) {
     super(pFunctions, pCfaNodes, pGlobalDeclarations, pFileNames);
     commentLocations = pCommentLocations;
+    statementStackDepths = pStatementStackDepths;
   }
 
   public Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> getCommentLocations() {
     return commentLocations;
+  }
+
+  public Map<CFANode, Integer> getStatementStackDepths() {
+    return statementStackDepths;
   }
 }

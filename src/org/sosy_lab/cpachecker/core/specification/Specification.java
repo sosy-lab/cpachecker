@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -166,10 +166,10 @@ public final class Specification {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
       CFACreator cfaCreator =
           new CFACreator(config, logger, ShutdownManager.create().getNotifier());
-      CFAWithACSLAnnotationLocations annotatedCFA;
+      CFAWithACSLAnnotations annotatedCFA;
       try {
         annotatedCFA =
-            (CFAWithACSLAnnotationLocations)
+            (CFAWithACSLAnnotations)
                 cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
       } catch (ParserException | IOException e) {
         throw new InvalidConfigurationException(

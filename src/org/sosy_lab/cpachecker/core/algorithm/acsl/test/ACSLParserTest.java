@@ -24,7 +24,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -67,12 +67,10 @@ public class ACSLParserTest {
       throws InterruptedException, ParserException, InvalidConfigurationException, IOException {
     List<String> files = ImmutableList.of(Paths.get(TEST_DIR, programName).toString());
     try {
-      CFAWithACSLAnnotationLocations cfaWithLocs =
-          (CFAWithACSLAnnotationLocations) cfaCreator.parseFileAndCreateCFA(files);
+      CFAWithACSLAnnotations cfaWithLocs =
+          (CFAWithACSLAnnotations) cfaCreator.parseFileAndCreateCFA(files);
       assertThat(shouldSucceed).isTrue();
-      assertThat(cfaWithLocs.getCommentPositions().size()).isGreaterThan(0);
-      assertThat(cfaWithLocs.getEdgesToAnnotations().keySet().size())
-          .isAtLeast(cfaWithLocs.getCommentPositions().size());
+      assertThat(cfaWithLocs.getEdgesToAnnotations().size()).isGreaterThan(0);
     } catch (AssertionError e) {
       assertThat(shouldSucceed).isFalse();
     }

@@ -58,9 +58,6 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  // keeps track of depth of nested statements
-  private int statementStackDepth = -1;
-
   /** This method provides a simple way to generate a function. */
   @VisibleForTesting
   public static CFANode newDummyCFANode(String dummyName) {
@@ -318,13 +315,5 @@ public class CFANode implements Comparable<CFANode>, Serializable {
       return ImmutableSet.of();
     }
     return Collections.unmodifiableSet(outOfScopeVariables);
-  }
-
-  public void setStatementStackDepth(int pDepth) {
-    statementStackDepth = pDepth;
-  }
-
-  public int getStatementStackDepth() {
-    return statementStackDepth;
   }
 }

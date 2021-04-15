@@ -20,7 +20,7 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
  */
 public class AutomatonACSLParser {
 
-  private CFAWithACSLAnnotationLocations cfa;
+  private CFAWithACSLAnnotations cfa;
   private LogManager logger;
 
-  public AutomatonACSLParser(CFAWithACSLAnnotationLocations pCFA, LogManager pLogger) {
+  public AutomatonACSLParser(CFAWithACSLAnnotations pCFA, LogManager pLogger) {
     cfa = pCFA;
     logger = pLogger;
   }

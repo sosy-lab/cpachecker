@@ -14,11 +14,9 @@ import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -26,23 +24,16 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public class CFAWithACSLAnnotationLocations implements CFA {
+public class CFAWithACSLAnnotations implements CFA {
 
   private CFA delegate;
 
-  private Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> commentPositions;
   private Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations = LinkedHashMultimap.create();
 
-  public CFAWithACSLAnnotationLocations(CFA pCFA, Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> pCommentPositions) {
+  public CFAWithACSLAnnotations(CFA pCFA) {
     delegate = pCFA;
-    commentPositions = pCommentPositions;
-  }
-
-  public Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> getCommentPositions() {
-    return commentPositions;
   }
 
   public Multimap<CFAEdge, ACSLAnnotation> getEdgesToAnnotations() {

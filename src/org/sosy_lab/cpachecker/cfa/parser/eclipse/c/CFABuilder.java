@@ -90,6 +90,9 @@ class CFABuilder extends ASTVisitor {
   private final List<IASTFileLocation> acslCommentPositions = new ArrayList<>();
   private final Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> edgesForAnnotations = new HashMap<>();
 
+  // Data structure to keep track of nesting depth of statements for ACSL parsing
+  private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
+
   private final List<Path> parsedFiles = new ArrayList<>();
 
   private GlobalScope fileScope = new GlobalScope();
@@ -374,7 +377,7 @@ class CFABuilder extends ASTVisitor {
     }
 
     return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, edgesForAnnotations);
+        cfas, cfaNodes, globalDecls, parsedFiles, edgesForAnnotations, statementStackDepths);
   }
 
   private void addCommentPosition(IASTFileLocation loc) {
@@ -447,6 +450,8 @@ class CFABuilder extends ASTVisitor {
             functionBuilder.getGlobalDeclarations(),
             pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope)));
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
+
+    statementStackDepths.putAll(functionBuilder.getStatementStackDepths());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
     functionBuilder.finish();

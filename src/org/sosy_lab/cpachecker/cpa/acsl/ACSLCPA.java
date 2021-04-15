@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -19,7 +18,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
@@ -44,7 +43,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       description = "only store pure C expressions without ACSL-specific constructs")
   private boolean usePureExpressionsOnly = true;
 
-  private final CFAWithACSLAnnotationLocations cfa;
+  private final CFAWithACSLAnnotations cfa;
   private final ACSLTermToCExpressionVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
 
@@ -55,10 +54,10 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private ACSLCPA(CFA pCFA, LogManager pLogManager, Configuration pConfig)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
-    if (pCFA instanceof CFAWithACSLAnnotationLocations) {
-      cfa = (CFAWithACSLAnnotationLocations) pCFA;
+    if (pCFA instanceof CFAWithACSLAnnotations) {
+      cfa = (CFAWithACSLAnnotations) pCFA;
     } else {
-      cfa = new CFAWithACSLAnnotationLocations(pCFA, ImmutableMap.of());
+      cfa = new CFAWithACSLAnnotations(pCFA);
       pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
     acslVisitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
