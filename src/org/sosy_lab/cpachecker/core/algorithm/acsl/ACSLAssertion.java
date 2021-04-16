@@ -28,6 +28,10 @@ public class ACSLAssertion implements ACSLAnnotation {
     predicate = p.simplify();
   }
 
+  public List<Behavior> getEnclosingBehaviors() {
+    return enclosingBehaviors;
+  }
+
   @Override
   public ACSLPredicate getPredicateRepresentation() {
     if (!enclosingBehaviors.isEmpty()) {

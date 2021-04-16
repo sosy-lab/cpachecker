@@ -8,12 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.Or;
-
 public class TernaryCondition extends ACSLPredicate {
 
   private final ACSLPredicate condition;
@@ -29,6 +23,18 @@ public class TernaryCondition extends ACSLPredicate {
     condition = p1;
     then = p2;
     otherwise = p3;
+  }
+
+  public ACSLPredicate getCondition() {
+    return condition;
+  }
+
+  public ACSLPredicate getThen() {
+    return then;
+  }
+
+  public ACSLPredicate getOtherwise() {
+    return otherwise;
   }
 
   @Override
@@ -83,24 +89,6 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
-    if (isNegated()) {
-      ExpressionTree<Object> left =
-          Or.of(
-              condition.negate().toExpressionTree(visitor),
-              then.negate().toExpressionTree(visitor));
-      ExpressionTree<Object> right =
-          Or.of(condition.toExpressionTree(visitor), otherwise.negate().toExpressionTree(visitor));
-      return And.of(left, right);
-    }
-    ExpressionTree<Object> left =
-        And.of(condition.toExpressionTree(visitor), then.toExpressionTree(visitor));
-    ExpressionTree<Object> right =
-        And.of(condition.negate().toExpressionTree(visitor), otherwise.toExpressionTree(visitor));
-    return Or.of(left, right);
-  }
-
-  @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return condition.isAllowedIn(clauseType)
         && then.isAllowedIn(clauseType)
@@ -108,12 +96,7 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public Set<ACSLBuiltin> getUsedBuiltins() {
-    ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
-    return builder
-        .addAll(condition.getUsedBuiltins())
-        .addAll(then.getUsedBuiltins())
-        .addAll(otherwise.getUsedBuiltins())
-        .build();
+  public <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X {
+    return visitor.visit(this);
   }
 }

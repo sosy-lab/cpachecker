@@ -8,4 +8,4 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-public interface ACSLBuiltin extends ACSLTerm {}
+public interface ACSLBuiltin extends LogicExpression {}

@@ -8,12 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.Or;
-
 public class ACSLLogicalPredicate extends ACSLPredicate {
 
   private final ACSLPredicate left;
@@ -133,36 +127,16 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     return super.hashCode() * (13 * left.hashCode() + 13 * right.hashCode() + operator.hashCode());
   }
 
-  @Override
-  public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
-    ExpressionTree<Object> leftTree;
-    ExpressionTree<Object> rightTree;
-    switch (operator) {
-      case AND:
-        if (isNegated()) {
-          leftTree = left.negate().toExpressionTree(visitor);
-          rightTree = right.negate().toExpressionTree(visitor);
-          return Or.of(leftTree, rightTree);
-        }
-        leftTree = left.toExpressionTree(visitor);
-        rightTree = right.toExpressionTree(visitor);
-        return And.of(leftTree, rightTree);
-      case OR:
-        if (isNegated()) {
-          leftTree = left.negate().toExpressionTree(visitor);
-          rightTree = right.negate().toExpressionTree(visitor);
-          return And.of(leftTree, rightTree);
-        }
-        leftTree = left.toExpressionTree(visitor);
-        rightTree = right.toExpressionTree(visitor);
-        return Or.of(leftTree, rightTree);
-      default:
-        throw new AssertionError("Pure predicate should contain AND or OR");
-    }
+  public ACSLPredicate getLeft() {
+    return left;
   }
 
   public ACSLPredicate getRight() {
     return right;
+  }
+
+  public BinaryOperator getOperator() {
+    return operator;
   }
 
   @Override
@@ -171,9 +145,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   }
 
   @Override
-  public Set<ACSLBuiltin> getUsedBuiltins() {
-    ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
-    builder.addAll(left.getUsedBuiltins()).addAll(right.getUsedBuiltins());
-    return builder.build();
+  public <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X {
+    return visitor.visit(this);
   }
 }

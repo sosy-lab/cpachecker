@@ -288,7 +288,7 @@ public class CFACreator {
   private Language language = Language.C;
 
   // data structures for parsing ACSL annotations
-  private final Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> commentPositions = new HashMap<>();
+  private final List<IASTFileLocation> commentPositions = new ArrayList<>();
   private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
 
   private final LogManager logger;
@@ -574,7 +574,7 @@ public class CFACreator {
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
     if (pParseResult instanceof ParseResultWithCommentLocations) {
-      commentPositions.putAll(
+      commentPositions.addAll(
           ((ParseResultWithCommentLocations) pParseResult).getCommentLocations());
       statementStackDepths.putAll(
           ((ParseResultWithCommentLocations) pParseResult).getStatementStackDepths());

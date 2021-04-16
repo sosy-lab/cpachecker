@@ -8,11 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.Set;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-
 public abstract class ACSLPredicate implements LogicExpression {
 
   private final boolean negated;
@@ -74,13 +69,7 @@ public abstract class ACSLPredicate implements LogicExpression {
     return equals(other.negate());
   }
 
-  /**
-   * Returns an expression tree representing the predicate.
-   *
-   * @param visitor Visitor for converting terms to CExpressions.
-   * @return An expression tree representation of the predicate.
-   */
-  public abstract ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor);
+  public abstract <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X;
 
   private static class TRUE extends ACSLPredicate {
 
@@ -116,11 +105,6 @@ public abstract class ACSLPredicate implements LogicExpression {
     }
 
     @Override
-    public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
-      return ExpressionTrees.getTrue();
-    }
-
-    @Override
     public boolean equals(Object obj) {
       if (obj instanceof TRUE) {
         assert obj == singleton && this == singleton;
@@ -140,8 +124,8 @@ public abstract class ACSLPredicate implements LogicExpression {
     }
 
     @Override
-    public Set<ACSLBuiltin> getUsedBuiltins() {
-      return ImmutableSet.of();
+    public <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X {
+      return visitor.visitTrue();
     }
   }
 
@@ -179,11 +163,6 @@ public abstract class ACSLPredicate implements LogicExpression {
     }
 
     @Override
-    public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
-      return ExpressionTrees.getFalse();
-    }
-
-    @Override
     public boolean equals(Object obj) {
       if (obj instanceof FALSE) {
         assert obj == singleton && this == singleton;
@@ -203,8 +182,8 @@ public abstract class ACSLPredicate implements LogicExpression {
     }
 
     @Override
-    public Set<ACSLBuiltin> getUsedBuiltins() {
-      return ImmutableSet.of();
+    public <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X {
+      return visitor.visitFalse();
     }
   }
 }

@@ -48,7 +48,8 @@ public class StatementContract implements ACSLAnnotation {
 
   static StatementContract fromFunctionContract(
       List<Behavior> enclosing, FunctionContract fcontract) {
-    assert FluentIterable.from(fcontract.getEnsures().getPredicate().getUsedBuiltins())
+    BuiltinCollectingVisitor visitor = new BuiltinCollectingVisitor();
+    assert FluentIterable.from(fcontract.getEnsures().getPredicate().accept(visitor))
             .filter(Result.class)
             .isEmpty()
         : "\\result is only allowed in function contracts";
@@ -58,6 +59,18 @@ public class StatementContract implements ACSLAnnotation {
         enclosing,
         fcontract.getBehaviors(),
         fcontract.getCompletenessClauses());
+  }
+
+  public List<Behavior> getEnclosingBehaviors() {
+    return enclosingBehaviors;
+  }
+
+  public List<Behavior> getBehaviors() {
+    return ownBehaviors;
+  }
+
+  public boolean isPreStateRepresentation() {
+    return usePreStateRepresentation;
   }
 
   @Override

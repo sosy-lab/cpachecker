@@ -25,12 +25,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ACSLTermToCExpressionVisitor {
+public class ACSLTermToCExpressionVisitor
+    implements ACSLTermVisitor<CExpression, UnrecognizedCodeException> {
 
   private final CFA cfa;
   private final LogManager logger;
@@ -42,6 +45,7 @@ public class ACSLTermToCExpressionVisitor {
     logger = pLogger;
   }
 
+  @Override
   public CExpression visit(ACSLBinaryTerm binaryTerm) throws UnrecognizedCodeException {
     CExpression result = cache.get(binaryTerm);
     if (result == null) {
@@ -108,6 +112,7 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
+  @Override
   public CExpression visit(ACSLUnaryTerm unaryTerm) throws UnrecognizedCodeException {
     CExpression result = cache.get(unaryTerm);
     if (result == null) {
@@ -141,6 +146,7 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
+  @Override
   public CExpression visit(ArrayAccess arrayAccess) throws UnrecognizedCodeException {
     CExpression result = cache.get(arrayAccess);
     if (result == null) {
@@ -157,6 +163,7 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
+  @Override
   public CExpression visit(Cast cast) throws UnrecognizedCodeException {
     CExpression result = cache.get(cast);
     if (result == null) {
@@ -168,6 +175,7 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
+  @Override
   public CExpression visit(Identifier identifier) {
     CExpression result = cache.get(identifier);
     if (result == null) {
@@ -183,19 +191,39 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
+  @Override
+  public CExpression visit(BoundIdentifier boundIdentifier) {
+    CExpression result = cache.get(boundIdentifier);
+    if (result == null) {
+      // TODO: Dummy implementation as placeholder, remove this later
+      CVariableDeclaration declaration =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              CStorageClass.AUTO,
+              CNumericTypes.INT,
+              boundIdentifier.getName(),
+              boundIdentifier.getName(),
+              boundIdentifier.getFunctionName() + "::" + boundIdentifier.getName(),
+              null);
+      result = new CIdExpression(FileLocation.DUMMY, declaration);
+    }
+    return result;
+  }
+
+  @Override
   public CExpression visit(IntegerLiteral integerLiteral) {
     CExpression result = cache.get(integerLiteral);
     if (result == null) {
       result =
           new CIntegerLiteralExpression(
-              FileLocation.DUMMY,
-              CNumericTypes.INT,
-              integerLiteral.getLiteral());
+              FileLocation.DUMMY, CNumericTypes.INT, integerLiteral.getLiteral());
       cache.put(integerLiteral, result);
     }
     return result;
   }
 
+  @Override
   public CExpression visit(StringLiteral stringLiteral) {
     CExpression result = cache.get(stringLiteral);
     if (result == null) {
@@ -209,6 +237,7 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
+  @Override
   public CExpression visit(Result acslResult) {
     CExpression result = cache.get(acslResult);
     if (result == null) {
@@ -221,20 +250,17 @@ public class ACSLTermToCExpressionVisitor {
     return result;
   }
 
-  public CExpression visit(Old old) {
-    CExpression result = cache.get(old);
-    if (result == null) {
-      result = cache.get(old.getInner());
-      assert result != null : "Expected to have seen the old value already";
-      cache.put(old, result);
-    }
-    return result;
-  }
-
-  public CExpression visit(At at) {
+  @Override
+  public CExpression visit(TermAt at) {
     CExpression result = cache.get(at);
     if (result == null) {
-      throw new UnsupportedOperationException("Translation of \\at currently not supported.");
+      if (at.getLabel().equals(ACSLDefaultLabel.OLD)) {
+        result = cache.get(at.getInner());
+        assert result != null : "Expected to have seen the old value already";
+        cache.put(at, result);
+      } else {
+        throw new UnsupportedOperationException("Translation of \\at currently not supported.");
+      }
     }
     return result;
   }

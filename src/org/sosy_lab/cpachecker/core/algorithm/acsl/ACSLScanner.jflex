@@ -63,8 +63,9 @@ LineBreak   = \r|\n|\r\n
 Space       = \s|@
 DecInt      = (0 | [1-9][0-9]*)[uU]?[lL]?[lL]?
 String      = \".*\"
-Type        = _bool|float|(long[ \t\f]+)?double|(un)?signed|
+CType       = _bool|float|(long[ \t\f]+)?double|(un)?signed|
               ((un)?signed[ \t\f]+)?(char|short|short[ \t\f]+int|int|long|long[ \t\f]+int|long[ \t\f]+long|long[ \t\f]+long[ \t\f]+int)
+ACSLType    = boolean|integer|real
 Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 
 %state SINGLE_LINE_ANNOTATION, MULTI_LINE_ANNOTATION
@@ -135,16 +136,20 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
     "assumes"           {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.ASS);}
     ":"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.COLON);}
     ","                 {return symbol(sym.COMMA);}
-    ";"                 {return symbol(sym.SEMI);}
+    ";"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.SEMI);}
     "\\old"             {return symbol(sym.OLD);}
     "\\result"          {return symbol(sym.RETVAL);}
+    "\\forall"          {return symbol(sym.FORALL);}
+    "\\exists"          {return symbol(sym.EXISTS);}
     {DecInt}            {builder.setLength(0); String matched = yytext().toLowerCase();
                         while (matched.endsWith("u") || matched.endsWith("l")) {
                           matched = matched.substring(0, matched.length() - 1);
                         }
                         return symbol(sym.LITERAL, new BigInteger(builder.append(matched).toString()));}
-    {Type}              {builder.setLength(0);
-                         return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
+    {CType}             {builder.setLength(0);
+                        return symbol(sym.TYPE, new Type(builder.append(yytext()).toString()));}
+    {ACSLType}          {builder.setLength(0);
+                        return symbol(sym.TYPE, new Type(builder.append(yytext()).toString()));}
     {Identifier}        {builder.setLength(0);
                         return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
     {String}            {builder.setLength(0);

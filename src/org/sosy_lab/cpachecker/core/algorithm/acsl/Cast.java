@@ -8,10 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
 public class Cast implements ACSLTerm {
 
   private final Type type;
@@ -50,17 +46,12 @@ public class Cast implements ACSLTerm {
   }
 
   @Override
-  public CExpression accept(ACSLTermToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(this);
-  }
-
-  @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return term.isAllowedIn(clauseType);
   }
 
   @Override
-  public Set<ACSLBuiltin> getUsedBuiltins() {
-    return term.getUsedBuiltins();
+  public <R, X extends Exception> R accept(ACSLTermVisitor<R, X> visitor) throws X {
+    return visitor.visit(this);
   }
 }

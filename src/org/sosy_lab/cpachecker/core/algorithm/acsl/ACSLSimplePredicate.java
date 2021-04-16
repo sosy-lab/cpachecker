@@ -9,10 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
-import java.util.Set;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public class ACSLSimplePredicate extends ACSLPredicate {
 
@@ -66,15 +62,6 @@ public class ACSLSimplePredicate extends ACSLPredicate {
     return super.hashCode() * 3 * term.hashCode();
   }
 
-  @Override
-  public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
-    try {
-      return LeafExpression.of(term.accept(visitor), !isNegated());
-    } catch (UnrecognizedCodeException pE) {
-      throw new AssertionError("Failed to convert term to CExpression: " + term.toString());
-    }
-  }
-
   public ACSLTerm getTerm() {
     return term;
   }
@@ -85,7 +72,7 @@ public class ACSLSimplePredicate extends ACSLPredicate {
   }
 
   @Override
-  public Set<ACSLBuiltin> getUsedBuiltins() {
-    return term.getUsedBuiltins();
+  public <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X {
+    return visitor.visit(this);
   }
 }

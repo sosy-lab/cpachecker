@@ -22,7 +22,9 @@ import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.BuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,7 +46,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private boolean usePureExpressionsOnly = true;
 
   private final CFAWithACSLAnnotations cfa;
-  private final ACSLTermToCExpressionVisitor acslVisitor;
+  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
 
   public static CPAFactory factory() {
@@ -60,7 +62,8 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       cfa = new CFAWithACSLAnnotations(pCFA);
       pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
-    acslVisitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
+    ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
+    acslVisitor = new ACSLPredicateToExpressionTreeVisitor(termVisitor);
     expressionTreeVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), pLogManager);
     pConfig.inject(this);
   }
@@ -79,9 +82,10 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       CFAEdge edge = node.getEnteringEdge(i);
       Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(edge);
       if (usePureExpressionsOnly) {
+        BuiltinCollectingVisitor visitor = new BuiltinCollectingVisitor();
         annotationsForEdge =
             FluentIterable.from(annotationsForEdge)
-                .filter(x -> x.getPredicateRepresentation().getUsedBuiltins().isEmpty())
+                .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())
                 .toSet();
       }
       annotations.addAll(annotationsForEdge);
