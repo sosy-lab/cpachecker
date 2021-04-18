@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.cpa.invariantsampling;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.eclipse.cdt.internal.core.dom.parser.c.CVariable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -33,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
@@ -50,9 +54,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -122,9 +130,10 @@ public class TestCPA extends AbstractCPA {
     }
   }
 
-  private static class RightHandSideInvariantSamplingVisitor implements CExpressionVisitor<Integer, Exception>,
-                                                                        CSimpleDeclarationVisitor<Integer, Exception>,
-                                                                        CInitializerVisitor<Integer, Exception> {
+  private static class RightHandSideInvariantSamplingVisitor
+      implements CExpressionVisitor<Integer, Exception>,
+                 CSimpleDeclarationVisitor<Integer, Exception>,
+                 CInitializerVisitor<Integer, Exception> {
 
     @Override
     public Integer visit(CBinaryExpression expression) throws Exception {
@@ -267,107 +276,136 @@ public class TestCPA extends AbstractCPA {
 
   private static class InvariantSamplingState implements AbstractState, Graphable {
 
-    private final ImmutableMap<String, Integer> state;
+    private final ImmutableList<CVariableDeclaration> variables;
+    private boolean inLoop = false;
+    private final CExpression pre;
+//    private final ? cond;
+//    private final ? post;
 
     public InvariantSamplingState() {
-      state = ImmutableMap.of();
+      variables = ImmutableList.of();
     }
 
     private InvariantSamplingState(
-        InvariantSamplingState currentState, String variableName, Integer value) {
-      checkNotNull(variableName);
-      checkNotNull(value);
-      ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-      builder.put(variableName, value);
-      for (Entry<String, Integer> entry : currentState.getState().entrySet()) {
-        if (!entry.getKey().equals(variableName)) {
-          builder.put(entry);
-        }
+        ImmutableList<CVariableDeclaration> newVariables,
+        Boolean newInLoop) {
+      this.variables = newVariables;
+      this.inLoop = newInLoop;
+    }
+
+//    private InvariantSamplingState(
+//        InvariantSamplingState currentState, String variableName, Integer value) {
+//      checkNotNull(variableName);
+//      checkNotNull(value);
+//      ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+//      builder.put(variableName, value);
+//      for (Entry<String, Integer> entry : currentState.getState().entrySet()) {
+//        if (!entry.getKey().equals(variableName)) {
+//          builder.put(entry);
+//        }
+//      }
+//      state = builder.build();
+//    }
+
+    public static InvariantSamplingState newInvariantSamplingState(
+        InvariantSamplingState currentState, BlankEdge edge
+    ) throws CPAException {
+      if (edge.getDescription().equals("while") || edge.getDescription().equals("for")) {
+        return new InvariantSamplingState(currentState.variables, true);
       }
-      state = builder.build();
+      return currentState;
+    }
+
+    public static InvariantSamplingState newInvariantSamplingState(
+        InvariantSamplingState currentState, CExpression expression
+    ) {
+      CExpression pre = currentState.pre && expression;
     }
 
     public static InvariantSamplingState newInvariantSamplingState(
         InvariantSamplingState currentState, CVariableDeclaration declaration) throws CPAException {
-      RightHandSideInvariantSamplingVisitor rightVisitor =
-          new RightHandSideInvariantSamplingVisitor();
-      String variableName = declaration.getName();
-      Integer value;
-      try {
-        value = declaration.getInitializer().accept(rightVisitor);
-      } catch (Exception e) {
-        throw new CPAException("Could not determine declaration for InvariantSamplingState", e);
-      }
-      return new InvariantSamplingState(currentState, variableName, value);
+//      RightHandSideInvariantSamplingVisitor rightVisitor =
+//          new RightHandSideInvariantSamplingVisitor();
+//      String variableName = declaration.getName();
+//      Integer value;
+//      try {
+//        value = declaration.getInitializer().accept(rightVisitor);
+//      } catch (Exception e) {
+//        throw new CPAException("Could not determine declaration for InvariantSamplingState", e);
+//      }
+//      return new InvariantSamplingState(currentState, variableName, value);
+      return currentState;
     }
 
     public static InvariantSamplingState newInvariantSamplingState(
-        InvariantSamplingState currentState, CExpressionAssignmentStatement statement) throws CPAException {
-      LeftHandSideInvariantSamplingVisitor leftVisitor = new LeftHandSideInvariantSamplingVisitor();
-      RightHandSideInvariantSamplingVisitor rightVisitor =
-          new RightHandSideInvariantSamplingVisitor();
+        InvariantSamplingState currentState, CExpressionAssignmentStatement statement)
+        throws CPAException {
+//      LeftHandSideInvariantSamplingVisitor leftVisitor = new LeftHandSideInvariantSamplingVisitor();
+//      RightHandSideInvariantSamplingVisitor rightVisitor =
+//          new RightHandSideInvariantSamplingVisitor();
 
-      String variableName;
-      Integer value;
-      try {
-        variableName = statement.getLeftHandSide().accept(leftVisitor);
-        value = statement.getRightHandSide().accept(rightVisitor);
-      } catch (Exception e) {
-        throw new CPAException("Could not determine assignment for InvariantSamplingState", e);
-      }
-      return new InvariantSamplingState(currentState, variableName, value);
+//      String variableName;
+//      Integer value;
+//      try {
+//        variableName = statement.getLeftHandSide().accept(leftVisitor);
+//        value = statement.getRightHandSide().accept(rightVisitor);
+//      } catch (Exception e) {
+//        throw new CPAException("Could not determine assignment for InvariantSamplingState", e);
+//      }
+      return currentState;
+//      return new InvariantSamplingState(currentState, variableName, value);
     }
 
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((state == null) ? 0 : state.hashCode());
+//      result = prime * result + ((state == null) ? 0 : state.hashCode());
       return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      InvariantSamplingState other = (InvariantSamplingState) obj;
-      if (state == null) {
-        if (other.state != null) {
-          return false;
-        }
-      } else if (!state.equals(other.state)) {
-        return false;
-      }
+//      if (this == obj) {
+//        return true;
+//      }
+//      if (obj == null) {
+//        return false;
+//      }
+//      if (getClass() != obj.getClass()) {
+//        return false;
+//      }
+//      InvariantSamplingState other = (InvariantSamplingState) obj;
+//      if (state == null) {
+//        if (other.state != null) {
+//          return false;
+//        }
+//      } else if (!state.equals(other.state)) {
+//        return false;
+//      }
       return true;
     }
 
-    public Map<String, Integer> getState() {
-      return state;
-    }
+//    public Map<String, Integer> getState() {
+//      return state;
+//    }
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder();
-      sb.append('\n');
-      Iterator<Entry<String, Integer>> iter = state.entrySet().iterator();
-      while (iter.hasNext()) {
-        Entry<String, Integer> entry = iter.next();
-        sb.append(entry.getKey());
-        sb.append('=').append('"');
-        sb.append(entry.getValue());
-        sb.append('"');
-        if (iter.hasNext()) {
-          sb.append('\n');
-        }
-      }
-      return sb.toString();
+//      StringBuilder sb = new StringBuilder();
+//      sb.append('\n');
+//      Iterator<Entry<String, Integer>> iter = state.entrySet().iterator();
+//      while (iter.hasNext()) {
+//        Entry<String, Integer> entry = iter.next();
+//        sb.append(entry.getKey());
+//        sb.append('=').append('"');
+//        sb.append(entry.getValue());
+//        sb.append('"');
+//        if (iter.hasNext()) {
+//          sb.append('\n');
+//        }
+//      }
+      return String.format("inLoop: %b", this.inLoop);
     }
 
     @Override
@@ -377,7 +415,7 @@ public class TestCPA extends AbstractCPA {
 
     @Override
     public boolean shouldBeHighlighted() {
-      return true;
+      return false;
     }
   }
 
@@ -388,37 +426,73 @@ public class TestCPA extends AbstractCPA {
     @Override
     protected InvariantSamplingState handleDeclarationEdge(
         CDeclarationEdge edge, CDeclaration declaration) throws CPATransferException {
+      int i = 0;
       try {
-      if (declaration instanceof CVariableDeclaration) {
+        if (declaration instanceof CVariableDeclaration) {
           return InvariantSamplingState.newInvariantSamplingState(
               this.getState(), (CVariableDeclaration) declaration);
-      }
-      return this.getState();
+        }
+        return this.getState();
       } catch (CPAException e) {
         throw new CPATransferException("Could not generate successor for invariant sampling", e);
+      }
+    }
+
+    protected InvariantSamplingState handleBlankEdge(BlankEdge cfaEdge)
+        throws CPATransferException {
+      state = this.getState();
+      try {
+        return InvariantSamplingState.newInvariantSamplingState(state, cfaEdge);
+      } catch (CPAException e) {
+        throw new CPATransferException("Could not generate a new state.", e);
       }
     }
 
     @Override
     protected InvariantSamplingState handleAssumption(
         CAssumeEdge edge, CExpression expression, boolean truthAssumption
-    ) {
+    ) throws CPATransferException {
+      state = this.getState();
+      try {
+        return InvariantSamplingState.newInvariantSamplingState(state, expression);
+      } catch (CPAException e) {
+        throw new CPATransferException("Could not generate a new state.", e);
+      }
       return this.getState();
     }
 
     @Override
-    protected InvariantSamplingState handleStatementEdge(CStatementEdge edge, CStatement statement)
-        throws CPATransferException {
-      try {
-      if (statement instanceof CExpressionAssignmentStatement) {
-        return InvariantSamplingState.newInvariantSamplingState(
-            this.getState(), (CExpressionAssignmentStatement) statement);
-      }
+    protected InvariantSamplingState handleFunctionCallEdge(
+        CFunctionCallEdge cfaEdge,
+        List<CExpression> arguments, List<CParameterDeclaration> parameters,
+        String calledFunctionName) {
       return this.getState();
-      } catch (CPAException e) {
-        throw new CPATransferException("Could not generate successor for invariant sampling", e);
-      }
     }
+
+    @Override
+    protected InvariantSamplingState handleFunctionReturnEdge(
+        CFunctionReturnEdge cfaEdge,
+        CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+        throws CPATransferException {
+      return this.getState();
+    }
+
+    @Override
+    protected InvariantSamplingState handleStatementEdge(
+        CStatementEdge edge,
+        CStatement statement) {
+//      try {
+//      if (statement instanceof CExpressionAssignmentStatement) {
+//        return InvariantSamplingState.newInvariantSamplingState(
+//            this.getState(), (CExpressionAssignmentStatement) statement);
+//      }
+//      return this.getState();
+//      } catch (CPAException e) {
+//        throw new CPATransferException("Could not generate successor for invariant sampling", e);
+//      }
+      return this.getState();
+    }
+
 
     @Override
     protected InvariantSamplingState handleReturnStatementEdge(CReturnStatementEdge edge) {
