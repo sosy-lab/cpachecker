@@ -152,6 +152,7 @@ solver.z3.requireProofs = false
 solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -479,6 +480,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# Use array abstraction by program translation
+analysis.useArrayAbstraction = false
+
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
@@ -494,6 +498,9 @@ analysis.useParallelAnalyses = false
 
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
+
+# Configuration of the delegate analysis running on the translated program
+arrayAbstraction.delegateAnalysis = no default value
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
