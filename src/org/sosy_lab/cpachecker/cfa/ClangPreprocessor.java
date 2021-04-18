@@ -63,7 +63,7 @@ public class ClangPreprocessor extends Preprocessor {
 
   @Override
   protected String getDumpFileOfFile(String file) {
-    return file.replaceAll("\\.c", ".ll");
+    return file.replaceFirst("(\\.c|\\.i)$", ".ll");
   }
 
   private String extractVersionNumberFromLlvmJ() {
