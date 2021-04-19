@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
@@ -110,7 +111,7 @@ public final class ArrayAbstraction {
       CIdExpression pExpression, VariableNameGenerator pVariableNameGenerator) {
 
     CIdExpression nondetVariable =
-        createCIdExpression(pVariableNameGenerator.next(), pExpression.getExpressionType());
+        createCIdExpression(pVariableNameGenerator.generateName(), pExpression.getExpressionType());
     CExpressionAssignmentStatement assignmentStatement =
         new CExpressionAssignmentStatement(FileLocation.DUMMY, pExpression, nondetVariable);
 
@@ -534,9 +535,18 @@ public final class ArrayAbstraction {
       replaceLoopWithBranching(cfaTransformer, transformableArrays, loop);
     }
 
+    ImmutableMap.Builder<CFAEdge, TransformableLoop> cfaEdgeToTransformableLoopBuilder =
+        ImmutableMap.builder();
+    for (TransformableLoop loop : transformableLoops) {
+      for (CFAEdge cfaEdge : loop.getLoopEdges()) {
+        cfaEdgeToTransformableLoopBuilder.put(cfaEdge, loop);
+      }
+    }
+
     return cfaTransformer.createCfa(
         new ArrayAbstractionNodeTransformer(),
-        new ArrayAbstractionEdgeTransformer(transformableArrays, transformableLoops));
+        new ArrayAbstractionEdgeTransformer(
+            transformableArrays, cfaEdgeToTransformableLoopBuilder.build(), variableNameGenerator));
   }
 
   public static final class TransformableArray {
@@ -614,6 +624,10 @@ public final class ArrayAbstraction {
     private CAssumeEdge getExitLoopCfaEdge() {
       return exitLoopCfaEdge;
     }
+
+    private ImmutableSet<CFAEdge> getLoopEdges() {
+      return loopEdges;
+    }
   }
 
   private static final class VariableNameGenerator {
@@ -625,7 +639,7 @@ public final class ArrayAbstraction {
       prefix = pPrefix;
     }
 
-    private String next() {
+    private String generateName() {
       return prefix + counter++;
     }
   }
@@ -638,6 +652,7 @@ public final class ArrayAbstraction {
 
     private ReplaceLoopIndexAstTransformer(
         TransformableArray pTransformableArray, TransformableLoop pTransformableLoop) {
+
       transformableArray = pTransformableArray;
       transformableLoop = pTransformableLoop;
     }
@@ -658,13 +673,17 @@ public final class ArrayAbstraction {
       extends CAstNodeTransformer<CAstNodeTransformer.ImpossibleException> {
 
     private final ImmutableSet<TransformableArray> transformableArrays;
-    private final ImmutableSet<TransformableLoop> transformableLoops;
+    private final Optional<TransformableLoop> transformableLoop;
+    private final VariableNameGenerator variableNameGenerator;
 
     private ArrayAbstractionAstTransformer(
         ImmutableSet<TransformableArray> pTransformableArrays,
-        ImmutableSet<TransformableLoop> pTransformableLoops) {
+        Optional<TransformableLoop> pTransformableLoop,
+        VariableNameGenerator pVariableNameGenerator) {
+
       transformableArrays = pTransformableArrays;
-      transformableLoops = pTransformableLoops;
+      transformableLoop = pTransformableLoop;
+      variableNameGenerator = pVariableNameGenerator;
     }
 
     @Override
@@ -674,24 +693,28 @@ public final class ArrayAbstraction {
       CExpression arrayExpression = pCArraySubscriptExpression.getArrayExpression();
       CExpression subscriptExpression = pCArraySubscriptExpression.getSubscriptExpression();
 
-      if (arrayExpression instanceof CIdExpression
+      if (transformableLoop.isPresent()
+          && arrayExpression instanceof CIdExpression
           && subscriptExpression instanceof CIdExpression) {
+
+        CIdExpression loopIndexIdExpression =
+            transformableLoop.orElseThrow().getLoopIndexExpression();
         CIdExpression arrayIdExpression = (CIdExpression) arrayExpression;
         CIdExpression subscriptIdExpression = (CIdExpression) subscriptExpression;
 
-        for (TransformableArray transformableArray : transformableArrays) {
-          if (getMemoryLocation(arrayIdExpression).equals(transformableArray.getMemoryLocation())) {
-            for (TransformableLoop transformableLoop : transformableLoops) {
-              if (getMemoryLocation(subscriptIdExpression)
-                  .equals(transformableLoop.getLoopIndexMemoryLocation())) {
-                return createVariableCIdExpression(transformableArray);
-              }
+        if (getMemoryLocation(subscriptIdExpression)
+            .equals(getMemoryLocation(loopIndexIdExpression))) {
+          for (TransformableArray transformableArray : transformableArrays) {
+            if (getMemoryLocation(arrayIdExpression)
+                .equals(transformableArray.getMemoryLocation())) {
+              return createVariableCIdExpression(transformableArray);
             }
           }
         }
       }
 
-      return super.visit(pCArraySubscriptExpression);
+      return createCIdExpression(
+          variableNameGenerator.generateName(), pCArraySubscriptExpression.getExpressionType());
     }
   }
 
@@ -733,13 +756,24 @@ public final class ArrayAbstraction {
   private static final class ArrayAbstractionEdgeTransformer
       implements CCfaTransformer.EdgeTransformer {
 
-    private final ArrayAbstractionAstTransformer astTransformer;
+    private final ImmutableSet<TransformableArray> transformableArrays;
+    private final ImmutableMap<CFAEdge, TransformableLoop> cfaEdgeToTransformableLoops;
+    private final VariableNameGenerator variableNameGenerator;
 
     private ArrayAbstractionEdgeTransformer(
         ImmutableSet<TransformableArray> pTransformableArrays,
-        ImmutableSet<TransformableLoop> pTransformableLoops) {
-      astTransformer =
-          new ArrayAbstractionAstTransformer(pTransformableArrays, pTransformableLoops);
+        ImmutableMap<CFAEdge, TransformableLoop> pCfaEdgeToTransformableLoops,
+        VariableNameGenerator pVariableNameGenerator) {
+
+      transformableArrays = pTransformableArrays;
+      cfaEdgeToTransformableLoops = pCfaEdgeToTransformableLoops;
+      variableNameGenerator = pVariableNameGenerator;
+    }
+
+    private ArrayAbstractionAstTransformer createAstTransformer(CFAEdge pCfaEdge) {
+      TransformableLoop transformableLoop = cfaEdgeToTransformableLoops.get(pCfaEdge);
+      return new ArrayAbstractionAstTransformer(
+          transformableArrays, Optional.ofNullable(transformableLoop), variableNameGenerator);
     }
 
     @Override
@@ -758,7 +792,8 @@ public final class ArrayAbstraction {
         CAssumeEdge pOldCAssumeEdge, CFANode pNewPredecessor, CFANode pNewSuccessor) {
 
       CExpression newExpression =
-          (CExpression) astTransformer.transform(pOldCAssumeEdge.getExpression());
+          (CExpression)
+              createAstTransformer(pOldCAssumeEdge).transform(pOldCAssumeEdge.getExpression());
 
       return new CAssumeEdge(
           pOldCAssumeEdge.getRawStatement(),
@@ -776,7 +811,9 @@ public final class ArrayAbstraction {
         CDeclarationEdge pOldCDeclarationEdge, CFANode pNewPredecessor, CFANode pNewSuccessor) {
 
       CDeclaration newDeclaration =
-          (CDeclaration) astTransformer.transform(pOldCDeclarationEdge.getDeclaration());
+          (CDeclaration)
+              createAstTransformer(pOldCDeclarationEdge)
+                  .transform(pOldCDeclarationEdge.getDeclaration());
 
       return new CDeclarationEdge(
           pOldCDeclarationEdge.getRawStatement(),
@@ -791,7 +828,8 @@ public final class ArrayAbstraction {
         CStatementEdge pOldCStatementEdge, CFANode pNewPredecessor, CFANode pNewSuccessor) {
 
       CStatement newStatement =
-          (CStatement) astTransformer.transform(pOldCStatementEdge.getStatement());
+          (CStatement)
+              createAstTransformer(pOldCStatementEdge).transform(pOldCStatementEdge.getStatement());
 
       return new CStatementEdge(
           pOldCStatementEdge.getRawStatement(),
@@ -837,7 +875,9 @@ public final class ArrayAbstraction {
         CFunctionEntryNode pNewCFunctionEntryNode) {
 
       CFunctionCall newFunctionCall =
-          (CFunctionCall) astTransformer.transform(pOldCFunctionSummaryEdge.getExpression());
+          (CFunctionCall)
+              createAstTransformer(pOldCFunctionSummaryEdge)
+                  .transform(pOldCFunctionSummaryEdge.getExpression());
 
       return new CFunctionSummaryEdge(
           pOldCFunctionSummaryEdge.getRawStatement(),
@@ -859,7 +899,9 @@ public final class ArrayAbstraction {
       CReturnStatement newReturnStatement = null;
       if (optOldReturnStatement.isPresent()) {
         newReturnStatement =
-            (CReturnStatement) astTransformer.transform(optOldReturnStatement.orElseThrow());
+            (CReturnStatement)
+                createAstTransformer(pOldCReturnStatementEdge)
+                    .transform(optOldReturnStatement.orElseThrow());
       }
 
       return new CReturnStatementEdge(
@@ -876,6 +918,8 @@ public final class ArrayAbstraction {
         CFANode pNewPredecessor,
         CFANode pNewSuccessor) {
 
+      ArrayAbstractionAstTransformer astTransformer =
+          createAstTransformer(pOldCFunctionSummaryStatementEdge);
       CStatement newStatement =
           (CStatement) astTransformer.transform(pOldCFunctionSummaryStatementEdge.getStatement());
       CFunctionCall newFunctionCall =
