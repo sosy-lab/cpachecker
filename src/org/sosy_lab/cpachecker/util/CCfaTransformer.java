@@ -32,9 +32,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -490,7 +490,7 @@ public class CCfaTransformer {
       for (Edge summaryEdge : pEdge.getPredecessorOrElseThrow().iterateLeaving()) {
         if (summaryEdge.getOldCfaEdge() instanceof CFunctionSummaryEdge) {
           CFunctionSummaryEdge cfaSummaryEdge =
-              (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge);
+              (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
           return edgeTransformer.transformCFunctionCallEdge(
               (CFunctionCallEdge) pEdge.getOldCfaEdge(),
               pNewCfaPredecessorNode,
@@ -507,7 +507,7 @@ public class CCfaTransformer {
       for (Edge summaryEdge : pEdge.getSuccessorOrElseThrow().iterateEntering()) {
         if (summaryEdge.getOldCfaEdge() instanceof CFunctionSummaryEdge) {
           CFunctionSummaryEdge cfaSummaryEdge =
-              (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge);
+              (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
           return edgeTransformer.transformCFunctionReturnEdge(
               (CFunctionReturnEdge) pEdge.getOldCfaEdge(),
               (FunctionExitNode) pNewCfaPredecessorNode,
@@ -519,7 +519,7 @@ public class CCfaTransformer {
       throw new IllegalStateException("Missing summary edge for function return edge: " + pEdge);
     }
 
-    private CFAEdge newCfaEdgeIfAbsent(Edge pEdge) {
+    private CFAEdge newCfaEdgeIfAbsent(Edge pEdge, boolean pAllowInterprocedural) {
 
       CFAEdge newCfaEdge = edgeToNewCfaEdge.get(pEdge);
       if (newCfaEdge != null) {
@@ -544,9 +544,19 @@ public class CCfaTransformer {
             edgeTransformer.transformCDeclarationEdge(
                 (CDeclarationEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
       } else if (oldCfaEdge instanceof CFunctionSummaryStatementEdge) {
-        newCfaEdge =
-            edgeTransformer.transformCFunctionSummaryStatementEdge(
-                (CFunctionSummaryStatementEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+        if (pAllowInterprocedural) {
+          newCfaEdge =
+              edgeTransformer.transformCFunctionSummaryStatementEdge(
+                  (CFunctionSummaryStatementEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+        } else {
+          newCfaEdge =
+              new SummaryPlaceholderEdge(
+                  "",
+                  oldCfaEdge.getFileLocation(),
+                  cfaPredecessorNode,
+                  cfaSuccessorNode,
+                  "summary-placeholder-edge");
+        }
       } else if (oldCfaEdge instanceof CReturnStatementEdge) {
         newCfaEdge =
             edgeTransformer.transformCReturnStatementEdge(
@@ -554,11 +564,25 @@ public class CCfaTransformer {
                 cfaPredecessorNode,
                 (FunctionExitNode) cfaSuccessorNode);
       } else if (oldCfaEdge instanceof CFunctionSummaryEdge) {
-        newCfaEdge = newCFunctionSummaryEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+        if (pAllowInterprocedural) {
+          newCfaEdge = newCFunctionSummaryEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+        } else {
+          newCfaEdge =
+              new SummaryPlaceholderEdge(
+                  "",
+                  oldCfaEdge.getFileLocation(),
+                  cfaPredecessorNode,
+                  cfaSuccessorNode,
+                  "summary-placeholder-edge");
+        }
       } else if (oldCfaEdge instanceof CFunctionReturnEdge) {
-        newCfaEdge = newCFunctionReturnEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+        if (pAllowInterprocedural) {
+          newCfaEdge = newCFunctionReturnEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+        }
       } else if (oldCfaEdge instanceof CFunctionCallEdge) {
-        newCfaEdge = newCFunctionCallEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+        if (pAllowInterprocedural) {
+          newCfaEdge = newCFunctionCallEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+        }
       } else if (oldCfaEdge instanceof CStatementEdge) {
         newCfaEdge =
             edgeTransformer.transformCStatementEdge(
@@ -567,15 +591,20 @@ public class CCfaTransformer {
         throw new AssertionError("Unknown CFA edge type: " + oldCfaEdge.getClass());
       }
 
-      edgeToNewCfaEdge.put(pEdge, newCfaEdge);
+      if (newCfaEdge != null) {
 
-      if (newCfaEdge instanceof CFunctionSummaryEdge) {
-        CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newCfaEdge;
-        cfaPredecessorNode.addLeavingSummaryEdge(cfaSummaryEdge);
-        cfaSuccessorNode.addEnteringSummaryEdge(cfaSummaryEdge);
-      } else {
-        cfaPredecessorNode.addLeavingEdge(newCfaEdge);
-        cfaSuccessorNode.addEnteringEdge(newCfaEdge);
+        if (!(newCfaEdge instanceof SummaryPlaceholderEdge)) {
+          edgeToNewCfaEdge.put(pEdge, newCfaEdge);
+        }
+
+        if (newCfaEdge instanceof CFunctionSummaryEdge) {
+          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newCfaEdge;
+          cfaPredecessorNode.addLeavingSummaryEdge(cfaSummaryEdge);
+          cfaSuccessorNode.addEnteringSummaryEdge(cfaSummaryEdge);
+        } else {
+          cfaPredecessorNode.addLeavingEdge(newCfaEdge);
+          cfaSuccessorNode.addEnteringEdge(newCfaEdge);
+        }
       }
 
       return newCfaEdge;
@@ -591,6 +620,24 @@ public class CCfaTransformer {
       } catch (UnrecognizedCodeException | InvalidConfigurationException ex) {
         pLogger.log(Level.WARNING, ex);
         return Optional.empty();
+      }
+    }
+
+    private void removeSummaryPlaceholderEdges() {
+
+      List<SummaryPlaceholderEdge> summaryPlaceholderEdges = new ArrayList<>();
+
+      for (CFANode newCfaNode : nodeToNewCfaNode.values()) {
+        for (CFAEdge newCfaEdge : CFAUtils.allLeavingEdges(newCfaNode)) {
+          if (newCfaEdge instanceof SummaryPlaceholderEdge) {
+            summaryPlaceholderEdges.add((SummaryPlaceholderEdge) newCfaEdge);
+          }
+        }
+      }
+
+      for (SummaryPlaceholderEdge summaryPlaceholderEdge : summaryPlaceholderEdges) {
+        summaryPlaceholderEdge.getPredecessor().removeLeavingEdge(summaryPlaceholderEdge);
+        summaryPlaceholderEdge.getSuccessor().removeEnteringEdge(summaryPlaceholderEdge);
       }
     }
 
@@ -624,13 +671,10 @@ public class CCfaTransformer {
         }
       }
 
+      // don't create create function call, return and summary edges
       for (Node currentNode : nodeToNewCfaNode.keySet()) {
         for (Edge edge : currentNode.iterateLeaving()) {
-          CFAEdgeType oldCfaEdgeType = edge.getOldCfaEdge().getEdgeType();
-          if (oldCfaEdgeType != CFAEdgeType.FunctionCallEdge
-              && oldCfaEdgeType != CFAEdgeType.FunctionReturnEdge) {
-            newCfaEdgeIfAbsent(edge);
-          }
+          newCfaEdgeIfAbsent(edge, /* allow interprocedural edges = */ false);
         }
       }
 
@@ -654,13 +698,11 @@ public class CCfaTransformer {
         pLogger.log(Level.WARNING, ex);
       }
 
+      // create supergraph including function call, return and summary edges
+      removeSummaryPlaceholderEdges();
       for (Node currentNode : nodeToNewCfaNode.keySet()) {
         for (Edge edge : currentNode.iterateLeaving()) {
-          CFAEdgeType oldCfaEdgeType = edge.getOldCfaEdge().getEdgeType();
-          if (oldCfaEdgeType == CFAEdgeType.FunctionCallEdge
-              || oldCfaEdgeType == CFAEdgeType.FunctionReturnEdge) {
-            newCfaEdgeIfAbsent(edge);
-          }
+          newCfaEdgeIfAbsent(edge, /* allow interprocedural edges = */ true);
         }
       }
 
@@ -668,6 +710,20 @@ public class CCfaTransformer {
           createVariableClassification(pConfiguration, pLogger, newMutableCfa);
 
       return newMutableCfa.makeImmutableCFA(variableClassification);
+    }
+
+    private static final class SummaryPlaceholderEdge extends BlankEdge {
+
+      private static final long serialVersionUID = -4605071143372536460L;
+
+      public SummaryPlaceholderEdge(
+          String pRawStatement,
+          FileLocation pFileLocation,
+          CFANode pPredecessor,
+          CFANode pSuccessor,
+          String pDescription) {
+        super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pDescription);
+      }
     }
   }
 }
