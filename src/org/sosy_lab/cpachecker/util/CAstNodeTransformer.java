@@ -132,12 +132,17 @@ public abstract class CAstNodeTransformer<X extends Exception>
       parameterExpressionsBuilder.add((CExpression) parameterExpression.accept(this));
     }
 
+    CFunctionDeclaration functionDeclaration = pCFunctionCallExpression.getDeclaration();
+    if (functionDeclaration != null) {
+      functionDeclaration = (CFunctionDeclaration) functionDeclaration.accept(this);
+    }
+
     return new CFunctionCallExpression(
         pCFunctionCallExpression.getFileLocation(),
         pCFunctionCallExpression.getExpressionType(),
         (CExpression) pCFunctionCallExpression.getFunctionNameExpression().accept(this),
         parameterExpressionsBuilder.build(),
-        (CFunctionDeclaration) pCFunctionCallExpression.getDeclaration().accept(this));
+        functionDeclaration);
   }
 
   @Override
@@ -229,11 +234,17 @@ public abstract class CAstNodeTransformer<X extends Exception>
 
   @Override
   public CIdExpression visit(CIdExpression pCIdExpression) throws X {
+
+    CSimpleDeclaration declaration = pCIdExpression.getDeclaration();
+    if (declaration != null) {
+      declaration = (CSimpleDeclaration) declaration.accept(this);
+    }
+
     return new CIdExpression(
         pCIdExpression.getFileLocation(),
         pCIdExpression.getExpressionType(),
         pCIdExpression.getName(),
-        (CSimpleDeclaration) pCIdExpression.getDeclaration().accept(this));
+        declaration);
   }
 
   @Override
