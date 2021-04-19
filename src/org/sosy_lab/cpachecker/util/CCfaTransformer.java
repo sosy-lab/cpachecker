@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
@@ -123,11 +124,9 @@ public class CCfaTransformer {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
     Objects.requireNonNull(pEdge, "pEdge must not be null");
-
-    if (pEdge.getSuccessor().isPresent()) {
-      throw new IllegalArgumentException(
-          "Cannot attach entering edge that already has a successor");
-    }
+    Preconditions.checkArgument(
+        !pEdge.getSuccessor().isPresent(),
+        "Cannot attach entering edge that already has a successor");
 
     pEdge.setSuccessor(Optional.of(pNode));
     pNode.addEnteringEdge(pEdge);
@@ -137,10 +136,8 @@ public class CCfaTransformer {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
     Objects.requireNonNull(pEdge, "pEdge must not be null");
-
-    if (pEdge.getSuccessor().isEmpty()) {
-      throw new IllegalArgumentException("Cannot detach entering edge that has no successor");
-    }
+    Preconditions.checkArgument(
+        !pEdge.getSuccessor().isEmpty(), "Cannot detach entering edge that has no successor");
 
     pEdge.setSuccessor(Optional.empty());
     pNode.removeEnteringEdge(pEdge);
@@ -150,11 +147,9 @@ public class CCfaTransformer {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
     Objects.requireNonNull(pEdge, "pEdge must not be null");
-
-    if (pEdge.getPredecessor().isPresent()) {
-      throw new IllegalArgumentException(
-          "Cannot attach leaving edge that already has a predecessor");
-    }
+    Preconditions.checkArgument(
+        !pEdge.getPredecessor().isPresent(),
+        "Cannot attach leaving edge that already has a predecessor");
 
     pEdge.setPredecessor(Optional.of(pNode));
     pNode.addLeavingEdge(pEdge);
@@ -164,10 +159,8 @@ public class CCfaTransformer {
 
     Objects.requireNonNull(pNode, "pNode must not be null");
     Objects.requireNonNull(pEdge, "pEdge must not be null");
-
-    if (pEdge.getPredecessor().isEmpty()) {
-      throw new IllegalArgumentException("Cannot detach leaving edge that has no predecessor");
-    }
+    Preconditions.checkArgument(
+        !pEdge.getPredecessor().isEmpty(), "Cannot detach leaving edge that has no predecessor");
 
     pEdge.setPredecessor(Optional.empty());
     pNode.removeLeavingEdge(pEdge);
