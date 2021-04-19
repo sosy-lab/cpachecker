@@ -57,6 +57,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 public abstract class CAstNodeTransformer<X extends Exception>
     implements CAstNodeVisitor<CAstNode, X> {
 
+  // required to prevent infinite recursive calls due to AST node cycles
+  private CVariableDeclaration visitedVariableDeclaration = null;
+  private CVariableDeclaration createdVariableDeclaration = null;
+
   public static CAstNodeTransformer<ImpossibleException> createIdentityTransformer() {
     return new FastIdentityTransformer<>();
   }
@@ -295,28 +299,35 @@ public abstract class CAstNodeTransformer<X extends Exception>
 
   @Override
   public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) throws X {
+
+    // required to prevent infinite recursive calls due to AST node cycles
+    if (visitedVariableDeclaration == pCVariableDeclaration) {
+      return createdVariableDeclaration;
+    }
+
+    CVariableDeclaration variableDeclaration =
+        new CVariableDeclaration(
+            pCVariableDeclaration.getFileLocation(),
+            pCVariableDeclaration.isGlobal(),
+            pCVariableDeclaration.getCStorageClass(),
+            pCVariableDeclaration.getType(),
+            pCVariableDeclaration.getName(),
+            pCVariableDeclaration.getOrigName(),
+            pCVariableDeclaration.getQualifiedName(),
+            null);
+
+    visitedVariableDeclaration = pCVariableDeclaration;
+    createdVariableDeclaration = variableDeclaration;
+
     CInitializer initializer = pCVariableDeclaration.getInitializer();
     if (initializer != null) {
-      return new CVariableDeclaration(
-          pCVariableDeclaration.getFileLocation(),
-          pCVariableDeclaration.isGlobal(),
-          pCVariableDeclaration.getCStorageClass(),
-          pCVariableDeclaration.getType(),
-          pCVariableDeclaration.getName(),
-          pCVariableDeclaration.getOrigName(),
-          pCVariableDeclaration.getQualifiedName(),
-          (CInitializer) pCVariableDeclaration.getInitializer().accept(this));
-    } else {
-      return new CVariableDeclaration(
-          pCVariableDeclaration.getFileLocation(),
-          pCVariableDeclaration.isGlobal(),
-          pCVariableDeclaration.getCStorageClass(),
-          pCVariableDeclaration.getType(),
-          pCVariableDeclaration.getName(),
-          pCVariableDeclaration.getOrigName(),
-          pCVariableDeclaration.getQualifiedName(),
-          null);
+      variableDeclaration.addInitializer((CInitializer) initializer.accept(this));
     }
+
+    visitedVariableDeclaration = null;
+    createdVariableDeclaration = null;
+
+    return variableDeclaration;
   }
 
   @Override
