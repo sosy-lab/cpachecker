@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -288,7 +287,7 @@ public class CFACreator {
   private Language language = Language.C;
 
   // data structures for parsing ACSL annotations
-  private final List<IASTFileLocation> commentPositions = new ArrayList<>();
+  private final List<FileLocation> commentPositions = new ArrayList<>();
   private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
 
   private final LogManager logger;

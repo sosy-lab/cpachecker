@@ -42,6 +42,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -85,7 +86,7 @@ class CFABuilder extends ASTVisitor {
   private final Set<String> globalInitializedVariables = new HashSet<>();
 
   // Data structure for storing locations of ACSL annotations
-  private final List<IASTFileLocation> acslCommentPositions = new ArrayList<>();
+  private final List<FileLocation> acslCommentPositions = new ArrayList<>();
 
   // Data structure to keep track of nesting depth of statements for ACSL parsing
   private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
@@ -165,7 +166,7 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslCommentPositions.add(comment.getFileLocation());
+          acslCommentPositions.add(astCreator.getLocation(comment));
         }
       }
     }

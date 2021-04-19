@@ -35,10 +35,10 @@ import java.util.stream.Stream;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -61,9 +61,9 @@ parser code {:
     private final Map<Binder, Set<LogicExpression>> binders = new HashMap();
     private CFAWithACSLAnnotations cfa;
     private LogManager logger;
-    private List<IASTFileLocation> orderedLocs;
+    private List<FileLocation> orderedLocs;
     private List<CFAEdge> orderedCFALocs;
-    private List<IASTFileLocation> commentPositions;
+    private List<FileLocation> commentPositions;
     private Map<CFANode, Integer> statementStackDepths;
     private final Set<Integer> annotationsToSkip = new HashSet<>();
 
@@ -71,10 +71,10 @@ parser code {:
         ACSLScanner pScanner,
         SymbolFactory sf,
         CFAWithACSLAnnotations pCfa,
-        List<IASTFileLocation> pOrderedLocs,
+        List<FileLocation> pOrderedLocs,
         List<CFAEdge> pOrderedCFALocs,
         LogManager pLogger,
-        List<IASTFileLocation> pCommentPositions,
+        List<FileLocation> pCommentPositions,
         Map<CFANode, Integer> pStatementStackDepths) {
       super(pScanner, sf);
       scanner = pScanner;
@@ -91,11 +91,11 @@ parser code {:
         List<String> files,
         CFA pCfa,
         LogManager logger,
-        List<IASTFileLocation> commentPositions,
+        List<FileLocation> commentPositions,
         Map<CFANode, Integer> statementStackDepths)
         throws CParserException, IOException {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
-      Stream<IASTFileLocation> orderedAnnotationLocs =
+      Stream<FileLocation> orderedAnnotationLocs =
           commentPositions.stream()
               .sorted((loc1, loc2) -> Integer.compare(loc1.getNodeOffset(), loc2.getNodeOffset()));
       EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
@@ -114,7 +114,7 @@ parser code {:
         Reader reader = new FileReader(new File(filename), StandardCharsets.UTF_8);
         ACSLScanner scanner = new ACSLScanner(reader);
 
-        ImmutableList<IASTFileLocation> orderedLocs =
+        ImmutableList<FileLocation> orderedLocs =
             orderedAnnotationLocs
                 .filter(x -> x.getFileName().equals(filename))
                 .collect(ImmutableList.toImmutableList());
@@ -353,9 +353,9 @@ parser code {:
     private static void handleAssertion(
         CFAWithACSLAnnotations cfaWithLocs,
         List<CFAEdge> orderedCFALocs,
-        IASTFileLocation loc,
+        FileLocation loc,
         ACSLAssertion annotation,
-        List<IASTFileLocation> commentPositions,
+        List<FileLocation> commentPositions,
         Map<CFANode, Integer> statementStackDepths)
         throws IOException {
       CFAEdge prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
@@ -642,7 +642,7 @@ parser code {:
       return inScope;
     }
 
-    public List<IASTFileLocation> getLocs() {
+    public List<FileLocation> getLocs() {
       return orderedLocs;
     }
 

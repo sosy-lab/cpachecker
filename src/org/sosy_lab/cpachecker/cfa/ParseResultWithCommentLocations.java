@@ -13,15 +13,15 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ParseResultWithCommentLocations extends ParseResult {
 
-  private List<IASTFileLocation> commentLocations;
+  private List<FileLocation> commentLocations;
   private Map<CFANode, Integer> statementStackDepths;
 
   public ParseResultWithCommentLocations(
@@ -29,14 +29,14 @@ public class ParseResultWithCommentLocations extends ParseResult {
       TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
-      List<IASTFileLocation> pCommentLocations,
+      List<FileLocation> pCommentLocations,
       Map<CFANode, Integer> pStatementStackDepths) {
     super(pFunctions, pCfaNodes, pGlobalDeclarations, pFileNames);
     commentLocations = pCommentLocations;
     statementStackDepths = pStatementStackDepths;
   }
 
-  public List<IASTFileLocation> getCommentLocations() {
+  public List<FileLocation> getCommentLocations() {
     return commentLocations;
   }
 
