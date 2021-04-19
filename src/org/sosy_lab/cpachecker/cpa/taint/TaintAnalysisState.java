@@ -18,9 +18,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -81,6 +84,8 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
+import scala.annotation.varargs;
+
 public final class TaintAnalysisState
     implements AbstractQueryableState,
         FormulaReportingState,
@@ -104,6 +109,8 @@ public final class TaintAnalysisState
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
 
+  private Map<String, Boolean> map = new HashMap<String, Boolean>();
+
   /**
    * hashCode needs to be updated with every change of {@link #constantsMap}.
    *
@@ -111,36 +118,40 @@ public final class TaintAnalysisState
    * @see java.util.Map.Entry#hashCode()
    */
   private int hashCode = 0;
+  private final LogManager logger;
 
   private final @Nullable MachineModel machineModel;
 
-  public TaintAnalysisState(MachineModel pMachineModel) {
-    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
+  public TaintAnalysisState(MachineModel pMachineModel, LogManager plogger) {
+    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of(), plogger);
   }
 
   public TaintAnalysisState(
       Optional<MachineModel> pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
-    this(pMachineModel.orElse(null), pConstantsMap);
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap, LogManager plogger) {
+    this(pMachineModel.orElse(null), pConstantsMap, plogger);
   }
 
   private TaintAnalysisState(
       @Nullable MachineModel pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap, LogManager plogger) {
+    logger = plogger;
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
     hashCode = constantsMap.hashCode();
   }
 
-  private TaintAnalysisState(TaintAnalysisState state) {
+  private TaintAnalysisState(TaintAnalysisState state, LogManager plogger) {
+    logger = plogger;
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
+    map = checkNotNull(state.map);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
   }
 
   public static TaintAnalysisState copyOf(TaintAnalysisState state) {
-    return new TaintAnalysisState(state);
+    return new TaintAnalysisState(state, state.logger);
   }
 
   /**
@@ -185,6 +196,36 @@ public final class TaintAnalysisState
    */
   public void assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType) {
     addToConstantsMap(pMemoryLocation, value, pType);
+  }
+
+  public void assignTaint(String var, Boolean tainted) {
+    addToMap(var, tainted);
+  }
+  private void addToMap(
+      final String value, final Boolean tainted) {
+    map.put(value, tainted);
+    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
+    // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
+  }
+
+  public void change(String var, Boolean tainted) {
+    changeMap(var, tainted);
+  }
+  private void changeMap(
+      final String value, final Boolean tainted) {
+    map.replace(value, tainted);
+    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
+    // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
+  }
+  
+  public void remove(String var) {
+    removeFromMap(var);
+  }
+  private void removeFromMap(
+      final String value) {
+    map.remove(value);
+    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
+    // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
 
   /**
@@ -342,7 +383,7 @@ public final class TaintAnalysisState
    */
   @Override
   public int getSize() {
-    return constantsMap.size();
+    return map.size();
   }
 
   /**
@@ -385,7 +426,7 @@ public final class TaintAnalysisState
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new TaintAnalysisState(machineModel, newConstantsMap);
+      return new TaintAnalysisState(machineModel, newConstantsMap, reachedState.logger);
     }
   }
 
@@ -455,17 +496,17 @@ public final class TaintAnalysisState
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      MemoryLocation key = entry.getKey();
+    sb.append("Tainted: [");
+    for (Entry<String, Boolean> entry : map.entrySet()) {
+      String key = entry.getKey();
       sb.append(" <");
-      sb.append(key.getAsSimpleString());
+      sb.append(key);
       sb.append(" = ");
-      sb.append(entry.getValue().getValue());
+      sb.append(entry.getValue());
       sb.append(">\n");
     }
 
-    return sb.append("] size->  ").append(constantsMap.size()).toString();
+    return sb.append("] size->  ").append(map.size()).toString();
   }
 
   /**
@@ -478,7 +519,7 @@ public final class TaintAnalysisState
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, constantsMap);
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, map);
     sb.append("]");
 
     return sb.toString();

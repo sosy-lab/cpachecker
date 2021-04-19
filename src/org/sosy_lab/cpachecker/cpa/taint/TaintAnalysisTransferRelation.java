@@ -8,68 +8,86 @@
 
 package org.sosy_lab.cpachecker.cpa.taint;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.util.ArrayList;
+import com.google.common.collect.Iterables;
+
+
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import java.util.logging.Level;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -81,203 +99,60 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
-import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
-import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
-import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
-import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitorWithPredefinedValues;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
-import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class TaintAnalysisTransferRelation
-    extends ForwardingTransferRelation<
-        TaintAnalysisState, TaintAnalysisState, VariableTrackingPrecision> {
-  // set of functions that may not appear in the source code
-  // the value of the map entry is the explanation for the user
-  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+  extends ForwardingTransferRelation <TaintAnalysisState, TaintAnalysisState, VariableTrackingPrecision> {
 
-  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
-
-  @Options(prefix = "cpa.value")
-  public static class ValueTransferOptions {
-
-    @Option(
-        secure = true,
-        description =
-            "if there is an assumption like (x!=0), "
-                + "this option sets unknown (uninitialized) variables to 1L, "
-                + "when the true-branch is handled.")
-    private boolean initAssumptionVars = false;
-
-    @Option(
-        secure = true,
-        description =
-            "Assume that variables used only in a boolean context are either zero or one.")
-    private boolean optimizeBooleanVariables = true;
-
-    @Option(
-        secure = true,
-        description =
-            "Track Java array values in explicit value analysis. "
-                + "This may be costly if the verified program uses big or lots of arrays. "
-                + "Arrays in C programs will always be tracked, even if this value is false.")
-    private boolean trackJavaArrayValues = true;
-
-    @Option(secure = true, description = "Track or not function pointer values")
-    private boolean ignoreFunctionValue = true;
-
-    @Option(
-        secure = true,
-        description =
-            "If 'ignoreFunctionValue' is set to true, this option allows "
-                + "to provide a fixed set of values in the TestComp format. It is used for "
-                + "function-calls to calls of VERIFIER_nondet_*. The file is provided via the option functionValuesForRandom ")
-    private boolean ignoreFunctionValueExceptRandom = false;
-
-    @Option(
-        secure = true,
-        description =
-            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if ignoreFunctionValueExceptRandom is enabled ")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private Path functionValuesForRandom = null;
-
-    @Option(
-        secure = true,
-        description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
-    private boolean assignEqualityAssumptions = true;
-
-    public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-    }
-
-    boolean isInitAssumptionVars() {
-      return initAssumptionVars;
-    }
-
-    boolean isAssignEqualityAssumptions() {
-      return assignEqualityAssumptions;
-    }
-
-    boolean isOptimizeBooleanVariables() {
-      return optimizeBooleanVariables;
-    }
-
-    boolean isIgnoreFunctionValue() {
-      return ignoreFunctionValue;
-    }
-
-    public boolean isIgnoreFunctionValueExceptRandom() {
-      return ignoreFunctionValueExceptRandom;
-    }
-
-    public Path getFunctionValuesForRandom() {
-      return functionValuesForRandom;
-    }
-  }
-
-  private final ValueTransferOptions options;
-  private final @Nullable TaintAnalysisCPAStatistics stats;
-
-  private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
-
-  private final Set<String> javaNonStaticVariables = new HashSet<>();
-
-  private JRightHandSide missingInformationRightJExpression = null;
-  private String missingInformationLeftJVariable = null;
-
-  private boolean missingFieldVariableObject;
-  private Pair<String, Value> fieldNameAndInitialValue;
-
-  private boolean missingScopedFieldName;
-  private JIdExpression notScopedField;
-  private Value notScopedFieldValue;
-
-  private boolean missingAssumeInformation;
-
-  /**
-   * This class assigns symbolic values, if they are enabled. Otherwise it forgets the memory
-   * location.
-   */
-  private MemoryLocationValueHandler unknownValueHandler;
-
-  /**
-   * This List is used to communicate the missing Information needed from other cpas. (at the moment
-   * specifically SMG)
-   */
-  private List<MissingInformation> missingInformationList;
-
-  /** Save the old State for strengthen. Do not change or modify this state! */
-  private TaintAnalysisState oldState;
-
-  private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
-  private final Collection<String> addressedVariables;
-  private final Collection<String> booleanVariables;
+  private final MachineModel machineModel;
 
   public TaintAnalysisTransferRelation(
       LogManager pLogger,
-      CFA pCfa,
-      ValueTransferOptions pOptions,
-      MemoryLocationValueHandler pUnknownValueHandler,
-      ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
-      @Nullable TaintAnalysisCPAStatistics pStats) {
-    options = pOptions;
+      CFA pCfa) {
+    // options = pOptions;
     machineModel = pCfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
-    stats = pStats;
+    // stats = pStats;
 
-    if (pCfa.getVarClassification().isPresent()) {
-      addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
-      booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
-    } else {
-      addressedVariables = ImmutableSet.of();
-      booleanVariables = ImmutableSet.of();
-    }
+    // if (pCfa.getVarClassification().isPresent()) {
+    //   addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+    //   booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
+    // } else {
+    //   addressedVariables = ImmutableSet.of();
+    //   booleanVariables   = ImmutableSet.of();
+    // }
 
-    unknownValueHandler = pUnknownValueHandler;
-    constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+    // unknownValueHandler = pUnknownValueHandler;
+    // constraintsStrengthenOperator = pConstraintsStrengthenOperator;
   }
 
   @Override
-  protected Collection<TaintAnalysisState> postProcessing(
-      TaintAnalysisState successor, CFAEdge edge) {
+  protected Collection<TaintAnalysisState> postProcessing(TaintAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
     if (successor != null) {
       successor = TaintAnalysisState.copyOf(successor);
@@ -286,49 +161,44 @@ public class TaintAnalysisTransferRelation
     return super.postProcessing(successor, edge);
   }
 
+
   @Override
-  protected void setInfo(
-      AbstractState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {
+  protected void setInfo(AbstractState pAbstractState,
+      Precision pAbstractPrecision, CFAEdge pCfaEdge) {
     super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
     // More than 5 function parameters is sufficiently seldom.
     // For any other cfaEdge we need only a list of length 1.
     // In principle it is unnecessary to always create a new list
     // but I'm not sure of the behavior of calling strengthen, so
     // it is more secure.
-    missingInformationList = new ArrayList<>(5);
-    oldState = (TaintAnalysisState) pAbstractState;
-    if (stats != null) {
-      stats.incrementIterations();
-    }
+    // missingInformationList = new ArrayList<>(5);
+    // oldState = (TaintAnalysisState)pAbstractState;
   }
 
   @Override
-  protected TaintAnalysisState handleFunctionCallEdge(
-      FunctionCallEdge callEdge,
-      List<? extends AExpression> arguments,
-      List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName)
-      throws UnrecognizedCodeException {
+  protected TaintAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
+      List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
+      String calledFunctionName) throws UnrecognizedCodeException {
     TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
 
     assert (parameters.size() == arguments.size())
         || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
 
     // visitor for getting the values of the actual parameters in caller function context
-    final ExpressionValueVisitor visitor = getVisitor();
+    // final ExpressionValueVisitor visitor = getVisitor();
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
-      Value value;
       AExpression exp = arguments.get(i);
+      logger.log(Level.INFO, "YAS"+exp);
 
-      if (exp instanceof JExpression) {
-        value = ((JExpression) exp).accept(visitor);
-      } else if (exp instanceof CExpression) {
-        value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
-      } else {
-        throw new AssertionError("Unknown expression: " + exp);
-      }
+      // if (exp instanceof JExpression) {
+      //   value = ((JExpression) exp).accept(visitor);
+      // } else if (exp instanceof CExpression) {
+      //   value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
+      // } else {
+      //   throw new AssertionError("Unknown expression: " + exp);
+      // }
 
       AParameterDeclaration param = parameters.get(i);
       String paramName = param.getName();
@@ -336,18 +206,19 @@ public class TaintAnalysisTransferRelation
 
       MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName);
 
-      if (value.isUnknown()) {
-        if (isMissingCExpressionInformation(visitor, exp)) {
-          addMissingInformation(formalParamName, exp);
-        }
+      // if (value.isUnknown()) {
+      //   if (isMissingCExpressionInformation(visitor, exp)) {
+      //     addMissingInformation(formalParamName, exp);
+      //   }
 
-        unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
+      //   unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
 
-      } else {
-        newElement.assignConstant(formalParamName, value, paramType);
-      }
+      // } else {
+      //   newElement.assignConstant(formalParamName, value, paramType);
+      // }
 
-      visitor.reset();
+      // visitor.reset();
+
     }
 
     return newElement;
@@ -356,8 +227,7 @@ public class TaintAnalysisTransferRelation
   @Override
   protected TaintAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      // clone state, because will be changed through removing all variables of current function's
-      // scope
+      // clone state, because will be changed through removing all variables of current function's scope
       state = TaintAnalysisState.copyOf(state);
       state.dropFrame(functionName);
     }
@@ -369,206 +239,200 @@ public class TaintAnalysisTransferRelation
   protected TaintAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
       throws UnrecognizedCodeException {
 
-    // visitor must use the initial (previous) state, because there we have all information about
-    // variables
-    ExpressionValueVisitor evv = getVisitor();
+    // visitor must use the initial (previous) state, because there we have all information about variables
+    // ExpressionValueVisitor evv = getVisitor();
 
-    // clone state, because will be changed through removing all variables of current function's
-    // scope.
+    // clone state, because will be changed through removing all variables of current function's scope.
     // The assignment of the global 'state' is safe, because the 'old state'
     // is available in the visitor and is not used for further computation.
     state = TaintAnalysisState.copyOf(state);
-    state.dropFrame(functionName);
+    logger.log(Level.INFO, "");
+    // state.dropFrame(functionName);
 
-    AExpression expression = returnEdge.getExpression().orNull();
-    if (expression == null && returnEdge instanceof CReturnStatementEdge) {
-      expression = CIntegerLiteralExpression.ZERO; // this is the default in C
-    }
+    // AExpression expression = returnEdge.getExpression().orNull();
+    // if (expression == null && returnEdge instanceof CReturnStatementEdge) {
+    //   expression = CIntegerLiteralExpression.ZERO; // this is the default in C
+    // }
 
-    final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
+    // final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
-    final com.google.common.base.Optional<? extends AVariableDeclaration>
-        optionalReturnVarDeclaration = functionEntryNode.getReturnVariable();
-    MemoryLocation functionReturnVar = null;
+    // final com.google.common.base.Optional<? extends AVariableDeclaration>
+    //     optionalReturnVarDeclaration = functionEntryNode.getReturnVariable();
+    // MemoryLocation functionReturnVar = null;
 
-    if (optionalReturnVarDeclaration.isPresent()) {
-      functionReturnVar =
-          MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
-    }
+    // if (optionalReturnVarDeclaration.isPresent()) {
+    //   functionReturnVar = MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
+    // }
 
-    if (expression != null && functionReturnVar != null) {
-      final Type functionReturnType =
-          functionEntryNode.getFunctionDefinition().getType().getReturnType();
+    // if (expression != null && functionReturnVar != null) {
+    //   final Type functionReturnType = functionEntryNode.getFunctionDefinition().getType().getReturnType();
 
-      return handleAssignmentToVariable(functionReturnVar, functionReturnType, expression, evv);
-    } else {
-      return state;
-    }
+    //   return handleAssignmentToVariable(functionReturnVar,
+    //       functionReturnType,
+    //       expression,
+    //       evv);
+    // } else {
+    //   return state;
+    // }
+    return state;
   }
 
   /**
    * Handles return from one function to another function.
-   *
    * @param functionReturnEdge return edge from a function to its call site
    * @return new abstract state
    */
   @Override
-  protected TaintAnalysisState handleFunctionReturnEdge(
-      FunctionReturnEdge functionReturnEdge,
-      FunctionSummaryEdge summaryEdge,
-      AFunctionCall exprOnSummary,
-      String callerFunctionName)
-      throws UnrecognizedCodeException {
+  protected TaintAnalysisState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
+      FunctionSummaryEdge summaryEdge, AFunctionCall exprOnSummary, String callerFunctionName)
+    throws UnrecognizedCodeException {
 
-    TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
+    TaintAnalysisState newElement  = TaintAnalysisState.copyOf(state);
 
-    com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
-        functionReturnEdge.getFunctionEntry().getReturnVariable();
-    MemoryLocation functionReturnVar = null;
-    if (returnVarName.isPresent()) {
-      functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
-    }
+    // com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+    //     functionReturnEdge.getFunctionEntry().getReturnVariable();
+    // MemoryLocation functionReturnVar = null;
+    // if (returnVarName.isPresent()) {
+    //   functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
+    // }
 
-    // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignExp =
-          ((AFunctionCallAssignmentStatement) exprOnSummary);
-      AExpression op1 = assignExp.getLeftHandSide();
+    // // expression is an assignment operation, e.g. a = g(b);
+    // if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
+    //   AFunctionCallAssignmentStatement assignExp = ((AFunctionCallAssignmentStatement)exprOnSummary);
+    //   AExpression op1 = assignExp.getLeftHandSide();
 
-      // we expect left hand side of the expression to be a variable
+    //   // we expect left hand side of the expression to be a variable
 
-      ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
+    //   ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
 
-      Value newValue = null;
-      boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
-      if (valueExists) {
-        newValue = state.getValueFor(functionReturnVar);
-      }
+    //   Value newValue = null;
+    //   boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
+    //   if (valueExists) {
+    //     newValue = state.getValueFor(functionReturnVar);
+    //   }
 
-      // We have to handle Java arrays in a special way, because they are stored as ArrayValue
-      // objects
-      if (op1 instanceof JArraySubscriptExpression) {
-        JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
+    //   // We have to handle Java arrays in a special way, because they are stored as ArrayValue
+    //   // objects
+    //   if (op1 instanceof JArraySubscriptExpression) {
+    //     JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
 
-        ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
-        OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
+    //     ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
+    //     OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
-        if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.orElseThrow());
+    //     if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
+    //       assignedArray.setValue(newValue, maybeIndex.orElseThrow());
 
-        } else {
-          assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
-        }
+    //     } else {
+    //       assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
+    //     }
 
-      } else {
-        // We can handle all types below "casually", so just get the memory location for the
-        // left hand side and assign the function's return value
+    //   } else {
+    //     // We can handle all types below "casually", so just get the memory location for the
+    //     // left hand side and assign the function's return value
 
-        Optional<MemoryLocation> memLoc = Optional.empty();
+    //     Optional<MemoryLocation> memLoc = Optional.empty();
 
-        // get memory location for left hand side
-        if (op1 instanceof CLeftHandSide) {
-          if (valueExists) {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, newValue, v);
-          } else {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, UnknownValue.getInstance(), v);
-          }
+    //     // get memory location for left hand side
+    //     if (op1 instanceof CLeftHandSide) {
+    //       if (valueExists) {
+    //         memLoc = getMemoryLocation((CLeftHandSide) op1, newValue, v);
+    //       } else {
+    //         memLoc = getMemoryLocation((CLeftHandSide) op1, UnknownValue.getInstance(), v);
+    //       }
 
-        } else if (op1 instanceof AIdExpression) {
-          if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1) && valueExists) {
-            missingScopedFieldName = true;
-            notScopedField = (JIdExpression) op1;
-            notScopedFieldValue = newValue;
-          } else {
-            String op1QualifiedName = ((AIdExpression) op1).getDeclaration().getQualifiedName();
-            memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
-          }
+    //     } else if (op1 instanceof AIdExpression) {
+    //       if (op1 instanceof JIdExpression && isDynamicField((JIdExpression)op1)
+    //           && valueExists) {
+    //         missingScopedFieldName = true;
+    //         notScopedField = (JIdExpression)op1;
+    //         notScopedFieldValue = newValue;
+    //       } else {
+    //         String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
+    //         memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
+    //       }
 
-        } else if (op1 instanceof APointerExpression) {
-          // a* = b(); TODO: for now, nothing is done here, but cloning the current element
+    //     } else if (op1 instanceof APointerExpression) {
+    //       // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
-        } else {
-          throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
-        }
+    //     } else {
+    //       throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
+    //     }
 
-        // assign the value if a memory location was successfully computed
-        if (memLoc.isPresent()) {
-          if (!valueExists) {
-            unknownValueHandler.handle(
-                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
+    //     // assign the value if a memory location was successfully computed
+    //     if (memLoc.isPresent()) {
+    //       if (!valueExists) {
+    //         unknownValueHandler.handle(
+    //             memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
 
-          } else {
-            newElement.assignConstant(
-                memLoc.orElseThrow(), newValue, state.getTypeForMemoryLocation(functionReturnVar));
-          }
-        }
-      }
-    }
+    //       } else {
+    //         newElement.assignConstant(
+    //             memLoc.orElseThrow(), newValue, state.getTypeForMemoryLocation(functionReturnVar));
+    //       }
+    //     }
+    //   }
+    // }
 
-    if (returnVarName.isPresent()) {
-      newElement.forget(functionReturnVar);
-    }
+    // if (returnVarName.isPresent()) {
+    //   newElement.forget(functionReturnVar);
+    // }
 
     return newElement;
   }
 
-  private Optional<MemoryLocation> getMemoryLocation(
-      final CLeftHandSide pExpression,
-      final Value pRightHandSideValue,
-      final ExpressionValueVisitor pValueVisitor)
-      throws UnrecognizedCodeException {
+  // private Optional<MemoryLocation> getMemoryLocation(
+  //     final CLeftHandSide pExpression,
+  //     final Value pRightHandSideValue,
+  //     final ExpressionValueVisitor pValueVisitor)
+  //     throws UnrecognizedCodeException {
 
-    MemoryLocation assignedVarName = pValueVisitor.evaluateMemoryLocation(pExpression);
+  //   MemoryLocation assignedVarName = pValueVisitor.evaluateMemoryLocation(pExpression);
 
-    if (assignedVarName == null) {
-      if (pValueVisitor.hasMissingPointer()) {
-        addMissingInformation(pExpression, pRightHandSideValue);
-      }
-      return Optional.empty();
+  //   if (assignedVarName == null) {
+  //     if (pValueVisitor.hasMissingPointer()) {
+  //       addMissingInformation(pExpression, pRightHandSideValue);
+  //     }
+  //     return Optional.empty();
 
-    } else {
-      return Optional.of(assignedVarName);
-    }
-  }
+  //   } else {
+  //     return Optional.of(assignedVarName);
+  //   }
+  // }
 
-  private boolean isDynamicField(JIdExpression pIdentifier) {
-    final JSimpleDeclaration declaration = pIdentifier.getDeclaration();
+  // private boolean isDynamicField(JIdExpression pIdentifier) {
+  //   final JSimpleDeclaration declaration = pIdentifier.getDeclaration();
 
-    return (declaration instanceof JFieldDeclaration)
-        && !((JFieldDeclaration) declaration).isStatic();
-  }
+  //   return (declaration instanceof JFieldDeclaration)
+  //       && !((JFieldDeclaration) declaration).isStatic();
+  // }
 
-  private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
-    final ExpressionValueVisitor evv = getVisitor();
-    final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
+  // private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
+  //   final ExpressionValueVisitor evv = getVisitor();
+  //   final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
 
-    if (indexValue.isUnknown()) {
-      return OptionalInt.empty();
-    } else {
-      return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
-    }
-  }
+  //   if (indexValue.isUnknown()) {
+  //     return OptionalInt.empty();
+  //   } else {
+  //     return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
+  //   }
+  // }
 
   @Override
-  protected TaintAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge)
-      throws CPATransferException {
+  protected TaintAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     TaintAnalysisState newState = TaintAnalysisState.copyOf(state);
-    AFunctionCall functionCall = cfaEdge.getExpression();
+    // AFunctionCall functionCall  = cfaEdge.getExpression();
 
-    if (functionCall instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignment =
-          ((AFunctionCallAssignmentStatement) functionCall);
-      AExpression leftHandSide = assignment.getLeftHandSide();
+    // if (functionCall instanceof AFunctionCallAssignmentStatement) {
+    //   AFunctionCallAssignmentStatement assignment = ((AFunctionCallAssignmentStatement)functionCall);
+    //   AExpression leftHandSide = assignment.getLeftHandSide();
 
-      if (leftHandSide instanceof CLeftHandSide) {
-        MemoryLocation assignedMemoryLocation =
-            getVisitor().evaluateMemoryLocation((CLeftHandSide) leftHandSide);
+    //   if (leftHandSide instanceof CLeftHandSide) {
+    //     MemoryLocation assignedMemoryLocation = getVisitor().evaluateMemoryLocation((CLeftHandSide) leftHandSide);
 
-        if (newState.contains(assignedMemoryLocation)) {
-          newState.forget(assignedMemoryLocation);
-        }
-      }
-    }
+    //     if (newState.contains(assignedMemoryLocation)) {
+    //       newState.forget(assignedMemoryLocation);
+    //     }
+    //   }
+    // }
 
     return newState;
   }
@@ -582,81 +446,75 @@ public class TaintAnalysisTransferRelation
 
   private TaintAnalysisState handleAssumption(AExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
+    return null;
+    // Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
+    // expression = simplifiedExpression.getFirst();
+    // truthValue = simplifiedExpression.getSecond();
 
-    if (stats != null) {
-      stats.incrementAssumptions();
-    }
+    // final ExpressionValueVisitor evv = getVisitor();
+    // final Type booleanType = getBooleanType(expression);
 
-    Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
-    expression = simplifiedExpression.getFirst();
-    truthValue = simplifiedExpression.getSecond();
+    // // get the value of the expression (either true[1L], false[0L], or unknown[null])
+    // Value value = getExpressionValue(expression, booleanType, evv);
 
-    final ExpressionValueVisitor evv = getVisitor();
-    final Type booleanType = getBooleanType(expression);
+    // if (value.isExplicitlyKnown() && stats != null) {
+    //   stats.incrementDeterministicAssumptions();
+    // }
 
-    // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Value value = getExpressionValue(expression, booleanType, evv);
+    // if (!value.isExplicitlyKnown()) {
+    //   TaintAnalysisState element = TaintAnalysisState.copyOf(state);
 
-    if (value.isExplicitlyKnown() && stats != null) {
-      stats.incrementDeterministicAssumptions();
-    }
+    //   AssigningValueVisitor avv =
+    //       new AssigningValueVisitor(
+    //           element,
+    //           truthValue,
+    //           booleanVariables,
+    //           functionName,
+    //           state,
+    //           machineModel,
+    //           logger,
+    //           options);
 
-    if (!value.isExplicitlyKnown()) {
-      TaintAnalysisState element = TaintAnalysisState.copyOf(state);
+    //   if (expression instanceof JExpression && ! (expression instanceof CExpression)) {
 
-      AssigningValueVisitor avv =
-          new AssigningValueVisitor(
-              element,
-              truthValue,
-              booleanVariables,
-              functionName,
-              state,
-              machineModel,
-              logger,
-              options);
+    //     ((JExpression) expression).accept(avv);
 
-      if (expression instanceof JExpression && !(expression instanceof CExpression)) {
+    //     if (avv.hasMissingFieldAccessInformation()) {
+    //       assert missingInformationRightJExpression != null;
+    //       missingAssumeInformation = true;
+    //     }
 
-        ((JExpression) expression).accept(avv);
+    //   } else {
+    //     ((CExpression) expression).accept(avv);
+    //   }
 
-        if (avv.hasMissingFieldAccessInformation()) {
-          assert missingInformationRightJExpression != null;
-          missingAssumeInformation = true;
-        }
+    //   if (isMissingCExpressionInformation(evv, expression)) {
+    //     missingInformationList.add(new MissingInformation(truthValue, expression));
+    //   }
 
-      } else {
-        ((CExpression) expression).accept(avv);
-      }
+    //   return element;
 
-      if (isMissingCExpressionInformation(evv, expression)) {
-        missingInformationList.add(new MissingInformation(truthValue, expression));
-      }
+    // } else if (representsBoolean(value, truthValue)) {
+    //   // we do not know more than before, and the assumption is fulfilled, so return a copy of the old state
+    //   // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
+    //   return TaintAnalysisState.copyOf(state);
 
-      return element;
-
-    } else if (representsBoolean(value, truthValue)) {
-      // we do not know more than before, and the assumption is fulfilled, so return a copy of the
-      // old state
-      // we need to return a copy, otherwise precision adjustment might reset too much information,
-      // even on the original state
-      return TaintAnalysisState.copyOf(state);
-
-    } else {
-      // assumption not fulfilled
-      return null;
-    }
+    // } else {
+    //   // assumption not fulfilled
+    //   return null;
+    // }
   }
 
-  private Type getBooleanType(AExpression pExpression) {
-    if (pExpression instanceof JExpression) {
-      return JSimpleType.getBoolean();
-    } else if (pExpression instanceof CExpression) {
-      return CNumericTypes.INT;
+  // private Type getBooleanType(AExpression pExpression) {
+  //   if (pExpression instanceof JExpression) {
+  //     return JSimpleType.getBoolean();
+  //   } else if (pExpression instanceof CExpression) {
+  //     return CNumericTypes.INT;
 
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
-  }
+  //   } else {
+  //     throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+  //   }
+  // }
 
   /*
    *  returns 'true' if the given value represents the specified boolean bool.
@@ -671,23 +529,23 @@ public class TaintAnalysisTransferRelation
    *    * representsTrue(NullValue.getInstance(), false)    = false
    *
    */
-  private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue) {
-      return ((BooleanValue) value).isTrue() == bool;
+  // private boolean representsBoolean(Value value, boolean bool) {
+  //   if (value instanceof BooleanValue) {
+  //     return ((BooleanValue) value).isTrue() == bool;
 
-    } else if (value.isNumericValue()) {
-      return value.equals(new NumericValue(bool ? 1L : 0L));
+  //   } else if (value.isNumericValue()) {
+  //     return value.equals(new NumericValue(bool ? 1L : 0L));
 
-    } else {
-      return false;
-    }
-  }
+  //   } else {
+  //     return false;
+  //   }
+  // }
 
   @Override
   protected TaintAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
-    if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
+    if (!(declaration instanceof AVariableDeclaration)) { // || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
     }
@@ -698,17 +556,19 @@ public class TaintAnalysisTransferRelation
 
     // get the variable name in the declarator
     String varName = decl.getName();
+    newElement.assignTaint(varName, false);
+    String msg;
+    msg = varName+" | tainted: false | Type: "+declarationType;
 
-    Value initialValue = getDefaultInitialValue(decl);
+    // Value initialValue = getDefaultInitialValue(decl);
 
-    // get initializing statement
+    // // get initializing statement
     AInitializer init = decl.getInitializer();
 
     // handle global variables
     if (decl.isGlobal()) {
       if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
-        missingFieldVariableObject = true;
-        javaNonStaticVariables.add(varName);
+        msg = msg + " | YAS";
       }
     }
 
@@ -716,262 +576,237 @@ public class TaintAnalysisTransferRelation
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
+      msg = msg + " | Global: true";
       memoryLocation = MemoryLocation.valueOf(varName);
     } else {
+      msg = msg + " | Global: false";
       memoryLocation = MemoryLocation.valueOf(functionName, varName);
     }
 
-    if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
-      TaintAnalysisState.addToBlacklist(memoryLocation);
-    }
+    // if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
+    //   TaintAnalysisState.addToBlacklist(memoryLocation);
+    // }
 
     if (init instanceof AInitializerExpression) {
-      ExpressionValueVisitor evv = getVisitor();
       AExpression exp = ((AInitializerExpression) init).getExpression();
-      initialValue = getExpressionValue(exp, declarationType, evv);
-
-      if (isMissingCExpressionInformation(evv, exp)) {
-        addMissingInformation(memoryLocation, exp);
-      }
+      msg = msg + " | EXP: "+exp;
     }
 
-    if (isTrackedType(declarationType)) {
-      if (missingFieldVariableObject) {
-        fieldNameAndInitialValue = Pair.of(varName, initialValue);
+    // if (isTrackedType(declarationType)) {
+    //   if (missingFieldVariableObject) {
+    //     fieldNameAndInitialValue = Pair.of(varName, initialValue);
 
-      } else if (missingInformationRightJExpression != null) {
-        missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
-      }
-    } else {
-      // If variable not tracked, its Object is irrelevant
-      missingFieldVariableObject = false;
-    }
+    //   } else if (missingInformationRightJExpression != null) {
+    //     missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
+    //   }
+    // } else {
+    //   // If variable not tracked, its Object is irrelevant
+    //   missingFieldVariableObject = false;
+    // }
 
-    if (initialValue.isUnknown()) {
-      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
-    } else {
-      newElement.assignConstant(memoryLocation, initialValue, declarationType);
-    }
-
+    // if (initialValue.isUnknown()) {
+    //   unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
+    // } else {
+    //   newElement.assignConstant(memoryLocation, initialValue, declarationType);
+    // }
+    logger.log(Level.INFO, msg);
     return newElement;
   }
 
-  private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
-    final boolean defaultBooleanValue = false;
-    final long defaultNumericValue = 0;
+  // private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
+  //   final boolean defaultBooleanValue = false;
+  //   final long defaultNumericValue = 0;
 
-    if (pDeclaration.isGlobal()) {
-      Type declarationType = pDeclaration.getType();
+  //   if (pDeclaration.isGlobal()) {
+  //     Type declarationType = pDeclaration.getType();
 
-      if (isComplexJavaType(declarationType)) {
-        return NullValue.getInstance();
+  //     if (isComplexJavaType(declarationType)) {
+  //       return NullValue.getInstance();
 
-      } else if (declarationType instanceof JSimpleType) {
-        JBasicType basicType = ((JSimpleType) declarationType).getType();
+  //     } else if (declarationType instanceof JSimpleType) {
+  //       JBasicType basicType = ((JSimpleType) declarationType).getType();
 
-        switch (basicType) {
-          case BOOLEAN:
-            return BooleanValue.valueOf(defaultBooleanValue);
-          case BYTE:
-          case CHAR:
-          case SHORT:
-          case INT:
-          case LONG:
-          case FLOAT:
-          case DOUBLE:
-            return new NumericValue(defaultNumericValue);
-          case UNSPECIFIED:
-            return UnknownValue.getInstance();
-          default:
-            throw new AssertionError("Impossible type for declaration: " + basicType);
-        }
-      }
-    }
+  //       switch (basicType) {
+  //         case BOOLEAN:
+  //           return BooleanValue.valueOf(defaultBooleanValue);
+  //         case BYTE:
+  //         case CHAR:
+  //         case SHORT:
+  //         case INT:
+  //         case LONG:
+  //         case FLOAT:
+  //         case DOUBLE:
+  //           return new NumericValue(defaultNumericValue);
+  //         case UNSPECIFIED:
+  //           return UnknownValue.getInstance();
+  //         default:
+  //           throw new AssertionError("Impossible type for declaration: " + basicType);
+  //       }
+  //     }
+  //   }
 
-    return UnknownValue.getInstance();
-  }
+  //   return UnknownValue.getInstance();
+  // }
 
-  private boolean isComplexJavaType(Type pType) {
-    return pType instanceof JClassOrInterfaceType || pType instanceof JArrayType;
-  }
+  // private boolean isComplexJavaType(Type pType) {
+  //   return pType instanceof JClassOrInterfaceType
+  //       || pType instanceof JArrayType;
+  // }
 
-  private boolean isMissingCExpressionInformation(
-      ExpressionValueVisitor pEvv, ARightHandSide pExp) {
+  // private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
+  //     ARightHandSide pExp) {
 
-    return pExp instanceof CExpression && pEvv.hasMissingPointer();
-  }
+  //   return pExp instanceof CExpression && pEvv.hasMissingPointer();
+  // }
 
   @Override
   protected TaintAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
-      throws UnrecognizedCodeException {
+    throws UnrecognizedCodeException {
+
+    String msg = "";
 
     if (expression instanceof CFunctionCall) {
       CFunctionCall functionCall = (CFunctionCall) expression;
       CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
       CExpression fn = functionCallExp.getFunctionNameExpression();
 
+      msg = msg + "functionCall: "+functionCall+" | functionCallExp: "+functionCallExp+" | fn: "+fn;
+
       if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
-        if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
-
-        } else if (func.equals("free")) {
-          return handleCallToFree(functionCall);
-
-        } else if (expression instanceof CFunctionCallAssignmentStatement) {
-
-          return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
+        String func = ((CIdExpression)fn).getName();
+        msg = msg + " | func: "+func;
+        if (expression instanceof CFunctionCallAssignmentStatement) {
+          msg = msg + " | CFunctionCallAssignmentStatement";
+          CFunctionCallAssignmentStatement pFunctionCallAssignment = (CFunctionCallAssignmentStatement)expression;
+          final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
+          msg = msg + " | leftSide: " + leftSide;
+          if(func.equals("getchar")) {
+            state.change(leftSide.toString(), true);
+            return state;
+          }
         }
+        // if(func.equals("free")) {
+        //   state.change(var, tainted);
+        //   return state;
+        // }
+        // if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
+        //   throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+
+        // } else if (func.equals("free")) {
+        //   return handleCallToFree(functionCall);
+
+        // } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+        //   if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
+        //     throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+        //   }
+        // } else if (expression instanceof CFunctionCallAssignmentStatement) {
+
+        //   return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
+        // }
       }
     }
 
     // expression is a binary operation, e.g. a = b;
 
-    if (expression instanceof AAssignment) {
-      return handleAssignment((AAssignment) expression, cfaEdge);
+    else if (expression instanceof AAssignment) {
+      handleAssignment((AAssignment)expression, cfaEdge);
+      return state;
 
     } else if (expression instanceof AFunctionCallStatement) {
-      // external function call - do nothing
+      msg = msg + " | AFunctionCallStatement";
 
     } else if (expression instanceof AExpressionStatement) {
-      // there is such a case
+      msg = msg + " | AExpressionStatement";
 
     } else {
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
     }
-
+    logger.log(Level.INFO, msg);
     return state;
   }
 
   private TaintAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
-    final CFunctionCallExpression functionCallExp =
-        pFunctionCallAssignment.getFunctionCallExpression();
-    final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
-    final CType leftSideType = leftSide.getExpressionType();
-    final ExpressionValueVisitor evv = getVisitor();
+    // final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
+    // final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
+    // final CType leftSideType = leftSide.getExpressionType();
+    // final ExpressionValueVisitor evv = getVisitor();
 
     TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
 
-    Value newValue = evv.evaluate(functionCallExp, leftSideType);
+    // Value newValue = evv.evaluate(functionCallExp, leftSideType);
 
-    final Optional<MemoryLocation> memLoc = getMemoryLocation(leftSide, newValue, evv);
+    // final Optional<MemoryLocation> memLoc = getMemoryLocation(leftSide, newValue, evv);
 
-    if (memLoc.isPresent()) {
-      if (!newValue.isUnknown()) {
-        newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
+    // if (memLoc.isPresent()) {
+    //   if (!newValue.isUnknown()) {
+    //     newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
-      } else {
-        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
-      }
-    }
+    //   } else {
+    //     unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
+    //   }
+    // }
 
     return newElement;
   }
 
-  private TaintAnalysisState handleCallToFree(CFunctionCall pExpression) {
-    // Needed for erasing values
-    missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
+  // private TaintAnalysisState handleCallToFree(CFunctionCall pExpression) {
+  //   // Needed for erasing values
+  //   missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
 
-    return state;
-  }
+  //   return state;
+  // }
 
   private TaintAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
-    AExpression op1 = assignExpression.getLeftHandSide();
+    String msg = "";
+    AExpression op1    = assignExpression.getLeftHandSide();
     ARightHandSide op2 = assignExpression.getRightHandSide();
-
-    if (!isTrackedType(op1.getExpressionType())) {
-      return state;
-    }
+    msg = msg + op1 + " = "+ op2 +" | op1: "+op1 + " op1GetType: op2: "+op2 + " "+op2.getExpressionType() + " "+op2.getClass();
 
     if (op1 instanceof AIdExpression) {
-      /*
-       * Assignment of the form
-       *  a = ...
-       */
-
-      if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
-        missingScopedFieldName = true;
-        notScopedField = (JIdExpression) op1;
+      // a = ...
+      msg = msg + "\nAIdExpression";
+      if(op2 instanceof ALiteralExpression) {
+        msg = msg + " | ALiteralExpression";
+        state.change(op1.toString(), false);
+        return state;
       }
-
-      MemoryLocation memloc = getMemoryLocation((AIdExpression) op1);
-
-      return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
+      // return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
-
-      if (isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
-      }
+      msg = msg + "\nAPointerExpression";
+      // if (isRelevant(op1, op2)) {
+      //   missingInformationList.add(new MissingInformation(op1, op2));
+      // }
 
     } else if (op1 instanceof CFieldReference) {
-
-      ExpressionValueVisitor v = getVisitor();
-
-      MemoryLocation memLoc = v.evaluateMemoryLocation((CFieldReference) op1);
-
-      if (v.hasMissingPointer() && isRelevant(op1, op2)) {
-        missingInformationList.add(new MissingInformation(op1, op2));
-      }
-
-      if (memLoc != null) {
-        return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
-      }
+      // ???
+      msg = msg + "\nCFieldReference";
 
     } else if (op1 instanceof AArraySubscriptExpression) {
       // array cell
+      msg = msg + " | AArraySubscriptExpression";
       if (op1 instanceof CArraySubscriptExpression) {
-
-        ExpressionValueVisitor v = getVisitor();
-
-        MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
-
-        if (v.hasMissingPointer() && isRelevant(op1, op2)) {
-          missingInformationList.add(new MissingInformation(op1, op2));
-        }
-
-        if (memLoc != null) {
-          return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
-        }
+        msg = msg + " | CArraySubscriptExpression";
       } else if (op1 instanceof JArraySubscriptExpression) {
-        JArraySubscriptExpression arrayExpression = (JArraySubscriptExpression) op1;
-        ExpressionValueVisitor evv = getVisitor();
-
-        ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
-        Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
-
-        if (arrayToChange == null || maybeIndex.isUnknown()) {
-          assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
-
-        } else {
-          long concreteIndex = ((NumericValue) maybeIndex).longValue();
-
-          if (concreteIndex < 0 || concreteIndex >= arrayToChange.getArraySize()) {
-            throw new UnrecognizedCodeException(
-                "Invalid index " + concreteIndex + " for array " + arrayToChange, cfaEdge);
-          }
-
-          // changes array value in old state
-          handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return TaintAnalysisState.copyOf(state);
-        }
+        msg = msg + " | JArraySubscriptExpression";
       }
     } else {
       throw new UnrecognizedCodeException(
           "left operand of assignment has to be a variable", cfaEdge, op1);
     }
-
+    
+    logger.log(Level.INFO, msg);
     return state; // the default return-value is the old state
   }
 
-  private boolean isTrackedType(Type pType) {
-    return !(pType instanceof JType)
-        || options.trackJavaArrayValues
-        || !(pType instanceof JArrayType);
-  }
+  // private boolean isTrackedType(Type pType) {
+  //   return !(pType instanceof JType)
+  //       || options.trackJavaArrayValues
+  //       || !(pType instanceof JArrayType);
+  // }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
     String varName = pIdExpression.getName();
@@ -987,126 +822,111 @@ public class TaintAnalysisTransferRelation
     return pOp1 instanceof CExpression && pOp2 instanceof CExpression;
   }
 
-  /**
-   * This method analyses the expression with the visitor and assigns the value to lParam. The
-   * method returns a new state, that contains (a copy of) the old state and the new assignment.
+  /** This method analyses the expression with the visitor and assigns the value to lParam.
+   * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
+  // private TaintAnalysisState handleAssignmentToVariable(
+  //     MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
+  //         throws UnrecognizedCodeException {
+  //   // here we clone the state, because we get new information or must forget it.
+  //   TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
+  //   handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
+  //   return newElement;
+  // }
+
+  /** This method analyses the expression with the visitor and assigns the value to lParam
+   *  to the given value Analysis state.
    */
-  private TaintAnalysisState handleAssignmentToVariable(
-      MemoryLocation assignedVar,
-      final Type lType,
-      ARightHandSide exp,
-      ExpressionValueVisitor visitor)
-      throws UnrecognizedCodeException {
-    // here we clone the state, because we get new information or must forget it.
-    TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
-    handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
-    return newElement;
-  }
+//   private void handleAssignmentToVariable(TaintAnalysisState newElement,
+//       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
+//       throws UnrecognizedCodeException {
 
-  /**
-   * This method analyses the expression with the visitor and assigns the value to lParam to the
-   * given value Analysis state.
-   */
-  private void handleAssignmentToVariable(
-      TaintAnalysisState newElement,
-      MemoryLocation assignedVar,
-      final Type lType,
-      ARightHandSide exp,
-      ExpressionValueVisitor visitor)
-      throws UnrecognizedCodeException {
+//     // c structs have to be handled seperatly, because we do not have a value object representing structs
+//     if (lType instanceof CType) {
+//       CType canonicaltype = ((CType) lType).getCanonicalType();
+//       if (canonicaltype instanceof CCompositeType
+//           && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
+//           && exp instanceof CLeftHandSide) {
+//         handleAssignmentToStruct(newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+//         return;
+//       }
+//     }
 
-    // c structs have to be handled seperatly, because we do not have a value object representing
-    // structs
-    if (lType instanceof CType) {
-      CType canonicaltype = ((CType) lType).getCanonicalType();
-      if (canonicaltype instanceof CCompositeType
-          && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
-          && exp instanceof CLeftHandSide) {
-        handleAssignmentToStruct(
-            newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
-        return;
-      }
-    }
+//     Value value;
+//     if (exp instanceof JRightHandSide) {
+//        value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
+//     } else if (exp instanceof CRightHandSide) {
+//        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
+//     } else {
+//       throw new AssertionError("unknown righthandside-expression: " + exp);
+//     }
 
-    Value value;
-    if (exp instanceof JRightHandSide) {
-      value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
-    } else if (exp instanceof CRightHandSide) {
-      value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
-    } else {
-      throw new AssertionError("unknown righthandside-expression: " + exp);
-    }
+//     if (visitor.hasMissingPointer()) {
+//       assert !value.isExplicitlyKnown();
+//     }
 
-    if (visitor.hasMissingPointer()) {
-      assert !value.isExplicitlyKnown();
-    }
+//     if (isMissingCExpressionInformation(visitor, exp)) {
+//       // Evaluation
+//       addMissingInformation(assignedVar, exp);
+//     }
 
-    if (isMissingCExpressionInformation(visitor, exp)) {
-      // Evaluation
-      addMissingInformation(assignedVar, exp);
-    }
+//     if (visitor.hasMissingFieldAccessInformation()) {
+//       // This may happen if an object of class is created which could not be parsed,
+//       // In  such a case, forget about it
+//       if (!value.isUnknown()) {
+//         newElement.forget(assignedVar);
+//         return;
+//       } else {
+//         missingInformationRightJExpression = (JRightHandSide) exp;
+//         if (!missingScopedFieldName) {
+//           missingInformationLeftJVariable = assignedVar.getAsSimpleString();
+//         }
+//       }
+//     }
 
-    if (visitor.hasMissingFieldAccessInformation()) {
-      // This may happen if an object of class is created which could not be parsed,
-      // In  such a case, forget about it
-      if (!value.isUnknown()) {
-        newElement.forget(assignedVar);
-        return;
-      } else {
-        missingInformationRightJExpression = (JRightHandSide) exp;
-        if (!missingScopedFieldName) {
-          missingInformationLeftJVariable = assignedVar.getAsSimpleString();
-        }
-      }
-    }
+//     if (missingScopedFieldName) {
+//       notScopedFieldValue = value;
+//     } else {
+//       // some heuristics to clear wrong information
+//       // when a struct or a pointer to one is assigned
+//       // TODO not implemented in SMG version of ValueAnalysisCPA
+// //      newElement.forgetAllWithPrefix(assignedVar + ".");
+// //      newElement.forgetAllWithPrefix(assignedVar + "->");
 
-    if (missingScopedFieldName) {
-      notScopedFieldValue = value;
-    } else {
-      // some heuristics to clear wrong information
-      // when a struct or a pointer to one is assigned
-      // TODO not implemented in SMG version of ValueAnalysisCPA
-      //      newElement.forgetAllWithPrefix(assignedVar + ".");
-      //      newElement.forgetAllWithPrefix(assignedVar + "->");
+//       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
+//       // identifier to keep track of the variable.
+//       if (value.isUnknown()) {
+//         unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
 
-      // if there is no information left to evaluate but the value is unknown, we assign a symbolic
-      // identifier to keep track of the variable.
-      if (value.isUnknown()) {
-        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
-
-      } else {
-        newElement.assignConstant(assignedVar, value, lType);
-      }
-    }
-  }
+//       } else {
+//         newElement.assignConstant(assignedVar, value, lType);
+//       }
+//     }
+//   }
 
   /**
-   * This method transforms the assignment of the struct into assignments of its respective field
-   * references and assigns them to the given value state.
+   *
+   * This method transforms the assignment of the struct into assignments of its respective
+   * field references and assigns them to the given value state.
+   *
    */
-  private void handleAssignmentToStruct(
-      TaintAnalysisState pNewElement,
-      MemoryLocation pAssignedVar,
-      CCompositeType pLType,
-      CExpression pExp,
-      ExpressionValueVisitor pVisitor)
-      throws UnrecognizedCodeException {
+  // private void handleAssignmentToStruct(TaintAnalysisState pNewElement,
+  //     MemoryLocation pAssignedVar,
+  //     CCompositeType pLType, CExpression pExp,
+  //     ExpressionValueVisitor pVisitor) throws UnrecognizedCodeException {
 
-    long offset = 0L;
-    for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
-      MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
+  //   long offset = 0L;
+  //   for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
+  //     MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
 
-      CExpression owner = pExp;
+  //     CExpression owner = pExp;
 
-      CExpression fieldReference =
-          new CFieldReference(
-              pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
-      handleAssignmentToVariable(
-          pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
+  //     CExpression fieldReference =
+  //         new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
+  //     handleAssignmentToVariable(pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
 
-      offset = offset + machineModel.getSizeof(memberType.getType()).longValueExact();
-    }
-  }
+  //     offset = offset + machineModel.getSizeof(memberType.getType()).longValueExact();
+  //   }
+  // }
 
   private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
 
@@ -1120,275 +940,273 @@ public class TaintAnalysisTransferRelation
     }
   }
 
-  private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {
-    if (pExp instanceof CExpression) {
+  // private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {
+  //   if (pExp instanceof CExpression) {
 
-      missingInformationList.add(new MissingInformation(pMemLoc, (CExpression) pExp));
-    }
-  }
+  //     missingInformationList.add(new MissingInformation(pMemLoc,
+  //         (CExpression) pExp));
+  //   }
+  // }
 
-  private void addMissingInformation(CLeftHandSide pOp1, Value pValue) {
-    missingInformationList.add(new MissingInformation(pOp1, pValue));
-  }
+  // private void addMissingInformation(CLeftHandSide pOp1, Value pValue) {
+  //   missingInformationList.add(new MissingInformation(pOp1, pValue));
+
+  // }
 
   /**
-   * Returns the {@link ArrayValue} object that represents the innermost array of the given {@link
-   * JArraySubscriptExpression}.
+   * Returns the {@link ArrayValue} object that represents the innermost array of the given
+   * {@link JArraySubscriptExpression}.
    *
    * @param pArraySubscriptExpression the subscript expression to get the inner most array of
    * @return <code>null</code> if the complete array or a part significant for the given array
-   *     subscript expression is unknown, the <code>ArrayValue</code> representing the innermost
-   *     array, otherwise
+   *    subscript expression is unknown, the <code>ArrayValue</code> representing the innermost
+   *    array, otherwise
    */
-  private @Nullable ArrayValue getInnerMostArray(
-      JArraySubscriptExpression pArraySubscriptExpression) {
-    JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
+  // private @Nullable ArrayValue getInnerMostArray(JArraySubscriptExpression pArraySubscriptExpression) {
+  //   JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (arrayExpression instanceof JIdExpression) {
-      JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
+  //   if (arrayExpression instanceof JIdExpression) {
+  //     JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
 
-      if (arrayDeclaration != null) {
-        MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
+  //     if (arrayDeclaration != null) {
+  //       MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
 
-        if (state.contains(idName)) {
-          Value idValue = state.getValueFor(idName);
-          if (idValue.isExplicitlyKnown()) {
-            return (ArrayValue) idValue;
-          }
-        }
-      }
+  //       if (state.contains(idName)) {
+  //         Value idValue = state.getValueFor(idName);
+  //         if (idValue.isExplicitlyKnown()) {
+  //           return (ArrayValue) idValue;
+  //         }
+  //       }
+  //     }
 
-      return null;
-    } else {
-      final JArraySubscriptExpression arraySubscriptExpression =
-          (JArraySubscriptExpression) arrayExpression;
-      // the array enclosing the array specified in the given array subscript expression
-      ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
+  //     return null;
+  //   } else {
+  //     final JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) arrayExpression;
+  //     // the array enclosing the array specified in the given array subscript expression
+  //     ArrayValue enclosingArray = getInnerMostArray(arraySubscriptExpression);
 
-      OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
-      int index;
+  //     OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
+  //     int index;
 
-      if (maybeIndex.isPresent() && enclosingArray != null) {
+  //     if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.orElseThrow();
+  //       index = maybeIndex.orElseThrow();
 
-      } else {
-        return null;
-      }
+  //     } else {
+  //       return null;
+  //     }
 
-      if (index >= enclosingArray.getArraySize() || index < 0) {
-        return null;
-      }
+  //     if (index >= enclosingArray.getArraySize() || index < 0) {
+  //       return null;
+  //     }
 
-      return (ArrayValue) enclosingArray.getValueAt(index);
-    }
-  }
+  //     return (ArrayValue) enclosingArray.getValueAt(index);
+  //   }
+  // }
 
-  private void handleAssignmentToArray(ArrayValue pArray, int index, ARightHandSide exp) {
-    assert exp instanceof JExpression;
+  // private void handleAssignmentToArray(ArrayValue pArray, int index, ARightHandSide exp) {
+  //   assert exp instanceof JExpression;
 
-    pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
-  }
+  //   pArray.setValue(((JExpression) exp).accept(getVisitor()), index);
+  // }
 
-  private void assignUnknownValueToEnclosingInstanceOfArray(
-      JArraySubscriptExpression pArraySubscriptExpression) {
+  // private void assignUnknownValueToEnclosingInstanceOfArray(JArraySubscriptExpression pArraySubscriptExpression) {
 
-    JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
+  //   JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (enclosingExpression instanceof JIdExpression) {
-      JIdExpression idExpression = (JIdExpression) enclosingExpression;
-      MemoryLocation memLoc = getMemoryLocation(idExpression);
-      Value unknownValue = UnknownValue.getInstance();
+  //   if (enclosingExpression instanceof JIdExpression) {
+  //     JIdExpression idExpression = (JIdExpression) enclosingExpression;
+  //     MemoryLocation memLoc = getMemoryLocation(idExpression);
+  //     Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
+  //     state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
 
-    } else {
-      JArraySubscriptExpression enclosingSubscriptExpression =
-          (JArraySubscriptExpression) enclosingExpression;
-      ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
-      OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
+  //   } else {
+  //     JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
+  //     ArrayValue enclosingArray = getInnerMostArray(enclosingSubscriptExpression);
+  //     OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
-      if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
+  //     if (maybeIndex.isPresent() && enclosingArray != null) {
+  //       enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
-      }
-      // if the index of unknown array in the enclosing array is also unknown, we assign unknown at
-      // this array's
-      // position in the enclosing array
-      else {
-        assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
-      }
-    }
-  }
+  //     }
+  //     // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
+  //     // position in the enclosing array
+  //     else {
+  //       assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
+  //     }
+  //   }
+  // }
 
-  private class FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
-    private final RTTState jortState;
+  // private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
+  //   private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(RTTState pJortState, TaintAnalysisState pState) {
-      super(pState, functionName, machineModel, logger);
-      jortState = pJortState;
-    }
+  //   public FieldAccessExpressionValueVisitor(RTTState pJortState, TaintAnalysisState pState) {
+  //     super(pState, functionName, machineModel, logger);
+  //     jortState = pJortState;
+  //   }
 
-    @Override
-    public Value visit(JBinaryExpression binaryExpression) {
-      return super.visit(binaryExpression);
-    }
+  //   @Override
+  //   public Value visit(JBinaryExpression binaryExpression) {
+  //     return super.visit(binaryExpression);
+  //   }
 
-    private String handleIdExpression(JIdExpression expr) {
+  //   private String handleIdExpression(JIdExpression expr) {
 
-      JSimpleDeclaration decl = expr.getDeclaration();
+  //     JSimpleDeclaration decl = expr.getDeclaration();
 
-      if (decl == null) {
-        return null;
-      }
+  //     if (decl == null) {
+  //       return null;
+  //     }
 
-      NameProvider nameProvider = NameProvider.getInstance();
-      String objectScope = nameProvider.getObjectScope(jortState, functionName, expr);
+  //     NameProvider nameProvider = NameProvider.getInstance();
+  //     String objectScope = nameProvider.getObjectScope(jortState, functionName, expr);
 
-      return nameProvider.getScopedVariableName(decl, functionName, objectScope);
-    }
+  //     return nameProvider.getScopedVariableName(decl, functionName, objectScope);
+  //   }
 
-    @Override
-    public Value visit(JIdExpression idExp) {
+  //   @Override
+  //   public Value visit(JIdExpression idExp) {
 
-      MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
+  //     MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
 
-      if (readableState.contains(varName)) {
-        return readableState.getValueFor(varName);
-      } else {
-        return Value.UnknownValue.getInstance();
-      }
-    }
-  }
+  //     if (readableState.contains(varName)) {
+  //       return readableState.getValueFor(varName);
+  //     } else {
+  //       return Value.UnknownValue.getInstance();
+  //     }
+  //   }
+  // }
 
-  private Value getExpressionValue(
-      AExpression expression, final Type type, ExpressionValueVisitor evv)
-      throws UnrecognizedCodeException {
-    if (!isTrackedType(type)) {
-      return UnknownValue.getInstance();
-    }
+  // private Value getExpressionValue(
+  //     AExpression expression, final Type type, ExpressionValueVisitor evv)
+  //     throws UnrecognizedCodeException {
+  //   if (!isTrackedType(type)) {
+  //     return UnknownValue.getInstance();
+  //   }
 
-    if (expression instanceof JRightHandSide) {
+  //   if (expression instanceof JRightHandSide) {
 
-      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
+  //     final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
 
-      if (evv.hasMissingFieldAccessInformation()) {
-        missingInformationRightJExpression = (JRightHandSide) expression;
-        return Value.UnknownValue.getInstance();
-      } else {
-        return value;
-      }
-    } else if (expression instanceof CRightHandSide) {
-      return evv.evaluate((CRightHandSide) expression, (CType) type);
-    } else {
-      throw new AssertionError("unhandled righthandside-expression: " + expression);
-    }
-  }
+  //     if (evv.hasMissingFieldAccessInformation()) {
+  //       missingInformationRightJExpression = (JRightHandSide) expression;
+  //       return Value.UnknownValue.getInstance();
+  //     } else {
+  //       return value;
+  //     }
+  //   } else if (expression instanceof CRightHandSide) {
+  //     return evv.evaluate((CRightHandSide) expression, (CType) type);
+  //   } else {
+  //     throw new AssertionError("unhandled righthandside-expression: " + expression);
+  //   }
+  // }
 
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement,
-      Iterable<AbstractState> pElements,
-      CFAEdge pCfaEdge,
-      Precision pPrecision)
-      throws CPATransferException {
-    assert pElement instanceof TaintAnalysisState;
+  // @Override
+  // public Collection<? extends AbstractState> strengthen(
+  //     AbstractState pElement,
+  //     Iterable<AbstractState> pElements,
+  //     CFAEdge pCfaEdge,
+  //     Precision pPrecision)
+  //     throws CPATransferException {
+  //   assert pElement instanceof TaintAnalysisState;
 
-    List<TaintAnalysisState> toStrengthen = new ArrayList<>();
-    List<TaintAnalysisState> result = new ArrayList<>();
-    toStrengthen.add((TaintAnalysisState) pElement);
-    result.add((TaintAnalysisState) pElement);
+  //   List<TaintAnalysisState> toStrengthen = new ArrayList<>();
+  //   List<TaintAnalysisState> result = new ArrayList<>();
+  //   toStrengthen.add((TaintAnalysisState) pElement);
+  //   result.add((TaintAnalysisState) pElement);
 
-    for (AbstractState ae : pElements) {
-      if (ae instanceof RTTState) {
-        result.clear();
-        for (TaintAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<TaintAnalysisState> ret = strengthen((RTTState) ae, pCfaEdge);
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
-          }
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
-        result.clear();
-        for (TaintAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
-          result.addAll(
-              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof ConstraintsState) {
-        result.clear();
+  //   for (AbstractState ae : pElements) {
+  //     if (ae instanceof RTTState) {
+  //       result.clear();
+  //       for (TaintAnalysisState stateToStrengthen : toStrengthen) {
+  //         super.setInfo(pElement, pPrecision, pCfaEdge);
+  //         Collection<TaintAnalysisState> ret = strengthen((RTTState)ae, pCfaEdge);
+  //         if (ret == null) {
+  //           result.add(stateToStrengthen);
+  //         } else {
+  //           result.addAll(ret);
+  //         }
+  //       }
+  //       toStrengthen.clear();
+  //       toStrengthen.addAll(result);
+  //     } else if (ae instanceof AbstractStateWithAssumptions) {
+  //       result.clear();
+  //       for (TaintAnalysisState stateToStrengthen : toStrengthen) {
+  //         super.setInfo(pElement, pPrecision, pCfaEdge);
+  //         AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+  //         result.addAll(
+  //             strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
+  //       }
+  //       toStrengthen.clear();
+  //       toStrengthen.addAll(result);
+  //     } else if (ae instanceof ThreadingState) {
+  //       result.clear();
+  //       for (TaintAnalysisState stateToStrengthen : toStrengthen) {
+  //         super.setInfo(pElement, pPrecision, pCfaEdge);
+  //         result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
+  //       }
+  //       toStrengthen.clear();
+  //       toStrengthen.addAll(result);
+  //     } else if (ae instanceof ConstraintsState) {
+  //       result.clear();
 
-        for (TaintAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<TaintAnalysisState> ret =
-              constraintsStrengthenOperator.strengthen(
-                  (TaintAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
+  //       for (TaintAnalysisState stateToStrengthen : toStrengthen) {
+  //         super.setInfo(pElement, pPrecision, pCfaEdge);
+  //         Collection<TaintAnalysisState> ret =
+  //             constraintsStrengthenOperator.strengthen((TaintAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
 
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
-          }
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof PointerState) {
+  //         if (ret == null) {
+  //           result.add(stateToStrengthen);
+  //         } else {
+  //           result.addAll(ret);
+  //         }
+  //       }
+  //       toStrengthen.clear();
+  //       toStrengthen.addAll(result);
+  //     } else if (ae instanceof PointerState) {
 
-        CFAEdge edge = pCfaEdge;
+  //       CFAEdge edge = pCfaEdge;
 
-        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
-        ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
-        Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
-        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
-        PointerState pointerState = (PointerState) ae;
+  //       ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+  //       ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
+  //       Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
+  //       String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
+  //       PointerState pointerState = (PointerState) ae;
 
-        result.clear();
+  //       result.clear();
 
-        for (TaintAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          TaintAnalysisState newState =
-              strengthenWithPointerInformation(
-                  stateToStrengthen,
-                  pointerState,
-                  rightHandSide,
-                  leftHandType,
-                  leftHandSide,
-                  leftHandVariable,
-                  UnknownValue.getInstance());
+  //       for (TaintAnalysisState stateToStrengthen : toStrengthen) {
+  //         super.setInfo(pElement, pPrecision, pCfaEdge);
+  //         TaintAnalysisState newState =
+  //             strengthenWithPointerInformation(stateToStrengthen, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
 
-          newState = handleModf(rightHandSide, pointerState, newState);
+  //         newState = handleModf(rightHandSide, pointerState, newState);
 
-          result.add(newState);
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      }
-    }
+  //         result.add(newState);
+  //       }
+  //       toStrengthen.clear();
+  //       toStrengthen.addAll(result);
+  //     }
 
-    // Do post processing
-    final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
-    for (TaintAnalysisState rawResult : result) {
-      // The original state has already been post-processed
-      if (rawResult == pElement) {
-        postProcessedResult.add(pElement);
-      } else {
-        postProcessedResult.addAll(postProcessing(rawResult, pCfaEdge));
-      }
-    }
+  //   }
 
-    super.resetInfo();
-    oldState = null;
+  //   // Do post processing
+  //   final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
+  //   for (TaintAnalysisState rawResult : result) {
+  //     // The original state has already been post-processed
+  //     if (rawResult == pElement) {
+  //       postProcessedResult.add(pElement);
+  //     } else {
+  //       postProcessedResult.addAll(postProcessing(rawResult, pCfaEdge));
+  //     }
+  //   }
 
-    return postProcessedResult;
-  }
+  //   super.resetInfo();
+  //   oldState = null;
+
+  //   return postProcessedResult;
+  // }
 
   /**
    * Handle a special built-in library function that required pointer-alias handling while computing
@@ -1400,323 +1218,337 @@ public class TaintAnalysisTransferRelation
    * @return the strengthened state.
    * @throws UnrecognizedCodeException if the C code involved is not recognized.
    */
-  private TaintAnalysisState handleModf(
-      ARightHandSide pRightHandSide, PointerState pPointerState, TaintAnalysisState pState)
-      throws UnrecognizedCodeException, AssertionError {
-    TaintAnalysisState newState = pState;
-    if (pRightHandSide instanceof AFunctionCallExpression) {
-      AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
-      AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
-      if (nameExpressionOfCalledFunc instanceof AIdExpression) {
-        String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
-        if (BuiltinFloatFunctions.matchesModf(nameOfCalledFunc)) {
-          List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
-          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
-            AExpression exp = parameters.get(0);
-            CExpression targetPointer = (CExpression) parameters.get(1);
-            CLeftHandSide target =
-                new CPointerExpression(
-                    targetPointer.getFileLocation(),
-                    targetPointer.getExpressionType(),
-                    targetPointer);
-            ExpressionValueVisitor evv = getVisitor();
-            Value value;
-            if (exp instanceof JRightHandSide) {
-              value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
-            } else if (exp instanceof CRightHandSide) {
-              value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
-            } else {
-              throw new AssertionError("unknown righthandside-expression: " + exp);
-            }
-            if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType =
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
-              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
-                  .contains(paramType.getType())) {
-                final BigDecimal integralPartValue;
-                switch (paramType.getType()) {
-                  case FLOAT:
-                    integralPartValue =
-                        BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                    break;
-                  case DOUBLE:
-                    integralPartValue =
-                        BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
-                    break;
-                  default:
-                    throw new AssertionError("Unsupported float type: " + paramType);
-                }
-                CFloatLiteralExpression integralPart =
-                    new CFloatLiteralExpression(
-                        functionCallExpression.getFileLocation(), paramType, integralPartValue);
-                newState =
-                    strengthenWithPointerInformation(
-                        newState,
-                        pPointerState,
-                        integralPart,
-                        target.getExpressionType(),
-                        target,
-                        null,
-                        new NumericValue(integralPartValue));
-              }
-            }
-          }
-        }
-      }
-    }
-    return newState;
-  }
+  // private TaintAnalysisState handleModf(
+  //     ARightHandSide pRightHandSide, PointerState pPointerState, TaintAnalysisState pState)
+  //     throws UnrecognizedCodeException, AssertionError {
+  //   TaintAnalysisState newState = pState;
+  //   if (pRightHandSide instanceof AFunctionCallExpression) {
+  //     AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
+  //     AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
+  //     if (nameExpressionOfCalledFunc instanceof AIdExpression) {
+  //       String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+  //       if (BuiltinFloatFunctions.matchesModf(nameOfCalledFunc)) {
+  //         List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
+  //         if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
+  //           AExpression exp = parameters.get(0);
+  //           CExpression targetPointer = (CExpression) parameters.get(1);
+  //           CLeftHandSide target =
+  //               new CPointerExpression(
+  //                   targetPointer.getFileLocation(),
+  //                   targetPointer.getExpressionType(),
+  //                   targetPointer);
+  //           ExpressionValueVisitor evv = getVisitor();
+  //           Value value;
+  //           if (exp instanceof JRightHandSide) {
+  //             value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
+  //           } else if (exp instanceof CRightHandSide) {
+  //             value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
+  //           } else {
+  //             throw new AssertionError("unknown righthandside-expression: " + exp);
+  //           }
+  //           if (value.isExplicitlyKnown()) {
+  //             NumericValue numericValue = value.asNumericValue();
+  //             CSimpleType paramType =
+  //                 BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
+  //             if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
+  //                 .contains(paramType.getType())) {
+  //               final BigDecimal integralPartValue;
+  //               switch (paramType.getType()) {
+  //                 case FLOAT:
+  //                   integralPartValue = BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
+  //                   break;
+  //                 case DOUBLE:
+  //                   integralPartValue = BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
+  //                   break;
+  //                 default:
+  //                   throw new AssertionError("Unsupported float type: " + paramType);
+  //               }
+  //               CFloatLiteralExpression integralPart =
+  //                   new CFloatLiteralExpression(
+  //                       functionCallExpression.getFileLocation(),
+  //                       paramType,
+  //                       integralPartValue);
+  //               newState =
+  //                   strengthenWithPointerInformation(
+  //                       newState,
+  //                       pPointerState,
+  //                       integralPart,
+  //                       target.getExpressionType(),
+  //                       target,
+  //                       null,
+  //                       new NumericValue(integralPartValue));
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return newState;
+  // }
 
-  private TaintAnalysisState strengthenWithPointerInformation(
-      TaintAnalysisState pValueState,
-      PointerState pPointerInfo,
-      ARightHandSide pRightHandSide,
-      Type pTargetType,
-      ALeftHandSide pLeftHandSide,
-      String pLeftHandVariable,
-      Value pValue)
-      throws UnrecognizedCodeException {
+  // private TaintAnalysisState strengthenWithPointerInformation(
+  //     TaintAnalysisState pValueState,
+  //     PointerState pPointerInfo,
+  //     ARightHandSide pRightHandSide,
+  //     Type pTargetType,
+  //     ALeftHandSide pLeftHandSide,
+  //     String pLeftHandVariable,
+  //     Value pValue)
+  //     throws UnrecognizedCodeException {
 
-    TaintAnalysisState newState = pValueState;
+  //   TaintAnalysisState newState = pValueState;
 
-    Value value = pValue;
-    MemoryLocation target = null;
-    if (pLeftHandVariable != null) {
-      target = MemoryLocation.valueOf(pLeftHandVariable);
-    }
-    Type type = pTargetType;
-    boolean shouldAssign = false;
+  //   Value value = pValue;
+  //   MemoryLocation target = null;
+  //   if (pLeftHandVariable != null) {
+  //     target = MemoryLocation.valueOf(pLeftHandVariable);
+  //   }
+  //   Type type = pTargetType;
+  //   boolean shouldAssign = false;
 
-    if (target == null && pLeftHandSide instanceof CPointerExpression) {
-      CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
+  //   if (target == null && pLeftHandSide instanceof CPointerExpression) {
+  //     CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
 
-      LocationSet directLocation =
-          PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
+  //     LocationSet directLocation =
+  //         PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
 
-      if (!(directLocation instanceof ExplicitLocationSet)) {
-        CExpression addressExpression = pointerExpression.getOperand();
-        LocationSet indirectLocation =
-            PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
-        if (indirectLocation instanceof ExplicitLocationSet) {
-          ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
-          if (explicitSet.getSize() == 1) {
-            MemoryLocation variable = explicitSet.iterator().next();
-            directLocation = pPointerInfo.getPointsToSet(variable);
-          }
-        }
-      }
-      if (directLocation instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitDirectLocation = (ExplicitLocationSet) directLocation;
-        Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
-        MemoryLocation otherVariable = locationIterator.next();
-        if (!locationIterator.hasNext()) {
-          target = otherVariable;
-          if (type == null && pValueState.contains(target)) {
-            type = pValueState.getTypeForMemoryLocation(target);
-          }
-          shouldAssign = true;
-        }
-      }
-    }
+  //     if (!(directLocation instanceof ExplicitLocationSet)) {
+  //       CExpression addressExpression = pointerExpression.getOperand();
+  //       LocationSet indirectLocation =
+  //           PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+  //       if (indirectLocation instanceof ExplicitLocationSet) {
+  //         ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
+  //         if (explicitSet.getSize() == 1) {
+  //           MemoryLocation variable = explicitSet.iterator().next();
+  //           directLocation = pPointerInfo.getPointsToSet(variable);
+  //         }
+  //       }
+  //     }
+  //     if (directLocation instanceof ExplicitLocationSet) {
+  //       ExplicitLocationSet explicitDirectLocation = (ExplicitLocationSet) directLocation;
+  //       Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
+  //       MemoryLocation otherVariable = locationIterator.next();
+  //       if (!locationIterator.hasNext()) {
+  //         target = otherVariable;
+  //         if (type == null && pValueState.contains(target)) {
+  //           type = pValueState.getTypeForMemoryLocation(target);
+  //         }
+  //         shouldAssign = true;
+  //       }
+  //     }
 
-    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression) {
-      if (target == null) {
-        return pValueState;
-      }
+  //   }
 
-      CPointerExpression rhs = (CPointerExpression) pRightHandSide;
-      CExpression addressExpression = rhs.getOperand();
+  //   if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression) {
+  //     if (target == null) {
+  //       return pValueState;
+  //     }
 
-      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+  //     CPointerExpression rhs = (CPointerExpression) pRightHandSide;
+  //     CExpression addressExpression = rhs.getOperand();
 
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          CType variableType = rhs.getExpressionType().getCanonicalType();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
+  //     LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
 
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariableLocation = pointsToIterator.next();
-            if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
+  //     if (fullSet instanceof ExplicitLocationSet) {
+  //       ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
+  //       if (explicitSet.getSize() == 1) {
+  //         MemoryLocation variable = explicitSet.iterator().next();
+  //         CType variableType = rhs.getExpressionType().getCanonicalType();
+  //         LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
 
-              ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
-              Type otherVariableType = valueAndType.getType();
-              if (otherVariableType != null) {
-                Value otherVariableValue = valueAndType.getValue();
-                if (otherVariableValue != null) {
-                  if (variableType.equals(otherVariableType)
-                      || (variableType.equals(CNumericTypes.FLOAT)
-                          && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                          && otherVariableValue.isExplicitlyKnown()
-                          && Long.valueOf(0)
-                              .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
-                    value = otherVariableValue;
-                    shouldAssign = true;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+  //         if (pointsToSet instanceof ExplicitLocationSet) {
+  //           ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
+  //           Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
+  //           MemoryLocation otherVariableLocation = pointsToIterator.next();
+  //           if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
 
-    if (target != null && type != null && shouldAssign) {
-      newState = TaintAnalysisState.copyOf(pValueState);
-      newState.assignConstant(target, value, type);
-    }
+  //             ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
+  //             Type otherVariableType = valueAndType.getType();
+  //             if (otherVariableType != null) {
+  //               Value otherVariableValue = valueAndType.getValue();
+  //               if (otherVariableValue != null) {
+  //                 if (variableType.equals(otherVariableType)
+  //                     || (variableType.equals(CNumericTypes.FLOAT)
+  //                         && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
+  //                         && otherVariableValue.isExplicitlyKnown()
+  //                         && Long.valueOf(0)
+  //                             .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
+  //                   value = otherVariableValue;
+  //                   shouldAssign = true;
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
 
-    return newState;
-  }
+  //   if (target != null && type != null && shouldAssign) {
+  //     newState = TaintAnalysisState.copyOf(pValueState);
+  //     newState.assignConstant(target, value, type);
+  //   }
 
-  private @NonNull Collection<TaintAnalysisState> strengthenWithAssumptions(
-      AbstractStateWithAssumptions pStateWithAssumptions,
-      TaintAnalysisState pState,
-      CFAEdge pCfaEdge)
-      throws CPATransferException {
+  //   return newState;
+  // }
 
-    TaintAnalysisState newState = pState;
+  // private @NonNull Collection<TaintAnalysisState> strengthenWithAssumptions(
+  //     AbstractStateWithAssumptions pStateWithAssumptions,
+  //     TaintAnalysisState pState,
+  //     CFAEdge pCfaEdge)
+  //     throws CPATransferException {
 
-    for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
-      newState = handleAssumption(assumption, true);
+  //   TaintAnalysisState newState = pState;
 
-      if (newState == null) {
-        break;
-      } else {
-        setInfo(newState, precision, pCfaEdge);
-      }
-    }
+  //   for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
+  //     newState = handleAssumption(assumption, true);
 
-    if (newState == null) {
-      return ImmutableList.of();
-    } else {
-      return Collections.singleton(newState);
-    }
-  }
+  //     if (newState == null) {
+  //       break;
+  //     } else {
+  //       setInfo(newState, precision, pCfaEdge);
+  //     }
+  //   }
 
-  private Collection<TaintAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
+  //   if (newState == null) {
+  //     return ImmutableList.of();
+  //   } else {
+  //     return Collections.singleton(newState);
+  //   }
+  // }
 
-    TaintAnalysisState newElement = TaintAnalysisState.copyOf(oldState);
+  // private @NonNull TaintAnalysisState strengthenWithThreads(
+  //     ThreadingState pThreadingState, TaintAnalysisState pState) throws CPATransferException {
+  //   final FunctionCallEdge function = pThreadingState.getEntryFunction();
+  //   if (function == null) {
+  //     return pState;
+  //   }
+  //   final FunctionEntryNode succ = function.getSuccessor();
+  //   final String calledFunctionName = succ.getFunctionName();
+  //   return handleFunctionCallEdge(
+  //       function, function.getArguments(), succ.getFunctionParameters(), calledFunctionName);
+  // }
 
-    if (missingFieldVariableObject) {
-      newElement.assignConstant(
-          getRTTScopedVariableName(
-              fieldNameAndInitialValue.getFirst(), rttState.getKeywordThisUniqueObject()),
-          fieldNameAndInitialValue.getSecond());
+  // private Collection<TaintAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
 
-      missingFieldVariableObject = false;
-      fieldNameAndInitialValue = null;
-      return Collections.singleton(newElement);
+  //   TaintAnalysisState newElement = TaintAnalysisState.copyOf(oldState);
 
-    } else if (missingScopedFieldName) {
+  //   if (missingFieldVariableObject) {
+  //     newElement.assignConstant(getRTTScopedVariableName(
+  //         fieldNameAndInitialValue.getFirst(),
+  //         rttState.getKeywordThisUniqueObject()),
+  //         fieldNameAndInitialValue.getSecond());
 
-      newElement = handleNotScopedVariable(rttState, newElement);
-      missingScopedFieldName = false;
-      notScopedField = null;
-      notScopedFieldValue = null;
-      missingInformationRightJExpression = null;
+  //     missingFieldVariableObject = false;
+  //     fieldNameAndInitialValue = null;
+  //     return Collections.singleton(newElement);
 
-      if (newElement != null) {
-        return Collections.singleton(newElement);
-      } else {
-        return null;
-      }
-    } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
+  //   } else if (missingScopedFieldName) {
 
-      Value value = handleMissingInformationRightJExpression(rttState);
+  //     newElement = handleNotScopedVariable(rttState, newElement);
+  //     missingScopedFieldName = false;
+  //     notScopedField = null;
+  //     notScopedFieldValue = null;
+  //     missingInformationRightJExpression = null;
 
-      missingAssumeInformation = false;
-      missingInformationRightJExpression = null;
+  //     if (newElement != null) {
+  //     return Collections.singleton(newElement);
+  //     } else {
+  //       return null;
+  //     }
+  //   } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
 
-      boolean truthAssumption = ((AssumeEdge) edge).getTruthAssumption();
-      if (value == null || !value.isExplicitlyKnown()) {
-        return null;
-      } else if (representsBoolean(value, truthAssumption)) {
-        return Collections.singleton(newElement);
-      } else {
-        return new HashSet<>();
-      }
-    } else if (missingInformationRightJExpression != null) {
+  //     Value value = handleMissingInformationRightJExpression(rttState);
 
-      Value value = handleMissingInformationRightJExpression(rttState);
+  //     missingAssumeInformation = false;
+  //     missingInformationRightJExpression = null;
 
-      if (!value.isUnknown()) {
-        newElement.assignConstant(missingInformationLeftJVariable, value);
-        missingInformationRightJExpression = null;
-        missingInformationLeftJVariable = null;
-        return Collections.singleton(newElement);
-      } else {
-        if (missingInformationLeftJVariable != null) {
-          newElement.forget(MemoryLocation.valueOf(missingInformationLeftJVariable));
-        }
-        missingInformationRightJExpression = null;
-        missingInformationLeftJVariable = null;
-        return Collections.singleton(newElement);
-      }
-    }
-    return null;
-  }
+  //     boolean truthAssumption = ((AssumeEdge)edge).getTruthAssumption();
+  //     if (value == null || !value.isExplicitlyKnown()) {
+  //       return null;
+  //     } else if (representsBoolean(value, truthAssumption)) {
+  //       return Collections.singleton(newElement);
+  //     } else {
+  //       return new HashSet<>();
+  //     }
+  //   } else if (missingInformationRightJExpression != null) {
 
-  private String getRTTScopedVariableName(String fieldName, String uniqueObject) {
-    return uniqueObject + "::" + fieldName;
-  }
+  //     Value value = handleMissingInformationRightJExpression(rttState);
 
-  private Value handleMissingInformationRightJExpression(RTTState pJortState) {
-    return missingInformationRightJExpression.accept(
-        new FieldAccessExpressionValueVisitor(pJortState, oldState));
-  }
+  //     if (!value.isUnknown()) {
+  //       newElement.assignConstant(missingInformationLeftJVariable, value);
+  //       missingInformationRightJExpression = null;
+  //       missingInformationLeftJVariable = null;
+  //       return Collections.singleton(newElement);
+  //     } else {
+  //       if (missingInformationLeftJVariable != null) {
+  //         newElement.forget(MemoryLocation.valueOf(missingInformationLeftJVariable));
+  //       }
+  //       missingInformationRightJExpression = null;
+  //       missingInformationLeftJVariable = null;
+  //       return Collections.singleton(newElement);
+  //     }
+  //   }
+  //   return null;
+  // }
 
-  private TaintAnalysisState handleNotScopedVariable(
-      RTTState rttState, TaintAnalysisState newElement) {
+  // private String getRTTScopedVariableName(String fieldName, String uniqueObject) {
+  //   return  uniqueObject + "::"+ fieldName;
+  // }
 
-    String objectScope =
-        NameProvider.getInstance().getObjectScope(rttState, functionName, notScopedField);
+  // private Value handleMissingInformationRightJExpression(RTTState pJortState) {
+  //   return missingInformationRightJExpression.accept(
+  //       new FieldAccessExpressionValueVisitor(pJortState, oldState));
+  // }
 
-    if (objectScope != null) {
+  // private TaintAnalysisState handleNotScopedVariable(RTTState rttState, TaintAnalysisState newElement) {
 
-      String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
+  //  String objectScope = NameProvider.getInstance()
+  //                                   .getObjectScope(rttState, functionName, notScopedField);
 
-      Value value = notScopedFieldValue;
-      if (missingInformationRightJExpression != null) {
-        value = handleMissingInformationRightJExpression(rttState);
-      }
+  //  if (objectScope != null) {
 
-      if (!value.isUnknown()) {
-        newElement.assignConstant(scopedFieldName, value);
-        return newElement;
-      } else {
-        newElement.forget(MemoryLocation.valueOf(scopedFieldName));
-        return newElement;
-      }
-    } else {
-      return null;
-    }
-  }
+  //    String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
 
-  /** returns an initialized, empty visitor */
-  private ExpressionValueVisitor getVisitor(TaintAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValueExceptRandom()
-        && options.isIgnoreFunctionValue()
-        && options.getFunctionValuesForRandom() != null) {
-      return new ExpressionValueVisitorWithPredefinedValues(
-          pState,
-          pFunctionName,
-          options.getFunctionValuesForRandom(),
-          TaintAnalysisTransferRelation.indexForNextRandomValue,
-          machineModel,
-          logger);
-    } else if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
-    } else {
-      return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
-    }
-  }
+  //    Value value = notScopedFieldValue;
+  //    if (missingInformationRightJExpression != null) {
+  //      value = handleMissingInformationRightJExpression(rttState);
+  //    }
 
-  private ExpressionValueVisitor getVisitor() {
-    return getVisitor(state, functionName);
-  }
+  //    if (!value.isUnknown()) {
+  //      newElement.assignConstant(scopedFieldName, value);
+  //      return newElement;
+  //    } else {
+  //      newElement.forget(MemoryLocation.valueOf(scopedFieldName));
+  //      return newElement;
+  //    }
+  //  } else {
+  //    return null;
+  //  }
+
+
+  // }
+
+  // /** returns an initialized, empty visitor */
+  // private ExpressionValueVisitor getVisitor(TaintAnalysisState pState, String pFunctionName) {
+  //   if (options.isIgnoreFunctionValueExceptRandom()
+  //       && options.isIgnoreFunctionValue()
+  //       && options.getFunctionValuesForRandom() != null) {
+  //     return new ExpressionValueVisitorWithPredefinedValues(
+  //         pState,
+  //         pFunctionName,
+  //         options.getFunctionValuesForRandom(),
+  //         ValueAnalysisTransferRelation.indexForNextRandomValue,
+  //         machineModel,
+  //         logger);
+  //   } else if (options.isIgnoreFunctionValue()) {
+  //     return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+  //   } else {
+  //     return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+  //   }
+  // }
+
+  // private ExpressionValueVisitor getVisitor() {
+  //   return getVisitor(state, functionName);
+  // }
 }
