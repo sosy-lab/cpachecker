@@ -27,6 +27,8 @@ import java.util.logging.Level;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -59,7 +61,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -94,9 +98,12 @@ public final class TaintAnalysisState
         Serializable,
         Graphable,
         LatticeAbstractState<TaintAnalysisState>,
-        PseudoPartitionable {
+        PseudoPartitionable,
+        Targetable {
 
   private static final long serialVersionUID = -3152134511524554358L;
+
+  private static boolean isTarget = false;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
@@ -109,7 +116,7 @@ public final class TaintAnalysisState
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
 
-  private Map<String, Boolean> map = new HashMap<String, Boolean>();
+  private HashMap<String, Boolean> map = new HashMap<>();
 
   /**
    * hashCode needs to be updated with every change of {@link #constantsMap}.
@@ -145,7 +152,7 @@ public final class TaintAnalysisState
     logger = plogger;
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
-    map = checkNotNull(state.map);
+    map = new HashMap<>(state.map);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
   }
@@ -214,6 +221,14 @@ public final class TaintAnalysisState
   private void changeMap(
       final String value, final Boolean tainted) {
     map.replace(value, tainted);
+    logger.log(Level.FINEST, "Changed: "+value+" => "+tainted);
+  }
+
+  public Boolean getStatus(String var) {
+    return getMap(var);
+  }
+  private Boolean getMap(final String value) {
+    return map.get(value);
     // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
     // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
@@ -962,5 +977,22 @@ public final class TaintAnalysisState
     public String toString() {
       return String.format("%s (%s)", value, type);
     }
+  }
+
+  @Override
+  public boolean isTarget() {
+    return getTarget();
+  }
+  public static boolean getTarget() {
+    return isTarget;
+  }
+  public void setTarget(Boolean target) {
+    isTarget = target;
+  }
+
+  @Override
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

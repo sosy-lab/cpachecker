@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
@@ -122,6 +123,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -663,6 +666,8 @@ public class TaintAnalysisTransferRelation
   protected TaintAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
     throws UnrecognizedCodeException {
 
+    TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
+
     String msg = "";
 
     if (expression instanceof CFunctionCall) {
@@ -681,9 +686,30 @@ public class TaintAnalysisTransferRelation
           final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
           msg = msg + " | leftSide: " + leftSide;
           if(func.equals("getchar")) {
-            state.change(leftSide.toString(), true);
-            return state;
+            newElement.change(leftSide.toString(), true);
+            return newElement;
           }
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
+            throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+          }
+        } else if (expression instanceof CFunctionCallAssignmentStatement) {
+          msg = msg + " | CFunctionCallAssignmentStatement";
+        
+        } else if (expression instanceof CFunctionCallStatement) {
+          msg = msg + " | CFunctionCallStatement";
+          if(func.equals("printf")) {
+            AFunctionCallStatement stm = (AFunctionCallStatement) expression;
+            AFunctionCallExpression exp = stm.getFunctionCallExpression();
+            AExpression param = exp.getParameterExpressions().get(0);
+            if(state.getStatus(param.toString()))
+              newElement.setTarget(true);
+            msg = msg + " | "+param;
+
+          }
+        
+        } else {
+          msg = msg + " | else: "+expression.getClass();
         }
         // if(func.equals("free")) {
         //   state.change(var, tainted);
@@ -709,8 +735,8 @@ public class TaintAnalysisTransferRelation
     // expression is a binary operation, e.g. a = b;
 
     else if (expression instanceof AAssignment) {
-      handleAssignment((AAssignment)expression, cfaEdge);
-      return state;
+      newElement = handleAssignment((AAssignment)expression, cfaEdge);
+      return newElement;
 
     } else if (expression instanceof AFunctionCallStatement) {
       msg = msg + " | AFunctionCallStatement";
@@ -722,7 +748,7 @@ public class TaintAnalysisTransferRelation
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
     }
     logger.log(Level.INFO, msg);
-    return state;
+    return newElement;
   }
 
   private TaintAnalysisState handleFunctionAssignment(
@@ -760,7 +786,9 @@ public class TaintAnalysisTransferRelation
 
   private TaintAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
+    TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
     String msg = "";
+    
     AExpression op1    = assignExpression.getLeftHandSide();
     ARightHandSide op2 = assignExpression.getRightHandSide();
     msg = msg + op1 + " = "+ op2 +" | op1: "+op1 + " op1GetType: op2: "+op2 + " "+op2.getExpressionType() + " "+op2.getClass();
@@ -770,9 +798,13 @@ public class TaintAnalysisTransferRelation
       msg = msg + "\nAIdExpression";
       if(op2 instanceof ALiteralExpression) {
         msg = msg + " | ALiteralExpression";
-        state.change(op1.toString(), false);
-        return state;
-      }
+        newElement.change(op1.toString(), false);
+        return newElement;
+      } else {
+        msg = msg + " | Status op2: "+state.getStatus(op2.toString());
+        newElement.change(op1.toString(), newElement.getStatus(op2.toString()));
+        msg = msg + " | Status op1: "+newElement.getStatus(op1.toString());
+      } //if(op2 instanceof ALiteralExpression)
       // return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
@@ -799,7 +831,7 @@ public class TaintAnalysisTransferRelation
     }
     
     logger.log(Level.INFO, msg);
-    return state; // the default return-value is the old state
+    return newElement; // the default return-value is the old state
   }
 
   // private boolean isTrackedType(Type pType) {
