@@ -669,6 +669,13 @@ public class CCfaTransformer {
             waitlist.add(successorNode);
           }
         }
+
+        for (Edge enteringEdge : currentNode.iterateEntering()) {
+          Node predecessorNode = enteringEdge.getPredecessorOrElseThrow();
+          if (waitlisted.add(predecessorNode)) {
+            waitlist.add(predecessorNode);
+          }
+        }
       }
 
       // don't create create function call, return and summary edges
