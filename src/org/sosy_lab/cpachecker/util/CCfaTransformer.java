@@ -29,9 +29,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -457,7 +460,7 @@ public class CCfaTransformer {
         newCfaNode =
             nodeTransformer.transformCFunctionEntryNode(
                 (CFunctionEntryNode) oldCfaNode, newCfaExitNode);
-        newCfaExitNode.setEntryNode((CFunctionEntryNode) oldCfaNode);
+        newCfaExitNode.setEntryNode((CFunctionEntryNode) newCfaNode);
       } else if (oldCfaNode instanceof FunctionExitNode) {
         newCfaNode = nodeTransformer.transformFunctionExitNode((FunctionExitNode) oldCfaNode);
       } else if (oldCfaNode instanceof CFATerminationNode) {
@@ -630,7 +633,11 @@ public class CCfaTransformer {
 
       for (Node currentNode : nodeToNewCfaNode.keySet()) {
         for (Edge edge : currentNode.iterateLeaving()) {
-          newCfaEdgeIfAbsent(edge);
+          CFAEdgeType oldCfaEdgeType = edge.getOldCfaEdge().getEdgeType();
+          if (oldCfaEdgeType != CFAEdgeType.FunctionCallEdge
+              && oldCfaEdgeType != CFAEdgeType.FunctionReturnEdge) {
+            newCfaEdgeIfAbsent(edge);
+          }
         }
       }
 
@@ -642,6 +649,27 @@ public class CCfaTransformer {
               (FunctionEntryNode) nodeToNewCfaNode.get(mainEntryNode),
               pOriginalCfa.getFileNames(),
               pOriginalCfa.getLanguage());
+
+      for (FunctionEntryNode function : newMutableCfa.getAllFunctionHeads()) {
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
+      }
+
+      try {
+        newMutableCfa.setLoopStructure(LoopStructure.getLoopStructure(newMutableCfa));
+      } catch (ParserException ex) {
+        pLogger.log(Level.WARNING, ex);
+      }
+
+      for (Node currentNode : nodeToNewCfaNode.keySet()) {
+        for (Edge edge : currentNode.iterateLeaving()) {
+          CFAEdgeType oldCfaEdgeType = edge.getOldCfaEdge().getEdgeType();
+          if (oldCfaEdgeType == CFAEdgeType.FunctionCallEdge
+              || oldCfaEdgeType == CFAEdgeType.FunctionReturnEdge) {
+            newCfaEdgeIfAbsent(edge);
+          }
+        }
+      }
 
       Optional<VariableClassification> variableClassification =
           createVariableClassification(pConfiguration, pLogger, newMutableCfa);
