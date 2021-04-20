@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.taint;
 
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -24,16 +23,21 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.taint.TaintAnalysisTransferRelation.TaintTransferOptions;
 
 /**
- * Instances of this class are configurable program analyses for analyzing a
- * program to gain information about pointer aliasing.
+ * Instances of this class are configurable program analyses for analyzing a program to gain
+ * information about pointer aliasing.
  */
-@Options(prefix="cpa.taint")
- public class TaintAnalysisCPA extends AbstractCPA {
+@Options(prefix = "cpa.taint")
+public class TaintAnalysisCPA extends AbstractCPA {
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for ValueAnalysisCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for TaintAnalysisCPA")
   private String mergeType = "SEP";
 
   @Option(
@@ -41,13 +45,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
       name = "stop",
       toUppercase = true,
       values = {"SEP", "JOIN", "NEVER", "EQUALS"},
-      description = "which stop operator to use for ValueAnalysisCPA")
+      description = "which stop operator to use for TaintAnalysisCPA")
   private String stopType = "SEP";
-
 
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
+  private final TaintTransferOptions transferOptions;
 
   /**
    * Gets a factory for creating PointerCPAs.
@@ -58,24 +62,28 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
     return AutomaticCPAFactory.forType(TaintAnalysisCPA.class);
   }
 
-  private TaintAnalysisCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
+  private TaintAnalysisCPA(Configuration config, LogManager logger, CFA cfa)
+      throws InvalidConfigurationException {
     super(TaintDomain.INSTANCE, null);
-    this.config           = config;
-    this.logger           = logger;
-    this.cfa              = cfa;
+    this.config = config;
+    this.logger = logger;
+    this.cfa = cfa;
 
     config.inject(this, TaintAnalysisCPA.class);
     logger.log(Level.INFO, "TaintAnalysis");
 
-    // precision           = initializePrecision(config, cfa);
-    // statistics          = new ValueAnalysisCPAStatistics(this, config);
+    transferOptions = new TaintTransferOptions(config);
+
+    // precision = initializePrecision(config, cfa);
+    // statistics = new ValueAnalysisCPAStatistics(this, config);
     // writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
-    // errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
+    // errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger,
+    // cfa.getMachineModel());
 
     // unknownValueHandler = createUnknownValueHandler();
 
     // constraintsStrengthenOperator =
-    //     new ConstraintsStrengthenOperator(config, logger);
+    // new ConstraintsStrengthenOperator(config, logger);
     // transferOptions = new ValueTransferOptions(config);
     // precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     // precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
@@ -83,15 +91,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
   // @Override
   // public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-  //   return PointerState.INITIAL_STATE;
+  // return PointerState.INITIAL_STATE;
   // }
 
   @Override
   public TaintAnalysisTransferRelation getTransferRelation() {
-    return new TaintAnalysisTransferRelation(
-        logger,
-        cfa);
+    return new TaintAnalysisTransferRelation(logger, transferOptions);
   }
+
   @Override
   public MergeOperator getMergeOperator() {
     return buildMergeOperator(mergeType);
@@ -101,10 +108,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
   public StopOperator getStopOperator() {
     return buildStopOperator(stopType);
   }
-  
+
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new TaintAnalysisState(cfa.getMachineModel(), logger);
+    return new TaintAnalysisState(logger);
   }
 
   public Configuration getConfiguration() {
@@ -118,5 +125,4 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
   public LogManager getLogger() {
     return logger;
   }
-
 }

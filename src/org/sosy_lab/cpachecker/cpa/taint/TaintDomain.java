@@ -8,17 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.taint;
 
-import java.util.Map.Entry;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 
 public enum TaintDomain implements AbstractDomain {
-
   INSTANCE;
 
   @Override
@@ -27,32 +21,22 @@ public enum TaintDomain implements AbstractDomain {
     TaintAnalysisState state2 = (TaintAnalysisState) pState2;
     TaintAnalysisState result = state2;
     // for (Entry<MemoryLocation, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
-    //   result = result.addPointsToInformation(pointsToEntry.getKey(), pointsToEntry.getValue());
+    // result = result.addPointsToInformation(pointsToEntry.getKey(), pointsToEntry.getValue());
     // }
     // if (result.equals(state2)) {
-    //   return state2;
+    // return state2;
     // }
     // if (result.equals(state1)) {
-    //   return state1;
+    // return state1;
     // }
     return result;
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
     if (pState1 == pState2) {
       return true;
-    } else
-      return false;
-    // TaintState state1 = (TaintState) pState1;
-    // TaintState state2 = (TaintState) pState2;
-    // for (Entry<MemoryLocation, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
-    //   LocationSet rightSide = state2.getPointsToSet(pointsToEntry.getKey());
-    //   if (!rightSide.containsAll(pointsToEntry.getValue())) {
-    //     return false;
-    //   }
-    // }
-    // return true;
+    } else return false;
   }
-
 }
