@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;

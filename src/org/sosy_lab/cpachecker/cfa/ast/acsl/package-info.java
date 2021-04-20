@@ -9,4 +9,4 @@
 /**
  * Data structures to represent ACSL annotations or invariants meant to be used in ACSL annotations.
  */
-package org.sosy_lab.cpachecker.core.algorithm.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl;

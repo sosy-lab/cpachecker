@@ -6,10 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.Binder.Quantifier;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.Binder.Quantifier;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**

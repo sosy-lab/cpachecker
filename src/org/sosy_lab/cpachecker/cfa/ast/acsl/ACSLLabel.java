@@ -6,6 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 public interface ACSLLabel {}

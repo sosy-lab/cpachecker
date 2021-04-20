@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.acsl.test;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
