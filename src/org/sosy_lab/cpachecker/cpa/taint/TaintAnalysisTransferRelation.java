@@ -8,30 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.taint;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-
-
-import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -41,54 +26,23 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -96,36 +50,20 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class TaintAnalysisTransferRelation
@@ -169,13 +107,6 @@ public class TaintAnalysisTransferRelation
   protected void setInfo(AbstractState pAbstractState,
       Precision pAbstractPrecision, CFAEdge pCfaEdge) {
     super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
-    // More than 5 function parameters is sufficiently seldom.
-    // For any other cfaEdge we need only a list of length 1.
-    // In principle it is unnecessary to always create a new list
-    // but I'm not sure of the behavior of calling strengthen, so
-    // it is more secure.
-    // missingInformationList = new ArrayList<>(5);
-    // oldState = (TaintAnalysisState)pAbstractState;
   }
 
   @Override
@@ -232,7 +163,7 @@ public class TaintAnalysisTransferRelation
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       // clone state, because will be changed through removing all variables of current function's scope
       state = TaintAnalysisState.copyOf(state);
-      state.dropFrame(functionName);
+      // state.dropFrame(functionName);
     }
 
     return state;
@@ -249,7 +180,7 @@ public class TaintAnalysisTransferRelation
     // The assignment of the global 'state' is safe, because the 'old state'
     // is available in the visitor and is not used for further computation.
     state = TaintAnalysisState.copyOf(state);
-    logger.log(Level.INFO, "");
+    // logger.log(Level.INFO, "");
     // state.dropFrame(functionName);
 
     // AExpression expression = returnEdge.getExpression().orNull();
@@ -687,7 +618,6 @@ public class TaintAnalysisTransferRelation
           msg = msg + " | leftSide: " + leftSide;
           if(func.equals("getchar")) {
             newElement.change(leftSide.toString(), true);
-            return newElement;
           }
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
@@ -702,10 +632,11 @@ public class TaintAnalysisTransferRelation
             AFunctionCallStatement stm = (AFunctionCallStatement) expression;
             AFunctionCallExpression exp = stm.getFunctionCallExpression();
             AExpression param = exp.getParameterExpressions().get(0);
-            if(state.getStatus(param.toString()))
-              newElement.setTarget(true);
+            if(state.getStatus(param.toString())) {
+              newElement = TaintAnalysisState.copyOf(state, true, "Critical function 'printf' was called with a tainted parameter.");
+            }
             msg = msg + " | "+param;
-
+            
           }
         
         } else {
@@ -748,41 +679,9 @@ public class TaintAnalysisTransferRelation
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
     }
     logger.log(Level.INFO, msg);
+    logger.log(Level.INFO, newElement.isTarget() + " | "+newElement.getViolatedProperties());
     return newElement;
   }
-
-  private TaintAnalysisState handleFunctionAssignment(
-      CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
-
-    // final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
-    // final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
-    // final CType leftSideType = leftSide.getExpressionType();
-    // final ExpressionValueVisitor evv = getVisitor();
-
-    TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
-
-    // Value newValue = evv.evaluate(functionCallExp, leftSideType);
-
-    // final Optional<MemoryLocation> memLoc = getMemoryLocation(leftSide, newValue, evv);
-
-    // if (memLoc.isPresent()) {
-    //   if (!newValue.isUnknown()) {
-    //     newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
-
-    //   } else {
-    //     unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
-    //   }
-    // }
-
-    return newElement;
-  }
-
-  // private TaintAnalysisState handleCallToFree(CFunctionCall pExpression) {
-  //   // Needed for erasing values
-  //   missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
-
-  //   return state;
-  // }
 
   private TaintAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {

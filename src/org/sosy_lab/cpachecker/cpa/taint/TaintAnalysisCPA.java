@@ -58,9 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
     return AutomaticCPAFactory.forType(TaintAnalysisCPA.class);
   }
 
-  // public TaintAnalysisCPA(TaintOptions options) {
-  //   super(options.merge, "SEP", PointerDomain.INSTANCE, TaintTransferRelation.INSTANCE);
-  // }
   private TaintAnalysisCPA(Configuration config, LogManager logger, CFA cfa) throws InvalidConfigurationException {
     super(TaintDomain.INSTANCE, null);
     this.config           = config;
