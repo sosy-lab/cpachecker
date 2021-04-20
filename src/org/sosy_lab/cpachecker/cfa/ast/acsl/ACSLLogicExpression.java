@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public interface LogicExpression {
+public interface ACSLLogicExpression {
 
   /**
    * Returns whether the logic expression may be used in a clause of the given type.

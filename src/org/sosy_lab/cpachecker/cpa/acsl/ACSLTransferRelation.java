@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.BuiltinCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -49,7 +49,7 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
     Set<ACSLAnnotation> annotationsForEdge =
         ImmutableSet.copyOf(cfa.getEdgesToAnnotations().get(cfaEdge));
     if (usePureExpressionsOnly) {
-      BuiltinCollectingVisitor visitor = new BuiltinCollectingVisitor();
+      ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
       Set<ACSLAnnotation> annotations =
           FluentIterable.from(annotationsForEdge)
               .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())

@@ -12,12 +12,12 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   private final ACSLTerm left;
   private final ACSLTerm right;
-  private final BinaryOperator operator;
+  private final ACSLBinaryOperator operator;
 
-  public ACSLBinaryTerm(ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op) {
-    assert BinaryOperator.isArithmeticOperator(op)
-            || BinaryOperator.isBitwiseOperator(op)
-            || BinaryOperator.isComparisonOperator(op)
+  public ACSLBinaryTerm(ACSLTerm pLeft, ACSLTerm pRight, ACSLBinaryOperator op) {
+    assert ACSLBinaryOperator.isArithmeticOperator(op)
+            || ACSLBinaryOperator.isBitwiseOperator(op)
+            || ACSLBinaryOperator.isComparisonOperator(op)
         : String.format(
             "ACSLTerm may only hold arithmetic, bitwise or comparison operator, %s is neither", op);
     switch (op) {
@@ -42,14 +42,14 @@ public class ACSLBinaryTerm implements ACSLTerm {
         operator = op;
         break;
       case BIMP:
-        left = new ACSLUnaryTerm(pLeft, UnaryOperator.BNEG);
+        left = new ACSLUnaryTerm(pLeft, ACSLUnaryOperator.BNEG);
         right = pRight;
-        operator = BinaryOperator.BOR;
+        operator = ACSLBinaryOperator.BOR;
         break;
       case BEQV:
-        left = new ACSLUnaryTerm(pLeft, UnaryOperator.BNEG);
+        left = new ACSLUnaryTerm(pLeft, ACSLUnaryOperator.BNEG);
         right = pRight;
-        operator = BinaryOperator.BXOR;
+        operator = ACSLBinaryOperator.BXOR;
         break;
       default:
         throw new AssertionError("Unknown operator: " + op);
@@ -67,7 +67,7 @@ public class ACSLBinaryTerm implements ACSLTerm {
       ACSLBinaryTerm other = (ACSLBinaryTerm) o;
       if (operator.equals(other.operator)) {
         return (left.equals(other.left) && right.equals(other.right))
-            || (BinaryOperator.isCommutative(operator)
+            || (ACSLBinaryOperator.isCommutative(operator)
                 && left.equals(other.right)
                 && right.equals(other.left));
       }
@@ -88,31 +88,31 @@ public class ACSLBinaryTerm implements ACSLTerm {
     return right;
   }
 
-  public BinaryOperator getOperator() {
+  public ACSLBinaryOperator getOperator() {
     return operator;
   }
 
   public ACSLBinaryTerm flipOperator() {
-    assert BinaryOperator.isComparisonOperator(operator);
-    BinaryOperator op;
+    assert ACSLBinaryOperator.isComparisonOperator(operator);
+    ACSLBinaryOperator op;
     switch (operator) {
       case EQ:
-        op = BinaryOperator.NEQ;
+        op = ACSLBinaryOperator.NEQ;
         break;
       case NEQ:
-        op = BinaryOperator.EQ;
+        op = ACSLBinaryOperator.EQ;
         break;
       case LEQ:
-        op = BinaryOperator.GT;
+        op = ACSLBinaryOperator.GT;
         break;
       case GEQ:
-        op = BinaryOperator.LT;
+        op = ACSLBinaryOperator.LT;
         break;
       case LT:
-        op = BinaryOperator.GEQ;
+        op = ACSLBinaryOperator.GEQ;
         break;
       case GT:
-        op = BinaryOperator.LEQ;
+        op = ACSLBinaryOperator.LEQ;
         break;
       default:
         throw new AssertionError("Unknown BinaryOperator: " + operator);

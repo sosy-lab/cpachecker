@@ -70,7 +70,7 @@ public class FunctionContract implements ACSLAnnotation {
     for (Behavior behavior : behaviors) {
       ACSLPredicate behaviorPredicate = behavior.getPreStatePredicate();
       preStatePredicate =
-          new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
+          new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, ACSLBinaryOperator.AND);
     }
 
     return preStatePredicate;
@@ -86,7 +86,7 @@ public class FunctionContract implements ACSLAnnotation {
     for (Behavior behavior : behaviors) {
       ACSLPredicate behaviorPredicate = behavior.getPostStatePredicate();
       postStatePredicate =
-          new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
+          new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, ACSLBinaryOperator.AND);
     }
 
     return postStatePredicate;
@@ -100,7 +100,7 @@ public class FunctionContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(
               completenessPredicate,
               completenessClause.getPredicateRepresentation(),
-              BinaryOperator.AND);
+              ACSLBinaryOperator.AND);
     }
     return completenessPredicate;
   }

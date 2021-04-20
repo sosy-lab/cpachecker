@@ -11,16 +11,16 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 public class ACSLUnaryTerm implements ACSLTerm {
 
   private final ACSLTerm term;
-  private final UnaryOperator operator;
+  private final ACSLUnaryOperator operator;
 
-  public ACSLUnaryTerm(ACSLTerm pTerm, UnaryOperator op) {
+  public ACSLUnaryTerm(ACSLTerm pTerm, ACSLUnaryOperator op) {
     term = pTerm;
     operator = op;
   }
 
   @Override
   public String toString() {
-    if (operator.equals(UnaryOperator.SIZEOF)) {
+    if (operator.equals(ACSLUnaryOperator.SIZEOF)) {
       return operator.toString() + "(" + term.toString() + ")";
     }
     return operator.toString() + term.toString();
@@ -44,7 +44,7 @@ public class ACSLUnaryTerm implements ACSLTerm {
     return term;
   }
 
-  public UnaryOperator getOperator() {
+  public ACSLUnaryOperator getOperator() {
     return operator;
   }
 

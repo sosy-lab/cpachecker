@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /** Visitor to find all ACSL built-ins that are used in a logic expression. */
-public class BuiltinCollectingVisitor
+public class ACSLBuiltinCollectingVisitor
     implements ACSLTermVisitor<ImmutableSet<ACSLBuiltin>, NoException>,
         ACSLPredicateVisitor<ImmutableSet<ACSLBuiltin>, NoException> {
 
@@ -40,7 +40,7 @@ public class BuiltinCollectingVisitor
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(TernaryCondition pred) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLTernaryCondition pred) {
     ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
     builder.addAll(pred.getCondition().accept(this));
     builder.addAll(pred.getThen().accept(this));
@@ -70,7 +70,7 @@ public class BuiltinCollectingVisitor
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(ArrayAccess term) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLArrayAccess term) {
     ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
     builder.addAll(term.getArray().accept(this));
     builder.addAll(term.getIndex().accept(this));
@@ -86,7 +86,7 @@ public class BuiltinCollectingVisitor
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(Cast term) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLCast term) {
     return term.getTerm().accept(this);
   }
 
@@ -96,22 +96,22 @@ public class BuiltinCollectingVisitor
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(Identifier term) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLIdentifier term) {
     return ImmutableSet.of();
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(IntegerLiteral term) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLIntegerLiteral term) {
     return ImmutableSet.of();
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(Result term) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLResult term) {
     return ImmutableSet.of(term);
   }
 
   @Override
-  public ImmutableSet<ACSLBuiltin> visit(StringLiteral term) {
+  public ImmutableSet<ACSLBuiltin> visit(ACSLStringLiteral term) {
     return ImmutableSet.of();
   }
 }

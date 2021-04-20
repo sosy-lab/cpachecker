@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLTermToCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.BuiltinCollectingVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -82,7 +82,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       CFAEdge edge = node.getEnteringEdge(i);
       Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(edge);
       if (usePureExpressionsOnly) {
-        BuiltinCollectingVisitor visitor = new BuiltinCollectingVisitor();
+        ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
         annotationsForEdge =
             FluentIterable.from(annotationsForEdge)
                 .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())

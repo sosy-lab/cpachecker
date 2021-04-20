@@ -48,9 +48,9 @@ public class StatementContract implements ACSLAnnotation {
 
   static StatementContract fromFunctionContract(
       List<Behavior> enclosing, FunctionContract fcontract) {
-    BuiltinCollectingVisitor visitor = new BuiltinCollectingVisitor();
+    ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
     assert FluentIterable.from(fcontract.getEnsures().getPredicate().accept(visitor))
-            .filter(Result.class)
+            .filter(ACSLResult.class)
             .isEmpty()
         : "\\result is only allowed in function contracts";
     return new StatementContract(
@@ -89,7 +89,7 @@ public class StatementContract implements ACSLAnnotation {
     for (Behavior behavior : ownBehaviors) {
       ACSLPredicate behaviorPredicate = behavior.getPreStatePredicate();
       preStatePredicate =
-          new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
+          new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, ACSLBinaryOperator.AND);
     }
 
     return preStatePredicate;
@@ -106,7 +106,7 @@ public class StatementContract implements ACSLAnnotation {
     for (Behavior behavior : ownBehaviors) {
       ACSLPredicate behaviorPredicate = behavior.getPostStatePredicate();
       postStatePredicate =
-          new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
+          new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, ACSLBinaryOperator.AND);
     }
 
     return postStatePredicate;
@@ -120,7 +120,7 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(
               completenessPredicate,
               completenessClause.getPredicateRepresentation(),
-              BinaryOperator.AND);
+              ACSLBinaryOperator.AND);
     }
     return completenessPredicate;
   }

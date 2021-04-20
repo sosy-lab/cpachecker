@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class LoopInvariant {
+public class ACSLLoopInvariant {
 
   private final ACSLPredicate predicate;
 
-  public LoopInvariant(ACSLPredicate p) {
+  public ACSLLoopInvariant(ACSLPredicate p) {
     predicate = p;
   }
 
@@ -20,8 +20,8 @@ public class LoopInvariant {
     return predicate;
   }
 
-  public LoopInvariant and(ACSLPredicate p) {
-    return new LoopInvariant(predicate.and(p));
+  public ACSLLoopInvariant and(ACSLPredicate p) {
+    return new ACSLLoopInvariant(predicate.and(p));
   }
 
   @Override

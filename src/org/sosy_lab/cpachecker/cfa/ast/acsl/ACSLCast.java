@@ -8,46 +8,46 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ArrayAccess implements ACSLTerm {
+public class ACSLCast implements ACSLTerm {
 
-  private final ACSLTerm array;
-  private final ACSLTerm index;
+  private final ACSLType type;
+  private final ACSLTerm term;
 
-  public ArrayAccess(ACSLTerm pArray, ACSLTerm pIndex) {
-    array = pArray;
-    index = pIndex;
+  public ACSLCast(ACSLType pType, ACSLTerm pTerm) {
+    type = pType;
+    term = pTerm;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ArrayAccess) {
-      ArrayAccess other = (ArrayAccess) o;
-      return array.equals(other.array) && index.equals(other.index);
+    if (o instanceof ACSLCast) {
+      ACSLCast other = (ACSLCast) o;
+      return type.equals(other.type) && term.equals(other.term);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return 3 * array.hashCode() + index.hashCode();
+    return 17 * term.hashCode() + type.hashCode();
   }
 
   @Override
   public String toString() {
-    return array.toString() + "[" + index.toString() + "]";
+    return "(" + type.toString() + ") " + term.toString();
   }
 
-  public ACSLTerm getArray() {
-    return array;
+  public ACSLType getType() {
+    return type;
   }
 
-  public ACSLTerm getIndex() {
-    return index;
+  public ACSLTerm getTerm() {
+    return term;
   }
 
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
-    return array.isAllowedIn(clauseType) && index.isAllowedIn(clauseType);
+    return term.isAllowedIn(clauseType);
   }
 
   @Override

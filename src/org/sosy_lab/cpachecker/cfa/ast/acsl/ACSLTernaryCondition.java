@@ -8,17 +8,17 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class TernaryCondition extends ACSLPredicate {
+public class ACSLTernaryCondition extends ACSLPredicate {
 
   private final ACSLPredicate condition;
   private final ACSLPredicate then;
   private final ACSLPredicate otherwise;
 
-  public TernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3) {
+  public ACSLTernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3) {
     this(p1, p2, p3, false);
   }
 
-  public TernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3, boolean negated) {
+  public ACSLTernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3, boolean negated) {
     super(negated);
     condition = p1;
     then = p2;
@@ -44,7 +44,7 @@ public class TernaryCondition extends ACSLPredicate {
 
   @Override
   public ACSLPredicate negate() {
-    return new TernaryCondition(condition, then, otherwise, !isNegated());
+    return new ACSLTernaryCondition(condition, then, otherwise, !isNegated());
   }
 
   @Override
@@ -63,17 +63,17 @@ public class TernaryCondition extends ACSLPredicate {
       return isNegated() ? simpleThenNegated : simpleThen;
     }
     return isNegated()
-        ? new ACSLLogicalPredicate(simpleConditionNegated, simpleThenNegated, BinaryOperator.OR)
+        ? new ACSLLogicalPredicate(simpleConditionNegated, simpleThenNegated, ACSLBinaryOperator.OR)
             .and(
                 new ACSLLogicalPredicate(
-                    simpleCondition, simpleOtherwiseNegated, BinaryOperator.OR))
-        : new TernaryCondition(simpleCondition, simpleThen, simpleOtherwise);
+                    simpleCondition, simpleOtherwiseNegated, ACSLBinaryOperator.OR))
+        : new ACSLTernaryCondition(simpleCondition, simpleThen, simpleOtherwise);
   }
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof TernaryCondition) {
-      TernaryCondition other = (TernaryCondition) o;
+    if (o instanceof ACSLTernaryCondition) {
+      ACSLTernaryCondition other = (ACSLTernaryCondition) o;
       return super.equals(o)
           && condition.equals(other.condition)
           && then.equals(other.then)

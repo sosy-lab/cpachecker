@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class Identifier implements ACSLTerm {
+public class ACSLIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;
   // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
 
-  public Identifier(String pName, String pFunctionName) {
+  public ACSLIdentifier(String pName, String pFunctionName) {
     name = pName;
     functionName = pFunctionName;
   }
@@ -26,8 +26,8 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Identifier) {
-      Identifier other = (Identifier) o;
+    if (o instanceof ACSLIdentifier) {
+      ACSLIdentifier other = (ACSLIdentifier) o;
       return name.equals(other.name) && functionName.equals(other.functionName);
     }
     return false;

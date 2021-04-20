@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public enum UnaryOperator {
+public enum ACSLUnaryOperator {
   BNEG("~"),
   PLUS("+"),
   MINUS("-"),
@@ -18,7 +18,7 @@ public enum UnaryOperator {
 
   private final String operator;
 
-  UnaryOperator(String s) {
+  ACSLUnaryOperator(String s) {
     operator = s;
   }
 

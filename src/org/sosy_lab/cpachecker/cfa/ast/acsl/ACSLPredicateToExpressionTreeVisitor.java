@@ -69,7 +69,7 @@ public class ACSLPredicateToExpressionTreeVisitor
   }
 
   @Override
-  public ExpressionTree<Object> visit(TernaryCondition pred) throws UnrecognizedCodeException {
+  public ExpressionTree<Object> visit(ACSLTernaryCondition pred) throws UnrecognizedCodeException {
     if (pred.isNegated()) {
       ExpressionTree<Object> left =
           Or.of(pred.getCondition().negate().accept(this), pred.getThen().negate().accept(this));

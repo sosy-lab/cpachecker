@@ -30,7 +30,7 @@ public class CompletenessClause {
             new ACSLLogicalPredicate(
                 predicateRepresentation,
                 behavior.getAssumesClause().getPredicate(),
-                BinaryOperator.OR);
+                ACSLBinaryOperator.OR);
       }
     } else if (kind.equals(RelationKind.DISJOINT)) {
       predicateRepresentation = ACSLPredicate.getTrue();
@@ -43,10 +43,10 @@ public class CompletenessClause {
               new ACSLLogicalPredicate(
                       behavior1.getAssumesClause().getPredicate(),
                       behavior2.getAssumesClause().getPredicate(),
-                      BinaryOperator.AND)
+                      ACSLBinaryOperator.AND)
                   .negate();
           predicateRepresentation =
-              new ACSLLogicalPredicate(predicateRepresentation, notBoth, BinaryOperator.AND);
+              new ACSLLogicalPredicate(predicateRepresentation, notBoth, ACSLBinaryOperator.AND);
         }
       }
     } else {

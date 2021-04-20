@@ -12,11 +12,11 @@ public class BoundIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;
-  private final Type type;
+  private final ACSLType type;
   private final Binder.Quantifier quantifier;
 
   public BoundIdentifier(
-      String pName, String pFunctionName, Type pType, Binder.Quantifier pQuantifier) {
+      String pName, String pFunctionName, ACSLType pType, Binder.Quantifier pQuantifier) {
     name = pName;
     functionName = pFunctionName;
     type = pType;
@@ -50,7 +50,7 @@ public class BoundIdentifier implements ACSLTerm {
     return functionName;
   }
 
-  public Type getType() {
+  public ACSLType getType() {
     return type;
   }
 

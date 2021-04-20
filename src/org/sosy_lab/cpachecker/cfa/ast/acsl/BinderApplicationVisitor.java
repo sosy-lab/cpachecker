@@ -52,8 +52,8 @@ public class BinderApplicationVisitor
   }
 
   @Override
-  public ACSLPredicate visit(TernaryCondition pred) {
-    return new TernaryCondition(
+  public ACSLPredicate visit(ACSLTernaryCondition pred) {
+    return new ACSLTernaryCondition(
         pred.getCondition().accept(this),
         pred.getThen().accept(this),
         pred.getOtherwise().accept(this),
@@ -82,8 +82,8 @@ public class BinderApplicationVisitor
   }
 
   @Override
-  public ACSLTerm visit(ArrayAccess term) {
-    return new ArrayAccess(term.getArray().accept(this), term.getIndex().accept(this));
+  public ACSLTerm visit(ACSLArrayAccess term) {
+    return new ACSLArrayAccess(term.getArray().accept(this), term.getIndex().accept(this));
   }
 
   @Override
@@ -92,12 +92,12 @@ public class BinderApplicationVisitor
   }
 
   @Override
-  public ACSLTerm visit(Cast term) {
-    return new Cast(term.getType(), term.getTerm().accept(this));
+  public ACSLTerm visit(ACSLCast term) {
+    return new ACSLCast(term.getType(), term.getTerm().accept(this));
   }
 
   @Override
-  public ACSLTerm visit(Identifier term) {
+  public ACSLTerm visit(ACSLIdentifier term) {
     for (Binder binder : binders) {
       if (binder.getVariables().contains(term.getName())) {
         return new BoundIdentifier(
@@ -108,17 +108,17 @@ public class BinderApplicationVisitor
   }
 
   @Override
-  public ACSLTerm visit(IntegerLiteral term) {
+  public ACSLTerm visit(ACSLIntegerLiteral term) {
     return term;
   }
 
   @Override
-  public ACSLTerm visit(Result term) {
+  public ACSLTerm visit(ACSLResult term) {
     return term;
   }
 
   @Override
-  public ACSLTerm visit(StringLiteral term) {
+  public ACSLTerm visit(ACSLStringLiteral term) {
     return term;
   }
 }

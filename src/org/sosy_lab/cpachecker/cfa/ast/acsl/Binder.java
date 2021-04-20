@@ -17,15 +17,15 @@ public class Binder {
     FORALL, EXISTS
   }
 
-  private final Type type;
+  private final ACSLType type;
   private final ImmutableSet<String> variables;
 
-  public Binder(Type pType, Set<String> pVariables) {
+  public Binder(ACSLType pType, Set<String> pVariables) {
     type = pType;
     variables = ImmutableSet.copyOf(pVariables);
   }
 
-  public Type getType() {
+  public ACSLType getType() {
     return type;
   }
 

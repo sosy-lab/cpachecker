@@ -18,7 +18,7 @@ public interface ACSLPredicateVisitor<R, X extends Exception> {
 
   R visit(ACSLLogicalPredicate pred) throws X;
 
-  R visit(TernaryCondition pred) throws X;
+  R visit(ACSLTernaryCondition pred) throws X;
 
   R visit(PredicateAt pred) throws X;
 }

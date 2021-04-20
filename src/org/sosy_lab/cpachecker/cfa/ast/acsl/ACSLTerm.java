@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public interface ACSLTerm extends LogicExpression {
+public interface ACSLTerm extends ACSLLogicExpression {
 
   <R, X extends Exception> R accept(ACSLTermVisitor<R, X> visitor) throws X;
 

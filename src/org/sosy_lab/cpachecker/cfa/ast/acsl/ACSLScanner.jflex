@@ -147,9 +147,9 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
                         }
                         return symbol(sym.LITERAL, new BigInteger(builder.append(matched).toString()));}
     {CType}             {builder.setLength(0);
-                        return symbol(sym.TYPE, new Type(builder.append(yytext()).toString()));}
+                        return symbol(sym.TYPE, new ACSLType(builder.append(yytext()).toString()));}
     {ACSLType}          {builder.setLength(0);
-                        return symbol(sym.TYPE, new Type(builder.append(yytext()).toString()));}
+                        return symbol(sym.TYPE, new ACSLType(builder.append(yytext()).toString()));}
     {Identifier}        {builder.setLength(0);
                         return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
     {String}            {builder.setLength(0);

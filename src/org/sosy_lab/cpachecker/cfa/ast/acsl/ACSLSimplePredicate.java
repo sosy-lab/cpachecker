@@ -22,7 +22,7 @@ public class ACSLSimplePredicate extends ACSLPredicate {
     super(negated);
     Preconditions.checkArgument(
         pTerm instanceof ACSLBinaryTerm
-            && BinaryOperator.isComparisonOperator(((ACSLBinaryTerm) pTerm).getOperator()),
+            && ACSLBinaryOperator.isComparisonOperator(((ACSLBinaryTerm) pTerm).getOperator()),
         "Simple predicate should hold comparison term.");
     term = pTerm;
   }

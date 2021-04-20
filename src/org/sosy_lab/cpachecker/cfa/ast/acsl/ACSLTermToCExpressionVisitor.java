@@ -117,10 +117,10 @@ public class ACSLTermToCExpressionVisitor
     CExpression result = cache.get(unaryTerm);
     if (result == null) {
       CExpression inner = unaryTerm.getInnerTerm().accept(this);
-      UnaryOperator operator = unaryTerm.getOperator();
-      if (operator == UnaryOperator.POINTER_DEREF) {
+      ACSLUnaryOperator operator = unaryTerm.getOperator();
+      if (operator == ACSLUnaryOperator.POINTER_DEREF) {
         return new CPointerExpression(inner.getFileLocation(), inner.getExpressionType(), inner);
-      } else if (operator == UnaryOperator.PLUS) {
+      } else if (operator == ACSLUnaryOperator.PLUS) {
         return inner;
       }
       CUnaryExpression.UnaryOperator op;
@@ -147,7 +147,7 @@ public class ACSLTermToCExpressionVisitor
   }
 
   @Override
-  public CExpression visit(ArrayAccess arrayAccess) throws UnrecognizedCodeException {
+  public CExpression visit(ACSLArrayAccess arrayAccess) throws UnrecognizedCodeException {
     CExpression result = cache.get(arrayAccess);
     if (result == null) {
       CExpression arrayExpression = arrayAccess.getArray().accept(this);
@@ -164,7 +164,7 @@ public class ACSLTermToCExpressionVisitor
   }
 
   @Override
-  public CExpression visit(Cast cast) throws UnrecognizedCodeException {
+  public CExpression visit(ACSLCast cast) throws UnrecognizedCodeException {
     CExpression result = cache.get(cast);
     if (result == null) {
       CExpression inner = cast.getTerm().accept(this);
@@ -176,7 +176,7 @@ public class ACSLTermToCExpressionVisitor
   }
 
   @Override
-  public CExpression visit(Identifier identifier) {
+  public CExpression visit(ACSLIdentifier identifier) {
     CExpression result = cache.get(identifier);
     if (result == null) {
       CProgramScope scope = new CProgramScope(cfa, logger);
@@ -212,7 +212,7 @@ public class ACSLTermToCExpressionVisitor
   }
 
   @Override
-  public CExpression visit(IntegerLiteral integerLiteral) {
+  public CExpression visit(ACSLIntegerLiteral integerLiteral) {
     CExpression result = cache.get(integerLiteral);
     if (result == null) {
       result =
@@ -224,7 +224,7 @@ public class ACSLTermToCExpressionVisitor
   }
 
   @Override
-  public CExpression visit(StringLiteral stringLiteral) {
+  public CExpression visit(ACSLStringLiteral stringLiteral) {
     CExpression result = cache.get(stringLiteral);
     if (result == null) {
       result =
@@ -238,7 +238,7 @@ public class ACSLTermToCExpressionVisitor
   }
 
   @Override
-  public CExpression visit(Result acslResult) {
+  public CExpression visit(ACSLResult acslResult) {
     CExpression result = cache.get(acslResult);
     if (result == null) {
       CProgramScope scope = new CProgramScope(cfa, logger);

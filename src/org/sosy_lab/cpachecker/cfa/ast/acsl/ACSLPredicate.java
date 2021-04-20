@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public abstract class ACSLPredicate implements LogicExpression {
+public abstract class ACSLPredicate implements ACSLLogicExpression {
 
   private final boolean negated;
 
@@ -36,12 +36,12 @@ public abstract class ACSLPredicate implements LogicExpression {
 
   /** Returns the conjunction of the predicate with the given other predicate. */
   public ACSLPredicate and(ACSLPredicate other) {
-    return new ACSLLogicalPredicate(this, other, BinaryOperator.AND);
+    return new ACSLLogicalPredicate(this, other, ACSLBinaryOperator.AND);
   }
 
   /** Returns the disjunction of the predicate with the given other predicate. */
   public ACSLPredicate or(ACSLPredicate other) {
-    return new ACSLLogicalPredicate(this, other, BinaryOperator.OR);
+    return new ACSLLogicalPredicate(this, other, ACSLBinaryOperator.OR);
   }
 
   @Override

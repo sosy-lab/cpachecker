@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class Result implements ACSLBuiltin, ACSLTerm {
+public class ACSLResult implements ACSLBuiltin, ACSLTerm {
 
   private final String functionName;
 
-  public Result(String pFunctionName) {
+  public ACSLResult(String pFunctionName) {
     functionName = pFunctionName;
   }
 
@@ -32,8 +32,8 @@ public class Result implements ACSLBuiltin, ACSLTerm {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof Result) {
-      Result other = (Result) obj;
+    if (obj instanceof ACSLResult) {
+      ACSLResult other = (ACSLResult) obj;
       return functionName.equals(other.functionName);
     }
     return false;

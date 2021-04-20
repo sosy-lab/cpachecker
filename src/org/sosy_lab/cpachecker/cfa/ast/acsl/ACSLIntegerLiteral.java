@@ -8,46 +8,42 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class Cast implements ACSLTerm {
+import java.math.BigInteger;
 
-  private final Type type;
-  private final ACSLTerm term;
+public class ACSLIntegerLiteral implements ACSLTerm {
 
-  public Cast(Type pType, ACSLTerm pTerm) {
-    type = pType;
-    term = pTerm;
+  private final BigInteger literal;
+
+  public ACSLIntegerLiteral(BigInteger i) {
+    literal = i;
+  }
+
+  @Override
+  public String toString() {
+    return literal.toString();
   }
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Cast) {
-      Cast other = (Cast) o;
-      return type.equals(other.type) && term.equals(other.term);
+    if (o instanceof ACSLIntegerLiteral) {
+      ACSLIntegerLiteral other = (ACSLIntegerLiteral) o;
+      return literal.equals(other.literal);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return 17 * term.hashCode() + type.hashCode();
+    return 31 * literal.hashCode() * literal.hashCode() + 31;
   }
 
-  @Override
-  public String toString() {
-    return "(" + type.toString() + ") " + term.toString();
-  }
-
-  public Type getType() {
-    return type;
-  }
-
-  public ACSLTerm getTerm() {
-    return term;
+  public BigInteger getLiteral() {
+    return literal;
   }
 
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
-    return term.isAllowedIn(clauseType);
+    return true;
   }
 
   @Override

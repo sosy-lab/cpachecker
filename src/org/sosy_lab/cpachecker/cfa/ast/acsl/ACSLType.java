@@ -12,10 +12,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class Type {
+public class ACSLType {
   private final String typeName;
 
-  public Type(String name) {
+  public ACSLType(String name) {
     typeName = name;
   }
 
@@ -25,8 +25,8 @@ public class Type {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Type) {
-      Type other = (Type) o;
+    if (o instanceof ACSLType) {
+      ACSLType other = (ACSLType) o;
       return typeName.equals(other.getTypeName());
     }
     return false;

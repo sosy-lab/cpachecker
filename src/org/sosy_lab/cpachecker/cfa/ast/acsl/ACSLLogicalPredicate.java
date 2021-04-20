@@ -12,16 +12,16 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
 
   private final ACSLPredicate left;
   private final ACSLPredicate right;
-  private final BinaryOperator operator;
+  private final ACSLBinaryOperator operator;
 
-  public ACSLLogicalPredicate(ACSLPredicate pLeft, ACSLPredicate pRight, BinaryOperator op) {
+  public ACSLLogicalPredicate(ACSLPredicate pLeft, ACSLPredicate pRight, ACSLBinaryOperator op) {
     this(pLeft, pRight, op, false);
   }
 
   public ACSLLogicalPredicate(
-      ACSLPredicate pLeft, ACSLPredicate pRight, BinaryOperator op, boolean negated) {
+      ACSLPredicate pLeft, ACSLPredicate pRight, ACSLBinaryOperator op, boolean negated) {
     super(negated);
-    assert BinaryOperator.isLogicalOperator(op)
+    assert ACSLBinaryOperator.isLogicalOperator(op)
         : "ACSLLogicalPredicate may only hold logical operator";
     switch (op) {
       case AND:
@@ -31,19 +31,19 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         operator = op;
         break;
       case XOR:
-        left = new ACSLLogicalPredicate(pLeft, pRight.negate(), BinaryOperator.AND);
-        right = new ACSLLogicalPredicate(pLeft.negate(), pRight, BinaryOperator.AND);
-        operator = BinaryOperator.OR;
+        left = new ACSLLogicalPredicate(pLeft, pRight.negate(), ACSLBinaryOperator.AND);
+        right = new ACSLLogicalPredicate(pLeft.negate(), pRight, ACSLBinaryOperator.AND);
+        operator = ACSLBinaryOperator.OR;
         break;
       case IMP:
         left = pLeft.negate();
         right = pRight;
-        operator = BinaryOperator.OR;
+        operator = ACSLBinaryOperator.OR;
         break;
       case EQV:
-        left = new ACSLLogicalPredicate(pLeft, pRight, BinaryOperator.AND);
-        right = new ACSLLogicalPredicate(pLeft.negate(), pRight.negate(), BinaryOperator.AND);
-        operator = BinaryOperator.OR;
+        left = new ACSLLogicalPredicate(pLeft, pRight, ACSLBinaryOperator.AND);
+        right = new ACSLLogicalPredicate(pLeft.negate(), pRight.negate(), ACSLBinaryOperator.AND);
+        operator = ACSLBinaryOperator.OR;
         break;
       default:
         throw new AssertionError("Unknown logical operator: " + op);
@@ -82,7 +82,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         } else if (simpleRight.equals(getTrue())) {
           return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (isNegated()) {
-          return new ACSLLogicalPredicate(simpleLeftNegated, simpleRightNegated, BinaryOperator.OR);
+          return new ACSLLogicalPredicate(simpleLeftNegated, simpleRightNegated, ACSLBinaryOperator.OR);
         }
         break;
       case OR:
@@ -98,7 +98,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
           return isNegated() ? simpleLeftNegated : simpleLeft;
         } else if (isNegated()) {
           return new ACSLLogicalPredicate(
-              simpleLeftNegated, simpleRightNegated, BinaryOperator.AND);
+              simpleLeftNegated, simpleRightNegated, ACSLBinaryOperator.AND);
         }
         break;
       default:
@@ -114,7 +114,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
       ACSLLogicalPredicate other = (ACSLLogicalPredicate) o;
       if (super.equals(o) && operator.equals(other.operator)) {
         return (left.equals(other.left) && right.equals(other.right))
-            || (BinaryOperator.isCommutative(operator)
+            || (ACSLBinaryOperator.isCommutative(operator)
                 && left.equals(other.right)
                 && right.equals(other.left));
       }
@@ -135,7 +135,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     return right;
   }
 
-  public BinaryOperator getOperator() {
+  public ACSLBinaryOperator getOperator() {
     return operator;
   }
 

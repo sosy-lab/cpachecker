@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public enum BinaryOperator {
+public enum ACSLBinaryOperator {
   AND("&&"),
   OR("||"),
   IMP("==>"),
@@ -35,11 +35,11 @@ public enum BinaryOperator {
 
   private final String operator;
 
-  BinaryOperator(String s) {
+  ACSLBinaryOperator(String s) {
     operator = s;
   }
 
-  public static boolean isComparisonOperator(BinaryOperator op) {
+  public static boolean isComparisonOperator(ACSLBinaryOperator op) {
     switch (op) {
       case EQ:
       case NEQ:
@@ -53,7 +53,7 @@ public enum BinaryOperator {
     }
   }
 
-  public static boolean isLogicalOperator(BinaryOperator op) {
+  public static boolean isLogicalOperator(ACSLBinaryOperator op) {
     switch (op) {
       case AND:
       case OR:
@@ -66,7 +66,7 @@ public enum BinaryOperator {
     }
   }
 
-  public static boolean isBitwiseOperator(BinaryOperator op) {
+  public static boolean isBitwiseOperator(ACSLBinaryOperator op) {
     switch (op) {
       case BAND:
       case BOR:
@@ -79,7 +79,7 @@ public enum BinaryOperator {
     }
   }
 
-  public static boolean isArithmeticOperator(BinaryOperator op) {
+  public static boolean isArithmeticOperator(ACSLBinaryOperator op) {
     switch (op) {
       case PLUS:
       case MINUS:
@@ -94,7 +94,7 @@ public enum BinaryOperator {
     }
   }
 
-  public static boolean isCommutative(BinaryOperator op) {
+  public static boolean isCommutative(ACSLBinaryOperator op) {
     switch (op) {
       case EQ:
       case NEQ:
