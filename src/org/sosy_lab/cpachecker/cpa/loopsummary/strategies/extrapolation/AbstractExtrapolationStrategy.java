@@ -230,4 +230,9 @@ public abstract class AbstractExtrapolationStrategy extends AbstractStrategy {
         return Optional.empty();
     }
   }
+
+  @Override
+  public boolean isPrecise() {
+    return true;
+  }
 }

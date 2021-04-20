@@ -399,4 +399,9 @@ public abstract class AbstractStrategy implements StrategyInterface {
   public Optional<GhostCFA> getGhostCFA(final AbstractState pState) {
     return Optional.empty();
   }
+
+  @Override
+  public boolean isPrecise() {
+    return false;
+  }
 }

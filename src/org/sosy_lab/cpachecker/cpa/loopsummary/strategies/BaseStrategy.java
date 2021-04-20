@@ -29,4 +29,9 @@ public class BaseStrategy extends AbstractStrategy {
       throws CPATransferException, InterruptedException {
     return Optional.of(pTransferRelation.getAbstractSuccessors(pState, pPrecision));
   }
+
+  @Override
+  public boolean isPrecise() {
+    return true;
+  }
 }

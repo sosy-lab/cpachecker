@@ -34,4 +34,11 @@ public interface StrategyInterface {
    */
   public Optional<GhostCFA> getGhostCFA(final AbstractState pState)
       throws CPATransferException, InterruptedException;
+
+  /*
+   *
+   * Returns true if the Summary is Precise, false in any other case
+   *
+   */
+  public boolean isPrecise();
 }

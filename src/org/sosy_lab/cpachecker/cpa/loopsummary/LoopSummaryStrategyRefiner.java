@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -18,7 +22,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -27,11 +31,13 @@ public class LoopSummaryStrategyRefiner implements Refiner {
   private final LogManager logger;
   private int refinementNumber;
   protected final ARGCPA argCpa;
+  private ArrayList<StrategyInterface> strategies;
 
   public LoopSummaryStrategyRefiner(LogManager pLogger, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
+    strategies = CPAs.retrieveCPAOrFail(pCpa, LoopSummaryCPA.class, Refiner.class).getStrategies();
   }
 
   @SuppressWarnings("unused")
@@ -45,9 +51,46 @@ public class LoopSummaryStrategyRefiner implements Refiner {
         : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    final ARGPath path = ARGUtils.getOnePathTo(lastElement);
+    Collection<ARGState> waitlist = new ArrayList<>();
+    Collection<ARGState> seen = new ArrayList<>();
+    waitlist.add(lastElement);
+    Optional<ARGState> optionalRefinementState = Optional.empty();
+    while (!waitlist.isEmpty()) {
+      Iterator<ARGState> iter = waitlist.iterator();
+      Collection<ARGState> newWaitlist = new ArrayList<>();
+      while (iter.hasNext()) {
+        ARGState currentElement = iter.next();
+        /*logger.log(
+        Level.INFO,
+        "State: " + currentElement + "\nPrecision: " + pReached.getPrecision(currentElement));*/
+        if (!strategies
+            .get(
+                ((LoopSummaryPrecision) pReached.getPrecision(currentElement)).getStrategyCounter())
+            .isPrecise()) { // TODO: Strategy 0 is used when the node has not been called by the
+                            // transfer relation
+          optionalRefinementState = Optional.of(currentElement);
+          waitlist.clear();
+          newWaitlist.clear();
+          break;
+        } else {
+          if (!seen.contains(currentElement)) {
+            newWaitlist.addAll(currentElement.getParents());
+            seen.add(currentElement);
+          }
+        }
+      }
+      waitlist = newWaitlist;
+    }
 
-    // TODO Implement refinement
+    if (optionalRefinementState.isEmpty()) {
+      return false;
+    } else {
+      ARGState refinementState = optionalRefinementState.get();
+      LoopSummaryPrecision newPrecision =
+          (LoopSummaryPrecision) pReached.getPrecision(refinementState);
+      newPrecision.updateStrategy();
+      reached.removeSubtree(refinementState);
+    }
 
     return false;
   }
