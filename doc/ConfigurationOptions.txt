@@ -4323,6 +4323,10 @@ wacsl.makeDirectAssertions = false
 # The directory where generated, ACSL annotated programs are stored.
 wacsl.outDir = "annotated"
 
+# Makes the annotated file's name identical to the original source file's
+# name.
+wacsl.useSameFileName = false
+
 # The witness from which ACSL annotations should be generated.
 wacsl.witness = no default value
 

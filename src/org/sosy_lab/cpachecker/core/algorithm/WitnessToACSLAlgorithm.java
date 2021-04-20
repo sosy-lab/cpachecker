@@ -71,6 +71,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
           "Instead of comments, output the assertions into the original program as violations to unreach_call.prp")
   private boolean makeDirectAssertions = false;
 
+  @Option(
+      secure = true,
+      description = "Makes the annotated file's name identical to the original source file's name.")
+  private boolean useSameFileName = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
@@ -205,6 +210,9 @@ public class WitnessToACSLAlgorithm implements Algorithm {
    * @return A name based on the given file name.
    */
   private String makeNameForAnnotatedFile(String oldFileName) {
+    if (useSameFileName) {
+      return oldFileName;
+    }
     int indexOfFirstPeriod = oldFileName.indexOf('.');
     String nameWithoutExtension = oldFileName;
     String extension = "";
