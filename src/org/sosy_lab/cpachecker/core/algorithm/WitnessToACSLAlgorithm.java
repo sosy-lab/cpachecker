@@ -65,6 +65,12 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outDir = Paths.get("annotated");
 
+  @Option(
+      secure = true,
+      description =
+          "Instead of comments, output the assertions into the original program as violations to unreach_call.prp")
+  private boolean makeDirectAssertions = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
@@ -232,7 +238,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   }
 
   private String makeACSLAnnotation(ExpressionTreeLocationInvariant inv) {
-    return "/*@ assert " + inv.asExpressionTree() + "; */";
+    if (!makeDirectAssertions) {
+      return "/*@ assert " + inv.asExpressionTree() + "; */";
+    } else {
+      return "if (!("+inv.asExpressionTree()+")) reach_error();";
+    }
   }
 
   private Set<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
