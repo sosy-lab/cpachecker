@@ -64,7 +64,6 @@ parser code {:
     private List<FileLocation> orderedLocs;
     private List<CFAEdge> orderedCFALocs;
     private List<FileLocation> commentPositions;
-    private Map<CFANode, Integer> statementStackDepths;
     private final Set<Integer> annotationsToSkip = new HashSet<>();
 
     private ACSLParser(
@@ -74,8 +73,7 @@ parser code {:
         List<FileLocation> pOrderedLocs,
         List<CFAEdge> pOrderedCFALocs,
         LogManager pLogger,
-        List<FileLocation> pCommentPositions,
-        Map<CFANode, Integer> pStatementStackDepths) {
+        List<FileLocation> pCommentPositions) {
       super(pScanner, sf);
       scanner = pScanner;
       cfa = pCfa;
@@ -84,7 +82,6 @@ parser code {:
       orderedLocs = pOrderedLocs;
       orderedCFALocs = pOrderedCFALocs;
       commentPositions = pCommentPositions;
-      statementStackDepths = pStatementStackDepths;
     }
 
     public static CFA parseACSLAnnotations(
@@ -120,14 +117,7 @@ parser code {:
                 .collect(ImmutableList.toImmutableList());
         ACSLParser parser =
             new ACSLParser(
-                scanner,
-                sf,
-                newCFA,
-                orderedLocs,
-                orderedCFALocs,
-                logger,
-                commentPositions,
-                statementStackDepths);
+                scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger, commentPositions);
         List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
         int skipped = 0;
         for (int i = 0; i < orderedLocs.size(); i++) {
