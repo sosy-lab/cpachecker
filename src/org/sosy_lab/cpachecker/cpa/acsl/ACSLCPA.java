@@ -46,6 +46,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private boolean usePureExpressionsOnly = true;
 
   private final CFAWithACSLAnnotations cfa;
+  private final LogManager logger;
   private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
 
@@ -56,22 +57,23 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private ACSLCPA(CFA pCFA, LogManager pLogManager, Configuration pConfig)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
+    logger = pLogManager;
     if (pCFA instanceof CFAWithACSLAnnotations) {
       cfa = (CFAWithACSLAnnotations) pCFA;
     } else {
       cfa = new CFAWithACSLAnnotations(pCFA);
-      pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
+      logger.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
-    ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
+    ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, logger);
     acslVisitor = new ACSLPredicateToExpressionTreeVisitor(termVisitor);
-    expressionTreeVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), pLogManager);
+    expressionTreeVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
     pConfig.inject(this);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
     return new ACSLTransferRelation(
-        cfa, acslVisitor, expressionTreeVisitor, usePureExpressionsOnly);
+        cfa, logger, acslVisitor, expressionTreeVisitor, usePureExpressionsOnly);
   }
 
   @Override
@@ -90,6 +92,6 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       }
       annotations.addAll(annotationsForEdge);
     }
-    return new ACSLState(annotations.build(), acslVisitor, expressionTreeVisitor);
+    return new ACSLState(annotations.build(), acslVisitor, expressionTreeVisitor, logger);
   }
 }

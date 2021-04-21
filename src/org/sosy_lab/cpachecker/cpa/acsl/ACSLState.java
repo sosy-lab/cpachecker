@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -36,14 +38,17 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   private final ImmutableSet<ACSLAnnotation> annotations;
   private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
+  private final LogManager logger;
 
   public ACSLState(
       Set<ACSLAnnotation> pAnnotations,
       ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
-      ToCExpressionVisitor pExpressionTreeVisitor) {
+      ToCExpressionVisitor pExpressionTreeVisitor,
+      LogManager pLogManager) {
     annotations = ImmutableSet.copyOf(pAnnotations);
     acslVisitor = pACSLVisitor;
     expressionTreeVisitor = pExpressionTreeVisitor;
+    logger = pLogManager;
   }
 
   @Override
@@ -115,7 +120,8 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
         throw new AssertionError("Unknown type of ExpressionTree.");
       }
     } catch (UnrecognizedCodeException e) {
-      throw new AssertionError(e);
+      logger.log(Level.WARNING, "Could not convert some annotations to assumption, ignoring");
+      return ImmutableList.of();
     }
   }
 }
