@@ -11,11 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.alternative_error_witness;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,8 +51,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
@@ -61,14 +60,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.spexport")
 public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvider {
 
-  private static final String PREFIX_FILENAME = "formula_";
-
-  private static final String SUFFIX_BRANCHING_FORMULA = "branching";
+  private static final String FOLDER_PREFIX = "errorPaths/";
 
   @Option(
       secure = true,
@@ -126,8 +122,9 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
       }
 
       PathFormulaManager pathFormulaManager = predicateCPA.getPathFormulaManager();
-      BlockFormulaStrategy blockFormulaStrategy = new BlockFormulaStrategy();
-      List<BlockFormulas> blockFolmulas = new ArrayList<>();
+      LocationAwareBlockFormulaStrategy blockFormulaStrategy =
+          new LocationAwareBlockFormulaStrategy();
+      List<LocationAwareBlockFormulas> blockFolmulas = new ArrayList<>();
       for (CounterexampleInfo info : ceInfos) {
 
         // TODO: This code is adapted from from
@@ -146,8 +143,8 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
         final List<ARGState> abstractionStatesTrace =
             PredicateCPARefiner.filterAbstractionStates(info.getTargetPath());
 
-        BlockFormulas formulas =
-            blockFormulaStrategy.getFormulasForPath(
+        LocationAwareBlockFormulas formulas =
+            blockFormulaStrategy.getLocatinoAwareFormulasForPath(
                 info.getTargetPath().getFirstState(), abstractionStatesTrace);
         if (!formulas.hasBranchingFormula()) {
           formulas =
@@ -156,37 +153,49 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
         }
         blockFolmulas.add(formulas);
       }
-     try {
-        Path path = Paths.get(this.outdirForExport + "errorPaths/");
-      Path rootDir = Files.createDirectory(path);
+      try {
+        Path path = Paths.get(this.outdirForExport + FOLDER_PREFIX);
+        Path rootDir;
+        try {
+          rootDir = Files.createDirectory(path);
+        } catch (FileAlreadyExistsException e) {
+          rootDir = path;
+          cleanRecursively(rootDir);
+        }
         FormulaManagerView fmgr = predicateCPA.getSolver().getFormulaManager();
 
-        for (int cntBFs = 0; cntBFs < blockFolmulas.size(); cntBFs++) {
-          Path dir =
-              Files.createDirectory(
-                  Paths.get(rootDir.toAbsolutePath() + String.format("/path_%d", cntBFs)));
-          BlockFormulas bf = blockFolmulas.get(cntBFs);
-          ImmutableList<BooleanFormula> formulaList = bf.getFormulas();
-          for (int cntFormula = 0; cntFormula < bf.getSize(); cntFormula++) {
-            Path f =
-                Files.createFile(
-                    Paths.get(dir.toAbsolutePath() + "/" + PREFIX_FILENAME + cntFormula));
-            fmgr.dumpFormulaToFile(formulaList.get(cntFormula), f);
-          }
-          if (bf.hasBranchingFormula()) {
-            Path f =
-                Files.createFile(
-                    Paths.get(
-                        dir.toAbsolutePath() + "/" + PREFIX_FILENAME + SUFFIX_BRANCHING_FORMULA));
-            fmgr.dumpFormulaToFile(bf.getBranchingFormula(), f);
-          }
+        for (int i = 0; i < blockFolmulas.size(); i++) {
+
+          blockFolmulas
+              .get(i)
+              .dumpToFolder(
+                  Files.createDirectory(
+                      Paths.get(rootDir.toAbsolutePath() + String.format("/path_%d", i))),
+                  logger,
+                  fmgr);
         }
       } catch (IOException e) {
-        logger.log(Level.SEVERE, String.format("An error occured while stroring the output-files. Errro: %s", Throwables.getStackTraceAsString(e)));
+        logger.log(
+            Level.SEVERE,
+            String.format(
+                "An error occured while stroring the output-files. Errro: %s",
+                Throwables.getStackTraceAsString(e)));
       }
     }
     logger.log(Level.INFO, "All counterexamples are succesfully stored as formulae!");
     return status;
+  }
+
+  private void cleanRecursively(Path pRootDir) throws IOException {
+    File root = pRootDir.toFile();
+    if (root.isDirectory()) {
+      for (File f : pRootDir.toFile().listFiles()) {
+        if (f.isDirectory()) {
+          cleanRecursively(f.toPath());
+        }
+        f.delete();
+      }
+    }
   }
 
   // TODO: This is duplicate code with ARGStatistics#getAllCounterexamples
