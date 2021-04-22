@@ -78,7 +78,7 @@ public class BlockFormulaStrategy {
    *     main analyses analyzed them successfully).
    * @throws InterruptedException On shutdown request.
    */
-  public BlockFormulas getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)
+  BlockFormulas getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)
       throws CPATransferException, InterruptedException {
     return new BlockFormulas(
         from(abstractionStates)

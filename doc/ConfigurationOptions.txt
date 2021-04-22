@@ -1110,6 +1110,10 @@ cpa.abe.checkTargetStates = true
 # Cache formulas produced by path formula manager
 cpa.abe.useCachingPathFormulaManager = true
 
+# Create a file that contains the StrongestPost for each loop in the program
+# in this directory.(with a concluding '/')
+cpa.alternativeWitnessExport.outdirForExport = "errorPaths/"
+
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
   enum:     [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
@@ -2432,6 +2436,10 @@ cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.liveVariables = true
 
+# Create a file that contains the StrongestPost for each loop in the program
+# in this directory.(with a concluding '/')
+cpa.predicate.refinement.outdirForExport = "errorPaths/"
+
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
@@ -2511,6 +2519,10 @@ cpa.predicate.refinement.tryAgainOnInterpolationError = true
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
+
+# use externally generated invariants for the CPA-Refinement, experimental
+# feature!
+cpa.predicate.refinement.useExternalErrorPath = false
 
 # use Newton-based Algorithm for the CPA-Refinement, experimental feature!
 cpa.predicate.refinement.useNewtonRefinement = false
@@ -2863,10 +2875,6 @@ cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
-
-# Create a file that contains the StrongestPost for each loop in the program
-# in this directory.(with a concluding '/')
-cpa.spexport.outdirForExport = "output/"
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.

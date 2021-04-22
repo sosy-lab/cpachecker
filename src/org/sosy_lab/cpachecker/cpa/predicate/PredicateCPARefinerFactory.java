@@ -170,7 +170,8 @@ public class PredicateCPARefinerFactory {
             prefixProvider,
             prefixSelector,
             invariantsManager,
-            pRefinementStrategy);
+            pRefinementStrategy,
+            cfa);
 
     if (performInitialStaticRefinement) {
       refiner =

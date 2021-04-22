@@ -636,7 +636,7 @@ public class CoreComponentsFactory {
         algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
       if (useAlternativeErrorWitnesses) {
-        algorithm = new AlternativeErrorWitnessExport(config, algorithm, logger, cfa, cpa);
+        algorithm = new AlternativeErrorWitnessExport(config, algorithm, logger, cpa);
       }
     }
 
