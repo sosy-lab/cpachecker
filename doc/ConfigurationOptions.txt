@@ -155,6 +155,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -475,6 +476,11 @@ analysis.unknownAsTrue = false
 # stop the analysis with the result unknown if the program does not satisfies
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
+
+# Use an alternative format for error witnesses by using a set of boolean
+# formulae. This option should only be used, if the configuration
+# -witnessValidation is used.
+analysis.useAlternativeErrorWitnesses = false
 
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
@@ -2857,6 +2863,10 @@ cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
+
+# Create a file that contains the StrongestPost for each loop in the program
+# in this directory.(with a concluding '/')
+cpa.spexport.outdirForExport = "output/"
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.

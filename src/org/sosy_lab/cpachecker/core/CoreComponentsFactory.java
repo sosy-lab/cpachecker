@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.alternative_error_witness.AlternativeErrorWitnessExport;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -317,6 +318,13 @@ public class CoreComponentsFactory {
       name = "algorithm.faultLocalization.by_coverage",
       description = "for found property violation, perform fault localization with coverage")
   private boolean useFaultLocalizationWithCoverage = false;
+
+  @Option(
+      secure = true,
+      name = "useAlternativeErrorWitnesses",
+      description =
+          "Use an alternative format for error witnesses by using a set of boolean formulae. This option should only be used, if the configuration -witnessValidation is used.")
+  private boolean useAlternativeErrorWitnesses = false;
 
   @Option(
       secure = true,
@@ -626,6 +634,9 @@ public class CoreComponentsFactory {
       }
       if(useFaultLocalizationWithTraceFormulas) {
         algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      }
+      if (useAlternativeErrorWitnesses) {
+        algorithm = new AlternativeErrorWitnessExport(config, algorithm, logger, cfa, cpa);
       }
     }
 

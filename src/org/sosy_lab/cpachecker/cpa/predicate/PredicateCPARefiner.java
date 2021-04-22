@@ -586,7 +586,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  static List<ARGState> filterAbstractionStates(ARGPath pPath) {
+  public static List<ARGState> filterAbstractionStates(ARGPath pPath) {
     List<ARGState> result =
         from(pPath.asStatesList())
             .skip(1)
