@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -63,11 +61,8 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
 
   private final LogManager logger;
 
-
   private final Algorithm algorithm;
   private PredicateCPA predicateCPA;
-
-  private @NonNull ARGCPA argCpa;
 
 
 
@@ -75,14 +70,11 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
       Configuration config,
       Algorithm pAlgorithm,
       LogManager pLogger,
-
       ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     algorithm = pAlgorithm;
 
     logger = Objects.requireNonNull(pLogger);
-
-    argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, CounterexampleStoreAlgorithm.class);
 
     predicateCPA =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, CounterexampleStoreAlgorithm.class);
@@ -105,8 +97,7 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
           : "Last element in reached is not a target state before refinement";
 
       final @Nullable ARGPath allStatesTrace = ARGUtils.getOnePathTo(lastElement);
-      List<ARGState> abstractionStatesTrace =
-          PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
+
 
       Set<ARGState> elementsOnPath = getAllStatesOnPathsTo(allStatesTrace.getLastState());
       // No branches/merges in path, it is precise.
@@ -119,7 +110,8 @@ public class AlternativeErrorWitnessExport implements Algorithm, StatisticsProvi
 
       // create path with all abstraction location elements (excluding the initial element)
       // the last element is the element corresponding to the error location
-      abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
+      List<ARGState> abstractionStatesTrace =
+          PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 

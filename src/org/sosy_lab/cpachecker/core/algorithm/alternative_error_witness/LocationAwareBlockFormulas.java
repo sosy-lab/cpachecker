@@ -121,7 +121,7 @@ public class LocationAwareBlockFormulas extends BlockFormulas {
 
   public static LocationAwareBlockFormulas constructFromDump(
       Path dir, FormulaManagerView fmgr, CFA pCfa) throws IllegalArgumentException, IOException {
-    Path f = Paths.get(dir.toAbsolutePath() + "/" +  PATH);
+    Path f = Paths.get(dir.toAbsolutePath() + "/" + PATH);
     List<String> nodeOrderingOnPath = Files.readAllLines(f);
 
     CFANode[] nodes = new CFANode[nodeOrderingOnPath.size()];

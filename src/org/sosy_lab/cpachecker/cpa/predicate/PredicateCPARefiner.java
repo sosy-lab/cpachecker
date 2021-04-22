@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallsta
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -296,25 +297,44 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
               LocationAwareBlockFormulas.constructFromDump(outdirForExport, fmgr, cfa);
 
         repeatedCounterexample = false;
-        abstractionStatesTrace = new ArrayList<>();
-          // TODO: Discuss, if true is a better option instead
-          branchingOccurred = locAwareformulas.hasBranchingFormula();
-          Map<CFANode, Integer> nodesToTheirPositionInList = new HashMap<>();
-          for (int i = 0; i < locAwareformulas.getLocationList().size(); i++) {
-            nodesToTheirPositionInList.put(locAwareformulas.getLocationList().get(i), i);
-          }
-          ARGState[] trace = new ARGState[nodesToTheirPositionInList.entrySet().size()];
+          //        abstractionStatesTrace = new ArrayList<>();
+          // TODO: This may produce imprecise counterexamples, but as we don't care about the
+          // counterexamples, it is "ok"
+          branchingOccurred = false;
+
+          //Next, we need to determine for each element from the BlockFormulas and the
+          // associated CFANode, an ARG Node, s.t. the LocationNode of the ARGState and CFANode of the
+          //formula are equal. As the ARGNodes are only used to update the preicsion, we in fact dont care,
+          //which exact ARGState is used.
+          Map<CFANode, ARGState> cnfNodesToARGStates = new HashMap<>();
+
+
         for (AbstractState s : pReached.asReachedSet().asCollection()) {
             CFANode loc = AbstractStates.extractLocation(s);
-            if (nodesToTheirPositionInList.containsKey(loc)) {
-              trace[nodesToTheirPositionInList.get(loc)] =
-                  AbstractStates.extractStateByType(s, ARGState.class);
+            cnfNodesToARGStates.put(loc,    AbstractStates.extractStateByType(s, ARGState.class));
+
+          }
+        ARGState[] trace = new ARGState[locAwareformulas.getLocationList().size()];
+        for (int i = 0; i < locAwareformulas.getLocationList().size(); i++) {
+            CFANode loc = locAwareformulas.getLocationList().get(i);
+            if (cnfNodesToARGStates.containsKey(loc)) {
+              trace[i] =cnfNodesToARGStates.get(loc);
+
+          }else{
+              throw new CPAException(
+                  String.format(
+                      "The interpolation failed, as no  abstract state for location %s is computed!",
+                      loc.toString()));
             }
           }
+
           abstractionStatesTrace = Lists.newArrayList(trace);
           formulas = locAwareformulas;
         } catch (IllegalArgumentException | IOException e) {
-          throw new CPAException("", e);
+          throw new CPAException(
+              String.format(
+                  "An error occured while reading the alternative witnesses. Error:%s",
+                  Throwables.getStackTraceAsString(e)));
         }
       } else {
         errorPath =
@@ -401,7 +421,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
    * Check whether the path contains states A, B, C with successor relations A->B, B->C, A->C.
    * Branching like this would not be detected otherwise.
    */
-  private boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
+  public static boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
     for (ARGState state : pElementsOnPath) {
       boolean alreadyFoundOneChild = false;
       for (ARGState child : state.getChildren()) {
