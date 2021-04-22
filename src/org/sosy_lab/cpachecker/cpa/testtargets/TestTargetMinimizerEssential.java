@@ -187,7 +187,7 @@ public class TestTargetMinimizerEssential {
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
-    CFAEdge removedEdge;
+    CFAEdge removedEdge, testTargetToBeDominated;
     CFANode currentNode;
 
     // start at entry node because why not?
@@ -227,37 +227,27 @@ public class TestTargetMinimizerEssential {
         }
 
         if (copiedEdgeToTestTargetsMap.containsKey(removedEdge)) {
-
+          testTargetToBeDominated = copiedEdgeToTestTargetsMap.get(removedEdge);
           // first check if any test targets dominate the removed edges testtarget
           for (CFAEdge enterEdge : CFAUtils.enteringEdges(currentNode)) {
             // if an edge is mapped to a different test target
             if (copiedEdgeToTestTargetsMap.containsKey(enterEdge)
                 && !copiedEdgeToTestTargetsMap.get(enterEdge)
-                    .equals(copiedEdgeToTestTargetsMap.get(removedEdge))) {
+                    .equals(testTargetToBeDominated)) {
               // removed edge is getting dominated by this edge so remove the removed edges
               // testtarget from our list of testtargets
-              CFAEdge dominatedTestTarget = copiedEdgeToTestTargetsMap.get(removedEdge);
-              pTestTargets.remove(dominatedTestTarget);
+              pTestTargets.remove(testTargetToBeDominated);
               // need to remove all occurrences of the same value that has been dominated to clean
               // up
               // the mapping and prevent
               // accidental removal of test targets based on an already removed dominator due to the
               // order of nodes
               copiedEdgeToTestTargetsMap.values()
-                  .removeAll(Collections.singleton(dominatedTestTarget));
+                  .removeAll(Collections.singleton(testTargetToBeDominated));
 
               break;
             }
-          }
-        }
-
-        if (copiedEdgeToTestTargetsMap.containsKey(removedEdge)) {
-          // inherit the testTarget information to all the incoming edges as if they get dominated
-          // we can exclude the testtarget
-          // and remove the removed edge from the mapping as it is now unnecessary
-          for (CFAEdge enterEdge : CFAUtils.enteringEdges(currentNode)) {
-            copiedEdgeToTestTargetsMap.put(enterEdge, copiedEdgeToTestTargetsMap.get(removedEdge));
-
+            copiedEdgeToTestTargetsMap.put(enterEdge, testTargetToBeDominated);
           }
           copiedEdgeToTestTargetsMap.remove(removedEdge);
         }
@@ -286,7 +276,7 @@ public class TestTargetMinimizerEssential {
     Set<CFANode> vistedNodes = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     CFANode currentNode;
-    CFAEdge removedEdge;
+    CFAEdge removedEdge, testTargetToBeDominated;
 
     // remove edges from dummy graph according to second rule
     // start at entry node because why not?
@@ -320,23 +310,24 @@ public class TestTargetMinimizerEssential {
         }
 
         if (copiedEdgeToTestTargetsMap.containsKey(removedEdge)) {
+          testTargetToBeDominated = copiedEdgeToTestTargetsMap.get(removedEdge);
           // inherit the testTarget information to all the outgoing edges as if they get dominated
           // we can exclude the testtarget
           // and remove the removed edge from the mapping as it is now unnecessary
           for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
 
-            if (copiedEdgeToTestTargetsMap.containsKey(leavingEdge)) {
+            if (copiedEdgeToTestTargetsMap.containsKey(leavingEdge)
+                && !copiedEdgeToTestTargetsMap.get(leavingEdge).equals(testTargetToBeDominated)) {
               // removed edge is getting dominated by this edge so remove the removed edges
               // testtarget from our list of testtargets
-              // FIXME consider below comment, difference to rule 1
-              // TODO do we need to remove all other edges with this value from the mapping aswell
-              // to prevent wrong eliminations of test targets?
-              pTestTargets.remove(copiedEdgeToTestTargetsMap.get(removedEdge));
+              pTestTargets.remove(testTargetToBeDominated);
+
+              copiedEdgeToTestTargetsMap.values()
+                  .removeAll(Collections.singleton(testTargetToBeDominated));
               break;
             }
             copiedEdgeToTestTargetsMap
-                .put(leavingEdge, copiedEdgeToTestTargetsMap.get(removedEdge));
-
+                .put(leavingEdge, testTargetToBeDominated);
           }
           copiedEdgeToTestTargetsMap.remove(removedEdge);
         }
@@ -366,8 +357,6 @@ public class TestTargetMinimizerEssential {
             entryNode,
             TestTargetMinimizerEssential::iteratePredecessors,
             TestTargetMinimizerEssential::iterateSuccessors);
-    nodeQueue = new ArrayDeque<>();
-    addedNodes = new HashSet<>();
     // start at entry node because why not?
     nodeQueue.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
     addedNodes.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
@@ -503,8 +492,6 @@ public class TestTargetMinimizerEssential {
             entryNode,
             TestTargetMinimizerEssential::iteratePredecessors,
             TestTargetMinimizerEssential::iterateSuccessors);
-    nodeQueue = new ArrayDeque<>();
-    addedNodes = new HashSet<>();
     // start at entry node because why not?
     nodeQueue.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
     addedNodes.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
