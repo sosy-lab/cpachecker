@@ -16,11 +16,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class TestTargetMinimizerBasicEssential {
 
-
-  public TestTargetMinimizerBasicEssential() {
-
-  }
-
   public Set<CFAEdge> reduceTargets(final Set<CFAEdge> testTargets) {
     Set<CFAEdge> targetsAfterRule1 = new HashSet<>(testTargets);
     // rule 1
@@ -43,7 +38,6 @@ public class TestTargetMinimizerBasicEssential {
       // then we can remove the edge under investigation from the testgoals
       if (predecessor.getNumLeavingEdges() == 1) {
         for (CFAEdge enteringEdge : CFAUtils.enteringEdges(predecessor)) {
-          predecessor.getNumEnteringEdges();
           if (testTargets.contains(enteringEdge)) {
             targetsAfterRule1.remove(currentEdge);
             break;
