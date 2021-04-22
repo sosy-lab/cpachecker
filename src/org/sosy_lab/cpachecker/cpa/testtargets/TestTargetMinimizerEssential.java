@@ -290,7 +290,7 @@ public class TestTargetMinimizerEssential {
       // skipping it
       if (currentNode.getNumEnteringEdges() == 1
           && currentNode != copiedFunctionEntry
-          && !(isSelfLoop(currentNode.getEnteringEdge(0)))) {
+          && !isSelfLoop(currentNode.getEnteringEdge(0))) {
 
         // remove the current nodes entering edge from its predecessor and from the current node
         removedEdge = currentNode.getEnteringEdge(0);
