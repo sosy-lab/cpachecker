@@ -274,10 +274,11 @@ public class SMGTransferRelation
       CExpression lValue = funcAssignment.getLeftHandSide();
       CType rValueType = TypeUtils.getRealExpressionType(funcAssignment.getRightHandSide());
       SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
-      SMGValue rValue =
-          expressionEvaluator
-              .readValue(newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge)
-              .getObject();
+      SMGValueAndState valueAndState =
+          expressionEvaluator.readValue(
+              newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge);
+      newState = valueAndState.getSmgState();
+      SMGValue rValue = valueAndState.getObject();
 
       // Lvalue is one frame above
       newState.dropStackFrame();

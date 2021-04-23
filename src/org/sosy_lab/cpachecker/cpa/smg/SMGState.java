@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGReadParams;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -1685,8 +1686,28 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return Collections.unmodifiableList(errorInfo.getInvalidChain());
   }
 
+  @Override
+  public PersistentMap<String, SMGValue> getInvalidReads() {
+    return errorInfo.getInvalidReads();
+  }
+
   public void addInvalidObject(SMGObject pSmgObject) {
     errorInfo = errorInfo.withInvalidObject(pSmgObject);
+  }
+
+  public void addInvalidRead(String pKey, SMGValue pValue) {
+    errorInfo = errorInfo.withInvalidRead(pKey, pValue);
+  }
+
+  @Override
+  public boolean hasEdgeCorrespondedToRead(SMGReadParams pParams, SMGValue pValue) {
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.readParamsFilter(pParams);
+    for (SMGEdgeHasValue hasValueEdge : getHVEdges(filter)) {
+      if (hasValueEdge.getValue().equals(pValue)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void addElementToCurrentChain(Object elem) {
@@ -1697,8 +1718,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     errorInfo = errorInfo.withObject(elem);
   }
 
-  public void addReadVariable(String pName, SMGValue pObject) {
-    errorInfo = errorInfo.addReadVariable(pName, pObject);
+  public void addReadVariable(String pName, SMGValue pValue) {
+    errorInfo = errorInfo.addReadVariable(pName, pValue);
+  }
+
+  public void addReadParams(String pName, SMGReadParams pParams) {
+    errorInfo = errorInfo.addReadParams(pName, pParams);
+  }
+
+  @Override
+  public PersistentMap<String, SMGReadParams> getReadParams() {
+    return errorInfo.getReadParams();
   }
 
   @Override

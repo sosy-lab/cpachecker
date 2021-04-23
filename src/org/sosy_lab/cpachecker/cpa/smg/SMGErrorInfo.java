@@ -18,6 +18,7 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState.Property;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGReadParams;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
@@ -36,6 +37,8 @@ class SMGErrorInfo {
   private final PersistentList<Object> invalidChain;
   private final PersistentList<Object> currentChain;
   private final PersistentMap<String, SMGValue> readValues;
+  private final PersistentMap<String, SMGReadParams> readParams;
+  private final PersistentMap<String, SMGValue> invalidReads;
 
   private SMGErrorInfo(
       boolean pInvalidWrite,
@@ -45,7 +48,9 @@ class SMGErrorInfo {
       String pErrorDescription,
       PersistentList<Object> pInvalidChain,
       PersistentList<Object> pCurrentChain,
-      PersistentMap<String, SMGValue> pReadValues) {
+      PersistentMap<String, SMGValue> pReadValues,
+      PersistentMap<String, SMGReadParams> pReadParams,
+      PersistentMap<String, SMGValue> pInvalidReads) {
     invalidWrite = pInvalidWrite;
     invalidRead = pInvalidRead;
     invalidFree = pInvalidFree;
@@ -54,6 +59,8 @@ class SMGErrorInfo {
     invalidChain = pInvalidChain;
     currentChain = pCurrentChain;
     readValues = pReadValues;
+    readParams = pReadParams;
+    invalidReads = pInvalidReads;
   }
 
   static SMGErrorInfo of() {
@@ -65,6 +72,8 @@ class SMGErrorInfo {
         "",
         PersistentLinkedList.of(),
         PersistentLinkedList.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of());
   }
 
@@ -77,7 +86,9 @@ class SMGErrorInfo {
         pErrorDescription,
         invalidChain,
         currentChain,
-        readValues);
+        readValues,
+        readParams,
+        invalidReads);
   }
 
   SMGErrorInfo withProperty(Property pProperty) {
@@ -111,7 +122,9 @@ class SMGErrorInfo {
         errorDescription,
         invalidChain,
         currentChain,
-        readValues);
+        readValues,
+        readParams,
+        invalidReads);
   }
 
   boolean hasMemoryErrors() {
@@ -127,7 +140,9 @@ class SMGErrorInfo {
         errorDescription,
         invalidChain,
         currentChain,
-        readValues);
+        readValues,
+        readParams,
+        invalidReads);
   }
 
   SMGErrorInfo withClearChain() {
@@ -139,6 +154,8 @@ class SMGErrorInfo {
         errorDescription,
         PersistentLinkedList.of(),
         PersistentLinkedList.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of());
   }
 
@@ -151,7 +168,9 @@ class SMGErrorInfo {
         errorDescription,
         invalidChain.withAll(currentChain),
         currentChain,
-        readValues);
+        readValues,
+        readParams,
+        invalidReads);
   }
 
   public SMGErrorInfo withObject(Object o) {
@@ -163,7 +182,9 @@ class SMGErrorInfo {
         errorDescription,
         invalidChain,
         currentChain.with(o),
-        readValues);
+        readValues,
+        readParams,
+        invalidReads);
   }
 
   SMGErrorInfo withInvalidObject(SMGObject pSmgObject) {
@@ -179,10 +200,12 @@ class SMGErrorInfo {
         errorDescription,
         invalidChain.withAll(new ArrayList<>(pObjects)),
         currentChain,
-        readValues);
+        readValues,
+        readParams,
+        invalidReads);
   }
 
-  public SMGErrorInfo addReadVariable(String pName, SMGValue pObject) {
+  public SMGErrorInfo addReadVariable(String pName, SMGValue pValue) {
     return new SMGErrorInfo(
         invalidWrite,
         invalidRead,
@@ -191,7 +214,37 @@ class SMGErrorInfo {
         errorDescription,
         invalidChain,
         currentChain,
-        readValues.putAndCopy(pName, pObject));
+        readValues.putAndCopy(pName, pValue),
+        readParams,
+        invalidReads);
+  }
+
+  SMGErrorInfo withInvalidRead(String pKey, SMGValue pValue) {
+    return new SMGErrorInfo(
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        invalidChain,
+        currentChain,
+        readValues,
+        readParams,
+        invalidReads.putAndCopy(pKey, pValue));
+  }
+
+  public SMGErrorInfo addReadParams(String pName, SMGReadParams pParams) {
+    return new SMGErrorInfo(
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        invalidChain,
+        currentChain,
+        readValues,
+        readParams.putAndCopy(pName, pParams),
+        invalidReads);
   }
 
   @Override
@@ -269,5 +322,13 @@ class SMGErrorInfo {
 
   public PersistentMap<String, SMGValue> getReadValues() {
     return readValues;
+  }
+
+  public PersistentMap<String, SMGValue> getInvalidReads() {
+    return invalidReads;
+  }
+
+  public PersistentMap<String, SMGReadParams> getReadParams() {
+    return readParams;
   }
 }

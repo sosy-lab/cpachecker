@@ -20,6 +20,13 @@ public class SMGEdgeHasValueFilter {
     return new SMGEdgeHasValueFilter().filterByObject(pObject);
   }
 
+  public static SMGEdgeHasValueFilter readParamsFilter(SMGReadParams pParams) {
+    return new SMGEdgeHasValueFilter()
+        .filterByObject(pParams.getObject())
+        .filterAtOffset(pParams.getOffset())
+        .filterBySize(pParams.getSize());
+  }
+
   private SMGObject object = null;
   private SMGValue value = null;
   private boolean valueComplement = false;

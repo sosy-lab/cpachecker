@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGReadParams;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
@@ -103,6 +104,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   PersistentMap<String, SMGValue> getReadValues();
 
+  PersistentMap<String, SMGReadParams> getReadParams();
+
   /**
    * Stores a error-message in the state.
    *
@@ -151,6 +154,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   Collection<Object> getCurrentChain();
 
+  PersistentMap<String, SMGValue> getInvalidReads();
+
   boolean isTrackPredicatesEnabled();
 
   SMGPredicateRelation getPathPredicateRelation();
@@ -164,6 +169,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
   boolean hasMemoryErrors();
 
   boolean hasMemoryLeaks();
+
+  boolean hasEdgeCorrespondedToRead(SMGReadParams pParams, SMGValue pValue);
 
   boolean areNonEqual(SMGValue pValue1, SMGValue pValue2);
 

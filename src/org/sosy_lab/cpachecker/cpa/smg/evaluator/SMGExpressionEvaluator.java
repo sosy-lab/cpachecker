@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -194,10 +195,11 @@ public class SMGExpressionEvaluator {
     }
 
     long fieldOffset = pOffset.getAsLong();
+    long typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    long objectBitSize = pObject.getSize();
 
-    //FIXME Does not work with variable array length.
-    boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+    // FIXME Does not work with variable array length.
+    boolean doesNotFitIntoObject = fieldOffset < 0 || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory

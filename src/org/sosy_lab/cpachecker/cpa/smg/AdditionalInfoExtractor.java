@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGReadParams;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -53,6 +55,11 @@ public class AdditionalInfoExtractor {
     UnmodifiableSMGState prevSMGState = state;
     Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
+    PersistentMap<String, SMGValue> variablesToCheck = state.getInvalidReads();
+    PersistentMap<String, SMGReadParams> readParamsMap = PathCopyingPersistentTreeMap.of();
+    for (String s : variablesToCheck.keySet()) {
+      readParamsMap = readParamsMap.putAndCopy(s, state.getReadParams().get(s));
+    }
 
     String valueMessage = "";
     while (rIterator.hasNext()) {
@@ -77,6 +84,30 @@ public class AdditionalInfoExtractor {
             SMGConvertingTags.READ_VALUES,
             SMGAdditionalInfo.of(valueMessage, Level.INFO));
       }
+
+      boolean hasChange = false;
+      Set<Entry<String, SMGValue>> variablesSet = variablesToCheck.entrySet();
+      for (Entry<String, SMGValue> variableEntry : variablesSet) {
+        String variableName = variableEntry.getKey();
+        if (!smgState.hasEdgeCorrespondedToRead(
+            readParamsMap.get(variableName), variableEntry.getValue())) {
+          edgeWithAdditionalInfo.addInfo(
+              SMGConvertingTags.WRITE_VALUES,
+              SMGAdditionalInfo.of("Write to '" + variableName + "'", Level.WARNING));
+          variablesToCheck = variablesToCheck.removeAndCopy(variableName);
+          readParamsMap = readParamsMap.removeAndCopy(variableName);
+          hasChange = true;
+        }
+      }
+      if (hasChange) {
+        for (Entry<String, SMGValue> entry : smgState.getReadValues().entrySet()) {
+          variablesToCheck = variablesToCheck.putAndCopy(entry.getKey(), entry.getValue());
+        }
+        for (Entry<String, SMGReadParams> entry : smgState.getReadParams().entrySet()) {
+          readParamsMap = readParamsMap.putAndCopy(entry.getKey(), entry.getValue());
+        }
+      }
+
       valueMessage = getValueMessage(smgState);
       invalidChain = toCheck;
       prevSMGState = smgState;

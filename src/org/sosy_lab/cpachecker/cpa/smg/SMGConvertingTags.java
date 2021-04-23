@@ -14,5 +14,6 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 /** Intermediate enum for {@link AdditionalInfoConverter} used at {@link SMGCPA} */
 public enum SMGConvertingTags implements ConvertingTags {
   NOTE,
-  READ_VALUES
+  READ_VALUES,
+  WRITE_VALUES
 }
