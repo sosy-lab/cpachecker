@@ -64,10 +64,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.coverage.AdditionalCoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.AdditionalCoverageReportLcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportLcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
@@ -345,7 +345,7 @@ class MainCPAStatistics implements Statistics {
 
       if (outputCoverageFile != null) {
         try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-          CoverageReportGcov.write(infosPerFile, gcovOut);
+          CoverageReportLcov.write(infosPerFile, gcovOut);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING, e, "Could not write coverage information to file");
@@ -355,7 +355,7 @@ class MainCPAStatistics implements Statistics {
         CoverageData additionalInfosPerFile =
             CoverageCollector.additionalInfoFromReachedSet(reachedStates, cfa);
         try (Writer gcovOut = IO.openOutputFile(additionalCoverageFile, Charset.defaultCharset())) {
-          AdditionalCoverageReportGcov.write(additionalInfosPerFile, gcovOut);
+          AdditionalCoverageReportLcov.write(additionalInfosPerFile, gcovOut);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING, e, "Could not write additional coverage information to file");

@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportLcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -169,7 +169,7 @@ public class CEXExporter {
     if (options.getCoveragePrefix() != null) {
       Path outputPath = options.getCoveragePrefix().getPath(counterexample.getUniqueId());
       try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
-        CoverageReportGcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
+        CoverageReportLcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write coverage information for counterexample to file");
