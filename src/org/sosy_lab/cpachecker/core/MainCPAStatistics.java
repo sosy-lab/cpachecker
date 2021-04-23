@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.coverage.AdditionalCoverageReportLcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportLcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
@@ -127,6 +128,10 @@ class MainCPAStatistics implements Statistics {
   @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputCoverageFile = Paths.get("coverage.info");
+
+  @Option(secure = true, name = "coverage.gcovfile", description = "print coverage info to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputGcovCoverageFile = Paths.get("coverage.gcov");
 
   @Option(
       secure = true,
@@ -344,8 +349,18 @@ class MainCPAStatistics implements Statistics {
       CoverageReportStdoutSummary.write(infosPerFile, out);
 
       if (outputCoverageFile != null) {
-        try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-          CoverageReportLcov.write(infosPerFile, gcovOut);
+        try (Writer lcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+          CoverageReportLcov.write(infosPerFile, lcovOut);
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+        }
+      }
+
+      if (outputGcovCoverageFile != null) {
+        CoverageData additionalInfosPerFile =
+            CoverageCollector.additionalInfoFromReachedSet(reachedStates, cfa);
+        try (Writer gcovOut = IO.openOutputFile(outputGcovCoverageFile, Charset.defaultCharset())) {
+          CoverageReportGcov.write(additionalInfosPerFile, gcovOut);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING, e, "Could not write coverage information to file");

@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
+import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public final class CoverageData {
@@ -98,8 +100,12 @@ public final class CoverageData {
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
 
+    Iterator<String> sourceCode = pEdge.getRawStatement().lines().iterator();
     for (int line = startingLine; line <= endingLine; line++) {
       collector.addExistingLine(line);
+      if (sourceCode.hasNext()) {
+        collector.addSourceCode(line, sourceCode.next());
+      }
     }
 
     if (pEdge instanceof AssumeEdge) {
@@ -107,11 +113,12 @@ public final class CoverageData {
     }
   }
 
-  public void addInfoOnEdge(final CFAEdge pEdge, List<String> pInfo) {
+  public void addInfoOnEdge(
+      final CFAEdge pEdge, PersistentMultimap<String, SMGKnownExpValue> pInfo) {
     final FileLocation loc = pEdge.getFileLocation();
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
     final int endingLine = loc.getEndingLineInOrigin();
-    collector.addLineInfo(endingLine, pInfo);
+    collector.addAdditionalInfo(endingLine, pInfo);
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {

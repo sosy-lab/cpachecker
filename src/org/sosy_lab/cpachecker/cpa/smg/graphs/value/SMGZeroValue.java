@@ -24,7 +24,7 @@ public final class SMGZeroValue extends SMGKnownExpValue
 
   @Override
   public String toString() {
-    return "NULL";
+    return "0";
   }
 
   @Override

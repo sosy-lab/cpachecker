@@ -14,7 +14,9 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Iterables;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -25,8 +27,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.smg.AdditionalInfoExtractor;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -108,14 +112,20 @@ class AdditionalCoverageCollector extends ReachedSetCoverageCollector {
   }
 
   private CoverageData processStates(ARGState pArgState, SMGState pSmgState, CoverageData pCov) {
-    List<String> valueMessages = AdditionalInfoExtractor.getValueMessages(pSmgState);
-    if (!valueMessages.isEmpty()) {
+    PersistentMap<String, SMGValue> valueMessages = pSmgState.getReadValues();
+    PersistentMultimap<String, SMGKnownExpValue> result = PersistentMultimap.of();
+    for (Entry<String, SMGValue> entry : valueMessages.entrySet()) {
+      if (pSmgState.isExplicit(entry.getValue())) {
+        result = result.putAndCopy(entry.getKey(), pSmgState.getExplicit(entry.getValue()));
+      }
+    }
+    if (!result.isEmpty()) {
       for (ARGState child : pArgState.getParents()) {
         // Do not specially check child.isCovered, as the edge to covered state also should be
         // marked as covered edge
         List<CFAEdge> edges = child.getEdgesToChild(pArgState);
         for (CFAEdge innerEdge : edges) {
-          pCov.addInfoOnEdge(innerEdge, valueMessages);
+          pCov.addInfoOnEdge(innerEdge, result);
         }
       }
     }

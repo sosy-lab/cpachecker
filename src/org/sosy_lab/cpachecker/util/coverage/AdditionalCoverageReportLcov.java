@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.io.Writer;
@@ -52,9 +51,9 @@ public class AdditionalCoverageReportLcov {
        */
       for (Integer line : fileInfos.allLines) {
         w.append(LINEDATA + line + "," + fileInfos.getVisitedLine(line) + "\n");
-        ImmutableSet<String> strings = fileInfos.additionalInfo.get(line);
-        if (!strings.isEmpty()) {
-          w.append(ADDITIONAL + String.join(", ", strings) + "\n");
+        String additionalInfo = fileInfos.getAdditionalInfo(line);
+        if (!additionalInfo.isEmpty()) {
+          w.append(ADDITIONAL + additionalInfo + "\n");
         }
       }
       w.append("end_of_record\n");
