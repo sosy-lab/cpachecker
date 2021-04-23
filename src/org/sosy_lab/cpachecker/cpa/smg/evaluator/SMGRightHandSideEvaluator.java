@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -125,23 +126,30 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
+      String readVariable = "";
+      for (Entry<String, SMGValue> entry : errState.getReadValues().entrySet()) {
+        SMGEdgePointsTo pointer = errState.getHeap().getPointer(entry.getValue());
+        if (pointer != null && pObject.equals(pointer.getObject())) {
+          readVariable = readVariable.concat(" '" + entry.getKey() + "' variable");
+        }
+      }
       final String description;
       if (!pObject.equals(SMGNullObject.INSTANCE)) {
         if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
           description =
               String.format(
                   "Field with %d  bit size can't be read from offset %s bit of object %d bit size",
-                  typeBitSize, fieldOffset, objectBitSize);
+                  typeBitSize, fieldOffset, objectBitSize) + readVariable;
         } else {
           description =
               String.format(
                   "Field with %d  byte size can't be read from offset %s byte of object %d byte"
                       + " size",
-                  typeBitSize / 8, fieldOffset / 8, objectBitSize / 8);
+                  typeBitSize / 8, fieldOffset / 8, objectBitSize / 8) + readVariable;
         }
         errState.addInvalidObject(pObject);
       } else {
-        description = "NULL pointer dereference on read";
+        description = "NULL pointer dereference on read"  + readVariable;
       }
       errState = errState.withErrorDescription(description);
       return SMGValueAndState.withUnknownValue(errState);
@@ -189,13 +197,20 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                   pRValueType.toASTString(""),
                   pMemoryOfField));
       SMGState newState = pState.withInvalidWrite();
+      String readVariable = "";
+      for (Entry<String, SMGValue> entry : newState.getReadValues().entrySet()) {
+        SMGEdgePointsTo pointer = newState.getHeap().getPointer(entry.getValue());
+        if (pointer != null && pMemoryOfField.equals(pointer.getObject())) {
+          readVariable = readVariable.concat(" on '" + entry.getKey() + "' variable");
+        }
+      }
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
         newState = newState.withErrorDescription(String.format(
             "Field with size %d bit can't be written at offset %d bit of object %d bit size",
-            rValueTypeBitSize, pFieldOffset, memoryBitSize));
+            rValueTypeBitSize, pFieldOffset, memoryBitSize) + readVariable);
         newState.addInvalidObject(pMemoryOfField);
       } else {
-        newState = newState.withErrorDescription("NULL pointer dereference on write");
+        newState = newState.withErrorDescription("NULL pointer dereference" + readVariable);
       }
       return newState;
     }
