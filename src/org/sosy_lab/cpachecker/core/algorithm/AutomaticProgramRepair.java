@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -137,15 +139,20 @@ public class AutomaticProgramRepair
   }
 
   private MutableCFA mutateCFA(MutableCFA currentCFA, List<CFANode> repairCandidateNodes)  {
+    final Set<CFANode> nodesToDelete = Sets.newHashSet();
+
     for (CFANode node : repairCandidateNodes) {
-      if(shouldDelete()){
-        currentCFA.removeNode(node);
-      }
+      if (shouldDelete()) {
+        nodesToDelete.addAll(CFATraversal.dfs().collectNodesReachableFrom(node));
+        }
+    }
+
+    for (CFANode node : nodesToDelete ) {
+      currentCFA.removeNode(node);
     }
 
     return currentCFA;
   }
-
 
   private static class RepairCandidateCollector extends ForwardingCFAVisitor {
     private final List<CFANode> repairCandidateNodes = new ArrayList<>();
@@ -173,7 +180,7 @@ public class AutomaticProgramRepair
   }
 
   private boolean shouldDelete() {
-    return Math.random() >= 0.7;
+    return Math.random() >= 0.8;
   }
 
 
