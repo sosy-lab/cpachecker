@@ -4002,6 +4002,9 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# Termination timeout before force exit in seconds
+shutdown.timeout = 10
+
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 

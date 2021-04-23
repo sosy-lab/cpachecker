@@ -134,7 +134,8 @@ public class CPAMain {
     try {
       cpaConfig.inject(options);
       if (options.programs.isEmpty()) {
-        throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
+        throw new InvalidConfigurationException(
+            "Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
@@ -163,7 +164,8 @@ public class CPAMain {
     // This is for actually forcing a termination when CPAchecker
     // fails to shutdown within some time.
     ShutdownRequestListener forcedExitOnShutdown =
-        ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
+        ForceTerminationOnShutdown.createShutdownListener(
+            logManager, shutdownHook, options.shutdownTimeout);
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
@@ -274,6 +276,12 @@ public class CPAMain {
 
     @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
+
+    @Option(
+        secure = true,
+        name = "shutdown.timeout",
+        description = "Termination timeout before force exit in seconds")
+    private int shutdownTimeout = 10;
   }
 
   private static void dumpConfiguration(MainOptions options, Configuration config,
@@ -478,7 +486,8 @@ public class CPAMain {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
+      alternateConfigFile =
+          check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
     } else if (properties.contains(CommonPropertyType.OVERFLOW)) {
       if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
@@ -692,7 +701,8 @@ public class CPAMain {
     }
     if (validationConfigFile == null) {
       throw new InvalidConfigurationException(
-          "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
+          "Validating (violation|correctness) witnesses is not supported if option"
+              + " witness.validation.(violation|correctness).config is not specified.");
     }
     ConfigurationBuilder configBuilder =
         Configuration.builder()
@@ -761,7 +771,10 @@ public class CPAMain {
       mResult.writeOutputFiles();
 
       if (outputDirectory != null) {
-        stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
+        stream.println(
+            "More details about the verification run can be found in the directory \""
+                + outputDirectory
+                + "\".");
       }
 
       stream.flush();
