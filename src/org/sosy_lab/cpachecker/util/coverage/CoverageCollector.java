@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.smg.AdditionalInfoExtractor;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -38,6 +40,11 @@ public abstract class CoverageCollector {
 
   public static CoverageData fromCounterexample(ARGPath pPath) {
     return new CounterexampleCoverageCollector().collectFromCounterexample(pPath);
+  }
+
+  public static CoverageData additionalInfoFromReachedSet(
+      Iterable<AbstractState> pReached, CFA cfa) {
+    return new AdditionalCoverageCollector().collectFromReachedSet(pReached, cfa);
   }
 }
 
@@ -83,6 +90,36 @@ class CounterexampleCoverageCollector {
       cov.addVisitedEdge(edge);
       pathIterator.advance();
     }
+  }
+}
+
+class AdditionalCoverageCollector extends ReachedSetCoverageCollector {
+  @Override
+  CoverageData collectFromReachedSet(Iterable<AbstractState> reached, CFA cfa) {
+    CoverageData cov = super.collectFromReachedSet(reached, cfa);
+    for (AbstractState state : reached) {
+      SMGState smgState = AbstractStates.extractStateByType(state, SMGState.class);
+      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+      if (argState != null && smgState != null) {
+        cov = processStates(argState, smgState, cov);
+      }
+    }
+    return cov;
+  }
+
+  private CoverageData processStates(ARGState pArgState, SMGState pSmgState, CoverageData pCov) {
+    String valueMessage = AdditionalInfoExtractor.getValueMessage(pSmgState);
+    if (!valueMessage.isEmpty()) {
+      for (ARGState child : pArgState.getParents()) {
+        // Do not specially check child.isCovered, as the edge to covered state also should be
+        // marked as covered edge
+        List<CFAEdge> edges = child.getEdgesToChild(pArgState);
+        for (CFAEdge innerEdge : edges) {
+          pCov.addInfoOnEdge(innerEdge, valueMessage);
+        }
+      }
+    }
+    return pCov;
   }
 }
 

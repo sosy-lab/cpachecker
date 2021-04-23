@@ -203,11 +203,52 @@ public class SMGExpressionEvaluator {
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      logger.log(Level.WARNING, pEdge.getFileLocation() + ":", "Field " + "("
-          + fieldOffset + ", " + pType.toASTString("") + ")"
-          + " does not fit object " + pObject + ".");
-
-      return SMGValueAndState.withUnknownValue(pSmgState);
+      SMGState errState = pSmgState.withInvalidRead();
+      // Field does not fit size of declared Memory
+      logger.log(
+          Level.INFO,
+          pEdge.getFileLocation(),
+          ":",
+          "Field ",
+          "(",
+          fieldOffset,
+          ", ",
+          pType.toASTString(""),
+          ")",
+          " does not fit object ",
+          pObject,
+          ".");
+      String readVariable = "";
+      for (Entry<String, SMGValue> entry : errState.getReadValues().entrySet()) {
+        SMGEdgePointsTo pointer = errState.getHeap().getPointer(entry.getValue());
+        if (pointer != null && pObject.equals(pointer.getObject())) {
+          readVariable = readVariable.concat(" '" + entry.getKey() + "' variable");
+          errState.addInvalidRead(entry.getKey(), entry.getValue());
+        }
+      }
+      final String description;
+      if (!pObject.equals(SMGNullObject.INSTANCE)) {
+        if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
+          description =
+              String.format(
+                      "Field with %d  bit size can't be read from offset %s bit of object %d bit"
+                          + " size",
+                      typeBitSize, fieldOffset, objectBitSize)
+                  + readVariable;
+        } else {
+          description =
+              String.format(
+                      "Field with %d  byte size can't be read from offset %s byte of object %d byte"
+                          + " size",
+                      typeBitSize / 8, fieldOffset / 8, objectBitSize / 8)
+                  + readVariable;
+        }
+        errState.addInvalidObject(pObject);
+      } else {
+        description = "NULL pointer dereference on read" + readVariable;
+      }
+      errState = errState.withErrorDescription(description);
+      return SMGValueAndState.withUnknownValue(errState);
     }
 
     // We don't want to modify the state while reading

@@ -156,7 +156,7 @@ public class AdditionalInfoExtractor {
     return toCheck;
   }
 
-  private String getValueMessage(UnmodifiableSMGState smgState) {
+  public static String getValueMessage(UnmodifiableSMGState smgState) {
     StringBuilder result = new StringBuilder();
     PersistentMap<String, SMGValue> readValues = smgState.getReadValues();
     for (Entry<String, SMGValue> entry : readValues.entrySet()) {

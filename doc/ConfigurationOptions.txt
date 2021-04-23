@@ -160,6 +160,9 @@ solver.z3.usePhantomReferences = false
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
 
+# print additional coverage info to file
+additionalCoverage.file = "additionalCoverage.info"
+
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 

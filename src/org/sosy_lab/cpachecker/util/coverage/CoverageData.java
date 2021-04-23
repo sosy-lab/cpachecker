@@ -106,6 +106,13 @@ public final class CoverageData {
     }
   }
 
+  public void addInfoOnEdge(final CFAEdge pEdge, String pInfo) {
+    final FileLocation loc = pEdge.getFileLocation();
+    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    final int endingLine = loc.getEndingLineInOrigin();
+    collector.addLineInfo(endingLine, pInfo);
+  }
+
   public void addVisitedEdge(final CFAEdge pEdge) {
     if (!coversLine(pEdge)) {
       return;
