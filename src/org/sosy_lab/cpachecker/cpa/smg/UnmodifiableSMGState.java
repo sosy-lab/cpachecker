@@ -106,6 +106,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   PersistentMap<String, SMGReadParams> getReadParams();
 
+  SMGValue getReplacedValue(SMGValue fresh);
+
   /**
    * Stores a error-message in the state.
    *

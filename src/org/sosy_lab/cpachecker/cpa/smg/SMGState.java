@@ -1736,6 +1736,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return Collections.unmodifiableList(errorInfo.getCurrentChain());
   }
 
+  @Nullable
+  @Override
+  public SMGValue getReplacedValue(SMGValue fresh) {
+    return heap.getReplacedValue(fresh);
+  }
+
   protected void cleanCurrentChain() {
     errorInfo = errorInfo.withClearChain();
   }

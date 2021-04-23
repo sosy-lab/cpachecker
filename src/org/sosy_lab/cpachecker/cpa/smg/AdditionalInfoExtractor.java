@@ -91,12 +91,18 @@ public class AdditionalInfoExtractor {
         String variableName = variableEntry.getKey();
         if (!smgState.hasEdgeCorrespondedToRead(
             readParamsMap.get(variableName), variableEntry.getValue())) {
-          edgeWithAdditionalInfo.addInfo(
-              SMGConvertingTags.WRITE_VALUES,
-              SMGAdditionalInfo.of("Write to '" + variableName + "'", Level.WARNING));
-          variablesToCheck = variablesToCheck.removeAndCopy(variableName);
-          readParamsMap = readParamsMap.removeAndCopy(variableName);
-          hasChange = true;
+          SMGValue oldValue = prevSMGState.getReplacedValue(variableEntry.getValue());
+          if (oldValue == null
+              || !smgState.hasEdgeCorrespondedToRead(readParamsMap.get(variableName), oldValue)) {
+            edgeWithAdditionalInfo.addInfo(
+                SMGConvertingTags.WRITE_VALUES,
+                SMGAdditionalInfo.of("Write to '" + variableName + "'", Level.WARNING));
+            variablesToCheck = variablesToCheck.removeAndCopy(variableName);
+            readParamsMap = readParamsMap.removeAndCopy(variableName);
+            hasChange = true;
+          } else {
+            variablesToCheck = variablesToCheck.putAndCopy(variableName, oldValue);
+          }
         }
       }
       if (hasChange) {

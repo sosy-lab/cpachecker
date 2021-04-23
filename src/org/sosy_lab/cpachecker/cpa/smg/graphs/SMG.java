@@ -18,6 +18,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -55,6 +57,7 @@ public class SMG implements UnmodifiableSMG {
   private final MachineModel machine_model;
 
   private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(SMGZeroValue.INSTANCE, SMGNullObject.INSTANCE, 0);
+  private PersistentMap<SMGValue, SMGValue> trackReplaces = PathCopyingPersistentTreeMap.of();
 
   /**
    * Constructor.
@@ -97,6 +100,7 @@ public class SMG implements UnmodifiableSMG {
     objects = pHeap.objects;
     values = pHeap.values;
     possibleEquals = pHeap.possibleEquals;
+    trackReplaces = pHeap.trackReplaces;
   }
 
   @Override
@@ -532,6 +536,10 @@ public class SMG implements UnmodifiableSMG {
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
+  public SMGValue getReplacedValue(SMGValue fresh) {
+    return trackReplaces.get(fresh);
+  }
+
   /**
    * replace the old value with a fresh one.
    *
@@ -546,6 +554,7 @@ public class SMG implements UnmodifiableSMG {
 
     Preconditions.checkArgument(
         !old.isZero(), "cannot replace ZERO (%s) with other value (%s)", old, fresh);
+    trackReplaces = trackReplaces.putAndCopy(fresh, old);
 
     addValue(fresh);
 
