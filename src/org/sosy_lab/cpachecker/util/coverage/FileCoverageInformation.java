@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
@@ -39,8 +40,8 @@ class FileCoverageInformation {
   final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
   PersistentMultimap<Integer, String> additionalInfo = PersistentMultimap.of();
 
-  void addLineInfo(int pLine, String pAdditionalInfo) {
-    additionalInfo = additionalInfo.putAndCopy(pLine, pAdditionalInfo);
+  void addLineInfo(int pLine, List<String> pAdditionalInfo) {
+    additionalInfo = additionalInfo.putAllAndCopy(pLine, pAdditionalInfo);
   }
 
   void addVisitedAssume(AssumeEdge pEdge) {

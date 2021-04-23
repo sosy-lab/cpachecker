@@ -108,14 +108,14 @@ class AdditionalCoverageCollector extends ReachedSetCoverageCollector {
   }
 
   private CoverageData processStates(ARGState pArgState, SMGState pSmgState, CoverageData pCov) {
-    String valueMessage = AdditionalInfoExtractor.getValueMessage(pSmgState);
-    if (!valueMessage.isEmpty()) {
+    List<String> valueMessages = AdditionalInfoExtractor.getValueMessages(pSmgState);
+    if (!valueMessages.isEmpty()) {
       for (ARGState child : pArgState.getParents()) {
         // Do not specially check child.isCovered, as the edge to covered state also should be
         // marked as covered edge
         List<CFAEdge> edges = child.getEdgesToChild(pArgState);
         for (CFAEdge innerEdge : edges) {
-          pCov.addInfoOnEdge(innerEdge, valueMessage);
+          pCov.addInfoOnEdge(innerEdge, valueMessages);
         }
       }
     }

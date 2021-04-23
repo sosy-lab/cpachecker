@@ -114,7 +114,7 @@ public class AdditionalInfoExtractor {
         }
       }
 
-      valueMessage = getValueMessage(smgState);
+      valueMessage = String.join(", ", getValueMessages(smgState));
       invalidChain = toCheck;
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
@@ -156,19 +156,15 @@ public class AdditionalInfoExtractor {
     return toCheck;
   }
 
-  public static String getValueMessage(UnmodifiableSMGState smgState) {
-    StringBuilder result = new StringBuilder();
+  public static List<String> getValueMessages(UnmodifiableSMGState smgState) {
+    List<String> result = new ArrayList<>();
     PersistentMap<String, SMGValue> readValues = smgState.getReadValues();
     for (Entry<String, SMGValue> entry : readValues.entrySet()) {
       if (smgState.isExplicit(entry.getValue())) {
-        result.append(entry.getKey() + " = " + smgState.getExplicit(entry.getValue()) + ", ");
+        result.add(entry.getKey() + " = " + smgState.getExplicit(entry.getValue()));
       }
     }
-    int length = result.length();
-    if (length > 0) {
-      result.delete(length - 2, length);
-    }
-    return result.toString();
+    return result;
   }
 
   private boolean containsInvalidElement(UnmodifiableCLangSMG smg, Object elem) {

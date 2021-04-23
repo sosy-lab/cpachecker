@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -106,7 +107,7 @@ public final class CoverageData {
     }
   }
 
-  public void addInfoOnEdge(final CFAEdge pEdge, String pInfo) {
+  public void addInfoOnEdge(final CFAEdge pEdge, List<String> pInfo) {
     final FileLocation loc = pEdge.getFileLocation();
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
     final int endingLine = loc.getEndingLineInOrigin();
