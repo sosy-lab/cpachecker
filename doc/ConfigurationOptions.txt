@@ -1052,9 +1052,15 @@ counterexample.export.harness = "Counterexample.%d.harness.c"
 # found
 counterexample.export.model = "Counterexample.%d.assignment.txt"
 
+# export counterexample coverage with additional information
+counterexample.export.prefixAdditionalCoverageFile = "Counterexample.%d.aa-prefixAdditionalCoverage.info"
+
 # export counterexample coverage information, considering only spec prefix as
 # covered (up until reaching __FALSE state in Assumption Automaton).
 counterexample.export.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
+
+# export counterexample coverage information as Gcov file
+counterexample.export.prefixGcovCoverageFile = "Counterexample.%d.aa-prefixCoverage.gcov"
 
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.

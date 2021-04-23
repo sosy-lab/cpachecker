@@ -69,6 +69,22 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "prefixAdditionalCoverageFile",
+      description = "export counterexample coverage with additional information")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  PathTemplate additionalCoveragePrefixTemplate =
+      PathTemplate.ofFormatString("Counterexample.%d.aa-prefixAdditionalCoverage.info");
+
+  @Option(
+      secure = true,
+      name = "prefixGcovCoverageFile",
+      description = "export counterexample coverage information as Gcov file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  PathTemplate coverageGcovPrefixTemplate =
+      PathTemplate.ofFormatString("Counterexample.%d.aa-prefixCoverage.gcov");
+
+  @Option(
+      secure = true,
       name = "exportCounterexampleCoverage",
       description =
           "export coverage information for every witness: "
@@ -178,6 +194,22 @@ public final class CEXExportOptions {
       return null;
     }
     return exportCounterexampleCoverage ? coveragePrefixTemplate : null;
+  }
+
+  @Nullable
+  PathTemplate getAdditionalCoveragePrefix() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return exportCounterexampleCoverage ? additionalCoveragePrefixTemplate : null;
+  }
+
+  @Nullable
+  PathTemplate getGcovCoveragePrefix() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return exportCounterexampleCoverage ? coverageGcovPrefixTemplate : null;
   }
 
   @Nullable

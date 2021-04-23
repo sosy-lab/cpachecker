@@ -49,6 +49,49 @@ public abstract class CoverageCollector {
       Iterable<AbstractState> pReached, CFA cfa) {
     return new AdditionalCoverageCollector().collectFromReachedSet(pReached, cfa);
   }
+
+  public static CoverageData additionalInfoFromCounterexample(ARGPath pPath) {
+    return new CounterexampleAdditionalCoverageCollector().collectFromCounterexample(pPath);
+  }
+
+  static CoverageData processStateForAdditionalInfo(AbstractState state, CoverageData pCov) {
+    SMGState smgState = AbstractStates.extractStateByType(state, SMGState.class);
+    ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+    if (argState != null && smgState != null) {
+      PersistentMap<String, SMGValue> valueMessages = smgState.getReadValues();
+      PersistentMultimap<String, SMGKnownExpValue> result = PersistentMultimap.of();
+      for (Entry<String, SMGValue> entry : valueMessages.entrySet()) {
+        if (smgState.isExplicit(entry.getValue())) {
+          result = result.putAndCopy(entry.getKey(), smgState.getExplicit(entry.getValue()));
+        }
+      }
+      if (!result.isEmpty()) {
+        for (ARGState child : argState.getParents()) {
+          // Do not specially check child.isCovered, as the edge to covered state also should be
+          // marked as covered edge
+          List<CFAEdge> edges = child.getEdgesToChild(argState);
+          for (CFAEdge innerEdge : edges) {
+            pCov.addInfoOnEdge(innerEdge, result);
+          }
+        }
+      }
+    }
+    return pCov;
+  }
+}
+
+class CounterexampleAdditionalCoverageCollector extends CounterexampleCoverageCollector {
+  @Override
+  CoverageData collectFromCounterexample(ARGPath cexPath) {
+    CoverageData cov = super.collectFromCounterexample(cexPath);
+    PathIterator pathIterator = cexPath.fullPathIterator();
+    while (pathIterator.hasNext()) {
+      AbstractState state = pathIterator.getAbstractState().getWrappedState();
+      cov = CoverageCollector.processStateForAdditionalInfo(state, cov);
+      pathIterator.advance();
+    }
+    return cov;
+  }
 }
 
 class CounterexampleCoverageCollector {
@@ -95,34 +138,9 @@ class AdditionalCoverageCollector extends ReachedSetCoverageCollector {
   CoverageData collectFromReachedSet(Iterable<AbstractState> reached, CFA cfa) {
     CoverageData cov = super.collectFromReachedSet(reached, cfa);
     for (AbstractState state : reached) {
-      SMGState smgState = AbstractStates.extractStateByType(state, SMGState.class);
-      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      if (argState != null && smgState != null) {
-        cov = processStates(argState, smgState, cov);
-      }
+      cov = CoverageCollector.processStateForAdditionalInfo(state, cov);
     }
     return cov;
-  }
-
-  private CoverageData processStates(ARGState pArgState, SMGState pSmgState, CoverageData pCov) {
-    PersistentMap<String, SMGValue> valueMessages = pSmgState.getReadValues();
-    PersistentMultimap<String, SMGKnownExpValue> result = PersistentMultimap.of();
-    for (Entry<String, SMGValue> entry : valueMessages.entrySet()) {
-      if (pSmgState.isExplicit(entry.getValue())) {
-        result = result.putAndCopy(entry.getKey(), pSmgState.getExplicit(entry.getValue()));
-      }
-    }
-    if (!result.isEmpty()) {
-      for (ARGState child : pArgState.getParents()) {
-        // Do not specially check child.isCovered, as the edge to covered state also should be
-        // marked as covered edge
-        List<CFAEdge> edges = child.getEdgesToChild(pArgState);
-        for (CFAEdge innerEdge : edges) {
-          pCov.addInfoOnEdge(innerEdge, result);
-        }
-      }
-    }
-    return pCov;
   }
 }
 

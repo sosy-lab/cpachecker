@@ -53,7 +53,9 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.coverage.AdditionalCoverageReportLcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportLcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
@@ -82,10 +84,10 @@ public class CEXExporter {
       secure = true,
       name = "filters",
       description =
-          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-              + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-              + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
-  )
+          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples"
+              + " reported. Only relevant with analysis.stopAfterError=false and"
+              + " counterexample.export.exportImmediately=true. Put the weakest and cheapest"
+              + " filter first, e.g., PathEqualityCounterexampleFilter.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
       ImmutableList.of(PathEqualityCounterexampleFilter::new);
@@ -168,11 +170,33 @@ public class CEXExporter {
 
     if (options.getCoveragePrefix() != null) {
       Path outputPath = options.getCoveragePrefix().getPath(counterexample.getUniqueId());
-      try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
-        CoverageReportLcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
+      try (Writer lcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
+        CoverageReportLcov.write(CoverageCollector.fromCounterexample(targetPath), lcovFile);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write coverage information for counterexample to file");
+      }
+    }
+
+    if (options.getAdditionalCoveragePrefix() != null) {
+      Path outputPath = options.getAdditionalCoveragePrefix().getPath(counterexample.getUniqueId());
+      try (Writer additionalLcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
+        AdditionalCoverageReportLcov.write(
+            CoverageCollector.additionalInfoFromCounterexample(targetPath), additionalLcovFile);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not write additional coverage information for counterexample to file");
+      }
+    }
+
+    if (options.getGcovCoveragePrefix() != null) {
+      Path outputPath = options.getGcovCoveragePrefix().getPath(counterexample.getUniqueId());
+      try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
+        CoverageReportGcov.write(
+            CoverageCollector.additionalInfoFromCounterexample(targetPath), gcovFile);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not write coverage information for counterexample to gcov file");
       }
     }
 
@@ -232,7 +256,9 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         switch(codeStyle) {
           case CONCRETE_EXECUTION:
-            logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
+            logger.log(
+                Level.WARNING,
+                "Cannot export imprecise counterexample to C code for concrete execution.");
             break;
           case CBMC:
             // "translatePaths" does not work if the ARG branches without assume edge
