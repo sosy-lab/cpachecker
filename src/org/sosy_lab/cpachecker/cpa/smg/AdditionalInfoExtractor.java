@@ -54,6 +54,7 @@ public class AdditionalInfoExtractor {
     Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
 
+    String valueMessage = "";
     while (rIterator.hasNext()) {
       rIterator.advance();
       ARGState argState = rIterator.getAbstractState();
@@ -71,12 +72,12 @@ public class AdditionalInfoExtractor {
       Set<Object> toCheck =
           extractAdditionalInfoFromInvalidChain(
               invalidChain, prevSMGState, visitedElems, smgState, edgeWithAdditionalInfo);
-      String valueMessage = getValueMessage(smgState);
       if (!valueMessage.isEmpty()) {
         edgeWithAdditionalInfo.addInfo(
             SMGConvertingTags.READ_VALUES,
             SMGAdditionalInfo.of(valueMessage, Level.INFO));
       }
+      valueMessage = getValueMessage(smgState);
       invalidChain = toCheck;
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
@@ -123,7 +124,7 @@ public class AdditionalInfoExtractor {
     PersistentMap<String, SMGValue> readValues = smgState.getReadValues();
     for (Entry<String, SMGValue> entry : readValues.entrySet()) {
       if (smgState.isExplicit(entry.getValue())) {
-        result.append(entry.getKey() + " " + smgState.getExplicit(entry.getValue()) + ", ");
+        result.append(entry.getKey() + " = " + smgState.getExplicit(entry.getValue()) + ", ");
       }
     }
     int length = result.length();
