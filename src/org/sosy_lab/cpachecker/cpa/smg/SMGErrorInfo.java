@@ -13,10 +13,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState.Property;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
  * Simple flags are not enough, this class contains more about the nature of the error.
@@ -32,6 +35,7 @@ class SMGErrorInfo {
   private final String errorDescription;
   private final PersistentList<Object> invalidChain;
   private final PersistentList<Object> currentChain;
+  private final PersistentMap<String, SMGValue> readValues;
 
   private SMGErrorInfo(
       boolean pInvalidWrite,
@@ -40,7 +44,8 @@ class SMGErrorInfo {
       boolean pHasMemoryLeak,
       String pErrorDescription,
       PersistentList<Object> pInvalidChain,
-      PersistentList<Object> pCurrentChain) {
+      PersistentList<Object> pCurrentChain,
+      PersistentMap<String, SMGValue> pReadValues) {
     invalidWrite = pInvalidWrite;
     invalidRead = pInvalidRead;
     invalidFree = pInvalidFree;
@@ -48,11 +53,19 @@ class SMGErrorInfo {
     errorDescription = pErrorDescription;
     invalidChain = pInvalidChain;
     currentChain = pCurrentChain;
+    readValues = pReadValues;
   }
 
   static SMGErrorInfo of() {
     return new SMGErrorInfo(
-        false, false, false, false, "", PersistentLinkedList.of(), PersistentLinkedList.of());
+        false,
+        false,
+        false,
+        false,
+        "",
+        PersistentLinkedList.of(),
+        PersistentLinkedList.of(),
+        PathCopyingPersistentTreeMap.of());
   }
 
   SMGErrorInfo withErrorMessage(String pErrorDescription) {
@@ -63,7 +76,8 @@ class SMGErrorInfo {
         hasMemoryLeak,
         pErrorDescription,
         invalidChain,
-        currentChain);
+        currentChain,
+        readValues);
   }
 
   SMGErrorInfo withProperty(Property pProperty) {
@@ -96,7 +110,8 @@ class SMGErrorInfo {
         pHasLeaks,
         errorDescription,
         invalidChain,
-        currentChain);
+        currentChain,
+        readValues);
   }
 
   boolean hasMemoryErrors() {
@@ -111,7 +126,8 @@ class SMGErrorInfo {
         hasMemoryLeak || pOther.hasMemoryLeak,
         errorDescription,
         invalidChain,
-        currentChain);
+        currentChain,
+        readValues);
   }
 
   SMGErrorInfo withClearChain() {
@@ -122,7 +138,8 @@ class SMGErrorInfo {
         hasMemoryLeak,
         errorDescription,
         PersistentLinkedList.of(),
-        PersistentLinkedList.of());
+        PersistentLinkedList.of(),
+        PathCopyingPersistentTreeMap.of());
   }
 
   SMGErrorInfo moveCurrentChainToInvalidChain() {
@@ -133,7 +150,8 @@ class SMGErrorInfo {
         hasMemoryLeak,
         errorDescription,
         invalidChain.withAll(currentChain),
-        currentChain);
+        currentChain,
+        readValues);
   }
 
   public SMGErrorInfo withObject(Object o) {
@@ -144,7 +162,8 @@ class SMGErrorInfo {
         hasMemoryLeak,
         errorDescription,
         invalidChain,
-        currentChain.with(o));
+        currentChain.with(o),
+        readValues);
   }
 
   SMGErrorInfo withInvalidObject(SMGObject pSmgObject) {
@@ -159,13 +178,32 @@ class SMGErrorInfo {
         hasMemoryLeak,
         errorDescription,
         invalidChain.withAll(new ArrayList<>(pObjects)),
-        currentChain);
+        currentChain,
+        readValues);
+  }
+
+  public SMGErrorInfo addReadVariable(String pName, SMGValue pObject) {
+    return new SMGErrorInfo(
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        errorDescription,
+        invalidChain,
+        currentChain,
+        readValues.putAndCopy(pName, pObject));
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        invalidWrite, invalidRead, invalidFree, hasMemoryLeak, invalidChain, currentChain);
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        invalidChain,
+        currentChain,
+        readValues);
   }
 
   @Override
@@ -227,5 +265,9 @@ class SMGErrorInfo {
 
   List<Object> getInvalidChain() {
     return invalidChain;
+  }
+
+  public PersistentMap<String, SMGValue> getReadValues() {
+    return readValues;
   }
 }

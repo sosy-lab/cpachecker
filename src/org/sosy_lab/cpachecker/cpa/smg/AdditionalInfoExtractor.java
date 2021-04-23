@@ -14,7 +14,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
@@ -69,6 +71,12 @@ public class AdditionalInfoExtractor {
       Set<Object> toCheck =
           extractAdditionalInfoFromInvalidChain(
               invalidChain, prevSMGState, visitedElems, smgState, edgeWithAdditionalInfo);
+      String valueMessage = getValueMessage(smgState);
+      if (!valueMessage.isEmpty()) {
+        edgeWithAdditionalInfo.addInfo(
+            SMGConvertingTags.READ_VALUES,
+            SMGAdditionalInfo.of(valueMessage, Level.INFO));
+      }
       invalidChain = toCheck;
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
@@ -108,6 +116,21 @@ public class AdditionalInfoExtractor {
       }
     }
     return toCheck;
+  }
+
+  private String getValueMessage(UnmodifiableSMGState smgState) {
+    StringBuilder result = new StringBuilder();
+    PersistentMap<String, SMGValue> readValues = smgState.getReadValues();
+    for (Entry<String, SMGValue> entry : readValues.entrySet()) {
+      if (smgState.isExplicit(entry.getValue())) {
+        result.append(entry.getKey() + " " + smgState.getExplicit(entry.getValue()) + ", ");
+      }
+    }
+    int length = result.length();
+    if (length > 0) {
+      result.delete(length - 2, length);
+    }
+    return result.toString();
   }
 
   private boolean containsInvalidElement(UnmodifiableCLangSMG smg, Object elem) {

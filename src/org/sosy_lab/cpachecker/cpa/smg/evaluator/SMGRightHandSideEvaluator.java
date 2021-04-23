@@ -88,8 +88,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       return SMGExplicitValueAndState.of(v.getState(), SMGUnknownValue.INSTANCE);
     }
 
-    return SMGExplicitValueAndState.of(v.getState(),
-        SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
+    return SMGExplicitValueAndState.of(
+        v.getState(), SMGKnownExpValue.valueOf(val.asNumericValue().bigInteger()));
   }
 
   public SMGState deriveFurtherInformation(SMGState pNewState, boolean pTruthValue, CFAEdge pCfaEdge, CExpression rValue)

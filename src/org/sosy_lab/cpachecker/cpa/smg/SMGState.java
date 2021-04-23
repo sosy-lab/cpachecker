@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -124,6 +125,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public String getErrorDescription() {
     return errorInfo.getErrorDescription();
+  }
+
+  @Override
+  public PersistentMap<String, SMGValue> getReadValues() {
+    return errorInfo.getReadValues();
   }
 
   @Override
@@ -1689,6 +1695,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return;
     }
     errorInfo = errorInfo.withObject(elem);
+  }
+
+  public void addReadVariable(String pName, SMGValue pObject) {
+    errorInfo = errorInfo.addReadVariable(pName, pObject);
   }
 
   @Override

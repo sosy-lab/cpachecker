@@ -19,7 +19,8 @@ public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {
 
   final Map<ConvertingTags, KeyDef> tagConverter =
       ImmutableMap.of(
-          SMGConvertingTags.NOTE, KeyDef.NOTE);
+          SMGConvertingTags.NOTE, KeyDef.NOTE,
+          SMGConvertingTags.READ_VALUES, KeyDef.NOTE);
 
   @Override
   public TransitionCondition convert(

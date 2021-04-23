@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
@@ -99,6 +100,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return a new state with the corresponding violation properties.
    */
   SMGState withViolationsOf(SMGState pOther);
+
+  PersistentMap<String, SMGValue> getReadValues();
 
   /**
    * Stores a error-message in the state.

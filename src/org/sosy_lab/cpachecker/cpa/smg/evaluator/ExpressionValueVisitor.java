@@ -116,6 +116,8 @@ class ExpressionValueVisitor
               address.getOffset(),
               TypeUtils.getRealExpressionType(exp),
               cfaEdge);
+      symbolicValueResultAndState.getSmgState().addReadVariable(exp.toASTString(),
+          symbolicValueResultAndState.getObject());
       result.add(symbolicValueResultAndState);
     }
 
@@ -169,13 +171,14 @@ class ExpressionValueVisitor
 
       CType fieldType = TypeUtils.getRealExpressionType(fieldReference);
 
-      result.add(
-          smgExpressionEvaluator.readValue(
-              newState,
-              addressOfField.getObject(),
-              addressOfField.getOffset(),
-              fieldType,
-              cfaEdge));
+      SMGValueAndState smgValueAndState = smgExpressionEvaluator.readValue(
+          newState,
+          addressOfField.getObject(),
+          addressOfField.getOffset(),
+          fieldType,
+          cfaEdge);
+      smgValueAndState.getSmgState().addReadVariable(fieldReference.toASTString(), smgValueAndState.getObject());
+      result.add(smgValueAndState);
     }
 
     return result;
@@ -224,6 +227,7 @@ class ExpressionValueVisitor
                 cfaEdge);
         //FIXME: if address is symbolic
         result.getSmgState().addElementToCurrentChain(result.getObject());
+        result.getSmgState().addReadVariable(idExpression.getName(), result.getObject());
 
         return singletonList(result);
       }
@@ -286,9 +290,17 @@ class ExpressionValueVisitor
     CType expType = TypeUtils.getRealExpressionType(pointerExpression);
 
     if (operandType instanceof CPointerType) {
-      return dereferencePointer(operand, expType);
+      List<? extends SMGValueAndState> smgValueAndStates = dereferencePointer(operand, expType);
+      for (SMGValueAndState smgValueAndState : smgValueAndStates) {
+        smgValueAndState.getSmgState().addReadVariable(pointerExpression.toASTString(), smgValueAndState.getObject());
+      }
+      return smgValueAndStates;
     } else if (operandType instanceof CArrayType) {
-      return dereferenceArray(operand, expType);
+      List<? extends SMGValueAndState> smgValueAndStates = dereferenceArray(operand, expType);
+      for (SMGValueAndState smgValueAndState : smgValueAndStates) {
+        smgValueAndState.getSmgState().addReadVariable(pointerExpression.toASTString(), smgValueAndState.getObject());
+      }
+      return smgValueAndStates;
     } else {
       throw new UnrecognizedCodeException("on pointer expression", cfaEdge, pointerExpression);
     }
