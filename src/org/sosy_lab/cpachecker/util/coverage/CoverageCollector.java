@@ -37,21 +37,21 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public abstract class CoverageCollector {
 
-  public static CoverageData fromReachedSet(Iterable<AbstractState> pReached, CFA cfa) {
-    return new ReachedSetCoverageCollector().collectFromReachedSet(pReached, cfa);
+  public static CoverageData fromReachedSet(Iterable<AbstractState> pReached, CFA pCfa) {
+    return new ReachedSetCoverageCollector().collectFromReachedSet(pReached, pCfa);
   }
 
-  public static CoverageData fromCounterexample(ARGPath pPath) {
-    return new CounterexampleCoverageCollector().collectFromCounterexample(pPath);
+  public static CoverageData fromCounterexample(ARGPath pPath, CFA pCfa) {
+    return new CounterexampleCoverageCollector().collectFromCounterexample(pPath, pCfa);
   }
 
   public static CoverageData additionalInfoFromReachedSet(
-      Iterable<AbstractState> pReached, CFA cfa) {
-    return new AdditionalCoverageCollector().collectFromReachedSet(pReached, cfa);
+      Iterable<AbstractState> pReached, CFA pCfa) {
+    return new AdditionalCoverageCollector().collectFromReachedSet(pReached, pCfa);
   }
 
-  public static CoverageData additionalInfoFromCounterexample(ARGPath pPath) {
-    return new CounterexampleAdditionalCoverageCollector().collectFromCounterexample(pPath);
+  public static CoverageData additionalInfoFromCounterexample(ARGPath pPath, CFA pCfa) {
+    return new CounterexampleAdditionalCoverageCollector().collectFromCounterexample(pPath, pCfa);
   }
 
   static CoverageData processStateForAdditionalInfo(AbstractState state, CoverageData pCov) {
@@ -82,8 +82,8 @@ public abstract class CoverageCollector {
 
 class CounterexampleAdditionalCoverageCollector extends CounterexampleCoverageCollector {
   @Override
-  CoverageData collectFromCounterexample(ARGPath cexPath) {
-    CoverageData cov = super.collectFromCounterexample(cexPath);
+  CoverageData collectFromCounterexample(ARGPath cexPath, CFA pCfa) {
+    CoverageData cov = super.collectFromCounterexample(cexPath, pCfa);
     PathIterator pathIterator = cexPath.fullPathIterator();
     while (pathIterator.hasNext()) {
       AbstractState state = pathIterator.getAbstractState().getWrappedState();
@@ -100,8 +100,9 @@ class CounterexampleCoverageCollector {
    * Coverage from a counterexample does not report all existing edges, but the set of existing
    * edges needs to contain all covered edges at the minimum.
    */
-  CoverageData collectFromCounterexample(ARGPath cexPath) {
+  CoverageData collectFromCounterexample(ARGPath cexPath, CFA pCfa) {
     CoverageData cov = new CoverageData();
+    cov.putCFA(pCfa);
     collectCoveredEdges(cexPath, cov);
     return cov;
   }
@@ -128,6 +129,17 @@ class CounterexampleCoverageCollector {
         break;
       }
       cov.addVisitedEdge(edge);
+
+      CFANode location = pathIterator.getLocation();
+      if (location != null && location instanceof FunctionEntryNode) {
+        FunctionEntryNode entryNode = (FunctionEntryNode) location;
+
+        final FileLocation loc = entryNode.getFileLocation();
+        if (loc.getStartingLineNumber() != 0) {
+          cov.addVisitedFunction(entryNode);
+        }
+      }
+
       pathIterator.advance();
     }
   }
