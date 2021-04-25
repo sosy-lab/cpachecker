@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -58,13 +59,13 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
       loopBranchIndex = loopBranchIndexOptional.get();
     }
 
-    HashSet<String> modifiedVariables;
-    Optional<HashSet<String>> modifiedVariablesSuccess =
+    Set<String> modifiedVariableNames;
+    Optional<Set<String>> modifiedVariablesSuccess =
         getModifiedVariables(loopStartNode, loopBranchIndex);
     if (modifiedVariablesSuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      modifiedVariables = modifiedVariablesSuccess.get();
+      modifiedVariableNames = modifiedVariablesSuccess.get();
     }
 
     HashSet<String> allVariables;

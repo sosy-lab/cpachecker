@@ -12,22 +12,17 @@ import com.google.common.base.Splitter;
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 
-@Options(prefix = "cpa.loopsummary")
 class LoopSummaryCPAStatistics implements Statistics {
-
-  @SuppressWarnings("unused")
-  @Option(name = "test", secure = true, description = "test")
-  private boolean test = false;
 
   @SuppressWarnings("unused")
   private final LogManager logger;
@@ -35,7 +30,7 @@ class LoopSummaryCPAStatistics implements Statistics {
   @SuppressWarnings("unused")
   private final AbstractLoopSummaryCPA cpa;
 
-  private final LinkedHashMap<String, Integer> strategiesUsed = new LinkedHashMap<>();
+  private final Map<String, Integer> strategiesUsed = new LinkedHashMap<>();
 
   public LoopSummaryCPAStatistics(Configuration pConfig, LogManager pLogger, AbstractLoopSummaryCPA pCpa)
       throws InvalidConfigurationException {
@@ -61,12 +56,12 @@ class LoopSummaryCPAStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     out.println("Strategy Statistics:");
-    for (String k : strategiesUsed.keySet()) {
-      List<String> splitName = Splitter.on('.').splitToList(k);
+    for (Entry<String, Integer> e : strategiesUsed.entrySet()) {
+      List<String> splitName = Splitter.on('.').splitToList(e.getKey());
       put(
           out,
           "Number of times Strategy " + splitName.get(splitName.size() - 1) + " was used: ",
-          strategiesUsed.get(k));
+          e.getValue());
     }
   }
 }

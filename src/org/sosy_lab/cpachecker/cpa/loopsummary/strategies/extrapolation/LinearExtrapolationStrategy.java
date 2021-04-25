@@ -44,12 +44,13 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     }
 
     Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));
+
     @SuppressWarnings("unused")
-    CExpression loopBound;
+    CExpression loopBoundExpression;
     if (loopBoundOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBound = loopBoundOptional.get();
+      loopBoundExpression = loopBoundOptional.get();
     }
 
     if (!linearArithmeticExpressionsLoop(AbstractStates.extractLocation(pState), loopBranchIndex)) {

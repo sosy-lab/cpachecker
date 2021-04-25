@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -64,10 +65,10 @@ public abstract class AbstractStrategy implements StrategyInterface {
     if (loopStartNode.getNumLeavingEdges() != 2) {
       return Optional.empty();
     }
-    ArrayList<CFANode> reachedNodes = new ArrayList<>();
-    ArrayList<CFANode> reachableNodesIndex0 = new ArrayList<>();
+    List<CFANode> reachedNodes = new ArrayList<>();
+    List<CFANode> reachableNodesIndex0 = new ArrayList<>();
     reachableNodesIndex0.add(loopStartNode.getLeavingEdge(0).getSuccessor());
-    ArrayList<CFANode> reachableNodesIndex1 = new ArrayList<>();
+    List<CFANode> reachableNodesIndex1 = new ArrayList<>();
     reachableNodesIndex1.add(loopStartNode.getLeavingEdge(1).getSuccessor());
     reachedNodes.add(loopStartNode.getLeavingEdge(1).getSuccessor());
     reachedNodes.add(loopStartNode.getLeavingEdge(0).getSuccessor());
@@ -76,7 +77,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
       if (reachableNodesIndex1.isEmpty() && reachableNodesIndex0.isEmpty()) {
         return Optional.empty();
       }
-      ArrayList<CFANode> newReachableNodesIndex0 = new ArrayList<>();
+      List<CFANode> newReachableNodesIndex0 = new ArrayList<>();
       for (CFANode s : reachableNodesIndex0) {
         if (s == loopStartNode) {
           loopBranchIndex = 0;
@@ -91,7 +92,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
         }
       }
       reachableNodesIndex0 = newReachableNodesIndex0;
-      ArrayList<CFANode> newReachableNodesIndex1 = new ArrayList<>();
+      List<CFANode> newReachableNodesIndex1 = new ArrayList<>();
       for (CFANode s : reachableNodesIndex1) {
         if (s == loopStartNode) {
           loopBranchIndex = 1;
@@ -173,7 +174,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
         new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
     AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState);
     @SuppressWarnings("unchecked")
-    ArrayList<AbstractState> dummyStatesEndCollection =
+    List<AbstractState> dummyStatesEndCollection =
         new ArrayList<>(
             pTransferRelation.getAbstractSuccessors(
                 dummyStateStart,
@@ -209,7 +210,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     realStatesEndCollection.addAll(dummyStatesEndCollection);
     // Iterate till the end of the ghost CFA
     while (!dummyStatesEndCollection.isEmpty()) {
-      ArrayList<AbstractState> newStatesNotFinished = new ArrayList<>();
+      List<AbstractState> newStatesNotFinished = new ArrayList<>();
       Iterator<? extends AbstractState> iterator = dummyStatesEndCollection.iterator();
       while (iterator.hasNext()) {
         AbstractState stateGhostCFA = iterator.next();
@@ -238,10 +239,10 @@ public abstract class AbstractStrategy implements StrategyInterface {
     // TODO Loops inside the loop to be unrolled, are unrolled completely, meaning it is possible
     // that this function does not terminate. How do we handle this?
     boolean initial = true;
-    ArrayList<CFANode> reachedNodes = new ArrayList<>();
+    List<CFANode> reachedNodes = new ArrayList<>();
     CFANode endLoopUnrollingNode = CFANode.newDummyCFANode("LSU");
     // First entry is the ghostCFA Node, the second entry is the real CFA Node
-    ArrayList<Pair<CFANode, CFANode>> currentVisitedNodes = new ArrayList<>();
+    List<Pair<CFANode, CFANode>> currentVisitedNodes = new ArrayList<>();
     reachedNodes.add(loopStartNode);
     while (!currentVisitedNodes.isEmpty() || initial) {
       if (initial) {
@@ -262,7 +263,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
         currentVisitedNodes.add(Pair.of(currentUnrollingNode, currentLoopEdge.getSuccessor()));
         initial = false;
       } else {
-        ArrayList<Pair<CFANode, CFANode>> newVisitedNodes = new ArrayList<>();
+        List<Pair<CFANode, CFANode>> newVisitedNodes = new ArrayList<>();
         for (Pair<CFANode, CFANode> p : currentVisitedNodes) {
           for (int i = 0; i < p.getSecond().getNumLeavingEdges(); i++) {
             CFANode nextGhostCFANode = CFANode.newDummyCFANode("LSU");
@@ -351,14 +352,14 @@ public abstract class AbstractStrategy implements StrategyInterface {
     return Optional.of(endLoopUnrollingNode);
   }
 
-  protected Optional<HashSet<String>> getModifiedVariables(
+  protected Optional<Set<String>> getModifiedVariables(
       CFANode loopStartNode, Integer loopBranchIndex) {
-    HashSet<String> modifiedVariables = new HashSet<>();
-    ArrayList<CFANode> reachedNodes = new ArrayList<>();
+    Set<String> modifiedVariables = new HashSet<>();
+    List<CFANode> reachedNodes = new ArrayList<>();
     reachedNodes.add(loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor());
     Collection<CFANode> seenNodes = new HashSet<>();
     while (!reachedNodes.isEmpty()) {
-      ArrayList<CFANode> newReachableNodes = new ArrayList<>();
+      List<CFANode> newReachableNodes = new ArrayList<>();
       for (CFANode s : reachedNodes) {
         seenNodes.add(s);
         if (s != loopStartNode) {

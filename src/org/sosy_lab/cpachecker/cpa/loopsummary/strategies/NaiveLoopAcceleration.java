@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -43,7 +43,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
   }
 
   private Optional<GhostCFA> buildGhostCFA(
-      HashSet<String> modifiedVariables, CFANode loopStartNode, Integer loopBranchIndex) {
+      Set<String> pModifiedVariables, CFANode loopStartNode, Integer loopBranchIndex) {
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode("STARTNODEGHOST");
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode("ENDNODEGHOST");
     CFANode currentNode = startNodeGhostCFA;
@@ -61,7 +61,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     newNode.addEnteringEdge(startConditionLoopCFAEdgeTrue);
     currentNode = newNode;
     newNode = CFANode.newDummyCFANode("LSNA");
-    for (String variableName : modifiedVariables) {
+    for (String variableName : pModifiedVariables) {
       CVariableDeclaration pc =
           new CVariableDeclaration(
               FileLocation.DUMMY,
@@ -150,8 +150,8 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
       loopBranchIndex = loopBranchIndexOptional.get();
     }
 
-    HashSet<String> modifiedVariables;
-    Optional<HashSet<String>> modifiedVariablesSuccess =
+    Set<String> modifiedVariables;
+    Optional<Set<String>> modifiedVariablesSuccess =
         getModifiedVariables(loopStartNode, loopBranchIndex);
     if (modifiedVariablesSuccess.isEmpty()) {
       return Optional.empty();

@@ -1850,9 +1850,6 @@ cpa.loopsummary.strategies = new ArrayList<>(
               StrategiesEnum.LOOPACCELERATION,
               StrategiesEnum.BASE))
 
-# test
-cpa.loopsummary.test = false
-
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]

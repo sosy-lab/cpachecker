@@ -67,16 +67,18 @@ public abstract class AbstractExtrapolationStrategy extends AbstractStrategy {
 
     if (rigthSide instanceof CBinaryExpression) {
       if (((CBinaryExpression) rigthSide).getOperand1() instanceof CIdExpression) {
-        return ((CIdExpression) ((CBinaryExpression) rigthSide).getOperand1()).getName()
-            == ((CIdExpression) leftSide).getName();
+        return ((CIdExpression) ((CBinaryExpression) rigthSide).getOperand1())
+            .getName()
+            .equals(((CIdExpression) leftSide).getName());
       } else {
-        return ((CIdExpression) ((CBinaryExpression) rigthSide).getOperand2()).getName()
-            == ((CIdExpression) leftSide).getName();
+        return ((CIdExpression) ((CBinaryExpression) rigthSide).getOperand2())
+            .getName()
+            .equals(((CIdExpression) leftSide).getName());
       }
     }
 
     if (rigthSide instanceof CIdExpression) {
-      return ((CIdExpression) rigthSide).getName() == ((CIdExpression) leftSide).getName();
+      return ((CIdExpression) rigthSide).getName().equals(((CIdExpression) leftSide).getName());
     }
     return false;
   }
