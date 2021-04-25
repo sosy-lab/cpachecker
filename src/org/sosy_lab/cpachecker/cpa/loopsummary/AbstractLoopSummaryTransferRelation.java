@@ -144,12 +144,6 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
       throws InterruptedException, CPATransferException {
 
     /*
-     * Problems when executing scripts/cpa.sh -config config/predicateAnalysis--overflow.properties -setprop limits.time.cpu=900s -setprop counterexample.export.enabled=false test/programs/benchmarks/termination-crafted/2Nested-2.c
-     * Result is True, while correct result is False
-     * Probably something to do with bad refinement
-     */
-
-    /*
      *
      * Problem when executing following command line
      * scripts/cpa.sh -config config/loop-summary/predicateAnalysis-loopsummary.properties -setprop counterexample.export.enabled=false -timelimit 900s -stats -spec ../../sv-benchmarks/c/properties/no-overflow.prp -64 ../../sv-benchmarks/c/termination-crafted/Arrays01-EquivalentConstantIndices-1.c

@@ -44,7 +44,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
-  private Map<String, Integer> getLoopVariableDeltas(
+  protected Map<String, Integer> getLoopVariableDeltas(
       final AbstractState pState, final Integer loopBranchIndex) {
     Map<String, Integer> loopVariableDelta = new HashMap<>();
     CFANode loopStartNode =
@@ -128,7 +128,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
   // class, see it if there is some error, it was still here in commit
   // a272d189e10d05880102c4a29450c113f9f80bee
 
-  private Optional<GhostCFA> summaryCFA(
+  protected Optional<GhostCFA> summaryCFA(
       final AbstractState pState,
       final Map<String, Integer> loopVariableDelta,
       final CExpression loopBound,

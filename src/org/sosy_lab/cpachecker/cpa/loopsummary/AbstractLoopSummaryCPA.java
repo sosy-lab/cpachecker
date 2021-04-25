@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.ConstantExtrapolationStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.LinearExtrapolationStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.NondetBoundConstantExtrapolationStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.PolynomialExtrapolationStrategy;
 
 @Options(prefix = "cpa.loopsummary")
@@ -39,7 +40,8 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     NAIVELOOPACCELERATION,
     POLYNOMIALEXTRAPOLATION,
     LINEAREXTRAPOLATION,
-    CONSTANTEXTRAPOLATION
+    CONSTANTEXTRAPOLATION,
+    NONDETBOUNDCONSTANTEXTRAPOLATION
   }
 
   // TODO wie kann man die argumente angeben
@@ -54,6 +56,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
               StrategiesEnum.CONSTANTEXTRAPOLATION,
               StrategiesEnum.LINEAREXTRAPOLATION,
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
+              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
               StrategiesEnum.NAIVELOOPACCELERATION,
               StrategiesEnum.LOOPACCELERATION,
               StrategiesEnum.BASE));
@@ -100,6 +103,10 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
           break;
         case CONSTANTEXTRAPOLATION:
           strategiesClass.add(new ConstantExtrapolationStrategy(pLogger, pShutdownNotifier, i));
+          break;
+        case NONDETBOUNDCONSTANTEXTRAPOLATION:
+          strategiesClass.add(
+              new NondetBoundConstantExtrapolationStrategy(pLogger, pShutdownNotifier, i));
           break;
       }
     }
