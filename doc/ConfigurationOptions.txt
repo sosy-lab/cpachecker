@@ -1838,6 +1838,9 @@ cpa.loopsummary.lookaheadamntnodes = 10
 # in order to summarize loops inside loops
 cpa.loopsummary.lookaheaditerations = 10
 
+# Should Loopsummary Statistics be recorded
+cpa.loopsummary.loopsummarystats = true
+
 # Strategies to be used in the Summary. The order of the strategies marks in
 # which order they are tried
 cpa.loopsummary.strategies = new ArrayList<>(
