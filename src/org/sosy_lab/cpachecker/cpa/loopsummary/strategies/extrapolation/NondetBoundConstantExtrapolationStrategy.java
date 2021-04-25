@@ -147,5 +147,8 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     return Optional.of(realStatesEndCollection);
   }
 
-
+  @Override
+  public boolean isPrecise() {
+    return false;
+  }
 }

@@ -44,7 +44,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     NONDETBOUNDCONSTANTEXTRAPOLATION
   }
 
-  // TODO wie kann man die argumente angeben
+
   @Option(
       name = "strategies",
       secure = true,
