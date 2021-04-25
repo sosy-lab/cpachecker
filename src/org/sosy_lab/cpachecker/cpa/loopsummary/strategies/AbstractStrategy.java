@@ -49,10 +49,15 @@ public abstract class AbstractStrategy implements StrategyInterface {
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
+  protected final int strategyNumber;
 
-  protected AbstractStrategy(final LogManager pLogger, final ShutdownNotifier pShutdownNotifier) {
+  protected AbstractStrategy(
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final int strategyNumber) {
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;
+    this.strategyNumber = strategyNumber;
   }
 
   protected Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {
@@ -106,7 +111,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     return Optional.of(loopBranchIndex);
   }
 
-  protected AbstractState overwriteLocationState(AbstractState pState, LocationState locState) {
+  public static AbstractState overwriteLocationState(AbstractState pState, LocationState locState) {
     List<AbstractState> allWrappedStatesByCompositeState = new ArrayList<>();
     if (pState instanceof ARGState) {
       AbstractState wrappedState = ((ARGState) pState).getWrappedState();
@@ -154,7 +159,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
 
     CFAEdge dummyTrueEdgeStart =
         new CAssumeEdge(
-            "true",
+            "true GHOST CFA Strategy " + this.strategyNumber,
             FileLocation.DUMMY,
             AbstractStates.extractLocation(pState),
             ghostCFA.getStartNode(),

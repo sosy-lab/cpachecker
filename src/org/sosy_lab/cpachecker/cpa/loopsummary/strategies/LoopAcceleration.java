@@ -19,8 +19,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LoopAcceleration extends AbstractStrategy {
 
-  public LoopAcceleration(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  public LoopAcceleration(
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
   @Override

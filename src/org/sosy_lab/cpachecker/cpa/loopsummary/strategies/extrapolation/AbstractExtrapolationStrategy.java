@@ -30,8 +30,9 @@ import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.AbstractStrategy;
 
 public abstract class AbstractExtrapolationStrategy extends AbstractStrategy {
 
-  protected AbstractExtrapolationStrategy(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  protected AbstractExtrapolationStrategy(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
   // For an explanation why this works in conjunction with ConstatnExtrapolationStrategy see

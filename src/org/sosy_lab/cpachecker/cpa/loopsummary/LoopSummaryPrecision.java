@@ -22,6 +22,8 @@ class LoopSummaryPrecision implements AdjustablePrecision, WrapperPrecision {
 
   private int strategyCounter = 0;
 
+  private boolean loopHead = false;
+
   public LoopSummaryPrecision(Precision precision) {
     this.precision = precision;
   }
@@ -40,6 +42,13 @@ class LoopSummaryPrecision implements AdjustablePrecision, WrapperPrecision {
         + " }";
   }
 
+  public void setLoopHead(boolean isLoopHead) {
+    this.loopHead = isLoopHead;
+  }
+
+  public boolean isLoopHead() {
+    return this.loopHead;
+  }
 
   public Precision getPrecision() {
     return precision;

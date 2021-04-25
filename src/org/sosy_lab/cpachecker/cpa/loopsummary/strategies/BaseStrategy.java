@@ -19,8 +19,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class BaseStrategy extends AbstractStrategy {
 
-  public BaseStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  public BaseStrategy(
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
   @Override

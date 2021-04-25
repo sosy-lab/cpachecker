@@ -39,8 +39,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy {
 
-  public ConstantExtrapolationStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  public ConstantExtrapolationStrategy(
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
   private Map<String, Integer> getLoopVariableDeltas(

@@ -24,8 +24,9 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
   // See
   // https://math.stackexchange.com/questions/2079950/compute-the-n-th-power-of-triangular-3-times3-matrix
 
-  public LinearExtrapolationStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  public LinearExtrapolationStrategy(
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
   @Override

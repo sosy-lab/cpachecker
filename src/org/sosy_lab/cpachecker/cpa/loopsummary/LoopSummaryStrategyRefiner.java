@@ -64,10 +64,11 @@ public class LoopSummaryStrategyRefiner implements Refiner {
         Level.INFO,
         "State: " + currentElement + "\nPrecision: " + pReached.getPrecision(currentElement));*/
         if (!strategies
-            .get(
-                ((LoopSummaryPrecision) pReached.getPrecision(currentElement)).getStrategyCounter())
-            .isPrecise()) { // TODO: Strategy 0 is used when the node has not been called by the
-                            // transfer relation
+                .get(
+                    ((LoopSummaryPrecision) pReached.getPrecision(currentElement))
+                        .getStrategyCounter())
+                .isPrecise()
+            && ((LoopSummaryPrecision) pReached.getPrecision(currentElement)).isLoopHead()) {
           optionalRefinementState = Optional.of(currentElement);
           waitlist.clear();
           newWaitlist.clear();

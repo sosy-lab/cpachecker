@@ -21,6 +21,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.AbstractStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -60,6 +63,8 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
   protected final ShutdownNotifier shutdownNotifier;
   private final LoopSummaryCPAStatistics stats;
 
+  private int baseStrategyPosition = -1;
+
   @SuppressWarnings("unused")
   private final CFA originalCFA;
 
@@ -90,6 +95,13 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     lookaheadIterations = pLookaheaditerations;
     originalCFA = pCfa;
     startNodeGhostCFA = CFANode.newDummyCFANode("STARTNODEINTERN");
+    for (int i = 0; i < this.strategies.size(); i++) {
+      if (this.strategies.get(i) instanceof BaseStrategy) {
+        baseStrategyPosition = i;
+        break;
+      }
+    }
+    assert baseStrategyPosition >= 0: "The Base Strategy should always be present as Startegy";
   }
 
   @Override
@@ -97,6 +109,33 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
 
     throw new UnsupportedOperationException("Unimplemented");
+  }
+
+  private Optional<Collection<? extends AbstractState>> applyStrategyIfAlreadyApplied(
+      AbstractState pState, Precision pPrecision) {
+    for (int i = 0; i < AbstractStates.extractLocation(pState).getNumLeavingEdges(); i++) {
+      if (AbstractStates.extractLocation(pState)
+          .getLeavingEdge(i)
+          .getRawStatement()
+          .equals(
+              "true GHOST CFA Strategy "
+                  + ((LoopSummaryPrecision) pPrecision).getStrategyCounter())) {
+        CFANode startGhotNode =
+            AbstractStates.extractLocation(pState).getLeavingEdge(i).getSuccessor();
+        // Teleport to the Ghost CFA
+        LocationState oldLocationState =
+            AbstractStates.extractStateByType(pState, LocationState.class);
+        LocationState ghostStartLocationState =
+            new LocationState(startGhotNode, oldLocationState.getFollowFunctionCalls());
+        AbstractState dummyStateStart =
+            AbstractStrategy.overwriteLocationState(pState, ghostStartLocationState);
+        ((ARGState) dummyStateStart).addParent((ARGState) pState);
+        ArrayList<AbstractState> finalStates = new ArrayList<>();
+        finalStates.add(dummyStateStart);
+        return Optional.of(finalStates);
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
@@ -171,42 +210,40 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
      * How do you do the refinement in this case?
      *
      */
-
-    for(int i = 0; i < AbstractStates.extractLocation(pState).getNumLeavingEdges(); i++) {
-      if (AbstractStates.extractLocation(pState)
-          .getLeavingEdge(i)
-          .getRawStatement()
-          .equals("true GHOST CFA")) {
-        CFANode startGhotNode =
-            AbstractStates.extractLocation(pState).getLeavingEdge(i).getSuccessor();
-        CFANode stopLoopNode;
-        CFANode stopGhostNode;
-        for (int j = 0; j < startGhotNode.getNumLeavingEdges(); j++) {
-          if (startGhotNode.getLeavingEdge(j).getRawStatement().equals("false GHOST CFA")) {
-            stopGhostNode = startGhotNode.getLeavingEdge(j).getSuccessor();
-            stopLoopNode = stopGhostNode.getLeavingEdge(0).getSuccessor();
-            stopLoopNode.removeEnteringEdge(stopGhostNode.getLeavingEdge(0));
-            stopGhostNode.removeLeavingEdge(stopGhostNode.getLeavingEdge(0));
-            break;
-          }
-        }
-        AbstractStates.extractLocation(pState).removeLeavingEdge(startGhotNode.getEnteringEdge(0));
-        startGhotNode.removeLeavingEdge(startGhotNode.getEnteringEdge(0));
+    Optional<Collection<? extends AbstractState>> summarizedState =
+        this.applyStrategyIfAlreadyApplied(pState, pPrecision);
+    while (summarizedState.isEmpty()) {
+      ArrayList<CFAEdge> removedEdges = new ArrayList<>();
+      int i = 0;
+      while (i < AbstractStates.extractLocation(pState).getNumLeavingEdges()) {
+        // Remove Edges of Other Strategies in order for the Strategy Calculation to work with the
+        // Original CFA
+        if (AbstractStates.extractLocation(pState)
+            .getLeavingEdge(i)
+            .getRawStatement()
+            .startsWith("true GHOST CFA Strategy ")) {
+          removedEdges.add(AbstractStates.extractLocation(pState).getLeavingEdge(i));
+          AbstractStates.extractLocation(pState)
+              .removeLeavingEdge(removedEdges.get(removedEdges.size() - 1));
+        } else {
+          i += 1;
         }
       }
-
-    Optional<Collection<? extends AbstractState>> summarizedState =
-        strategies
-            .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
-            .summarizeLoopState(
-                pState, ((LoopSummaryPrecision) pPrecision).getPrecision(), transferRelation);
-    while (summarizedState.isEmpty()) {
-      ((LoopSummaryPrecision) pPrecision).updateStrategy();
       summarizedState =
           strategies
               .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
               .summarizeLoopState(
                   pState, ((LoopSummaryPrecision) pPrecision).getPrecision(), transferRelation);
+      // Reinsert Removed Edges
+      for (CFAEdge e : removedEdges) {
+        AbstractStates.extractLocation(pState).addLeavingEdge(e);
+      }
+      if (summarizedState.isEmpty()) {
+        // If the Strategy cannot be applied we see if the next Strategy was someday applied, else
+        // we see if we can apply it and generate the ghost CFA
+        ((LoopSummaryPrecision) pPrecision).updateStrategy();
+        summarizedState = this.applyStrategyIfAlreadyApplied(pState, pPrecision);
+      }
     }
     stats.updateSummariesUsed(
         strategies
@@ -215,6 +252,9 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
             .getName(),
         1);
 
+    ((LoopSummaryPrecision) pPrecision)
+        .setLoopHead(
+            ((LoopSummaryPrecision) pPrecision).getStrategyCounter() != this.baseStrategyPosition);
     return summarizedState.get();
   }
 

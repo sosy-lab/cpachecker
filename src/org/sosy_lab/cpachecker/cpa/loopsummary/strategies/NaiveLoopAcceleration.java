@@ -37,8 +37,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class NaiveLoopAcceleration extends AbstractStrategy {
 
-  public NaiveLoopAcceleration(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  public NaiveLoopAcceleration(
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
   }
 
   private Optional<GhostCFA> buildGhostCFA(

@@ -38,8 +38,9 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
 
   final int multinomialDegree;
 
-  public PolynomialExtrapolationStrategy(final LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super(pLogger, pShutdownNotifier);
+  public PolynomialExtrapolationStrategy(
+      final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
+    super(pLogger, pShutdownNotifier, strategyIndex);
     this.multinomialDegree = 4;
   }
 

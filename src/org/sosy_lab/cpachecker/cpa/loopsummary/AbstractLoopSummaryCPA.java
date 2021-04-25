@@ -81,25 +81,25 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     pConfig.inject(this, AbstractLoopSummaryCPA.class);
 
-    for (StrategiesEnum e : strategies) {
-      switch (e) {
+    for (int i = 0; i < strategies.size(); i++) {
+      switch (strategies.get(i)) {
         case BASE:
-          strategiesClass.add(new BaseStrategy(pLogger, pShutdownNotifier));
+          strategiesClass.add(new BaseStrategy(pLogger, pShutdownNotifier, i));
           break;
         case LOOPACCELERATION:
-          strategiesClass.add(new LoopAcceleration(pLogger, pShutdownNotifier));
+          strategiesClass.add(new LoopAcceleration(pLogger, pShutdownNotifier, i));
           break;
         case NAIVELOOPACCELERATION:
-          strategiesClass.add(new NaiveLoopAcceleration(pLogger, pShutdownNotifier));
+          strategiesClass.add(new NaiveLoopAcceleration(pLogger, pShutdownNotifier, i));
           break;
         case POLYNOMIALEXTRAPOLATION:
-          strategiesClass.add(new PolynomialExtrapolationStrategy(pLogger, pShutdownNotifier));
+          strategiesClass.add(new PolynomialExtrapolationStrategy(pLogger, pShutdownNotifier, i));
           break;
         case LINEAREXTRAPOLATION:
-          strategiesClass.add(new LinearExtrapolationStrategy(pLogger, pShutdownNotifier));
+          strategiesClass.add(new LinearExtrapolationStrategy(pLogger, pShutdownNotifier, i));
           break;
         case CONSTANTEXTRAPOLATION:
-          strategiesClass.add(new ConstantExtrapolationStrategy(pLogger, pShutdownNotifier));
+          strategiesClass.add(new ConstantExtrapolationStrategy(pLogger, pShutdownNotifier, i));
           break;
       }
     }
