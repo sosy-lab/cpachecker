@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,7 +32,7 @@ public class LoopSummaryStrategyRefiner implements Refiner {
   private final LogManager logger;
   private int refinementNumber;
   protected final ARGCPA argCpa;
-  private ArrayList<StrategyInterface> strategies;
+  private List<StrategyInterface> strategies;
 
   public LoopSummaryStrategyRefiner(LogManager pLogger, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {

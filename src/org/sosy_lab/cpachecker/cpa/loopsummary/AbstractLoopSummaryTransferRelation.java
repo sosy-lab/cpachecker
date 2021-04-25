@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -71,7 +72,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
   @SuppressWarnings("unused")
   private CFANode startNodeGhostCFA;
 
-  private ArrayList<StrategyInterface> strategies;
+  private List<StrategyInterface> strategies;
 
   @SuppressWarnings("unused")
   private int lookaheadAmntNodes;
@@ -82,7 +83,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
   protected AbstractLoopSummaryTransferRelation(
       AbstractLoopSummaryCPA pLoopSummaryCPA,
       ShutdownNotifier pShutdownNotifier,
-      ArrayList<StrategyInterface> pStrategies,
+      List<StrategyInterface> pStrategies,
       int pLookaheadamntnodes,
       int pLookaheaditerations,
       CFA pCfa) {
@@ -130,7 +131,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
         AbstractState dummyStateStart =
             AbstractStrategy.overwriteLocationState(pState, ghostStartLocationState);
         ((ARGState) dummyStateStart).addParent((ARGState) pState);
-        ArrayList<AbstractState> finalStates = new ArrayList<>();
+        List<AbstractState> finalStates = new ArrayList<>();
         finalStates.add(dummyStateStart);
         return Optional.of(finalStates);
       }
@@ -207,7 +208,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     Optional<Collection<? extends AbstractState>> summarizedState =
         this.applyStrategyIfAlreadyApplied(pState, pPrecision);
     while (summarizedState.isEmpty()) {
-      ArrayList<CFAEdge> removedEdges = new ArrayList<>();
+      List<CFAEdge> removedEdges = new ArrayList<>();
       int i = 0;
       while (i < AbstractStates.extractLocation(pState).getNumLeavingEdges()) {
         // Remove Edges of Other Strategies in order for the Strategy Calculation to work with the

@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -43,15 +42,15 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
       loopBranchIndex = loopBranchIndexOptional.get();
     }
 
-    Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));
+    /*Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));
 
-    @SuppressWarnings("unused")
     CExpression loopBoundExpression;
     if (loopBoundOptional.isEmpty()) {
       return Optional.empty();
     } else {
       loopBoundExpression = loopBoundOptional.get();
     }
+    */
 
     if (!linearArithmeticExpressionsLoop(AbstractStates.extractLocation(pState), loopBranchIndex)) {
       return Optional.empty();

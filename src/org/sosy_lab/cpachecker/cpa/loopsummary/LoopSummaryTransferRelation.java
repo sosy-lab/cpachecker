@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,7 +33,7 @@ public class LoopSummaryTransferRelation extends AbstractLoopSummaryTransferRela
       LoopSummaryCPA loopSummaryCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      ArrayList<StrategyInterface> strategies,
+      List<StrategyInterface> strategies,
       int pLookaheadamntnodes,
       int pLookaheaditerations,
       CFA pCfa) {

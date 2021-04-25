@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,13 +45,12 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     NONDETBOUNDCONSTANTEXTRAPOLATION
   }
 
-
   @Option(
       name = "strategies",
       secure = true,
       description =
           "Strategies to be used in the Summary. The order of the strategies marks in which order they are tried")
-  private ArrayList<StrategiesEnum> strategies =
+  private List<StrategiesEnum> strategies =
       new ArrayList<>(
           Arrays.asList(
               StrategiesEnum.CONSTANTEXTRAPOLATION,
@@ -61,7 +61,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
               StrategiesEnum.LOOPACCELERATION,
               StrategiesEnum.BASE));
 
-  private ArrayList<StrategyInterface> strategiesClass = new ArrayList<>();
+  private List<StrategyInterface> strategiesClass = new ArrayList<>();
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -134,7 +134,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     return stats;
   }
 
-  ArrayList<StrategyInterface> getStrategies() {
+  List<StrategyInterface> getStrategies() {
     return strategiesClass;
   }
 

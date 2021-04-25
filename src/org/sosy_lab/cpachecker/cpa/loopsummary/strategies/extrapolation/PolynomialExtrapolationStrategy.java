@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -59,7 +61,7 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
       loopBranchIndex = loopBranchIndexOptional.get();
     }
 
-    Set<String> modifiedVariableNames;
+    /*Set<String> modifiedVariableNames;
     Optional<Set<String>> modifiedVariablesSuccess =
         getModifiedVariables(loopStartNode, loopBranchIndex);
     if (modifiedVariablesSuccess.isEmpty()) {
@@ -67,9 +69,10 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     } else {
       modifiedVariableNames = modifiedVariablesSuccess.get();
     }
+    */
 
-    HashSet<String> allVariables;
-    Optional<HashSet<String>> allVariablesSuccess = getAllVariables(loopStartNode, loopBranchIndex);
+    Set<String> allVariables;
+    Optional<Set<String>> allVariablesSuccess = getAllVariables(loopStartNode, loopBranchIndex);
     if (allVariablesSuccess.isEmpty()) {
       return Optional.empty();
     } else {
@@ -84,10 +87,10 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     int amntDataPoints =
         binomialCoefficient(allVariables.size() + this.multinomialDegree, this.multinomialDegree);
 
-    HashMap<String, Integer> intialValuesVariables = getInitialValuesVariables(pState);
+    Map<String, Integer> intialValuesVariables = getInitialValuesVariables(pState);
 
-    ArrayList<HashMap<String, Integer>> dataPoints;
-    Optional<ArrayList<HashMap<String, Integer>>> dataPointsOptional =
+    List<Map<String, Integer>> dataPoints;
+    Optional<List<Map<String, Integer>>> dataPointsOptional =
         getDataPointsForVariables(
             intialValuesVariables, amntDataPoints, loopStartNode, loopBranchIndex);
     if (dataPointsOptional.isEmpty()) {
@@ -112,20 +115,18 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
 
   @SuppressWarnings("unused")
   private Optional<GhostCFA> summaryCFA(
-      ArrayList<HashMap<String, Integer>> pDataPoints,
-      AbstractState pState,
-      Integer pLoopBranchIndex) {
+      List<Map<String, Integer>> pDataPoints, AbstractState pState, Integer pLoopBranchIndex) {
     // TODO Auto-generated method stub
     return Optional.empty();
   }
 
-  private HashMap<String, Integer> getInitialValuesVariables(
+  private Map<String, Integer> getInitialValuesVariables(
       @SuppressWarnings("unused") AbstractState pState) {
     // TODO transverse the CFA in inverse order to get the intial values of the node if they exist,
     // only consider the first value found as correct and only consider it correct if before it
     // there were no branchings. Alternatively expect a value CPA and extract the value of the
     // Variables from there, for this the abstractState would be needed
-    HashMap<String, Integer> intialValuesVariables = new HashMap<>();
+    Map<String, Integer> intialValuesVariables = new HashMap<>();
     return intialValuesVariables;
   }
 
@@ -142,15 +143,15 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
   }
 
   @SuppressWarnings("unused")
-  public Optional<HashSet<String>> getAllVariables(
+  public Optional<Set<String>> getAllVariables(
       final CFANode pLoopStartNode, Integer pLoopBranchIndex) {
     // For now it is assumed that all variables which occur in a loop are unknown
-    HashSet<String> allVariables = new HashSet<>();
-    ArrayList<CFANode> reachedNodes = new ArrayList<>();
+    Set<String> allVariables = new HashSet<>();
+    List<CFANode> reachedNodes = new ArrayList<>();
     reachedNodes.add(pLoopStartNode.getLeavingEdge(pLoopBranchIndex).getSuccessor());
     Collection<CFANode> seenNodes = new HashSet<>();
     while (!reachedNodes.isEmpty()) {
-      ArrayList<CFANode> newReachableNodes = new ArrayList<>();
+      List<CFANode> newReachableNodes = new ArrayList<>();
       for (CFANode s : reachedNodes) {
         seenNodes.add(s);
         if (s != pLoopStartNode) {
@@ -184,8 +185,8 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     return Optional.of(allVariables);
   }
 
-  private HashSet<String> getVariablesExpression(CExpression expression) {
-    HashSet<String> allVariables = new HashSet<>();
+  private Set<String> getVariablesExpression(CExpression expression) {
+    Set<String> allVariables = new HashSet<>();
     if (expression instanceof CIdExpression) {
       allVariables.add(((CIdExpression) expression).getName());
     } else if (expression instanceof CBinaryExpression) {
@@ -196,12 +197,12 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
   }
 
   @SuppressWarnings("unused")
-  public Optional<ArrayList<HashMap<String, Integer>>> getDataPointsForVariables(
-      HashMap<String, Integer> intialValuesVariables,
+  public Optional<List<Map<String, Integer>>> getDataPointsForVariables(
+      Map<String, Integer> intialValuesVariables,
       final int amntDataPoints,
       final CFANode pLoopStartNode,
       final int pLoopBranchIndex) {
-    ArrayList<HashMap<String, Integer>> dataPoints = new ArrayList<>();
+    List<Map<String, Integer>> dataPoints = new ArrayList<>();
     // TODO Calculate the Data Points for each Loop Iteration
     // If the amount of loop unrollings is less than amntDataPoints
     // the empty optional should be returned
