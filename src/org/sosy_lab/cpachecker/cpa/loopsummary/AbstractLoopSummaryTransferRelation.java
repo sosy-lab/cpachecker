@@ -250,7 +250,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     ((LoopSummaryPrecision) pPrecision)
         .setLoopHead(
             ((LoopSummaryPrecision) pPrecision).getStrategyCounter() != this.baseStrategyPosition);
-    return summarizedState.get();
+    return summarizedState.orElseThrow();
   }
 
   /**

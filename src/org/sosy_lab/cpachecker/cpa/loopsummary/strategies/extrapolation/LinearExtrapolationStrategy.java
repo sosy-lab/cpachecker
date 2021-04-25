@@ -39,7 +39,7 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     if (loopBranchIndexOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBranchIndex = loopBranchIndexOptional.get();
+      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
 
     /*Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));

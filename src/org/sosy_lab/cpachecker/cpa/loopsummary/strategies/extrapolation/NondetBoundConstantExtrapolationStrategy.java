@@ -93,7 +93,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     if (superOptionalGhostCFA.isEmpty()) {
       return Optional.empty();
     } else {
-      superGhostCFA = superOptionalGhostCFA.get();
+      superGhostCFA = superOptionalGhostCFA.orElseThrow();
     }
 
     CFAEdge dummyEdge =
@@ -122,7 +122,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     if (loopBranchIndexOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBranchIndex = loopBranchIndexOptional.get();
+      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
 
     if (!linearArithmeticExpressionsLoop(AbstractStates.extractLocation(pState), loopBranchIndex)) {
@@ -138,7 +138,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      ghostCFA = ghostCFASuccess.get();
+      ghostCFA = ghostCFASuccess.orElseThrow();
     }
 
     Collection<AbstractState> realStatesEndCollection =

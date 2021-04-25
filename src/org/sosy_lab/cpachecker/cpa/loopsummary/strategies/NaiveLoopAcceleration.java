@@ -116,7 +116,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     if (loopUnrollingSuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      currentNode = loopUnrollingSuccess.get();
+      currentNode = loopUnrollingSuccess.orElseThrow();
     }
     CFAEdge startConditionLoopCFAEdgeFalse =
         overwriteStartEndStateEdge(
@@ -147,7 +147,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     if (loopBranchIndexOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBranchIndex = loopBranchIndexOptional.get();
+      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
 
     Set<String> modifiedVariables;
@@ -156,7 +156,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     if (modifiedVariablesSuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      modifiedVariables = modifiedVariablesSuccess.get();
+      modifiedVariables = modifiedVariablesSuccess.orElseThrow();
     }
 
     GhostCFA ghostCFA;
@@ -164,7 +164,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      ghostCFA = ghostCFASuccess.get();
+      ghostCFA = ghostCFASuccess.orElseThrow();
     }
 
     Collection<AbstractState> realStatesEndCollection =

@@ -198,7 +198,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       return Optional.empty();
     } else {
       loopUnrollingCurrentNode =
-          loopUnrollingSuccess.get();
+          loopUnrollingSuccess.orElseThrow();
     }
 
     loopUnrollingSuccess =
@@ -206,7 +206,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     if (loopUnrollingSuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      loopUnrollingCurrentNode = loopUnrollingSuccess.get();
+      loopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
     }
     loopIngoingConditionDummyEdgeFalse =
         overwriteStartEndStateEdge(
@@ -222,7 +222,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     if (loopUnrollingSuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      loopUnrollingCurrentNode = loopUnrollingSuccess.get();
+      loopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
     }
     currentStartNodeGhostCFA = CFANode.newDummyCFANode("LS6");
 
@@ -282,7 +282,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       return Optional.empty();
     } else {
 
-      currentStartNodeGhostCFA = loopUnrollingSuccess.get();
+      currentStartNodeGhostCFA = loopUnrollingSuccess.orElseThrow();
     }
 
     loopIngoingConditionDummyEdgeFalse =
@@ -332,7 +332,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     if (loopBranchIndexOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBranchIndex = loopBranchIndexOptional.get();
+      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
 
     Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));
@@ -340,7 +340,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     if (loopBoundOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBound = loopBoundOptional.get();
+      loopBound = loopBoundOptional.orElseThrow();
     }
 
     if (!linearArithmeticExpressionsLoop(AbstractStates.extractLocation(pState), loopBranchIndex)) {
@@ -361,7 +361,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      ghostCFA = ghostCFASuccess.get();
+      ghostCFA = ghostCFASuccess.orElseThrow();
     }
 
     Collection<AbstractState> realStatesEndCollection =

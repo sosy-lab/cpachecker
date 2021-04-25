@@ -44,9 +44,9 @@ public class LoopSummaryPrecisionAdjustment implements PrecisionAdjustment {
     } else {
       return Optional.of(
           PrecisionAdjustmentResult.create(
-              result.get().abstractState(),
-              new LoopSummaryPrecision(result.get().precision(), 0),
-              result.get().action()));
+              result.orElseThrow().abstractState(),
+              new LoopSummaryPrecision(result.orElseThrow().precision(), 0),
+              result.orElseThrow().action()));
     }
   }
 

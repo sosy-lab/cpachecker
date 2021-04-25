@@ -58,7 +58,7 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     if (loopBranchIndexOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBranchIndex = loopBranchIndexOptional.get();
+      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
 
     /*Set<String> modifiedVariableNames;
@@ -76,7 +76,7 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     if (allVariablesSuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      allVariables = allVariablesSuccess.get();
+      allVariables = allVariablesSuccess.orElseThrow();
     }
 
     if (allVariables.size() > 10 || this.multinomialDegree > 10) {
@@ -96,7 +96,7 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     if (dataPointsOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      dataPoints = dataPointsOptional.get();
+      dataPoints = dataPointsOptional.orElseThrow();
     }
 
     GhostCFA ghostCFA;
@@ -104,7 +104,7 @@ public class PolynomialExtrapolationStrategy extends AbstractExtrapolationStrate
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();
     } else {
-      ghostCFA = ghostCFASuccess.get();
+      ghostCFA = ghostCFASuccess.orElseThrow();
     }
 
     Collection<AbstractState> realStatesEndCollection =

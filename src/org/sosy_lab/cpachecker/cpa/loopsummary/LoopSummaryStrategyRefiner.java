@@ -87,7 +87,7 @@ public class LoopSummaryStrategyRefiner implements Refiner {
     if (optionalRefinementState.isEmpty()) {
       return false;
     } else {
-      ARGState refinementState = optionalRefinementState.get();
+      ARGState refinementState = optionalRefinementState.orElseThrow();
       LoopSummaryPrecision newPrecision =
           (LoopSummaryPrecision) pReached.getPrecision(refinementState);
       newPrecision.updateStrategy();
