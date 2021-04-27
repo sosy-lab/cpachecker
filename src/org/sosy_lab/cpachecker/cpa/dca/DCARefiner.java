@@ -135,42 +135,49 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   private final FormulaManagerView formulaManagerView;
   private final InterpolationManager interpolationManager;
   private final InterpolationAutomatonBuilder itpAutomatonBuilder;
-  private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateAbstractionManager;
-  private final PredicateAbstractionStatistics abstractionStats =
-      new PredicateAbstractionStatistics();
   private final PathChecker pathChecker;
 
   private int curRefinementIteration = 0;
   private ReachedSet reached;
 
   @Option(
-    secure = true,
-      description = "Allows to abort the analysis early in order to only produce the ARG")
+      secure = true,
+      description =
+          "Skip the analysis (including the refinement) entirely, "
+              + "so that the ARG is left unmodified. This is used for debugging purposes.")
   private boolean skipAnalysis = false;
 
   @Option(
-    secure = true,
-      description = "Abort the refinement of finite prefixes for the purpose of better debugging")
+      secure = true,
+      description = "Analyize the ARG without performing a refinement for infeasible prefixes.")
   private boolean skipRefinement = false;
 
   @Option(
-    secure = true,
-      description = "Keep infeasible dummy states that allow for better debugging")
+      secure = true,
+      description = "If set to true, all infeasible dummy states will be kept in the ARG.")
   private boolean keepInfeasibleStates = false;
 
   @Option(
-    secure = true,
-      description = "Set number of refinements for the trace abstraction algorithm")
-  private int maxRefinementIterations = 0;
+      secure = true,
+      description =
+          "The max amount of refinements for the trace abstraction algorithm. "
+              + "Setting it to 0 leads to an analysis of the ARG without executing any refinements. "
+              + "This is used for debugging purposes.")
+  private int maxRefinementIterations = 10;
 
-  @Option(secure = true, name = "dotExport", description = "export automaton to file")
+  @Option(
+      secure = true,
+      name = "dotExport",
+      description = "Export the trace-abtraction automaton to a file in dot-format.")
   private boolean export = false;
 
   @Option(
-    secure = true,
-    name = "dotExportFile",
-    description = "file for saving the automaton in DOT format (%s will be replaced with automaton name)")
+      secure = true,
+      name = "dotExportFile",
+      description =
+          "Filename that the interpolation automaton will be written to. "
+              + "%s will get replaced by the automaton name.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dotExportFile = PathTemplate.ofFormatString("%s.dot");
 
