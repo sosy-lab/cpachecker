@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.cpa.dca;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.MoreCollectors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
@@ -51,13 +53,14 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   public DCACPA(ConfigurableProgramAnalysis pCpa, Specification pSpec, LogManager pLogger) {
     super(pCpa);
 
-    Property property = Iterables.getOnlyElement(pSpec.getProperties()).getProperty();
-    pLogger.logf(Level.INFO, "Retrieved property from file: %s", property);
-    if (property instanceof LabelledFormula) {
-      pLogger.logf(
-          Level.INFO,
-          "Negated property: %s",
-          ((LabelledFormula) property).not());
+    Optional<SpecificationProperty> propertyOpt =
+        pSpec.getProperties().stream().collect(MoreCollectors.toOptional());
+    if (propertyOpt.isPresent()) {
+      Property property = propertyOpt.orElseThrow().getProperty();
+      pLogger.logf(Level.INFO, "Retrieved property from file: %s", property);
+      if (property instanceof LabelledFormula) {
+        pLogger.logf(Level.INFO, "Negated property: %s", ((LabelledFormula) property).not());
+      }
     }
 
     checkArgument(pCpa instanceof ControlAutomatonCPA);
