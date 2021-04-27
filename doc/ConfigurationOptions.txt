@@ -384,6 +384,9 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
+# Enable converting test goals to conditions.
+analysis.testGoalConverter = no default value
+
 # Replace thread creation operations with a special function callsso, any
 # analysis can go through the function
 analysis.threadOperationsTransform = false
@@ -896,6 +899,13 @@ conditional.verifier.generatorConfig = no default value
 # configuration for the verification of the residual program which is
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
+
+# The input file with all goals that were previously reached
+conditional_testing.inputfile = no default value
+
+# The strategy to use
+conditional_testing.strategy = no default value
+  enum:     [NAIVE, PROPAGATION]
 
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
