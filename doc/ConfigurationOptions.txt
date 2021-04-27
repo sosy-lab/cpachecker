@@ -1635,9 +1635,6 @@ cpa.dca.refiner.maxRefinementIterations = 10
 # left unmodified. This is used for debugging purposes.
 cpa.dca.refiner.skipAnalysis = false
 
-# Analyize the ARG without performing a refinement for infeasible prefixes.
-cpa.dca.refiner.skipRefinement = false
-
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]

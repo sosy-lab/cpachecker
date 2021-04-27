@@ -148,11 +148,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   @Option(
       secure = true,
-      description = "Analyize the ARG without performing a refinement for infeasible prefixes.")
-  private boolean skipRefinement = false;
-
-  @Option(
-      secure = true,
       description = "If set to true, all infeasible dummy states will be kept in the ARG.")
   private boolean keepInfeasibleStates = false;
 
@@ -321,7 +316,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
     if (skipAnalysis) {
-      // Option is used to output the computed ARG without any further refinements
+      // Return the computed ARG without any modifications / further refinements
       // (i.e., for debugging)
       logger.log(Level.INFO, "Received flag to skip the refinement. Aborting analysis...");
       return false;
@@ -405,7 +400,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
         logger.logf(Level.INFO, "Path to cycle: %s\n", lazyPrintNodes(stemPath));
 
         try {
-          // create stem
+          // Create stem
           List<PathFormula> stemPathFormulaList =
               SlicingAbstractionsUtils.getFormulasForPath(
                   pathFormulaManager,
@@ -415,20 +410,20 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   AbstractionPosition.NONE);
           PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
 
-          // check stem prefixes for infeasibility
+          // Check stem prefixes for infeasibility
           ImmutableList<BooleanFormula> stemBFList =
               transformedImmutableListCopy(stemPathFormulaList, PathFormula::getFormula);
           if (isUnsat(stemBFList)) {
-            logger.log(Level.SEVERE, "Found unsat predicates in stem");
+            logger.log(Level.INFO, "Found unsat predicates in stem");
             if (refineFinitePrefixes(stemPath, stemPathFormulaList)) {
-              // received flag to immediately perform an abstraction refinement
+              // Received flag to immediately perform an abstraction refinement
               return true;
             } else {
               continue;
             }
           }
 
-          // create loop
+          // Create loop
           List<PathFormula> loopPathFormulaList =
               SlicingAbstractionsUtils.getFormulasForPath(
                   pathFormulaManager,
@@ -441,20 +436,20 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           PathFormula loopPathFormula =
               createSinglePathFormula(loopPathFormulaList, stemPathFormula);
 
-          // check loop prefixes for infeasibility
+          // Check loop prefixes for infeasibility
           ImmutableList<BooleanFormula> loopBFList =
               transformedImmutableListCopy(loopPathFormulaList, PathFormula::getFormula);
           if (isUnsat(loopBFList)) {
-            logger.log(Level.SEVERE, "Found unsat predicates in loop");
+            logger.log(Level.INFO, "Found unsat predicates in loop");
             if (refineFinitePrefixes(loopPath, loopPathFormulaList)) {
-              // received flag to immediately perform an abstraction refinement
+              // Received flag to immediately perform an abstraction refinement
               return true;
             } else {
               continue;
             }
           }
 
-          // check stem and loop prefixes for infeasibility
+          // Concat stem and loop prefixes and check for infeasibility
           ImmutableList<ARGState> stemAndLoopStates =
               ImmutableList.<ARGState>builder()
                   .addAll(stemPath.asStatesList())
@@ -471,17 +466,18 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   .append(Iterables.skip(loopPathFormulaList, 1))
                   .toList();
           if (isUnsat(stemAndLoopBFList)) {
-            logger.log(Level.SEVERE, "Found unsat predicates in stem concatenated with loop");
+            logger.log(Level.INFO, "Found unsat predicates in stem concatenated with loop");
             if (refineFinitePrefixes(stemAndLoopPath, stemAndLoopPathFormulaList)) {
-              // received flag to immediately perform an abstraction refinement
+              // Received flag to immediately perform an abstraction refinement
               return true;
             } else {
               continue;
             }
           }
 
-          // create a lasso and check it using LassoRanker for a termination argument
-          // (more specifically, a ranking function)
+          // Could not prove infeasibility by checking the finite prefixes.
+          // Next, create a lasso and let LassoRanker check it for a termination
+          // argument (or more specifically, a ranking function).
           StemAndLoop stemAndLoop =
               new LassoBuilder.StemAndLoop(
                   stemPathFormula, loopPathFormula, stemPathFormula.getSsa());
@@ -491,8 +487,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
           LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
           // TODO: Rewrite the code below so that always the correct loop is selected
-          // The current logic below will most likely not work for programs with several / complex
-          // loops
+          // The current logic below might not work for programs with several / complex
+          // loop structures.
           ImmutableList<CFANode> cfaNodesOfCurrentCycle =
               cycle
                   .stream()
@@ -516,25 +512,39 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           LassoAnalysisResult checkTermination =
               lassoAnalysis.checkTermination(loop, lassos, varDeclarations);
           if (checkTermination.hasNonTerminationArgument()) {
-            // feasible loop for CEX found
+            // Feasible loop for CEX found
             NonTerminationArgument nonTerminationArgument =
                 checkTermination.getNonTerminationArgument();
             logger.logf(
-                Level.SEVERE,
-                "LassoRanker has non-termination argument: %s",
+                Level.INFO,
+                "LassoRanker has found a non-termination argument: %s",
                 nonTerminationArgument);
+
+            CounterexampleTraceInfo cexTraceInfo =
+                interpolationManager.buildCounterexampleTrace(
+                    new BlockFormulas(stemAndLoopBFList),
+                    transformedImmutableListCopy(
+                        stemAndLoopStates, PredicateAbstractState::getPredicateState));
+            CounterexampleInfo cexInfo =
+                pathChecker.createCounterexample(stemAndLoopPath, cexTraceInfo);
+
+            stemAndLoopPath.getLastState().addCounterexampleInformation(cexInfo);
+            // return false;
           }
           if (checkTermination.hasTerminationArgument()) {
             RankingRelation terminationArgument = checkTermination.getTerminationArgument();
             logger.logf(
-                Level.SEVERE,
-                "LassoRanker has termination argument %s",
+                Level.INFO,
+                "LassoRanker has found a termination argument %s",
                 terminationArgument.getSupportingInvariants().isEmpty()
                     ? ""
                     : "\nInvariants: " + terminationArgument.getSupportingInvariants());
           }
           if (checkTermination.isUnknown()) {
-            logger.logf(Level.SEVERE, "Argument from LassoRanker is unknown");
+            logger.logf(
+                Level.WARNING, "Argument from LassoRanker is unknown. The result might be unsound");
+            // TODO: The program cannot be proven safe anymore, but it can still
+            // be checked further for valid counterexamples
           }
         } catch (TermException | SolverException | SMTLIBException | IOException e) {
           throw new CPAException(e.getMessage(), e);
@@ -619,14 +629,14 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private void removeInfeasibleStatesFromARG(ARGState pState) {
     verify(pState.getChildren().isEmpty());
-    Set<ARGState> statesToRemove = new HashSet<>();
-    collectStatesToRemove(pState, statesToRemove);
+    Set<ARGState> states = new HashSet<>();
+    collectStatesToRemove(pState, states);
     logger.logf(
-        Level.INFO,
-        "Removing %d state(s) that are attached to the given state",
-        statesToRemove.size());
-    statesToRemove.forEach(ARGState::removeFromARG);
-    reached.removeAll(statesToRemove);
+        Level.FINE,
+        "Removing %d trailing state(s) that have ended in an infeasible state",
+        states.size());
+    states.forEach(ARGState::removeFromARG);
+    reached.removeAll(states);
   }
 
   private void collectStatesToRemove(ARGState pState, Collection<ARGState> pStatesToRemove) {
@@ -635,8 +645,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
     pStatesToRemove.add(pState);
 
-    parents
-        .stream()
+    parents.stream()
         // do not add parent-states to the removal list that have more than one child
         .filter(x -> x.getChildren().size() == 1)
         // if the state is a nontarget-state, there is no need to remove it from the reached-set
@@ -653,16 +662,9 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
     List<BooleanFormula> interpolants = cexTraceInfo.getInterpolants();
     logger.logf(
-        Level.INFO,
+        Level.FINE,
         "Mapping of interpolants to arg-states:\n%s",
         lazyPrintItpToTransitionMapping(pPath, interpolants));
-
-    // TODO: eventually change this to an assertion
-    verify(
-        interpolants.stream().anyMatch(formulaManagerView.getBooleanFormulaManager()::isTrue)
-            || interpolants
-                .stream()
-                .anyMatch(formulaManagerView.getBooleanFormulaManager()::isFalse));
 
     try {
       InterpolationAutomaton itpAutomaton =
@@ -679,13 +681,15 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   Charset.defaultCharset())) {
             automaton.writeDotFile(w);
           } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+            logger.logUserException(Level.WARNING, e, "Could not write the automaton to a DOT file");
           }
         }
       }
 
-      if (skipRefinement || curRefinementIteration >= maxRefinementIterations) {
-        logger.log(Level.SEVERE, "Skipping the refinement");
+      if (curRefinementIteration >= maxRefinementIterations) {
+        logger.log(
+            Level.WARNING,
+            "Specified number of max refinements already exceeded. Skipping the refinement");
         return false;
       }
 
@@ -701,20 +705,22 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     return true;
   }
 
-  private Object
-      lazyPrintItpToTransitionMapping(ARGPath pPath, List<BooleanFormula> pInterpolants) {
+  private Object lazyPrintItpToTransitionMapping(
+      ARGPath pPath, List<BooleanFormula> pInterpolants) {
     return MoreStrings.lazyString(
-        () -> Streams.zip(
-            pPath.getStatePairs().stream(),
-            pInterpolants.stream(),
-            (statePair, itp) -> String.format(
-                "%d:%s -> %d:%s : %s",
-                statePair.getFirstNotNull().getStateId(),
-                AbstractStates.extractLocation(statePair.getFirstNotNull()),
-                statePair.getSecondNotNull().getStateId(),
-                AbstractStates.extractLocation(statePair.getSecondNotNull()),
-                itp))
-            .collect(Collectors.joining("\n")));
+        () ->
+            Streams.zip(
+                    pPath.getStatePairs().stream(),
+                    pInterpolants.stream(),
+                    (statePair, itp) ->
+                        String.format(
+                            "%d:%s -> %d:%s : %s",
+                            statePair.getFirstNotNull().getStateId(),
+                            AbstractStates.extractLocation(statePair.getFirstNotNull()),
+                            statePair.getSecondNotNull().getStateId(),
+                            AbstractStates.extractLocation(statePair.getSecondNotNull()),
+                            itp))
+                .collect(Collectors.joining("\n")));
   }
 
   private void reinitializeReachedSet() throws InterruptedException {
@@ -781,9 +787,10 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private Object lazyPrintNodes(Collection<ARGState> pArgStates) {
     return MoreStrings.lazyString(
-        () -> FluentIterable.from(pArgStates)
-            .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
-            .toString());
+        () ->
+            FluentIterable.from(pArgStates)
+                .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
+                .toString());
   }
 
   @Override
