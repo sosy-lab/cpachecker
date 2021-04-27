@@ -163,7 +163,7 @@ public class InterpolationAutomaton {
     return str.toString();
   }
 
-  private class ItpAutomatonState {
+  private static class ItpAutomatonState {
 
     private final InterpolationAutomaton itpAutomaton;
 
