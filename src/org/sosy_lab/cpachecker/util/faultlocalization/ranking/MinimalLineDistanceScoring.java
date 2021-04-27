@@ -29,15 +29,20 @@ public class MinimalLineDistanceScoring implements FaultScoring {
 
   @Override
   public RankInfo scoreFault(Fault fault) {
-    int min = fault
-            .stream()
-            .mapToInt(fc -> Math.abs(fc.correspondingEdge().getFileLocation().getStartingLineInOrigin() - errorLocation))
+    int min =
+        fault.stream()
+            .mapToInt(
+                fc ->
+                    Math.abs(
+                        fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()
+                            - errorLocation))
             .min()
             .orElse(0);
 
     // zero lines from error means changing the post condition fixes the error
     // score => zero because post-condition is assumed to be placed correctly.
     double likelihood = min == 0 ? 0.0 : 1d/min;
-    return FaultInfo.rankInfo("This line is " + min + " line(s) away from the error location", likelihood);
+    return FaultInfo.rankInfo(
+        "This line is " + min + " line(s) away from the error location", likelihood);
   }
 }
