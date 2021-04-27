@@ -95,7 +95,6 @@ import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -254,7 +253,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             pLogger);
 
     SymbolicRegionManager regionManager = new SymbolicRegionManager(solver);
-    abstractionManager = new AbstractionManager(regionManager, pConfig, pLogger, solver);
+    AbstractionManager abstractionManager =
+        new AbstractionManager(regionManager, pConfig, pLogger, solver);
     PredicateAbstractionManagerOptions abstractionOptions =
         new PredicateAbstractionManagerOptions(pConfig);
     PredicateAbstractionsStorage abstractionStorage;
@@ -278,12 +278,16 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             abstractionStorage,
             pLogger,
             pNotifier,
-            abstractionStats,
+            new PredicateAbstractionStatistics(),
             TrivialInvariantSupplier.INSTANCE);
 
     itpAutomatonBuilder =
         new InterpolationAutomatonBuilder(
-            this, formulaManagerView, logger, pPredFormulaManagerView);
+            formulaManagerView,
+            logger,
+            pPredFormulaManagerView,
+            predicateAbstractionManager,
+            false);
 
     AssignmentToPathAllocator pathAllocator =
         new AssignmentToPathAllocator(pConfig, shutdownNotifier, logger, cfa.getMachineModel());
@@ -330,10 +334,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
       statistics.refinementTotalTimer.stop();
       logger.log(Level.INFO, "Finished analysing the reached set.");
     }
-  }
-
-  public PredicateAbstractionManager getPredicateAbstractionManager() {
-    return predicateAbstractionManager;
   }
 
   private boolean performRefinement0(final ReachedSet pReached)
@@ -714,10 +714,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     AbstractState initialState = argCPA.getInitialState(mainFunction, defaultPartition);
     Precision initialPrecision = argCPA.getInitialPrecision(mainFunction, defaultPartition);
     reached.add(initialState, initialPrecision);
-  }
-
-  public ImmutableList<AbstractionPredicate> makePredicates(BooleanFormula pInterpolant) {
-    return ImmutableList.of(abstractionManager.makePredicate(pInterpolant));
   }
 
   public boolean isUnsat(BooleanFormula... pFormulas) throws InterruptedException, SolverException {
