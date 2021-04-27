@@ -69,9 +69,7 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   }
 
   void addAutomaton(Automaton pAutomaton) {
-    checkArgument(
-        automatonList.add(pAutomaton),
-        DCACPA.class.getSimpleName() + " already contains the specified automaton.");
+    checkArgument(automatonList.add(pAutomaton), "The automaton is already available.");
   }
 
   @Override
