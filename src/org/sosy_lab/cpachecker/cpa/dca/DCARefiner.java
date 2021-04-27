@@ -584,33 +584,31 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
       // check path for infeasibility
       ImmutableList<BooleanFormula> bfList =
           transformedImmutableListCopy(pathFormulaList, PathFormula::getFormula);
+
       try {
-        if (isUnsat(bfList)) {
-          // Found unsat predicates in path -> simply remove them from the ARG
-
-          if (!keepInfeasibleStates) {
-            logger.log(
-                Level.INFO,
-                "Found unsat predicates in a finite path. Removing them from the ARG.");
-            removeInfeasibleStatesFromARG(stateWithoutChildren);
-          } else {
-            logger.logf(
-                Level.INFO,
-                "Flag received to skip the removal of infeasible predicate dummy states.");
-          }
-
-        } else {
-          logger.log(Level.INFO, "Feasible errorpath with target states found.");
-
-          CounterexampleTraceInfo cexTraceInfo =
-              interpolationManager.buildCounterexampleTrace(new BlockFormulas(bfList));
-          CounterexampleInfo cexInfo = pathChecker.createCounterexample(path, cexTraceInfo);
-
-          path.getLastState().addCounterexampleInformation(cexInfo);
-          return false;
+        if (!isUnsat(bfList)) {
+          continue;
         }
       } catch (SolverException e) {
         throw new CPAException(e.getMessage(), e);
+      }
+
+      if (refineFinitePrefixes(path, pathFormulaList)) {
+        // Immediately perform an abstraction refinement next
+        return true;
+
+      } else {
+        logger.log(Level.INFO, "Feasible errorpath with target states found.");
+
+        CounterexampleTraceInfo cexTraceInfo =
+            interpolationManager.buildCounterexampleTrace(
+                new BlockFormulas(bfList),
+                transformedImmutableListCopy(
+                    path.asStatesList(), PredicateAbstractState::getPredicateState));
+        CounterexampleInfo cexInfo = pathChecker.createCounterexample(path, cexTraceInfo);
+
+        path.getLastState().addCounterexampleInformation(cexInfo);
+        return false;
       }
     }
 
