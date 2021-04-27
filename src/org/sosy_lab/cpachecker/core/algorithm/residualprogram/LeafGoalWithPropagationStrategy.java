@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
-import java.util.Deque;
-import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm.LeafStates;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -58,10 +59,11 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
       var node = waitList.removeFirst();
       reachedNodes.add(node);
 
-      var childrenNodes = Stream.iterate(0, n -> n + 1)
-          .limit(node.getNumLeavingEdges())
-          .map(i -> node.getLeavingEdge(i).getSuccessor())
-          .collect(Collectors.toList());
+      var childrenNodes =
+          Stream.iterate(0, n -> n + 1)
+              .limit(node.getNumLeavingEdges())
+              .map(i -> node.getLeavingEdge(i).getSuccessor())
+              .collect(ImmutableList.toImmutableList());
 
       if (nodes.get(NodeStates.VIRGIN).containsAll(childrenNodes)
           && node instanceof CLabelNode && ((CLabelNode) node).getLabel()
@@ -90,8 +92,7 @@ public class LeafGoalWithPropagationStrategy implements IGoalFindingStrategy {
               .limit(node.getNumEnteringEdges())
               .map(i -> node.getEnteringEdge(i).getPredecessor())
               .filter(n -> !reachedNodes.contains(n) && !waitList.contains(n))
-              .collect(Collectors.toList())
-      );
+              .collect(ImmutableList.toImmutableList()));
     }
 
     nodes.get(NodeStates.COVERED).removeAll(removableNodes);

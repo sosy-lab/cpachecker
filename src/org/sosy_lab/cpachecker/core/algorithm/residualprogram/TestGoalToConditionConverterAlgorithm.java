@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -153,7 +152,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
    */
   private Set<String> getCoveredGoals() throws CPAException {
     try (var lines = Files.lines(inputfile)) {
-      return lines.collect(Collectors.toSet());
+      return lines.collect(ImmutableSet.toImmutableSet());
     } catch (IOException e) {
       throw new CPAException(e.getLocalizedMessage());
     }
