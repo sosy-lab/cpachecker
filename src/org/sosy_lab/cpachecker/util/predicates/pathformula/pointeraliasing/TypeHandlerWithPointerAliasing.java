@@ -46,7 +46,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       new CachingCanonizingCTypeVisitor(
           /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ true);
 
-  private final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
+  private final IdentityHashMap<CType, String> pointerNameCache = new IdentityHashMap<>();
 
   // Use Multiset<String> instead of Map<String, Integer> because it is more
   // efficient. The integer value is stored as the number of instances of any

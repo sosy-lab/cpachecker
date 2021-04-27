@@ -154,6 +154,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -572,10 +573,6 @@ bdd.pjbdd.cacheRatio = 0.1
 
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
-
-# Threadsafe reference counting is very costly, with this option gc can be
-# disabled. Only applicable with useInts = true.
-bdd.pjbdd.disableGC = false
 
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
@@ -1874,9 +1871,6 @@ cpa.lpi.toLemmasAlgorithm = "RCNF"
 # Number of refinements after which the unrolling depth is increased.Set to
 # -1 to never increase the depth.
 cpa.lpi.unrollingRefinementThreshold = 2
-
-# Use caching optimization solver
-cpa.lpi.useCachingOptSolver = false
 
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
@@ -3292,6 +3286,13 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to consider pointees. Only if this option is set to true, a pointer
+# analysis is run during system dependence graph (SDG) construction and
+# dependencies of pointees are inserted into the SDG. If this option is set
+# to false, pointers are completely ignored and the resulting SDG is an
+# under-approximation that lacks all pointee dependencies.
+dependencegraph.considerPointees = true
+
 # Whether to take an assumption edge 'p' as control dependence if edge 'not
 # p' is a control dependence. This creates a larger slice, but may reduce the
 # size of the state space for deterministic programs. This behavior is also
@@ -3299,23 +3300,54 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # where branching is represented by a single assumption (with true- and
 # false-edges)
 dependencegraph.controldeps.considerInverseAssumption = true
+dependencegraph.controldeps.considerInverseAssumption = no default value
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
+dependencegraph.controldeps.use = no default value
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
+dependencegraph.exportDot = no default value
 
 # Run flow dependence analysis with constant propagation
-dependencegraph.flowdep.constantPropagation = false
+dependencegraph.flowdep.constantPropagation = no default value
 
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions.
-dependencegraph.flowdep.constraintIsDef = false
+dependencegraph.flowdep.constraintIsDef = no default value
 
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
+dependencegraph.flowdeps.use = no default value
+
+# Whether to include only functions reachable from the main function in the
+# dependence graph.
+dependencegraph.onlyReachableFunctions = true
+
+# The maximum duration a single pointer analysis method is allowed to run
+# (use seconds or specify a unit; 0 for infinite).
+dependencegraph.pointerAnalysisTime = 0s
+
+# The computation methods used for pointer analysis. If no method is
+# specified, an imprecise over-approximation of the global pointer state is
+# created without running any actual pointer analysis. If at least one
+# computation method is specified, the first one in the list is run with the
+# time limit set by 'dependencegraph.pointerAnalysisTime'. If this method is
+# able to create a valid global pointer state in time, the state is used and
+# no other methods are run. Otherwise, if a second computation method is
+# specified, the second method is run with the same time limit. If the method
+# is able to create a valid global pointer state in time, the state is used
+# and no other methods are run. The same is true for all subsequent
+# computation methods specified in the list. If no computation method is able
+# to create a valid global pointer state in time, an imprecise
+# over-approximation of the global pointer state is created without running
+# any actual pointer analysis. A pointer analysis is only run if
+# 'dependencegraph.considerPointees' is set to true. Available computation
+# methods: PointerStateComputationMethod.FLOW_SENSITIVE,
+# PointerStateComputationMethod.FLOW_INSENSITIVE
+dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
@@ -3613,6 +3645,14 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
+# The command line for calling the clang preprocessor. May contain binary
+# name and arguments, but won't be expanded by a shell. The source file name
+# will be appended to this string. Clang needs to print the output to stdout.
+parser.clang = "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout"
+
+# Whether to dump the results of the preprocessor to disk.
+parser.clang.dumpResults = true
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -3637,8 +3677,12 @@ parser.readLineDirectives = false
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
 
+# For C files, convert to LLVM IR with clang first and then use the LLVM
+# parser.
+parser.useClang = false
+
 # For C files, run the preprocessor on them before parsing. Note that all
-# file numbers printed by CPAchecker will refer to the pre-processed file,
+# line numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
 
@@ -4017,6 +4061,12 @@ slicing.exportToC.file = "programSlice.%d.c"
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
+
+# Whether to allow edges in the resulting slice that are only partially
+# relevant (e.g. function calls where not every parameter is relevant).
+# Setting this parameter to true can decrease the size of the resulting
+# slice.
+slicing.partiallyRelevantEdges = true
 
 # what kind of slicing to use
 slicing.type = STATIC

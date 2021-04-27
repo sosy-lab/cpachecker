@@ -80,12 +80,13 @@ public class AssignmentToPathAllocator {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private final MemoryName memoryName;
+  private final MachineModel machineModel;
 
   public AssignmentToPathAllocator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.shutdownNotifier = pShutdownNotifier;
     this.assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
-
+    machineModel = pMachineModel;
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
             pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
@@ -150,7 +151,7 @@ public class AssignmentToPathAllocator {
               Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
 
       ConcreteState concreteState =
-          new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, evaluator);
+          new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, evaluator, machineModel);
 
       final SingleConcreteState singleConcreteState;
       if (isInsideMultiEdge) {

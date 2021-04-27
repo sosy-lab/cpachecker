@@ -26,7 +26,8 @@ SPDX-License-Identifier: Apache-2.0
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
     <property name="ivy.repo.url" value="https://www.sosy-lab.org/ivy"/>
     <property name="ivy.lib.dir" value="lib/java"/>
-    <property name="ivy.configurations" value="build, runtime, test, spotbugs"/>
+    <property name="ivy.configuration.main" value="runtime"/>
+    <property name="ivy.configurations" value="build, ${ivy.configuration.main}, test, spotbugs"/>
     <property name="ivy.dep.file" value="lib/ivy.xml"/>
     <property name="ivy.settings.file" value="build/ivysettings.xml"/>
 
