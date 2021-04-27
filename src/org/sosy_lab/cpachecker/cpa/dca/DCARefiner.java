@@ -377,6 +377,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
     logger.logf(Level.INFO, "Found %d SCC(s) with target-states", SCCs.size());
 
+    boolean terminationFunctionFound = false;
+
     for (StronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
@@ -539,6 +541,11 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                 terminationArgument.getSupportingInvariants().isEmpty()
                     ? ""
                     : "\nInvariants: " + terminationArgument.getSupportingInvariants());
+            logger.logf(
+                Level.WARNING,
+                "Refinement for termination arguments is not implemented yet. "
+                    + "The result might be imprecise.");
+            terminationFunctionFound = true;
           }
           if (checkTermination.isUnknown()) {
             logger.logf(
@@ -550,6 +557,12 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           throw new CPAException(e.getMessage(), e);
         }
       }
+    }
+
+    if (terminationFunctionFound) {
+      // TODO: LassoRanker found a termination function, but the functionality
+      // for refining those is future work and not (yet) available.
+      return false;
     }
 
     // All loops containing target states have been handled now - either all of them were
