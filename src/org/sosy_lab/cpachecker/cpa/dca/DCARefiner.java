@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -188,9 +187,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
       final CFA pCfa,
       final LogManager pLogger,
       final ShutdownNotifier pNotifier,
-      Configuration pConfig)
+      final Configuration pConfig)
       throws InvalidConfigurationException {
-    pConfig = Solver.adjustConfigForSolver(pConfig);
     pConfig.inject(this);
 
     argCPA = checkNotNull(pArgCpa);
@@ -305,15 +303,18 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     DCACPA dcaCpa = CPAs.retrieveCPAOrFail(pCpa, DCACPA.class, DCARefiner.class);
     PredicateCPA predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, DCARefiner.class);
 
-    Configuration config = predicateCpa.getConfiguration();
     CFA cfa = predicateCpa.getCfa();
     FormulaManagerView predFormulaManagerView = predicateCpa.getSolver().getFormulaManager();
 
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder.copyFrom(config).setOption("solver.solver", SMTINTERPOL.name());
+    Configuration config =
+        Configuration.builder()
+            .copyFrom(predicateCpa.getConfiguration())
+            .setOption("solver.solver", SMTINTERPOL.name())
+            .build();
+    Configuration adjustedConfig = Solver.adjustConfigForSolver(config);
 
     return new DCARefiner(
-        argCpa, dcaCpa, predFormulaManagerView, cfa, pLogger, pNotifier, configBuilder.build());
+        argCpa, dcaCpa, predFormulaManagerView, cfa, pLogger, pNotifier, adjustedConfig);
   }
 
   @Override
@@ -340,30 +341,35 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
       throws InterruptedException, CPAException {
     reached = pReached;
 
-    // The following states were already proven to be unsat during the creation of the reached-set.
-    // Hence, they can be safely removed from the ARG, including all parents states that are are both
-    // a target state and do not have more than one child-element
-    ImmutableList<ARGState> dummyStatesToRemove =
-        pReached.asCollection()
+    logger.logf(Level.INFO, "Current iteration: %d", curRefinementIteration);
+
+    // The following states were already proven to be unsat when the reached-set was built.
+    // They can be safely removed from the ARG. This also includes all parents states that are both
+    // a target state and do not have more than one child-element.
+    ImmutableList<ARGState> infeasibleDummyStates =
+        pReached
+            .asCollection()
             .stream()
             .filter(
-                x -> AbstractStates.extractStateByType(
-                    x,
-                    PredicateAbstractState.class) instanceof PredicateAbstractState.InfeasibleDummyState)
+                x ->
+                    AbstractStates.extractStateByType(x, PredicateAbstractState.class)
+                        instanceof PredicateAbstractState.InfeasibleDummyState)
             .map(x -> (ARGState) x)
             .collect(ImmutableList.toImmutableList());
 
     if (!keepInfeasibleStates) {
-      for (ARGState state : dummyStatesToRemove) {
-        logger.log(
-            Level.INFO, "Found unsat predicates during creation of the ARG. Removing them...");
+      logger.logf(
+          Level.INFO,
+          "Found %d unsat predicates while building the ARG. Removing them from it.",
+          infeasibleDummyStates.size());
+      for (ARGState state : infeasibleDummyStates) {
         removeInfeasibleStatesFromARG(state);
       }
     } else {
       logger.logf(
           Level.INFO,
           "Not removing any infeasible predicate dummy states. There are in total %d of such states",
-          dummyStatesToRemove.size());
+          infeasibleDummyStates.size());
     }
 
     shutdownNotifier.shutdownIfNecessary();
@@ -556,6 +562,16 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     for (ARGState stateWithoutChildren : targetStatesWithoutChildren) {
       ARGPath path = ARGUtils.getShortestPathTo(stateWithoutChildren);
       logger.logf(Level.INFO, "Path to last node: %s\n", lazyPrintNodes(path));
+
+      if (path.asStatesList().stream().anyMatch(infeasibleDummyStates::contains)) {
+        verify(keepInfeasibleStates);
+        logger.logf(
+            Level.INFO,
+            "Path contains a predicate dummy state that has already been proven "
+                + "infeasible. Not performing a refinement due to the option "
+                + " 'keepInfeasibleStates' being set.");
+        continue;
+      }
 
       List<PathFormula> pathFormulaList =
           SlicingAbstractionsUtils.getFormulasForPath(
