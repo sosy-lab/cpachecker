@@ -116,7 +116,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
 
 @Options(prefix = "cpa.dca.refiner")
-public class DCARefiner implements Refiner, StatisticsProvider {
+public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private static final Solvers SMTINTERPOL = Solvers.SMTINTERPOL;
 
@@ -772,5 +772,10 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+  }
+
+  @Override
+  public void close() {
+    lassoAnalysis.close();
   }
 }
