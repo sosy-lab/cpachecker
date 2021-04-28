@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -23,62 +21,43 @@ import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
 public class TestTargetMinimizerEssential {
-  // TODO check that dummyTestTargetsMapping/copiedEdgeToTestTargetsMap keys are only CFADummyEdges,
-  // and only those are used to
-  // access them
 
   // only works correctly if DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(final Set<CFAEdge> testTargets, final CFA pCfa) {
-    // maps a node in the original cfa to one in the new copied graph
-    Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
     // maps a copied edge to the testTarget that can be removed if its dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
 
     // create a copy of the cfa graph that can be minimized using the essential Branch rules
-    copyCFA(testTargets, origCFANodeToCopyMap, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
+    Pair<CFANode, CFANode> copiedFunctionEntryExit =
+        copyCFA(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
 
-    CFANode copiedFunctionEntry = origCFANodeToCopyMap.get(pCfa.getMainFunction());
     // handle all cases of nodes with a single outgoing edge
-    applyRule1(
-        testTargets,
-        copiedEdgeToTestTargetsMap,
-        copiedFunctionEntry);
+    applyRule1(testTargets, copiedEdgeToTestTargetsMap, copiedFunctionEntryExit);
 
-    applyRule2(
-        testTargets,
-        copiedEdgeToTestTargetsMap,
-        copiedFunctionEntry);
+    applyRule2(testTargets, copiedEdgeToTestTargetsMap, copiedFunctionEntryExit);
 
-    applyRule3(
-        testTargets,
-        origCFANodeToCopyMap,
-        copiedEdgeToTestTargetsMap,
-        pCfa.getMainFunction());
+    applyRule3(testTargets, copiedEdgeToTestTargetsMap, copiedFunctionEntryExit);
 
-    applyRule4(
-        testTargets,
-        origCFANodeToCopyMap,
-        copiedEdgeToTestTargetsMap,
-        pCfa.getMainFunction());
+    applyRule4(testTargets, copiedEdgeToTestTargetsMap, copiedFunctionEntryExit.getFirst());
 
     return testTargets;
   }
 
-  private void copyCFA(
+  private Pair<CFANode, CFANode> copyCFA(
       final Set<CFAEdge> pTestTargets,
-      final Map<CFANode, CFANode> origCFANodeToCopyMap,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final CFANode pEntryNode)
+      final FunctionEntryNode pEntryNode)
   {
     // a set of nodes that has already been created to prevent duplicates
     Set<CFANode> origNodesCopied = new HashSet<>();
+    Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
 
     Queue<CFANode> waitlist = new ArrayDeque<>();
     // start with function entry point
@@ -90,7 +69,7 @@ public class TestTargetMinimizerEssential {
       CFANode currentNode = waitlist.poll();
 
       // create copies of all outgoing edges and the nodes they go into if they dont yet exist
-      for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge currentEdge : CFAUtils.allLeavingEdges(currentNode)) {
         CFANode copiedSuccessorNode;
         if (origNodesCopied.contains(currentEdge.getSuccessor())) {
           // node the edge goes to has been added already so we retrieve the mapped dummy node to
@@ -119,14 +98,25 @@ public class TestTargetMinimizerEssential {
       }
     }
     // complete dummy graph has been created
+    return Pair.of(
+        origCFANodeToCopyMap.get(pEntryNode),
+        origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
     return pEdge.getPredecessor() == pEdge.getSuccessor();
   }
 
+  private boolean entersNode(final CFAEdge pEdge, final CFANode pNode) {
+    return pEdge.getSuccessor() == pNode;
+  }
+
   private boolean entersProgramStart(final CFAEdge pEdge, final CFANode pFunctionEntryNode) {
-    return pEdge.getSuccessor() == pFunctionEntryNode;
+    return entersNode(pEdge, pFunctionEntryNode);
+  }
+
+  private boolean entersProgramEnd(CFAEdge pEdge, CFANode pFunctionExitNode) {
+    return entersNode(pEdge, pFunctionExitNode);
   }
 
   private void redirectEdgeToNewPredecessor(
@@ -180,19 +170,113 @@ public class TestTargetMinimizerEssential {
     }
   }
 
+  private void updateTestGoalMappingAfterRemoval(
+      final CFAEdge removedEdge,
+      final FluentIterable<CFAEdge> dominatorCandidates,
+      final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
+      final Set<CFAEdge> pTestTargets) {
+    if (copiedEdgeToTestTargetsMap.containsKey(removedEdge)) {
+      CFAEdge testTargetToBeDominated = copiedEdgeToTestTargetsMap.get(removedEdge);
+      // first check if any test targets dominate the removed edges testtarget
+      for (CFAEdge domEdgeCandidate : dominatorCandidates) {
+        // if an edge is mapped to a different test target
+        if (copiedEdgeToTestTargetsMap.containsKey(domEdgeCandidate)
+            && !copiedEdgeToTestTargetsMap.get(domEdgeCandidate).equals(testTargetToBeDominated)) {
+          // removed edge is getting dominated by this edge so remove the removed edges
+          // testtarget from our list of testtargets
+          pTestTargets.remove(testTargetToBeDominated);
+          // need to remove all occurrences of the same value that has been dominated to clean
+          // up
+          // the mapping and prevent
+          // accidental removal of test targets based on an already removed dominator due to the
+          // order of nodes
+          copiedEdgeToTestTargetsMap.values()
+              .removeAll(Collections.singleton(testTargetToBeDominated));
+
+          break;
+        }
+        copiedEdgeToTestTargetsMap.put(domEdgeCandidate, testTargetToBeDominated);
+      }
+      copiedEdgeToTestTargetsMap.remove(removedEdge);
+    }
+  }
+
+  private void removeLeavingEdge(
+      final CFAEdge toRemove,
+      final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
+      final Set<CFAEdge> pTestTargets) {
+    CFANode pred = toRemove.getPredecessor();
+    // remove the current nodes leaving edge from its successor and from the current edge
+    pred.removeLeavingEdge(toRemove);
+    toRemove.getSuccessor().removeEnteringEdge(toRemove);
+    // add the exiting edges from the successor to the predecessor to keep the graph intact
+    CFANode successorNode = toRemove.getSuccessor();
+    for (CFAEdge twoStepDescendantEdge : CFAUtils.leavingEdges(successorNode)) {
+      redirectEdgeToNewPredecessor(twoStepDescendantEdge, pred, copiedEdgeToTestTargetsMap);
+    }
+
+    // copy the incoming edges to the previous successor to the current Node
+    for (CFAEdge enteringRemovedNode : CFAUtils.enteringEdges(successorNode)) {
+      if (enteringRemovedNode == toRemove) {
+        continue;
+      }
+      redirectEdgeToNewSuccessor(enteringRemovedNode, pred, copiedEdgeToTestTargetsMap);
+    }
+
+    updateTestGoalMappingAfterRemoval(
+        toRemove,
+        CFAUtils.enteringEdges(pred),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
+  }
+
+  private void removeEnteringEdge(
+      final CFAEdge toRemove,
+      final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
+      final Set<CFAEdge> pTestTargets,
+      final boolean mayBeLoopHead) {
+    CFANode succ = toRemove.getSuccessor();
+    toRemove.getPredecessor().removeLeavingEdge(toRemove);
+    succ.removeEnteringEdge(toRemove);
+
+    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(succ)) {
+      redirectEdgeToNewPredecessor(
+          leavingEdge,
+          toRemove.getPredecessor(),
+          copiedEdgeToTestTargetsMap);
+    }
+
+    if (mayBeLoopHead) {
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(succ)) {
+        if (toRemove == enteringEdge) {
+          continue;
+        }
+        redirectEdgeToNewSuccessor(
+            enteringEdge,
+            toRemove.getPredecessor(),
+            copiedEdgeToTestTargetsMap);
+      }
+    }
+
+    updateTestGoalMappingAfterRemoval(
+        toRemove,
+        CFAUtils.leavingEdges(succ),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
+  }
+
   private void applyRule1( // remove edges from copied graph according to first rule
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final CFANode copiedFunctionEntry) {
+      final Pair<CFANode, CFANode> pCopiedFunctionEntryExit) {
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
-    CFAEdge removedEdge, testTargetToBeDominated;
+    CFAEdge removedEdge;
     CFANode currentNode;
 
-    // start at entry node because why not?
-    waitlist.add(copiedFunctionEntry);
-    visitedNodes.add(copiedFunctionEntry);
+    waitlist.add(pCopiedFunctionEntryExit.getFirst());
+    visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
     while (!waitlist.isEmpty()) {
       currentNode = waitlist.poll();
 
@@ -200,63 +284,19 @@ public class TestTargetMinimizerEssential {
       // shrink graph if node has only one outgoing edge by removing the successor from the graph
       // unless successor is the root node.
       while (currentNode.getNumLeavingEdges() == 1) {
-        if (entersProgramStart(currentNode.getLeavingEdge(0), copiedFunctionEntry)
+        if (entersProgramStart(currentNode.getLeavingEdge(0), pCopiedFunctionEntryExit.getFirst())
+            || entersProgramEnd(currentNode.getLeavingEdge(0), pCopiedFunctionEntryExit.getSecond())
             || isSelfLoop(currentNode.getLeavingEdge(0))) {
           // TODO merge current Node into its successor instead?
           break;
         }
 
         removedEdge = currentNode.getLeavingEdge(0);
-        // remove the current nodes leaving edge from its successor and from the current edge
-        currentNode.removeLeavingEdge(removedEdge);
-        // add the exiting edges from the successor to the predecessor to keep the graph intact
-        CFANode successorNode = removedEdge.getSuccessor();
-        for (CFAEdge twoStepDescendantEdge : CFAUtils.leavingEdges(successorNode)) {
-          redirectEdgeToNewPredecessor(
-              twoStepDescendantEdge,
-              currentNode,
-              copiedEdgeToTestTargetsMap);
-        }
-
-        // copy the incoming edges to the previous successor to the current Node
-        for (CFAEdge enteringRemovedNode : CFAUtils.enteringEdges(successorNode)) {
-          if (enteringRemovedNode.equals(removedEdge)) {
-            continue;
-          }
-          redirectEdgeToNewSuccessor(enteringRemovedNode, currentNode, copiedEdgeToTestTargetsMap);
-        }
-
-        if (copiedEdgeToTestTargetsMap.containsKey(removedEdge)) {
-          testTargetToBeDominated = copiedEdgeToTestTargetsMap.get(removedEdge);
-          // first check if any test targets dominate the removed edges testtarget
-          for (CFAEdge enterEdge : CFAUtils.enteringEdges(currentNode)) {
-            // if an edge is mapped to a different test target
-            if (copiedEdgeToTestTargetsMap.containsKey(enterEdge)
-                && !copiedEdgeToTestTargetsMap.get(enterEdge)
-                    .equals(testTargetToBeDominated)) {
-              // removed edge is getting dominated by this edge so remove the removed edges
-              // testtarget from our list of testtargets
-              pTestTargets.remove(testTargetToBeDominated);
-              // need to remove all occurrences of the same value that has been dominated to clean
-              // up
-              // the mapping and prevent
-              // accidental removal of test targets based on an already removed dominator due to the
-              // order of nodes
-              copiedEdgeToTestTargetsMap.values()
-                  .removeAll(Collections.singleton(testTargetToBeDominated));
-
-              break;
-            }
-            copiedEdgeToTestTargetsMap.put(enterEdge, testTargetToBeDominated);
-          }
-          copiedEdgeToTestTargetsMap.remove(removedEdge);
-        }
+        removeLeavingEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets);
 
         // due to branching the node we remove might already be in the queue of nodes to look at.
         // In that case we need to remove it from the queue
-        if (waitlist.contains(removedEdge.getSuccessor())) {
-          waitlist.remove(removedEdge.getSuccessor());
-        }
+        waitlist.remove(removedEdge.getSuccessor());
       }
 
       // register unexplored successors
@@ -272,16 +312,14 @@ public class TestTargetMinimizerEssential {
   private void applyRule2(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final CFANode copiedFunctionEntry) {
+      final Pair<CFANode, CFANode> pCopiedFunctionEntryExit) {
     Set<CFANode> vistedNodes = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     CFANode currentNode;
-    CFAEdge removedEdge, testTargetToBeDominated;
 
     // remove edges from dummy graph according to second rule
-    // start at entry node because why not?
-    waitlist.add(copiedFunctionEntry);
-    vistedNodes.add(copiedFunctionEntry);
+    waitlist.add(pCopiedFunctionEntryExit.getFirst());
+    vistedNodes.add(pCopiedFunctionEntryExit.getFirst());
     while (!waitlist.isEmpty()) {
       currentNode = waitlist.poll();
 
@@ -289,48 +327,20 @@ public class TestTargetMinimizerEssential {
       // TODO if current Node is starting node shrink it by removing the predecessor instead of
       // skipping it
       if (currentNode.getNumEnteringEdges() == 1
-          && currentNode != copiedFunctionEntry
+          && !entersProgramStart(
+              currentNode.getEnteringEdge(0),
+              pCopiedFunctionEntryExit.getFirst())
+          && !entersProgramEnd(currentNode.getEnteringEdge(0), pCopiedFunctionEntryExit.getSecond())
           && !isSelfLoop(currentNode.getEnteringEdge(0))) {
 
         // remove the current nodes entering edge from its predecessor and from the current node
-        removedEdge = currentNode.getEnteringEdge(0);
-        currentNode.removeEnteringEdge(removedEdge);
-        removedEdge.getPredecessor().removeLeavingEdge(removedEdge);
-        if (waitlist.contains(currentNode)) {
-          waitlist.remove(currentNode);
-        }
+        removeEnteringEdge(
+            currentNode.getEnteringEdge(0),
+            copiedEdgeToTestTargetsMap,
+            pTestTargets,
+            false);
 
-        // add the exiting edges from the successor to the predecessor to keep the graph intact
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-          // create a new edge from current Edges start to the successor of its end
-          redirectEdgeToNewPredecessor(
-              leavingEdge,
-              removedEdge.getPredecessor(),
-              copiedEdgeToTestTargetsMap);
-        }
-
-        if (copiedEdgeToTestTargetsMap.containsKey(removedEdge)) {
-          testTargetToBeDominated = copiedEdgeToTestTargetsMap.get(removedEdge);
-          // inherit the testTarget information to all the outgoing edges as if they get dominated
-          // we can exclude the testtarget
-          // and remove the removed edge from the mapping as it is now unnecessary
-          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-
-            if (copiedEdgeToTestTargetsMap.containsKey(leavingEdge)
-                && !copiedEdgeToTestTargetsMap.get(leavingEdge).equals(testTargetToBeDominated)) {
-              // removed edge is getting dominated by this edge so remove the removed edges
-              // testtarget from our list of testtargets
-              pTestTargets.remove(testTargetToBeDominated);
-
-              copiedEdgeToTestTargetsMap.values()
-                  .removeAll(Collections.singleton(testTargetToBeDominated));
-              break;
-            }
-            copiedEdgeToTestTargetsMap
-                .put(leavingEdge, testTargetToBeDominated);
-          }
-          copiedEdgeToTestTargetsMap.remove(removedEdge);
-        }
+        waitlist.remove(currentNode);
 
       }
       // add nodes to the queue that havent been added yet
@@ -344,300 +354,126 @@ public class TestTargetMinimizerEssential {
 
   private void applyRule3(
       final Set<CFAEdge> pTestTargets,
-      final Map<CFANode, CFANode> origCFANodeToCopyMap,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final FunctionEntryNode pFunctionEntryNode) {
+      final Pair<CFANode, CFANode> pCopiedFunctionEntryExit) {
     // remove edges from dummy graph according to third rule
-    Set<CFANode> addedNodes = new HashSet<>();
-    Queue<CFANode> nodeQueue = new ArrayDeque<>();
+    Set<CFANode> visitedNodes = new HashSet<>();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
 
-    CFANode entryNode = origCFANodeToCopyMap.get(pFunctionEntryNode);
-    DomTree<CFANode> domTree =
+    boolean ruleApplicable;
+    CFANode currentNode;
+    CFAEdge removedEdge;
+
+    DomTree<CFANode> inverseDomTree =
         Dominance.createDomTree(
-            entryNode,
-            TestTargetMinimizerEssential::iteratePredecessors,
-            TestTargetMinimizerEssential::iterateSuccessors);
-    // start at entry node because why not?
-    nodeQueue.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
-    addedNodes.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
-    while (!nodeQueue.isEmpty()) {
-      CFANode currentNode = nodeQueue.poll();
-      boolean ruleConditionIsViolated = false;
-      CFAEdge firstEdge = null;
-      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+            pCopiedFunctionEntryExit.getSecond(),
+            CFAUtils::allPredecessorsOf,
+            CFAUtils::allSuccessorsOf);
+    waitlist.add(pCopiedFunctionEntryExit.getFirst());
+    visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
+    while (!waitlist.isEmpty()) {
+      currentNode = waitlist.poll();
+      ruleApplicable = currentNode.getNumEnteringEdges() > 0;
+      removedEdge = null;
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
         // TODO figure out dominator tree mechanics so that
-        // currentNode.getLeavingEdge(i).getPredecessor dominates
-        // currentNode.getLeavingEdge(i).getSuccessor();
-        if(domTree.isAncestorOf(domTree.getId(currentNode.getLeavingEdge(i).getPredecessor()),
-            domTree.getId(currentNode.getLeavingEdge(i).getSuccessor()))) {
-          if(firstEdge==null) {
-            firstEdge= currentNode.getLeavingEdge(i);
-            if (firstEdge.getPredecessor() == pFunctionEntryNode
-                || firstEdge.getPredecessor() == firstEdge.getSuccessor()) {
+        // leavingEdge.getPredecessor (=currentNode) dominates
+        // leavingEdge.getSuccessor();
+        if (!inverseDomTree.isAncestorOf(
+            inverseDomTree.getId(leavingEdge.getSuccessor()),
+                inverseDomTree.getId(currentNode))) {
+          if (removedEdge == null) {
+            removedEdge = leavingEdge;
+            if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
+                || isSelfLoop(removedEdge)) {
               // make sure we dont merge anything into the root node
-              ruleConditionIsViolated = true;
+              ruleApplicable = false;
               break;
             }
           }
           else {
-            ruleConditionIsViolated = true;
+            ruleApplicable = false;
             break;
           }
         }
       }
-      // add successors of the current node to the queue
-      // for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-      // if (addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor())) {
-      // nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
-      // }
-      // }
 
-      // remove "first edge" from the graph if ruleCondition hasnt been violated.
-      if (!ruleConditionIsViolated
-          && firstEdge != null
-          && firstEdge.getPredecessor() != firstEdge.getSuccessor()) {
+      if (ruleApplicable && removedEdge != null && !isSelfLoop(removedEdge)) {
+        removeLeavingEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets);
+        waitlist.remove(removedEdge.getSuccessor());
         // readd current node to the queue since we merge something into it and the new merged node
         // may satisfy the condition again
-        nodeQueue.add(currentNode);
-
-        // copy testtarget associations to edges incoming to the predecessor of first edge and
-        // remove first edge from the list as it will get removed
-        if (copiedEdgeToTestTargetsMap.containsKey(firstEdge)) {
-          for (int i = 0; i < firstEdge.getPredecessor().getNumEnteringEdges(); i++) {
-            if (copiedEdgeToTestTargetsMap
-                .containsKey(firstEdge.getPredecessor().getEnteringEdge(i))) {
-              // remove test target associated with first edge from our set of testtargets since it
-              // is covered by an incoming edge
-              pTestTargets.remove(copiedEdgeToTestTargetsMap.get(firstEdge));
-              break;
-            }
-            copiedEdgeToTestTargetsMap.put(
-                firstEdge.getPredecessor().getEnteringEdge(i),
-                copiedEdgeToTestTargetsMap.get(firstEdge));
-          }
-          copiedEdgeToTestTargetsMap.remove(firstEdge);
-        }
-        if (nodeQueue.contains(firstEdge.getSuccessor())) {
-          nodeQueue.remove(firstEdge.getSuccessor());
-        }
-
-        // copy entering and leaving edges to the Predecessor
-
-        // copy leaving edges
-        for (int i = 0; i < firstEdge.getSuccessor().getNumLeavingEdges(); i++) {
-          CFAEdge changedEdge = firstEdge.getSuccessor().getLeavingEdge(i);
-          CFAEdge newDummyEdge =
-              new DummyCFAEdge(firstEdge.getPredecessor(), changedEdge.getSuccessor());
-          if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
-          }
-          if (copiedEdgeToTestTargetsMap.containsKey(changedEdge)) {
-            copiedEdgeToTestTargetsMap.put(
-                newDummyEdge,
-                copiedEdgeToTestTargetsMap.get(changedEdge));
-            copiedEdgeToTestTargetsMap.remove(changedEdge);
-          }
-          newDummyEdge.getPredecessor().addLeavingEdge(newDummyEdge);
-          newDummyEdge.getSuccessor().addEnteringEdge(newDummyEdge);
-          changedEdge.getSuccessor().removeEnteringEdge(changedEdge);
-        }
-        // copy entering edges except first edge
-        for (int i = 0; i < firstEdge.getSuccessor().getNumEnteringEdges(); i++) {
-          CFAEdge changedEdge = firstEdge.getSuccessor().getEnteringEdge(i);
-          if (firstEdge == changedEdge) {
-            continue;
-          }
-          CFAEdge newDummyEdge =
-              new DummyCFAEdge(changedEdge.getPredecessor(), firstEdge.getPredecessor());
-          if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
-          }
-          if (copiedEdgeToTestTargetsMap.containsKey(changedEdge)) {
-            copiedEdgeToTestTargetsMap.put(
-                newDummyEdge,
-                copiedEdgeToTestTargetsMap.get(changedEdge));
-            copiedEdgeToTestTargetsMap.remove(changedEdge);
-          }
-          newDummyEdge.getPredecessor().addLeavingEdge(newDummyEdge);
-          newDummyEdge.getSuccessor().addEnteringEdge(newDummyEdge);
-          changedEdge.getPredecessor().removeLeavingEdge(changedEdge);
-        }
-
-        firstEdge.getPredecessor().removeLeavingEdge(firstEdge);
-      }
-      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-        if (!addedNodes.contains(currentNode.getLeavingEdge(i).getSuccessor())) {
-          nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
-          addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
-        }
+        waitlist.add(currentNode);
       }
 
+      if (!waitlist.contains(currentNode)) {
+        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+          if (visitedNodes.add(leavingEdge.getSuccessor())) {
+            waitlist.add(leavingEdge.getSuccessor());
+          }
+        }
+      }
     }
-
   }
 
   private void applyRule4( // remove edges from dummy graph according to fourth rule
       final Set<CFAEdge> pTestTargets,
-      final Map<CFANode, CFANode> origCFANodeToCopyMap,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final FunctionEntryNode pFunctionEntryNode) {
+      final CFANode copiedFunctionEntry) {
 
-    Set<CFANode> addedNodes = new HashSet<>();
-    Queue<CFANode> nodeQueue = new ArrayDeque<>();
+    Set<CFANode> visitedNodes = new HashSet<>();
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    CFANode currentNode;
+    boolean ruleApplicable;
+    CFAEdge removedEdge;
 
     // create domination relationship on the reduced graph
-    CFANode entryNode = origCFANodeToCopyMap.get(pFunctionEntryNode);
     DomTree<CFANode> domTree =
         Dominance.createDomTree(
-            entryNode,
-            TestTargetMinimizerEssential::iteratePredecessors,
-            TestTargetMinimizerEssential::iterateSuccessors);
+            copiedFunctionEntry,
+            CFAUtils::allSuccessorsOf,
+            CFAUtils::allSuccessorsOf);
     // start at entry node because why not?
-    nodeQueue.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
-    addedNodes.add(origCFANodeToCopyMap.get(pFunctionEntryNode));
-    while (!nodeQueue.isEmpty()) {
-      CFANode currentNode = nodeQueue.poll();
-      boolean ruleConditionIsViolated = false;
-      CFAEdge firstEdge = null;
-      for (int i = 0; i < currentNode.getNumEnteringEdges(); i++) {
+    waitlist.add(copiedFunctionEntry);
+    visitedNodes.add(copiedFunctionEntry);
+    while (!waitlist.isEmpty()) {
+      currentNode = waitlist.poll();
+      ruleApplicable = currentNode.getNumLeavingEdges() > 0;
+      removedEdge = null;
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
         // TODO figure out dominator tree mechanics so that
         // currentNode.getEnteringEdge(i).getPredecessor is dominated by
-        // currentNode.getEnteringEdge(i).getSuccessor();
-        if(!domTree.isAncestorOf(domTree.getId(currentNode), domTree.getId(currentNode.getEnteringEdge(i).getPredecessor()))) {
-          if(firstEdge==null) {
-            firstEdge= currentNode.getEnteringEdge(i);
-            if (firstEdge.getPredecessor() == pFunctionEntryNode
-                || firstEdge.getPredecessor() == firstEdge.getSuccessor()) {
+        // currentNode.getEnteringEdge(i).getSuccessor(); (=currentNode)
+        if (!domTree.isAncestorOf(
+            domTree.getId(currentNode),
+            domTree.getId(enteringEdge.getPredecessor()))) {
+          if (removedEdge == null) {
+            removedEdge = enteringEdge;
+            if (entersProgramStart(removedEdge, copiedFunctionEntry) || isSelfLoop(removedEdge)) {
               // make sure we dont merge anything into the root node
-              ruleConditionIsViolated = true;
+              ruleApplicable = false;
               break;
             }
           }
           else {
-            ruleConditionIsViolated = true;
+            ruleApplicable = false;
             break;
           }
         }
-
       }
-      // add successors of the current node to the queue
-      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-        if (addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor())) {
-          nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
-        }
-      }
-      //remove "first edge" from the graph if isruleConditionviolated =false.
-      if (!ruleConditionIsViolated
-          && firstEdge != null
-          && firstEdge.getPredecessor() != firstEdge.getSuccessor()) {
-        //copy testtarget associations to edges leaving the Successor
-        if(copiedEdgeToTestTargetsMap.containsKey(firstEdge)) {
-          for (int i=0;i<firstEdge.getSuccessor().getNumLeavingEdges();i++) {
-            if(copiedEdgeToTestTargetsMap.containsKey(firstEdge.getSuccessor().getLeavingEdge(i))) {
-              //remove test target associated with first edge from our set of testtargets
-              pTestTargets.remove(copiedEdgeToTestTargetsMap.get(firstEdge));
-              break;
-            }
-            copiedEdgeToTestTargetsMap.put(firstEdge.getSuccessor().getLeavingEdge(i), copiedEdgeToTestTargetsMap.get(firstEdge));
 
-
-          }
-          copiedEdgeToTestTargetsMap.remove(firstEdge);
-        }
-        if (nodeQueue.contains(firstEdge.getSuccessor())) {
-          nodeQueue.remove(firstEdge.getSuccessor());
-        }
-
-        //copy entering and leaving edges to the Predecessor
-
-        //copy leaving edges
-        for (int i=0;i<firstEdge.getSuccessor().getNumLeavingEdges();i++) {
-          CFAEdge changedEdge = firstEdge.getSuccessor().getLeavingEdge(i);
-          CFAEdge newDummyEdge =
-              new DummyCFAEdge(firstEdge.getPredecessor(), changedEdge.getSuccessor());
-
-          if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
-          }
-          if (copiedEdgeToTestTargetsMap.containsKey(changedEdge)) {
-            copiedEdgeToTestTargetsMap.put(newDummyEdge, copiedEdgeToTestTargetsMap.get(changedEdge));
-            copiedEdgeToTestTargetsMap.remove(changedEdge);
-          }
-          newDummyEdge.getPredecessor().addLeavingEdge(newDummyEdge);
-          newDummyEdge.getSuccessor().addEnteringEdge(newDummyEdge);
-          changedEdge.getSuccessor().removeEnteringEdge(changedEdge);
-        }
-        //copy entering edges except first edge
-        for(int i = 0; i<firstEdge.getSuccessor().getNumEnteringEdges();i++) {
-          if(firstEdge==firstEdge.getSuccessor().getEnteringEdge(i)) {
-            continue;
-          }
-          CFAEdge changedEdge = firstEdge.getSuccessor().getEnteringEdge(i);
-          CFAEdge newDummyEdge =
-              new DummyCFAEdge(changedEdge.getPredecessor(), firstEdge.getPredecessor());
-
-          if (changedEdge.getPredecessor() == changedEdge.getSuccessor()) {
-            newDummyEdge = new DummyCFAEdge(firstEdge.getPredecessor(), firstEdge.getPredecessor());
-          }
-          if (copiedEdgeToTestTargetsMap.containsKey(changedEdge)) {
-            copiedEdgeToTestTargetsMap.put(newDummyEdge, copiedEdgeToTestTargetsMap.get(changedEdge));
-            copiedEdgeToTestTargetsMap.remove(changedEdge);
-          }
-          newDummyEdge.getPredecessor().addLeavingEdge(newDummyEdge);
-          newDummyEdge.getSuccessor().addEnteringEdge(newDummyEdge);
-          changedEdge.getPredecessor().removeLeavingEdge(changedEdge);
-          changedEdge.getSuccessor().removeEnteringEdge(changedEdge);
-        }
-
-        firstEdge.getPredecessor().removeLeavingEdge(firstEdge);
-        firstEdge.getSuccessor().removeEnteringEdge(firstEdge);
+      if (ruleApplicable && removedEdge != null && !isSelfLoop(removedEdge)) {
+        removeEnteringEdge(removedEdge, copiedEdgeToTestTargetsMap, pTestTargets, true);
+        waitlist.remove(removedEdge.getSuccessor());
       }
 
       // add successors of the current node to the queue
-      if (!nodeQueue.contains(currentNode)) {
-        for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-          if (addedNodes.add(currentNode.getLeavingEdge(i).getSuccessor())) {
-            nodeQueue.add(currentNode.getLeavingEdge(i).getSuccessor());
-          }
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+        if (visitedNodes.add(leavingEdge.getSuccessor())) {
+          waitlist.add(leavingEdge.getSuccessor());
         }
       }
-
     }
 
   }
-
-  private static Iterable<CFANode> iteratePredecessors(CFANode pNode) {
-
-    return createNodeIterable(
-        pNode,
-        false,
-        node -> node instanceof FunctionEntryNode,
-        node -> !(node instanceof FunctionExitNode));
-  }
-
-  private static Iterable<CFANode> iterateSuccessors(CFANode pNode) {
-
-    return createNodeIterable(
-        pNode,
-        true,
-        node -> node instanceof FunctionExitNode,
-        node -> !(node instanceof FunctionEntryNode));
-  }
-
-  private static Iterable<CFANode> createNodeIterable(
-      CFANode pNode,
-      boolean pForward,
-      Predicate<CFANode> pStop,
-      Predicate<CFANode> pFilter) {
-
-    if (pStop.test(pNode)) {
-      return Collections::emptyIterator;
-    }
-
-    Iterator<CFANode> iterator =
-        (pForward ? CFAUtils.allSuccessorsOf(pNode) : CFAUtils.allPredecessorsOf(pNode)).iterator();
-
-    return () -> Iterators.filter(iterator, pFilter);
-  }
-
 }
