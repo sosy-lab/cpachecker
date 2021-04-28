@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,6 +32,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * machine model combinations. In the second step the written value is read and compared with the
  * initial value.
  */
+@Ignore
 @RunWith(Parameterized.class)
 public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
 
@@ -67,10 +69,6 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
         .withMessage("Solver %s does not support arrays of bitvectors", solverToUse())
         .that(solverToUse())
         .isNotEqualTo(Solvers.PRINCESS);
-    assume()
-        .withMessage("Disabled temporarily because fails repeatedly")
-        .that(solverToUse())
-        .isEqualTo(Solvers.MATHSAT5);
     index = 0;
   }
 

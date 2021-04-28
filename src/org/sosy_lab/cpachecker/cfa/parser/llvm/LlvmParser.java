@@ -46,7 +46,8 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename) throws ParserException {
+  public ParseResult parseFile(final String pFilename)
+      throws ParserException, InterruptedException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
         Module llvmModule = Module.parseIR(pFilename, llvmContext)) {
@@ -94,7 +95,8 @@ public class LlvmParser implements Parser {
 
   @Override
   public ParseResult parseString(final String pFilename, final String pCode) {
-    return null;
+    // TODO
+    throw new UnsupportedOperationException();
   }
 
   @Override

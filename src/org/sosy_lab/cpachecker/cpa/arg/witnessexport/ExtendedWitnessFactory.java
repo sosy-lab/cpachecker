@@ -20,6 +20,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -116,7 +117,7 @@ public class ExtendedWitnessFactory extends WitnessFactory {
     if (pEdge instanceof CDeclarationEdge) {
       CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
       CDeclaration decl = declEdge.getDeclaration();
-      if (decl instanceof CVariableDeclaration) {
+      if (decl instanceof CVariableDeclaration || decl instanceof CFunctionDeclaration) {
         result = result.putAndCopy(KeyDef.DECL, "true");
       }
     }

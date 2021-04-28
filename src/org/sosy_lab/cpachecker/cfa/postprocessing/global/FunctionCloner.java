@@ -103,8 +103,8 @@ class FunctionCloner implements CFAVisitor {
 
   // local caches
   private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
-  private final Map<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
-  private final Map<Type, Type> typeCache = new IdentityHashMap<>();
+  private final IdentityHashMap<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
+  private final IdentityHashMap<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
   private final CTypeCloner typeCloner = new CTypeCloner();
 

@@ -16,8 +16,6 @@ import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -64,14 +62,6 @@ public abstract class WitnessToOutputFormatter<T> {
             waitlist.push(edge.getTarget());
           }
           nodes.put(edge.getTarget(), targetNode);
-        }
-        if (witness.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
-          // Hack to make sure we do not output KeyDef.CONTROLCASE into a correctness witness:
-          edge =
-              new Edge(
-                  edge.getSource(),
-                  edge.getTarget(),
-                  edge.getLabel().removeAndCopy(KeyDef.CONTROLCASE));
         }
         createNewEdge(edge, nodes.get(source), targetNode, pTarget);
       }

@@ -47,6 +47,11 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
   private SMGState assignableState;
   private final boolean truthValue;
+
+  /**
+   * The edge should never be used to retrieve any information. It should only be used for logging
+   * and debugging, because we do not know the context of the caller.
+   */
   private final CFAEdge edge;
 
   public AssigningValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGState pSMGState, boolean pTruthvalue, CFAEdge pEdge) {

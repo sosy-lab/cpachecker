@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.base.Equivalence;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -105,45 +108,60 @@ final class EdgeDefUseData {
     return partialDefs;
   }
 
-  private static EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
+  public static EdgeDefUseData.Extractor createExtractor(boolean pConsiderPointees) {
 
-    ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
-    ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(pCollector.uses);
+    return new Extractor() {
 
-    ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
-    ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+      private EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
 
-    return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses, pCollector.partialDefs);
-  }
+        ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
+        ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(pCollector.uses);
 
-  public static EdgeDefUseData extract(CFAEdge pEdge) {
+        ImmutableSet<CExpression> pointeeDefs;
+        ImmutableSet<CExpression> pointeeUses;
 
-    Optional<? extends AAstNode> optAstNode = pEdge.getRawAST().toJavaUtil();
+        if (pConsiderPointees) {
+          pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
+          pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+        } else {
+          pointeeDefs = ImmutableSet.of();
+          pointeeUses = ImmutableSet.of();
+        }
 
-    if (optAstNode.isPresent()) {
+        return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses, pCollector.partialDefs);
+      }
 
-      AAstNode astNode = optAstNode.orElseThrow();
+      @Override
+      public EdgeDefUseData extract(CFAEdge pEdge) {
+        Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
 
-      if (astNode instanceof CAstNode) {
+        if (optAstNode.isPresent()) {
 
-        CAstNode cAstNode = (CAstNode) astNode;
-        Collector collector = new Collector();
-        cAstNode.accept(collector);
+          AAstNode astNode = optAstNode.get();
+
+          if (astNode instanceof CAstNode) {
+
+            CAstNode cAstNode = (CAstNode) astNode;
+            Collector collector = new Collector(pConsiderPointees);
+            cAstNode.accept(collector);
+
+            return createEdgeDefUseData(collector);
+          }
+        }
+
+        return new EdgeDefUseData(
+            ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
+      }
+
+      @Override
+      public EdgeDefUseData extract(CAstNode pAstNode) {
+
+        Collector collector = new Collector(pConsiderPointees);
+        pAstNode.accept(collector);
 
         return createEdgeDefUseData(collector);
       }
-    }
-
-    return new EdgeDefUseData(
-        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
-  }
-
-  public static EdgeDefUseData extract(CExpression pExpression) {
-
-    Collector collector = new Collector();
-    pExpression.accept(collector);
-
-    return createEdgeDefUseData(collector);
+    };
   }
 
   @Override
@@ -154,11 +172,43 @@ final class EdgeDefUseData {
         defs.toString(), uses.toString(), pointeeDefs.toString(), pointeeUses.toString());
   }
 
+  public interface Extractor {
+
+    public EdgeDefUseData extract(CFAEdge pEdge);
+
+    public EdgeDefUseData extract(CAstNode pAstNode);
+  }
+
+  public static final class CachingExtractor implements Extractor {
+
+    private final Extractor delegateExtractor;
+    private final Map<Equivalence.Wrapper<Object>, EdgeDefUseData> cache;
+
+    public CachingExtractor(Extractor pDelegateExtractor) {
+      delegateExtractor = pDelegateExtractor;
+      cache = new HashMap<>();
+    }
+
+    @Override
+    public EdgeDefUseData extract(CFAEdge pEdge) {
+      return cache.computeIfAbsent(
+          Equivalence.identity().wrap(pEdge), key -> delegateExtractor.extract(pEdge));
+    }
+
+    @Override
+    public EdgeDefUseData extract(CAstNode pAstNode) {
+      return cache.computeIfAbsent(
+          Equivalence.identity().wrap(pAstNode), key -> delegateExtractor.extract(pAstNode));
+    }
+  }
+
   private static final class EdgeDefUseDataException extends RuntimeException {
     private static final long serialVersionUID = -2034884371415467901L;
   }
 
   private static class Collector implements CAstNodeVisitor<Void, EdgeDefUseDataException> {
+
+    private final boolean considerPointees;
 
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
@@ -170,7 +220,9 @@ final class EdgeDefUseData {
 
     private Mode mode;
 
-    private Collector() {
+    private Collector(boolean pConsiderPointees) {
+
+      considerPointees = pConsiderPointees;
 
       partialDefs = false;
 
@@ -179,8 +231,13 @@ final class EdgeDefUseData {
       defs = new HashSet<>();
       uses = new HashSet<>();
 
-      pointeeDefs = new HashSet<>();
-      pointeeUses = new HashSet<>();
+      if (considerPointees) {
+        pointeeDefs = new HashSet<>();
+        pointeeUses = new HashSet<>();
+      } else {
+        pointeeDefs = null;
+        pointeeUses = null;
+      }
     }
 
     @Override
@@ -348,8 +405,10 @@ final class EdgeDefUseData {
 
         mode = prev;
 
-        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-        pointeeSet.add(pIastFieldReference);
+        if (considerPointees) {
+          Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+          pointeeSet.add(pIastFieldReference);
+        }
 
       } else {
         pIastFieldReference.getFieldOwner().accept(this);
@@ -400,8 +459,10 @@ final class EdgeDefUseData {
 
       mode = prev;
 
-      Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-      pointeeSet.add(pPointerExpression);
+      if (considerPointees) {
+        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+        pointeeSet.add(pPointerExpression);
+      }
 
       return null;
     }
@@ -521,10 +582,10 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CReturnStatement pNode) throws EdgeDefUseDataException {
 
-      Optional<CExpression> optExpression = pNode.getReturnValue().toJavaUtil();
+      Optional<CExpression> optExpression = pNode.getReturnValue();
 
       if (optExpression.isPresent()) {
-        return optExpression.orElseThrow().accept(this);
+        return optExpression.get().accept(this);
       } else {
         return null;
       }

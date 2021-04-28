@@ -44,11 +44,10 @@ public class OctagonMergeOperator {
   }
 
   private OctagonMergeOperator(OctagonDomain domain, Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, OctagonMergeOperator.class);
     this.domain = domain;
   }
 
-  @Options(prefix="cpa.octagon.mergeop")
   class OctagonMergeJoinOperator extends OctagonMergeOperator implements MergeOperator {
 
     private OctagonMergeJoinOperator(OctagonDomain domain, Configuration config) throws InvalidConfigurationException {
@@ -66,7 +65,6 @@ public class OctagonMergeOperator {
     }
   }
 
-  @Options(prefix="cpa.octagon.mergeop")
   class OctagonMergeWideningOperator extends OctagonMergeOperator implements MergeOperator {
 
     private OctagonMergeWideningOperator(OctagonDomain domain, Configuration config) throws InvalidConfigurationException {
