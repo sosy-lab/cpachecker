@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -104,10 +105,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private boolean atomicInterpolants = true;
 
   @Option(
-    secure = true,
-    description =
-        "Should the path invariants be created and used (potentially additionally to the other invariants)"
-  )
+      secure = true,
+      description =
+          "Should the path invariants be created and used (potentially additionally to the other"
+              + " invariants)")
   private boolean usePathInvariants = false;
 
   @Option(
@@ -137,15 +138,17 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
   @Option(
       secure = true,
-      name = "outdirForExport",
-      description =
-          "Create a file that contains the StrongestPost for each loop in the program in this directory.(with a concluding '/')")
-  @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
-  private Path outdirForExport = Paths.get("errorPaths/");
+      name = "formatWitness",
+      description = "Path to formula witness path description")
+  @FileOption(Type.REQUIRED_INPUT_FILE)
+  private Path formatWitnessInput = Paths.get("output/errorPaths/path");
+
   // statistics
-  private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
+  private final StatInt totalPathLength =
+      new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
-  private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixExtractionTime =
+      new StatTimer("Extracting infeasible sliced prefixes");
 
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
@@ -241,7 +244,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       ucbManager = Optional.empty();
     }
 
-    logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
+    logger.log(
+        Level.INFO,
+        "Using refinement for predicate analysis with "
+            + strategy.getClass().getSimpleName()
+            + " strategy.");
   }
 
   /**
@@ -294,7 +301,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       if (useExternalErrorPath) {
         try {
           LocationAwareBlockFormulas locAwareformulas =
-              LocationAwareBlockFormulas.constructFromDump(outdirForExport, fmgr, cfa);
+              LocationAwareBlockFormulas.constructFromDump(
+                  formatWitnessInput.getParent(), fmgr, cfa);
 
         repeatedCounterexample = false;
           //        abstractionStatesTrace = new ArrayList<>();
@@ -323,7 +331,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           }else{
               throw new CPAException(
                   String.format(
-                      "The interpolation failed, as no  abstract state for location %s is computed!",
+                      "The interpolation failed, as no  abstract state for location %s is"
+                          + " computed!",
                       loc.toString()));
             }
           }
@@ -544,7 +553,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         // fall-back to interpolation
         logger.log(
             Level.FINEST,
-            "Starting interpolation-based refinement because invariant generation was not successful.");
+            "Starting interpolation-based refinement because invariant generation was not"
+                + " successful.");
         return performInterpolatingRefinement(abstractionStatesTrace, formulas);
 
       } else {
