@@ -384,6 +384,9 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
+# Enable converting test goals to conditions.
+analysis.testGoalConverter = no default value
+
 # Replace thread creation operations with a special function callsso, any
 # analysis can go through the function
 analysis.threadOperationsTransform = false
@@ -896,6 +899,13 @@ conditional.verifier.generatorConfig = no default value
 # configuration for the verification of the residual program which is
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
+
+# The input file with all goals that were previously reached
+conditional_testing.inputfile = no default value
+
+# The strategy to use
+conditional_testing.strategy = no default value
+  enum:     [NAIVE, PROPAGATION]
 
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
@@ -1606,24 +1616,24 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
-# export automaton to file
+# Export the trace-abtraction automaton to a file in dot-format.
 cpa.dca.refiner.dotExport = false
 
-# file for saving the automaton in DOT format (%s will be replaced with
-# automaton name)
+# Filename that the interpolation automaton will be written to. %s will get
+# replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# Keep infeasible dummy states that allow for better debugging
+# If set to true, all infeasible dummy states will be kept in the ARG.
 cpa.dca.refiner.keepInfeasibleStates = false
 
-# Set number of refinements for the trace abstraction algorithm
-cpa.dca.refiner.maxRefinementIterations = 0
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.dca.refiner.maxRefinementIterations = 10
 
-# Allows to abort the analysis early in order to only produce the ARG
+# Skip the analysis (including the refinement) entirely, so that the ARG is
+# left unmodified. This is used for debugging purposes.
 cpa.dca.refiner.skipAnalysis = false
-
-# Abort the refinement of finite prefixes for the purpose of better debugging
-cpa.dca.refiner.skipRefinement = false
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -3300,16 +3310,27 @@ dependencegraph.considerPointees = true
 # where branching is represented by a single assumption (with true- and
 # false-edges)
 dependencegraph.controldeps.considerInverseAssumption = true
+dependencegraph.controldeps.considerInverseAssumption = no default value
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
+dependencegraph.controldeps.use = no default value
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
+dependencegraph.exportDot = no default value
+
+# Run flow dependence analysis with constant propagation
+dependencegraph.flowdep.constantPropagation = no default value
+
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions.
+dependencegraph.flowdep.constraintIsDef = no default value
 
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
+dependencegraph.flowdeps.use = no default value
 
 # Whether to include only functions reachable from the main function in the
 # dependence graph.

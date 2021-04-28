@@ -43,8 +43,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.CPAs;
 
-public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
+public class CEGARAlgorithm
+    implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
 
   private static class CEGARStatistics implements Statistics {
 
@@ -342,6 +344,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     for (ReachedSetUpdateListener rsul : reachedSetUpdateListeners) {
       rsul.updated(pReachedSet);
     }
+  }
+
+  @Override
+  public void close() {
+    CPAs.closeIfPossible(mRefiner, logger);
   }
 
 }

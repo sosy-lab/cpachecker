@@ -339,7 +339,7 @@ public class SlicingAbstractionsUtils {
     // Add assumptions if any:
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
-    if (other != null) {
+    if (other != null && !(other instanceof DCAState)) {
       if (stop.isTarget() && other instanceof OverflowState) {
         other = ((OverflowState) other).getParent();
       }
