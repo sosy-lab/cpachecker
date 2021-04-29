@@ -1799,9 +1799,10 @@ class ASTConverter {
         name = name + sep + index;
       }
 
-      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc,
-          isGlobal, cStorageClass, type, name, origName,
-          scope.createScopedNameOf(name), null);
+      final String scopedName = isGlobal ? name : scope.createScopedNameOf(name);
+      CVariableDeclaration declaration =
+          new CVariableDeclaration(
+              fileLoc, isGlobal, cStorageClass, type, name, origName, scopedName, null);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.
