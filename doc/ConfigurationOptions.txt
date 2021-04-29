@@ -3310,27 +3310,16 @@ dependencegraph.considerPointees = true
 # where branching is represented by a single assumption (with true- and
 # false-edges)
 dependencegraph.controldeps.considerInverseAssumption = true
-dependencegraph.controldeps.considerInverseAssumption = no default value
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
-dependencegraph.controldeps.use = no default value
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
-dependencegraph.exportDot = no default value
-
-# Run flow dependence analysis with constant propagation
-dependencegraph.flowdep.constantPropagation = no default value
-
-# Whether to consider constraints on program variables (e.g., x > 10) as
-# definitions.
-dependencegraph.flowdep.constraintIsDef = no default value
 
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
-dependencegraph.flowdeps.use = no default value
 
 # Whether to include only functions reachable from the main function in the
 # dependence graph.

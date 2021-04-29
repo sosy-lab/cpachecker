@@ -69,7 +69,7 @@ public class TestTargetMinimizerEssential {
       CFANode currentNode = waitlist.poll();
 
       // create copies of all outgoing edges and the nodes they go into if they dont yet exist
-      for (CFAEdge currentEdge : CFAUtils.allLeavingEdges(currentNode)) {
+      for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
         CFANode copiedSuccessorNode;
         if (origNodesCopied.contains(currentEdge.getSuccessor())) {
           // node the edge goes to has been added already so we retrieve the mapped dummy node to
@@ -287,7 +287,6 @@ public class TestTargetMinimizerEssential {
         if (entersProgramStart(currentNode.getLeavingEdge(0), pCopiedFunctionEntryExit.getFirst())
             || entersProgramEnd(currentNode.getLeavingEdge(0), pCopiedFunctionEntryExit.getSecond())
             || isSelfLoop(currentNode.getLeavingEdge(0))) {
-          // TODO merge current Node into its successor instead?
           break;
         }
 
@@ -324,7 +323,6 @@ public class TestTargetMinimizerEssential {
       currentNode = waitlist.poll();
 
       // shrink graph if node has only one outgoing edge by removing the successor from the graph.
-      // TODO if current Node is starting node shrink it by removing the predecessor instead of
       // skipping it
       if (currentNode.getNumEnteringEdges() == 1
           && !entersProgramStart(
@@ -376,9 +374,6 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-        // TODO figure out dominator tree mechanics so that
-        // leavingEdge.getPredecessor (=currentNode) dominates
-        // leavingEdge.getSuccessor();
         if (!inverseDomTree.isAncestorOf(
             inverseDomTree.getId(leavingEdge.getSuccessor()),
                 inverseDomTree.getId(currentNode))) {
@@ -441,9 +436,6 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumLeavingEdges() > 0;
       removedEdge = null;
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
-        // TODO figure out dominator tree mechanics so that
-        // currentNode.getEnteringEdge(i).getPredecessor is dominated by
-        // currentNode.getEnteringEdge(i).getSuccessor(); (=currentNode)
         if (!domTree.isAncestorOf(
             domTree.getId(currentNode),
             domTree.getId(enteringEdge.getPredecessor()))) {
