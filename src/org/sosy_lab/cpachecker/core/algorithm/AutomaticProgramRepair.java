@@ -9,12 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -24,7 +27,20 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -36,6 +52,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;
@@ -87,7 +104,7 @@ public class AutomaticProgramRepair
       runAlgorithm();
 
       logger.log(Level.INFO, "Stopping bug repair...");
-    } catch (InvalidConfigurationException e) {
+    } catch (Exception e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
     } finally{
       totalTime.stop();
@@ -96,7 +113,7 @@ public class AutomaticProgramRepair
   }
 
   private void runAlgorithm()
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws Exception {
     final MutableCFA clonedCFA = cloneCFA();
     final RepairCandidateCollector repairCandidatesCollector = new RepairCandidateCollector();
 
@@ -123,8 +140,9 @@ public class AutomaticProgramRepair
     return algo.run(reachedSetFactory.create());
   }
 
-  private MutableCFA cloneCFA(){
-    final TreeMultimap<String, CFANode>  nodes = TreeMultimap.create();
+  private MutableCFA cloneCFA() {
+
+    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
 
     for (final String function : cfa.getAllFunctionNames()) {
       nodes.putAll(function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
@@ -138,20 +156,136 @@ public class AutomaticProgramRepair
         cfa.getLanguage());
   }
 
-  private MutableCFA mutateCFA(MutableCFA currentCFA, List<CFANode> repairCandidateNodes)  {
-    final Set<CFANode> nodesToDelete = Sets.newHashSet();
+  private MutableCFA mutateCFA(MutableCFA currentCFA, List<CFANode> repairCandidateNodes)
+      throws Exception {
 
     for (CFANode node : repairCandidateNodes) {
       if (shouldDelete()) {
-        nodesToDelete.addAll(CFATraversal.dfs().collectNodesReachableFrom(node));
-        }
-    }
+        deleteNode(currentCFA, node);
+      }
 
-    for (CFANode node : nodesToDelete ) {
-      currentCFA.removeNode(node);
+      if(shouldInsert()){
+        insertNode(currentCFA, node);
+      }
     }
 
     return currentCFA;
+  }
+
+  /*
+  * Deletes a given node from a cfa, along with all nodes that can be reached from it */
+  private void deleteNode(MutableCFA currentCFA, CFANode node){
+    final Set<CFANode> reachableNodes = Sets.newHashSet();
+
+    reachableNodes.addAll(CFATraversal.dfs().collectNodesReachableFrom(node));
+
+    for (CFANode reachableNode : reachableNodes) {
+      currentCFA.removeNode(reachableNode);
+      logger.log(Level.INFO, "Deleted " + reachableNode.toString());
+    }
+  }
+
+  /*
+  * Inserts a random node from a given CFA after a given node. */
+  private void insertNode(MutableCFA currentCFA, CFANode predecessorNode) throws Exception {
+    final Collection<CFANode> originalNodes = cfa.getAllNodes();
+    final int insertionNodeIndex = new Random().nextInt(originalNodes.size());
+    final CFANode insertionNode = Iterables.get(originalNodes, insertionNodeIndex);
+
+    CFANode successorNode = null;
+
+    for(int i = 0; i <  predecessorNode.getNumLeavingEdges(); i++){
+      final CFAEdge edge = predecessorNode.getLeavingEdge(i);
+      predecessorNode.removeLeavingEdge(edge);
+
+      final CFAEdge predecessorNodeNewLeavingEdge = alterEdge(edge, edge.getPredecessor(), insertionNode);
+      predecessorNode.addLeavingEdge(predecessorNodeNewLeavingEdge);
+
+      successorNode = edge.getSuccessor();
+    }
+
+    for(int a = 0; a <  insertionNode.getNumLeavingEdges(); a++){
+      final CFAEdge edge = insertionNode.getLeavingEdge(a);
+      logger.log(Level.INFO, "Edge " + edge.toString());
+
+      insertionNode.removeLeavingEdge(edge);
+      final CFAEdge predecessorNodeNewLeavingEdge = alterEdge(edge, insertionNode, successorNode);
+      insertionNode.addLeavingEdge(predecessorNodeNewLeavingEdge);
+    }
+
+    currentCFA.addNode(insertionNode);
+  }
+
+  /* TODO:
+      - it is assumed that the language is C - an error should be thrown if this is not the case
+      - In cases where special conditions have to be met, the insertion should not take place if the conditions don't apply, instead of throwing an error
+  */
+
+  private CFAEdge alterEdge(CFAEdge edge, CFANode predecessor , CFANode successor)
+      throws Exception {
+    switch (edge.getEdgeType()) {
+
+      case AssumeEdge:
+        final CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+          return new CAssumeEdge(assumeEdge.getRawStatement(), assumeEdge.getFileLocation(), predecessor,
+              successor, assumeEdge.getExpression(),assumeEdge.getTruthAssumption());
+
+      case FunctionCallEdge:
+        final CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
+        final Optional<CFunctionCall> functionCall = functionCallEdge.getRawAST();
+
+        if (functionCall.isPresent()){
+          return new CFunctionCallEdge(functionCallEdge.getRawStatement(),
+              functionCallEdge.getFileLocation(), predecessor, (CFunctionEntryNode) successor,
+              functionCall.get(), functionCallEdge.getSummaryEdge());
+        } else {
+          /* TODO throw proper error */
+          throw new Exception("Cannot extract functional call: " + successor.getClass());
+        }
+
+      case FunctionReturnEdge:
+        final CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) edge;
+        /* TODO reconsider casting predecessor */
+        return new CFunctionReturnEdge(functionReturnEdge.getFileLocation(),
+            (FunctionExitNode) predecessor, successor, functionReturnEdge.getSummaryEdge());
+
+      case DeclarationEdge:
+        final CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
+        return new CDeclarationEdge(declarationEdge.getRawStatement(), declarationEdge.getFileLocation(),
+      declarationEdge.getPredecessor(), declarationEdge.getSuccessor(), declarationEdge.getDeclaration());
+
+      case StatementEdge:
+        final CStatementEdge statementEdge = (CStatementEdge) edge;
+        return new CStatementEdge(statementEdge.getRawStatement(), statementEdge.getStatement(),
+            statementEdge.getFileLocation(), predecessor, successor);
+
+      case ReturnStatementEdge:
+        final CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) edge;
+        final Optional<CReturnStatement> optionalReturnStatement = returnStatementEdge.getRawAST();
+
+        if(optionalReturnStatement.isPresent()){
+          /* TODO reconsider casting successor */
+          return new CReturnStatementEdge(returnStatementEdge.getRawStatement(), optionalReturnStatement.get(),
+              returnStatementEdge.getFileLocation(), predecessor, (FunctionExitNode)  successor);
+        } else {
+          /* TODO throw proper error */
+          throw new Exception("Cannot extract return statement");
+        }
+
+      case BlankEdge:
+        final BlankEdge blankEdge = (BlankEdge) edge;
+        return new BlankEdge(blankEdge.getRawStatement(), blankEdge.getFileLocation(),  predecessor,
+          successor, blankEdge.getDescription());
+
+      case CallToReturnEdge:
+        final CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) edge;
+
+        return new CFunctionSummaryEdge(functionSummaryEdge.getRawStatement(), functionSummaryEdge.getFileLocation(),
+            predecessor, successor, functionSummaryEdge.getExpression(),
+            functionSummaryEdge.getFunctionEntry());
+      default:
+        throw new UnrecognizedCFAEdgeException(edge);
+    }
   }
 
   private static class RepairCandidateCollector extends ForwardingCFAVisitor {
@@ -183,6 +317,9 @@ public class AutomaticProgramRepair
     return Math.random() >= 0.8;
   }
 
+  private boolean shouldInsert() {
+    return false;
+  }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
