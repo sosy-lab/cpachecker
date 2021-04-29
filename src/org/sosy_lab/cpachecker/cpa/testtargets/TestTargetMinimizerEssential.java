@@ -53,8 +53,7 @@ public class TestTargetMinimizerEssential {
   private Pair<CFANode, CFANode> copyCFA(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
-      final FunctionEntryNode pEntryNode)
-  {
+      final FunctionEntryNode pEntryNode) {
     // a set of nodes that has already been created to prevent duplicates
     Set<CFANode> origNodesCopied = new HashSet<>();
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
@@ -88,7 +87,6 @@ public class TestTargetMinimizerEssential {
             new DummyCFAEdge(origCFANodeToCopyMap.get(currentNode), copiedSuccessorNode);
         origCFANodeToCopyMap.get(currentNode).addLeavingEdge(copyEdge);
         copiedSuccessorNode.addEnteringEdge(copyEdge);
-
 
         // if the original edge is part of the test targets we have to map the new dummy edge to
         // the test target that may be removed if its being dominated
@@ -307,7 +305,6 @@ public class TestTargetMinimizerEssential {
     }
   }
 
-
   private void applyRule2(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
@@ -376,7 +373,7 @@ public class TestTargetMinimizerEssential {
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
         if (!inverseDomTree.isAncestorOf(
             inverseDomTree.getId(leavingEdge.getSuccessor()),
-                inverseDomTree.getId(currentNode))) {
+            inverseDomTree.getId(currentNode))) {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
@@ -385,8 +382,7 @@ public class TestTargetMinimizerEssential {
               ruleApplicable = false;
               break;
             }
-          }
-          else {
+          } else {
             ruleApplicable = false;
             break;
           }
@@ -446,8 +442,7 @@ public class TestTargetMinimizerEssential {
               ruleApplicable = false;
               break;
             }
-          }
-          else {
+          } else {
             ruleApplicable = false;
             break;
           }
