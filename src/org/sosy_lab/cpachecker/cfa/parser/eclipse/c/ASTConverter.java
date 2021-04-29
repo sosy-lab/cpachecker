@@ -645,6 +645,9 @@ class ASTConverter {
       // that array types of operands are converted to pointer types except in a very few
       // specific cases (for which there will never be a temporary variable).
       type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+    } else if (type instanceof CFunctionType) {
+      // Happens if function pointers are used in ternary expressions, for example.
+      type = new CPointerType(false, false, type);
     }
 
     CVariableDeclaration decl = new CVariableDeclaration(loc,
