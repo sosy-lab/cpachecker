@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -17,13 +18,13 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public enum TestTargetAdaption {
   NONE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       return targets;
     }
   },
   COVERED_NEXT_EDGE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       // currently only simple heuristic
       Set<CFAEdge> newGoals;
       newGoals = new HashSet<>(targets);
@@ -42,16 +43,34 @@ public enum TestTargetAdaption {
           }
         }
       }
+
       return newGoals;
     }
   },
+  BASIC_ESSENTIAL_EDGE {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+      // basic heuristic that follows paths with forced predecessor/successors and removes
+      // unnecessary test targets
+      return new TestTargetMinimizerBasicEssential().reduceTargets(targets);
+    }
+  },
+  ESSENTIAL_EDGE {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+      // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
+      // as possible
+      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa);
+    }
+  },
+
   TESTCOMP {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       // currently only simple heuristic
       Set<CFAEdge> newGoals;
       if (targets.size() < 1000) {
-        newGoals = COVERED_NEXT_EDGE.adaptTestTargets(targets);
+        newGoals = COVERED_NEXT_EDGE.adaptTestTargets(targets, pCfa);
       } else {
         newGoals = new HashSet<>();
         for (CFAEdge target : targets) {
@@ -70,5 +89,5 @@ public enum TestTargetAdaption {
     }
   };
 
-  public abstract Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets);
+  public abstract Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa);
 }
