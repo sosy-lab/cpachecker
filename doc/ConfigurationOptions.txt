@@ -4259,7 +4259,8 @@ testcase.targets.funName = no default value
 
 # Which strategy to use to optimize set of test target edges
 testcase.targets.optimization.strategy = NONE
-  enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE, TESTCOMP]
+  enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
+             ESSENTIAL_EDGE, TESTCOMP]
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME

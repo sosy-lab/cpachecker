@@ -55,15 +55,22 @@ public enum TestTargetAdaption {
       return new TestTargetMinimizerBasicEssential().reduceTargets(targets);
     }
   },
+  ESSENTIAL_EDGE_ORIGINAL {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+      // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
+      // as possible
+      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa, true);
+    }
+  },
   ESSENTIAL_EDGE {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
       // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
       // as possible
-      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa);
+      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa, false);
     }
   },
-
   TESTCOMP {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {

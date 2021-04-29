@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,14 +30,21 @@ import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 public class TestTargetMinimizerEssential {
 
   // only works correctly if DummyCFAEdge uses Object equals
-  public Set<CFAEdge> reduceTargets(final Set<CFAEdge> testTargets, final CFA pCfa) {
+  public Set<CFAEdge>
+      reduceTargets(final Set<CFAEdge> testTargets, final CFA pCfa, final boolean fullCFACopy) {
     // maps a copied edge to the testTarget that can be removed if its dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
 
     // create a copy of the cfa graph that can be minimized using the essential Branch rules
-    Pair<CFANode, CFANode> copiedFunctionEntryExit =
-        copyCFA(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
+    Pair<CFANode, CFANode> copiedFunctionEntryExit;
+    if (fullCFACopy) {
+      copiedFunctionEntryExit =
+          copyCFA(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
+    } else {
+      copiedFunctionEntryExit =
+          buildTestGoalGraph(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
+    }
 
     // handle all cases of nodes with a single outgoing edge
     applyRule1(testTargets, copiedEdgeToTestTargetsMap, copiedFunctionEntryExit);
@@ -57,6 +65,7 @@ public class TestTargetMinimizerEssential {
     // a set of nodes that has already been created to prevent duplicates
     Set<CFANode> origNodesCopied = new HashSet<>();
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
+    CFANode currentNode;
 
     Queue<CFANode> waitlist = new ArrayDeque<>();
     // start with function entry point
@@ -65,7 +74,7 @@ public class TestTargetMinimizerEssential {
     origNodesCopied.add(pEntryNode);
     while (!waitlist.isEmpty()) {
       // get next node in the queue
-      CFANode currentNode = waitlist.poll();
+      currentNode = waitlist.poll();
 
       // create copies of all outgoing edges and the nodes they go into if they dont yet exist
       for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
@@ -99,6 +108,78 @@ public class TestTargetMinimizerEssential {
     return Pair.of(
         origCFANodeToCopyMap.get(pEntryNode),
         origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+  }
+
+  private Pair<CFANode, CFANode> buildTestGoalGraph(
+      final Set<CFAEdge> pTestTargets,
+      final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
+      final FunctionEntryNode pEntryNode) {
+    // a set of nodes that has already been created to prevent duplicates
+    Set<CFANode> successorNodes = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 2);
+    Set<CFANode> visited = new HashSet<>();
+    Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
+    CFANode predecessor, currentNode;
+    Queue<CFANode> waitlist = new ArrayDeque<>(), waitlistInner = new ArrayDeque<>();
+
+    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
+    waitlist.add(pEntryNode);
+    origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
+    successorNodes.add(pEntryNode.getExitNode());
+    for (CFAEdge target : pTestTargets) {
+      successorNodes.add(target.getPredecessor());
+
+      if (!origCFANodeToCopyMap.containsKey(target.getPredecessor())) {
+        origCFANodeToCopyMap.put(target.getPredecessor(), CFANode.newDummyCFANode(""));
+        waitlist.add(target.getPredecessor());
+      }
+      if (!origCFANodeToCopyMap.containsKey(target.getSuccessor())) {
+        origCFANodeToCopyMap.put(target.getSuccessor(), CFANode.newDummyCFANode(""));
+      }
+
+      pCopiedEdgeToTestTargetsMap.put(
+          copyEdge(
+              origCFANodeToCopyMap.get(target.getPredecessor()),
+              origCFANodeToCopyMap.get(target.getSuccessor())),
+          target);
+    }
+
+    while (!waitlist.isEmpty()) {
+      // get next node in the queue
+      predecessor = waitlist.poll();
+      waitlistInner.add(predecessor);
+      visited.clear();
+
+      while (!waitlistInner.isEmpty()) {
+        currentNode = waitlistInner.poll();
+
+        for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
+          if (successorNodes.contains(leaving.getSuccessor())) {
+            if (!origCFANodeToCopyMap.get(predecessor)
+                .hasEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor()))) {
+                  copyEdge(
+                  origCFANodeToCopyMap.get(predecessor),
+                  origCFANodeToCopyMap.get(leaving.getSuccessor()));
+            }
+          } else {
+            if (visited.add(leaving.getSuccessor())) {
+              waitlistInner.add(leaving.getSuccessor());
+            }
+          }
+        }
+      }
+    }
+    return Pair.of(
+        origCFANodeToCopyMap.get(pEntryNode),
+        origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+  }
+
+  private CFAEdge copyEdge(
+      final CFANode pred,
+      final CFANode succ) {
+    CFAEdge newEdge = new DummyCFAEdge(pred, succ);
+    pred.addLeavingEdge(newEdge);
+    succ.addEnteringEdge(newEdge);
+    return newEdge;
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
@@ -377,6 +458,7 @@ public class TestTargetMinimizerEssential {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
+                || entersProgramEnd(removedEdge, pCopiedFunctionEntryExit.getSecond())
                 || isSelfLoop(removedEdge)) {
               // make sure we dont merge anything into the root node
               ruleApplicable = false;
@@ -423,7 +505,7 @@ public class TestTargetMinimizerEssential {
         Dominance.createDomTree(
             copiedFunctionEntry,
             CFAUtils::allSuccessorsOf,
-            CFAUtils::allSuccessorsOf);
+            CFAUtils::allPredecessorsOf);
     // start at entry node because why not?
     waitlist.add(copiedFunctionEntry);
     visitedNodes.add(copiedFunctionEntry);
