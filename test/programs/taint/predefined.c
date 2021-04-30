@@ -10,7 +10,7 @@ extern void fputc(int);
 extern void fwrite(int);
 
 
-extern void __VERIFIER_tainted(int);
+extern void __VERIFIER_mark_tainted(int);
 extern void __VERIFIER_assert_untainted(int);
 extern void __VERIFIER_assert_tainted(int);
 
@@ -22,7 +22,7 @@ int main(void){
     c = gets();
     d = fopen();
 
-    __VERIFIER_tainted(t);
+    __VERIFIER_mark_tainted(t);
 
     __VERIFIER_assert_tainted(a);
     __VERIFIER_assert_tainted(b);

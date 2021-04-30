@@ -498,10 +498,11 @@ public class TaintAnalysisTransferRelation
           AFunctionCallStatement stm = (AFunctionCallStatement) expression;
           AFunctionCallExpression exp = stm.getFunctionCallExpression();
           AExpression param = exp.getParameterExpressions().get(0);
+          logger.log(Level.INFO, param.getExpressionType());
           // VERIFIER logic
-          if (func.equals("__VERIFIER_tainted")) {
+          if (func.equals("__VERIFIER_mark_tainted")) {
             newElement.change(param.toString(), true);
-          } else if (func.equals("__VERIFIER_untainted")) {
+          } else if (func.equals("__VERIFIER_mark_untainted")) {
             newElement.change(param.toString(), false);
           } else if (func.equals("__VERIFIER_assert_untainted")) {
             logger.log(

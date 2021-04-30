@@ -1,12 +1,12 @@
-extern void __VERIFIER_tainted(int);
-extern void __VERIFIER_untainted(int);
+extern void __VERIFIER_mark_tainted(int);
+extern void __VERIFIER_mark_untainted(int);
 extern void __VERIFIER_assert_untainted(int);
 extern void __VERIFIER_assert_tainted(int);
 
 int main(void){
 	int a, b, c, d, e, f, g, h;
 
-    __VERIFIER_tainted(h);
+    __VERIFIER_mark_tainted(h);
     a = b = c = d = e = f = g = h;
     
     a = 2;
