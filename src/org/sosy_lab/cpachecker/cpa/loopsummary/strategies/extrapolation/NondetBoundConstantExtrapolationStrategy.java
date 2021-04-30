@@ -15,19 +15,25 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -41,6 +47,9 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       final LogManager pLogger, ShutdownNotifier pShutdownNotifier, int strategyIndex) {
     super(pLogger, pShutdownNotifier, strategyIndex);
   }
+
+  // TODO: When this Strategy is used, loop unrolling starts occuring continously, since first the
+  // predicate refinement is done before the loop summary refinement
 
   protected Optional<GhostCFA> summaryCFA(
       final AbstractState pState,
@@ -84,7 +93,19 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     CFunctionCallAssignmentStatement cStatementEdge =
         new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
 
-    CExpression loopBound = new CIdExpression(FileLocation.DUMMY, pc);
+    CType calculationType =
+        new CSimpleType(false, false, CBasicType.INT, true, true, false, false, false, false, true);
+    CType expressionType =
+        new CSimpleType(false, false, CBasicType.INT, true, true, false, false, false, false, true);
+
+    CExpression loopBound =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            expressionType,
+            calculationType,
+            new CIdExpression(FileLocation.DUMMY, pc),
+            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
+            BinaryOperator.MINUS);
 
     Optional<GhostCFA> superOptionalGhostCFA =
         super.summaryCFA(pState, loopVariableDelta, loopBound, 1, loopBranchIndex);

@@ -129,7 +129,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
         LocationState ghostStartLocationState =
             new LocationState(startGhotNode, oldLocationState.getFollowFunctionCalls());
         AbstractState dummyStateStart =
-            AbstractStrategy.overwriteLocationState(pState, ghostStartLocationState);
+            AbstractStrategy.overwriteLocationState(pState, ghostStartLocationState, pState);
         ((ARGState) dummyStateStart).addParent((ARGState) pState);
         List<AbstractState> finalStates = new ArrayList<>();
         finalStates.add(dummyStateStart);

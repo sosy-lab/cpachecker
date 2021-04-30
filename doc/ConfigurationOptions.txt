@@ -1848,10 +1848,6 @@ cpa.loopsummary.strategies = new ArrayList<>(
               StrategiesEnum.CONSTANTEXTRAPOLATION,
               StrategiesEnum.LINEAREXTRAPOLATION,
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
-              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
-              StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.LOOPACCELERATION,
-              StrategiesEnum.BASE))
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD

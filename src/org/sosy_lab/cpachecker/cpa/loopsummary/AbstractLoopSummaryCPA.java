@@ -56,7 +56,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
               StrategiesEnum.CONSTANTEXTRAPOLATION,
               StrategiesEnum.LINEAREXTRAPOLATION,
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
-              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+              // StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION, // See TODO in NondetBound File
               StrategiesEnum.NAIVELOOPACCELERATION,
               StrategiesEnum.LOOPACCELERATION,
               StrategiesEnum.BASE));

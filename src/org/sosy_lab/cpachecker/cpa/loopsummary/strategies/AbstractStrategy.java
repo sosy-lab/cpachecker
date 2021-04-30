@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -112,21 +114,32 @@ public abstract class AbstractStrategy implements StrategyInterface {
     return Optional.of(loopBranchIndex);
   }
 
-  public static AbstractState overwriteLocationState(AbstractState pState, LocationState locState) {
+  public static AbstractState overwriteLocationState(
+      AbstractState pState, LocationState locState, AbstractState originalState) {
     List<AbstractState> allWrappedStatesByCompositeState = new ArrayList<>();
     if (pState instanceof ARGState) {
       AbstractState wrappedState = ((ARGState) pState).getWrappedState();
       if (wrappedState instanceof CompositeState) {
         for (AbstractState a : ((CompositeState) wrappedState).getWrappedStates()) {
-            allWrappedStatesByCompositeState.add(overwriteLocationState(a, locState));
+          allWrappedStatesByCompositeState.add(overwriteLocationState(a, locState, originalState));
         }
         AbstractState wrappedCompositeState = new CompositeState(allWrappedStatesByCompositeState);
         return new ARGState(wrappedCompositeState, null);
       }
-      return new ARGState(overwriteLocationState(wrappedState, locState), null);
+      return new ARGState(overwriteLocationState(wrappedState, locState, originalState), null);
     } else {
       if (pState instanceof LocationState) {
         return locState;
+      } else if (pState instanceof PredicateAbstractState) {
+        PersistentMap<CFANode, Integer> pAbstractionLocations = ((PredicateAbstractState)pState).getAbstractionLocationsOnPath();
+        pAbstractionLocations =
+            pAbstractionLocations.putAndCopy(
+                locState.getLocationNode(),
+                pAbstractionLocations.get(AbstractStates.extractLocation(originalState)));
+        return PredicateAbstractState.mkAbstractionState(
+            ((PredicateAbstractState) pState).getPathFormula(),
+            ((PredicateAbstractState) pState).getAbstractionFormula(),
+            pAbstractionLocations);
       } else {
         return pState;
       }
@@ -172,7 +185,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
     LocationState ghostStartLocationState =
         new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
-    AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState);
+    AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState, pState);
     @SuppressWarnings("unchecked")
     List<AbstractState> dummyStatesEndCollection =
         new ArrayList<>(
@@ -215,7 +228,8 @@ public abstract class AbstractStrategy implements StrategyInterface {
       while (iterator.hasNext()) {
         AbstractState stateGhostCFA = iterator.next();
         if (AbstractStates.extractLocation(stateGhostCFA) == ghostCFA.getStopNode()) {
-          AbstractState newState = overwriteLocationState(stateGhostCFA, afterLoopLocationState);
+          AbstractState newState =
+              overwriteLocationState(stateGhostCFA, afterLoopLocationState, stateGhostCFA);
           ((ARGState) newState).addParent((ARGState) stateGhostCFA);
           realStatesEndCollection.add(newState);
         } else {

@@ -98,6 +98,69 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     return loopVariableDelta;
   }
 
+  @Override
+  protected boolean linearArithmeticExpressionsLoop(final CFANode pLoopStartNode, int branchIndex) {
+    CFANode nextNode0 = pLoopStartNode.getLeavingEdge(branchIndex).getSuccessor();
+    boolean nextNode0Valid = true;
+    while (nextNode0 != pLoopStartNode && nextNode0Valid) {
+      CFAEdge currentEdge = nextNode0.getLeavingEdge(0);
+      if (nextNode0Valid
+          && nextNode0.getNumLeavingEdges() == 1
+          && linearArithmeticExpressionEdge(currentEdge)) {
+
+        if (currentEdge instanceof CStatementEdge) {
+
+          CStatement statement = ((CStatementEdge) currentEdge).getStatement();
+          if (!(statement instanceof CExpressionAssignmentStatement)) {
+            return false;
+          }
+
+          CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
+          CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
+
+          if (rigthSide instanceof CBinaryExpression) {
+            CExpression firstOperand = ((CBinaryExpression) rigthSide).getOperand1();
+            CExpression secondOperand = ((CBinaryExpression) rigthSide).getOperand2();
+            if (firstOperand instanceof CIdExpression) {
+              if (!((CIdExpression) firstOperand)
+                      .getName()
+                      .equals(((CIdExpression) leftSide).getName())
+                  && secondOperand instanceof CIntegerLiteralExpression) {
+                return false;
+              }
+            } else if (secondOperand instanceof CIdExpression) {
+              if (!((CIdExpression) secondOperand)
+                      .getName()
+                      .equals(((CIdExpression) leftSide).getName())
+                  && secondOperand instanceof CIntegerLiteralExpression) {
+                return false;
+              }
+            } else {
+              return false;
+            }
+          } else if (rigthSide instanceof CIdExpression) {
+            if (!((CIdExpression) rigthSide)
+                .getName()
+                .equals(((CIdExpression) leftSide).getName())) {
+              return false;
+            }
+          } else {
+            // TODO: sometimes rigthSide can be an instanceof CIntegerLiteralExpression
+            // Improve this, since this kind of summary should be capable of dealing with this case
+            return false;
+          }
+        }
+        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
+      } else {
+        nextNode0Valid = false;
+      }
+      if (nextNode0 == pLoopStartNode) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private int boundDelta(
       final Map<String, Integer> loopVariableDelta, final CExpression loopBound) {
     if (!(loopBound instanceof CBinaryExpression)) {
