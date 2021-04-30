@@ -33,7 +33,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.ArrayAbstraction;
+import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionNondetRead;
+import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionNondetSingleCell;
+import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionSmashing;
 
 @Options(prefix = "arrayAbstraction")
 public final class ArrayAbstractionAlgorithm implements Algorithm {
@@ -44,6 +46,15 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
       description = "Configuration of the delegate analysis running on the translated program")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path delegateAnalysisConfigurationFile;
+
+  @Option(secure = true, name = "method", description = "The array abstraction method")
+  private ArrayAbstractionMethod method = ArrayAbstractionMethod.NONDET_SINGLE_CELL;
+
+  private enum ArrayAbstractionMethod {
+    NONDET_READ,
+    SMASHING,
+    NONDET_SINGLE_CELL;
+  }
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -140,7 +151,21 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
         new AggregatedReachedSets(ImmutableSet.of(pReachedSet));
     Configuration delegateAnalysisConfiguration = createDelegateAnalysisConfiguration();
 
-    CFA translatedCfa = ArrayAbstraction.transformCfa(configuration, logger, originalCfa);
+    CFA translatedCfa;
+    switch (method) {
+      case NONDET_READ:
+        translatedCfa = ArrayAbstractionNondetRead.transformCfa(configuration, logger, originalCfa);
+        break;
+      case SMASHING:
+        translatedCfa = ArrayAbstractionSmashing.transformCfa(configuration, logger, originalCfa);
+        break;
+      case NONDET_SINGLE_CELL:
+        translatedCfa =
+            ArrayAbstractionNondetSingleCell.transformCfa(configuration, logger, originalCfa);
+        break;
+      default:
+        translatedCfa = null;
+    }
 
     try {
 
@@ -148,10 +173,14 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
           new CoreComponentsFactory(
               delegateAnalysisConfiguration, logger, shutdownNotifier, aggregatedReached);
 
-      AlgorithmStatus status =
-          runDelegateAnalysis(coreComponents, translatedCfa, forwardingReachedSet);
+      AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
-      if (forwardingReachedSet.hasViolatedProperties()) {
+      if (translatedCfa != null) {
+        status = runDelegateAnalysis(coreComponents, translatedCfa, forwardingReachedSet);
+      }
+
+      if (forwardingReachedSet.hasViolatedProperties()
+          || status == AlgorithmStatus.NO_PROPERTY_CHECKED) {
         status = runDelegateAnalysis(coreComponents, originalCfa, forwardingReachedSet);
       }
 

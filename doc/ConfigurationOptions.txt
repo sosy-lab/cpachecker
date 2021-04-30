@@ -502,6 +502,10 @@ analysis.useTestCaseGeneratorAlgorithm = false
 # Configuration of the delegate analysis running on the translated program
 arrayAbstraction.delegateAnalysis = no default value
 
+# The array abstraction method
+arrayAbstraction.method = NONDET_SINGLE_CELL
+  enum:     [NONDET_READ, SMASHING, NONDET_SINGLE_CELL]
+
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
 assumptions.automatonBranchingThreshold = 0
