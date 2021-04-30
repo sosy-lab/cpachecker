@@ -216,6 +216,54 @@ public class CCfaTransformer {
       return oldCfaNode;
     }
 
+    /**
+     *
+     *
+     * <pre>{@code
+     * Before:
+     * --- a ---> [this] --- b ---->
+     *
+     * After:
+     * --- a ---> [pNewNode] --- pEdge ---> [this] --- b ---->
+     *
+     * }</pre>
+     */
+    public void splitAndInsertEntering(Edge pEdge, Node pNewNode) {
+
+      for (Iterator<CCfaTransformer.Edge> iterator = newEnteringIterator(); iterator.hasNext(); ) {
+        CCfaTransformer.Edge enteringEdge = iterator.next();
+        iterator.remove();
+        CCfaTransformer.attachEntering(pNewNode, enteringEdge);
+      }
+
+      CCfaTransformer.attachEntering(this, pEdge);
+      CCfaTransformer.attachLeaving(pNewNode, pEdge);
+    }
+
+    /**
+     *
+     *
+     * <pre>{@code
+     * Before:
+     * --- a ---> [this] --- b ---->
+     *
+     * After:
+     * --- a ---> [this] --- pEdge ---> [pNewNode] --- b ---->
+     *
+     * }</pre>
+     */
+    public void splitAndInsertLeaving(Edge pEdge, Node pNewNode) {
+
+      for (Iterator<CCfaTransformer.Edge> iterator = newLeavingIterator(); iterator.hasNext(); ) {
+        CCfaTransformer.Edge leavingEdge = iterator.next();
+        iterator.remove();
+        CCfaTransformer.attachLeaving(pNewNode, leavingEdge);
+      }
+
+      CCfaTransformer.attachEntering(pNewNode, pEdge);
+      CCfaTransformer.attachLeaving(this, pEdge);
+    }
+
     private void addEnteringEdge(Edge pEdge) {
       enteringEdges.add(pEdge);
     }
