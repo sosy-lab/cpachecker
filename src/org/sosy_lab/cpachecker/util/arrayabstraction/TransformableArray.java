@@ -260,6 +260,7 @@ public final class TransformableArray {
     return String.format(
         Locale.ENGLISH,
         "%s[memoryLocation=%s,arrayType=%s,#readEdges=%d,#writeEdges=%d]",
+        getClass().getName(),
         memoryLocation,
         type,
         readEdges.size(),
