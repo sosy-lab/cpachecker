@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.loopsummary.strategies;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -195,12 +194,12 @@ public abstract class AbstractStrategy implements StrategyInterface {
     // Collection<?
     // extends AbstractState>
     Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
-    LocationState afterLoopLocationState =
-        new LocationState(
-            AbstractStates.extractLocation(pState)
-                .getLeavingEdge(1 - loopBranchIndex)
-                .getSuccessor(),
-            oldLocationState.getFollowFunctionCalls());
+    /*LocationState afterLoopLocationState =
+    new LocationState(
+        AbstractStates.extractLocation(pState)
+            .getLeavingEdge(1 - loopBranchIndex)
+            .getSuccessor(),
+        oldLocationState.getFollowFunctionCalls());*/
 
     CFAEdge dummyTrueEdgeEnd =
         new CAssumeEdge(
@@ -221,6 +220,8 @@ public abstract class AbstractStrategy implements StrategyInterface {
     ((ARGState) dummyStateStart).addParent((ARGState) pState);
     realStatesEndCollection.add(dummyStateStart);
     realStatesEndCollection.addAll(dummyStatesEndCollection);
+    return realStatesEndCollection;
+    /*
     // Iterate till the end of the ghost CFA
     while (!dummyStatesEndCollection.isEmpty()) {
       List<AbstractState> newStatesNotFinished = new ArrayList<>();
@@ -243,6 +244,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     }
 
     return realStatesEndCollection;
+    */
   }
 
   protected Optional<CFANode> unrollLoopOnce(
