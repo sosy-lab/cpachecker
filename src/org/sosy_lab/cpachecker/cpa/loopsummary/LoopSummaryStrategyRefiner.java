@@ -91,9 +91,11 @@ public class LoopSummaryStrategyRefiner implements Refiner {
       LoopSummaryPrecision newPrecision =
           (LoopSummaryPrecision) pReached.getPrecision(refinementState);
       newPrecision.updateStrategy();
+      newPrecision.setLoopHead(false);
+      /*reached.removeSubtree(
+      refinementState, newPrecision, pPrecision -> pPrecision instanceof LoopSummaryPrecision);*/
       reached.removeSubtree(refinementState);
+      return true;
     }
-
-    return false;
   }
 }

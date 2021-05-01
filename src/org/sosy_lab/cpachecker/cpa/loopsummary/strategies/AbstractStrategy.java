@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -165,10 +164,9 @@ public abstract class AbstractStrategy implements StrategyInterface {
   protected Collection<AbstractState> transverseGhostCFA(
       GhostCFA ghostCFA,
       final AbstractState pState,
-      final Precision pPrecision,
-      TransferRelation pTransferRelation,
-      int loopBranchIndex)
-      throws CPATransferException, InterruptedException {
+      @SuppressWarnings("unused") final Precision pPrecision,
+      @SuppressWarnings("unused") TransferRelation pTransferRelation,
+      int loopBranchIndex) {
 
     CFAEdge dummyTrueEdgeStart =
         new CAssumeEdge(
@@ -185,22 +183,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     LocationState ghostStartLocationState =
         new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
     AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState, pState);
-    @SuppressWarnings("unchecked")
-    List<AbstractState> dummyStatesEndCollection =
-        new ArrayList<>(
-            pTransferRelation.getAbstractSuccessors(
-                dummyStateStart,
-                pPrecision)); // TODO Can you write Collection<AbstractState> instead of
-    // Collection<?
-    // extends AbstractState>
     Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
-    /*LocationState afterLoopLocationState =
-    new LocationState(
-        AbstractStates.extractLocation(pState)
-            .getLeavingEdge(1 - loopBranchIndex)
-            .getSuccessor(),
-        oldLocationState.getFollowFunctionCalls());*/
-
     CFAEdge dummyTrueEdgeEnd =
         new CAssumeEdge(
             "true GHOST CFA",
@@ -219,32 +202,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
 
     ((ARGState) dummyStateStart).addParent((ARGState) pState);
     realStatesEndCollection.add(dummyStateStart);
-    realStatesEndCollection.addAll(dummyStatesEndCollection);
     return realStatesEndCollection;
-    /*
-    // Iterate till the end of the ghost CFA
-    while (!dummyStatesEndCollection.isEmpty()) {
-      List<AbstractState> newStatesNotFinished = new ArrayList<>();
-      Iterator<? extends AbstractState> iterator = dummyStatesEndCollection.iterator();
-      while (iterator.hasNext()) {
-        AbstractState stateGhostCFA = iterator.next();
-        if (AbstractStates.extractLocation(stateGhostCFA) == ghostCFA.getStopNode()) {
-          AbstractState newState =
-              overwriteLocationState(stateGhostCFA, afterLoopLocationState, stateGhostCFA);
-          ((ARGState) newState).addParent((ARGState) stateGhostCFA);
-          realStatesEndCollection.add(newState);
-        } else {
-          Collection<? extends AbstractState> newStates =
-              pTransferRelation.getAbstractSuccessors(stateGhostCFA, pPrecision);
-          newStatesNotFinished.addAll(newStates);
-          realStatesEndCollection.addAll(newStates);
-        }
-      }
-      dummyStatesEndCollection = newStatesNotFinished;
-    }
-
-    return realStatesEndCollection;
-    */
   }
 
   protected Optional<CFANode> unrollLoopOnce(
