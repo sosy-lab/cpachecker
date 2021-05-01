@@ -130,10 +130,23 @@ public abstract class AbstractStrategy implements StrategyInterface {
         return locState;
       } else if (pState instanceof PredicateAbstractState) {
         PersistentMap<CFANode, Integer> pAbstractionLocations = ((PredicateAbstractState)pState).getAbstractionLocationsOnPath();
-        pAbstractionLocations =
-            pAbstractionLocations.putAndCopy(
-                locState.getLocationNode(),
-                pAbstractionLocations.get(AbstractStates.extractLocation(originalState)));
+        if (pAbstractionLocations.get(AbstractStates.extractLocation(originalState)) != null) {
+          pAbstractionLocations =
+              pAbstractionLocations.putAndCopy(
+                  locState.getLocationNode(),
+                  pAbstractionLocations.get(AbstractStates.extractLocation(originalState)));
+        } else {
+          pAbstractionLocations = pAbstractionLocations.putAndCopy(locState.getLocationNode(), 1);
+          // This is a quickfix for a Null Pointer exception generate by
+          // scripts/cpa.sh -heap 10000M -config
+          // config/loop-summary/predicateAnalysis-loopsummary.properties -setprop
+          // counterexample.export.enabled=false -setprop cpa.arg.export=false -setprop
+          // report.export=false -timelimit 900s -stats -spec
+          // test/programs/benchmarks/properties/no-overflow.prp -32
+          // test/programs/benchmarks/loop-zilu/benchmark16_conjunctive.i
+          // TODO see if this is correct like this and fix it if some problems arise from this in
+          // some way
+        }
         return PredicateAbstractState.mkAbstractionState(
             ((PredicateAbstractState) pState).getPathFormula(),
             ((PredicateAbstractState) pState).getAbstractionFormula(),
