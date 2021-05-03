@@ -278,7 +278,7 @@ public class TestCPA extends AbstractCPA {
 
     private final ImmutableList<CVariableDeclaration> variables;
     private boolean inLoop = false;
-    private final CExpression pre;
+//    private final CExpression pre;
 //    private final ? cond;
 //    private final ? post;
 
@@ -319,7 +319,8 @@ public class TestCPA extends AbstractCPA {
     public static InvariantSamplingState newInvariantSamplingState(
         InvariantSamplingState currentState, CExpression expression
     ) {
-      CExpression pre = currentState.pre && expression;
+//      CExpression pre = currentState.pre && expression;
+      return currentState;
     }
 
     public static InvariantSamplingState newInvariantSamplingState(
@@ -453,12 +454,8 @@ public class TestCPA extends AbstractCPA {
         CAssumeEdge edge, CExpression expression, boolean truthAssumption
     ) throws CPATransferException {
       state = this.getState();
-      try {
-        return InvariantSamplingState.newInvariantSamplingState(state, expression);
-      } catch (CPAException e) {
-        throw new CPATransferException("Could not generate a new state.", e);
-      }
-      return this.getState();
+      return InvariantSamplingState.newInvariantSamplingState(state, expression);
+
     }
 
     @Override
