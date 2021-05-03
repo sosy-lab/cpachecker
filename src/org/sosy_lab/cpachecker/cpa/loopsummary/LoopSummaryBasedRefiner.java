@@ -44,8 +44,8 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.INFO, "Performing Double refinement");
     if (!firstRefiner.performRefinement(pReached)) {
+      logger.log(Level.INFO, "Performing Double refinement");
       return secondRefiner.performRefinement(pReached);
     } else {
       return true;

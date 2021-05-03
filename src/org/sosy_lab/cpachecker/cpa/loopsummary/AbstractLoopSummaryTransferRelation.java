@@ -216,7 +216,7 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
         if (AbstractStates.extractLocation(pState)
             .getLeavingEdge(i)
             .getRawStatement()
-            .startsWith("true GHOST CFA Strategy ")) {
+            .startsWith("[true GHOST CFA Strategy ")) {
           removedEdges.add(AbstractStates.extractLocation(pState).getLeavingEdge(i));
           AbstractStates.extractLocation(pState)
               .removeLeavingEdge(removedEdges.get(removedEdges.size() - 1));

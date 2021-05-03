@@ -45,10 +45,9 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
   }
 
   protected Map<String, Integer> getLoopVariableDeltas(
-      final AbstractState pState, final Integer loopBranchIndex) {
+      CFANode loopStartNode, final Integer loopBranchIndex) {
     Map<String, Integer> loopVariableDelta = new HashMap<>();
-    CFANode loopStartNode =
-        AbstractStates.extractLocation(pState).getLeavingEdge(loopBranchIndex).getSuccessor();
+    loopStartNode = loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor();
     // Calculate deltas in one Loop Iteration
     CFANode currentNode = loopStartNode;
     boolean initial = true;
@@ -85,7 +84,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
                     ((CIdExpression) leftSide).getName(),
                     -value + loopVariableDelta.get(((CIdExpression) leftSide).getName()));
               } else {
-                loopVariableDelta.put(((CIdExpression) leftSide).getName(), value);
+                loopVariableDelta.put(((CIdExpression) leftSide).getName(), -value);
               }
                 break;
               default:
@@ -192,16 +191,15 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
   // a272d189e10d05880102c4a29450c113f9f80bee
 
   protected Optional<GhostCFA> summaryCFA(
-      final AbstractState pState,
+      CFANode loopStartNode,
       final Map<String, Integer> loopVariableDelta,
       final CExpression loopBound,
       final int boundDelta,
       final Integer loopBranchIndex) {
     int CFANodeCounter = 1;
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LS1");
-    CFANode currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS2");
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode("LSENDGHHOST");
-    CFANode loopStartNode = AbstractStates.extractLocation(pState);
+    CFANode currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS2");
     CFAEdge loopIngoingConditionEdge = loopStartNode.getLeavingEdge(loopBranchIndex);
     CFAEdge loopIngoingConditionDummyEdgeTrue =
         overwriteStartEndStateEdge(
@@ -254,6 +252,8 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
             loopBoundtwiceUnrollingExpression,
             false);
 
+    // When the loopbound - 2 <= 0 we need to unroll the loop twice
+
     currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingConditionEdgeFalse);
     loopUnrollingCurrentNode.addEnteringEdge(twiceLoopUnrollingConditionEdgeFalse);
     Optional<CFANode> loopUnrollingSuccess = unrollLoopOnce(loopStartNode, loopBranchIndex, loopUnrollingCurrentNode, endNodeGhostCFA);
@@ -287,7 +287,8 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     } else {
       loopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
     }
-    currentStartNodeGhostCFA = CFANode.newDummyCFANode("LS6");
+    currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS6");
+    currentStartNodeGhostCFA = loopUnrollingCurrentNode;
 
     // Make Summary
     for (Map.Entry<String, Integer> set : loopVariableDelta.entrySet()) {
@@ -316,7 +317,13 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
                       FileLocation.DUMMY,
                       expressionType,
                       calculationType,
-                      loopBound,
+                      new CBinaryExpression(
+                          FileLocation.DUMMY,
+                          expressionType,
+                          calculationType,
+                          loopBound,
+                          CIntegerLiteralExpression.createDummyLiteral(2, CNumericTypes.INT),
+                          BinaryOperator.MINUS),
                       CIntegerLiteralExpression.createDummyLiteral(boundDelta, CNumericTypes.INT),
                       BinaryOperator.DIVIDE),
                   BinaryOperator.MULTIPLY),
@@ -326,7 +333,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
           new CExpressionAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
       CFAEdge dummyEdge =
           new CStatementEdge(
-              set.getKey() + " = " + set.getValue(),
+              set.getKey() + " = " + set.getValue() + " - 2",
               cStatementEdge,
               FileLocation.DUMMY,
               currentStartNodeGhostCFA,
@@ -388,8 +395,19 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       final AbstractState pState, final Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
 
-    Optional<Integer> loopBranchIndexOptional =
-        getLoopBranchIndex(AbstractStates.extractLocation(pState));
+    CFANode loopStartNode = AbstractStates.extractLocation(pState);
+
+    if (loopStartNode.getNumLeavingEdges() != 1) {
+      return Optional.empty();
+    }
+
+    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+      return Optional.empty();
+    }
+
+    loopStartNode = loopStartNode.getLeavingEdge(0).getSuccessor();
+
+    Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNode);
     Integer loopBranchIndex;
 
     if (loopBranchIndexOptional.isEmpty()) {
@@ -398,7 +416,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       loopBranchIndex = loopBranchIndexOptional.orElseThrow();
     }
 
-    Optional<CExpression> loopBoundOptional = bound(AbstractStates.extractLocation(pState));
+    Optional<CExpression> loopBoundOptional = bound(loopStartNode);
     CExpression loopBound;
     if (loopBoundOptional.isEmpty()) {
       return Optional.empty();
@@ -406,11 +424,11 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       loopBound = loopBoundOptional.orElseThrow();
     }
 
-    if (!linearArithmeticExpressionsLoop(AbstractStates.extractLocation(pState), loopBranchIndex)) {
+    if (!linearArithmeticExpressionsLoop(loopStartNode, loopBranchIndex)) {
       return Optional.empty();
     }
 
-    Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(pState, loopBranchIndex);
+    Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(loopStartNode, loopBranchIndex);
 
     int boundDelta = boundDelta(loopVariableDelta, loopBound);
     if (boundDelta >= 0) { // TODO How do you treat non Termination?
@@ -419,7 +437,8 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
 
     GhostCFA ghostCFA;
     Optional<GhostCFA> ghostCFASuccess =
-        summaryCFA(pState, loopVariableDelta, loopBound, boundDelta, loopBranchIndex);
+        summaryCFA(
+            loopStartNode, loopVariableDelta, loopBound, Math.abs(boundDelta), loopBranchIndex);
 
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();
@@ -428,10 +447,8 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     }
 
     Collection<AbstractState> realStatesEndCollection =
-        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);
+        transverseGhostCFA(ghostCFA, pState, loopStartNode, loopBranchIndex);
 
     return Optional.of(realStatesEndCollection);
   }
-
-
 }

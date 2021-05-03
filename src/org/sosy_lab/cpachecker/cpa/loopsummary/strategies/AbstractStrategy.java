@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -175,11 +173,9 @@ public abstract class AbstractStrategy implements StrategyInterface {
   }
 
   protected Collection<AbstractState> transverseGhostCFA(
-      GhostCFA ghostCFA,
-      final AbstractState pState,
-      @SuppressWarnings("unused") final Precision pPrecision,
-      @SuppressWarnings("unused") TransferRelation pTransferRelation,
-      int loopBranchIndex) {
+      GhostCFA ghostCFA, final AbstractState pState, CFANode loopStartNode, int loopBranchIndex) {
+
+    CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
 
     CFAEdge dummyTrueEdgeStart =
         new CAssumeEdge(
@@ -202,16 +198,11 @@ public abstract class AbstractStrategy implements StrategyInterface {
             "true GHOST CFA",
             FileLocation.DUMMY,
             ghostCFA.getStopNode(),
-            AbstractStates.extractLocation(pState)
-                .getLeavingEdge(1 - loopBranchIndex)
-                .getSuccessor(),
+            afterLoopNode,
             CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
             true);
     ghostCFA.getStopNode().addLeavingEdge(dummyTrueEdgeEnd);
-    AbstractStates.extractLocation(pState)
-        .getLeavingEdge(1 - loopBranchIndex)
-        .getSuccessor()
-        .addEnteringEdge(dummyTrueEdgeEnd);
+    afterLoopNode.addEnteringEdge(dummyTrueEdgeEnd);
 
     ((ARGState) dummyStateStart).addParent((ARGState) pState);
     realStatesEndCollection.add(dummyStateStart);
@@ -221,8 +212,8 @@ public abstract class AbstractStrategy implements StrategyInterface {
   protected Optional<CFANode> unrollLoopOnce(
       CFANode loopStartNode,
       Integer loopBranchIndex,
-      CFANode endNodeGhostCFA,
-      CFANode startNodeGhostCFA) {
+      CFANode startNodeGhostCFA,
+      CFANode endNodeGhostCFA) {
     // TODO Loops inside the loop to be unrolled, are unrolled completely, meaning it is possible
     // that this function does not terminate. How do we handle this?
     boolean initial = true;

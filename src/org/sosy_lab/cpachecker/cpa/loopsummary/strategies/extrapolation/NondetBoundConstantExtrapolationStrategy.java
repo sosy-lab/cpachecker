@@ -52,7 +52,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
   // predicate refinement is done before the loop summary refinement
 
   protected Optional<GhostCFA> summaryCFA(
-      final AbstractState pState,
+      final CFANode loopStartNode,
       final Map<String, Integer> loopVariableDelta,
       final Integer loopBranchIndex) {
     CFANode startNode = CFANode.newDummyCFANode("Ghost in the shell");
@@ -108,7 +108,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
             BinaryOperator.MINUS);
 
     Optional<GhostCFA> superOptionalGhostCFA =
-        super.summaryCFA(pState, loopVariableDelta, loopBound, 1, loopBranchIndex);
+        super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, loopBranchIndex);
 
     GhostCFA superGhostCFA;
     if (superOptionalGhostCFA.isEmpty()) {
@@ -136,6 +136,18 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       final AbstractState pState, final Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
 
+    CFANode loopStartNode = AbstractStates.extractLocation(pState);
+
+    if (loopStartNode.getNumLeavingEdges() != 1) {
+      return Optional.empty();
+    }
+
+    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+      return Optional.empty();
+    }
+
+    loopStartNode = loopStartNode.getLeavingEdge(0).getSuccessor();
+
     Optional<Integer> loopBranchIndexOptional =
         getLoopBranchIndex(AbstractStates.extractLocation(pState));
     Integer loopBranchIndex;
@@ -150,11 +162,11 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       return Optional.empty();
     }
 
-    Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(pState, loopBranchIndex);
+    Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(loopStartNode, loopBranchIndex);
 
     GhostCFA ghostCFA;
     Optional<GhostCFA> ghostCFASuccess =
-        this.summaryCFA(pState, loopVariableDelta, loopBranchIndex);
+        this.summaryCFA(loopStartNode, loopVariableDelta, loopBranchIndex);
 
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();
@@ -163,7 +175,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     }
 
     Collection<AbstractState> realStatesEndCollection =
-        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);
+        transverseGhostCFA(ghostCFA, pState, loopStartNode, loopBranchIndex);
 
     return Optional.of(realStatesEndCollection);
   }

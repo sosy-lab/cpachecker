@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
+import com.google.common.base.Predicates;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -92,9 +94,20 @@ public class LoopSummaryStrategyRefiner implements Refiner {
           (LoopSummaryPrecision) pReached.getPrecision(refinementState);
       newPrecision.updateStrategy();
       newPrecision.setLoopHead(false);
+      // TODO Reset the rest of the Precisions, for now this is only done for the predicate
+      // Precision
+      // but should also be done for the Value precision and others accordingly
+
+      newPrecision.replaceWrappedPrecision(
+          PredicatePrecision.empty(), Predicates.instanceOf(PredicatePrecision.class));
+
       /*reached.removeSubtree(
       refinementState, newPrecision, pPrecision -> pPrecision instanceof LoopSummaryPrecision);*/
-      reached.removeSubtree(refinementState);
+      Iterator<ARGState> children = refinementState.getChildren().iterator();
+      while (!refinementState.getChildren().isEmpty()) {
+        reached.removeSubtree(refinementState.getChildren().iterator().next());
+      }
+
       return true;
     }
   }

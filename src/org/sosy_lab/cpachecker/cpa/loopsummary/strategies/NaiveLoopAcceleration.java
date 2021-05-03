@@ -142,6 +142,17 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
       AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
       throws CPATransferException, InterruptedException {
     CFANode loopStartNode = AbstractStates.extractLocation(pState);
+
+    if (loopStartNode.getNumLeavingEdges() != 1) {
+      return Optional.empty();
+    }
+
+    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+      return Optional.empty();
+    }
+
+    loopStartNode = loopStartNode.getLeavingEdge(0).getSuccessor();
+
     Integer loopBranchIndex;
     Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNode);
     if (loopBranchIndexOptional.isEmpty()) {
@@ -168,7 +179,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     }
 
     Collection<AbstractState> realStatesEndCollection =
-        transverseGhostCFA(ghostCFA, pState, pPrecision, pTransferRelation, loopBranchIndex);
+        transverseGhostCFA(ghostCFA, pState, loopStartNode, loopBranchIndex);
 
     return Optional.of(realStatesEndCollection);
   }
