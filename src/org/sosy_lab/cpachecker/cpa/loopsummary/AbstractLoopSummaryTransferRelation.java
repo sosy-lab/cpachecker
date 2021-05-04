@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.AbstractStrategy;
@@ -58,7 +57,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 
 public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAException>
-    extends AbstractSingleWrapperTransferRelation implements TransferRelation {
+    extends AbstractSingleWrapperTransferRelation {
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -267,16 +266,4 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     return transferRelation.getAbstractSuccessors(pState, pPrecision);
   }
 
-  /*
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pState,
-      Iterable<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge,
-      Precision pPrecision)
-      throws CPATransferException, InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
-    return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
-  }
-  */
 }
