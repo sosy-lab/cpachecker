@@ -112,7 +112,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
     currentNode.addLeavingEdge(startConditionLoopCFAEdgeTrue);
     newNode.addEnteringEdge(startConditionLoopCFAEdgeTrue);
     Optional<CFANode> loopUnrollingSuccess =
-        unrollLoopOnce(loopStartNode, loopBranchIndex, endNodeGhostCFA, newNode);
+        unrollLoopOnce(loopStartNode, loopBranchIndex, newNode, endNodeGhostCFA);
     if (loopUnrollingSuccess.isEmpty()) {
       return Optional.empty();
     } else {
