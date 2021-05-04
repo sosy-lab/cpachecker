@@ -233,11 +233,17 @@ public class WitnessInvariantsExtractor {
             invariants.remove(previousInv);
           }
 
-          // make an OR between already existing expression tree (or true)
+          // make an OR between already existing expression tree (if it exists)
           // and the invariant at the currently looked at abstract state
-          invariants.add(
-              new ExpressionTreeLocationInvariant(
-                  groupId, location, Or.of(previousExpression, candidate), toCodeVisitorCache));
+          if (previousExpression.equals(ExpressionTrees.getTrue())) {
+            invariants.add(
+                new ExpressionTreeLocationInvariant(
+                    groupId, location, candidate, toCodeVisitorCache));
+          } else {
+            invariants.add(
+                new ExpressionTreeLocationInvariant(
+                    groupId, location, Or.of(previousExpression, candidate), toCodeVisitorCache));
+          }
         }
       }
     }
