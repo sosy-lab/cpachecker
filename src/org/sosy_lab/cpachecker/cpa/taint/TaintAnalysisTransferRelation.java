@@ -33,9 +33,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class TaintAnalysisTransferRelation
     extends ForwardingTransferRelation<
@@ -333,119 +336,59 @@ public class TaintAnalysisTransferRelation
   @Override
   protected TaintAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
-
-    if (!(declaration instanceof AVariableDeclaration)) { // ||
-      // !isTrackedType(declaration.getType()))
-      // {
-      // nothing interesting to see here, please move along
+    
+    if (!(declaration instanceof AVariableDeclaration)) {
       return state;
     }
-
+    
     TaintAnalysisState newElement = TaintAnalysisState.copyOf(state);
     AVariableDeclaration decl = (AVariableDeclaration) declaration;
     Type declarationType = decl.getType();
 
     // get the variable name in the declarator
     String varName = decl.getName();
-    newElement.assignTaint(varName, false);
-    String msg;
-    msg = varName + " | tainted: false | Type: " + declarationType;
 
     // Value initialValue = getDefaultInitialValue(decl);
 
     // // get initializing statement
     AInitializer init = decl.getInitializer();
 
-    // handle global variables
-    if (decl.isGlobal()) {
-      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
-        msg = msg + " | YAS";
-      }
-    }
+    MemoryLocation memoryLocation;
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
-      msg = msg + " | Global: true";
+      memoryLocation = MemoryLocation.valueOf(varName);
     } else {
-      msg = msg + " | Global: false";
+      memoryLocation = MemoryLocation.valueOf(functionName, varName);
     }
 
-    // if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType)
-    // {
-    // TaintAnalysisState.addToBlacklist(memoryLocation);
-    // }
+    newElement.assignTaint(memoryLocation, false);
+    String msg;
+    msg = memoryLocation + " | tainted: false | Type: " + declarationType;
 
     if (init instanceof AInitializerExpression) {
       AExpression exp = ((AInitializerExpression) init).getExpression();
+      if(exp instanceof AUnaryExpression) {
+        AUnaryExpression unary = (AUnaryExpression) exp;
+        if(unary.getOperator() == UnaryOperator.AMPER) {
+          MemoryLocation dest = MemoryLocation.valueOf(functionName, unary.getOperand().toString());
+          newElement.addPointerTo(memoryLocation, dest);
+          msg = msg + " | Pointer " + memoryLocation + " points to " + dest;
+        }
+      }
+      else if(exp instanceof APointerExpression) {
+        APointerExpression pointer = (APointerExpression) exp;
+        MemoryLocation p = MemoryLocation.valueOf(functionName, pointer.getOperand().toString());
+        MemoryLocation dest = newElement.getPointerTo(p);
+        logger.log(Level.INFO, msg);
+        newElement.change(memoryLocation, newElement.getStatus(dest));
+        msg = msg + " | data from pointer: " + dest +" => tainted: "+newElement.getStatus(dest);
+      }
       msg = msg + " | EXP: " + exp;
     }
-
-    // if (isTrackedType(declarationType)) {
-    // if (missingFieldVariableObject) {
-    // fieldNameAndInitialValue = Pair.of(varName, initialValue);
-
-    // } else if (missingInformationRightJExpression != null) {
-    // missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
-    // }
-    // } else {
-    // // If variable not tracked, its Object is irrelevant
-    // missingFieldVariableObject = false;
-    // }
-
-    // if (initialValue.isUnknown()) {
-    // unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
-    // } else {
-    // newElement.assignConstant(memoryLocation, initialValue, declarationType);
-    // }
     logger.log(Level.INFO, msg);
     return newElement;
   }
-
-  // private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
-  // final boolean defaultBooleanValue = false;
-  // final long defaultNumericValue = 0;
-
-  // if (pDeclaration.isGlobal()) {
-  // Type declarationType = pDeclaration.getType();
-
-  // if (isComplexJavaType(declarationType)) {
-  // return NullValue.getInstance();
-
-  // } else if (declarationType instanceof JSimpleType) {
-  // JBasicType basicType = ((JSimpleType) declarationType).getType();
-
-  // switch (basicType) {
-  // case BOOLEAN:
-  // return BooleanValue.valueOf(defaultBooleanValue);
-  // case BYTE:
-  // case CHAR:
-  // case SHORT:
-  // case INT:
-  // case LONG:
-  // case FLOAT:
-  // case DOUBLE:
-  // return new NumericValue(defaultNumericValue);
-  // case UNSPECIFIED:
-  // return UnknownValue.getInstance();
-  // default:
-  // throw new AssertionError("Impossible type for declaration: " + basicType);
-  // }
-  // }
-  // }
-
-  // return UnknownValue.getInstance();
-  // }
-
-  // private boolean isComplexJavaType(Type pType) {
-  // return pType instanceof JClassOrInterfaceType
-  // || pType instanceof JArrayType;
-  // }
-
-  // private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
-  // ARightHandSide pExp) {
-
-  // return pExp instanceof CExpression && pEvv.hasMissingPointer();
-  // }
 
   @Override
   protected TaintAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
@@ -484,7 +427,8 @@ public class TaintAnalysisTransferRelation
                 || func.equals("scanf")
                 || func.equals("gets")
                 || func.equals("fopen")) {
-              newElement.change(leftSide.toString(), true);
+              MemoryLocation memoryLocation = MemoryLocation.valueOf(functionName, leftSide.toString());
+              newElement.change(memoryLocation, true);
             }
           } else msg = msg + " | useCriticalSourceFunctions: False";
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
@@ -498,43 +442,38 @@ public class TaintAnalysisTransferRelation
           AFunctionCallStatement stm = (AFunctionCallStatement) expression;
           AFunctionCallExpression exp = stm.getFunctionCallExpression();
           AExpression param = exp.getParameterExpressions().get(0);
-          logger.log(Level.INFO, param.getExpressionType());
           // VERIFIER logic
+          MemoryLocation memoryLocation = MemoryLocation.valueOf(functionName, param.toString());
           if (func.equals("__VERIFIER_mark_tainted")) {
-            newElement.change(param.toString(), true);
+            newElement.change(memoryLocation, true);
           } else if (func.equals("__VERIFIER_mark_untainted")) {
-            newElement.change(param.toString(), false);
+            newElement.change(memoryLocation, false);
           } else if (func.equals("__VERIFIER_assert_untainted")) {
-            logger.log(
-                Level.INFO,
-                "param.toString(): "
-                    + param.toString()
-                    + " | state.getStatus(param.toString())"
-                    + state.getStatus(param.toString()));
-            if (state.getStatus(param.toString())) {
+            if (state.getStatus(memoryLocation)) {
               newElement =
                   TaintAnalysisState.copyOf(
-                      state, true, "Assumed variable '" + param + "' was untainted.");
+                      state, true, "Assumed variable '" + memoryLocation + "' was untainted");
             }
           } else if (func.equals("__VERIFIER_assert_tainted")) {
-            if (!state.getStatus(param.toString())) {
+            logger.log(Level.INFO, memoryLocation);
+            if (!state.getStatus(memoryLocation)) {
               newElement =
                   TaintAnalysisState.copyOf(
-                      state, true, "Assumed variable '" + param + "' was tainted.");
+                      state, true, "Assumed variable '" + memoryLocation + "' was tainted");
             }
           } else if (options.isUseCriticalSinkFunctions()) {
-            if (func.equals("printf")
+            MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, exp.getParameterExpressions().get(1).toString());
+            if (func.equals("printf") && state.getStatus(memoryLocation1)
                 || func.equals("strcmp")
                 || func.equals("fputs")
                 || func.equals("fputc")
-                || func.equals("fwrite")) {
-              if (state.getStatus(param.toString())) {
-                newElement =
-                    TaintAnalysisState.copyOf(
-                        state,
-                        true,
-                        "Critical function '" + func + "' was called with a tainted parameter");
-              }
+                || func.equals("fwrite"))
+            {
+              newElement =
+                  TaintAnalysisState.copyOf(
+                      state,
+                      true,
+                      "Critical function '" + func + "' was called with a tainted parameter");
             }
           }
           msg = msg + " | " + param;
@@ -575,53 +514,51 @@ public class TaintAnalysisTransferRelation
             + op1
             + " = "
             + op2
-            + " | op1: "
-            + op1
-            + " op1GetType: op2: "
-            + op2
             + " "
-            + op2.getExpressionType()
-            + " "
-            + op2.getClass();
+            + op2.getExpressionType();
 
     if (op1 instanceof AIdExpression) {
       // a = ...
       msg = msg + "\nAIdExpression";
       if (op2 instanceof ALiteralExpression) {
         msg = msg + " | ALiteralExpression";
-        newElement.change(op1.toString(), false);
+        MemoryLocation memoryLocation = MemoryLocation.valueOf(functionName, op1.toString());
+        newElement.change(memoryLocation, false);
         return newElement;
       } else if (op2 instanceof ABinaryExpression) {
         msg = msg + " | ABinaryExpression";
         ABinaryExpression binOp = (ABinaryExpression) op2;
-        if (binOp.getOperator() == BinaryOperator.PLUS) {
-          msg = msg + " | BinaryOperator.PLUS";
-          if (state.getStatus(binOp.getOperand1().toString())
-              || state.getStatus(binOp.getOperand2().toString())) {
-            msg = msg + " | Either one tainted";
-            newElement.change(op1.toString(), true);
-          } else {
-            msg = msg + " | None tainted";
-            newElement.change(op1.toString(), false);
-          }
-        } else if (binOp.getOperator() == BinaryOperator.MINUS) {
-          msg = msg + " | BinaryOperator.MINUS";
-          if (binOp.getOperand1().toString().equals(binOp.getOperand2().toString())) {
-            msg = msg + " | Self sebstract";
-            newElement.change(op1.toString(), false);
-          } else if (state.getStatus(binOp.getOperand1().toString())
-              || state.getStatus(binOp.getOperand2().toString())) {
-            msg = msg + " | Either one tainted";
-            newElement.change(op1.toString(), true);
-          } else {
-            msg = msg + " | None tainted";
-            newElement.change(op1.toString(), false);
-          }
+        msg = msg + " | Operator: "+binOp.getOperator();
+        if (binOp.getOperator() == BinaryOperator.MINUS && binOp.getOperand1().toString().equals(binOp.getOperand2().toString())) {
+          msg = msg + " | Self sebstract";
+          MemoryLocation memoryLocation = MemoryLocation.valueOf(functionName, op1.toString());
+          newElement.change(memoryLocation, false);
+        } else {
+          Boolean result = false;
+          MemoryLocation memOp1 = MemoryLocation.valueOf(functionName, binOp.getOperand1().toString());
+          MemoryLocation memOp2 = MemoryLocation.valueOf(functionName, binOp.getOperand2().toString());
+          if(binOp.getOperand1() instanceof AIdExpression && binOp.getOperand2() instanceof AIdExpression)
+            result = state.getStatus(memOp1) || state.getStatus(memOp2);
+          else if(binOp.getOperand1() instanceof ALiteralExpression)
+            result = state.getStatus(memOp2);
+          else if(binOp.getOperand2() instanceof ALiteralExpression)
+            result = state.getStatus(memOp1);
+          MemoryLocation memoryLocation = MemoryLocation.valueOf(functionName, op1.toString());
+          newElement.change(memoryLocation, result);
+          msg = msg + " | result: "+result;
         }
       } else {
-        msg = msg + " | Status op2: " + state.getStatus(op2.toString());
-        newElement.change(op1.toString(), newElement.getStatus(op2.toString()));
-        msg = msg + " | Status op1: " + newElement.getStatus(op1.toString());
+        if(op1.getExpressionType().toString().indexOf('*') != -1) {
+          MemoryLocation memOp1 = MemoryLocation.valueOf(functionName, op1.toString());
+          MemoryLocation memOp2 = MemoryLocation.valueOf(functionName, op2.toString());
+          newElement.addPointerTo(memOp1, memOp2);
+        } else {
+          MemoryLocation memOp1 = MemoryLocation.valueOf(functionName, op1.toString());
+          MemoryLocation memOp2 = MemoryLocation.valueOf(functionName, op2.toString());
+          msg = msg + " | Status op2: " + state.getStatus(memOp2);
+          newElement.change(memOp1, newElement.getStatus(memOp2));
+          msg = msg + " | Status op1: " + newElement.getStatus(memOp1);
+        }
       } // if(op2 instanceof ALiteralExpression)
       // return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
