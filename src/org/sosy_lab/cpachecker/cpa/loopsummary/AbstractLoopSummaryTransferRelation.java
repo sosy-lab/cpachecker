@@ -239,12 +239,11 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
         summarizedState = this.applyStrategyIfAlreadyApplied(pState, pPrecision);
       }
     }
-    stats.updateSummariesUsed(
+    stats.incrementStrategyUsageCount(
         strategies
             .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())
             .getClass()
-            .getName(),
-        1);
+            .getName());
 
     ((LoopSummaryPrecision) pPrecision)
         .setLoopHead(

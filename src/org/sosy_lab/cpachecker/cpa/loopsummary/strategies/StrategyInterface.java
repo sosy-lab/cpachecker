@@ -41,4 +41,8 @@ public interface StrategyInterface {
    *
    */
   public boolean isPrecise();
+
+  default String getName() {
+    return this.getClass().getSimpleName();
+  }
 }

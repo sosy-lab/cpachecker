@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-import com.google.common.base.Splitter;
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.common.configuration.Configuration;
@@ -23,6 +21,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 @Options(prefix = "cpa.loopsummary")
 class LoopSummaryCPAStatistics implements Statistics {
@@ -39,7 +38,7 @@ class LoopSummaryCPAStatistics implements Statistics {
   @SuppressWarnings("unused")
   private final AbstractLoopSummaryCPA cpa;
 
-  private final Map<String, Integer> strategiesUsed = new LinkedHashMap<>();
+  private final Map<String, StatCounter> strategiesUsed = new LinkedHashMap<>();
 
   public LoopSummaryCPAStatistics(Configuration pConfig, LogManager pLogger, AbstractLoopSummaryCPA pCpa)
       throws InvalidConfigurationException {
@@ -47,7 +46,7 @@ class LoopSummaryCPAStatistics implements Statistics {
     logger = pLogger;
     cpa = pCpa;
     for (StrategyInterface s : pCpa.getStrategies()) {
-      strategiesUsed.put(s.getClass().getName(), 0);
+      strategiesUsed.put(s.getName(), new StatCounter(s.getName()));
     }
   }
 
@@ -56,9 +55,9 @@ class LoopSummaryCPAStatistics implements Statistics {
     return "LoopSummaryCPA";
   }
 
-  public void updateSummariesUsed(String summaryName, Integer timesUsed) {
+  public void incrementStrategyUsageCount(String summaryName) {
     if (strategiesUsed.containsKey(summaryName)) {
-      strategiesUsed.put(summaryName, strategiesUsed.get(summaryName) + timesUsed);
+      strategiesUsed.get(summaryName).inc();
     }
   }
 
@@ -66,12 +65,9 @@ class LoopSummaryCPAStatistics implements Statistics {
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     if (loopsummarystats) {
       out.println("Strategy Statistics:");
-      for (Entry<String, Integer> e : strategiesUsed.entrySet()) {
-        List<String> splitName = Splitter.on('.').splitToList(e.getKey());
-        put(
-            out,
-            "Number of times Strategy " + splitName.get(splitName.size() - 1) + " was used: ",
-            e.getValue());
+      for (Entry<String, StatCounter> e : strategiesUsed.entrySet()) {
+        int padding = maxlen - e.getKey().length() + 1;
+        put(out, String.format("%s usage count", e.getKey()), e.getValue());
       }
     }
   }
