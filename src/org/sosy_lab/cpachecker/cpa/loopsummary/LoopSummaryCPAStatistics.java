@@ -66,7 +66,6 @@ class LoopSummaryCPAStatistics implements Statistics {
     if (loopsummarystats) {
       out.println("Strategy Statistics:");
       for (Entry<String, StatCounter> e : strategiesUsed.entrySet()) {
-        int padding = maxlen - e.getKey().length() + 1;
         put(out, String.format("%s usage count", e.getKey()), e.getValue());
       }
     }
