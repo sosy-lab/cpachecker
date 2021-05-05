@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +42,8 @@ public class TestTargetMinimizerEssential {
           copyCFA(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
     } else {
       copiedFunctionEntryExit =
-          buildTestGoalGraph(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
+          TestTargetReductionUtils
+              .buildTestGoalGraph(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
     }
 
     // handle all cases of nodes with a single outgoing edge
@@ -108,78 +108,6 @@ public class TestTargetMinimizerEssential {
     return Pair.of(
         origCFANodeToCopyMap.get(pEntryNode),
         origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
-  }
-
-  private Pair<CFANode, CFANode> buildTestGoalGraph(
-      final Set<CFAEdge> pTestTargets,
-      final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
-      final FunctionEntryNode pEntryNode) {
-    // a set of nodes that has already been created to prevent duplicates
-    Set<CFANode> successorNodes = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 2);
-    Set<CFANode> visited = new HashSet<>();
-    Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
-    CFANode predecessor, currentNode;
-    Queue<CFANode> waitlist = new ArrayDeque<>(), waitlistInner = new ArrayDeque<>();
-
-    origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
-    waitlist.add(pEntryNode);
-    origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
-    successorNodes.add(pEntryNode.getExitNode());
-    for (CFAEdge target : pTestTargets) {
-      successorNodes.add(target.getPredecessor());
-
-      if (!origCFANodeToCopyMap.containsKey(target.getPredecessor())) {
-        origCFANodeToCopyMap.put(target.getPredecessor(), CFANode.newDummyCFANode(""));
-        waitlist.add(target.getPredecessor());
-      }
-      if (!origCFANodeToCopyMap.containsKey(target.getSuccessor())) {
-        origCFANodeToCopyMap.put(target.getSuccessor(), CFANode.newDummyCFANode(""));
-      }
-
-      pCopiedEdgeToTestTargetsMap.put(
-          copyEdge(
-              origCFANodeToCopyMap.get(target.getPredecessor()),
-              origCFANodeToCopyMap.get(target.getSuccessor())),
-          target);
-    }
-
-    while (!waitlist.isEmpty()) {
-      // get next node in the queue
-      predecessor = waitlist.poll();
-      waitlistInner.add(predecessor);
-      visited.clear();
-
-      while (!waitlistInner.isEmpty()) {
-        currentNode = waitlistInner.poll();
-
-        for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
-          if (successorNodes.contains(leaving.getSuccessor())) {
-            if (!origCFANodeToCopyMap.get(predecessor)
-                .hasEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor()))) {
-                  copyEdge(
-                  origCFANodeToCopyMap.get(predecessor),
-                  origCFANodeToCopyMap.get(leaving.getSuccessor()));
-            }
-          } else {
-            if (visited.add(leaving.getSuccessor())) {
-              waitlistInner.add(leaving.getSuccessor());
-            }
-          }
-        }
-      }
-    }
-    return Pair.of(
-        origCFANodeToCopyMap.get(pEntryNode),
-        origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
-  }
-
-  private CFAEdge copyEdge(
-      final CFANode pred,
-      final CFANode succ) {
-    CFAEdge newEdge = new DummyCFAEdge(pred, succ);
-    pred.addLeavingEdge(newEdge);
-    succ.addEnteringEdge(newEdge);
-    return newEdge;
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
