@@ -18,22 +18,22 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public enum TestTargetAdaption {
   NONE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
-      return targets;
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
+      return pTargets;
     }
   },
   COVERED_NEXT_EDGE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
       // currently only simple heuristic
       Set<CFAEdge> newGoals;
-      newGoals = new HashSet<>(targets);
+      newGoals = new HashSet<>(pTargets);
       boolean allSuccessorsGoals;
-      for (CFAEdge target : targets) {
+      for (CFAEdge target : pTargets) {
         if (target.getSuccessor().getNumEnteringEdges() == 1) {
           allSuccessorsGoals = true;
           for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-            if (!targets.contains(leaving)) {
+            if (!pTargets.contains(leaving)) {
               allSuccessorsGoals = false;
               break;
             }
@@ -49,39 +49,44 @@ public enum TestTargetAdaption {
   },
   BASIC_ESSENTIAL_EDGE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
       // basic heuristic that follows paths with forced predecessor/successors and removes
       // unnecessary test targets
-      return new TestTargetMinimizerBasicEssential().reduceTargets(targets);
+      return new TestTargetMinimizerBasicEssential().reduceTargets(pTargets);
     }
   },
   ESSENTIAL_EDGE_ORIGINAL {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
       // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
       // as possible
-      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa, true);
+      return new TestTargetMinimizerEssential().reduceTargets(pTargets, pCfa, true);
     }
   },
   ESSENTIAL_EDGE {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
       // advanced heuristic that minimizes the control flow graph to eliminate as many test targets
       // as possible
-      return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa, false);
+      return new TestTargetMinimizerEssential().reduceTargets(pTargets, pCfa, false);
     }
   },
   PORTFOLIO {
     @Override
     public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
-      // TODO Auto-generated method stub
-      return null;
+      Set<CFAEdge> finalResult, returnResult;
+      finalResult = COVERED_NEXT_EDGE.adaptTestTargets(pTargets, pCfa);
+      returnResult = ESSENTIAL_EDGE_ORIGINAL.adaptTestTargets(pTargets, pCfa); // TODO select best
+      finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
+      returnResult = SPANNING_SET.adaptTestTargets(pTargets, pCfa);
+      finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
+      return finalResult;
     }
   },
   SPANNING_SET {
     @Override
-    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
-      return new TestTargetReductionSpanningSet().reduceTargets(targets, pCfa);
+    public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
+      return new TestTargetReductionSpanningSet().reduceTargets(pTargets, pCfa);
     }
   },
 
@@ -89,7 +94,7 @@ public enum TestTargetAdaption {
    * SUPER_BLOCKS { pre and postdominator tree (union both into a basic block dominator graph,
    * compute strongly connected components, the superblocks) to apply on edges only need to find
    * pre- and postdominator relationships among edges instead of nodes. },
-   * 
+   *
    * @Override public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) { // TODO
    * Auto-generated method stub return null; }
    */
