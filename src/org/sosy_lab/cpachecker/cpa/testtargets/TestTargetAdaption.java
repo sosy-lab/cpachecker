@@ -71,6 +71,13 @@ public enum TestTargetAdaption {
       return new TestTargetMinimizerEssential().reduceTargets(targets, pCfa, false);
     }
   },
+  PORTFOLIO {
+    @Override
+    public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+  },
   SPANNING_SET {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> targets, final CFA pCfa) {
@@ -82,6 +89,9 @@ public enum TestTargetAdaption {
    * SUPER_BLOCKS { pre and postdominator tree (union both into a basic block dominator graph,
    * compute strongly connected components, the superblocks) to apply on edges only need to find
    * pre- and postdominator relationships among edges instead of nodes. },
+   * 
+   * @Override public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) { // TODO
+   * Auto-generated method stub return null; }
    */
   TESTCOMP {
     @Override

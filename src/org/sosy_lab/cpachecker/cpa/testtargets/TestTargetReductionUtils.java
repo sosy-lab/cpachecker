@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,19 +35,20 @@ public final class TestTargetReductionUtils {
     Set<CFANode> successorNodes = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 2);
     Set<CFANode> visited = new HashSet<>();
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
-    CFANode predecessor, currentNode;
-    Queue<CFANode> waitlist = new ArrayDeque<>(), waitlistInner = new ArrayDeque<>();
+    CFANode currentNode;
+    Set<CFANode> toExplore = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 1);
+    Deque<CFANode> waitlist = new ArrayDeque<>();
 
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode(""));
-    waitlist.add(pEntryNode);
+    toExplore.add(pEntryNode);
     origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
     successorNodes.add(pEntryNode.getExitNode());
     for (CFAEdge target : pTestTargets) {
       successorNodes.add(target.getPredecessor());
+      toExplore.add(target.getSuccessor());
 
       if (!origCFANodeToCopyMap.containsKey(target.getPredecessor())) {
         origCFANodeToCopyMap.put(target.getPredecessor(), CFANode.newDummyCFANode(""));
-        waitlist.add(target.getPredecessor());
       }
       if (!origCFANodeToCopyMap.containsKey(target.getSuccessor())) {
         origCFANodeToCopyMap.put(target.getSuccessor(), CFANode.newDummyCFANode(""));
@@ -60,14 +61,16 @@ public final class TestTargetReductionUtils {
           target);
     }
 
-    while (!waitlist.isEmpty()) {
+    for (CFANode predecessor : toExplore) {
+      if (!successorNodes.contains(predecessor)) {
       // get next node in the queue
-      predecessor = waitlist.poll();
-      waitlistInner.add(predecessor);
+      waitlist.add(predecessor);
       visited.clear();
+      }
 
-      while (!waitlistInner.isEmpty()) {
-        currentNode = waitlistInner.poll();
+      while (!waitlist.isEmpty()) {
+        currentNode = waitlist.poll();
+
 
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
           if (successorNodes.contains(leaving.getSuccessor())) {
@@ -79,7 +82,7 @@ public final class TestTargetReductionUtils {
             }
           } else {
             if (visited.add(leaving.getSuccessor())) {
-              waitlistInner.add(leaving.getSuccessor());
+              waitlist.add(leaving.getSuccessor());
             }
           }
         }
