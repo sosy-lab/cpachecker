@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
@@ -55,7 +55,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
@@ -82,13 +84,16 @@ public class FaultLocalizationWithTraceFormula
     UNSAT, MAXSAT, MAXORG, ERRINV
   }
 
+  public Algorithm getAlgorithm() {
+    return algorithm;
+  }
+
   private final Algorithm algorithm;
   private final LogManager logger;
   private final BooleanFormulaManager bmgr;
   private final FormulaContext context;
   private final PathFormulaManagerImpl manager;
   private final TraceFormulaOptions options;
-
   private final FaultLocalizerWithTraceFormula faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time for fault localization");
 
@@ -220,93 +225,22 @@ public class FaultLocalizationWithTraceFormula
     }
 
     try {
-      // Collect all edges that do not evaluate to true
-      List<CFAEdge> edgeList = new ArrayList<>();
-      for (CFAEdgeWithAssumptions assumption : assumptions) {
-        if (!bmgr.isTrue(
-            manager
-                .makeFormulaForPath(Collections.singletonList(assumption.getCFAEdge()))
-                .getFormula())) {
-          edgeList.add(assumption.getCFAEdge());
-        }
-      }
+      Optional<FaultLocalizationInfo> optionalInfo = calcFaultLocalizationInfo(assumptions, pInfo, pAlgorithm);
 
-      if(edgeList.isEmpty()){
-        logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
-        return;
-      }
+      if(optionalInfo.isPresent()){
+        FaultLocalizationInfo info = optionalInfo.get();
 
-      //Find correct scoring and correct trace formula for the specified algorithm
-      TraceFormula tf;
-      FaultScoring scoring;
-      switch(algorithmType){
-        case MAXORG:
-        case MAXSAT: {
-          tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-          scoring =  FaultRankingUtils.concatHeuristics(
-              new EdgeTypeScoring(),
-              new SetSizeScoring(),
-              new OverallOccurrenceScoring(),
-              new MinimalLineDistanceScoring(edgeList.get(edgeList.size()-1)),
-              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
-          break;
+        if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
+          info.replaceHtmlWriter(new IntervalReportWriter());
+          info.setSortIntended(true);
         }
-        case ERRINV: {
-          tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
-          scoring = FaultRankingUtils.concatHeuristics(
-              new EdgeTypeScoring(),
-              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
-          break;
-        }
-        case UNSAT: {
-          tf = new TraceFormula.DefaultTrace(context, options, edgeList);
-          scoring = FaultRankingUtils.concatHeuristics(
-              new EdgeTypeScoring(),
-              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
-          break;
-        }
-        default: throw new AssertionError("The specified algorithm type does not exist");
-      }
 
-      if (!tf.isCalculationPossible()) {
+        info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+        info.apply();
         logger.log(
             Level.INFO,
-            "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely"
-                + " the variables in your post-condition never change their value.");
-        return;
+            "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
       }
-
-      Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
-
-      if(!algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        ban(errorIndicators);
-      }
-
-      InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
-      InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
-
-      ImmutableList<BooleanFormula> nondets =
-          tf.getEntries().toAtomList().stream()
-              .filter(f -> f.toString().contains("__VERIFIER_nondet"))
-              .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
-              .collect(ImmutableList.toImmutableList());
-      FaultLocalizationInfo info = new FaultLocalizationInfo(
-          errorIndicators,
-          scoring,
-          tf.getPrecondition(),
-          nondets,
-          pInfo);
-
-      if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        info.replaceHtmlWriter(new IntervalReportWriter());
-        info.setSortIntended(true);
-      }
-
-      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
-      info.apply();
-      logger.log(
-          Level.INFO,
-          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
 
     } catch (SolverException sE) {
       throw new CPAException(
@@ -322,6 +256,13 @@ public class FaultLocalizationWithTraceFormula
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
     }
+  }
+
+  protected ImmutableList<BooleanFormula> calcNondets(TraceFormula tf) {
+    return tf.getEntries().toAtomList().stream()
+        .filter(f -> f.toString().contains("__VERIFIER_nondet"))
+        .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
+        .collect(ImmutableList.toImmutableList());
   }
 
   /**
@@ -379,4 +320,107 @@ public class FaultLocalizationWithTraceFormula
     return getClass().getSimpleName();
   }
 
+
+  protected FormulaContext getContext() {
+    return context;
+  }
+
+  protected FaultLocalizerWithTraceFormula getFaultAlgorithm() {
+    return faultAlgorithm;
+  }
+
+  protected Optional<FaultLocalizationInfo> calcFaultLocalizationInfo(CFAPathWithAssumptions assumptions, CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
+    // Collect all edges that do not evaluate to true
+    List<CFAEdge> edgeList = calcEdgeList(assumptions);
+
+    if(edgeList.isEmpty()){
+      logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
+      return Optional.absent();
+    }
+
+    //Find correct scoring and correct trace formula for the specified algorithm
+    Pair<TraceFormula, FaultScoring> tfScoringPair = calcTraceFormulaAndScoring(edgeList);
+    TraceFormula tf = tfScoringPair.getFirst();
+    FaultScoring scoring = tfScoringPair.getSecond();
+
+    if (!tf.isCalculationPossible()) {
+      logger.log(
+          Level.INFO,
+          "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely"
+              + " the variables in your post-condition never change their value.");
+      return Optional.absent();
+    }
+
+    Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
+
+    if(!algorithmType.equals(AlgorithmTypes.ERRINV)) {
+      ban(errorIndicators);
+    }
+
+    InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
+    InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
+
+    ImmutableList<BooleanFormula> nondets = calcNondets(tf);
+
+    return Optional.of(new FaultLocalizationInfo(
+        errorIndicators,
+        scoring,
+        tf.getPrecondition(),
+        nondets,
+        pInfo));
+  }
+
+  protected List<CFAEdge> calcEdgeList(CFAPathWithAssumptions assumptions)
+      throws CPATransferException, InterruptedException {
+    List<CFAEdge> edgeList = new ArrayList<>();
+    for (CFAEdgeWithAssumptions assumption : assumptions) {
+      if (!bmgr.isTrue(
+          manager
+              .makeFormulaForPath(Collections.singletonList(assumption.getCFAEdge()))
+              .getFormula())) {
+        edgeList.add(assumption.getCFAEdge());
+      }
+    }
+
+    return edgeList;
+  }
+
+  protected Pair<TraceFormula, FaultScoring> calcTraceFormulaAndScoring(List<CFAEdge> edgeList)
+      throws CPAException, InterruptedException, SolverException {
+    //Find correct scoring and correct trace formula for the specified algorithm
+    TraceFormula tf;
+    FaultScoring scoring;
+
+    switch(algorithmType){
+      case MAXORG:
+      case MAXSAT: {
+        tf = new TraceFormula.SelectorTrace(context, options, edgeList);
+        scoring =  FaultRankingUtils.concatHeuristics(
+            new EdgeTypeScoring(),
+            new SetSizeScoring(),
+            new OverallOccurrenceScoring(),
+            new MinimalLineDistanceScoring(edgeList.get(edgeList.size()-1)),
+            new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
+        break;
+      }
+      case ERRINV: {
+        tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
+        scoring = FaultRankingUtils.concatHeuristics(
+            new EdgeTypeScoring(),
+            new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
+        break;
+      }
+      case UNSAT: {
+        tf = new TraceFormula.DefaultTrace(context, options, edgeList);
+        scoring = FaultRankingUtils.concatHeuristics(
+            new EdgeTypeScoring(),
+            new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
+        break;
+      }
+      default: throw new AssertionError("The specified algorithm type does not exist");
+    }
+
+    return Pair.of(tf, scoring);
+  }
 }

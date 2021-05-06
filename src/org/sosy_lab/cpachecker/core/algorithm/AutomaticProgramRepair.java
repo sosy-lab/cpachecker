@@ -9,7 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.StatementEdge;
+
 import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
@@ -21,14 +26,19 @@ import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,6 +53,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -51,19 +63,27 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class AutomaticProgramRepair
     implements Algorithm, StatisticsProvider, Statistics {
 
-  private final Algorithm algorithm;
+  private final FaultLocalizationWithTraceFormula algorithm;
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
@@ -83,8 +103,11 @@ public class AutomaticProgramRepair
   )
       throws InvalidConfigurationException {
 
+    if (!(pStoreAlgorithm instanceof FaultLocalizationWithTraceFormula)){
+      throw new InvalidConfigurationException("option FaultLocalizationWithTraceFormula required, found: " + pStoreAlgorithm.getClass());
+    }
     config = pConfig;
-    algorithm = pStoreAlgorithm;
+    algorithm = (FaultLocalizationWithTraceFormula) pStoreAlgorithm;
     cfa = pCfa;
     logger = pLogger;
     specification = pSpecification;
@@ -93,15 +116,22 @@ public class AutomaticProgramRepair
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    AlgorithmStatus status = algorithm.run(reachedSet);
-
     totalTime.start();
+
+    AlgorithmStatus status = algorithm.getAlgorithm().run(reachedSet);
 
     try {
       logger.log(Level.INFO, "Starting bug repair...");
-      logger.log(Level.INFO, "STATUS before: " + status.toString());
 
-      runAlgorithm();
+      ArrayList<FaultLocalizationInfo> faultLocalizationInfos = localizeFaults(reachedSet);
+
+      faultLocalizationInfos.forEach(faultLocalizationInfo -> {
+        try {
+          runAlgorithm(faultLocalizationInfo, reachedSet);
+        } catch (Exception e) {
+          logger.logUserException(Level.SEVERE, e, "Exception");
+        }
+      });
 
       logger.log(Level.INFO, "Stopping bug repair...");
     } catch (Exception e) {
@@ -109,35 +139,97 @@ public class AutomaticProgramRepair
     } finally{
       totalTime.stop();
     }
+
     return status;
   }
 
-  private void runAlgorithm()
+  private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo, ReachedSet reachedSet)
       throws Exception {
     final MutableCFA clonedCFA = cloneCFA();
-    final RepairCandidateCollector repairCandidatesCollector = new RepairCandidateCollector();
 
-    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(clonedCFA.getMainFunction(), repairCandidatesCollector);
+    logger.log(Level.INFO, "hasViolatedProperties:" + reachedSet.hasViolatedProperties());
+    MutableCFA mutatedCFA = clonedCFA;
 
-    final List<CFANode> repairCandidateNodes =  repairCandidatesCollector.getRepairCandidateNodes();
+//    for (Fault fault : faultLocalizationInfo.getRankedList()){
 
-    logger.log(Level.INFO,  clonedCFA.getAllNodes().size());
+    /* MUTATION START */
+    Fault fault = faultLocalizationInfo.getRankedList().get(0);
+    FaultContribution faultContribution = fault.iterator().next();
+    CFAEdge edge = faultContribution.correspondingEdge();
+    CFAEdge newEdge = mutateEdge(edge);
 
-    final MutableCFA mutatedCFA = mutateCFA(clonedCFA, repairCandidateNodes);
-    final AlgorithmStatus newStatus = rerun(mutatedCFA);
+    mutatedCFA = exchangeEdge(clonedCFA, edge, newEdge);
+    /* MUTATION END */
 
-    logger.log(Level.INFO, "STATUS after: " + newStatus.toString());
-    logger.log(Level.INFO,  mutatedCFA.getAllNodes().size());
+//    }
+
+    // this call will use the original reachedSet and return violated properties, regardless of mutation
+    //final ReachedSet newReachedSet = rerun(mutatedCFA, reachedSet);
+
+    // this call will generate a new reachedSet and return no violated properties, regardless of mutation
+
+    final ReachedSet newReachedSet = rerun(mutatedCFA);
+
+    logger.log(Level.INFO, "hasViolatedProperties:" + newReachedSet.hasViolatedProperties());
   }
 
-  private AlgorithmStatus rerun(MutableCFA mutatedCFA)
+
+  private CFAEdge mutateEdge(CFAEdge edge){
+    if(edge.getEdgeType() == StatementEdge){
+      final CStatementEdge statementEdge = (CStatementEdge) edge;
+      CStatement statement = statementEdge.getStatement();
+
+      if(statement instanceof CExpressionAssignmentStatement){
+
+        final CExpressionAssignmentStatement expressionAssignmentStatement = (CExpressionAssignmentStatement) statement;
+        final Set<CExpression> expressions = collectExpressions();
+        CExpression alternativeExpression = expressionAssignmentStatement.getRightHandSide();
+
+        for(CExpression expression : expressions){
+          if(expression.toString().equals("temp")
+              && expressionAssignmentStatement.getLeftHandSide().toString().equals("second")){
+            alternativeExpression = expression;
+          }
+        }
+
+        final CStatement modifiedStatement =
+            new CExpressionAssignmentStatement(expressionAssignmentStatement.getFileLocation(), expressionAssignmentStatement.getLeftHandSide(), alternativeExpression) ;
+
+        logger.log(Level.INFO, "original Statement: " + statement.toString());
+        logger.log(Level.INFO, "modified Statement: " + modifiedStatement.toString());
+
+        return new CStatementEdge(statementEdge.getRawStatement(), modifiedStatement,
+            statementEdge.getFileLocation(), statementEdge.getPredecessor(), statementEdge.getSuccessor());
+      }
+    }
+
+    return edge;
+  }
+
+  private ReachedSet rerun(MutableCFA mutatedCFA, ReachedSet reachedSet)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
     final CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
-    final ConfigurableProgramAnalysis mutatedCPA = builder.buildCPAs(mutatedCFA, specification, new AggregatedReachedSets());
+    final ConfigurableProgramAnalysis mutatedCPA = builder.buildCPAs(mutatedCFA, specification, new AggregatedReachedSets(Set.of(reachedSet)));
     final CPAAlgorithm algo = CPAAlgorithm.create(mutatedCPA, logger, config, shutdownNotifier);
 
-    return algo.run(reachedSetFactory.create());
+    algo.run(reachedSet);
+
+    return reachedSet;
+  }
+
+  private ReachedSet rerun(MutableCFA mutatedCFA)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+    final CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
+    ReachedSet reachedSet = reachedSetFactory.create();
+    final ConfigurableProgramAnalysis mutatedCPA = builder.buildCPAs(mutatedCFA, specification, new AggregatedReachedSets(Set.of(reachedSet)));
+    final CPAAlgorithm algo = CPAAlgorithm.create(mutatedCPA, logger, config, shutdownNotifier);
+
+    algo.run(reachedSet);
+
+    return reachedSet;
+
   }
 
   private MutableCFA cloneCFA() {
@@ -156,6 +248,32 @@ public class AutomaticProgramRepair
         cfa.getLanguage());
   }
 
+  private MutableCFA exchangeEdge(MutableCFA currentCFA, CFAEdge edgeToRemove, CFAEdge edgeToInsert){
+    final CFANode predecessorNode = edgeToRemove.getPredecessor();
+    final CFANode successorNode = edgeToRemove.getSuccessor();
+
+    for(int i = 0; i <  predecessorNode.getNumLeavingEdges(); i++){
+      final CFAEdge edge = predecessorNode.getLeavingEdge(i);
+
+      if(edge.getLineNumber() == edgeToInsert.getLineNumber()){
+        predecessorNode.removeLeavingEdge(edge);
+        predecessorNode.addLeavingEdge(edgeToInsert);
+      }
+    }
+
+    for(int a = 0; a <  successorNode.getNumEnteringEdges(); a++){
+      final CFAEdge edge = successorNode.getEnteringEdge(a);
+
+      if(edge.getLineNumber() == edgeToInsert.getLineNumber()){
+        successorNode.removeEnteringEdge(edge);
+        successorNode.addEnteringEdge(edgeToInsert);
+      }
+    }
+
+    return currentCFA;
+  }
+
+
   private MutableCFA mutateCFA(MutableCFA currentCFA, List<CFANode> repairCandidateNodes)
       throws Exception {
 
@@ -168,11 +286,10 @@ public class AutomaticProgramRepair
         insertNode(currentCFA, node);
       }
     }
-
     return currentCFA;
   }
 
-  /*
+  /**
   * Deletes a given node from a cfa, along with all nodes that can be reached from it */
   private void deleteNode(MutableCFA currentCFA, CFANode node){
     final Set<CFANode> reachableNodes = Sets.newHashSet();
@@ -185,7 +302,7 @@ public class AutomaticProgramRepair
     }
   }
 
-  /*
+  /**
   * Inserts a random node from a given CFA after a given node. */
   private void insertNode(MutableCFA currentCFA, CFANode predecessorNode) throws Exception {
     final Collection<CFANode> originalNodes = cfa.getAllNodes();
@@ -198,7 +315,7 @@ public class AutomaticProgramRepair
       final CFAEdge edge = predecessorNode.getLeavingEdge(i);
       predecessorNode.removeLeavingEdge(edge);
 
-      final CFAEdge predecessorNodeNewLeavingEdge = alterEdge(edge, edge.getPredecessor(), insertionNode);
+      final CFAEdge predecessorNodeNewLeavingEdge = changeConnectedNodes(edge, edge.getPredecessor(), insertionNode);
       predecessorNode.addLeavingEdge(predecessorNodeNewLeavingEdge);
 
       successorNode = edge.getSuccessor();
@@ -209,7 +326,7 @@ public class AutomaticProgramRepair
       logger.log(Level.INFO, "Edge " + edge.toString());
 
       insertionNode.removeLeavingEdge(edge);
-      final CFAEdge predecessorNodeNewLeavingEdge = alterEdge(edge, insertionNode, successorNode);
+      final CFAEdge predecessorNodeNewLeavingEdge = changeConnectedNodes(edge, insertionNode, successorNode);
       insertionNode.addLeavingEdge(predecessorNodeNewLeavingEdge);
     }
 
@@ -221,7 +338,7 @@ public class AutomaticProgramRepair
       - In cases where special conditions have to be met, the insertion should not take place if the conditions don't apply, instead of throwing an error
   */
 
-  private CFAEdge alterEdge(CFAEdge edge, CFANode predecessor , CFANode successor)
+  private CFAEdge changeConnectedNodes(CFAEdge edge, CFANode predecessor , CFANode successor)
       throws Exception {
     switch (edge.getEdgeType()) {
 
@@ -288,37 +405,122 @@ public class AutomaticProgramRepair
     }
   }
 
-  private static class RepairCandidateCollector extends ForwardingCFAVisitor {
-    private final List<CFANode> repairCandidateNodes = new ArrayList<>();
+  private static class BasicCollector extends ForwardingCFAVisitor {
+    Iterable<? extends AAstNode> astNodes = FluentIterable.of() ;
 
-    public RepairCandidateCollector() {
+
+    public BasicCollector() {
+      super(new NodeCollectingCFAVisitor());
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge edge) {
+      Iterable<? extends AAstNode> candidates =
+          FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(edge))
+              .transformAndConcat(CFAUtils::traverseRecursively);
+
+      astNodes =
+          Iterables.concat(astNodes, candidates);
+
+      return super.visitEdge(edge);
+    }
+
+
+    private Iterable<? extends AAstNode> getAstNodes() {
+      return astNodes;
+    }
+
+  }
+
+  private Iterable<? extends AAstNode> collectAstNodes(CFA currentCFA){
+    final BasicCollector expressionCollector = new BasicCollector();
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(currentCFA.getMainFunction(), expressionCollector);
+    final Iterable<? extends AAstNode> expressions =  expressionCollector.getAstNodes();
+
+    for(AAstNode expression : expressions) {
+      logger.log(Level.INFO, expression.toString());
+    }
+
+    return expressions;
+  }
+
+
+  private static class ExpressionCollector extends ForwardingCFAVisitor {
+    private Set<CExpression> expressions = Sets.newHashSet();
+
+    public ExpressionCollector() {
       super(new EdgeCollectingCFAVisitor());
     }
 
-
     @Override
-    public TraversalProcess visitNode(CFANode node) {
-      if (isCandidate()) {
-        repairCandidateNodes.add(node);
-      }
-      return super.visitNode(node);
+    public TraversalProcess visitEdge(CFAEdge edge) {
+      ImmutableSet<? extends CExpression> currentExpressions =
+          FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(edge))
+              .transformAndConcat(CFAUtils::traverseRecursively)
+              .filter(CExpression.class)
+              .toSet();
+
+
+      expressions.addAll(currentExpressions);
+
+      return super.visitEdge(edge);
     }
 
-    private boolean isCandidate() {
-      return Math.random() >= 0.7;
-    }
-
-    private List<CFANode> getRepairCandidateNodes() {
-      return repairCandidateNodes;
+    private Set<CExpression> getExpressions() {
+      return expressions;
     }
   }
 
+  private Set<CExpression> collectExpressions(){
+    final ExpressionCollector expressionCollector = new ExpressionCollector();
+    CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), expressionCollector);
+    final Set<CExpression> expressions =  expressionCollector.getExpressions();
+
+/*
+    for(CExpression expression : expressions) {
+      logger.log(Level.INFO, expression.toString());
+    }
+*/
+
+    return expressions;
+  }
+
   private boolean shouldDelete() {
-    return Math.random() >= 0.8;
+    return Math.random() >= 1;
   }
 
   private boolean shouldInsert() {
     return false;
+  }
+  private ArrayList<FaultLocalizationInfo> localizeFaults(ReachedSet reachedSet)
+      throws InterruptedException, InvalidConfigurationException, SolverException, CPAException {
+    algorithm.checkOptions();
+
+    ArrayList<FaultLocalizationInfo> faultLocalizationInfos = new ArrayList<>();
+
+    FluentIterable<CounterexampleInfo> counterExamples =
+        Optionals.presentInstances(
+            from(reachedSet)
+                .filter(AbstractStates::isTargetState)
+                .filter(ARGState.class)
+                .transform(ARGState::getCounterexampleInformation));
+
+      // run algorithm for every error
+      logger.log(Level.INFO, "Starting fault localization...");
+      for (CounterexampleInfo info : counterExamples) {
+        logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
+
+        CFAPathWithAssumptions assumptions = info.getCFAPathWithAssignments();
+        Optional<FaultLocalizationInfo>
+            optionalFaultLocalizationInfo = algorithm.calcFaultLocalizationInfo(assumptions, info, algorithm.getFaultAlgorithm());
+
+        if(optionalFaultLocalizationInfo.isPresent()){
+          faultLocalizationInfos.add(optionalFaultLocalizationInfo.get());
+        }
+
+      }
+      logger.log(Level.INFO, "Stopping fault localization...");
+      return faultLocalizationInfos;
   }
 
   @Override
@@ -342,5 +544,6 @@ public class AutomaticProgramRepair
   public @Nullable String getName() {
     return getClass().getSimpleName();
   }
+
 
 }
