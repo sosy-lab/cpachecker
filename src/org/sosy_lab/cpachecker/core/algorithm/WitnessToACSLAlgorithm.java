@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 
 @Options(prefix = "wacsl")
@@ -247,6 +250,24 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
   private String makeACSLAnnotation(ExpressionTreeLocationInvariant inv) {
     if (!makeDirectAssertions) {
+      Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+      if (loopStructure.isPresent()) {
+        CFANode node = inv.getLocation();
+        for (Loop loop : loopStructure.get().getLoopsForFunction(node.getFunctionName())) {
+          for (CFAEdge edge : loop.getIncomingEdges()) {
+            if (edge.getPredecessor().equals(node)) {
+              String description = edge.getDescription();
+              if (description.equals("while")
+                  || description.equals("for")
+                  || description.equals("do")
+                  || (edge.getPredecessor().getNumEnteringEdges() == 1
+                      && edge.getPredecessor().getEnteringEdge(0).getDescription().equals("for"))) {
+                return "/*@ loop invariant " + inv.asExpressionTree() + "; */";
+              }
+            }
+          }
+        }
+      }
       return "/*@ assert " + inv.asExpressionTree() + "; */";
     } else {
       return "if (!("+inv.asExpressionTree()+")) reach_error();";
