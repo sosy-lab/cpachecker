@@ -314,10 +314,12 @@ parser code {:
         CFAWithACSLAnnotations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
       CFANode successor = edge.getSuccessor();
       if (edge.getDescription().equals("for")) {
-        assert successor.getNumLeavingEdges() == 1;
-        CFANode next = successor.getLeavingEdge(0).getSuccessor();
-        for (int i = 0; i < next.getNumEnteringEdges(); i++) {
-          cfaWithLocs.getEdgesToAnnotations().put(next.getEnteringEdge(i), annotation);
+        CFANode node = successor;
+        if (successor.getNumLeavingEdges() == 1) {
+          node = successor.getLeavingEdge(0).getSuccessor();
+        }
+        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+          cfaWithLocs.getEdgesToAnnotations().put(node.getEnteringEdge(i), annotation);
         }
         // loop invariant only has to hold after initialization, so remove it from here
         return true;
