@@ -314,15 +314,17 @@ parser code {:
         CFAWithACSLAnnotations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
       CFANode successor = edge.getSuccessor();
       if (edge.getDescription().equals("for")) {
+        boolean beforeInit = false;
         CFANode node = successor;
         if (successor.getNumLeavingEdges() == 1) {
           node = successor.getLeavingEdge(0).getSuccessor();
+          beforeInit = true;
         }
         for (int i = 0; i < node.getNumEnteringEdges(); i++) {
           cfaWithLocs.getEdgesToAnnotations().put(node.getEnteringEdge(i), annotation);
         }
-        // loop invariant only has to hold after initialization, so remove it from here
-        return true;
+        // loop invariant only has to hold after initialization
+        return beforeInit;
       } else {
         assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
         for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
