@@ -230,26 +230,25 @@ public class FormulaManagerView {
   }
 
   private void logInfo() {
-    List<String> encodings = new ArrayList<>();
+    List<String> approximations = new ArrayList<>();
     if (encodeIntegerAs != Theory.INTEGER) {
-      encodings.add(
+      approximations.add(
           "plain ints with "
               + encodeIntegerAs.description()
               + " with bitsize "
               + intOptions.getBitsize());
     }
     if (encodeBitvectorAs != Theory.BITVECTOR) {
-      encodings.add("ints with " + encodeBitvectorAs.description());
+      approximations.add("ints with " + encodeBitvectorAs.description());
     }
     if (encodeFloatAs != Theory.FLOAT) {
-      encodings.add("floats with " + encodeFloatAs.description());
+      approximations.add("floats with " + encodeFloatAs.description());
     }
-    StringBuilder approximations = new StringBuilder(Joiner.on(" and ").join(encodings));
-    if (approximations.length() > 0) {
+    if (!approximations.isEmpty()) {
       logger.log(
           Level.WARNING,
           "Using unsound approximation of",
-          approximations,
+          Joiner.on(" and ").join(approximations),
           "for encoding program semantics.");
     }
   }
