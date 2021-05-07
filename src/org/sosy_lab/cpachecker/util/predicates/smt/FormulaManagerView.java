@@ -324,6 +324,8 @@ public class FormulaManagerView {
       case INTEGER:
         return manager.getIntegerFormulaManager();
       case RATIONAL:
+        throw new UnsupportedOperationException(
+            "Value RATIONAL is not valid for option cpa.predicate.encodeIntegerAs");
       case FLOAT:
         throw new UnsupportedOperationException(
             "Value FLOAT is not valid for option cpa.predicate.encodeIntegerAs");
