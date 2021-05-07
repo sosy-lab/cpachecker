@@ -157,7 +157,7 @@ public class FormulaManagerView {
               + " theory is used to approximate bitvectors. This can be used for solvers that do"
               + " not support bitvectors, or for increased performance. If UNSUPPORTED, solvers can"
               + " be used that support none of the possible alternatives, but CPAchecker will crash"
-              + " if bibtvectors are required by the analysis.")
+              + " if bitvectors are required by the analysis.")
   private Theory encodeBitvectorAs = Theory.BITVECTOR;
 
   @Option(
