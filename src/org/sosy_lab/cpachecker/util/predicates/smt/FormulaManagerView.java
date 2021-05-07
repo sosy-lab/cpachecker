@@ -281,7 +281,7 @@ public class FormulaManagerView {
         throw new UnsupportedOperationException(
             "Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
       default:
-        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
+        throw new AssertionError("unexpected encoding for bitvectors: " + encodeBitvectorAs);
     }
   }
 
@@ -313,9 +313,7 @@ public class FormulaManagerView {
     }
   }
 
-  /**
-   * Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
-   */
+  /** Returns the IntegerFormulaManager or a Replacement based on the Option 'encodeIntegerAs'. */
   private IntegerFormulaManager getRawIntegerFormulaManager(
       ReplaceIntegerEncodingOptions pIntegerOptions)
       throws UnsupportedOperationException, AssertionError {
