@@ -51,6 +51,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 @Options(prefix = "wacsl")
 public class WitnessToACSLAlgorithm implements Algorithm {
@@ -162,9 +164,14 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       List<String> splitContent = Splitter.onPattern("\\r?\\n").splitToList(fileContent);
       for (int i = 0; i < splitContent.size(); i++) {
         assert currentLocation == null || currentLocation >= i;
+        List<ExpressionTree<Object>> collectedLoopInvariants = new ArrayList<>();
         while (currentLocation != null && currentLocation == i) {
           for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-            String annotation = makeACSLAnnotation(inv);
+            if (invariantLocationsIterator.hasNext() && isAtLoopStart(inv)) {
+              collectedLoopInvariants.add(inv.asExpressionTree());
+              continue;
+            }
+            String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
             String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
             output.add(indentation.concat(annotation));
           }
@@ -174,13 +181,20 @@ public class WitnessToACSLAlgorithm implements Algorithm {
             currentLocation = null;
           }
         }
+        if (!collectedLoopInvariants.isEmpty() && !splitContent.get(i).isBlank()) {
+          ExpressionTree<Object> conjunctedInvariants = And.of(collectedLoopInvariants);
+          String annotation = makeACSLAnnotation(conjunctedInvariants, true);
+          String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
+          output.add(indentation.concat(annotation));
+          collectedLoopInvariants.clear();
+        }
         output.add(splitContent.get(i));
       }
 
       while (invariantLocationsIterator.hasNext()) {
         currentLocation = invariantLocationsIterator.next();
         for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-          String annotation = makeACSLAnnotation(inv);
+          String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
           output.add(annotation);
         }
       }
@@ -248,30 +262,38 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return indentation == null ? correctlyIndented : indentation;
   }
 
-  private String makeACSLAnnotation(ExpressionTreeLocationInvariant inv) {
+  private String makeACSLAnnotation(ExpressionTree<Object> inv, boolean asLoopInvariant) {
     if (!makeDirectAssertions) {
-      Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-      if (loopStructure.isPresent()) {
-        CFANode node = inv.getLocation();
-        for (Loop loop : loopStructure.get().getLoopsForFunction(node.getFunctionName())) {
-          for (CFAEdge edge : loop.getIncomingEdges()) {
-            if (edge.getPredecessor().equals(node)) {
-              String description = edge.getDescription();
-              if (description.equals("while")
-                  || description.equals("for")
-                  || description.equals("do")
-                  || (edge.getPredecessor().getNumEnteringEdges() == 1
-                      && edge.getPredecessor().getEnteringEdge(0).getDescription().equals("for"))) {
-                return "/*@ loop invariant " + inv.asExpressionTree() + "; */";
-              }
+      if (asLoopInvariant) {
+        return "/*@ loop invariant " + inv + "; */";
+      } else {
+        return "/*@ assert " + inv + "; */";
+      }
+    } else {
+      return "if (!(" + inv + ")) reach_error();";
+    }
+  }
+
+  private boolean isAtLoopStart(ExpressionTreeLocationInvariant inv) {
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+    if (loopStructure.isPresent()) {
+      CFANode node = inv.getLocation();
+      for (Loop loop : loopStructure.get().getLoopsForFunction(node.getFunctionName())) {
+        for (CFAEdge edge : loop.getIncomingEdges()) {
+          if (edge.getPredecessor().equals(node)) {
+            String description = edge.getDescription();
+            if (description.equals("while")
+                || description.equals("for")
+                || description.equals("do")
+                || (edge.getPredecessor().getNumEnteringEdges() == 1
+                    && edge.getPredecessor().getEnteringEdge(0).getDescription().equals("for"))) {
+              return true;
             }
           }
         }
       }
-      return "/*@ assert " + inv.asExpressionTree() + "; */";
-    } else {
-      return "if (!("+inv.asExpressionTree()+")) reach_error();";
     }
+    return false;
   }
 
   private Set<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
