@@ -37,10 +37,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -110,7 +113,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     return Optional.of(loopBranchIndex);
   }
 
-  public static AbstractState overwriteLocationState(
+  public AbstractState overwriteLocationState(
       AbstractState pState, LocationState locState, AbstractState originalState) {
     List<AbstractState> allWrappedStatesByCompositeState = new ArrayList<>();
     if (pState instanceof ARGState) {
@@ -128,6 +131,16 @@ public abstract class AbstractStrategy implements StrategyInterface {
         return locState;
       } else if (pState instanceof PredicateAbstractState) {
         PersistentMap<CFANode, Integer> pAbstractionLocations = ((PredicateAbstractState)pState).getAbstractionLocationsOnPath();
+        logger.log(
+            Level.INFO,
+            "Overwriting PredicateAbstractState with pAbstractionLocations: "
+                + pAbstractionLocations
+                + " at node: "
+                + locState
+                + " with original state: "
+                + AbstractStates.extractLocation(originalState));
+        // TODO
+        // There is an error generated here which comes up in the merge operator
         if (pAbstractionLocations.get(AbstractStates.extractLocation(originalState)) != null) {
           pAbstractionLocations =
               pAbstractionLocations.putAndCopy(
@@ -172,10 +185,24 @@ public abstract class AbstractStrategy implements StrategyInterface {
         edge.getRawStatement(), edge.getStatement(), FileLocation.DUMMY, startNode, endNode);
   }
 
-  protected Collection<AbstractState> transverseGhostCFA(
-      GhostCFA ghostCFA, final AbstractState pState, CFANode loopStartNode, int loopBranchIndex) {
+  protected Collection<? extends AbstractState> transverseGhostCFA(
+      GhostCFA ghostCFA,
+      AbstractState pState,
+      Precision pPrecision,
+      CFANode loopStartNode,
+      int loopBranchIndex,
+      TransferRelation pTransferRelation)
+      throws CPATransferException, InterruptedException {
+    // The way the ghost CFA is transversed was changed from teleportation to on the fly CFA changes
+    // on the branch loopsummary commit f79b6dae7c7f427070f294694e573bbb1870c169
 
     CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
+    List<CFAEdge> removedEdges = new ArrayList<>();
+
+    while (loopStartNode.getNumLeavingEdges() != 0) {
+      removedEdges.add(loopStartNode.getLeavingEdge(0));
+      loopStartNode.removeLeavingEdge(loopStartNode.getLeavingEdge(0));
+    }
 
     CFAEdge dummyTrueEdgeStart =
         new CAssumeEdge(
@@ -188,11 +215,6 @@ public abstract class AbstractStrategy implements StrategyInterface {
     AbstractStates.extractLocation(pState).addLeavingEdge(dummyTrueEdgeStart);
     ghostCFA.getStartNode().addEnteringEdge(dummyTrueEdgeStart);
 
-    LocationState oldLocationState = AbstractStates.extractStateByType(pState, LocationState.class);
-    LocationState ghostStartLocationState =
-        new LocationState(ghostCFA.getStartNode(), oldLocationState.getFollowFunctionCalls());
-    AbstractState dummyStateStart = overwriteLocationState(pState, ghostStartLocationState, pState);
-    Collection<AbstractState> realStatesEndCollection = new ArrayList<>();
     CFAEdge dummyTrueEdgeEnd =
         new CAssumeEdge(
             "true GHOST CFA",
@@ -204,9 +226,14 @@ public abstract class AbstractStrategy implements StrategyInterface {
     ghostCFA.getStopNode().addLeavingEdge(dummyTrueEdgeEnd);
     afterLoopNode.addEnteringEdge(dummyTrueEdgeEnd);
 
-    ((ARGState) dummyStateStart).addParent((ARGState) pState);
-    realStatesEndCollection.add(dummyStateStart);
-    return realStatesEndCollection;
+    for (CFAEdge e : removedEdges) {
+      loopStartNode.addLeavingEdge(e);
+    }
+
+    Collection<? extends AbstractState> successors =
+        pTransferRelation.getAbstractSuccessors(pState, pPrecision);
+
+    return successors;
   }
 
   protected Optional<CFANode> unrollLoopOnce(

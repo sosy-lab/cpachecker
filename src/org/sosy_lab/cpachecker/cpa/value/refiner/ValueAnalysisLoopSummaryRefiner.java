@@ -30,7 +30,8 @@ public abstract class ValueAnalysisLoopSummaryRefiner implements Refiner {
     return new LoopSummaryBasedRefiner(
         AbstractARGBasedRefiner.forARGBasedRefiner(ValueAnalysisRefiner.create0(pCpa), pCpa),
         new LoopSummaryStrategyRefiner(logger, pCpa),
-        logger);
+        logger,
+        pCpa);
   }
 
 }

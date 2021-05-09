@@ -57,6 +57,7 @@ class LoopSummaryCPAStatistics implements Statistics {
 
   public void incrementStrategyUsageCount(String summaryName) {
     if (strategiesUsed.containsKey(summaryName)) {
+      // TODO Fix Bug, because strategy count is not being shown correctly
       strategiesUsed.get(summaryName).inc();
     }
   }

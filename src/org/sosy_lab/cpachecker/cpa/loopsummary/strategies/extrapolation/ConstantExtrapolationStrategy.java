@@ -440,8 +440,9 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       ghostCFA = ghostCFASuccess.orElseThrow();
     }
 
-    Collection<AbstractState> realStatesEndCollection =
-        transverseGhostCFA(ghostCFA, pState, loopStartNode, loopBranchIndex);
+    Collection<? extends AbstractState> realStatesEndCollection =
+        transverseGhostCFA(
+            ghostCFA, pState, pPrecision, loopStartNode, loopBranchIndex, pTransferRelation);
 
     return Optional.of(realStatesEndCollection);
   }

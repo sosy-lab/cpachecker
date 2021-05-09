@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.AbstractStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -128,7 +128,8 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
         LocationState ghostStartLocationState =
             new LocationState(startGhotNode, oldLocationState.getFollowFunctionCalls());
         AbstractState dummyStateStart =
-            AbstractStrategy.overwriteLocationState(pState, ghostStartLocationState, pState);
+            (((BaseStrategy) this.strategies.get(this.baseStrategyPosition))
+                .overwriteLocationState(pState, ghostStartLocationState, pState));
         ((ARGState) dummyStateStart).addParent((ARGState) pState);
         List<AbstractState> finalStates = new ArrayList<>();
         finalStates.add(dummyStateStart);
@@ -239,6 +240,9 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
         summarizedState = this.applyStrategyIfAlreadyApplied(pState, pPrecision);
       }
     }
+
+    logger.log(Level.INFO, ((LoopSummaryPrecision) pPrecision).getStrategyCounter());
+
     stats.incrementStrategyUsageCount(
         strategies
             .get(((LoopSummaryPrecision) pPrecision).getStrategyCounter())

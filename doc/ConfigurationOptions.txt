@@ -1841,6 +1841,10 @@ cpa.loopsummary.lookaheaditerations = 10
 # Should Loopsummary Statistics be recorded
 cpa.loopsummary.loopsummarystats = true
 
+# Maximal amount of refinements the first refiner can make before going to
+# the second refiner
+cpa.loopsummary.maxAmntFirstRefinements = 100
+
 # Strategies to be used in the Summary. The order of the strategies marks in
 # which order they are tried
 cpa.loopsummary.strategies = new ArrayList<>(
@@ -1848,6 +1852,7 @@ cpa.loopsummary.strategies = new ArrayList<>(
               StrategiesEnum.CONSTANTEXTRAPOLATION,
               StrategiesEnum.LINEAREXTRAPOLATION,
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
+              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD

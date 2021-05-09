@@ -56,10 +56,17 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
               StrategiesEnum.CONSTANTEXTRAPOLATION,
               StrategiesEnum.LINEAREXTRAPOLATION,
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
-              // StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION, // See TODO in NondetBound File
+              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION, // See TODO in NondetBound File
               StrategiesEnum.NAIVELOOPACCELERATION,
               StrategiesEnum.LOOPACCELERATION,
               StrategiesEnum.BASE));
+
+  @Option(
+      name = "maxAmntFirstRefinements",
+      secure = true,
+      description =
+          "Maximal amount of refinements the first refiner can make before going to the second refiner")
+  public int maxAmntFirstRefinements = 100;
 
   private List<StrategyInterface> strategiesClass = new ArrayList<>();
 
