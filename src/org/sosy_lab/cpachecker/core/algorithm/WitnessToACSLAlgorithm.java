@@ -278,7 +278,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
     if (loopStructure.isPresent()) {
       CFANode node = inv.getLocation();
-      for (Loop loop : loopStructure.get().getLoopsForFunction(node.getFunctionName())) {
+      for (Loop loop : loopStructure.orElseThrow().getLoopsForFunction(node.getFunctionName())) {
         for (CFAEdge edge : loop.getIncomingEdges()) {
           if (edge.getPredecessor().equals(node)) {
             String description = edge.getDescription();
