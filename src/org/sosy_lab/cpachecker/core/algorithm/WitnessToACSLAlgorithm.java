@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -24,9 +23,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -149,15 +148,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         continue;
       }
 
-      ImmutableList<Integer> sortedLocations =
-          ImmutableList.sortedCopyOf(locationsToInvariants.keySet());
-      Iterator<Integer> invariantLocationsIterator = sortedLocations.iterator();
-      Integer currentLocation;
-      if (invariantLocationsIterator.hasNext()) {
-        currentLocation = invariantLocationsIterator.next();
-      } else {
-        currentLocation = null;
-      }
+      PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet());
+      Integer currentLocation = sortedLocations.poll();
 
       List<String> output = new ArrayList<>();
 
@@ -166,20 +158,28 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         assert currentLocation == null || currentLocation >= i;
         List<ExpressionTree<Object>> collectedLoopInvariants = new ArrayList<>();
         while (currentLocation != null && currentLocation == i) {
-          for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-            if (invariantLocationsIterator.hasNext() && isAtLoopStart(inv)) {
-              collectedLoopInvariants.add(inv.asExpressionTree());
-              continue;
+          String lineBefore = splitContent.get(i - 1).strip();
+          String lineAfter = splitContent.get(i).strip();
+          if ((lineBefore.endsWith(")") || lineBefore.endsWith("else"))
+              && lineAfter.startsWith("{")) {
+            // Add annotation inside the following block, not between braces
+            sortedLocations.offer(currentLocation + 1);
+            for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+              locationsToInvariants.put(currentLocation + 1, inv);
             }
-            String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
-            String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
-            output.add(indentation.concat(annotation));
-          }
-          if (invariantLocationsIterator.hasNext()) {
-            currentLocation = invariantLocationsIterator.next();
+            locationsToInvariants.removeAll(currentLocation);
           } else {
-            currentLocation = null;
+            for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+              if (isAtLoopStart(inv)) {
+                collectedLoopInvariants.add(inv.asExpressionTree());
+                continue;
+              }
+              String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
+              String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
+              output.add(indentation.concat(annotation));
+            }
           }
+          currentLocation = sortedLocations.poll();
         }
         if (!collectedLoopInvariants.isEmpty() && !splitContent.get(i).isBlank()) {
           ExpressionTree<Object> conjunctedInvariants = And.of(collectedLoopInvariants);
@@ -191,8 +191,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         output.add(splitContent.get(i));
       }
 
-      while (invariantLocationsIterator.hasNext()) {
-        currentLocation = invariantLocationsIterator.next();
+      while (!sortedLocations.isEmpty()) {
+        currentLocation = sortedLocations.poll();
         for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
           String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
           output.add(annotation);
