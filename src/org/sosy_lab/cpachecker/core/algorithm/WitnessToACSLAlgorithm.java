@@ -191,14 +191,17 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         output.add(splitContent.get(i));
       }
 
+      long count = 0;
       while (!sortedLocations.isEmpty()) {
         currentLocation = sortedLocations.poll();
-        for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-          String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
-          output.add(annotation);
-        }
+        count++;
       }
-
+      if (count != 0) {
+        logger.logf(
+            Level.WARNING,
+            "Not all invariants where used for annotations, we still have %d invariants left!",
+            count);
+      }
       try {
         writeToFile(file, output);
       } catch (IOException pE) {
