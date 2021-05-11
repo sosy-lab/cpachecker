@@ -40,6 +40,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -162,38 +164,48 @@ public class AutomaticProgramRepair
 
   private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo, ReachedSet reachedSet)
       throws Exception {
-    final MutableCFA clonedCFA = cloneCFA();
 
-    logger.log(Level.INFO, "hasViolatedProperties:" + reachedSet.hasViolatedProperties());
-    MutableCFA mutatedCFA;
+    for (Fault fault : faultLocalizationInfo.getRankedList()) {
+      FaultContribution faultContribution = fault.iterator().next();
+      CFAEdge edge = faultContribution.correspondingEdge();
 
-    // TODO surround this in a loop (faultLocalizationInfo.getRankedList())
-    Fault fault = faultLocalizationInfo.getRankedList().get(0);
-    FaultContribution faultContribution = fault.iterator().next();
-    CFAEdge edge = faultContribution.correspondingEdge();
-    CFAEdge newEdge = mutateEdge(edge);
+      logger.log(Level.INFO, "Fault:" + faultContribution.getInfos());
+      logger.log(Level.INFO, "Edge: " + edge );
 
-    mutatedCFA = exchangeEdge(clonedCFA, edge, newEdge);
 
-    final ReachedSet newReachedSet = rerun(mutatedCFA);
+      for(CFAEdge newEdge : calcPossibleMutations(edge)){
+        logger.log(Level.INFO, "New edge:" + newEdge.getRawStatement());
 
-    logger.log(Level.INFO, "hasViolatedProperties:" + newReachedSet.hasViolatedProperties());
+        final MutableCFA clonedCFA = cloneCFA();
+        final MutableCFA mutatedCFA = exchangeEdge(clonedCFA, edge, newEdge);
+
+        final ReachedSet newReachedSet = rerun(mutatedCFA);
+        logger.log(Level.INFO, "hasViolatedProperties:" + newReachedSet.hasViolatedProperties());
+
+        if(!newReachedSet.hasViolatedProperties()){
+          return;
+        }
+      }
+    }
   }
 
-
-  private CFAEdge mutateEdge(CFAEdge edge){
+  private ArrayList<CFAEdge> calcPossibleMutations(CFAEdge edge){
     switch(edge.getEdgeType()) {
       case StatementEdge:
         return mutateStatementEdge((CStatementEdge) edge);
 
+      case AssumeEdge:
+        return mutateAssumeEdge((CAssumeEdge) edge);
+
       default:
         logger.log(Level.INFO, "No mutations available for this edge type");
-        return edge;
+        return new ArrayList<>();
     }
   }
 
-  private CStatementEdge mutateStatementEdge(CStatementEdge statementEdge) {
+  private ArrayList<CFAEdge> mutateStatementEdge(CStatementEdge statementEdge) {
     CStatement statement = statementEdge.getStatement();
+    ArrayList<CFAEdge> alternativeStatements = new ArrayList<>();
 
     if (statement instanceof CExpressionAssignmentStatement) {
       final CExpressionAssignmentStatement expressionAssignmentStatement =
@@ -202,30 +214,53 @@ public class AutomaticProgramRepair
       CExpression alternativeExpression = expressionAssignmentStatement.getRightHandSide();
 
       for (CExpression expression : expressions) {
-        if (expression.toString().equals("temp")
-            && expressionAssignmentStatement.getLeftHandSide().toString().equals("second")) {
+        // TODO ensure that it is a different expression
           alternativeExpression = expression;
-        }
+
+          final CStatement modifiedStatement =
+            new CExpressionAssignmentStatement(
+                expressionAssignmentStatement.getFileLocation(),
+                expressionAssignmentStatement.getLeftHandSide(),
+                alternativeExpression);
+
+          alternativeStatements.add(new CStatementEdge(
+              statementEdge.getRawStatement(),
+              modifiedStatement,
+              statementEdge.getFileLocation(),
+              statementEdge.getPredecessor(),
+              statementEdge.getSuccessor()));
       }
-
-      final CStatement modifiedStatement =
-          new CExpressionAssignmentStatement(
-              expressionAssignmentStatement.getFileLocation(),
-              expressionAssignmentStatement.getLeftHandSide(),
-              alternativeExpression);
-
-      logger.log(Level.INFO, "original Statement: " + statement.toString());
-      logger.log(Level.INFO, "modified Statement: " + modifiedStatement.toString());
-
-      return new CStatementEdge(
-          statementEdge.getRawStatement(),
-          modifiedStatement,
-          statementEdge.getFileLocation(),
-          statementEdge.getPredecessor(),
-          statementEdge.getSuccessor());
     }
 
-    return statementEdge;
+    return alternativeStatements;
+  }
+
+  private ArrayList<CFAEdge> mutateAssumeEdge(CAssumeEdge assumeEdge) {
+    CExpression expression = assumeEdge.getExpression();
+    ArrayList<CFAEdge> alternativeExpressions = new ArrayList<>();
+
+    if (expression instanceof CBinaryExpression) {
+      final CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+
+      for (BinaryOperator operator : BinaryOperator.values()) {
+
+        if (binaryExpression.getOperator().isLogicalOperator() == operator.isLogicalOperator()
+            && binaryExpression.getOperator() != operator) {
+          final CBinaryExpression modifiedExpression =
+              new CBinaryExpression(binaryExpression.getFileLocation(),
+                  binaryExpression.getExpressionType(),
+                  binaryExpression.getCalculationType(),
+                  binaryExpression.getOperand1(),
+                  binaryExpression.getOperand2(),
+                  operator);
+
+          alternativeExpressions.add(new CAssumeEdge(modifiedExpression.toASTString(), assumeEdge.getFileLocation(), assumeEdge.getPredecessor(),
+              assumeEdge.getSuccessor(), modifiedExpression, assumeEdge.getTruthAssumption()));
+        }
+      }
+    }
+
+    return alternativeExpressions;
   }
 
   private ReachedSet rerun(MutableCFA mutatedCFA)
@@ -251,7 +286,6 @@ public class AutomaticProgramRepair
     algo.getAlgorithm().run(reached);
 
     return reached;
-
   }
 
   // TODO temp solution: copied from NestingAlgorithm
