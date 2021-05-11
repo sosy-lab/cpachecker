@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.StatementEdge;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
@@ -58,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -71,7 +69,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -168,109 +165,88 @@ public class AutomaticProgramRepair
     final MutableCFA clonedCFA = cloneCFA();
 
     logger.log(Level.INFO, "hasViolatedProperties:" + reachedSet.hasViolatedProperties());
-    MutableCFA mutatedCFA = clonedCFA;
+    MutableCFA mutatedCFA;
 
-//    for (Fault fault : faultLocalizationInfo.getRankedList()){
-
-    /* MUTATION START */
+    // TODO surround this in a loop (faultLocalizationInfo.getRankedList())
     Fault fault = faultLocalizationInfo.getRankedList().get(0);
     FaultContribution faultContribution = fault.iterator().next();
     CFAEdge edge = faultContribution.correspondingEdge();
     CFAEdge newEdge = mutateEdge(edge);
 
     mutatedCFA = exchangeEdge(clonedCFA, edge, newEdge);
-    /* MUTATION END */
 
-//    }
-
-    // this call will use the original reachedSet and return violated properties, regardless of mutation
-    //final ReachedSet newReachedSet = rerun(mutatedCFA, reachedSet);
-
-    // this call will generate a new reachedSet and return no violated properties, regardless of mutation
-
-    final ReachedSet newReachedSet = rerun1(mutatedCFA);
+    final ReachedSet newReachedSet = rerun(mutatedCFA);
 
     logger.log(Level.INFO, "hasViolatedProperties:" + newReachedSet.hasViolatedProperties());
   }
 
 
   private CFAEdge mutateEdge(CFAEdge edge){
-    if(edge.getEdgeType() == StatementEdge){
-      final CStatementEdge statementEdge = (CStatementEdge) edge;
-      CStatement statement = statementEdge.getStatement();
+    switch(edge.getEdgeType()) {
+      case StatementEdge:
+        return mutateStatementEdge((CStatementEdge) edge);
 
-      if(statement instanceof CExpressionAssignmentStatement){
-
-        final CExpressionAssignmentStatement expressionAssignmentStatement = (CExpressionAssignmentStatement) statement;
-        final Set<CExpression> expressions = collectExpressions();
-        CExpression alternativeExpression = expressionAssignmentStatement.getRightHandSide();
-
-        for(CExpression expression : expressions){
-          if(expression.toString().equals("temp")
-              && expressionAssignmentStatement.getLeftHandSide().toString().equals("second")){
-            alternativeExpression = expression;
-          }
-        }
-
-        final CStatement modifiedStatement =
-            new CExpressionAssignmentStatement(expressionAssignmentStatement.getFileLocation(), expressionAssignmentStatement.getLeftHandSide(), alternativeExpression) ;
-
-        logger.log(Level.INFO, "original Statement: " + statement.toString());
-        logger.log(Level.INFO, "modified Statement: " + modifiedStatement.toString());
-
-        return new CStatementEdge(statementEdge.getRawStatement(), modifiedStatement,
-            statementEdge.getFileLocation(), statementEdge.getPredecessor(), statementEdge.getSuccessor());
-      }
+      default:
+        logger.log(Level.INFO, "No mutations available for this edge type");
+        return edge;
     }
-
-    return edge;
   }
 
-  private ReachedSet rerun(MutableCFA mutatedCFA, ReachedSet reachedSet)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
-    final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
-    final CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
-    final ConfigurableProgramAnalysis mutatedCPA = builder.buildCPAs(mutatedCFA, specification, new AggregatedReachedSets(Set.of(reachedSet)));
-    final CPAAlgorithm algo = CPAAlgorithm.create(mutatedCPA, logger, config, shutdownNotifier);
+  private CStatementEdge mutateStatementEdge(CStatementEdge statementEdge) {
+    CStatement statement = statementEdge.getStatement();
 
-    algo.run(reachedSet);
+    if (statement instanceof CExpressionAssignmentStatement) {
+      final CExpressionAssignmentStatement expressionAssignmentStatement =
+          (CExpressionAssignmentStatement) statement;
+      final Set<CExpression> expressions = collectExpressions();
+      CExpression alternativeExpression = expressionAssignmentStatement.getRightHandSide();
 
-    return reachedSet;
+      for (CExpression expression : expressions) {
+        if (expression.toString().equals("temp")
+            && expressionAssignmentStatement.getLeftHandSide().toString().equals("second")) {
+          alternativeExpression = expression;
+        }
+      }
+
+      final CStatement modifiedStatement =
+          new CExpressionAssignmentStatement(
+              expressionAssignmentStatement.getFileLocation(),
+              expressionAssignmentStatement.getLeftHandSide(),
+              alternativeExpression);
+
+      logger.log(Level.INFO, "original Statement: " + statement.toString());
+      logger.log(Level.INFO, "modified Statement: " + modifiedStatement.toString());
+
+      return new CStatementEdge(
+          statementEdge.getRawStatement(),
+          modifiedStatement,
+          statementEdge.getFileLocation(),
+          statementEdge.getPredecessor(),
+          statementEdge.getSuccessor());
+    }
+
+    return statementEdge;
   }
 
   private ReachedSet rerun(MutableCFA mutatedCFA)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
-    final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
-    final CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
-    ReachedSet reachedSet = reachedSetFactory.create();
-    final ConfigurableProgramAnalysis mutatedCPA = builder.buildCPAs(mutatedCFA, specification, new AggregatedReachedSets(Set.of(reachedSet)));
-    final CPAAlgorithm algo = CPAAlgorithm.create(mutatedCPA, logger, config, shutdownNotifier);
-
-    algo.run(reachedSet);
-
-    return reachedSet;
-
-  }
-
-  private ReachedSet rerun1(MutableCFA mutatedCFA)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    Configuration internalAnylysisConfig =
+    Configuration internalAnalysisConfig =
         buildSubConfig(internalAnalysisConfigFile.value());
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
-            internalAnylysisConfig,
+            internalAnalysisConfig,
             logger,
             shutdownNotifier,
             new AggregatedReachedSets());
 
-    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(mutatedCFA, specification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     // TODO add a proper check
     FaultLocalizationWithTraceFormula algo =
-        (FaultLocalizationWithTraceFormula) coreComponents.createAlgorithm(cpa, cfa, specification);
+        (FaultLocalizationWithTraceFormula) coreComponents.createAlgorithm(cpa, mutatedCFA, specification);
     ReachedSet reached =
-        createInitialReachedSet(cpa, cfa.getMainFunction(), coreComponents, logger);
+        createInitialReachedSet(cpa, mutatedCFA.getMainFunction(), coreComponents, logger);
 
     algo.getAlgorithm().run(reached);
 
@@ -313,19 +289,23 @@ public class AutomaticProgramRepair
   }
 
   private MutableCFA cloneCFA() {
-
     final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
 
     for (final String function : cfa.getAllFunctionNames()) {
       nodes.putAll(function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
     }
 
-    return new MutableCFA(cfa.getMachineModel(),
+    MutableCFA clonedCFA = new MutableCFA(cfa.getMachineModel(),
         cfa.getAllFunctions(),
         nodes,
         cfa.getMainFunction(),
         cfa.getFileNames(),
         cfa.getLanguage());
+
+    cfa.getLoopStructure().ifPresent(clonedCFA::setLoopStructure);
+    cfa.getLiveVariables().ifPresent(clonedCFA::setLiveVariables);
+
+    return clonedCFA;
   }
 
   private MutableCFA exchangeEdge(MutableCFA currentCFA, CFAEdge edgeToRemove, CFAEdge edgeToInsert){
@@ -555,12 +535,6 @@ public class AutomaticProgramRepair
     final ExpressionCollector expressionCollector = new ExpressionCollector();
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(cfa.getMainFunction(), expressionCollector);
     final Set<CExpression> expressions =  expressionCollector.getExpressions();
-
-/*
-    for(CExpression expression : expressions) {
-      logger.log(Level.INFO, expression.toString());
-    }
-*/
 
     return expressions;
   }
