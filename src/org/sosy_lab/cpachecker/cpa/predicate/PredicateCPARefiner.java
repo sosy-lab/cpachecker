@@ -140,7 +140,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       secure = true,
       name = "formatWitness",
       description = "Path to formula witness path description")
-  @FileOption(Type.REQUIRED_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path formatWitnessInput = Paths.get("output/errorPaths/path");
 
   // statistics
