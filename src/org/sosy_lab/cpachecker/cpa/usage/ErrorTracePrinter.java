@@ -21,11 +21,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -174,19 +175,33 @@ public abstract class ErrorTracePrinter {
 
   protected String createUniqueName(SingleIdentifier id) {
     CType type = id.getType();
+    String concat;
     if (type instanceof CCompositeType) {
       // It includes declarations of all fields
-      return (((CCompositeType) type).getQualifiedName() + "_" + id.toString()).replace(" ", "_");
+      concat = ((CCompositeType) type).getQualifiedName() + "_" + id.toString();
+    } else if (type instanceof CElaboratedType) {
+      String typeName = ((CElaboratedType) type).getQualifiedName();
+      if (typeName.contains("anonstruct") || typeName.contains("anonunion")) {
+        // The number of fields in anonstruct are unique build to build, and Klever can not match the warnings,
+        // if it have different declaration, thus, remove the number
+        typeName = typeName.replaceAll("_(\\d)*$", "");
+      }
+      concat = typeName + "_" + id.toString();
     } else {
-      return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
+      concat = id.getType().toASTString("_" + id.toString());
     }
+    if (concat.contains("cif_")) {
+      // CIF also adds numbers of instrumented functions randomly, and Klever cannot match them
+      concat = concat.replaceAll("\\d", "");
+    }
+    return concat;// .replace(" ", "_");
   }
 
   public void printErrorTraces(UsageReachedSet uReached) {
     preparationTimer.start();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
-    Collection<Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
+    Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> unsafes = uReached.getUnsafes();
 
     if (unsafes == null) {
       // Means that there are no stable unsafes, nothing to print, but warn
@@ -200,10 +215,10 @@ public abstract class ErrorTracePrinter {
 
     init();
     preparationTimer.stop();
-    for (Pair<UsageInfo, UsageInfo> unsafe : unsafes) {
-      UsageInfo uinfo1 = unsafe.getFirst();
-      UsageInfo uinfo2 = unsafe.getSecond();
-      SingleIdentifier id = uinfo1.getId();
+    for (Entry<SingleIdentifier, Pair<UsageInfo, UsageInfo>> unsafe : unsafes.entrySet()) {
+      UsageInfo uinfo1 = unsafe.getValue().getFirst();
+      UsageInfo uinfo2 = unsafe.getValue().getSecond();
+      SingleIdentifier id = unsafe.getKey();
       if (id instanceof StructureIdentifier) {
         id = ((StructureIdentifier) id).toStructureFieldIdentifier();
       }
@@ -222,13 +237,12 @@ public abstract class ErrorTracePrinter {
         }
       }
 
-      if (filterSimilarUnsafes && shouldBeSkipped(unsafe, id)) {
+      if (filterSimilarUnsafes && shouldBeSkipped(unsafe.getValue(), id)) {
         continue;
       }
 
-      printedUnsafes.inc();
       writingUnsafeTimer.start();
-      printUnsafe(id, unsafe, refined);
+      printUnsafe(id, unsafe.getValue(), refined);
       writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {
@@ -257,6 +271,7 @@ public abstract class ErrorTracePrinter {
 
     Set<TraceCore> trace = Sets.newHashSet(first, second);
     boolean result = printedTraces.containsKey(trace);
+
     if (!result) {
       printedTraces.put(trace, id);
     } else {

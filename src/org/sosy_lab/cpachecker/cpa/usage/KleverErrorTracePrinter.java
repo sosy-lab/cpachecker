@@ -43,8 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
@@ -58,7 +56,6 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.RaceGraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
-import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Element;
@@ -419,23 +416,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       }
     }
     return null;
-  }
-
-  @Override
-  protected String createUniqueName(SingleIdentifier id) {
-    CType type = id.getType();
-    String declaration;
-    if (type instanceof CCompositeType) {
-      // It includes declarations of all fields
-      declaration = ((CCompositeType) type).getQualifiedName() + " " + id.toString();
-    } else {
-      declaration = id.getType().toASTString(id.toString());
-    }
-    if (id instanceof LocalVariableIdentifier) {
-      // To avoid matching the same variables from different functions
-      declaration = ((LocalVariableIdentifier) id).getFunction() + "::" + declaration;
-    }
-    return declaration;
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {

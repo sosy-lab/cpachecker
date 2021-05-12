@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -297,7 +296,7 @@ public class UsageContainer {
     return !stableUnsafes.isEmpty();
   }
 
-  public Collection<Pair<UsageInfo, UsageInfo>> getStableUnsafes() {
-    return stableUnsafes.values();
+  public Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> getStableUnsafes() {
+    return stableUnsafes;
   }
 }

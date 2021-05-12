@@ -3051,6 +3051,9 @@ cpa.uninitvars.stop = "sep"
 # functions, which stops analysis
 cpa.usage.abortfunctions = {}
 
+# bind arguments of functions with passed variables
+cpa.usage.bindArgsFunctions = false
+
 # functions, which are used to bind variables (like list elements are binded
 # to list variable)
 cpa.usage.binderFunctions = {}
@@ -3063,6 +3066,9 @@ cpa.usage.export.witnessTemplate = "witness.%s.graphml"
 
 # path to write results
 cpa.usage.falseUnsafesOutput = "FalseUnsafes"
+
+# do not use initial variable in analysis if found an alias for it
+cpa.usage.filterAliases = true
 
 # if a file do not exist, do not include the corresponding edge
 cpa.usage.filterMissedFiles = false
@@ -3082,6 +3088,9 @@ cpa.usage.output = "unsafe_rawdata"
 # all variables should be printed to the one file or to the different
 cpa.usage.outputType = KLEVER
   enum:     [ETV, KLEVER, KLEVER3, KLEVER_OLD]
+
+# A path to precision
+cpa.usage.precision.path = "localsave"
 
 # The value of marked unsafes, after which the precision should be cleaned
 cpa.usage.precisionReset = Integer.MAX_VALUE
@@ -3911,7 +3920,6 @@ pixelgraphic.export.xPadding = 2
 pixelgraphic.export.yPadding = 2
 
 # A path to a precision output
-# A path to precision
 precision.path = "localsave"
 
 # whether to track relevant variables only at the exact program location

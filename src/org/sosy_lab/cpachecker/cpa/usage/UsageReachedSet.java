@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
-import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
@@ -103,7 +104,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
     return container;
   }
 
-  public Collection<Pair<UsageInfo, UsageInfo>> getUnsafes() {
+  public Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> getUnsafes() {
     return container.getStableUnsafes();
   }
 
