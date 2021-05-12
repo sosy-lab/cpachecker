@@ -12,6 +12,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
@@ -86,7 +87,14 @@ public class StructureIdentifier extends SingleIdentifier {
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
     if (owner instanceof SingleIdentifier) {
-      return new StructureFieldIdentifier(name, ((SingleIdentifier) owner).type, dereference, null);
+      // a.b and c->b should refer to the same structure field identifier, so, remove dereferences.
+      CType ownerType = ((SingleIdentifier) owner).type;
+      int ownerDereference = owner.getDereference();
+      while (ownerDereference > 0 && ownerType instanceof CPointerType) {
+        ownerDereference--;
+        ownerType = ((CPointerType) ownerType).getType();
+      }
+      return new StructureFieldIdentifier(name, ownerType, dereference, null);
     } else {
       return new StructureFieldIdentifier(name, type, dereference, null);
     }
