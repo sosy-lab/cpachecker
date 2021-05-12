@@ -79,7 +79,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     secure = true)
   private boolean useSoundRegions = false;
 
-  @Option(description = "A path to precision", name = "precision.path", secure = true)
+  @Option(description = "A path to precision", name = "precision", secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private Path outputFileName = Paths.get("localsave");
 
