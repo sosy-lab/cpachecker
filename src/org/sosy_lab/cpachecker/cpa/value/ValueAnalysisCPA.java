@@ -182,8 +182,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
     if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
-      logger.log(Level.INFO,"both precisionfiles are null");
-
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
     }
 
@@ -196,8 +194,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     if (initialPredicatePrecisionFile != null){
 
-      logger.log(Level.INFO,"initialPredicateprecision is not null");
-
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
@@ -209,16 +205,10 @@ public class ValueAnalysisCPA extends AbstractCPA
         AbstractionManager abstractionManager =
             new AbstractionManager(regionManager, pConfig, logger, solver);
 
-        // PredicatePrecision predPrec = readAndParsePredPrecFile(pConfig, pCfa, solver,
-        // formulaManager);
-
         PredicatePrecision predPrec =
             readAndParsePredPrecFile(pCfa, formulaManager, abstractionManager);
 
         if (!predPrec.isEmpty()) {
-
-          logger.log(Level.INFO, "now convert precision and then refining ... ");
-
           return initialPrecision.withIncrement(
               convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
         } else {
@@ -229,9 +219,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
 
     else {
-
-      logger.log(Level.INFO,"initialprecision is not null");
-
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
       return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
@@ -245,20 +232,9 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     // create managers for the predicate map parser for parsing the predicates from the given
     // predicate precision file
-    //TODO: maybe adjust the pconfig to config for predicates
-    //TODO: check if right regionmanager is being created for this
-    /*
-    RegionManager regionManager = new SymbolicRegionManager(solver);
-    //RegionManager regionManager = new BDDManagerFactory(pConfig, this.logger).createRegionManager();
 
-    AbstractionManager abstractionManager = new AbstractionManager(regionManager, pConfig, logger, solver);
-    // get the predicate precision from given file
-*/
-    //TODO: check if mapParser might be wrong
     PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
     PredicatePrecision predPrec = PredicatePrecision.empty();
-
-    logger.log(Level.INFO, "Now trying to parse predicate precision ...");
 
     try {
       predPrec = mapParser.parsePredicates(initialPredicatePrecisionFile);
@@ -270,18 +246,12 @@ public class ValueAnalysisCPA extends AbstractCPA
       return predPrec;
     }
 
-    /*
-    logger.log(Level.INFO, "result precision: ");
-    logger.log(Level.INFO, predPrec);
-    */
-
     return predPrec;
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr) {
-    logger.log(Level.INFO, "now starting to convert precision ...");
     Collection<AbstractionPredicate> predicates = new HashSet<>();
 
     predicates.addAll(pPredPrec.getLocalPredicates().values());
@@ -291,20 +261,12 @@ public class ValueAnalysisCPA extends AbstractCPA
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
     CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
 
-    /*
-    logger.log(Level.INFO, predicates);
-     */
-
-    logger.log(Level.INFO, "before for loop ...");
-
     // Get the variables from the predicate precision
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
         trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }
-
-    logger.log(Level.INFO, "finished converting and now starting to refine ...");
 
     return trackedVariables;
   }
