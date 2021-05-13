@@ -108,7 +108,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
             BinaryOperator.MINUS);
 
     Optional<GhostCFA> superOptionalGhostCFA =
-        super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, loopBranchIndex);
+        super.summaryCFA(loopStartNode, loopVariableDelta, loopBound, 1, -1, loopBranchIndex);
 
     GhostCFA superGhostCFA;
     if (superOptionalGhostCFA.isEmpty()) {

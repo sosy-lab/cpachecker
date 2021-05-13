@@ -195,6 +195,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
       final Map<String, Integer> loopVariableDelta,
       final CExpression loopBound,
       final int boundDelta,
+      final int boundVariableDelta,
       final Integer loopBranchIndex) {
     int CFANodeCounter = 1;
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LS1");
@@ -317,7 +318,14 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
                       FileLocation.DUMMY,
                       expressionType,
                       calculationType,
-                      loopBound,
+                      new CBinaryExpression(
+                          FileLocation.DUMMY,
+                          expressionType,
+                          calculationType,
+                          loopBound,
+                          CIntegerLiteralExpression.createDummyLiteral(
+                              boundVariableDelta, CNumericTypes.INT),
+                          BinaryOperator.PLUS),
                       CIntegerLiteralExpression.createDummyLiteral(boundDelta, CNumericTypes.INT),
                       BinaryOperator.DIVIDE),
                   BinaryOperator.MULTIPLY),
@@ -432,7 +440,12 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
     GhostCFA ghostCFA;
     Optional<GhostCFA> ghostCFASuccess =
         summaryCFA(
-            loopStartNode, loopVariableDelta, loopBound, Math.abs(boundDelta), loopBranchIndex);
+            loopStartNode,
+            loopVariableDelta,
+            loopBound,
+            Math.abs(boundDelta),
+            boundDelta,
+            loopBranchIndex);
 
     if (ghostCFASuccess.isEmpty()) {
       return Optional.empty();

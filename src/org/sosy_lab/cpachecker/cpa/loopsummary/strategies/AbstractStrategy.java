@@ -198,10 +198,11 @@ public abstract class AbstractStrategy implements StrategyInterface {
 
     CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
     List<CFAEdge> removedEdges = new ArrayList<>();
+    CFANode beforeWhileStatementNode = AbstractStates.extractLocation(pState);
 
-    while (loopStartNode.getNumLeavingEdges() != 0) {
-      removedEdges.add(loopStartNode.getLeavingEdge(0));
-      loopStartNode.removeLeavingEdge(loopStartNode.getLeavingEdge(0));
+    while (beforeWhileStatementNode.getNumLeavingEdges() != 0) {
+      removedEdges.add(beforeWhileStatementNode.getLeavingEdge(0));
+      beforeWhileStatementNode.removeLeavingEdge(beforeWhileStatementNode.getLeavingEdge(0));
     }
 
     CFAEdge dummyTrueEdgeStart =
@@ -226,12 +227,12 @@ public abstract class AbstractStrategy implements StrategyInterface {
     ghostCFA.getStopNode().addLeavingEdge(dummyTrueEdgeEnd);
     afterLoopNode.addEnteringEdge(dummyTrueEdgeEnd);
 
-    for (CFAEdge e : removedEdges) {
-      loopStartNode.addLeavingEdge(e);
-    }
-
     Collection<? extends AbstractState> successors =
         pTransferRelation.getAbstractSuccessors(pState, pPrecision);
+
+    for (CFAEdge e : removedEdges) {
+      beforeWhileStatementNode.addLeavingEdge(e);
+    }
 
     return successors;
   }

@@ -66,10 +66,10 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  private boolean containsSummaryStrategy(ReachedSet pReached) {
+  private boolean containsNonPreciseSummaryStrategy(ReachedSet pReached) {
     logger.log(
         Level.INFO,
-        "Maximum amount of refinement Steps exceeded, seein if we can refine with the second refiner.");
+        "Maximum amount of refinement Steps exceeded, seeing if we can refine with the second refiner.");
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
     final ARGState lastElement = (ARGState) pReached.getLastState();
@@ -113,7 +113,7 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
 
     if (amntFirstRefinements > maxAmntFirstRefinements) {
       amntFirstRefinements = 0;
-      if (containsSummaryStrategy(pReached)) {
+      if (containsNonPreciseSummaryStrategy(pReached)) {
         return secondRefiner.performRefinement(pReached);
       } else {
         return firstRefiner.performRefinement(pReached);
