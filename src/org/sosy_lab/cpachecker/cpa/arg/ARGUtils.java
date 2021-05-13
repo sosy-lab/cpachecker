@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.GraphUtils;
@@ -516,13 +517,26 @@ public class ARGUtils {
         ARGState falseChild = null;
 
         CFANode loc = AbstractStates.extractLocation(currentElement);
-        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+
+        // assume edges can be shifted, check for that
+        boolean threadModularShift =
+              AbstractStates
+                  .extractStateByType(currentElement, LocationStateWithEdge.class) != null;
+
+        if (!threadModularShift
+            && !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
           throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
         }
 
         for (ARGState currentChild : childrenInArg) {
-          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+            ARGState branchingParent = threadModularShift ? currentChild : currentElement;
+            ARGState branchingChild =
+              threadModularShift ? Iterables.get(currentChild.getChildren(), 0) : currentChild;
+            CFAEdge brangingEdge = branchingParent.getEdgeToChild(branchingChild);
+          CFAEdge currentEdge =
+              threadModularShift ? currentElement.getEdgeToChild(currentChild) : brangingEdge;
+
+          if (((AssumeEdge) brangingEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
             trueChild = currentChild;
           } else {

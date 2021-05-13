@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -464,14 +466,43 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
 
-        FluentIterable<CFAEdge> outgoingEdges =
-            from(childrenOnPath).transform(pathElement::getEdgeToChild);
+        boolean threadModularShift =
+            AbstractStates.extractStateByType(
+                pathElement,
+                LocationStateWithEdge.class) != null;
+
+        ARGState branchingElement = null;
+        FluentIterable<CFAEdge> outgoingEdges;
+
+        // check if both children represent same CFA node (assume edges shifted)
+        // we have to do it before checking if outgoingEdges are assume edges
+
+        if (threadModularShift) {
+          // extracting correct assume edges
+          for (ARGState child : childrenOnPath) {
+            CFAEdge currentEdge = child.getEdgeToChild(Iterables.get(child.getChildren(), 0));
+            if (((AssumeEdge) currentEdge).getTruthAssumption()) {
+              branchingElement = child;
+            }
+          }
+          outgoingEdges =
+              from(childrenOnPath)
+                  .transform(s -> s.getEdgeToChild(Iterables.get(s.getChildren(), 0)));
+        } else {
+          branchingElement = pathElement;
+          outgoingEdges = from(childrenOnPath).transform(pathElement::getEdgeToChild);
+        }
+
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+          // maybe we have to check if any of the grandchildren is a target state if branching is
+          // shifted
           if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
+            logger.log(
+                Level.WARNING,
+                "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeTrue();
           }
         }
@@ -495,14 +526,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
 
-        Pair<ARGState,CFAEdge> key = Pair.of(pathElement, positiveEdge);
+        Pair<ARGState, CFAEdge> key = Pair.of(branchingElement, positiveEdge);
         PathFormula pf = parentFormulasOnPath.get(key);
 
         if(pf == null) {
           // create formula by edge, be sure to use the correct SSA indices!
           // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
           // it is used without PredicateCPA as well.
-          PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+          PredicateAbstractState pe =
+              AbstractStates.extractStateByType(branchingElement, PredicateAbstractState.class);
           if (pe == null) {
             logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
             return bfmgr.makeTrue();

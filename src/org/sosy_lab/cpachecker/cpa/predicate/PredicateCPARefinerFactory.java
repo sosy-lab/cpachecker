@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -173,16 +174,24 @@ public class PredicateCPARefinerFactory {
 
     if (performThreadEffectRefinement) {
       // TODO
-      bfs = new ThreadEffectBlockFormulaStrategy(solver.getFormulaManager());
+      bfs = new ThreadEffectBlockFormulaStrategy(solver.getFormulaManager(), pfmgr);
+
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder = configBuilder.copyFrom(config);
+      // We can not use checking paths, as the path contains two parts: to target state and to an
+      // effect. So, the full path will contain interleaving, which causes problems
+      configBuilder.setOption("cpa.predicate.refinement.checkPath", "false");
+      Configuration newConfig = configBuilder.build();
+
       GlobalRefinementStrategy strategy =
           new ThreadEffectRefinementStrategy(
-              config,
+              newConfig,
               logger,
               predicateCpa.getPredicateManager(),
               solver);
       return
           new PredicateThreadEffectRefiner(
-              config,
+              newConfig,
               logger,
               loopStructure,
               bfs,

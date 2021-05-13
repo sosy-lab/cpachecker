@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -23,10 +25,13 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public class ThreadEffectBlockFormulaStrategy extends BlockFormulaStrategy {
 
   private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
 
   public ThreadEffectBlockFormulaStrategy(
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfgmr) {
     fmgr = pFmgr;
+    pfmgr = pPfgmr;
   }
 
   private String RenameVariables(String s) {
@@ -89,7 +94,12 @@ public class ThreadEffectBlockFormulaStrategy extends BlockFormulaStrategy {
       secondFormulas.stream().skip(1).forEach(allFormulas::add);
 
       // TODO Branching formulas
-      return new BlockFormulas(allFormulas);
+      // currently branchingFormulas are not used as checkPath does not support interleavings and it
+      // is disabled
+      return new BlockFormulas(
+          allFormulas,
+          pfmgr.buildBranchingFormula(new HashSet<>(abstractionStates)));
+
     } else {
       // No devision
       return blockFormulas;

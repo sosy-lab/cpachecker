@@ -103,6 +103,7 @@ public class PredicateThreadEffectRefiner extends PredicateCPARefiner {
     effectCheckTime.start();
     for (ARGState state : allStatesTrace.asStatesList()) {
       if (state.getAppliedFrom() != null) {
+        boolean feasibleCexFound = false;
         for (ARGState effect : state.getAppliedFrom().getSecond().getProjectedFrom()) {
           pathsWithEffects.inc();
           // extracting formulas from path to current state
@@ -120,19 +121,21 @@ public class PredicateThreadEffectRefiner extends PredicateCPARefiner {
           CounterexampleInfo counterexampleInfo2 =
               super.performRefinementForPath(pReached, newPath);
 
-
           if (counterexampleInfo.isSpurious()) {
             spuriousCount.inc();
-            ((GlobalRefinementStrategy) strategy).updatePrecisionAndARG();
-            effectCheckTime.stop();
-            return counterexampleInfo;
+          } else {
+            feasibleCexFound = true;
           }
           if (counterexampleInfo2.isSpurious()) {
             spuriousCount.inc();
-            ((GlobalRefinementStrategy) strategy).updatePrecisionAndARG();
-            effectCheckTime.stop();
-            return counterexampleInfo2;
+          } else {
+            feasibleCexFound = true;
           }
+        }
+        if (feasibleCexFound == false) {
+          ((GlobalRefinementStrategy) strategy).updatePrecisionAndARG();
+          effectCheckTime.stop();
+          return CounterexampleInfo.spurious();
         }
       }
       statesInMainPath.add(state);
