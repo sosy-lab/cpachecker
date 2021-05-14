@@ -56,7 +56,8 @@ public class WitnessExporter {
     public ExpressionTree<Object> provideInvariantFor(
         CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
       if (!pStates.isPresent()) {
-        return ExpressionTrees.getTrue();
+        // location is unreachable as pStates is absent
+        return ExpressionTrees.getFalse();
       }
       Set<ExpressionTree<Object>> stateInvariants = new LinkedHashSet<>();
       String functionName = pEdge.getSuccessor().getFunctionName();
