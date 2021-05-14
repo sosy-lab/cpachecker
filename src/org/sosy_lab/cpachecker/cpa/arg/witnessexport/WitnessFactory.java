@@ -1376,7 +1376,14 @@ class WitnessFactory implements EdgeAppender {
     }
     ExpressionTree<Object> loopHeadInvariant = ExpressionTrees.getFalse();
     String scope = null;
-    for (Edge enteringEdge : enteringEdges.get(pTarget)) {
+
+    Collection<Edge> edges = enteringEdges.get(pTarget);
+    if (edges.isEmpty()) {
+      // don't do anything, this method should only update the invariant of pTarget if
+      // pTarget is a loop head
+      return;
+    }
+    for (Edge enteringEdge : edges) {
       if (enteringEdge.getLabel().getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
         CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
         if (loopHead != null) {
@@ -1617,18 +1624,22 @@ class WitnessFactory implements EdgeAppender {
     String sourceScope = stateScopes.get(source);
     String targetScope = stateScopes.get(target);
 
-    if (!ExpressionTrees.getTrue().equals(targetTree)
-        && ExpressionTrees.getTrue().equals(sourceTree)
-        && (sourceScope == null || sourceScope.equals(targetScope))
-        && enteringEdges.get(source).size() <= 1) {
-      ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
-      for (Edge e : enteringEdges.get(source)) {
-        newSourceTree = factory.or(newSourceTree, getStateInvariant(e.getSource()));
-      }
-      newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
-      stateInvariants.put(source, newSourceTree);
-      sourceTree = newSourceTree;
-    }
+    // This special case handling is wrong:
+    // Merging the ARGNode target into source means that source now represents both states.
+    // So the expression tree for the new source state is a disjunction (!) of both previous
+    // expression trees.
+//    if (!ExpressionTrees.getTrue().equals(targetTree)
+//        && ExpressionTrees.getTrue().equals(sourceTree)
+//        && (sourceScope == null || sourceScope.equals(targetScope))
+//        && enteringEdges.get(source).size() <= 1) {
+//      ExpressionTree<Object> newSourceTree = ExpressionTrees.getFalse();
+//      for (Edge e : enteringEdges.get(source)) {
+//        newSourceTree = factory.or(newSourceTree, getStateInvariant(e.getSource()));
+//      }
+//      newSourceTree = simplifier.simplify(factory.and(targetTree, newSourceTree));
+//      stateInvariants.put(source, newSourceTree);
+//      sourceTree = newSourceTree;
+//    }
 
     final String newScope;
     if (ExpressionTrees.isConstant(sourceTree)
@@ -1733,14 +1744,17 @@ class WitnessFactory implements EdgeAppender {
       String pStateId, String pOtherStateId) {
     ExpressionTree<Object> prev = stateInvariants.get(pStateId);
     ExpressionTree<Object> other = stateInvariants.get(pOtherStateId);
-    if (prev == null && other == null) {
-      stateInvariants.put(pStateId, ExpressionTrees.getTrue());
+    if (prev == null || other == null) {
+//      stateInvariants.put(pStateId, ExpressionTrees.getTrue());
       return ExpressionTrees.getTrue();
-    } else if (prev == null || other == null) {
-      ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
-      stateInvariants.put(pStateId, existingTree);
-      return existingTree;
     }
+    // This is wrong: Can't simply extend the invariant to both states if one of the states
+    // has no known invariant.
+//    else if (prev == null || other == null) {
+//      ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
+//      stateInvariants.put(pStateId, existingTree);
+//      return existingTree;
+//    }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
     return result;
