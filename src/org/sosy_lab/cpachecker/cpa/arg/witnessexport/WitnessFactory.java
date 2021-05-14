@@ -297,7 +297,6 @@ class WitnessFactory implements EdgeAppender {
   private final InvariantProvider invariantProvider;
 
   private final Map<CFAEdge, LoopEntryInfo> loopEntryInfoMemo = new HashMap<>();
-  private final Map<CFANode, Boolean> loopProximityMemo = new HashMap<>();
 
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
@@ -337,7 +336,7 @@ class WitnessFactory implements EdgeAppender {
 
     attemptSwitchToFunctionScope(pEdge);
 
-    Collection<ARGState> fromStates = pFromState.orElse(Collections.emptyList());
+    Collection<ARGState> fromStates = pFromState.orElse(ImmutableList.of());
     if (graphType == WitnessType.VIOLATION_WITNESS) {
       stateToARGStates.putAll(pFrom, fromStates);
     } else if (graphType == WitnessType.CORRECTNESS_WITNESS) {
@@ -1898,9 +1897,5 @@ class WitnessFactory implements EdgeAppender {
       return ExpressionTrees.getFalse();
     }
     return result;
-  }
-
-  private Map<String, String> getStateScopes() {
-    return stateScopes;
   }
 }
