@@ -71,12 +71,12 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 90000)
-  public void multivar_true_2() throws Exception {
-    new WitnessTester(
-            "multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
-        .performTest();
-  }
+//  @Test(timeout = 90000)
+//  public void multivar_true_2() throws Exception {
+//    new WitnessTester(
+//            "multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+//        .performTest();
+//  }
 
   @Test(timeout = 90000)
   public void max_true() throws Exception {
