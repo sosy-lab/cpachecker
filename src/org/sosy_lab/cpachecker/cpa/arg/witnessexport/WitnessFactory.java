@@ -337,16 +337,8 @@ class WitnessFactory implements EdgeAppender {
       final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
 
     attemptSwitchToFunctionScope(pEdge);
-
-    Collection<ARGState> fromStates = pFromState.orElse(Collections.emptyList());
-    if (graphType == WitnessType.VIOLATION_WITNESS) {
-      stateToARGStates.putAll(pFrom, fromStates);
-    } else if (graphType == WitnessType.CORRECTNESS_WITNESS) {
-      // Correctness witnesses use GraphBuilder.CFA_FULL for graph building.
-      // GraphBuilder.CFA_FULL actually returns the ARG states corresponding to pTo in pFromState
-      stateToARGStates.putAll(pTo, fromStates);
-    } else {
-      assert false : "Unknown witness type";
+    if (pFromState.isPresent()) {
+      stateToARGStates.putAll(pFrom, pFromState.orElseThrow());
     }
 
     Collection<TransitionCondition> transitions =

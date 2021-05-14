@@ -287,7 +287,6 @@ enum GraphBuilder {
         }
         for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
           CFANode predecessor = enteringEdge.getPredecessor();
-          // As enteringEdge leads to current we have: successor == current
           CFANode successor = enteringEdge.getSuccessor();
           final Optional<Collection<ARGState>> locationStates;
           if (subProgramNodes.contains(successor)) {
