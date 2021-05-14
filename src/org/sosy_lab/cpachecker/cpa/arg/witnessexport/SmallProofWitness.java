@@ -30,29 +30,15 @@ public class SmallProofWitness {
   }
 
   private static ImmutableList<ImmutableList<ARGState>> findJoinLocations(ARGState argRoot) {
-    List<ARGState> argNodesAtJoinLocations = new ArrayList<>();
-
-    // traverse the whole ARG as we start from the root node
-    for (ARGState argNode : argRoot.getSubgraph()) {
-      CFANode loc = AbstractStates.extractLocation(argNode);
-      if (loc == null) {
-        // ignore ARG states which don't have a location attached as they don't carry any useful
-        // information for us
-        continue;
-      }
-
-      if (loc.getNumEnteringEdges() > 1) {
-        // this is a location which joins multiple CFA paths
-        argNodesAtJoinLocations.add(argNode);
-      }
-    }
-
-    if (argNodesAtJoinLocations.isEmpty()) {
-      return ImmutableList.of();
-    }
-
-    // sort for efficient partitioning by location
-    argNodesAtJoinLocations.sort(Comparator.comparing(AbstractStates::extractLocation));
+    // extract all nodes from the ARG which are at a location where multiple CFA paths join
+    // and sort the list by location
+    List<ARGState> argNodesAtJoinLocations =
+        argRoot.getSubgraph()
+          .filter(s -> {
+            CFANode loc = AbstractStates.extractLocation(s);
+            return loc != null && loc.getNumEnteringEdges() > 1;
+          })
+          .toSortedList(Comparator.comparing(AbstractStates::extractLocation));
 
     var argNodesPartitioned = ImmutableList.<ImmutableList<ARGState>>builder();
 
