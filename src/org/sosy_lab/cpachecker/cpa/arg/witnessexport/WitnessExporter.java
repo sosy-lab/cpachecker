@@ -56,9 +56,11 @@ public class WitnessExporter {
     public ExpressionTree<Object> provideInvariantFor(
         CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
       if (!pStates.isPresent()) {
-        // location is unreachable as pStates is absent
-        return ExpressionTrees.getFalse();
+        // location is an intermediate reachable location (part of multi-edge)
+        // for these location we cannot provide a more precise invariant than "true"
+        return ExpressionTrees.getTrue();
       }
+
       Set<ExpressionTree<Object>> stateInvariants = new LinkedHashSet<>();
       String functionName = pEdge.getSuccessor().getFunctionName();
       for (ARGState state : pStates.get()) {
@@ -71,6 +73,9 @@ public class WitnessExporter {
         }
         stateInvariants.add(factory.and(approximations));
       }
+
+      // Note: this evaluates to "false" if stateInvariants is empty. We signify that a location
+      // is unreachable by passing an empty collection for pStates. So this works as intended.
       return factory.or(stateInvariants);
     }
   }

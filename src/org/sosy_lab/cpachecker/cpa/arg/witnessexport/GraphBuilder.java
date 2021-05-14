@@ -252,11 +252,18 @@ enum GraphBuilder {
 
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
+        ARGState source = edge.getFirst();
         for (ARGState target : edge.getSecond()) {
           // where the successor ARG node is in the set of target path states AND the edge is relevant
-          if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
+          if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(source, target)) {
+            // this list can contain multiple edges if the CPA uses basic block steps (multi-edges)
+            List<CFAEdge> intermediateCFAEdges = source.getEdgesToChild(target);
+            // mark all intermediate program locations as reachable (including target)
+            for (CFAEdge e : intermediateCFAEdges) {
+              subProgramNodes.add(e.getSuccessor());
+            }
+
             for (CFANode location : AbstractStates.extractLocations(target)) {
-              subProgramNodes.add(location);
               states.put(location, target);
             }
           }
@@ -272,34 +279,26 @@ enum GraphBuilder {
         CFANode current = waitlist.poll();
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
-          final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(successor)) {
-            locationStates = Optional.of(states.get(successor));
-          } else {
+          Optional<Collection<ARGState>> locationStates;
+
+          Collection<ARGState> successorStates = states.get(successor);
+          boolean successorReachable = subProgramNodes.contains(successor);
+          if (successorReachable && successorStates.isEmpty()) {
+            // intermediate program location is not directly represented in the ARG
+            // in this case a set of associated ARG states simply does not exist
             locationStates = Optional.empty();
           }
+          else {
+            // if successor is unreachable, the set successorStates is empty (behavior of MultiMap)
+            // this is exactly the behavior we want here
+            locationStates = Optional.of(successorStates);
+          }
+
           if (visited.add(successor)) {
             waitlist.offer(successor);
           }
           if (appended.add(leavingEdge)) {
             appendEdge(pEdgeAppender, leavingEdge, locationStates, pValueMap);
-          }
-        }
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          // As enteringEdge leads to current we have: successor == current
-          CFANode successor = enteringEdge.getSuccessor();
-          final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(successor)) {
-            locationStates = Optional.of(states.get(successor));
-          } else {
-            locationStates = Optional.empty();
-          }
-          if (visited.add(predecessor)) {
-            waitlist.offer(predecessor);
-          }
-          if (appended.add(enteringEdge)) {
-            appendEdge(pEdgeAppender, enteringEdge, locationStates, pValueMap);
           }
         }
       }

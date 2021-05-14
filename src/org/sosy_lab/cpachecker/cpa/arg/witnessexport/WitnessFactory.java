@@ -123,7 +123,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
 class WitnessFactory implements EdgeAppender {
@@ -376,15 +375,13 @@ class WitnessFactory implements EdgeAppender {
           }
         }
         if (graphType != WitnessType.VIOLATION_WITNESS) {
-          ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
           boolean exportInvariant = exportInvariant(pEdge, pFromState);
           if (exportInvariant) {
             invariantExportStates.add(to);
           }
-          if (exportInvariant || isEdgeIrrelevant(edge)) {
-            invariant =
-                simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
-          }
+
+          ExpressionTree<Object> invariant = simplifier.simplify(
+              invariantProvider.provideInvariantFor(pEdge, pFromState));
           addToStateInvariant(pTo, invariant);
           String functionName = pEdge.getSuccessor().getFunctionName();
           stateScopes.put(pTo, isFunctionScope ? functionName : "");
@@ -1244,7 +1241,6 @@ class WitnessFactory implements EdgeAppender {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
-      setLoopHeadInvariantIfApplicable(edge.getTarget());
     }
   }
 
@@ -1369,49 +1365,6 @@ class WitnessFactory implements EdgeAppender {
     }
   }
 
-
-  private void setLoopHeadInvariantIfApplicable(String pTarget) {
-    if (!ExpressionTrees.getTrue().equals(getStateInvariant(pTarget))) {
-      return;
-    }
-    ExpressionTree<Object> loopHeadInvariant = ExpressionTrees.getFalse();
-    String scope = null;
-
-    Collection<Edge> edges = enteringEdges.get(pTarget);
-    if (edges.isEmpty()) {
-      // don't do anything, this method should only update the invariant of pTarget if
-      // pTarget is a loop head
-      return;
-    }
-    for (Edge enteringEdge : edges) {
-      if (enteringEdge.getLabel().getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
-        CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
-        if (loopHead != null) {
-          String functionName = loopHead.getFunctionName();
-          if (scope == null) {
-            scope = functionName;
-          } else if (!scope.equals(functionName)) {
-            return;
-          }
-          for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
-            loopHeadInvariant =
-                Or.of(
-                    loopHeadInvariant,
-                    invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
-          }
-        } else {
-          return;
-        }
-      } else {
-        return;
-      }
-    }
-    stateInvariants.put(pTarget, loopHeadInvariant);
-    if (scope != null) {
-      getStateScopes().put(pTarget, scope);
-    }
-  }
-
   private boolean hasFlagsOrProperties(String pNode) {
     return !nodeFlags.get(pNode).isEmpty() || !violatedProperties.get(pNode).isEmpty();
   }
@@ -1421,7 +1374,7 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final boolean isIrrelevantNode(String pNode) {
-    if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
+    if (!hasTrivialInvariant(pNode)) {
       return false;
     }
     if (hasFlagsOrProperties(pNode)) {
@@ -1451,9 +1404,20 @@ class WitnessFactory implements EdgeAppender {
       return true;
     }
 
-    final ExpressionTree<Object> sourceInv = stateQuasiInvariants.get(source);
-    final ExpressionTree<Object> targetInv = stateQuasiInvariants.get(target);
-    if (sourceInv != null && targetInv != null && !sourceInv.equals(targetInv)) {
+    if (haveDifferentQuasiInvariants(source, target)) {
+      return false;
+    }
+
+    // We want to keep the edge if the invariant of either the source or the target state is
+    // interesting. This prevents losing information of the invariant which could occur if we
+    // merged the nodes (due to an irrelevant edge).
+    // The additional restrictions that the edge must have transition restrictions is here to ensure
+    // that nodes which are loop starts (according to CFANode.isLoopStart()) are merged with the
+    // actual loop head node (target of jump at end of loop body). These two nodes are connected
+    // by a blank edge which has the description "while" or "for", etc.
+    if (label.hasTransitionRestrictions() &&
+        ((invariantExportStates.contains(source) && !hasTrivialInvariant(source)) ||
+        (invariantExportStates.contains(target) && !hasTrivialInvariant(target)))) {
       return false;
     }
 
@@ -1484,9 +1448,7 @@ class WitnessFactory implements EdgeAppender {
             pPrecedingEdge -> pPrecedingEdge.getLabel().summarizes(label));
 
     if ((!label.hasTransitionRestrictions()
-            || summarizedByPreceedingEdge
-            || (label.getMapping().size() == 1
-                && label.getMapping().containsKey(KeyDef.FUNCTIONEXIT)))
+            || summarizedByPreceedingEdge)
         && (leavingEdges.get(source).size() == 1)) {
       return true;
     }
@@ -1507,6 +1469,17 @@ class WitnessFactory implements EdgeAppender {
     }
 
     return false;
+  }
+
+  private boolean haveDifferentQuasiInvariants(String pSource, String pTarget) {
+    final ExpressionTree<Object> sourceInv = stateQuasiInvariants.get(pSource);
+    final ExpressionTree<Object> targetInv = stateQuasiInvariants.get(pTarget);
+
+    return sourceInv != null && targetInv != null && !sourceInv.equals(targetInv);
+  }
+
+  private boolean hasTrivialInvariant(String pState) {
+    return ExpressionTrees.getTrue().equals(getStateInvariant(pState));
   }
 
   /**
@@ -1762,83 +1735,19 @@ class WitnessFactory implements EdgeAppender {
 
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
-    if (pFromState.isPresent()
-        && pFromState.orElseThrow().stream()
-            .map(AbstractStates.toState(PredicateAbstractState.class))
-            .filter(s -> s != null)
-            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
-      return true;
-    }
-    if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
-      return false;
-    }
-    if (entersLoop(pEdge).isPresent()) {
+    CFANode targetNode = pEdge.getSuccessor();
+    if (targetNode.getNumEnteringEdges() > 1) {
       return true;
     }
 
-    CFANode referenceNode = pEdge.getSuccessor();
-
-    // Check if either the reference node or any of its direct predecessors via assume edges are in
-    // loop proximity
-    return FluentIterable.concat(
-            Collections.singleton(referenceNode),
-            CFAUtils.enteringEdges(referenceNode)
-                .filter(AssumeEdge.class)
-                .transform(CFAEdge::getPredecessor))
-        .anyMatch(n -> isInLoopProximity(n));
-  }
-
-  /**
-   * From given node, backward via non-assume edges until a loop head is found.
-   *
-   * @param pReferenceNode the node to start the search from.
-   * @return {@code true} if a loop head is found, {@code false} otherwise.
-   */
-  private boolean isInLoopProximity(CFANode pReferenceNode) {
-
-    Deque<List<CFANode>> waitlist = new ArrayDeque<>();
-    Set<CFANode> visited = new HashSet<>();
-    waitlist.push(ImmutableList.of(pReferenceNode));
-    visited.add(pReferenceNode);
-
-    Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
-    java.util.function.Predicate<CFANode> loopProximity = pNode -> pNode.isLoopStart();
-    if (cfa.getAllLoopHeads().isPresent()) {
-      loopProximity =
-          loopProximity.and(pNode -> cfa.getAllLoopHeads().orElseThrow().contains(pNode));
-    }
-    while (!waitlist.isEmpty()) {
-      List<CFANode> current = waitlist.pop();
-      CFANode currentNode = current.get(current.size() - 1);
-      Boolean memoized = loopProximityMemo.get(currentNode);
-      if (memoized != null && !memoized) {
-        continue;
-      }
-      if ((memoized != null && memoized) || loopProximity.test(currentNode)) {
-        for (CFANode onTrace : current) {
-          loopProximityMemo.put(onTrace, true);
-        }
-        return true;
-      }
-      // boolean isFirst = true;
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
-        CFANode predecessor = enteringEdge.getPredecessor();
-        if (visited.add(predecessor)) {
-          waitlist.push(ImmutableList.<CFANode>builder().addAll(current).add(predecessor).build());
-          // isFirst = false;
-        }
-      }
-    }
-
-    for (CFANode v : visited) {
-      loopProximityMemo.put(v, false);
+    // always export the invariant if some location is unreachable
+    // (pFromState is present and contains an empty collection).
+    // this ensures unreachable locations are marked in the witness
+    if (pFromState.map(s -> s.isEmpty()).orElse(false)) {
+      return true;
     }
 
     return false;
-  }
-
-  private Optional<CFANode> entersLoop(CFAEdge pEdge) {
-    return entersLoop(pEdge, true);
   }
 
   private Optional<CFANode> entersLoop(CFAEdge pEdge, boolean pAllowGoto) {
