@@ -11,7 +11,7 @@ const path = require("path");
 
 const rawWorkerPath = path.join(__dirname, "../worker/workers");
 const workerDataFile = path.join(__dirname, "../worker/workerData.js");
-const externalLibsPath = path.join(__dirname, "../external_libs");
+const vendorPath = path.join(__dirname, "../vendor");
 
 const template = "data:text/plain;base64,";
 const fileHeader = `// This file is part of CPAchecker,
@@ -24,15 +24,15 @@ const fileHeader = `// This file is part of CPAchecker,
 `;
 
 const workerFiles = fs.readdirSync(rawWorkerPath);
-const externalLibFiles = fs.readdirSync(externalLibsPath);
+const vendorFiles = fs.readdirSync(vendorPath).filter(file => !file.includes("license"));
 
 let output = fileHeader;
 const workerNames = [];
 
-const externalLibContent = [];
-externalLibFiles.forEach((libFile) => {
-  libPath = path.join(externalLibsPath, libFile);
-  externalLibContent.push(fs.readFileSync(libPath));
+const vendorFileContents = [];
+vendorFiles.forEach((file) => {
+  const filePath = path.join(vendorPath, file);
+  vendorFileContents.push(fs.readFileSync(filePath));
 });
 
 workerFiles.forEach((worker) => {
@@ -41,7 +41,7 @@ workerFiles.forEach((worker) => {
   const workerPath = path.join(rawWorkerPath, worker);
   const workerContent = fs.readFileSync(workerPath);
   const content = Buffer.concat([
-    ...externalLibContent,
+    ...vendorFileContents,
     workerContent,
   ]).toString("base64");
 
