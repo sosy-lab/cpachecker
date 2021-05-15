@@ -130,7 +130,7 @@ python-unit-tests:jdk-14:
 
 javascript-build:
   stage: checks
-  image: ${CI_REGISTRY_IMAGE}/test:node
+  dependencies: []
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
