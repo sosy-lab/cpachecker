@@ -62,7 +62,7 @@ const processQueue = () => {
     } else {
       jobQueue.unshift(job);
     }
-    setImmediate(processQueue);
+    setTimeout(processQueue, 0);
   }
 };
 
@@ -80,7 +80,7 @@ const enqueue = async (workerName, data) =>
       callback: resolve,
       onErrorCallback: reject,
     });
-    setImmediate(processQueue);
+    setTimeout(processQueue, 0);
   });
 
 export { enqueue };
