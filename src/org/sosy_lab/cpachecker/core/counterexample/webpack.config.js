@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
@@ -26,11 +25,11 @@ module.exports = {
     compress: true,
     open: true,
     port: 8080,
+    historyApiFallback: {
+      index: devFolder + "index.html",
+    }
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      template: devFolder + "index.html",
-    }),
     new MiniCssExtractPlugin({
       filename: "bundle.css",
       chunkFilename: "[name].css",
