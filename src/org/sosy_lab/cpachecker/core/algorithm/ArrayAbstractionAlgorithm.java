@@ -50,6 +50,14 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
   @Option(secure = true, name = "method", description = "The array abstraction method")
   private ArrayAbstractionMethod method = ArrayAbstractionMethod.NONDET_SINGLE_CELL;
 
+  @Option(
+      secure = true,
+      name = "checkCounterexamples",
+      description =
+          "Use a second delegate analysis run to check counterexamples on the original program that"
+              + " contains (non-abstracted) arrays.")
+  private boolean checkCounterexamples = false;
+
   private enum ArrayAbstractionMethod {
     NONDET_READ,
     SMASHING,
@@ -179,8 +187,7 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
         status = runDelegateAnalysis(coreComponents, translatedCfa, forwardingReachedSet);
       }
 
-      if (forwardingReachedSet.hasViolatedProperties()
-          || status == AlgorithmStatus.NO_PROPERTY_CHECKED) {
+      if (checkCounterexamples && forwardingReachedSet.hasViolatedProperties()) {
         status = runDelegateAnalysis(coreComponents, originalCfa, forwardingReachedSet);
       }
 

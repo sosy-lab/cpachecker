@@ -499,6 +499,10 @@ analysis.useParallelAnalyses = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
+# Use a second delegate analysis run to check counterexamples on the original
+# program that contains (non-abstracted) arrays.
+arrayAbstraction.checkCounterexamples = false
+
 # Configuration of the delegate analysis running on the translated program
 arrayAbstraction.delegateAnalysis = no default value
 
