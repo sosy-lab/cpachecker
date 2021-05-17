@@ -206,6 +206,12 @@ public class TigerAlgorithmConfiguration {
 
   @Option(
     secure = true,
+    name = "compress",
+    description = "specifies if the resulting test-suite should be compressed to a zip file")
+  private boolean compress = false;
+
+  @Option(
+    secure = true,
     name = "numberOfDefaultTestCases",
     description = "selects the number of initial test-cases with random values")
   private int numberOfDefaultTestCases = 0;
@@ -310,6 +316,10 @@ public class TigerAlgorithmConfiguration {
 
   public boolean addElapsedTimeToTC() {
     return addElapsedTimeToTC;
+  }
+
+  public boolean compressTestSuite() {
+    return compress;
   }
 
 }

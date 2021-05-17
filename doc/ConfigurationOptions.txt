@@ -1,6 +1,14 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
@@ -29,7 +37,9 @@ log.fileExclude = []
 # log level of file output
 log.level = Level.OFF
 
-# maximum size of log output strings before they will be truncated
+# Maximum size of log output strings before they will be truncated. Note that
+# truncation is not precise and truncation to small values has no effect. Use
+# 0 for disabling truncation completely.
 log.truncateSize = 10000
 
 # use colors for log messages on console
@@ -46,6 +56,10 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
@@ -53,8 +67,11 @@ rootDirectory = "."
 solver.boolector.furtherOptions = ""
 
 # The SAT solver used by Boolector.
-solver.boolector.satSolver = PICOSAT
-  enum:     [LINGELING, PICOSAT, MINISAT, CADICAL]
+solver.boolector.satSolver = CADICAL
+  enum:     [LINGELING, PICOSAT, MINISAT, CMS, CADICAL]
+
+# Counts all operations and interactions towards the SMT solver.
+solver.collectStatistics = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -105,13 +122,17 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+
+# Sequentialize all solver actions to allow concurrent access!
+solver.synchronize = false
+
+# Use provers from a seperate context to solve queries. This allows more
+# parallelity when solving larger queries.
+solver.synchronized.useSeperateProvers = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -126,10 +147,16 @@ solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
-solver.z3.requireProofs = true
+solver.z3.requireProofs = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
+
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -156,6 +183,15 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use McMillan's interpolation-based model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.IMC = false
+
+# Use MPI for running analyses in new subprocesses. The resulting reachedset
+# is the one of the first analysis returning in time. All other mpi-processes
+# will get aborted.
+analysis.algorithm.MPI = false
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
@@ -165,6 +201,13 @@ analysis.algorithm.analysisWithEnabler = false
 
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
+
+# for found property violation, perform fault localization with coverage
+analysis.algorithm.faultLocalization.by_coverage = false
+
+# for found property violation, perform fault localization with trace
+# formulas
+analysis.algorithm.faultLocalization.by_traceformula = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
@@ -195,12 +238,10 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
-# Use termination algorithm to prove (non-)termination.
+# Use termination algorithm to prove (non-)termination. This needs the
+# TerminationCPA as root CPA and an automaton CPA with
+# termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
-
-# Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal
-# Reachability Analyses, ESOP'13)
-analysis.algorithm.tiger = false
 
 # Use Tiger as Cex Check
 analysis.algorithm.tigerCexCheck = false
@@ -441,11 +482,11 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# select an analysis from a set of analyses after unknown result
+analysis.useCompositionAnalysis = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
-
-# start different analyses interleaved and continue after unknown result
-analysis.useInterleavedAnalyses = false
 
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
@@ -536,6 +577,10 @@ bdd.pjbdd.cacheRatio = 0.1
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
 
+# Threadsafe reference counting is very costly, with this option gc can be
+# disabled. Only applicable with useInts = true.
+bdd.pjbdd.disableGC = false
+
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
 
@@ -552,6 +597,12 @@ bdd.pjbdd.tableParallelism = 10000
 # Number of worker threads, Runtime.getRuntime().availableProcessors()
 # default
 bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
+
+# Use bdd chaining.
+bdd.pjbdd.useChainedBDD = false
+
+# Use internal a int based bdd representation.
+bdd.pjbdd.useInts = false
 
 # initial variable count
 bdd.pjbdd.varCount = 100
@@ -805,6 +856,45 @@ cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
+
+# If adaptTimeLimits is set and all configurations support progress reports,
+# in each cycle the time limits per configuration are newly calculated based
+# on the progress
+compositionAlgorithm.circular.adaptTimeLimits = false
+
+# where to store initial condition, when generated
+compositionAlgorithm.condition.file = "AssumptionAutomaton.txt"
+
+# list of files with configurations to use, which are optionally suffixed
+# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
+# where MODE and LIMIT are place holders.MODE may take one of the following
+# values continue (i.e., continue analysis with same CPA and reached set),
+# reuse-precision (i.e., reuse the aggregation of the precisions from the
+# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
+# positive integer number specifying the time limit of the analysis in each
+# round.If no (correct) limit is given a default limit is used.
+compositionAlgorithm.configFiles = no default value
+
+# Whether or not to create an initial condition, that excludes no paths,
+# before first analysis is run.Required when first analysis uses condition
+# from conditional model checking
+compositionAlgorithm.initCondition = false
+
+# print the statistics of each component of the composition algorithm
+# directly after the component's computation is finished
+compositionAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
+
+# Enable when composition algorithm is used to check a specification
+compositionAlgorithm.propertyChecked = true
+
+# Qualified name for class which implements strategy that decides how to
+# compose given analyses
+compositionAlgorithm.strategy = no default value
+
+# let each analysis part of the composition algorithm write output files and
+# not only the last one that is executed
+compositionAlgorithm.writeIntermediateOutputFiles = true
 
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
@@ -1094,6 +1184,11 @@ cpa.arg.deleteInCPAEnabledAnalysis = false
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
 
+# Enable reduction for nested abstract states when entering or leaving a
+# block abstraction for BAM. The reduction can lead to a higher
+# cache-hit-rate for BAM and a faster sub-analysis for blocks.
+cpa.arg.enableStateReduction = true
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
@@ -1112,6 +1207,10 @@ cpa.arg.export.code.handleTargetStates = NONE
 
 # write include directives
 cpa.arg.export.code.header = true
+
+# If specified, metadata about the produced C program will be exported to
+# this file
+cpa.arg.export.code.metadataOutput = no default value
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -1474,8 +1573,11 @@ cpa.congruence.useCachingPathFormulaManager = true
 # Whether to perform caching of constraint satisfiability results
 cpa.constraints.cache = true
 
-# Whether to use subset/superset caching
+# Whether to use subset caching
 cpa.constraints.cacheSubsets = true
+
+# Whether to use superset caching
+cpa.constraints.cacheSupersets = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -1508,8 +1610,12 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
-# Try model of predecessor constraints state before running SMT solver
-cpa.constraints.useLastModel = true
+# export automaton to file
+cpa.dca.refiner.dotExport = false
+
+# file for saving the automaton in DOT format (%s will be replaced with
+# automaton name)
+cpa.dca.refiner.dotExportFile = "%s.dot"
 
 # Keep infeasible dummy states that allow for better debugging
 cpa.dca.refiner.keepInfeasibleStates = false
@@ -1601,8 +1707,8 @@ cpa.invariants.analyzeTargetPathsOnly = true
 # controls the condition adjustment logic: STATIC means that condition
 # adjustment is a no-op, INTERESTING_VARIABLES increases the interesting
 # variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth,
-# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy
-# and COMPOUND combines the other strategies (minus STATIC).
+# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy,
+# COMPOUND combines the other strategies (minus STATIC).
 cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
@@ -1686,6 +1792,16 @@ cpa.lock.stopAfterLockLimit = false
 cpa.lock.stopMode = DEFAULT
   enum:     [DEFAULT, EMPTYLOCKSET]
 
+# Only checks for targets after loops were unrolled exactly a number of times
+# that is contained in this list. The default is an empty list, which means
+# targets are checked in every iteration
+cpa.loopbound.checkOnlyAtBounds = []
+
+# Use a stop operator that will identify loop states who's depth is congruent
+# regarding the modulus of this number. Values smaller or equal to zero will
+# deactivate this feature.
+cpa.loopbound.cyclicStopModulus = -1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1706,7 +1822,7 @@ cpa.loopbound.maxLoopIterations = 0
 # adjuster.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
-# Only checks for errror after loops were unrolled at least this amount of
+# Only checks for error after loops were unrolled at least this amount of
 # times.
 cpa.loopbound.startAtBound = 0
 
@@ -1823,7 +1939,7 @@ cpa.predicate.abortOnLargeArrays = true
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
-  enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
+  enum:     [DISABLE, SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
              FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2,
              FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL]
 
@@ -1889,6 +2005,11 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
+
+# Allow the given extern functions and interpret them as pure functions
+# although the predicate analysis does not support their semantics and this
+# can produce wrong results.
+cpa.predicate.allowedUnsupportedFunctions = {}
 
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
@@ -2150,15 +2271,17 @@ cpa.predicate.memoryFreeFunctionName = "free"
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
 
+# merge two abstraction states if their preceeding abstraction states are the
+# same
+cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
+
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added
 # automatically to the list, so you need to specify them explicitly if you
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {
-      "sscanf",
-      "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
@@ -2215,19 +2338,17 @@ cpa.predicate.refinement.abstractInterpolantOnly = false
 cpa.predicate.refinement.atomicInterpolants = true
 
 # Direction for doing counterexample analysis: from start of trace, from end
-# of trace, or alternatingly from start and end of the trace towards the
-# middle
-cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
+# of trace, or in more complex patterns. In combination with
+# incrementalCexTraceCheck=true the generated interpolants will refer to the
+# minimal infeasible part of the trace according to this strategy (e.g., with
+# FORWARDS a minimal infeasible prefix is found).
+cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
-
-# use variant described in the Guiding Craig Interpolation Paper leading to a
-# different routine
-cpa.predicate.refinement.domainSpecificAbstractions = false
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
@@ -2254,15 +2375,13 @@ cpa.predicate.refinement.global.stopAfterNRefinements = 0
 cpa.predicate.refinement.graphblockformulastrategy = false
 
 # Enable/Disable adding partial state invariants into the PathFormulas
-cpa.predicate.refinement.includePartialInvariants = true
+cpa.predicate.refinement.includePartialInvariants = AbstractionPosition.BOTH
 
-# use incremental search in counterexample analysis, to find the minimal
-# infeasible prefix
-cpa.predicate.refinement.incrementalCexTraceCheck = false
-
-# additional variation to domainSpecificAbstractions using inequalities
-# instead of equalities
-cpa.predicate.refinement.inequalityInterpolationAbstractions = false
+# Use incremental search in counterexample analysis to find a minimal
+# infeasible part of the trace. This will typically lead to interpolants that
+# refer to this part only. The option cexTraceCheckDirection defines in which
+# order the blocks of the trace are looked at.
+cpa.predicate.refinement.incrementalCexTraceCheck = true
 
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
@@ -2297,12 +2416,14 @@ cpa.predicate.refinement.newtonrefinement.liveVariables = true
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
-# Which predicates should be used as basis for a new precision.ALL: During
-# refinement, collect predicates from the complete ARG.SUBGRAPH: During
-# refinement, keep predicates from all removed parts (subgraph) of the
-# ARG.CUTPOINT: Only predicates from the cut-point's precision are
-# kept.TARGET: Only predicates from the target state's precision are kept.
-cpa.predicate.refinement.predicateBasisStrategy = TARGET
+# Which predicates should be used as basis for the new precision that will be
+# attached to the refined part of the ARG:
+# ALL: Collect predicates from the complete ARG.
+# SUBGRAPH: Collect predicates from the removed subgraph of the ARG.
+# CUTPOINT: Only predicates from the cut-point's (pivot state) precision are
+# kept.
+# TARGET: Only predicates from the target state's precision are kept.
+cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
 # which sliced prefix should be used for interpolation
@@ -2315,7 +2436,8 @@ cpa.predicate.refinement.recomputeBlockFormulas = false
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
 
-# Use a single SMT solver environment for several interpolation queries
+# Use a single SMT solver environment for all interpolation queries and keep
+# formulas pushed on solver stack between interpolation queries.
 cpa.predicate.refinement.reuseInterpolationEnvironment = false
 
 # In case we apply sequential interpolation, forward and backward directions
@@ -2338,26 +2460,30 @@ cpa.predicate.refinement.splitItpAtoms = false
 
 # Strategy how to interact with the intepolating prover. The analysis must
 # support the strategy, otherwise the result will be useless!
-# - SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the
-# partitions A=[0 .. i] and B=[i+1 .. n]. The result is similar to
-# INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver
-# has to generate nice interpolants itself. Supported by all solvers!
-# - INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the
-# partitions [1,...n]. 
-# - TREE: use the tree-interpolation-feature of a solver to get interpolants
-# - TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the
-# partitions A=[lastFunctionEntryIndex .. i] and B=[0 ..
-# lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme.
-# - TREE_NESTED: use callstack and previous interpolants for next
-# interpolants (see 'Nested Interpolants'),
+# - SEQ_CPACHECKER: Generate an inductive sequence of interpolants by asking
+# the solver individually for each of them. This allows us to fine-tune the
+# queries with the option sequentialStrategy and is supported by all solvers.
+# - SEQ: Generate an inductive sequence of interpolants by asking the solver
+# for the whole sequence at once.
+# - TREE: Use the tree-interpolation feature of the solver to get
+# interpolants.
+# - TREE_WELLSCOPED: Return each interpolant for i={0..n-1} for the
+# partitions A=[lastFunctionEntryIndex..i] and
+# B=[0..lastFunctionEntryIndex-1]+[i+1..n]. Based on a tree-like scheme.
+# - TREE_NESTED: Use callstack and previous interpolants for next
+# interpolants (cf. 'Nested Interpolants').
 # - TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from
-# 'Tree Interpolation in Vampire'.
+# 'Tree Interpolation in Vampire'
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0ms
+
+# After a failed interpolation query, try to solve the formulas again with
+# different options instead of giving up immediately.
+cpa.predicate.refinement.tryAgainOnInterpolationError = true
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
@@ -2413,9 +2539,11 @@ cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 
 # which stop operator to use for predicate cpa (usually SEP should be used in
-# analysis)
+# analysis). SEPNAA works the same as SEP, except that it Never stops At
+# Abstraction states. SEPNAA is used in bmc-IMC.properties for config
+# bmc-incremental-ABEl to keep exploring covered states.
 cpa.predicate.stop = "SEP"
-  allowed values: [SEP, SEPPCC]
+  allowed values: [SEP, SEPPCC, SEPNAA]
 
 # Use formula reporting states for strengthening.
 cpa.predicate.strengthenWithFormulaReportingStates = false
@@ -2540,15 +2668,30 @@ cpa.slicing.preRunSyntacticWeakening = true
 # slice, or a statically computed, fixed slicing precision
 cpa.slicing.refinableSlice = false
 
-# Add all assumptions of an infeasible target path to the slice, in addition
-# to the original slice
-cpa.slicing.refinement.addCexConstraintsToSlice = true
-
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
 # refinements. If this is set to true, the counterexample check won't work
 # (in general), so you have to turn it off.
 cpa.slicing.refinement.counterexampleCheckOnSlice = false
+
+# Which prefix provider to use? (give class name) If the package name starts
+# with 'org.sosy_lab.cpachecker.', this prefix can be omitted.
+cpa.slicing.refinement.prefixProvider = no default value
+
+# How to refine the slice:
+# - CEX_ASSUME_DEPS: Add the dependencies of all counterexample assume edges
+# to the slice.
+# - INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the
+# dependencies of all assume edges that are part of the infeasible prefix to
+# the slice. Requires a prefix provider
+# ('cpa.slicing.refinement.prefixProvider').
+# - CEX_FIRST_ASSUME_DEPS: Add the dependencies of the first counterexample
+# assume edges, that is not already part of the slice, to the slice.
+# - CEX_LAST_ASSUME_DEPS: Add the dependencies of the last counterexample
+# assume edges, that is not already part of the slice, to the slice.
+cpa.slicing.refinement.refineStrategy = CEX_ASSUME_DEPS
+  enum:     [CEX_ASSUME_DEPS, INFEASIBLE_PREFIX_ASSUME_DEPS, CEX_FIRST_ASSUME_DEPS,
+             CEX_LAST_ASSUME_DEPS]
 
 # What kind of restart to do after a successful refinement
 cpa.slicing.refinement.restartStrategy = PIVOT
@@ -2626,6 +2769,10 @@ cpa.smg.handleUnknownDereferenceAsSafe = false
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg.joinOnBlockEnd = true
 
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
@@ -3125,6 +3272,14 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to take an assumption edge 'p' as control dependence if edge 'not
+# p' is a control dependence. This creates a larger slice, but may reduce the
+# size of the state space for deterministic programs. This behavior is also
+# closer to the static program slicing based on control-flow graphs (CFGs),
+# where branching is represented by a single assumption (with true- and
+# false-edges)
+dependencegraph.controldeps.considerInverseAssumption = false
+
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
 
@@ -3156,6 +3311,20 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Ranking algorithm to use for fault localization
+faultLocalization.by_coverage.type = TARANTULA
+  enum:     [TARANTULA, DSTAR, OCHIAI]
+
+# disable flow-sensitive trace formula (may increase runtime)
+faultLocalization.by_traceformula.errorInvariants.disableFSTF = false
+
+# ban faults with certain variables
+faultLocalization.by_traceformula.maxsat.ban = ""
+
+# which algorithm to use
+faultLocalization.by_traceformula.type = UNSAT
+  enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
@@ -3189,43 +3358,23 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
+# toggle checking forward conditions
+imc.checkForwardConditions = true
+
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+imc.fallBack = true
+
+# toggle using interpolation to verify programs with loops
+imc.interpolation = true
+
+# toggle removing unreachable stop states in ARG
+imc.removeUnreachableStopStates = false
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
-
-# If adaptTimeLimits is set and all configurations support progress reports,
-# in each cycle the time limits per configuration are newly calculated based
-# on the progress
-interleavedAlgorithm.adaptTimeLimits = false
-
-# where to store initial condition, when generated
-interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
-
-# list of files with configurations to use, which are optionally suffixed
-# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
-# where MODE and LIMIT are place holders.MODE may take one of the following
-# values continue (i.e., continue analysis with same CPA and reached set),
-# reuse-precision (i.e., reuse the aggregation of the precisions from the
-# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
-# positive integer number specifying the time limit of the analysis in each
-# round.If no (correct) limit is given a default limit is used.
-interleavedAlgorithm.configFiles = no default value
-
-# Whether or not to create an initial condition, that excludes no paths,
-# before first analysis is run.Required when first analysis uses condition
-# from conditional model checking
-interleavedAlgorithm.initCondition = false
-
-# print the statistics of each component of the interleaved algorithm
-# directly after the component's computation is finished
-interleavedAlgorithm.intermediateStatistics = NONE
-  enum:     [EXECUTE, NONE, PRINT]
-
-# Enable when interleaved algorithm is used to check a specification
-interleavedAlgorithm.propertyChecked = true
-
-# let each analysis part of the interleaved algorithm write output files and
-# not only the last one that is executed
-interleavedAlgorithm.writeIntermediateOutputFiles = true
 
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
@@ -3329,6 +3478,20 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# List of property-files to be run by the subprocesses.
+mpiAlgorithm.configFiles = no default value
+
+# The MCA parameter ('Modular Component Architecture') is available only on
+# Open MPI frameworks. It might thus need to be disabled if unavailable on
+# the working machine.
+mpiAlgorithm.disableMCAOptions = no default value
+
+# File containing the ip addresses to be used by MPI.
+mpiAlgorithm.hostfile = no default value
+
+# Max. amount of processes to be used by MPI.
+mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
 mpv.findAllViolations = false
@@ -3637,9 +3800,7 @@ precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
 
 # Allowed coefficients in a template.
-precision.template.allowedCoefficients = {
-      Rational.NEG_ONE, Rational.ONE
-  }
+precision.template.allowedCoefficients = {Rational.NEG_ONE, Rational.ONE}
 
 # Generate difference constraints.This option is redundant for
 # `maxExpressionSize` >= 2.
@@ -3772,7 +3933,7 @@ residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [REACHABILITY, SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # How often may a loop be unrolled before it must be folded
 residualprogram.unrollBound = 2
@@ -3804,10 +3965,10 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
 # path to condition files plus additional assumption guiding automaton when
 # condition itself is in propriertary format and not in witness format
-slicing.conditionFiles = [
+slicing.conditionFiles = {
           Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
-              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")]
+              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")}
 
 # Export the used slicing criteria to file
 slicing.exportCriteria.enable = false
@@ -3824,10 +3985,6 @@ slicing.exportToC.file = "programSlice.%d.c"
 # which type of extractor for slicing criteria to use
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
-
-# Whether to create slices that are behaviorally equivalent not only to the
-# target location, but also on the paths to that target location.
-slicing.preserveTargetPaths = false
 
 # what kind of slicing to use
 slicing.type = STATIC
@@ -3846,11 +4003,11 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
@@ -3985,6 +4142,9 @@ testHarnessExport.useModel = true
 # zip all exported test cases into a single file
 testcase.compress = false
 
+# Do not output values for variables that are not initialized when declared
+testcase.excludeInitialization = false
+
 # export test harness to file as code
 testcase.file = no default value
 
@@ -3994,10 +4154,20 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# Only convert literal value and do not add suffix, e.g., for unsigned, etc.
+testcase.plainLiteralValue = false
+
+# defines how progress is computed
+testcase.progress = RELATIVE_TOTAL
+  enum:     [ABSOLUTE, RELATIVE_TOTAL]
+
 # when generating tests covering error call stop as soon as generated one
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# Name of target function if target type is FUN_CALL
+testcase.targets.funName = no default value
 
 # Which strategy to use to optimize set of test target edges
 testcase.targets.optimization.strategy = NONE
@@ -4005,7 +4175,7 @@ testcase.targets.optimization.strategy = NONE
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
-  enum:     [ASSUME, ERROR_CALL, STATEMENT]
+  enum:     [ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
 
 # export test values to file (line separated)
 testcase.values = no default value
@@ -4015,11 +4185,21 @@ testcase.xml = no default value
 
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
+
+# specifies if the elapsed time for tc generation should be added to the
+# test-cases written to disk
 tiger.addElapsedTimeToTC = false
 
 # Configuration file for internal cpa algorithm.
 tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
+
+# specifies if the filename should be added to the output folder
 tiger.appendFileNameToOutput = false
+
+# specifies if the resulting test-suite should be compressed to a zip file
+tiger.compress = false
+
+# Checks whether a Counterexample additionally covers other test-goals
 tiger.coverageCheck = SINGLE
   enum:     [NONE, SINGLE, ALL]
 
@@ -4028,6 +4208,8 @@ tiger.featureVariablePrefix = "__SELECTED_FEATURE_"
 
 # Coverage criterion given as an FQL query
 tiger.fqlQuery = PredefinedCoverageCriteria.StatementCoverage
+
+# Selects the goal reduction strategy
 tiger.goalReduction = COMPLEX
   enum:     [COMPLEX, SIMPLE, NONE]
 
@@ -4044,6 +4226,8 @@ tiger.limitsPerGoal.time.cpu = -1
 # Value for which timeout gets incremented if timed-out goals are
 # re-processed.
 tiger.limitsPerGoal.time.cpu.increment = 0
+
+# selects the number of initial test-cases with random values
 tiger.numberOfDefaultTestCases = 0
 
 # Number of test-cases per goal, WARNING! currently only works if there is a
@@ -4055,9 +4239,24 @@ tiger.optimizeGoalAutomata = true
 
 # List of output variables: v1,v2,v3...
 tiger.outputInterface = ""
+
+# Selects the tolerance of having more goals in certain paritions
+tiger.partitioning.additionalGoalsPerPartitionTolerance = 5
+
+# Selects the tolerance of having less goals in certain paritions
+tiger.partitioning.lessGoalsPerPartitionTolerance = 10
+
+# Selects the minimum partition size
+tiger.partitioning.minimumPartitionSize = 25
+
+# Selects the size of partitions
 tiger.partitioning.partitionSize = 25
+
+# Selects the partition distribution style
 tiger.partitioning.partitionSizeDistribution = RELATIVE
   enum:     [TOTAL, RELATIVE]
+
+# Selects the strategy of partition distribution
 tiger.partitioning.strategy = RANDOM
   enum:     [RANDOM, DOMINATION, REVERSEDOMINATION, asd]
 
@@ -4092,6 +4291,22 @@ tiger.useTestCompOutput = false
 # Name of the method to validate the feature model
 tiger.validProductMethodName = "validProduct"
 
+# add initial variable assignments to the pre-condition instead of just using
+# failing variable assignments for nondet variables
+traceformula.altpre = false
+
+# do not create selectors for this variables (separate by commas)
+traceformula.disable = ""
+
+# filter the alternative precondition by scopes
+traceformula.filter = "main"
+
+# do not add variables to alternative precondition (separate by commas)
+traceformula.ignore = ""
+
+# equal statements on the same line get the same selector
+traceformula.uniqueselectors = false
+
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
 
@@ -4116,6 +4331,9 @@ undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 # export undefined functions as C file
 undefinedFunctionsCollector.stubsFile = "stubs.c"
 
+# select an analysis from a set of analyses after unknown result
+useCompositionAnalysis = false
+
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
@@ -4130,6 +4348,13 @@ witness.checkProgramHash = true
 
 # Consider assumptions that are provided with the path automaton?
 witness.considerAssumptions = true
+
+# Fail-fast if invariants in the witness exist that would not be accounted
+# for. There are cases where unaccounted invariants are perfectly fine, e.g.
+# if those states in the witness automaton are actually unreachable in the
+# program. This is however rarely the intention of the original producer of
+# the witness, so this options can be used to debug those cases.
+witness.debug.checkForMissedInvariants = false
 
 # Validate correctness witness by specifying an invariants specification
 # automaton

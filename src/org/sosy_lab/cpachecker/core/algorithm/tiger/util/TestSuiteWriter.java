@@ -19,20 +19,22 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.xml.XmlEscapers;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -50,6 +52,7 @@ public class TestSuiteWriter {
   private String producer;
   private static TestSuiteWriter singleton;
   private boolean addElapsedTime;
+  private boolean compress;
 
   public static TestSuiteWriter getSingleton(
       CFA pCfa,
@@ -57,10 +60,20 @@ public class TestSuiteWriter {
       boolean pUseTestCompOutput,
       String pOutputFolder,
       String pSpec,
-      String pProducer, boolean pAddElapsedTime) {
+      String pProducer,
+      boolean pAddElapsedTime,
+      boolean pCompress) {
     if (singleton == null) {
       singleton =
-          new TestSuiteWriter(pCfa, pLogger, pUseTestCompOutput, pOutputFolder, pSpec, pProducer, pAddElapsedTime);
+          new TestSuiteWriter(
+              pCfa,
+              pLogger,
+              pUseTestCompOutput,
+              pOutputFolder,
+              pSpec,
+              pProducer,
+              pAddElapsedTime,
+              pCompress);
     } else {
       assert singleton.cfa.equals(pCfa);
       assert singleton.logger.equals(pLogger);
@@ -69,6 +82,7 @@ public class TestSuiteWriter {
       assert singleton.spec.equals(pSpec);
       assert singleton.producer.equals(pProducer);
       assert singleton.addElapsedTime == pAddElapsedTime;
+      assert singleton.compress == pCompress;
     }
     return singleton;
   }
@@ -80,7 +94,8 @@ public class TestSuiteWriter {
       String pOutputFolder,
       String pSpec,
       String pProducer,
-      boolean pAddElapsedTime) {
+      boolean pAddElapsedTime,
+      boolean pCompress) {
     cfa = pCfa;
     logger = pLogger;
     useTestCompOutput = pUseTestCompOutput;
@@ -89,7 +104,43 @@ public class TestSuiteWriter {
     spec = pSpec;
     producer = pProducer;
     addElapsedTime = pAddElapsedTime;
+    compress = pCompress;
     initTestSuiteFolder();
+  }
+
+  private FileSystem openZipFS() throws IOException {
+    Map<String, String> env = new HashMap<>(1);
+    env.put("create", "true");
+
+    Preconditions.checkNotNull(outputFolder);
+    // create parent directories if do not exist
+    Path parent = Paths.get(outputFolder).getParent();
+    if (parent != null) {
+      Files.createDirectories(parent);
+    }
+
+    String uriString = "jar:" + Paths.get(outputFolder + ".zip").toUri().toString();
+    return FileSystems.newFileSystem(URI.create(uriString), env, null);
+  }
+
+  private void writeTestSuiteFile(String file, String content) {
+    if (compress) {
+      // locate file system by using the syntax
+      // defined in java.net.JarURLConnection
+      try (FileSystem zipFS = openZipFS()) {
+        Path pathInZipfile = zipFS.getPath(file);
+        Files.write(pathInZipfile, content.getBytes(StandardCharsets.UTF_8));
+      } catch (IOException e) {
+        logger.log(Level.SEVERE, "Could not write test-case!");
+      }
+    } else {
+    try {
+        Files.write(Paths.get(outputFolder + file), content.getBytes(StandardCharsets.UTF_8));
+    } catch (IOException ex) {
+      logger.log(Level.SEVERE, "Could not write test-case!");
+    }
+  }
+
   }
 
   private void writeMetaData() throws IOException {
@@ -151,86 +202,13 @@ public class TestSuiteWriter {
     builder.append("</creationtime>\n");
 
     builder.append("</test-metadata>");
-    Path metaFile = Paths.get(outputFolder + "/metadata.xml");
-    logger.log(Level.INFO, "writing metainfo to: " + metaFile.toString());
-    Files.write(metaFile, builder.toString().getBytes(StandardCharsets.UTF_8));
-
-    // logger.log(
-    // Level.INFO,
-    // "Writing Metadata with FQL Statement: " + spec + " and producer " + producer);
-    //
-    // Document dom;
-    // DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    // try {
-    // DocumentBuilder db = dbf.newDocumentBuilder();
-    // dom = db.newDocument();
-    // Element root = dom.createElement("test-metadata");
-    //
-    // createAndAppendElement("sourcecodelang", cfa.getLanguage().toString(), root, dom);
-    // createAndAppendElement(
-    // "producer",
-    // XmlEscapers.xmlContentEscaper().escape(producer),
-    // root,
-    // dom);
-    // createAndAppendElement("specification", spec, root, dom);
-    // Path file = cfa.getFileNames().get(0);
-    // createAndAppendElement("programfile", file.toString(), root, dom);
-    // createAndAppendElement(
-    // "programhash",
-    // AutomatonGraphmlCommon.computeHash(file),
-    // root,
-    // dom);
-    // createAndAppendElement("entryfunction", originalMainFunction, root, dom);
-    //
-    // createAndAppendElement(
-    // "architecture",
-    // AutomatonGraphmlCommon.getArchitecture(cfa.getMachineModel()),
-    // root,
-    // dom);
-    // createAndAppendElement(
-    // "creationtime",
-    // ZonedDateTime.now().withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-    // root,
-    // dom);
-    //
-    // dom.appendChild(root);
-    // try {
-    // Transformer tr = TransformerFactory.newInstance().newTransformer();
-    // tr.setOutputProperty(OutputKeys.INDENT, "yes");
-    // tr.setOutputProperty(OutputKeys.METHOD, "xml");
-    // tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-    // DOMImplementation domImpl = dom.getImplementation();
-    // DocumentType doctype =
-    // domImpl.createDocumentType(
-    // "doctype",
-    // "+//IDN sosy-lab.org//DTD test-format test-metadata 1.0//EN",
-    // "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/test-metadata.dtd");
-    // tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
-    // tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
-    //
-    // tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-    //
-    // // send DOM to file
-    // DOMSource domSource = new DOMSource(dom);
-    // StreamResult streamResult =
-    // new StreamResult(new File(outputFolder + "/metadata.xml"));
-    // tr.transform(
-    // domSource,
-    // streamResult);
-    //
-    // } catch (TransformerException te) {
-    // logger.log(Level.WARNING, te.getMessage());
-    // }
-    // } catch (ParserConfigurationException pce) {
-    // logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
-    // } catch (IOException e) {
-    // logger.log(Level.WARNING, e.getMessage());
-    // }
+    String metaFile = "/metadata.xml";
+    logger.log(Level.INFO, "writing metainfo to: " + outputFolder + metaFile);
+    writeTestSuiteFile(metaFile, builder.toString());
   }
 
   private void writeTestCase(TestCase testcase) {
 
-    try {
       StringBuilder builder = new StringBuilder();
       builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
       builder.append(
@@ -246,61 +224,9 @@ public class TestSuiteWriter {
         builder.append("</input>\n");
       }
       builder.append("</testcase>\n");
-      Files.write(
-          Paths.get(outputFolder + "/testcase-" + testcase.getId() + ".xml"),
-          builder.toString().getBytes(StandardCharsets.UTF_8));
-    } catch (IOException ex) {
-      logger.log(Level.SEVERE, "Could not write test-case!");
-    }
-
-    // Document dom;
-    // DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    // try {
-
-    // DocumentBuilder db = dbf.newDocumentBuilder();
-    // dom = db.newDocument();
-    // Element root = dom.createElement("testcase");
-    // // TODO order of variables if important for testcomp!
-    // for (TestCaseVariable var : testcase.getInputs()) {
-    // String value = var.getValue().toString();
-    // Element input = createAndAppendElement("input", value, root, dom);
-    // input.setAttribute("variable", var.getName());
-    // }
-    //
-    // long timeInSeconds =
-    // TimeUnit.MILLISECONDS.convert(testcase.getElapsedTime(), TimeUnit.NANOSECONDS);
-    // Element time = createAndAppendElement("elapsedTime", Long.toString(timeInSeconds), root,
-    // dom);
-    //
-    // dom.appendChild(root);
-    // try {
-    // Transformer tr = TransformerFactory.newInstance().newTransformer();
-    // tr.setOutputProperty(OutputKeys.INDENT, "yes");
-    // tr.setOutputProperty(OutputKeys.METHOD, "xml");
-    // tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-    // DOMImplementation domImpl = dom.getImplementation();
-    // DocumentType doctype =
-    // domImpl.createDocumentType(
-    // "doctype",
-    // "+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN",
-    // "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/testcase.dtd");
-    // tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
-    // tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
-    //
-    // tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-    //
-    // // send DOM to file
-    // File outputFile = new File(outputFolder + "/testcase-" + testcase.getId() + ".xml");
-    // tr.transform(
-    // new DOMSource(dom),
-    // new StreamResult(outputFile));
-    //
-    // } catch (TransformerException te) {
-    // logger.log(Level.WARNING, te.getMessage());
-    // }
-    // } catch (ParserConfigurationException pce) {
-    // logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
-    // }
+      writeTestSuiteFile(
+          "/testcase-" + testcase.getId() + ".xml",
+          builder.toString());
   }
 
   private void initTestSuiteFolder() {
@@ -322,26 +248,11 @@ public class TestSuiteWriter {
     if (useTestCompOutput) {
       writePartialTestSuite(ts);
     } else {
-      try (Writer writer =
-          new BufferedWriter(
-              new OutputStreamWriter(
-                  new FileOutputStream(outputFolder + "/testsuite.txt"),
-                  "utf-8"))) {
-        writer.write(ts.toString());
-        writer.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-
-      try (Writer writer =
-          new BufferedWriter(
-              new OutputStreamWriter(
-                  new FileOutputStream(outputFolder + "/testsuite.json"),
-                  "utf-8"))) {
-        writer.write(ts.toJsonString());
-        writer.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+      writeTestSuiteFile("/testsuite.txt", ts.toString());
+      try {
+        writeTestSuiteFile("/testsuite.json", ts.toJsonString());
+      } catch (IOException e1) {
+        logger.log(Level.SEVERE, "could not parse test-suite to json");
       }
     }
   }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.timeout;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
+@Options(prefix = "timeout")
 public class TimeoutCPA extends AbstractCPA {
 
   // @Option(secure = true, name = "walltime", description = "Set the timeout length in seconds")

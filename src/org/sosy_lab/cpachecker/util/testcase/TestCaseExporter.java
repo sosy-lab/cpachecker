@@ -310,9 +310,9 @@ public class TestCaseExporter {
     if (parent != null) {
       Files.createDirectories(parent);
     }
-
+    String uriString = "jar:" + testCaseZip.toUri().toString();
     return
-        FileSystems.newFileSystem(URI.create("jar:" + testCaseZip.toUri().toString()), env, null);
+    FileSystems.newFileSystem(URI.create(uriString), env, null);
   }
 
   private String unpack(final AAstNode pInputValue) {

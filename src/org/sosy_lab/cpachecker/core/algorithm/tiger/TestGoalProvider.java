@@ -200,6 +200,7 @@ public class TestGoalProvider {
 
   private Set<CFAGoal> extractGoalFromRegex(String fqlQuery, CFA cfa) {
     String query = fqlQuery.substring(goalRegex.length());
+    logger.log(Level.INFO, "adding edges to goals matching this regular expression: " + query);
     Pattern pattern = Pattern.compile(query);
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {

@@ -87,7 +87,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       @Nullable final Specification stats)
       throws InvalidConfigurationException {
     init(pLogger, pCfa, pConfig, pCpa, pShutdownNotifier, stats);
-    config.inject(this);
+    // config.inject(this);
 
     partitionProvider = new PartitionProvider(config);
     pShutdownNotifier.register(this);

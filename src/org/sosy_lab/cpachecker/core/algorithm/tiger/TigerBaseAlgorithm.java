@@ -154,7 +154,8 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             outputFolder,
             tigerConfig.getFqlQuery(),
             producerString,
-            tigerConfig.addElapsedTimeToTC());
+            tigerConfig.addElapsedTimeToTC(),
+            tigerConfig.compressTestSuite());
   }
 
 

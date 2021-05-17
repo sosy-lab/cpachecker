@@ -9,10 +9,10 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
 		<attributes>
 			<attribute name="module" value="true"/>
-			<attribute name="limit-modules" value="java.compiler,java.desktop,java.instrument,java.logging,jdk.management,jdk.xml.dom,jdk.unsupported"/>
+			<attribute name="limit-modules" value="java.compiler,java.desktop,java.instrument,java.logging,jdk.management,jdk.unsupported,jdk.xml.dom,jdk.zipfs"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="lib/java-contrib/common-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/guava.jar" sourcepath="lib/java-contrib/guava-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="lib/java-contrib/javabdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
@@ -47,7 +47,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/pjbdd.jar" sourcepath="lib/java-contrib/pjbdd-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/byte-buddy.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="/Util/lib/cdt/org.eclipse.cdt.core.source_7.0.1.202010091427.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.contenttype.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.jobs.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.resources.jar"/>
