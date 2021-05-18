@@ -25,11 +25,11 @@ import { enqueue } from "./worker/workerDirector";
 import {
   argWorkerCallback,
   argWorkerErrorCallback,
-} from "./worker/worker_utils/argWorkerUtils.js";
+} from "./worker/argWorkerUtils.js";
 import {
   cfaWorkerCallback,
   cfaWorkerErrorCallback,
-} from "./worker/worker_utils/cfaWorkerUtils.js";
+} from "./worker/cfaWorkerUtils.js";
 const d3 = require("d3");
 
 const isDevEnv = process.env.NODE_ENV !== "production";

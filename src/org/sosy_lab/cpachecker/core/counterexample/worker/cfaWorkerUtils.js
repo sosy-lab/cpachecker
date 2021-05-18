@@ -12,8 +12,8 @@ import {
   showToolTipBox,
   hideToolTipBox,
   margin,
-} from "./workerUtils";
-import { enqueue } from "../workerDirector";
+} from "./workerUtils.js";
+import { enqueue } from "./workerDirector.js";
 import { argWorkerCallback, argWorkerErrorCallback } from "./argWorkerUtils.js";
 import $ from "jquery";
 

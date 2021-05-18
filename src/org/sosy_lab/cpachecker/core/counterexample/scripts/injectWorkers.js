@@ -9,13 +9,13 @@
 const fs = require("fs");
 const path = require("path");
 
-const rawWorkerPath = path.join(__dirname, "../worker/workers");
+const rawWorkerPath = path.join(__dirname, "../worker");
 const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js");
 const vendorPath = path.join(__dirname, "../vendor");
 
 const template = "data:text/plain;base64,";
 
-const workerFiles = fs.readdirSync(rawWorkerPath);
+const workerFiles = ["argWorker.js", "cfaWorker.js"];
 const vendorFiles = fs.readdirSync(vendorPath).filter(file => !file.includes("license"));
 
 let output = "";

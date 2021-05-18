@@ -12,8 +12,8 @@ import {
   showToolTipBox,
   hideToolTipBox,
   margin,
-} from "./workerUtils";
-import { enqueue } from "../workerDirector";
+} from "./workerUtils.js";
+import { enqueue } from "./workerDirector.js";
 import $ from "jquery";
 
 const d3 = require("d3");
