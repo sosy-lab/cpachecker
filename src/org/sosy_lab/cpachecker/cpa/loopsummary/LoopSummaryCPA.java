@@ -16,8 +16,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -62,13 +60,10 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
     super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
 
-    AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
-
     transfer =
         new LoopSummaryTransferRelation(
             this,
             pShutdownNotifier,
-            factory,
             super.getStrategies(),
             lookaheadamntnodes,
             lookaheaditerations,
@@ -101,23 +96,4 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
     return transfer;
   }
 
-  /*public Configuration getConfiguration() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  public Solver getSolver() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  public PathFormulaManager getPathFormulaManager() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  public PredicateAbstractionManager getPredicateManager() {
-    // TODO Auto-generated method stub
-    return null;
-  }*/
 }
