@@ -59,10 +59,26 @@ module.exports = {
     minimize: true,
     minimizer: [
       new TerserPlugin({
+        terserOptions: {
+          output: {
+            comments: false,
+          },
+        },
         // Don't extract license comments, we bundle them separately
         extractComments: false,
       }),
-      new CssMinimizerPlugin(),
+      new CssMinimizerPlugin({
+        minimizerOptions: {
+          preset: [
+            'default',
+            {
+              discardComments: { 
+                removeAll: true
+              },
+            },
+          ],
+        },
+      })
     ],
     runtimeChunk: false,
     splitChunks: {
