@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
+import com.google.common.base.Preconditions;
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,10 +57,9 @@ class LoopSummaryCPAStatistics implements Statistics {
   }
 
   public void incrementStrategyUsageCount(String summaryName) {
-    if (strategiesUsed.containsKey(summaryName)) {
-      // TODO Fix Bug, because strategy count is not being shown correctly
-      strategiesUsed.get(summaryName).inc();
-    }
+    Preconditions.checkState(strategiesUsed.containsKey(summaryName));
+    // TODO Fix Bug, because strategy count is not being shown correctly
+    strategiesUsed.get(summaryName).inc();
   }
 
   @Override
