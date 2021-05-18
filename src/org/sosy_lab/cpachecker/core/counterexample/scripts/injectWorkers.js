@@ -10,23 +10,15 @@ const fs = require("fs");
 const path = require("path");
 
 const rawWorkerPath = path.join(__dirname, "../worker/workers");
-const workerDataFile = path.join(__dirname, "../worker/workerData.js");
+const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js");
 const vendorPath = path.join(__dirname, "../vendor");
 
 const template = "data:text/plain;base64,";
-const fileHeader = `// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-`;
 
 const workerFiles = fs.readdirSync(rawWorkerPath);
 const vendorFiles = fs.readdirSync(vendorPath).filter(file => !file.includes("license"));
 
-let output = fileHeader;
+let output = "";
 const workerNames = [];
 
 const vendorFileContents = [];

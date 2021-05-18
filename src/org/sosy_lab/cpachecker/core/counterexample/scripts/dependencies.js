@@ -156,10 +156,10 @@ checker.init(
         dependencyData.length
       );
       fs.mkdir(
-        "./dependency_data",
+        "./build_tmp",
         () => {
           fs.writeFile(
-            "./dependency_data/dependencies.json",
+            "./build_tmp/dependencies.json",
             dependencyData,
             (err) => {
               if (err) {

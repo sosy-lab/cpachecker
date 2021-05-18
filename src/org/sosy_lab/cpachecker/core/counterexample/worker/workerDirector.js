@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import { argWorkerData, cfaWorkerData } from "./workerData";
+import { argWorkerData, cfaWorkerData } from "workerData";
 
 const handleWorkerMessage = (msg, worker, callback) => {
   worker.busy = false;

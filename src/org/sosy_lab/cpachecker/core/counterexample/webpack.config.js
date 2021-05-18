@@ -12,7 +12,7 @@ const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const path = require("path");
 const devFolder = "development_data/";
 const vendorFolder = "vendor/";
-const licenseFolder = "dependency_data/";
+const buildTmpFolder = "build_tmp/";
 
 module.exports = {
   mode: "production",
@@ -85,8 +85,9 @@ module.exports = {
       "dagre-d3": path.resolve(__dirname, vendorFolder + "dagre-d3.min.js"),
       dependencies: path.resolve(
         __dirname,
-        licenseFolder + "dependencies.json"
+        buildTmpFolder + "dependencies.json"
       ),
+      workerData: path.resolve(__dirname, buildTmpFolder + "workerData.js"),
     },
   },
 };
