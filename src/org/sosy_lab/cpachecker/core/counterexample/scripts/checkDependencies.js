@@ -103,6 +103,7 @@ checker.init(
           "(MIT)",
           "This software is released under the MIT license:",
           "Software License Agreement (BSD License)",
+          "===========",
           "========================================",
           "BSD License",
           "For React software",
