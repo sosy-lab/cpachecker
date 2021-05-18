@@ -7,8 +7,8 @@
 	"private": true,
 	"scripts": {
 		"inject-workers": "node scripts/injectWorkers.js",
-		"check-dependencies": "node scripts/checkDependencies.js",
-		"build": "npm run check-dependencies && npm run inject-workers && webpack",
+		"handle-dependencies": "node scripts/dependencies.js",
+		"build": "npm run handle-dependencies && npm run inject-workers && webpack",
 		"start": "npm run build & webpack serve --mode=development",
 		"test": "karma start karma.conf.js",
 		"e2e-test": "protractor e2e-conf.js",
