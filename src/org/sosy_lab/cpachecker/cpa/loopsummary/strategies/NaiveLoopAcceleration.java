@@ -103,21 +103,16 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
       currentNode = newNode;
       newNode = CFANode.newDummyCFANode("LSNA");
     }
-    startConditionLoopCFAEdgeTrue =
-        overwriteStartEndStateEdge(
-            (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
-            true,
-            currentNode,
-            newNode);
-    currentNode.addLeavingEdge(startConditionLoopCFAEdgeTrue);
-    newNode.addEnteringEdge(startConditionLoopCFAEdgeTrue);
+
     Optional<CFANode> loopUnrollingSuccess =
-        unrollLoopOnce(loopStartNode, loopBranchIndex, newNode, endNodeGhostCFA);
+        unrollLoopOnce(loopStartNode, loopBranchIndex, currentNode, endNodeGhostCFA);
     if (loopUnrollingSuccess.isEmpty()) {
       return Optional.empty();
     } else {
       currentNode = loopUnrollingSuccess.orElseThrow();
     }
+
+
     CFAEdge startConditionLoopCFAEdgeFalse =
         overwriteStartEndStateEdge(
             (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
@@ -126,6 +121,17 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
             endNodeGhostCFA);
     currentNode.addLeavingEdge(startConditionLoopCFAEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(startConditionLoopCFAEdgeFalse);
+
+    CFANode dummyNode = CFANode.newDummyCFANode("LSNA");
+    startConditionLoopCFAEdgeTrue =
+        overwriteStartEndStateEdge(
+            (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
+            true,
+            currentNode,
+            dummyNode);
+    currentNode.addLeavingEdge(startConditionLoopCFAEdgeTrue);
+    dummyNode.addEnteringEdge(startConditionLoopCFAEdgeTrue);
+
     startConditionLoopCFAEdgeFalse =
         overwriteStartEndStateEdge(
             (CAssumeEdge) loopStartNode.getLeavingEdge(loopBranchIndex),
@@ -134,6 +140,7 @@ public class NaiveLoopAcceleration extends AbstractStrategy {
             endNodeGhostCFA);
     startNodeGhostCFA.addLeavingEdge(startConditionLoopCFAEdgeFalse);
     endNodeGhostCFA.addEnteringEdge(startConditionLoopCFAEdgeFalse);
+
     return Optional.of(new GhostCFA(startNodeGhostCFA, endNodeGhostCFA));
   }
 

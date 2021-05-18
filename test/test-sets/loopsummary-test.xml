@@ -13,29 +13,29 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
   <option name="-heap">10000M</option>
- 
+
   <rundefinition name="loopsummary-value">
-	  <option name="-config">config/loop-summary/valueAnalysis-loopsummary.properties</option>
-	  <option name="-setprop">counterexample.export.enabled=false</option>
-	  <option name="-setprop">cpa.arg.export=false</option>
-	  <option name="-setprop">report.export=false</option>
+          <option name="-config">config/loop-summary/valueAnalysis-loopsummary.properties</option>
+          <option name="-setprop">counterexample.export.enabled=false</option>
+          <option name="-setprop">cpa.arg.export=false</option>
+          <option name="-setprop">report.export=false</option>
   </rundefinition>
 
   <rundefinition name="loopsummary-predicate">
-	  <option name="-config">config/loop-summary/predicateAnalysis-loopsummary.properties</option>
-	  <option name="-setprop">counterexample.export.enabled=false</option>
-	  <option name="-setprop">cpa.arg.export=false</option>
-	  <option name="-setprop">report.export=false</option>
+          <option name="-config">config/loop-summary/predicateAnalysis-loopsummary.properties</option>
+          <option name="-setprop">counterexample.export.enabled=false</option>
+          <option name="-setprop">cpa.arg.export=false</option>
+          <option name="-setprop">report.export=false</option>
   </rundefinition>
 
   <rundefinition name="predicate">
-	  <option name="-config">config/predicateAnalysis--overflow.properties</option>
-	  <option name="-setprop">counterexample.export.enabled=false</option>
+          <option name="-config">config/predicateAnalysis--overflow.properties</option>
+          <option name="-setprop">counterexample.export.enabled=false</option>
   </rundefinition>
 
   <rundefinition name="value">
-	  <option name="-config">config/valueAnalysis--overflow.properties</option>
-	  <option name="-setprop">counterexample.export.enabled=false</option>
+          <option name="-config">config/valueAnalysis--overflow.properties</option>
+          <option name="-setprop">counterexample.export.enabled=false</option>
   </rundefinition>
 
   <rundefinition name="sv-comp21">
@@ -62,4 +62,54 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash-NoOverflows.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
+  <!--
+  <tasks name="ReachSafety-Arrays">
+    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-BitVectors">
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-ControlFlow">
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-ECA">
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Floats">
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Heap">
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Loops">
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-ProductLines">
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Recursive">
+    <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Sequentialized">
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-XCSP">
+    <includesfile>../programs/benchmarks/ReachSafety-XCSP.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Combinations">
+    <includesfile>../programs/benchmarks/ReachSafety-Combinations.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  -->
 </benchmark>

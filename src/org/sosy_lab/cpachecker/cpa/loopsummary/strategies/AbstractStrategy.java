@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -206,24 +204,22 @@ public abstract class AbstractStrategy implements StrategyInterface {
     }
 
     CFAEdge dummyTrueEdgeStart =
-        new CAssumeEdge(
+        new BlankEdge(
             "true GHOST CFA Strategy " + this.strategyNumber,
             FileLocation.DUMMY,
             AbstractStates.extractLocation(pState),
             ghostCFA.getStartNode(),
-            CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
-            true);
+            "true GHOST CFA Strategy " + this.strategyNumber);
     AbstractStates.extractLocation(pState).addLeavingEdge(dummyTrueEdgeStart);
     ghostCFA.getStartNode().addEnteringEdge(dummyTrueEdgeStart);
 
     CFAEdge dummyTrueEdgeEnd =
-        new CAssumeEdge(
+        new BlankEdge(
             "true GHOST CFA",
             FileLocation.DUMMY,
             ghostCFA.getStopNode(),
             afterLoopNode,
-            CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT),
-            true);
+            "true GHOST CFA");
     ghostCFA.getStopNode().addLeavingEdge(dummyTrueEdgeEnd);
     afterLoopNode.addEnteringEdge(dummyTrueEdgeEnd);
 
