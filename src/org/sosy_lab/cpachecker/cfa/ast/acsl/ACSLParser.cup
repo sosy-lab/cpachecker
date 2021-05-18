@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -111,10 +112,13 @@ parser code {:
         Reader reader = new FileReader(new File(filename), StandardCharsets.UTF_8);
         ACSLScanner scanner = new ACSLScanner(reader);
 
-        ImmutableList<FileLocation> orderedLocs =
-            orderedAnnotationLocs
-                .filter(x -> x.getFileName().equals(filename))
-                .collect(ImmutableList.toImmutableList());
+      ImmutableList<FileLocation> orderedLocs =
+          orderedAnnotationLocs
+              .filter(
+                  x ->
+                      x.getFileName().equals(filename)
+                          || Path.of(x.getFileName()).getFileName().toString().equals(filename))
+              .collect(ImmutableList.toImmutableList());
         ACSLParser parser =
             new ACSLParser(
                 scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger, commentPositions);
