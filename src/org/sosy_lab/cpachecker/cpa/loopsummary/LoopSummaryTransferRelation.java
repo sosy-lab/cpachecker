@@ -111,19 +111,14 @@ public class LoopSummaryTransferRelation extends AbstractSingleWrapperTransferRe
   private Optional<Collection<? extends AbstractState>> applyStrategyIfAlreadyApplied(
       AbstractState pState, Precision pPrecision) {
     for (int i = 0; i < AbstractStates.extractLocation(pState).getNumLeavingEdges(); i++) {
-      if (AbstractStates.extractLocation(pState)
-          .getLeavingEdge(i)
-          .getRawStatement()
-          .equals(
-              "true GHOST CFA Strategy "
-                  + ((LoopSummaryPrecision) pPrecision).getStrategyCounter())) {
-        CFANode startGhotNode =
-            AbstractStates.extractLocation(pState).getLeavingEdge(i).getSuccessor();
+      CFAEdge currentEdge = AbstractStates.extractLocation(pState).getLeavingEdge(i);
+      if (isGhostEdgeForStrategy(currentEdge, pPrecision)) {
+        CFANode startGhostNode = currentEdge.getSuccessor();
         // Teleport to the Ghost CFA
         LocationState oldLocationState =
             AbstractStates.extractStateByType(pState, LocationState.class);
         LocationState ghostStartLocationState =
-            new LocationState(startGhotNode, oldLocationState.getFollowFunctionCalls());
+            new LocationState(startGhostNode, oldLocationState.getFollowFunctionCalls());
         AbstractState dummyStateStart =
             (((BaseStrategy) this.strategies.get(this.baseStrategyPosition))
                 .overwriteLocationState(pState, ghostStartLocationState, pState));
@@ -136,24 +131,33 @@ public class LoopSummaryTransferRelation extends AbstractSingleWrapperTransferRe
     return Optional.empty();
   }
 
+  private static boolean isGhostEdgeForStrategy(CFAEdge pCurrentEdge, Precision pPrecision) {
+    return pCurrentEdge
+        .getRawStatement()
+        .equals(
+            "true GHOST CFA Strategy " + ((LoopSummaryPrecision) pPrecision).getStrategyCounter());
+  }
+
+  private static boolean isGhostEdge(CFAEdge currentEdge) {
+    return currentEdge.getRawStatement().startsWith("[true GHOST CFA Strategy ");
+  }
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       final AbstractState pState, final Precision pPrecision)
       throws InterruptedException, CPATransferException {
 
     Optional<Collection<? extends AbstractState>> summarizedState =
-        this.applyStrategyIfAlreadyApplied(pState, pPrecision);
+        applyStrategyIfAlreadyApplied(pState, pPrecision);
     while (summarizedState.isEmpty()) {
       List<CFAEdge> removedEdges = new ArrayList<>();
       int i = 0;
       while (i < AbstractStates.extractLocation(pState).getNumLeavingEdges()) {
         // Remove Edges of Other Strategies in order for the Strategy Calculation to work with the
         // Original CFA
-        if (AbstractStates.extractLocation(pState)
-            .getLeavingEdge(i)
-            .getRawStatement()
-            .startsWith("[true GHOST CFA Strategy ")) {
-          removedEdges.add(AbstractStates.extractLocation(pState).getLeavingEdge(i));
+        CFAEdge currentEdge = AbstractStates.extractLocation(pState).getLeavingEdge(i);
+        if (isGhostEdge(currentEdge)) {
+          removedEdges.add(currentEdge);
           AbstractStates.extractLocation(pState)
               .removeLeavingEdge(removedEdges.get(removedEdges.size() - 1));
         } else {
