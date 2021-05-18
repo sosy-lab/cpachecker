@@ -131,7 +131,7 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
               if (!((CIdExpression) secondOperand)
                       .getName()
                       .equals(((CIdExpression) leftSide).getName())
-                  && secondOperand instanceof CIntegerLiteralExpression) {
+                  && firstOperand instanceof CIntegerLiteralExpression) {
                 return false;
               }
             } else {

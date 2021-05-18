@@ -92,16 +92,12 @@ public class LoopSummaryStrategyRefiner implements Refiner {
           (LoopSummaryPrecision) pReached.getPrecision(refinementState);
       newPrecision.updateStrategy();
       newPrecision.setLoopHead(false);
-      // TODO Reset the rest of the Precisions, for now this is only done for the predicate
-      // Precision
-      // but should also be done for the Value precision and others accordingly
-      // This is not important since precision is an offer not a hard fact
-      // newPrecision.replaceWrappedPrecision(
-      //    PredicatePrecision.empty(), Predicates.instanceOf(PredicatePrecision.class));
 
-      /*reached.removeSubtree(
+      /*
+       * This is called instead of the following, since the precision update is lost (Assumption)
+       * if this is not done
+       * reached.removeSubtree(
       refinementState, newPrecision, pPrecision -> pPrecision instanceof LoopSummaryPrecision);*/
-      Iterator<ARGState> children = refinementState.getChildren().iterator();
       while (!refinementState.getChildren().isEmpty()) {
         reached.removeSubtree(refinementState.getChildren().iterator().next());
       }
