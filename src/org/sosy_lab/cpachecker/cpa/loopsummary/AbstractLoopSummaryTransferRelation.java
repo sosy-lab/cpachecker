@@ -191,18 +191,4 @@ public abstract class AbstractLoopSummaryTransferRelation<EX extends CPAExceptio
     return summarizedState.orElseThrow();
   }
 
-  /**
-   * Return the successor using the wrapped CPA.
-   *
-   * @param pState current abstract state
-   * @param pPrecision current precisionloopOutgoingConditionEdge
-   * @param pNode current location
-   * @throws EX thrown in subclass
-   */
-  protected Collection<? extends AbstractState> getWrappedTransferSuccessor(
-      final ARGState pState, final Precision pPrecision, final CFANode pNode)
-      throws EX, InterruptedException, CPATransferException {
-    return transferRelation.getAbstractSuccessors(pState, pPrecision);
-  }
-
 }

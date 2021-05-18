@@ -8,18 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.loopsummary;
 
-import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LoopSummaryTransferRelation extends AbstractLoopSummaryTransferRelation<CPAException> {
 
@@ -47,16 +41,4 @@ public class LoopSummaryTransferRelation extends AbstractLoopSummaryTransferRela
     algorithmFactory = pFactory;
     stats = loopSummaryCpa.getStatistics();
   }
-
-  @Override
-  protected Collection<? extends AbstractState> getWrappedTransferSuccessor(
-      final ARGState pState, final Precision pPrecision, final CFANode node)
-      throws CPATransferException, InterruptedException {
-
-    final Collection<? extends AbstractState> result =
-        transferRelation.getAbstractSuccessors(pState, pPrecision);
-    return result;
-  }
-
-
 }
