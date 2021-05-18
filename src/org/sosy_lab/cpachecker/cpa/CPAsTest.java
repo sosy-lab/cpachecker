@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.dca.DCACPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
@@ -97,6 +98,7 @@ public class CPAsTest {
     cpas.remove(DCACPA.class);
     cpas.remove(UsageCPA.class);
     cpas.remove(CompositeCPA.class);
+    cpas.remove(LoopSummaryCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
     cpas.remove(SingleSuccessorCompactorCPA.class);
