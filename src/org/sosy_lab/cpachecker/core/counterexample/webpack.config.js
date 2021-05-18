@@ -11,6 +11,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const path = require("path");
 const devFolder = "development_data/";
+const vendorFolder = "vendor/";
 const licenseFolder = "dependency_data/";
 
 module.exports = {
@@ -80,6 +81,8 @@ module.exports = {
   resolve: {
     alias: {
       devData: path.resolve(__dirname, devFolder + "data.json"),
+      d3: path.resolve(__dirname, vendorFolder + "d3.min.js"),
+      "dagre-d3": path.resolve(__dirname, vendorFolder + "dagre-d3.min.js"),
       dependencies: path.resolve(
         __dirname,
         licenseFolder + "dependencies.json"

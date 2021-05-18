@@ -21,8 +21,6 @@
 		"code-prettify": "^0.1.0",
 		"css-loader": "^5.2.2",
 		"css-minimizer-webpack-plugin": "^1.1.5",
-		"d3": "^6.7.0",
-		"dagre-d3": "^0.6.4",
 		"eslint": "^7.24.0",
 		"eslint-config-prettier": "^8.2.0",
 		"eslint-plugin-prettier": "^3.4.0",
