@@ -1,3 +1,17 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+// It is an accelerated version of the sv-benchmarks task easy2-2.c,
+// which is under BSD 2-Clause "Simplified" license, curtesy of
+// University of Freiburg.
+// The changes are licensed under Apache-2.0 license.
+//
+// SPDX-FileCopyrightText: 2013 University of Freiburg
+// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: BSD-2-Clause
+
 typedef enum {false, true} bool;
 
 extern int __VERIFIER_nondet_int(void);
