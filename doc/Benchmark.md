@@ -27,7 +27,7 @@ For benchmarking, it is recommended to use
 [BenchExec](https://github.com/sosy-lab/benchexec).
 An extended version of BenchExec is bundled with CPAchecker
 and usable by calling `scripts/benchmark.py`.
-This script should run with any Python version >= 3.4.
+This script should run with any Python version >= 3.5.
 This script takes as input one or more XML files which specify the tool,
 the resource limits, the tool configuration, the input programs
 and the columns that should appear in the output table.

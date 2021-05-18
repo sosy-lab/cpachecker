@@ -27,7 +27,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -219,7 +218,7 @@ public class ARGReachedSet {
    * Safely remove a part of the ARG which has been proved as completely unreachable. This method
    * takes care of the coverage relationships of the removed nodes, re-adding covered nodes to the
    * waitlist if necessary.
-   * 
+   *
    * @param rootOfInfeasiblePart The root of the subtree to remove.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
@@ -282,7 +281,7 @@ public class ARGReachedSet {
    */
   public void updatePrecisionGlobally(Precision pNewPrecision,
       Predicate<? super Precision> pPrecisionType) {
-    Map<Precision, Precision> precisionUpdateCache = new IdentityHashMap<>();
+    IdentityHashMap<Precision, Precision> precisionUpdateCache = new IdentityHashMap<>();
 
     mReached.forEach(
         (s, oldPrecision) -> {

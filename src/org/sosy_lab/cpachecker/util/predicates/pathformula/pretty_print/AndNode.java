@@ -54,6 +54,18 @@ public class AndNode implements FormulaNode {
   }
 
   @Override
+  public boolean logicallyEquivalentTo(FormulaNode node) {
+    if (node instanceof AndNode) {
+      AndNode andNode = (AndNode) node;
+      if ((andNode.left.logicallyEquivalentTo(left) && andNode.right.logicallyEquivalentTo(right)) ||
+          (andNode.left.logicallyEquivalentTo(right) && andNode.right.logicallyEquivalentTo(left))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public List<FormulaNode> getSuccessors() {
     return ImmutableList.of(left,right);
   }
