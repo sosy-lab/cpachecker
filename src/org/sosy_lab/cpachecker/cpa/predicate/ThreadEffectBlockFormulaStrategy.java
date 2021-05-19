@@ -25,13 +25,13 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public class ThreadEffectBlockFormulaStrategy extends BlockFormulaStrategy {
 
   private final FormulaManagerView fmgr;
-  private final PathFormulaManager pfmgr;
+  private final PathFormulaManager pathFmgr;
 
   public ThreadEffectBlockFormulaStrategy(
       FormulaManagerView pFmgr,
       PathFormulaManager pPfgmr) {
     fmgr = pFmgr;
-    pfmgr = pPfgmr;
+    pathFmgr = pPfgmr;
   }
 
   private String RenameVariables(String s) {
@@ -98,7 +98,7 @@ public class ThreadEffectBlockFormulaStrategy extends BlockFormulaStrategy {
       // is disabled
       return new BlockFormulas(
           allFormulas,
-          pfmgr.buildBranchingFormula(new HashSet<>(abstractionStates)));
+          pathFmgr.buildBranchingFormula(new HashSet<>(abstractionStates)));
 
     } else {
       // No devision
