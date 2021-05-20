@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 build
-dependency_licenses
+build_tmp
 development_data
-external_libs
 node_modules
+vendor
