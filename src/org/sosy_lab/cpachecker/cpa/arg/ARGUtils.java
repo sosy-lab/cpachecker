@@ -529,14 +529,14 @@ public class ARGUtils {
         }
 
         for (ARGState currentChild : childrenInArg) {
-            ARGState branchingParent = threadModularShift ? currentChild : currentElement;
-            ARGState branchingChild =
+          ARGState branchingParent = threadModularShift ? currentChild : currentElement;
+          ARGState branchingChild =
               threadModularShift ? Iterables.get(currentChild.getChildren(), 0) : currentChild;
-            CFAEdge brangingEdge = branchingParent.getEdgeToChild(branchingChild);
+          CFAEdge branchingEdge = branchingParent.getEdgeToChild(branchingChild);
           CFAEdge currentEdge =
-              threadModularShift ? currentElement.getEdgeToChild(currentChild) : brangingEdge;
+              threadModularShift ? currentElement.getEdgeToChild(currentChild) : branchingEdge;
 
-          if (((AssumeEdge) brangingEdge).getTruthAssumption()) {
+          if (((AssumeEdge) branchingEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
             trueChild = currentChild;
           } else {

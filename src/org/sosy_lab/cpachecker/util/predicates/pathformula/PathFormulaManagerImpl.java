@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -479,15 +481,29 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         if (threadModularShift) {
           // extracting correct assume edges
+          Set<CFAEdge> edges = new HashSet<>();
+          for (ARGState child : childrenOnPath) {
+            for (ARGState grandchild : child.getChildren()) {
+              CFAEdge currentEdge = child.getEdgeToChild(grandchild);
+              if (currentEdge != null) {
+                edges.add(currentEdge);
+              }
+            }
+          }
+          outgoingEdges = from(edges);
+
+          if (outgoingEdges.anyMatch(Predicates.instanceOf(CFunctionCallEdge.class))) {
+            // We do not need branching formula for a function entry point
+            // The branching on function calls is possible in thread modular case, due to shift
+            continue;
+          }
+
           for (ARGState child : childrenOnPath) {
             CFAEdge currentEdge = child.getEdgeToChild(Iterables.get(child.getChildren(), 0));
             if (((AssumeEdge) currentEdge).getTruthAssumption()) {
               branchingElement = child;
             }
           }
-          outgoingEdges =
-              from(childrenOnPath)
-                  .transform(s -> s.getEdgeToChild(Iterables.get(s.getChildren(), 0)));
         } else {
           branchingElement = pathElement;
           outgoingEdges = from(childrenOnPath).transform(pathElement::getEdgeToChild);
