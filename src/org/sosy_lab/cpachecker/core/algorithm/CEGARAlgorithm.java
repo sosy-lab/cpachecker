@@ -80,13 +80,21 @@ public class CEGARAlgorithm
         out.println("Number of failed refinements:         " + countFailedRefinements);
         out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
         out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
-        out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
-        out.println("Avg. size of reached set after ref.:  " + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
+        out.println(
+            "Avg. size of reached set before ref.: "
+                + div(totalReachedSizeBeforeRefinement, countRefinements));
+        out.println(
+            "Avg. size of reached set after ref.:  "
+                + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
-        out.println("Average time for refinement:      " + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-        out.println("Max time for refinement:          " + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+        out.println(
+            "Average time for refinement:      "
+                + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+        out.println(
+            "Max time for refinement:          "
+                + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
       }
     }
   }
@@ -139,11 +147,11 @@ public class CEGARAlgorithm
     private Refiner.Factory refinerFactory;
 
     @Option(
-      secure = true,
-      name = "globalRefinement",
-      description =
-          "Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely."
-    )
+        secure = true,
+        name = "globalRefinement",
+        description =
+            "Whether to do refinement immediately after finding an error state, or globally after"
+                + " the ARG has been unrolled completely.")
     private boolean globalRefinement = false;
 
     /*
@@ -157,9 +165,10 @@ public class CEGARAlgorithm
     private int maxRefinementNum = -1;
 
     @Option(
-      secure = true,
-      name = "stopAfterNSuccessfulRefinements",
-      description = "Stop after the given number of successful refinements. If 0, there is no limit.")
+        secure = true,
+        name = "stopAfterNSuccessfulRefinements",
+        description =
+            "Stop after the given number of successful refinements. If 0, there is no limit.")
     @IntegerOption(min = 0)
     private int stopAfterNSuccessfulRefinements = 0;
 
@@ -244,7 +253,11 @@ public class CEGARAlgorithm
         notifyReachedSetUpdateListeners(reached);
 
         if (stats.countRefinements == maxRefinementNum) {
-          logger.log(Level.WARNING, "Aborting analysis because maximum number of refinements " + maxRefinementNum + " used");
+          logger.log(
+              Level.WARNING,
+              "Aborting analysis because maximum number of refinements "
+                  + maxRefinementNum
+                  + " used");
           status = status.withPrecise(false);
           break;
         }
@@ -275,6 +288,10 @@ public class CEGARAlgorithm
 
     } finally {
       stats.totalTimer.stop();
+    }
+    if (stopAfterNSuccessfulRefinements > 0
+        && stats.countSuccessfulRefinements >= stopAfterNSuccessfulRefinements) {
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
     return status;
   }
