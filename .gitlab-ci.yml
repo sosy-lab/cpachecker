@@ -165,6 +165,7 @@ javascript-unit-tests:
 
 javascript-eslint:
   stage: checks
+  dependencies: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
