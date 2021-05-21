@@ -134,9 +134,7 @@ public class UndefinedFunctionCollectorAlgorithm
   public AlgorithmStatus run(ReachedSet pReachedSet) throws InterruptedException {
     collectUndefinedFunctions();
 
-    // clear reached set and therefore waitlist to prevent further warnings:
-    pReachedSet.clear();
-    return AlgorithmStatus.SOUND_AND_PRECISE;
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   private void collectUndefinedFunctions() throws InterruptedException {

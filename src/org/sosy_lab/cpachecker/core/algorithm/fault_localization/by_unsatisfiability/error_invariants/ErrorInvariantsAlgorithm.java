@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -266,6 +267,12 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     String abstractErrorTrace =
         abstractTrace.stream().map(e -> " - " + e).collect(Collectors.joining("\n"));
     logger.log(Level.INFO, "Abstract error trace:\n" + abstractErrorTrace);
+    logger.log(Level.FINEST, "tfresult=" + Arrays.toString(abstractTrace
+            .stream()
+            .filter(tr -> tr instanceof Selector)
+            .map(fc -> ((Selector)fc).correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .sorted()
+            .toArray()));
     return faults;
   }
 
