@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -193,10 +191,10 @@ public class FaultReportWriter {
     for (CFAEdge e : pEdges) {
       int codeLineNumber = e.getFileLocation().getStartingLineInOrigin();
       String description = e.getDescription();
-      checkState(
-          !statements.containsKey(codeLineNumber)
-              || statements.get(codeLineNumber).equals(description));
-      statements.put(codeLineNumber, description);
+      /*checkState(
+      !statements.containsKey(codeLineNumber)
+          || statements.get(codeLineNumber).equals(description));*/
+      statements.merge(codeLineNumber, description, (s1, s2) -> s1 + ", " + s2);
     }
     return statements;
   }

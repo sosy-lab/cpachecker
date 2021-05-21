@@ -384,6 +384,9 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
+# Enable converting test goals to conditions.
+analysis.testGoalConverter = no default value
+
 # Replace thread creation operations with a special function callsso, any
 # analysis can go through the function
 analysis.threadOperationsTransform = false
@@ -896,6 +899,13 @@ conditional.verifier.generatorConfig = no default value
 # configuration for the verification of the residual program which is
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
+
+# The input file with all goals that were previously reached
+conditional_testing.inputfile = no default value
+
+# The strategy to use
+conditional_testing.strategy = no default value
+  enum:     [NAIVE, PROPAGATION]
 
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
@@ -1606,24 +1616,24 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
-# export automaton to file
+# Export the trace-abtraction automaton to a file in dot-format.
 cpa.dca.refiner.dotExport = false
 
-# file for saving the automaton in DOT format (%s will be replaced with
-# automaton name)
+# Filename that the interpolation automaton will be written to. %s will get
+# replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# Keep infeasible dummy states that allow for better debugging
+# If set to true, all infeasible dummy states will be kept in the ARG.
 cpa.dca.refiner.keepInfeasibleStates = false
 
-# Set number of refinements for the trace abstraction algorithm
-cpa.dca.refiner.maxRefinementIterations = 0
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.dca.refiner.maxRefinementIterations = 10
 
-# Allows to abort the analysis early in order to only produce the ARG
+# Skip the analysis (including the refinement) entirely, so that the ARG is
+# left unmodified. This is used for debugging purposes.
 cpa.dca.refiner.skipAnalysis = false
-
-# Abort the refinement of finite prefixes for the purpose of better debugging
-cpa.dca.refiner.skipRefinement = false
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -2076,13 +2086,6 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
-# Load the theory for bitvector and floating point encoding during startup.
-# Only disable this option if an SMT solver does not support a certain theory
-# and you know that the following analysis does not require a certain theory.
-# The enabled option helps with nice user messages if a certain theory cannot
-# be loaded.
-cpa.predicate.createFormulaEncodingEagerly = true
-
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
@@ -2103,21 +2106,30 @@ cpa.predicate.enableBlockreducer = false
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
-# solvers that do not support bitvectors, or for increased performance.
+# solvers that do not support bitvectors, or for increased performance. If
+# UNSUPPORTED, solvers can be used that support none of the possible
+# alternatives, but CPAchecker will crash if bitvectors are required by the
+# analysis.
 cpa.predicate.encodeBitvectorAs = BITVECTOR
-  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for floats. If different from FLOAT, the specified
 # theory is used to approximate floats. This can be used for solvers that do
-# not support floating-point arithmetic, or for increased performance.
+# not support floating-point arithmetic, or for increased performance. If
+# UNSUPPORTED, solvers can be used that support none of the possible
+# alternatives, but CPAchecker will crash if floats are required by the
+# analysis.
 cpa.predicate.encodeFloatAs = FLOAT
-  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for integers. If different from INTEGER, the
 # specified theory is used to approximate integers. This can be used for
-# solvers that do not support integers, or for increased performance.
+# solvers that do not support integers, or for increased performance. If
+# UNSUPPORTED, solvers can be used that support none of the possible
+# alternatives, but CPAchecker will crash if integers are required by the
+# analysis.
 cpa.predicate.encodeIntegerAs = INTEGER
-  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
 # normal value or an UF representing the overflow.
@@ -4249,7 +4261,8 @@ testcase.targets.funName = no default value
 
 # Which strategy to use to optimize set of test target edges
 testcase.targets.optimization.strategy = NONE
-  enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
+  enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
+             ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME

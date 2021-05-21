@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceIntegerWithBitvectorTheory.ReplaceIntegerEncodingOptions;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -107,6 +107,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 public class FormulaManagerView {
 
   enum Theory {
+    UNSUPPORTED,
     INTEGER,
     RATIONAL,
     BITVECTOR,
@@ -127,13 +128,13 @@ public class FormulaManagerView {
   private final FormulaWrappingHandler wrappingHandler;
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
-  private final ReplaceBitvectorEncodingOptions bvOptions;
   private final ReplaceIntegerEncodingOptions intOptions;
 
+  private final @Nullable BitvectorFormulaManagerView bitvectorFormulaManager;
+  private final @Nullable FloatingPointFormulaManagerView floatingPointFormulaManager;
+  private final @Nullable IntegerFormulaManagerView integerFormulaManager;
+
   // other formula managers use lazy initialization, because some solvers do not support them.
-  private @Nullable BitvectorFormulaManagerView bitvectorFormulaManager;
-  private @Nullable FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private @Nullable IntegerFormulaManagerView integerFormulaManager;
   private @Nullable RationalFormulaManagerView rationalFormulaManager;
   private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager;
   private @Nullable ArrayFormulaManagerView arrayFormulaManager;
@@ -149,29 +150,35 @@ public class FormulaManagerView {
     + "and add axioms like (0 & n = 0)")
   private boolean useBitwiseAxioms = false;
 
-  @Option(secure=true, description="Theory to use as backend for bitvectors."
-      + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
-      + " This can be used for solvers that do not support bitvectors, or for increased performance.")
+  @Option(
+      secure = true,
+      description =
+          "Theory to use as backend for bitvectors. If different from BITVECTOR, the specified"
+              + " theory is used to approximate bitvectors. This can be used for solvers that do"
+              + " not support bitvectors, or for increased performance. If UNSUPPORTED, solvers can"
+              + " be used that support none of the possible alternatives, but CPAchecker will crash"
+              + " if bitvectors are required by the analysis.")
   private Theory encodeBitvectorAs = Theory.BITVECTOR;
-
-  @Option(secure=true, description="Theory to use as backend for floats."
-      + " If different from FLOAT, the specified theory is used to approximate floats."
-      + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
-  private Theory encodeFloatAs = Theory.FLOAT;
-
-  @Option(secure=true, description="Theory to use as backend for integers."
-      + " If different from INTEGER, the specified theory is used to approximate integers."
-      + " This can be used for solvers that do not support integers, or for increased performance.")
-  private Theory encodeIntegerAs = Theory.INTEGER;
 
   @Option(
       secure = true,
       description =
-          "Load the theory for bitvector and floating point encoding during startup. "
-              + "Only disable this option if an SMT solver does not support a certain theory "
-              + "and you know that the following analysis does not require a certain theory. "
-              + "The enabled option helps with nice user messages if a certain theory cannot be loaded.")
-  private boolean createFormulaEncodingEagerly = true;
+          "Theory to use as backend for floats. If different from FLOAT, the specified theory is"
+              + " used to approximate floats. This can be used for solvers that do not support"
+              + " floating-point arithmetic, or for increased performance. If UNSUPPORTED, solvers"
+              + " can be used that support none of the possible alternatives, but CPAchecker will"
+              + " crash if floats are required by the analysis.")
+  private Theory encodeFloatAs = Theory.FLOAT;
+
+  @Option(
+      secure = true,
+      description =
+          "Theory to use as backend for integers. If different from INTEGER, the specified theory"
+              + " is used to approximate integers. This can be used for solvers that do not support"
+              + " integers, or for increased performance. If UNSUPPORTED, solvers can be used that"
+              + " support none of the possible alternatives, but CPAchecker will crash if integers"
+              + " are required by the analysis.")
+  private Theory encodeIntegerAs = Theory.INTEGER;
 
   @VisibleForTesting
   public FormulaManagerView(
@@ -180,158 +187,225 @@ public class FormulaManagerView {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
     manager = checkNotNull(pFormulaManager);
+
+    // Check unsupported configurations first for good error messages instead of assertions
+    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.BITVECTOR, Theory.INTEGER, Theory.RATIONAL)
+        .contains(encodeBitvectorAs)) {
+      throw new InvalidConfigurationException(
+          "Invalid value "
+              + encodeBitvectorAs
+              + " for option cpa.predicate.encodeBitvectorAs. "
+              + "This kind of theory approximation is not supported.");
+    }
+    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.FLOAT, Theory.INTEGER, Theory.RATIONAL)
+        .contains(encodeFloatAs)) {
+      throw new InvalidConfigurationException(
+          "Invalid value "
+              + encodeFloatAs
+              + " for option cpa.predicate.encodeFloatAs. "
+              + "This kind of theory approximation is not supported.");
+    }
+    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.INTEGER, Theory.BITVECTOR)
+        .contains(encodeIntegerAs)) {
+      throw new InvalidConfigurationException(
+          "Invalid value "
+              + encodeIntegerAs
+              + " for option cpa.predicate.encodeIntegerAs. "
+              + "This kind of theory approximation is not supported.");
+    }
+
     intOptions = new ReplaceIntegerEncodingOptions(config);
     wrappingHandler =
         new FormulaWrappingHandler(
             manager, encodeBitvectorAs, encodeFloatAs, encodeIntegerAs, intOptions);
-    booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager());
-    functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
-    bvOptions = new ReplaceBitvectorEncodingOptions(config);
+
+    booleanFormulaManager =
+        new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager());
+    functionFormulaManager =
+        new FunctionFormulaManagerView(wrappingHandler, manager.getUFManager());
+
+    bitvectorFormulaManager = createBitvectorFormulaManager(config);
+    floatingPointFormulaManager = createFloatingPointFormulaManager();
+    integerFormulaManager = createIntegerFormulaManager(intOptions);
 
     logInfo();
-
-    if (createFormulaEncodingEagerly) {
-      try {
-        getBitvectorFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(
-            "The chosen SMT solver does not support the theory of "
-                + encodeBitvectorAs.description()
-                + ", please choose another SMT solver "
-                + "or use the option cpa.predicate.encodeBitvectorAs "
-                + "to approximate bitvectors with another theory.",
-            e);
-      }
-
-      try {
-        getFloatingPointFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(
-            "The chosen SMT solver does not support the theory of "
-                + encodeFloatAs.description()
-                + ", please choose another SMT solver "
-                + "or use the option cpa.predicate.encodeFloatAs "
-                + "to approximate floats with another theory.",
-            e);
-      }
-
-      try {
-        getIntegerFormulaManager();
-      } catch (UnsupportedOperationException e) {
-        throw new InvalidConfigurationException(
-            "The chosen SMT solver does not support the theory of "
-                + encodeIntegerAs.description()
-                + ", please choose another SMT solver "
-                + "or use the option cpa.predicate.encodeIntegerAs "
-                + "to approximate integers with another theory.",
-            e);
-      }
-    }
   }
 
   private void logInfo() {
-    List<String> encodings = new ArrayList<>();
-    if (encodeIntegerAs != Theory.INTEGER) {
-      encodings.add(
+    List<Theory> unsupportedTheories = new ArrayList<>();
+    if (encodeBitvectorAs == Theory.UNSUPPORTED) {
+      unsupportedTheories.add(Theory.BITVECTOR);
+    }
+    if (encodeFloatAs == Theory.UNSUPPORTED) {
+      unsupportedTheories.add(Theory.FLOAT);
+    }
+    if (encodeIntegerAs == Theory.UNSUPPORTED) {
+      unsupportedTheories.add(Theory.INTEGER);
+    }
+    if (!unsupportedTheories.isEmpty()) {
+      logger.log(
+          Level.WARNING,
+          "Theory of",
+          from(unsupportedTheories).transform(Theory::description).join(Joiner.on(" and ")),
+          "unsupported by current configuration.",
+          "CPAchecker will crash if any of these are used during the analysis.");
+    }
+
+    List<String> approximations = new ArrayList<>();
+    if (encodeIntegerAs != Theory.INTEGER && encodeIntegerAs != Theory.UNSUPPORTED) {
+      approximations.add(
           "plain ints with "
               + encodeIntegerAs.description()
               + " with bitsize "
               + intOptions.getBitsize());
     }
-    if (encodeBitvectorAs != Theory.BITVECTOR) {
-      encodings.add("ints with " + encodeBitvectorAs.description());
+    if (encodeBitvectorAs != Theory.BITVECTOR && encodeBitvectorAs != Theory.UNSUPPORTED) {
+      approximations.add("ints with " + encodeBitvectorAs.description());
     }
-    if (encodeFloatAs != Theory.FLOAT) {
-      encodings.add("floats with " + encodeFloatAs.description());
+    if (encodeFloatAs != Theory.FLOAT && encodeFloatAs != Theory.UNSUPPORTED) {
+      approximations.add("floats with " + encodeFloatAs.description());
     }
-    StringBuilder approximations = new StringBuilder(Joiner.on(" and ").join(encodings));
-    if (approximations.length() > 0) {
+    if (!approximations.isEmpty()) {
       logger.log(
           Level.WARNING,
           "Using unsound approximation of",
-          approximations,
+          Joiner.on(" and ").join(approximations),
           "for encoding program semantics.");
     }
   }
 
   /**
-   * Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
+   * Creates the BitvectorFormulaManagerView or a replacement based on the option encodeBitvectorAs.
    */
-  private BitvectorFormulaManager getRawBitvectorFormulaManager(
-      ReplaceBitvectorEncodingOptions pBvOptions)
-      throws UnsupportedOperationException, AssertionError {
-    switch (encodeBitvectorAs) {
-      case BITVECTOR:
-        return manager.getBitvectorFormulaManager();
-      case INTEGER:
-        return new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-            wrappingHandler,
-            manager.getBooleanFormulaManager(),
-            manager.getIntegerFormulaManager(),
-            manager.getUFManager(),
-            pBvOptions);
-      case RATIONAL:
-        return new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-            wrappingHandler,
-            manager.getBooleanFormulaManager(),
-            manager.getRationalFormulaManager(),
-            manager.getUFManager(),
-            pBvOptions);
-      case FLOAT:
-        throw new UnsupportedOperationException(
-            "Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
-      default:
-        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
+  private @Nullable BitvectorFormulaManagerView createBitvectorFormulaManager(Configuration config)
+      throws InvalidConfigurationException {
+    if (encodeBitvectorAs == Theory.UNSUPPORTED) {
+      return null;
     }
+    BitvectorFormulaManager rawBvmgr;
+    try {
+      switch (encodeBitvectorAs) {
+        case BITVECTOR:
+          rawBvmgr = manager.getBitvectorFormulaManager();
+          break;
+        case INTEGER:
+          rawBvmgr =
+              new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                  wrappingHandler,
+                  manager.getBooleanFormulaManager(),
+                  manager.getIntegerFormulaManager(),
+                  manager.getUFManager(),
+                  config);
+          break;
+        case RATIONAL:
+          rawBvmgr =
+              new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                  wrappingHandler,
+                  manager.getBooleanFormulaManager(),
+                  manager.getRationalFormulaManager(),
+                  manager.getUFManager(),
+                  config);
+          break;
+        default:
+          throw new AssertionError("unexpected encoding for bitvectors: " + encodeBitvectorAs);
+      }
+    } catch (UnsupportedOperationException e) {
+      throw new InvalidConfigurationException(
+          "The chosen SMT solver does not support the theory of "
+              + encodeBitvectorAs.description()
+              + ", please choose another SMT solver "
+              + "or use the option cpa.predicate.encodeBitvectorAs "
+              + "to approximate bitvectors with another theory. "
+              + "The value UNSUPPORTED for this option can be used to override this, "
+              + "but CPAchecker will crash if bitvectors are used during the analysis.",
+          e);
+    }
+    return new BitvectorFormulaManagerView(
+        wrappingHandler, rawBvmgr, manager.getBooleanFormulaManager());
   }
 
   /**
-   * Returns the FloatingPointFormulaManager or a Replacement based on the Option 'encodeFloatAs'.
+   * Creates the FloatingPointFormulaManagerView or a replacement based on the option encodeFloatAs.
    */
-  private FloatingPointFormulaManager getRawFloatingPointFormulaManager()
-      throws UnsupportedOperationException, AssertionError {
-    switch (encodeFloatAs) {
-      case FLOAT:
-        return manager.getFloatingPointFormulaManager();
-      case INTEGER:
-        return new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-            wrappingHandler,
-            manager.getIntegerFormulaManager(),
-            manager.getUFManager(),
-            manager.getBooleanFormulaManager());
-      case RATIONAL:
-        return new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-            wrappingHandler,
-            manager.getRationalFormulaManager(),
-            manager.getUFManager(),
-            manager.getBooleanFormulaManager());
-      case BITVECTOR:
-        throw new UnsupportedOperationException(
-            "Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
-      default:
-        throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
+  private @Nullable FloatingPointFormulaManagerView createFloatingPointFormulaManager()
+      throws InvalidConfigurationException {
+    if (encodeFloatAs == Theory.UNSUPPORTED) {
+      return null;
     }
+    FloatingPointFormulaManager rawFpmgr;
+    try {
+      switch (encodeFloatAs) {
+        case FLOAT:
+          rawFpmgr = manager.getFloatingPointFormulaManager();
+          break;
+        case INTEGER:
+          rawFpmgr =
+              new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                  wrappingHandler,
+                  manager.getIntegerFormulaManager(),
+                  manager.getUFManager(),
+                  manager.getBooleanFormulaManager());
+          break;
+        case RATIONAL:
+          rawFpmgr =
+              new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                  wrappingHandler,
+                  manager.getRationalFormulaManager(),
+                  manager.getUFManager(),
+                  manager.getBooleanFormulaManager());
+          break;
+        default:
+          throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
+      }
+    } catch (UnsupportedOperationException e) {
+      throw new InvalidConfigurationException(
+          "The chosen SMT solver does not support the theory of "
+              + encodeFloatAs.description()
+              + ", please choose another SMT solver "
+              + "or use the option cpa.predicate.encodeFloatAs "
+              + "to approximate floats with another theory. "
+              + "The value UNSUPPORTED for this option can be used to override this, "
+              + "but CPAchecker will crash if floats are used during the analysis.",
+          e);
+    }
+    return new FloatingPointFormulaManagerView(wrappingHandler, rawFpmgr, manager.getUFManager());
   }
 
-  /**
-   * Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
-   */
-  private IntegerFormulaManager getRawIntegerFormulaManager(
-      ReplaceIntegerEncodingOptions pIntegerOptions)
-      throws UnsupportedOperationException, AssertionError {
-    switch (encodeIntegerAs) {
-      case BITVECTOR:
-        return new ReplaceIntegerWithBitvectorTheory(
-            wrappingHandler, getBitvectorFormulaManager(), booleanFormulaManager, pIntegerOptions);
-      case INTEGER:
-        return manager.getIntegerFormulaManager();
-      case RATIONAL:
-      case FLOAT:
-        throw new UnsupportedOperationException(
-            "Value FLOAT is not valid for option cpa.predicate.encodeIntegerAs");
-      default:
-        throw new AssertionError("unexpected encoding for plain integers: " + encodeIntegerAs);
+  /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
+  private @Nullable IntegerFormulaManagerView createIntegerFormulaManager(
+      ReplaceIntegerEncodingOptions pIntegerOptions) throws InvalidConfigurationException {
+    if (encodeIntegerAs == Theory.UNSUPPORTED) {
+      return null;
     }
+    IntegerFormulaManager rawImgr;
+    try {
+      switch (encodeIntegerAs) {
+        case INTEGER:
+          rawImgr = manager.getIntegerFormulaManager();
+          break;
+        case BITVECTOR:
+          rawImgr =
+              new ReplaceIntegerWithBitvectorTheory(
+                  wrappingHandler,
+                  manager.getBitvectorFormulaManager(),
+                  manager.getBooleanFormulaManager(),
+                  pIntegerOptions);
+          break;
+        default:
+          throw new AssertionError("unexpected encoding for plain integers: " + encodeIntegerAs);
+      }
+    } catch (UnsupportedOperationException e) {
+      throw new InvalidConfigurationException(
+          "The chosen SMT solver does not support the theory of "
+              + encodeIntegerAs.description()
+              + ", please choose another SMT solver "
+              + "or use the option cpa.predicate.encodeIntegerAs "
+              + "to approximate integers with another theory. "
+              + "The value UNSUPPORTED for this option can be used to override this, "
+              + "but CPAchecker will crash if integers are used during the analysis.",
+          e);
+    }
+    return new IntegerFormulaManagerView(wrappingHandler, rawImgr);
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -948,8 +1022,8 @@ public class FormulaManagerView {
 
   public IntegerFormulaManagerView getIntegerFormulaManager() throws UnsupportedOperationException {
     if (integerFormulaManager == null) {
-      integerFormulaManager =
-          new IntegerFormulaManagerView(wrappingHandler, getRawIntegerFormulaManager(intOptions));
+      throw new UnsupportedOperationException(
+          "Integers attempted to be used but configured to be unsupported");
     }
     return integerFormulaManager;
   }
@@ -970,11 +1044,8 @@ public class FormulaManagerView {
   public BitvectorFormulaManagerView getBitvectorFormulaManager()
       throws UnsupportedOperationException {
     if (bitvectorFormulaManager == null) {
-      bitvectorFormulaManager =
-          new BitvectorFormulaManagerView(
-              wrappingHandler,
-              getRawBitvectorFormulaManager(bvOptions),
-              manager.getBooleanFormulaManager());
+      throw new UnsupportedOperationException(
+          "Bitvectors attempted to be used but configured to be unsupported");
     }
     return bitvectorFormulaManager;
   }
@@ -982,9 +1053,8 @@ public class FormulaManagerView {
   public FloatingPointFormulaManagerView getFloatingPointFormulaManager()
       throws UnsupportedOperationException {
     if (floatingPointFormulaManager == null) {
-      floatingPointFormulaManager =
-          new FloatingPointFormulaManagerView(
-              wrappingHandler, getRawFloatingPointFormulaManager(), manager.getUFManager());
+      throw new UnsupportedOperationException(
+          "Floats attempted to be used but configured to be unsupported");
     }
     return floatingPointFormulaManager;
   }

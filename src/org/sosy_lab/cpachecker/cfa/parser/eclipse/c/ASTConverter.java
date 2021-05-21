@@ -645,6 +645,9 @@ class ASTConverter {
       // that array types of operands are converted to pointer types except in a very few
       // specific cases (for which there will never be a temporary variable).
       type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+    } else if (type instanceof CFunctionType) {
+      // Happens if function pointers are used in ternary expressions, for example.
+      type = new CPointerType(false, false, type);
     }
 
     CVariableDeclaration decl = new CVariableDeclaration(loc,
@@ -1799,9 +1802,10 @@ class ASTConverter {
         name = name + sep + index;
       }
 
-      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc,
-          isGlobal, cStorageClass, type, name, origName,
-          scope.createScopedNameOf(name), null);
+      final String scopedName = isGlobal ? name : scope.createScopedNameOf(name);
+      CVariableDeclaration declaration =
+          new CVariableDeclaration(
+              fileLoc, isGlobal, cStorageClass, type, name, origName, scopedName, null);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.

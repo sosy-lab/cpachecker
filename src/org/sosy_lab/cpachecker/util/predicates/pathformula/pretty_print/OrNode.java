@@ -52,6 +52,18 @@ public class OrNode implements FormulaNode {
   }
 
   @Override
+  public boolean logicallyEquivalentTo(FormulaNode node) {
+    if (node instanceof OrNode) {
+      OrNode orNode = (OrNode) node;
+      if ((orNode.left.logicallyEquivalentTo(left) && orNode.right.logicallyEquivalentTo(right)) ||
+          (orNode.left.logicallyEquivalentTo(right) && orNode.right.logicallyEquivalentTo(left))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public List<FormulaNode> getSuccessors() {
     return ImmutableList.of(left,right);
   }
