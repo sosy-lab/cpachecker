@@ -481,20 +481,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         if (threadModularShift) {
           // extracting correct assume edges
-          Set<CFAEdge> edges = new HashSet<>();
-          for (ARGState child : childrenOnPath) {
-            for (ARGState grandchild : child.getChildren()) {
-              CFAEdge currentEdge = child.getEdgeToChild(grandchild);
-              if (currentEdge != null) {
-                edges.add(currentEdge);
-              }
-            }
-          }
-          outgoingEdges = from(edges);
+          outgoingEdges = prepareThreadModularShiftedEdges(childrenOnPath);
 
-          if (outgoingEdges.anyMatch(Predicates.instanceOf(CFunctionCallEdge.class))) {
-            // We do not need branching formula for a function entry point
-            // The branching on function calls is possible in thread modular case, due to shift
+          if (outgoingEdges.isEmpty()) {
             continue;
           }
 
@@ -505,8 +494,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             }
           }
         } else {
-          branchingElement = pathElement;
           outgoingEdges = from(childrenOnPath).transform(pathElement::getEdgeToChild);
+          branchingElement = pathElement;
         }
 
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
@@ -565,6 +554,29 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     return bfmgr.and(branchingFormula);
+  }
+
+  private FluentIterable<CFAEdge>
+      prepareThreadModularShiftedEdges(final ImmutableSet<ARGState> childrenOnPath) {
+    Set<CFAEdge> edges = new HashSet<>();
+    for (ARGState child : childrenOnPath) {
+      if (child.getAppliedFrom() == null) {
+        // We do not need branching formula for applied effects
+        return FluentIterable.of();
+      }
+      for (ARGState grandchild : child.getChildren()) {
+        CFAEdge currentEdge = child.getEdgeToChild(grandchild);
+        if (currentEdge != null) {
+          if (currentEdge instanceof CFunctionCallEdge) {
+            // We do not need branching formula for a function entry point
+            // The branching on function calls is possible in thread modular case, due to shift
+            return FluentIterable.of();
+          }
+          edges.add(currentEdge);
+        }
+      }
+    }
+    return from(edges);
   }
 
   /**
