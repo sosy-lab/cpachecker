@@ -55,7 +55,6 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
                 config,
                 logger,
                 predicateCpa.getSolver(),
-                predicateCpa.getPathFormulaManager(),
                 predicateCpa.getShutdownNotifier())),
         cpa);
   }

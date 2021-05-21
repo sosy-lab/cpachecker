@@ -193,7 +193,6 @@ public class FaultLocalizationWithTraceFormula
                   .filter(ARGState.class)
                   .transform(ARGState::getCounterexampleInformation));
 
-
       // run algorithm for every error
       logger.log(Level.INFO, "Starting fault localization...");
       for (CounterexampleInfo info : counterExamples) {

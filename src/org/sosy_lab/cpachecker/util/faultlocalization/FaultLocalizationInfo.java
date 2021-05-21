@@ -33,7 +33,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private boolean sortIntended;
-  private ImmutableList<Fault> rankedList;
+  private final ImmutableList<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
   /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
@@ -182,8 +182,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pErrorIndicators possible candidates for the error
    * @return FaultLocalizationOutputs of the CFAEdges.
    */
-  public static Set<Fault> transform(
-      Set<Set<CFAEdge>> pErrorIndicators) {
+  public static Set<Fault> transform(Set<Set<CFAEdge>> pErrorIndicators) {
     Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
       transformed.add(
@@ -262,9 +261,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   public void writePrecondition(Writer writer) throws IOException {
-    JSON.writeJSONString(Collections.singletonMap("fl-precondition",
-        precondition.isPresent() ?
-            InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms) :
-            ""), writer);
+    JSON.writeJSONString(
+        Collections.singletonMap(
+            "fl-precondition",
+            precondition.isPresent()
+                ? InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms)
+                : ""),
+        writer);
   }
 }
