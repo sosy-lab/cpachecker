@@ -577,6 +577,9 @@ bdd.pjbdd.cacheRatio = 0.1
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
 
+# Disable thread safe bdd operations.
+bdd.pjbdd.disableThreadSafety = false
+
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
 
