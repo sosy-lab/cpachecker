@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.InlineMe;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -237,6 +238,7 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
     return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, PathCopyingPersistentTreeMap.<MemoryLocation, NumeralFormula<CompoundInterval>>of());
   }
 
+  @InlineMe(replacement = "pInner")
   @Deprecated
   public static NonRecursiveEnvironment copyOf(NonRecursiveEnvironment pInner) {
     return pInner;
@@ -362,6 +364,7 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
       return current.toString();
     }
 
+    @InlineMe(replacement = "pTmpEnvironment")
     @Deprecated
     public static Builder of(Builder pTmpEnvironment) {
       return pTmpEnvironment;

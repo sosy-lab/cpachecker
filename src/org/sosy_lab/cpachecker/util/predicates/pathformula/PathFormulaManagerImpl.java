@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.InlineMe;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -294,15 +295,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeTrue(),
-                           oldFormula.getSsa(),
-                           oldFormula.getPointerTargetSet(),
-                           0);
+    return new PathFormula(
+        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
   }
 
+  @InlineMe(
+      replacement =
+          "new PathFormula(oldFormula.getFormula(), m, oldFormula.getPointerTargetSet(),"
+              + " oldFormula.getLength())",
+      imports = {"org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula"})
   @Override
   @Deprecated
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
+  public final PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(),
                            m,
                            oldFormula.getPointerTargetSet(),
