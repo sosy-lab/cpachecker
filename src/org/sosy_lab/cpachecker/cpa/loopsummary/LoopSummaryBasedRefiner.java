@@ -114,7 +114,10 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
     if (amntFirstRefinements > maxAmntFirstRefinements) {
       amntFirstRefinements = 0;
       if (containsNonPreciseSummaryStrategy(pReached)) {
-        return secondRefiner.performRefinement(pReached);
+        boolean result = secondRefiner.performRefinement(pReached);
+        assert result
+            : "result should be True, since the ARG contains a non precise summary strategy";
+        return result;
       } else {
         return firstRefiner.performRefinement(pReached);
       }
