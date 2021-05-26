@@ -123,7 +123,7 @@ public class LoopSummaryTransferRelation extends AbstractSingleWrapperTransferRe
     } else {
       List<CFAEdge> removedEdges = new ArrayList<>();
       CFANode node = AbstractStates.extractLocation(pState);
-      CFAEdge edge = AbstractStates.extractLocation(pState).getLeavingEdge(edgeIndex.get());
+      CFAEdge edge = AbstractStates.extractLocation(pState).getLeavingEdge(edgeIndex.orElseThrow());
 
       while (node.getNumLeavingEdges() != 0) {
         removedEdges.add(node.getLeavingEdge(0));

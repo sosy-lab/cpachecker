@@ -84,7 +84,7 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     if (loopBoundOptional.isEmpty()) {
       return Optional.empty();
     } else {
-      loopBoundExpression = loopBoundOptional.get();
+      loopBoundExpression = loopBoundOptional.orElseThrow();
     }
 
     if (!linearArithmeticExpressionsLoop(loopStartNode, loopBranchIndex)) {
@@ -104,7 +104,7 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     if (optionalLoopVariableDelta.isEmpty()) {
       return Optional.empty();
     } else {
-      loopVariableDelta = optionalLoopVariableDelta.get();
+      loopVariableDelta = optionalLoopVariableDelta.orElseThrow();
     }
 
     if (loopVariableDelta >= 0) {
@@ -116,7 +116,7 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     if (optionalVariableOrdering.isEmpty()) {
       return Optional.empty();
     } else {
-      variableOrdering = optionalVariableOrdering.get();
+      variableOrdering = optionalVariableOrdering.orElseThrow();
     }
 
     // TODO refactor matrix into its own class in utils, question: Where should it go?
@@ -132,7 +132,7 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     if (optionalGhostCFA.isEmpty()) {
       return Optional.empty();
     } else {
-      ghostCFA = optionalGhostCFA.get();
+      ghostCFA = optionalGhostCFA.orElseThrow();
     }
 
     Collection<? extends AbstractState> realStatesEndCollection =
@@ -143,12 +143,12 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
   }
 
   private List<List<Integer>> matrixPower(List<List<Integer>> matrix, Integer power) {
-    List<List<Integer>> resultMatrix = List.copyOf(matrix);
+    List<List<Integer>> resultMatrix = new ArrayList<>(matrix);
 
-    List<List<Integer>> tmpMatrix = List.copyOf(matrix);
+    List<List<Integer>> tmpMatrix = new ArrayList<>(matrix);
     for (int i = 0; i < matrix.size(); i++) {
-      tmpMatrix.set(i, List.copyOf(matrix.get(i)));
-      resultMatrix.set(i, List.copyOf(matrix.get(i)));
+      tmpMatrix.set(i, new ArrayList<>(matrix.get(i)));
+      resultMatrix.set(i, new ArrayList<>(matrix.get(i)));
     }
 
     for (int t = 0; t < power; t++) {
@@ -161,9 +161,9 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
           resultMatrix.get(i).set(j, sum);
         }
       }
-      tmpMatrix = List.copyOf(resultMatrix);
+      tmpMatrix = new ArrayList<>(resultMatrix);
       for (int i = 0; i < matrix.size(); i++) {
-        tmpMatrix.set(i, List.copyOf(resultMatrix.get(i)));
+        tmpMatrix.set(i, new ArrayList<>(resultMatrix.get(i)));
       }
     }
     return resultMatrix;
@@ -181,13 +181,15 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
 
     CType calculationType = ((CBinaryExpression) pLoopBoundExpression).getCalculationType();
     CType expressionType = ((CBinaryExpression) pLoopBoundExpression).getExpressionType();
-    CExpression loopIterations = new CBinaryExpression(
-        FileLocation.DUMMY,
-        expressionType,
-        calculationType,
-        pLoopBoundExpression,
-        CIntegerLiteralExpression.createDummyLiteral(2 * pLoopVariableDelta, CNumericTypes.INT),
-        BinaryOperator.MINUS);
+    CExpression loopIterations =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            expressionType,
+            calculationType,
+            pLoopBoundExpression,
+            CIntegerLiteralExpression.createDummyLiteral(
+                2 * ((long) pLoopVariableDelta), CNumericTypes.INT),
+            BinaryOperator.MINUS);
 
     CBinaryExpression loopBoundtwiceUnrollingExpression =
         new CBinaryExpression(
@@ -455,8 +457,9 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
       updateVariableDependencies(operand2Map, operand2);
       switch (operator) {
         case "+":
-          for (String k : operand1Map.keySet()) {
-            if (pLoopVariableDependencies.containsKey(k)) {
+          for (Entry<String, Integer> e : operand1Map.entrySet()) {
+            String k = e.getKey();
+            if (pLoopVariableDependencies.keySet().contains(k)) {
               pLoopVariableDependencies.put(
                   k, pLoopVariableDependencies.get(k) + operand1Map.get(k));
             } else {
@@ -464,7 +467,8 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
             }
           }
 
-          for (String k : operand2Map.keySet()) {
+          for (Entry<String, Integer> e : operand2Map.entrySet()) {
+            String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
               pLoopVariableDependencies.put(
                   k, pLoopVariableDependencies.get(k) + operand2Map.get(k));
@@ -474,7 +478,8 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
           }
           break;
         case "-":
-          for (String k : operand1Map.keySet()) {
+          for (Entry<String, Integer> e : operand1Map.entrySet()) {
+            String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
               pLoopVariableDependencies.put(
                   k, pLoopVariableDependencies.get(k) + operand1Map.get(k));
@@ -483,7 +488,8 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
             }
           }
 
-          for (String k : operand2Map.keySet()) {
+          for (Entry<String, Integer> e : operand2Map.entrySet()) {
+            String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
               pLoopVariableDependencies.put(
                   k, pLoopVariableDependencies.get(k) - operand2Map.get(k));
@@ -495,10 +501,10 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
         case "*":
           int value = 0;
           Map<String, Integer> valuesMap = new HashMap<>();
-          if (operand1Map.keySet().size() == 1 && operand1Map.keySet().contains("1")) {
+          if (operand1Map.keySet().size() == 1 && operand1Map.containsKey("1")) {
             value = operand1Map.get("1");
             valuesMap = operand2Map;
-          } else if (operand1Map.keySet().size() == 1 && operand1Map.keySet().contains("1")) {
+          } else if (operand1Map.keySet().size() == 1 && operand1Map.containsKey("1")) {
             value = operand1Map.get("1");
             valuesMap = operand2Map;
           } else {
@@ -509,7 +515,8 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
                     + " was interpreted as a Linear Arithmetic Expression, which it is not. Because two linear expressions are being multiplied.");
           }
 
-          for (String k : valuesMap.keySet()) {
+          for (Entry<String, Integer> e : valuesMap.entrySet()) {
+            String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
               pLoopVariableDependencies.put(
                   k, pLoopVariableDependencies.get(k) + value * valuesMap.get(k));

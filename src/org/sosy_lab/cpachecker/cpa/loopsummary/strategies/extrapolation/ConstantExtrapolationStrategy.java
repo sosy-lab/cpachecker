@@ -231,7 +231,8 @@ public class ConstantExtrapolationStrategy extends AbstractExtrapolationStrategy
                 expressionType,
                 calculationType,
                 loopBound,
-                CIntegerLiteralExpression.createDummyLiteral(2 * boundDelta, CNumericTypes.INT),
+                CIntegerLiteralExpression.createDummyLiteral(
+                    2 * ((long) boundDelta), CNumericTypes.INT),
                 BinaryOperator.MINUS),
             BinaryOperator.LESS_THAN);
     CFAEdge twiceLoopUnrollingConditionEdgeTrue =
