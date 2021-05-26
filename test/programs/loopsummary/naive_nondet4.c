@@ -13,11 +13,16 @@ void __VERIFIER_assert(int cond) {
   }
 }
 
+extern int __VERIFIER_nondet_int(void);
+
 int main() {
-  int x = 0;
-  while (x<1000000 && x >= 100) {
-    x+=2;
+  int x = __VERIFIER_nondet_int();
+  if (x < 1000000) {
+    while (x<1000000) {
+      x-=1;
+      x+=2;
+    }
+    __VERIFIER_assert(x == 1000000);
   }
-  __VERIFIER_assert(x%2 != 0);
   return 0;
 }

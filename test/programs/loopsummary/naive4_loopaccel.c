@@ -15,9 +15,9 @@ void __VERIFIER_assert(int cond) {
 
 int main() {
   int x = 0;
-  while (x<1000000 || x > 100) {
+  while (x<1000000 && x >= 100) {
     x+=2;
   }
-  __VERIFIER_assert(x%2 != 0);
+  __VERIFIER_assert(x%2 == 0);
   return 0;
 }
