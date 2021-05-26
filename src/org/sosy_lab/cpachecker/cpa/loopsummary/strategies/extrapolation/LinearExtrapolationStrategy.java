@@ -391,7 +391,7 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
   private Map<String, Map<String, Integer>> getLoopVariableDependencies(
       CFANode pLoopStartNode, Integer pLoopBranchIndex) {
     Map<String, Map<String, Integer>> loopVariableDependencies = new HashMap<>();
-    HashMap<String, Integer> constVariableHashMap = new HashMap<>();
+    Map<String, Integer> constVariableHashMap = new HashMap<>();
     constVariableHashMap.put("1", 1);
     loopVariableDependencies.put(
         "1", constVariableHashMap); // Add Constant, which can only be mapped to itself
