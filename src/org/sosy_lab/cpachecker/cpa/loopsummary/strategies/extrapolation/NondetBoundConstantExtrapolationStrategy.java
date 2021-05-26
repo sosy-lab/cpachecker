@@ -50,6 +50,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
 
   // TODO: When this Strategy is used, loop unrolling starts occuring continously, since first the
   // predicate refinement is done before the loop summary refinement
+  // This strategy will always result in an overflow
 
   protected Optional<GhostCFA> summaryCFA(
       final CFANode loopStartNode,

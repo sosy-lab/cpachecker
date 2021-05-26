@@ -18,6 +18,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -174,7 +175,12 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
       CExpression rigthSide = statement.getRightHandSide();
       String variableToUpdate = ((CIdExpression) statement.getLeftHandSide()).getName();
 
-      Map<String, Integer> thisVariableUpdate = new HashMap<>();
+      Map<String, Integer> thisVariableUpdate;
+      if (loopVariableDependencies.containsKey(variableToUpdate)) {
+        thisVariableUpdate = loopVariableDependencies.get(variableToUpdate);
+      } else {
+        thisVariableUpdate = new HashMap<>();
+      }
       updateVariableDependencies(thisVariableUpdate, rigthSide);
       loopVariableDependencies.put(variableToUpdate, thisVariableUpdate);
 
@@ -187,6 +193,19 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
   @SuppressWarnings("unused")
   private void updateVariableDependencies(
       Map<String, Integer> pLoopVariableDependencies, CExpression pRigthSide) {
+
+    if (pRigthSide instanceof CIntegerLiteralExpression) {
+      if (pLoopVariableDependencies.containsKey("1")) {
+        pLoopVariableDependencies.put(
+            "1",
+            (int)
+                (pLoopVariableDependencies.get("1")
+                    + ((CIntegerLiteralExpression) pRigthSide).getValue().longValueExact()));
+      } else {
+        pLoopVariableDependencies.put(
+            "1", (int) ((CIntegerLiteralExpression) pRigthSide).getValue().longValueExact());
+      }
+    }
 
     /*if (pRigthSide instanceof CIdExpression || pRigthSide instanceof CIntegerLiteralExpression) {
       return true;
