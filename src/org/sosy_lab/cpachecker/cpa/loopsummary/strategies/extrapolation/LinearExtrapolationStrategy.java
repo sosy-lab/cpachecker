@@ -21,14 +21,20 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -114,7 +120,9 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     }
 
     // TODO refactor matrix into its own class in utils, question: Where should it go?
-    List<List<Float>> matrixRepresentation =
+    // See https://www.baeldung.com/java-matrix-multiplication for the dependencies
+    // TODO Improve Data type from Integer to Float, since the generation must be the same
+    List<List<Integer>> matrixRepresentation =
         getMatrixRepresentation(loopVariableDependencies, variableOrdering);
 
     Optional<GhostCFA> optionalGhostCFA =
@@ -134,21 +142,173 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     return Optional.of(realStatesEndCollection);
   }
 
-  @SuppressWarnings("unused")
+  private List<List<Integer>> matrixPower(List<List<Integer>> matrix, Integer power) {
+    List<List<Integer>> resultMatrix = List.copyOf(matrix);
+
+    List<List<Integer>> tmpMatrix = List.copyOf(matrix);
+    for (int i = 0; i < matrix.size(); i++) {
+      tmpMatrix.set(i, List.copyOf(matrix.get(i)));
+      resultMatrix.set(i, List.copyOf(matrix.get(i)));
+    }
+
+    for (int t = 0; t < power; t++) {
+      for (int i = 0; i < matrix.size(); i++) {
+        for (int j = 0; j < matrix.get(0).size(); j++) {
+          int sum = 0;
+          for (int k = 0; k < matrix.get(0).size(); k++) {
+            sum += tmpMatrix.get(i).get(k) * matrix.get(k).get(j);
+          }
+          resultMatrix.get(i).set(j, sum);
+        }
+      }
+      tmpMatrix = List.copyOf(resultMatrix);
+      for (int i = 0; i < matrix.size(); i++) {
+        tmpMatrix.set(i, List.copyOf(resultMatrix.get(i)));
+      }
+    }
+    return resultMatrix;
+  }
+
   private Optional<GhostCFA> buildGhostCFA(
       Integer pLoopVariableDelta,
       CExpression pLoopBoundExpression,
-      List<List<Float>> pMatrixRepresentation,
+      List<List<Integer>> pMatrixRepresentation,
       List<String> pVariableOrdering) {
-    // TODO Auto-generated method stub
+
+    // Generate the closed Expression for each Variable by multiplying Matrices according to
+    // https://math.stackexchange.com/questions/2079950/compute-the-n-th-power-of-triangular-3-times3-matrix
+    Integer maximalPower = pVariableOrdering.size() - 1;
+
+    CType calculationType = ((CBinaryExpression) pLoopBoundExpression).getCalculationType();
+    CType expressionType = ((CBinaryExpression) pLoopBoundExpression).getExpressionType();
+    CExpression loopIterations = new CBinaryExpression(
+        FileLocation.DUMMY,
+        expressionType,
+        calculationType,
+        pLoopBoundExpression,
+        CIntegerLiteralExpression.createDummyLiteral(2 * pLoopVariableDelta, CNumericTypes.INT),
+        BinaryOperator.MINUS);
+
+    CBinaryExpression loopBoundtwiceUnrollingExpression =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            expressionType,
+            calculationType,
+            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
+            loopIterations,
+            BinaryOperator.LESS_THAN);
+
+    List<CExpression> variableExpressions = new ArrayList<>();
+    List<CExpression> leftHandSideVariableAssignments = new ArrayList<>();
+
+    List<List<Integer>> currentMatrix = pMatrixRepresentation;
+    CExpression currentBoundExpression = loopBoundtwiceUnrollingExpression;
+    for (int i = 0; i <= maximalPower; i++) {
+      if (i == 0) {
+        for (int j = 0; j < pVariableOrdering.size(); j ++) {
+          if (j != pVariableOrdering.size() - 1) {
+            CVariableDeclaration pc =
+                new CVariableDeclaration(
+                    FileLocation.DUMMY,
+                    true,
+                    CStorageClass.EXTERN,
+                    CNumericTypes.INT, // TODO improve this
+                    pVariableOrdering.get(j),
+                    pVariableOrdering.get(j),
+                    pVariableOrdering.get(j),
+                    null);
+            variableExpressions.add(new CIdExpression(FileLocation.DUMMY, pc));
+            leftHandSideVariableAssignments.add(variableExpressions.get(j));
+          } else {
+            variableExpressions.add(
+                CIntegerLiteralExpression.createDummyLiteral(1, CNumericTypes.INT));
+          }
+        }
+      } else {
+        for (int j = 0; j < pVariableOrdering.size(); j++) {
+          CExpression expressionThisVariable =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  expressionType,
+                  calculationType,
+                  CIntegerLiteralExpression.createDummyLiteral(
+                      pMatrixRepresentation.get(j).get(0), CNumericTypes.INT),
+                  variableExpressions.get(0),
+                  BinaryOperator.MULTIPLY);
+          for (int k = 1; k < pVariableOrdering.size(); k++) {
+            expressionThisVariable =
+                new CBinaryExpression(
+                    FileLocation.DUMMY,
+                    expressionType,
+                    calculationType,
+                    new CBinaryExpression(
+                        FileLocation.DUMMY,
+                        expressionType,
+                        calculationType,
+                        CIntegerLiteralExpression.createDummyLiteral(
+                            currentMatrix.get(j).get(k), CNumericTypes.INT),
+                        variableExpressions.get(k),
+                        BinaryOperator.MULTIPLY),
+                    expressionThisVariable,
+                    BinaryOperator.PLUS);
+          }
+          leftHandSideVariableAssignments.set(
+              j,
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  expressionType,
+                  calculationType,
+                  new CBinaryExpression(
+                      FileLocation.DUMMY,
+                      expressionType,
+                      calculationType,
+                      currentBoundExpression,
+                      expressionThisVariable,
+                      BinaryOperator.MULTIPLY),
+                  leftHandSideVariableAssignments.get(j),
+                  BinaryOperator.PLUS));
+        }
+        currentBoundExpression =
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                expressionType,
+                calculationType,
+                currentBoundExpression,
+                loopBoundtwiceUnrollingExpression,
+                BinaryOperator.MULTIPLY);
+        currentMatrix = matrixPower(pMatrixRepresentation, i);
+      }
+    }
+
+    // Unroll Loop once for plus minus relation, since the values are aggregated
+    // TODO
+
+    // Set Variables to the calculated Expressions
+    // TODO
+
+    // Unroll Loop again for plus minus relation, since the values are aggregated
+    // TODO
+
     return Optional.empty();
   }
 
-  @SuppressWarnings("unused")
-  private List<List<Float>> getMatrixRepresentation(
+  private List<List<Integer>> getMatrixRepresentation(
       Map<String, Map<String, Integer>> pLoopVariableDependencies, List<String> pVariableOrdering) {
-    // TODO Auto-generated method stub
-    return null;
+    List<List<Integer>> matrixRepresentation = new ArrayList<>();
+
+    for (String varNameRow : pVariableOrdering) {
+      List<Integer> matrixRow = new ArrayList<>();
+      for (String varNameColumn : pVariableOrdering) {
+        if (pLoopVariableDependencies.get(varNameRow).containsKey(varNameColumn)) {
+          matrixRow.add(pLoopVariableDependencies.get(varNameRow).get(varNameColumn));
+        } else {
+          matrixRow.add(0);
+        }
+      }
+      matrixRepresentation.add(matrixRow);
+    }
+
+    return matrixRepresentation;
   }
 
   private Optional<List<String>> getVariableOrdering(
