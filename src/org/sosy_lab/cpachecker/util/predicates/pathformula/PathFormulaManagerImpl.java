@@ -560,7 +560,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       prepareThreadModularShiftedEdges(final ImmutableSet<ARGState> childrenOnPath) {
     Set<CFAEdge> edges = new HashSet<>();
     for (ARGState child : childrenOnPath) {
-      if (child.getAppliedFrom() == null) {
+      if (child.getAppliedFrom() != null) {
         // We do not need branching formula for applied effects
         return FluentIterable.of();
       }
