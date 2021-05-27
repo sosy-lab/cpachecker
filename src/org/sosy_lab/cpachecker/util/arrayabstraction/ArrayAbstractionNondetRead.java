@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CfaTransformer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -82,19 +83,18 @@ public class ArrayAbstractionNondetRead {
           arrayOperationReplacementMap.insertReplacement(edge, arrayOperation, replacementVariable);
 
           if (arrayOperation.getType() == TransformableArray.ArrayOperationType.READ) {
-            CCfaTransformer.Node predecessorNode =
+            CfaTransformer.Node predecessorNode =
                 cfaTransformer.getNode(edge.getPredecessor()).orElseThrow();
-            CCfaTransformer.Node newNode =
-                CCfaTransformer.createNode(predecessorNode.getOldCfaNode());
 
             CType replacementType = transformableArray.getArrayType().getType();
             Optional<String> functionName = Optional.of(node.getFunctionName());
             CFAEdge nondetVariableCfaEdge =
                 VariableGenerator.createNondetVariableEdge(
                     replacementType, replacementVariableName, functionName);
-            CCfaTransformer.Edge nondetVariableEdge =
-                CCfaTransformer.createEdge(nondetVariableCfaEdge);
-            predecessorNode.splitAndInsertEntering(nondetVariableEdge, newNode);
+            CfaTransformer.Edge nondetVariableEdge =
+                CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
+            predecessorNode.splitAndInsertEntering(
+                nondetVariableEdge, CfaTransformer.Node.createDummy());
           }
         }
       }

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CfaTransformer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -63,7 +64,7 @@ public class ArrayAbstractionSmashing {
   }
 
   private static void transformArrayWriteEdge(
-      CCfaTransformer pCfaTransformer, VariableGenerator pVariableGenerator, CFAEdge pEdge) {
+      CfaTransformer pCfaTransformer, VariableGenerator pVariableGenerator, CFAEdge pEdge) {
 
     String nondetVariableName = pVariableGenerator.createNewVariableName();
     MemoryLocation nondetVariable = MemoryLocation.valueOf(nondetVariableName);
@@ -83,24 +84,23 @@ public class ArrayAbstractionSmashing {
     CFAEdge conditionCfaEdgeFalse =
         ArrayAbstractionUtils.createAssumeEdge(nondetVariableLessThanZeroExpression, false);
 
-    CCfaTransformer.Node predecessorNode =
+    CfaTransformer.Node predecessorNode =
         pCfaTransformer.getNode(pEdge.getPredecessor()).orElseThrow();
-    CCfaTransformer.Node successorNode =
-        pCfaTransformer.getNode(pEdge.getSuccessor()).orElseThrow();
+    CfaTransformer.Node successorNode = pCfaTransformer.getNode(pEdge.getSuccessor()).orElseThrow();
     // --- a ---> [predecessorNode]
     // --- <array-write> ---> [successorNode]
     // --- b --->
 
-    CCfaTransformer.Node newNodeFst = CCfaTransformer.createNode(predecessorNode.getOldCfaNode());
-    CCfaTransformer.Edge nondetVariableEdge = CCfaTransformer.createEdge(nondetVariableCfaEdge);
-    predecessorNode.splitAndInsertEntering(nondetVariableEdge, newNodeFst);
+    CfaTransformer.Edge nondetVariableEdge = CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
+    predecessorNode.splitAndInsertEntering(nondetVariableEdge, CfaTransformer.Node.createDummy());
     // --- a ---> [newNodeFst]
     // --- <new-nondet-var> ---> [predecessorNode]
     // --- <array-write> ---> [successorNode]
     // --- b --->
 
-    CCfaTransformer.Node newNodeSnd = CCfaTransformer.createNode(predecessorNode.getOldCfaNode());
-    CCfaTransformer.Edge conditionEdgeTrue = CCfaTransformer.createEdge(conditionCfaEdgeTrue);
+    CfaTransformer.Node newNodeSnd =
+        CfaTransformer.Node.createFrom(predecessorNode.getOldCfaNode());
+    CfaTransformer.Edge conditionEdgeTrue = CfaTransformer.Edge.createFrom(conditionCfaEdgeTrue);
     predecessorNode.splitAndInsertEntering(conditionEdgeTrue, newNodeSnd);
     // --- a ---> [newNodeFst]
     // --- <new-nondet-var> ---> [newNodeSnd]
@@ -108,9 +108,9 @@ public class ArrayAbstractionSmashing {
     // --- <array-write> ---> [successorNode]
     // --- b --->
 
-    CCfaTransformer.Edge conditionEdgeFalse = CCfaTransformer.createEdge(conditionCfaEdgeFalse);
-    CCfaTransformer.attachLeaving(newNodeSnd, conditionEdgeFalse);
-    CCfaTransformer.attachEntering(successorNode, conditionEdgeFalse);
+    CfaTransformer.Edge conditionEdgeFalse = CfaTransformer.Edge.createFrom(conditionCfaEdgeFalse);
+    newNodeSnd.attachLeaving(conditionEdgeFalse);
+    successorNode.attachEntering(conditionEdgeFalse);
   }
 
   /**

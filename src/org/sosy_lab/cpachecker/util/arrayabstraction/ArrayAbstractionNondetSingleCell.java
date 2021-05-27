@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
+import org.sosy_lab.cpachecker.util.CfaTransformer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ArrayAbstractionNondetSingleCell {
@@ -121,19 +122,19 @@ public class ArrayAbstractionNondetSingleCell {
   }
 
   private static void replaceLoopWithBranching(
-      CCfaTransformer pTransformer,
+      CfaTransformer pTransformer,
       ImmutableSet<TransformableArray> pTransformableArrays,
       TransformableLoop pTransformableLoop) {
 
-    CCfaTransformer.Node loopNode =
+    CfaTransformer.Node loopNode =
         pTransformer.getNode(pTransformableLoop.getLoopCfaNode()).orElseThrow();
 
-    CCfaTransformer.Edge initEdge = null;
-    CCfaTransformer.Edge updateEdge = null;
-    CCfaTransformer.Edge continueEdge = null;
-    CCfaTransformer.Edge breakEdge = null;
+    CfaTransformer.Edge initEdge = null;
+    CfaTransformer.Edge updateEdge = null;
+    CfaTransformer.Edge continueEdge = null;
+    CfaTransformer.Edge breakEdge = null;
 
-    for (CCfaTransformer.Edge edge :
+    for (CfaTransformer.Edge edge :
         Iterables.concat(loopNode.iterateEntering(), loopNode.iterateLeaving())) {
       CFAEdge oldCfaEdge = edge.getOldCfaEdge();
       if (oldCfaEdge.equals(pTransformableLoop.getInitLoopIndexCfaEdge())) {
@@ -152,43 +153,43 @@ public class ArrayAbstractionNondetSingleCell {
     assert continueEdge != null;
     assert breakEdge != null;
 
-    CCfaTransformer.Node outerBeforeLoop = initEdge.getPredecessor().orElseThrow();
-    CCfaTransformer.Node outerAfterLoop = breakEdge.getSuccessor().orElseThrow();
-    CCfaTransformer.Node loopBodyFirst = continueEdge.getSuccessor().orElseThrow();
-    CCfaTransformer.Node loopBodyLast = updateEdge.getPredecessor().orElseThrow();
+    CfaTransformer.Node outerBeforeLoop = initEdge.getPredecessor().orElseThrow();
+    CfaTransformer.Node outerAfterLoop = breakEdge.getSuccessor().orElseThrow();
+    CfaTransformer.Node loopBodyFirst = continueEdge.getSuccessor().orElseThrow();
+    CfaTransformer.Node loopBodyLast = updateEdge.getPredecessor().orElseThrow();
 
-    CCfaTransformer.detachAll(initEdge);
-    CCfaTransformer.detachAll(updateEdge);
-    CCfaTransformer.detachAll(continueEdge);
-    CCfaTransformer.detachAll(breakEdge);
+    initEdge.detachAll();
+    updateEdge.detachAll();
+    continueEdge.detachAll();
+    breakEdge.detachAll();
 
-    CCfaTransformer.Edge enterUnrolledLoopEdge =
-        CCfaTransformer.createEdge(
+    CfaTransformer.Edge enterUnrolledLoopEdge =
+        CfaTransformer.Edge.createFrom(
             new BlankEdge(
                 "",
                 FileLocation.DUMMY,
                 CFANode.newDummyCFANode("dummy-predecessor"),
                 CFANode.newDummyCFANode("dummy-successor"),
                 "enter-loop-body"));
-    CCfaTransformer.attachLeaving(outerBeforeLoop, enterUnrolledLoopEdge);
-    CCfaTransformer.attachEntering(loopBodyFirst, enterUnrolledLoopEdge);
+    outerBeforeLoop.attachLeaving(enterUnrolledLoopEdge);
+    loopBodyFirst.attachEntering(enterUnrolledLoopEdge);
 
-    CCfaTransformer.Edge exitUnrolledLoopEdge =
-        CCfaTransformer.createEdge(
+    CfaTransformer.Edge exitUnrolledLoopEdge =
+        CfaTransformer.Edge.createFrom(
             new BlankEdge(
                 "",
                 FileLocation.DUMMY,
                 CFANode.newDummyCFANode("dummy-predecessor"),
                 CFANode.newDummyCFANode("dummy-successor"),
                 "exit-loop-body"));
-    CCfaTransformer.attachLeaving(loopBodyLast, exitUnrolledLoopEdge);
-    CCfaTransformer.attachEntering(outerAfterLoop, exitUnrolledLoopEdge);
+    loopBodyLast.attachLeaving(exitUnrolledLoopEdge);
+    outerAfterLoop.attachEntering(exitUnrolledLoopEdge);
 
     for (CExpression conditionExpression :
         getConditionExpressions(pTransformableArrays, pTransformableLoop)) {
 
       outerBeforeLoop.splitAndInsertLeaving(
-          CCfaTransformer.createEdge(
+          CfaTransformer.Edge.createFrom(
               new CAssumeEdge(
                   "",
                   FileLocation.DUMMY,
@@ -196,10 +197,10 @@ public class ArrayAbstractionNondetSingleCell {
                   CFANode.newDummyCFANode("dummy-successor"),
                   conditionExpression,
                   true)),
-          CCfaTransformer.createNode(outerBeforeLoop.getOldCfaNode()));
+          CfaTransformer.Node.createDummy());
 
-      CCfaTransformer.Edge skipLoopBody =
-          CCfaTransformer.createEdge(
+      CfaTransformer.Edge skipLoopBody =
+          CfaTransformer.Edge.createFrom(
               new CAssumeEdge(
                   "",
                   FileLocation.DUMMY,
@@ -207,8 +208,8 @@ public class ArrayAbstractionNondetSingleCell {
                   CFANode.newDummyCFANode("dummy-successor"),
                   conditionExpression,
                   false));
-      CCfaTransformer.attachLeaving(outerBeforeLoop, skipLoopBody);
-      CCfaTransformer.attachEntering(outerAfterLoop, skipLoopBody);
+      outerBeforeLoop.attachLeaving(skipLoopBody);
+      outerAfterLoop.attachEntering(skipLoopBody);
     }
   }
 
@@ -259,11 +260,11 @@ public class ArrayAbstractionNondetSingleCell {
 
       String functionName = transformableLoop.getLoopCfaNode().getFunctionName();
 
-      CCfaTransformer.Node firstLoopBodyNode =
+      CfaTransformer.Node firstLoopBodyNode =
           cfaTransformer
               .getNode(transformableLoop.getEnterLoopCfaEdge().getSuccessor())
               .orElseThrow();
-      CCfaTransformer.Node lastLoopBodyNode =
+      CfaTransformer.Node lastLoopBodyNode =
           cfaTransformer
               .getNode(transformableLoop.getUpdateLoopIndexCfaEdge().getPredecessor())
               .orElseThrow();
@@ -280,9 +281,9 @@ public class ArrayAbstractionNondetSingleCell {
           CFAEdge indexAssignCfaEdge =
               ArrayAbstractionUtils.createAssignEdge(
                   loopIndexIdExpression, arrayIndexWitnessIdExpression);
-          CCfaTransformer.Edge indexAssignEdge = CCfaTransformer.createEdge(indexAssignCfaEdge);
+          CfaTransformer.Edge indexAssignEdge = CfaTransformer.Edge.createFrom(indexAssignCfaEdge);
           firstLoopBodyNode.splitAndInsertLeaving(
-              indexAssignEdge, CCfaTransformer.createNode(firstLoopBodyNode.getOldCfaNode()));
+              indexAssignEdge, CfaTransformer.Node.createFrom(firstLoopBodyNode.getOldCfaNode()));
         }
 
         CType type = loopDef.getExpressionType();
@@ -296,25 +297,27 @@ public class ArrayAbstractionNondetSingleCell {
         CFAEdge assignNondetVariableCfaEdge =
             ArrayAbstractionUtils.createAssignEdge(loopDef, nondetVariableIdExpression);
 
-        CCfaTransformer.Edge assignNondetVariableEdgeStart =
-            CCfaTransformer.createEdge(assignNondetVariableCfaEdge);
+        CfaTransformer.Edge assignNondetVariableEdgeStart =
+            CfaTransformer.Edge.createFrom(assignNondetVariableCfaEdge);
         firstLoopBodyNode.splitAndInsertLeaving(
             assignNondetVariableEdgeStart,
-            CCfaTransformer.createNode(firstLoopBodyNode.getOldCfaNode()));
-        CCfaTransformer.Edge nondetVariableEdgeStart =
-            CCfaTransformer.createEdge(nondetVariableCfaEdge);
+            CfaTransformer.Node.createFrom(firstLoopBodyNode.getOldCfaNode()));
+        CfaTransformer.Edge nondetVariableEdgeStart =
+            CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
         firstLoopBodyNode.splitAndInsertLeaving(
-            nondetVariableEdgeStart, CCfaTransformer.createNode(firstLoopBodyNode.getOldCfaNode()));
+            nondetVariableEdgeStart,
+            CfaTransformer.Node.createFrom(firstLoopBodyNode.getOldCfaNode()));
 
-        CCfaTransformer.Edge assignNondetVariableEdgeEnd =
-            CCfaTransformer.createEdge(assignNondetVariableCfaEdge);
+        CfaTransformer.Edge assignNondetVariableEdgeEnd =
+            CfaTransformer.Edge.createFrom(assignNondetVariableCfaEdge);
         lastLoopBodyNode.splitAndInsertLeaving(
             assignNondetVariableEdgeEnd,
-            CCfaTransformer.createNode(lastLoopBodyNode.getOldCfaNode()));
-        CCfaTransformer.Edge nondetVariableEdgeEnd =
-            CCfaTransformer.createEdge(nondetVariableCfaEdge);
+            CfaTransformer.Node.createFrom(lastLoopBodyNode.getOldCfaNode()));
+        CfaTransformer.Edge nondetVariableEdgeEnd =
+            CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
         lastLoopBodyNode.splitAndInsertLeaving(
-            nondetVariableEdgeEnd, CCfaTransformer.createNode(lastLoopBodyNode.getOldCfaNode()));
+            nondetVariableEdgeEnd,
+            CfaTransformer.Node.createFrom(lastLoopBodyNode.getOldCfaNode()));
       }
 
       for (CFAEdge edge : transformableLoop.getLoopEdges()) {
