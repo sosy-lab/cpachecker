@@ -303,7 +303,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       replacement =
           "new PathFormula(oldFormula.getFormula(), m, oldFormula.getPointerTargetSet(),"
               + " oldFormula.getLength())",
-      imports = {"org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula"})
+      imports = "org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula")
   @Override
   @Deprecated
   public final PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
