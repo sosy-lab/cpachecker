@@ -178,6 +178,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
+  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
+    return delegate.makeNewPathFormula(pOldFormula, pM);
+  }
+
+  @Override
   public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     return delegate.makeFormulaForPath(pPath);
   }

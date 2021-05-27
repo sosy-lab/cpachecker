@@ -56,8 +56,14 @@ public interface PathFormulaManager {
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
   /**
-   * Create a copy of a PathFormula but with the given SSAMap and PointerTargetSet.
+   * Create a copy of a PathFormula but with the given SSAMap. Note that this is almost always the
+   * wrong method to call: if you need to use a specific SSAMap, you probably also need to use a
+   * specific PointerTargetSet! So better call {@link #makeNewPathFormula(PathFormula, SSAMap,
+   * PointerTargetSet)}.
    */
+  @Deprecated
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
