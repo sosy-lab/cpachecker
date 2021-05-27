@@ -44,10 +44,6 @@ public abstract class CfaTransformer {
       return new Node(pOldCfaNode);
     }
 
-    public static Node createFromDummy() {
-      return new Node(CFANode.newDummyCFANode("dummy-node"));
-    }
-
     public CFANode getOldCfaNode() {
       return oldCfaNode;
     }

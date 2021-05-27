@@ -94,7 +94,8 @@ public class ArrayAbstractionNondetRead {
             CfaTransformer.Edge nondetVariableEdge =
                 CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
             predecessorNode.splitAndInsertEntering(
-                nondetVariableEdge, CfaTransformer.Node.createFromDummy());
+                nondetVariableEdge,
+                CfaTransformer.Node.createFrom(predecessorNode.getOldCfaNode()));
           }
         }
       }
