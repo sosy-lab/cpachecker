@@ -71,6 +71,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   private final ShutdownNotifier shutdownNotifier;
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
+  private boolean fixFound = false;
 
   @Option(secure = true, required = true, description = "Config file of the internal analysis.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -122,6 +123,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       totalTime.stop();
     }
 
+    status = algorithm.getAlgorithm().run(reachedSet);
+
     return status;
   }
 
@@ -147,6 +150,9 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
                     + newEdge.getRawStatement()
                     + " on line "
                     + edge.getLineNumber());
+
+            fixFound = true;
+
             return;
           }
 
@@ -281,7 +287,9 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out).put(totalTime);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    writer.writingStatisticsTo(out).put(totalTime);
+    writer.put("Fix found", fixFound);
   }
 
   @Override
