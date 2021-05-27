@@ -465,10 +465,12 @@ public final class CCfaTransformer extends CfaTransformer {
         sorter.assignSorting(function);
       }
 
-      try {
-        newMutableCfa.setLoopStructure(LoopStructure.getLoopStructure(newMutableCfa));
-      } catch (ParserException ex) {
-        pLogger.log(Level.WARNING, ex);
+      if (pOriginalCfa.getLoopStructure().isPresent()) {
+        try {
+          newMutableCfa.setLoopStructure(LoopStructure.getLoopStructure(newMutableCfa));
+        } catch (ParserException ex) {
+          pLogger.log(Level.WARNING, ex);
+        }
       }
 
       // create supergraph including function call, return and summary edges
@@ -479,8 +481,13 @@ public final class CCfaTransformer extends CfaTransformer {
         }
       }
 
-      Optional<VariableClassification> variableClassification =
-          createVariableClassification(pConfiguration, pLogger, newMutableCfa);
+      Optional<VariableClassification> variableClassification;
+      if (pOriginalCfa.getVarClassification().isPresent()) {
+        variableClassification =
+            createVariableClassification(pConfiguration, pLogger, newMutableCfa);
+      } else {
+        variableClassification = Optional.empty();
+      }
 
       return newMutableCfa.makeImmutableCFA(variableClassification);
     }
