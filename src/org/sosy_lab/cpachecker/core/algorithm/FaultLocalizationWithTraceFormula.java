@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
@@ -386,21 +387,23 @@ public class FaultLocalizationWithTraceFormula
     return edgeList;
   }
 
+  /**
+   * Find correct scoring and correct trace formula for the specified algorithm
+   */
   protected Pair<TraceFormula, FaultScoring> calcTraceFormulaAndScoring(List<CFAEdge> edgeList)
       throws CPAException, InterruptedException, SolverException {
-    //Find correct scoring and correct trace formula for the specified algorithm
     TraceFormula tf;
     FaultScoring scoring;
 
-    switch(algorithmType){
+    switch (algorithmType) {
       case MAXORG:
       case MAXSAT: {
         tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-        scoring =  FaultRankingUtils.concatHeuristics(
+        scoring = FaultRankingUtils.concatHeuristics(
             new EdgeTypeScoring(),
             new SetSizeScoring(),
             new OverallOccurrenceScoring(),
-            new MinimalLineDistanceScoring(edgeList.get(edgeList.size()-1)),
+            new MinimalLineDistanceScoring(edgeList.get(edgeList.size() - 1)),
             new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
         break;
       }
