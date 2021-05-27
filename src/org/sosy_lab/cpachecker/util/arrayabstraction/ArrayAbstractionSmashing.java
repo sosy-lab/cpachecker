@@ -10,21 +10,29 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
@@ -135,12 +143,14 @@ public class ArrayAbstractionSmashing {
     CCfaTransformer cfaTransformer =
         CCfaTransformer.createTransformer(pConfiguration, pLogger, pCfa);
     VariableGenerator variableGenerator = new VariableGenerator("__nondet_variable_");
+    Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
 
     for (CFANode node : pCfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
         ImmutableSet<TransformableArray.ArrayOperation> arrayOperations =
             TransformableArray.getArrayOperations(edge);
         for (TransformableArray.ArrayOperation arrayOperation : arrayOperations) {
+          arrayMemoryLocations.add(arrayOperation.getArrayMemoryLocation());
           if (arrayOperation.getType() == TransformableArray.ArrayOperationType.WRITE) {
             transformArrayWriteEdge(cfaTransformer, variableGenerator, edge);
           }
@@ -148,7 +158,7 @@ public class ArrayAbstractionSmashing {
       }
     }
 
-    AstTransformer astTransformer = new AstTransformer();
+    AstTransformer astTransformer = new AstTransformer(ImmutableSet.copyOf(arrayMemoryLocations));
     SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
     SimpleEdgeTransformer<DummyException> edgeTransformer =
         new SimpleEdgeTransformer<>(edge -> astTransformer);
@@ -162,6 +172,25 @@ public class ArrayAbstractionSmashing {
   }
 
   private static final class AstTransformer extends CAstNodeTransformer<DummyException> {
+
+    private final ImmutableSet<MemoryLocation> arrayMemoryLocations;
+
+    private AstTransformer(ImmutableSet<MemoryLocation> pArrayMemoryLocations) {
+      arrayMemoryLocations = pArrayMemoryLocations;
+    }
+
+    private boolean isArrayIdExpression(CExpression pExpression) {
+
+      if (pExpression instanceof CIdExpression) {
+        CIdExpression idExpression = (CIdExpression) pExpression;
+        MemoryLocation memoryLocation = ArrayAbstractionUtils.getMemoryLocation(idExpression);
+        if (arrayMemoryLocations.contains(memoryLocation)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
 
     @Override
     public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) {
@@ -185,11 +214,49 @@ public class ArrayAbstractionSmashing {
     @Override
     public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) {
 
-      if (pCVariableDeclaration.getType() instanceof CArrayType) {
+      CType type = pCVariableDeclaration.getType();
+      if (type instanceof CArrayType) {
         return ArrayAbstractionUtils.createNonArrayVariableDeclaration(pCVariableDeclaration);
+      } else if (type instanceof CPointerType) {
+        String variableName = pCVariableDeclaration.getQualifiedName();
+        MemoryLocation memoryLocation = MemoryLocation.valueOf(variableName);
+        if (arrayMemoryLocations.contains(memoryLocation)) {
+          CType newType = ((CPointerType) type).getType();
+          return ArrayAbstractionUtils.createVariableDeclarationWithType(
+              pCVariableDeclaration, newType);
+        }
       }
 
       return super.visit(pCVariableDeclaration);
+    }
+
+    @Override
+    public CIdExpression visit(CIdExpression pCIdExpression) {
+
+      if (isArrayIdExpression(pCIdExpression)) {
+        CDeclaration declaration = (CDeclaration) pCIdExpression.getDeclaration().accept(this);
+        return new CIdExpression(pCIdExpression.getFileLocation(), declaration);
+      } else {
+        return super.visit(pCIdExpression);
+      }
+    }
+
+    @Override
+    public CFunctionCallAssignmentStatement visit(
+        CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) {
+
+      CLeftHandSide lhs =
+          (CLeftHandSide) pCFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
+      CFunctionCallExpression rhs =
+          (CFunctionCallExpression)
+              pCFunctionCallAssignmentStatement.getFunctionCallExpression().accept(this);
+
+      if (isArrayIdExpression(lhs)) {
+        rhs = VariableGenerator.createNondetFunctionCallExpression(lhs.getExpressionType());
+      }
+
+      return new CFunctionCallAssignmentStatement(
+          pCFunctionCallAssignmentStatement.getFileLocation(), lhs, rhs);
     }
   }
 }

@@ -40,12 +40,15 @@ class VariableGenerator {
   private static String getNondetFunctionName(CType pType) {
 
     if (pType instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType) pType).getType();
+      CSimpleType simpleType = (CSimpleType) pType;
+      CBasicType basicType = simpleType.getType();
 
       // TODO: handle all types that have corresponding `__VERIFIER_nondet_X` functions
 
       if (basicType == CBasicType.INT) {
         return "__VERIFIER_nondet_int";
+      } else if (basicType == CBasicType.UNSPECIFIED && simpleType.isLong()) {
+        return "__VERIFIER_nondet_long";
       }
     }
 
@@ -53,7 +56,7 @@ class VariableGenerator {
         "Unable to find nondet function name (__VERIFIER_nondet_X) for type: " + pType);
   }
 
-  private static CFunctionCallExpression createNondetFunctionCallExpression(CType pType) {
+  static CFunctionCallExpression createNondetFunctionCallExpression(CType pType) {
 
     String nondetFunctionName = getNondetFunctionName(pType);
     CFunctionTypeWithNames nondetFunctionType =

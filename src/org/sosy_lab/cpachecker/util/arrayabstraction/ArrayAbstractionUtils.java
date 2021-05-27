@@ -62,25 +62,27 @@ final class ArrayAbstractionUtils {
         pTruthAssumption);
   }
 
+  static CVariableDeclaration createVariableDeclarationWithType(
+      CVariableDeclaration pOriginalVariableDeclaration, CType pNewType) {
+
+    return new CVariableDeclaration(
+        pOriginalVariableDeclaration.getFileLocation(),
+        pOriginalVariableDeclaration.isGlobal(),
+        pOriginalVariableDeclaration.getCStorageClass(),
+        pNewType,
+        pOriginalVariableDeclaration.getName(),
+        pOriginalVariableDeclaration.getOrigName(),
+        pOriginalVariableDeclaration.getQualifiedName(),
+        null);
+  }
+
   static CVariableDeclaration createNonArrayVariableDeclaration(
       CVariableDeclaration pArrayVariableDeclaration) {
     CType type = pArrayVariableDeclaration.getType();
 
     if (type instanceof CArrayType) {
-
       CType newType = ((CArrayType) type).getType();
-
-      CVariableDeclaration variableDeclaration =
-          new CVariableDeclaration(
-              pArrayVariableDeclaration.getFileLocation(),
-              pArrayVariableDeclaration.isGlobal(),
-              pArrayVariableDeclaration.getCStorageClass(),
-              newType,
-              pArrayVariableDeclaration.getName(),
-              pArrayVariableDeclaration.getOrigName(),
-              pArrayVariableDeclaration.getQualifiedName(),
-              null);
-      return variableDeclaration;
+      return createVariableDeclarationWithType(pArrayVariableDeclaration, newType);
     }
 
     return pArrayVariableDeclaration;
