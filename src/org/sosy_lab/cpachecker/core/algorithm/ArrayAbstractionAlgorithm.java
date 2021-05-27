@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -19,8 +22,10 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,6 +62,19 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
           "Use a second delegate analysis run to check counterexamples on the original program that"
               + " contains (non-abstracted) arrays.")
   private boolean checkCounterexamples = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.export",
+      description = "Whether to export the CFA with abstracted arrays as DOT file.")
+  private boolean exportTranslatedCfa = true;
+
+  @Option(
+      secure = true,
+      name = "cfa.file",
+      description = "DOT file path for CFA with abstracted arrays.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportTranslatedCfaFile = Paths.get("cfa-abstracted-arrays.dot");
 
   private enum ArrayAbstractionMethod {
     NONDET_READ,
@@ -150,6 +168,17 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
     return status;
   }
 
+  private void exportTranslatedCfa(CFA pTranslatedCfa) {
+
+    if (exportTranslatedCfa && exportTranslatedCfaFile != null && pTranslatedCfa != null) {
+      try (Writer w = IO.openOutputFile(exportTranslatedCfaFile, Charset.defaultCharset())) {
+        DOTBuilder.generateDOT(w, pTranslatedCfa);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write CFA to dot file");
+      }
+    }
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
@@ -174,6 +203,8 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
       default:
         translatedCfa = null;
     }
+
+    exportTranslatedCfa(translatedCfa);
 
     try {
 

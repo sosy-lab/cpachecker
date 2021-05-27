@@ -499,6 +499,12 @@ analysis.useParallelAnalyses = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
+# Whether to export the CFA with abstracted arrays as DOT file.
+arrayAbstraction.cfa.export = true
+
+# DOT file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.file = "cfa-abstracted-arrays.dot"
+
 # Use a second delegate analysis run to check counterexamples on the original
 # program that contains (non-abstracted) arrays.
 arrayAbstraction.checkCounterexamples = false
