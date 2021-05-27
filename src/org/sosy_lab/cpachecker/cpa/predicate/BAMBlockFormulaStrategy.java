@@ -202,7 +202,6 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
   }
 
   /* rebuild indices from outer scope */
-  @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
   public static PathFormula rebuildStateAfterFunctionCall(
       final PathFormulaManager pPfmgr,
       final PathFormula parentFormula,
@@ -211,6 +210,9 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
     final SSAMap newSSA =
         BAMPredicateReducer.updateIndices(
             rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
-    return pPfmgr.makeNewPathFormula(parentFormula, newSSA);
+    return new PathFormula(parentFormula.getFormula(),
+        newSSA,
+        parentFormula.getPointerTargetSet(),
+        parentFormula.getLength());
   }
 }
