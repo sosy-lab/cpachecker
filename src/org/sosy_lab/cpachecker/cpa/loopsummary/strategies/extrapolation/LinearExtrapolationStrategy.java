@@ -459,21 +459,19 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
         case "+":
           for (Entry<String, Integer> e : operand1Map.entrySet()) {
             String k = e.getKey();
-            if (pLoopVariableDependencies.keySet().contains(k)) {
-              pLoopVariableDependencies.put(
-                  k, pLoopVariableDependencies.get(k) + operand1Map.get(k));
+            if (pLoopVariableDependencies.containsKey(k)) {
+              pLoopVariableDependencies.put(k, pLoopVariableDependencies.get(k) + e.getValue());
             } else {
-              pLoopVariableDependencies.put(k, operand1Map.get(k));
+              pLoopVariableDependencies.put(k, e.getValue());
             }
           }
 
           for (Entry<String, Integer> e : operand2Map.entrySet()) {
             String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
-              pLoopVariableDependencies.put(
-                  k, pLoopVariableDependencies.get(k) + operand2Map.get(k));
+              pLoopVariableDependencies.put(k, pLoopVariableDependencies.get(k) + e.getValue());
             } else {
-              pLoopVariableDependencies.put(k, operand2Map.get(k));
+              pLoopVariableDependencies.put(k, e.getValue());
             }
           }
           break;
@@ -481,20 +479,18 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
           for (Entry<String, Integer> e : operand1Map.entrySet()) {
             String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
-              pLoopVariableDependencies.put(
-                  k, pLoopVariableDependencies.get(k) + operand1Map.get(k));
+              pLoopVariableDependencies.put(k, pLoopVariableDependencies.get(k) + e.getValue());
             } else {
-              pLoopVariableDependencies.put(k, operand1Map.get(k));
+              pLoopVariableDependencies.put(k, e.getValue());
             }
           }
 
           for (Entry<String, Integer> e : operand2Map.entrySet()) {
             String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
-              pLoopVariableDependencies.put(
-                  k, pLoopVariableDependencies.get(k) - operand2Map.get(k));
+              pLoopVariableDependencies.put(k, pLoopVariableDependencies.get(k) - e.getValue());
             } else {
-              pLoopVariableDependencies.put(k, operand2Map.get(k));
+              pLoopVariableDependencies.put(k, e.getValue());
             }
           }
           break;
@@ -519,9 +515,9 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
             String k = e.getKey();
             if (pLoopVariableDependencies.containsKey(k)) {
               pLoopVariableDependencies.put(
-                  k, pLoopVariableDependencies.get(k) + value * valuesMap.get(k));
+                  k, pLoopVariableDependencies.get(k) + value * e.getValue());
             } else {
-              pLoopVariableDependencies.put(k, value * valuesMap.get(k));
+              pLoopVariableDependencies.put(k, value * e.getValue());
             }
           }
           break;
