@@ -197,7 +197,7 @@ public class ArrayAbstractionNondetSingleCell {
                   CFANode.newDummyCFANode("dummy-successor"),
                   conditionExpression,
                   true)),
-          CfaTransformer.Node.createDummy());
+          CfaTransformer.Node.createFromDummy());
 
       CfaTransformer.Edge skipLoopBody =
           CfaTransformer.Edge.createFrom(

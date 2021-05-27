@@ -92,7 +92,8 @@ public class ArrayAbstractionSmashing {
     // --- b --->
 
     CfaTransformer.Edge nondetVariableEdge = CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
-    predecessorNode.splitAndInsertEntering(nondetVariableEdge, CfaTransformer.Node.createDummy());
+    predecessorNode.splitAndInsertEntering(
+        nondetVariableEdge, CfaTransformer.Node.createFromDummy());
     // --- a ---> [newNodeFst]
     // --- <new-nondet-var> ---> [predecessorNode]
     // --- <array-write> ---> [successorNode]
