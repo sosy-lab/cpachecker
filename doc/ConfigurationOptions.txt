@@ -577,6 +577,9 @@ bdd.pjbdd.cacheRatio = 0.1
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
 
+# Disable thread safe bdd operations.
+bdd.pjbdd.disableThreadSafety = false
+
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
 
@@ -2433,9 +2436,6 @@ cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
-
-# recompute block formula from ARG path edges
-cpa.predicate.refinement.recomputeBlockFormulas = false
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.

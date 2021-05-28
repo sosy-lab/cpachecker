@@ -51,9 +51,6 @@ public class PredicateCPARefinerFactory {
   )
   private boolean performInitialStaticRefinement = false;
 
-  @Option(secure = true, description = "recompute block formula from ARG path edges")
-  private boolean recomputeBlockFormulas = false;
-
   private final PredicateCPA predicateCpa;
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
@@ -149,8 +146,6 @@ public class PredicateCPARefinerFactory {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
         bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
-      } else if (recomputeBlockFormulas) {
-        bfs = new RecomputeBlockFormulaStrategy(pfmgr);
       } else {
         bfs = new BlockFormulaStrategy();
       }
