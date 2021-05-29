@@ -10,10 +10,9 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.sosy_lab.common.io.TempFile;
-import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -43,15 +42,12 @@ public class LlvmParserWithClang extends LlvmParser {
 
     if (preprocessor.getDumpDirectory() != null) {
       // Writing to the output directory is possible.
-      Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename);
-      return super.parseFile(dumpedFile.toString());
+      return parse0(pFilename, preprocessor.getDumpDirectory());
     }
 
-    // This temp file will be automatically deleted when the try block terminates.
-    try (DeleteOnCloseFile dumpFile = TempFile.builder().prefix("clang-result").suffix(".ll").createDeleteOnClose()) {
-      Path dumpedFile = preprocessor.preprocessAndGetAndWriteToGivenDumpFile(pFilename, dumpFile.toPath());
-      return super.parseFile(dumpedFile.toString());
-
+    try {
+      Path tempDir = Files.createTempDirectory("clang-results");
+      return parse0(pFilename, tempDir);
     } catch (IOException e) {
       throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
     }
@@ -61,6 +57,11 @@ public class LlvmParserWithClang extends LlvmParser {
   public ParseResult parseString(final String pFilename, final String pCode) {
     // TODO
     throw new UnsupportedOperationException();
+  }
+
+  private ParseResult parse0(final String pFileName, final Path pDumpDirectory) throws ParserException, InterruptedException {
+    Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFileName, pDumpDirectory);
+    return super.parseFile(dumpedFile.toString());
   }
 
   static class Factory {

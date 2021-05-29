@@ -41,15 +41,10 @@ public class ClangPreprocessor extends Preprocessor {
     config.inject(this);
   }
 
-  public Path preprocessAndGetDumpedFile(String file) throws CParserException, InterruptedException {
-    String result = preprocess0(file);
-    return getAndWriteDumpFileOfFile(result, file);
-  }
-
-  public Path preprocessAndGetAndWriteToGivenDumpFile(String file, Path dumpFile)
+  public Path preprocessAndGetDumpedFile(String file, Path dumpDirectory)
       throws CParserException, InterruptedException {
     String result = preprocess0(file);
-    return getAndWriteToGivenDumpFile(result, dumpFile);
+    return getAndWriteDumpFile(result, file, dumpDirectory);
   }
 
   @Override
