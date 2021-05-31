@@ -263,11 +263,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts) {
-    return delegate.makeNewPathFormula(pOldFormula, pM, pPts);
-  }
-
-  @Override
   public BooleanFormula buildWeakestPrecondition(
       final CFAEdge pEdge, final BooleanFormula pPostcondition)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {

@@ -68,6 +68,22 @@ public final class PathFormula implements Serializable {
     return new PathFormula(newConstraint, ssa, pts, length);
   }
 
+  /**
+   * Create a copy of this instance but with a new SSAMap and PointerTargetSet.
+   *
+   * <p>WARNING: Use this method only if you are sure that the result is meaningful and correct in
+   * your specific use case. Usually the more high-level methods from {@link PathFormulaManager}
+   * should be used instead.
+   *
+   * <p>WARNING: When using this method to update only the SSAMap, think twice about whether the
+   * PointerTargetSet also needs to be updated! Usually this is the case because the
+   * PointerTargetSet also contains information that influences how variables in CFA edges are
+   * represented in path formulas, just like the SSAMap does.
+   */
+  public PathFormula withContext(SSAMap newSsa, PointerTargetSet newPts) {
+    return new PathFormula(formula, newSsa, newPts, length);
+  }
+
   @Override
   public boolean equals(@Nullable Object obj) {
     if (this == obj) {

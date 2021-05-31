@@ -275,7 +275,7 @@ public class BAMPredicateReducer
     PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssaBuilder);
     ssa = ssaBuilder.build();
 
-    pathFormula = pmgr.makeNewPathFormula(pathFormula, ssa, newPts);
+    pathFormula = pathFormula.withContext(ssa, newPts);
 
     return PredicateAbstractState.mkAbstractionState(
         pathFormula, abstractionFormula.copyOf(), reducedState.getAbstractionLocationsOnPath());

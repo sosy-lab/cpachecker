@@ -328,14 +328,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m, PointerTargetSet pPts) {
-    return new PathFormula(oldFormula.getFormula(),
-        m,
-        pPts,
-        oldFormula.getLength());
-  }
-
-  @Override
   public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2) throws InterruptedException {
 
     final BooleanFormula formula1 = pathFormula1.getFormula();
