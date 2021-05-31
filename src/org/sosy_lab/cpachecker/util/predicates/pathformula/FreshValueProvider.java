@@ -9,15 +9,15 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 
-/**
- * Generator of new fresh to-be-returned values for {@link SSAMap}.
- **/
-public class FreshValueProvider implements Serializable {
+/** Generator of new fresh to-be-returned values for {@link SSAMap}. */
+@Immutable
+public final class FreshValueProvider implements Serializable {
 
   private static final long serialVersionUID = 12359384095345L;
 
