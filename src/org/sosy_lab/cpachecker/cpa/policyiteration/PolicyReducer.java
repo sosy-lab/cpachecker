@@ -211,7 +211,7 @@ class PolicyReducer implements Reducer {
         // If bound for this template is present in the summary, add it after the abstraction.
         BooleanFormula policyFormula = stateFormulaConversionManager
             .templateToConstraint(template, pBound, pfmgr, fmgr, inputPath);
-        PathFormula policy = inputPath.updateFormula(policyFormula);
+        PathFormula policy = inputPath.withFormula(policyFormula);
         insertedBound = PolicyBound.of(
             policy,
             pBound.getBound(),

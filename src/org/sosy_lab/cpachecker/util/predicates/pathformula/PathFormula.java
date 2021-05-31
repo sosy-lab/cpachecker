@@ -58,10 +58,13 @@ public final class PathFormula implements Serializable {
   }
 
   /**
-   * Change the constraint associated with the path formula, but keep everything
-   * else as is.
+   * Create a copy of this instance but with a new constraint, everything else stays as is.
+   *
+   * <p>WARNING: Use this method only if you are sure that the result is meaningful and correct in
+   * your specific use case. Usually the more high-level methods from {@link PathFormulaManager}
+   * should be used instead.
    */
-  public PathFormula updateFormula(BooleanFormula newConstraint) {
+  public PathFormula withFormula(BooleanFormula newConstraint) {
     return new PathFormula(newConstraint, ssa, pts, length);
   }
 

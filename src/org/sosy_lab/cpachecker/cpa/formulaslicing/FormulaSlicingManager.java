@@ -210,7 +210,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
     );
 
     Set<BooleanFormula> lemmas = rcnfManager.toLemmasInstantiated(
-        pf.updateFormula(transition), fmgr
+        pf.withFormula(transition), fmgr
     );
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();

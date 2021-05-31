@@ -257,7 +257,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     if (simplifyGeneratedPathFormulas) {
-      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+      pf = pf.withFormula(fmgr.simplify(pf.getFormula()));
     }
     return pf;
   }
@@ -371,7 +371,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
-      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+      out = out.withFormula(fmgr.simplify(out.getFormula()));
     }
     return out;
   }

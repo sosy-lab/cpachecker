@@ -1074,7 +1074,7 @@ public class PolicyIterationManager {
     BooleanFormula policy = bfmgr.and(policies);
 
     return Pair.of(BOUND_COMPUTED, PolicyBound.of(
-        firstBound.getFormula().updateFormula(policy),
+        firstBound.getFormula().withFormula(policy),
         combinedBound,
         firstBound.getPredecessor(),
         allDependencies
@@ -1182,7 +1182,7 @@ public class PolicyIterationManager {
     }
 
     return PolicyBound.of(
-        inputPathFormula.updateFormula(policyFormula), bound, backpointer,
+        inputPathFormula.withFormula(policyFormula), bound, backpointer,
         dependencies);
   }
 
