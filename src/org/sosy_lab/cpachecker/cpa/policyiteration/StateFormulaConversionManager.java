@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -190,10 +188,7 @@ public class StateFormulaConversionManager {
       return dotWriter.toDOTLabel(pAbstraction);
     }
 
-    PathFormula inputPath = new PathFormula(
-        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet
-        .emptyPointerTargetSet(), 0
-    );
+    PathFormula inputPath = pfmgr.makeEmptyPathFormula();
 
     Map<Template, BooleanFormula> templatesToConstraints =
         ImmutableMap.copyOf(
