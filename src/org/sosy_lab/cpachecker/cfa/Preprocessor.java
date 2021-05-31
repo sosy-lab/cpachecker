@@ -51,6 +51,12 @@ public abstract class Preprocessor {
     }
   }
 
+  /**
+   * Preprocess the given file and potentially write the result to a dump file depending on the specifications set on the preprocessor.
+   * 
+   * @param file The file to preprocess.
+   * @return The preprocessed file.
+   */
   public String preprocess(String file) throws CParserException, InterruptedException {
     String result = preprocess0(file);
     getAndWriteDumpFile(result, file);

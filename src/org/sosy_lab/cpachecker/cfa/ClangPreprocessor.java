@@ -43,9 +43,16 @@ public class ClangPreprocessor extends Preprocessor {
     config.inject(this);
   }
 
+  /**
+   * Preprocess the given file and return the file to which the result has been dumped.
+   * 
+   * @param file The file to preprocess.
+   * @param dumpDirectory The required dump directory where the dump file will be written to.
+   * @return The path denoting the dump file.
+   */
   public Path preprocessAndGetDumpedFile(String file, Path dumpDirectory)
       throws CParserException, InterruptedException {
-    checkNotNull(dumpDirectory, "Using the clang preprocessor requires a non-null dump directory.");
+    checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     String result = preprocess0(file);
     return getAndWriteDumpFile(result, file, dumpDirectory);
   }
