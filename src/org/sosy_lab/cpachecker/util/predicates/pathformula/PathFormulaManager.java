@@ -44,6 +44,16 @@ public interface PathFormulaManager {
   PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula);
 
   /**
+   * Create a new path formula with the formula <code>true</code> and the given SSAMap and
+   * PointerTargetSet.
+   *
+   * <p>In most cases {@link #makeEmptyPathFormulaWithContextFrom(PathFormula)} should be used
+   * instead, but this method may be useful in similar cases but where no PathFormula instance
+   * exists.
+   */
+  PathFormula makeEmptyPathFormulaWithContext(SSAMap ssaMap, PointerTargetSet pts);
+
+  /**
    * Creates a new path formula representing an OR of the two arguments. Differently from {@link
    * BooleanFormulaManager#or(BooleanFormula, BooleanFormula)}, it also merges the SSA maps and
    * creates the necessary adjustments to the formulas if the two SSA maps contain different values

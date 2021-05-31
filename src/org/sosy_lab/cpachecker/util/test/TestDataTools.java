@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class TestDataTools {
 
@@ -104,18 +103,14 @@ public class TestDataTools {
   public static PathFormula toPathFormula(
       CFA cfa,
       SSAMap initialSSA,
-      FormulaManagerView fmgr,
       PathFormulaManager pfmgr,
       boolean ignoreDeclarations
       ) throws Exception {
     Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.getAllNodes().size());
     CFANode start = cfa.getMainFunction();
 
-    PathFormula initial = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeTrue(), initialSSA,
-        PointerTargetSet.emptyPointerTargetSet(),
-        0
-    );
+    PathFormula initial =
+        pfmgr.makeEmptyPathFormulaWithContext(initialSSA, PointerTargetSet.emptyPointerTargetSet());
 
     mapping.put(start, initial);
     Deque<CFANode> queue = new ArrayDeque<>();

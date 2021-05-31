@@ -314,6 +314,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts, 0);
+  }
+
+  @Override
   @Deprecated
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
     return new PathFormula(oldFormula.getFormula(),

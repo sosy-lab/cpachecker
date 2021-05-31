@@ -157,6 +157,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return delegate.makeEmptyPathFormulaWithContext(pSsaMap, pPts);
+  }
+
+  @Override
   public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     return delegate.makeFormulaForVariable(pContext, pVarName, pType);
   }
