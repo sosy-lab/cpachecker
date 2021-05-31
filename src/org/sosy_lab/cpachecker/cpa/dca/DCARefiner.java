@@ -412,9 +412,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           PathFormula stemPathFormula = pathFormulaManager.makeConjunction(stemPathFormulaList);
 
           // Check stem prefixes for infeasibility
-          ImmutableList<BooleanFormula> stemBFList =
-              transformedImmutableListCopy(stemPathFormulaList, PathFormula::getFormula);
-          if (isUnsat(stemBFList)) {
+          if (solver.isUnsat(stemPathFormula.getFormula())) {
             logger.log(Level.INFO, "Found unsat predicates in stem");
             if (refineFinitePrefixes(stemPath, stemPathFormulaList)) {
               // Received flag to immediately perform an abstraction refinement
@@ -440,9 +438,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   : pathFormulaManager.makeConjunction(loopPathFormulaList);
 
           // Check loop prefixes for infeasibility
-          ImmutableList<BooleanFormula> loopBFList =
-              transformedImmutableListCopy(loopPathFormulaList, PathFormula::getFormula);
-          if (isUnsat(loopBFList)) {
+          if (solver.isUnsat(loopPathFormula.getFormula())) {
             logger.log(Level.INFO, "Found unsat predicates in loop");
             if (refineFinitePrefixes(loopPath, loopPathFormulaList)) {
               // Received flag to immediately perform an abstraction refinement
@@ -459,16 +455,13 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   .addAll(loopPath.asStatesList().subList(1, loopPath.asStatesList().size()))
                   .build();
           ARGPath stemAndLoopPath = new ARGPath(stemAndLoopStates);
-          ImmutableList<BooleanFormula> stemAndLoopBFList =
-              ImmutableList.<BooleanFormula>builder()
-                  .addAll(stemBFList)
-                  .addAll(loopBFList.subList(1, loopBFList.size()))
-                  .build();
           ImmutableList<PathFormula> stemAndLoopPathFormulaList =
               FluentIterable.from(stemPathFormulaList)
                   .append(Iterables.skip(loopPathFormulaList, 1))
                   .toList();
-          if (isUnsat(stemAndLoopBFList)) {
+          BooleanFormula stemAndLoopBF =
+              pathFormulaManager.makeConjunction(stemAndLoopPathFormulaList).getFormula();
+          if (solver.isUnsat(stemAndLoopBF)) {
             logger.log(Level.INFO, "Found unsat predicates in stem concatenated with loop");
             if (refineFinitePrefixes(stemAndLoopPath, stemAndLoopPathFormulaList)) {
               // Received flag to immediately perform an abstraction refinement
@@ -600,11 +593,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
               AbstractionPosition.NONE);
 
       // check path for infeasibility
-      ImmutableList<BooleanFormula> bfList =
-          transformedImmutableListCopy(pathFormulaList, PathFormula::getFormula);
-
       try {
-        if (!isUnsat(bfList)) {
+        if (!solver.isUnsat(pathFormulaManager.makeConjunction(pathFormulaList).getFormula())) {
           continue;
         }
       } catch (SolverException e) {
@@ -741,20 +731,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     AbstractState initialState = argCPA.getInitialState(mainFunction, defaultPartition);
     Precision initialPrecision = argCPA.getInitialPrecision(mainFunction, defaultPartition);
     reached.add(initialState, initialPrecision);
-  }
-
-  public boolean isUnsat(BooleanFormula... pFormulas) throws InterruptedException, SolverException {
-    return isUnsat(ImmutableList.copyOf(pFormulas));
-  }
-
-  private boolean isUnsat(Collection<BooleanFormula> pFormulas)
-      throws InterruptedException, SolverException {
-    try (ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
-      for (BooleanFormula formula : pFormulas) {
-        proverEnvironment.push(formula);
-      }
-      return proverEnvironment.isUnsat();
-    }
   }
 
   private Object lazyPrintNodes(ARGPath pStemPath) {
