@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -92,6 +93,12 @@ public class SSAMapTest {
     assertThat(builder.getFreshIndex("b")).isEqualTo(6);
   }
 
+  private static FreshValueProvider createFreshNewValueProviderWith(String name, int index) {
+    PersistentSortedMap<String, Integer> mapping =
+        PathCopyingPersistentTreeMap.<String, Integer>of().putAndCopy(name, index);
+    return new FreshValueProvider(mapping);
+  }
+
   @Test
   public void testSSAbam() {
     builder
@@ -113,17 +120,14 @@ public class SSAMapTest {
     assertThat(builder.getIndex("b")).isEqualTo(5);
     assertThat(builder.getFreshIndex("b")).isEqualTo(6);
 
-
     // latest used var
-    FreshValueProvider bamfvp = new FreshValueProvider();
-    bamfvp.put("c", 7);
+    FreshValueProvider bamfvp = createFreshNewValueProviderWith("c", 7);
     builder.mergeFreshValueProviderWith(bamfvp);
 
     assertThat(builder.getIndex("c")).isEqualTo(3);
     assertThat(builder.getFreshIndex("c")).isEqualTo(8);
 
-    FreshValueProvider bamfvp2 = new FreshValueProvider();
-    bamfvp2.put("c", 9);
+    FreshValueProvider bamfvp2 = createFreshNewValueProviderWith("c", 9);
     builder.mergeFreshValueProviderWith(bamfvp2);
     assertThat(builder.getFreshIndex("c")).isEqualTo(10);
 

@@ -25,13 +25,13 @@ public class FreshValueProvider implements Serializable {
   @VisibleForTesting
   static final int DEFAULT_INCREMENT = 1;
 
-  private PersistentSortedMap<String, Integer> vars;
+  private final PersistentSortedMap<String, Integer> vars;
 
   public FreshValueProvider() {
     vars = PathCopyingPersistentTreeMap.of();
   }
 
-  private FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
+  public FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
     this.vars = diffVars;
   }
 
@@ -58,10 +58,6 @@ public class FreshValueProvider implements Serializable {
     return new FreshValueProvider(
         PersistentSortedMaps.merge(
             this.vars, other.vars, PersistentSortedMaps.getMaximumMergeConflictHandler()));
-  }
-
-  public void put(String variable, int index) {
-    vars = vars.putAndCopy(variable, index);
   }
 
   @Override

@@ -20,7 +20,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -586,9 +588,9 @@ public class BAMPredicateReducer
     Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
 
     if (idx > oldIdx) {
-      FreshValueProvider bamfvp = new FreshValueProvider();
-      bamfvp.put(name, idx);
-      ssa.mergeFreshValueProviderWith(bamfvp);
+      PersistentSortedMap<String, Integer> newMapping =
+          PathCopyingPersistentTreeMap.<String, Integer>of().putAndCopy(name, idx);
+      ssa.mergeFreshValueProviderWith(new FreshValueProvider(newMapping));
     }
   }
 
