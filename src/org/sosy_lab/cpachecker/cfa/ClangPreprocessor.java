@@ -9,6 +9,8 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +45,7 @@ public class ClangPreprocessor extends Preprocessor {
 
   public Path preprocessAndGetDumpedFile(String file, Path dumpDirectory)
       throws CParserException, InterruptedException {
+    checkNotNull(dumpDirectory, "Using the clang preprocessor requires a non-null dump directory.");
     String result = preprocess0(file);
     return getAndWriteDumpFile(result, file, dumpDirectory);
   }
