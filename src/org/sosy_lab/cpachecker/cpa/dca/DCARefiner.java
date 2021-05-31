@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.FluentIterable;
@@ -342,15 +343,13 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     // They can be safely removed from the ARG. This also includes all parents states that are both
     // a target state and do not have more than one child-element.
     ImmutableList<ARGState> infeasibleDummyStates =
-        pReached
-            .asCollection()
-            .stream()
+        from(pReached)
             .filter(
                 x ->
                     AbstractStates.extractStateByType(x, PredicateAbstractState.class)
                         instanceof PredicateAbstractState.InfeasibleDummyState)
-            .map(x -> (ARGState) x)
-            .collect(ImmutableList.toImmutableList());
+            .filter(ARGState.class)
+            .toList();
 
     if (!keepInfeasibleStates) {
       logger.logf(
@@ -492,10 +491,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           // The current logic below might not work for programs with several / complex
           // loop structures.
           ImmutableList<CFANode> cfaNodesOfCurrentCycle =
-              cycle
-                  .stream()
-                  .map(AbstractStates::extractLocation)
-                  .collect(ImmutableList.toImmutableList());
+              AbstractStates.extractLocations(cycle).toList();
           ImmutableList<Loop> loops =
               FluentIterable.from(loopStructure.getAllLoops())
                   .filter(x -> x.getLoopNodes().containsAll(cfaNodesOfCurrentCycle))
@@ -572,13 +568,10 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
         "No cycles left to check, continuing with simple paths (paths with loose ends).");
 
     ImmutableList<ARGState> targetStatesWithoutChildren =
-        reached
-            .asCollection()
-            .stream()
-            .map(x -> (ARGState) x)
+        AbstractStates.getTargetStates(reached)
+            .filter(ARGState.class)
             .filter(x -> x.getChildren().isEmpty())
-            .filter(AbstractStates::isTargetState)
-            .collect(ImmutableList.toImmutableList());
+            .toList();
     if (targetStatesWithoutChildren.isEmpty()) {
       logger.log(Level.INFO, "Did not found any finite paths that contain target states.");
     }
