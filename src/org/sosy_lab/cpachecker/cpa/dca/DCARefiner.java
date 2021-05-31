@@ -757,7 +757,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private PathFormula createSinglePathFormula(
       List<PathFormula> pPathFormulas, PathFormula pStartFormula) {
-    PathFormula result = pathFormulaManager.makeEmptyPathFormula(pStartFormula);
+    PathFormula result = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pStartFormula);
     for (PathFormula next : pPathFormulas) {
       BooleanFormula resultFormula =
           formulaManagerView.getBooleanFormulaManager().and(result.getFormula(), next.getFormula());

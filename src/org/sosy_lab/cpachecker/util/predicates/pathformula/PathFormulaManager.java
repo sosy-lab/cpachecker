@@ -30,9 +30,18 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public interface PathFormulaManager {
 
+  /** Create a new path formula with the formula <code>true</code> and empty SSAMap etc. */
   PathFormula makeEmptyPathFormula();
 
-  PathFormula makeEmptyPathFormula(PathFormula oldFormula);
+  /**
+   * Create a new path formula with the formula <code>true</code> and SSAMap etc. taken from an
+   * existing path formula.
+   *
+   * <p>This is useful for creating a sequence of path formulas for a path when the new path formula
+   * (for the second part of the path) should start with the SSA indices from the old path formula
+   * such that both formulas can be conjuncted later on to represent the full path.
+   */
+  PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula);
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently from {@link

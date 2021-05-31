@@ -127,7 +127,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
         for (CFAEdge edge : edges) {
           currentFormula = pfmgr.makeAnd(currentFormula, edge);
           if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-            PathFormula f = pfmgr.makeEmptyPathFormula(parentFormula);
+            PathFormula f = pfmgr.makeEmptyPathFormulaWithContextFrom(parentFormula);
             f = pfmgr.makeAnd(f, edge);
             Pair<ARGState, CFAEdge> key = Pair.of(parentElement, edge);
             branchingFormulas.put(key, f);
@@ -168,7 +168,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
             pfmgr.addBitwiseAxiomsIfNeeded(
                 currentFormula.getFormula(), currentFormula.getFormula());
         abstractionFormulas.add(bFormula);
-        currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
+        currentFormula = pfmgr.makeEmptyPathFormulaWithContextFrom(currentFormula);
 
       } else {
         // merge the formulas

@@ -293,7 +293,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
     return new PathFormula(bfmgr.makeTrue(),
                            oldFormula.getSsa(),
                            oldFormula.getPointerTargetSet(),
@@ -493,7 +493,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           } else {
             pf = pe.getPathFormula();
           }
-          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+          pf = this.makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
           pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
         }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());

@@ -140,10 +140,10 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula pOldFormula) {
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {
-      result = delegate.makeEmptyPathFormula(pOldFormula);
+      result = delegate.makeEmptyPathFormulaWithContextFrom(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
     } else {
       pathFormulaCacheHits.increment();

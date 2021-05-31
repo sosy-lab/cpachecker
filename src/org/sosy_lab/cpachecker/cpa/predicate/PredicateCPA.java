@@ -370,7 +370,7 @@ public class PredicateCPA
         return getPredicateManager()
             .checkCoverage(
                 e1.getAbstractionFormula(),
-                pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+                pathFormulaManager.makeEmptyPathFormulaWithContextFrom(e1.getPathFormula()),
                 e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);
