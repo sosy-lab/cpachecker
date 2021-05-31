@@ -146,16 +146,13 @@ public class TestDataTools {
           out = n;
         } else {
           out = pfmgr.makeOr(old, n);
-          out = out.updateFormula(fmgr.simplify(out.getFormula()));
         }
         mapping.put(toNode, out);
         queue.add(toNode);
       }
     }
 
-    PathFormula out = mapping.get(cfa.getMainFunction().getExitNode());
-    out = out.updateFormula(fmgr.simplify(out.getFormula()));
-    return out;
+    return mapping.get(cfa.getMainFunction().getExitNode());
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
