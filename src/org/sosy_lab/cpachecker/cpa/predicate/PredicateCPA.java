@@ -266,7 +266,7 @@ public class PredicateCPA
       case "SEP":
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager());
+        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
