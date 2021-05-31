@@ -109,7 +109,7 @@ public class StateFormulaConversionManager {
           + "formula manager", pE);
     }
 
-    PathFormula inputPath = getPathFormula(abstractState, fmgrv, attachExtraInvariant);
+    PathFormula inputPath = getPathFormula(abstractState, attachExtraInvariant);
     if (!fmgrv.getBooleanFormulaManager().isTrue(inputPath.getFormula())) {
       constraints.add(inputPath.getFormula());
     }
@@ -155,9 +155,7 @@ public class StateFormulaConversionManager {
   PolicyIntermediateState abstractStateToIntermediate(
       PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     CFANode node = abstractState.getNode();
-    PathFormula generatingFormula = getPathFormula(abstractState,
-        fmgr, attachExtraInvariant
-    );
+    PathFormula generatingFormula = getPathFormula(abstractState, attachExtraInvariant);
 
     return PolicyIntermediateState.of(node, generatingFormula, abstractState);
   }
@@ -170,17 +168,14 @@ public class StateFormulaConversionManager {
    */
   PathFormula getPathFormula(
       PolicyAbstractedState abstractState,
-      FormulaManagerView pFormulaManager,
       boolean attachExtraInvariant) {
-    BooleanFormula extraPredicate;
+    PathFormula result =
+        pfmgr.makeEmptyPathFormulaWithContext(
+            abstractState.getSSA(), abstractState.getPointerTargetSet());
     if (attachExtraInvariant) {
-      extraPredicate =
-          pFormulaManager.instantiate(abstractState.getExtraInvariant(), abstractState.getSSA());
-    } else {
-      extraPredicate = pFormulaManager.getBooleanFormulaManager().makeTrue();
+      result = pfmgr.makeAnd(result, abstractState.getExtraInvariant());
     }
-    return new PathFormula(extraPredicate, abstractState.getSSA(),
-        abstractState.getPointerTargetSet(), 1);
+    return result;
   }
 
   public String toDOTLabel(Map<Template, PolicyBound> pAbstraction) {

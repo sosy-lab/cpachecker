@@ -1169,8 +1169,7 @@ public class PolicyIterationManager {
 
       // Context for converting the template to formula, used for determining
       // used SSA map and PointerTargetSet.
-      PathFormula contextFormula =
-          stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false);
+      PathFormula contextFormula = stateFormulaConversionManager.getPathFormula(backpointer, false);
       for (Entry<Template, PolicyBound> entry : backpointer) {
         Template t = entry.getKey();
         Set<String> fVars = extractFunctionNames(
