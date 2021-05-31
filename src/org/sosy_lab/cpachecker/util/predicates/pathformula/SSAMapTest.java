@@ -25,11 +25,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
-/**
- * Testing the custom SSA implementation.
- */
+/** Testing the custom SSA implementation. */
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
-public class PathFormulaTest {
+public class SSAMapTest {
 
   @SuppressForbidden("reflection only in test")
   private ClassSanityTester classSanityTester() throws Exception {
