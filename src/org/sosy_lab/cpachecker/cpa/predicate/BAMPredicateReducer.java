@@ -386,8 +386,9 @@ public class BAMPredicateReducer
     //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
     //there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getSsa(), oldSSA);
-    @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
-    PathFormula newPathFormula = pmgr.makeNewPathFormula(pmgr.makeEmptyPathFormula(), newSSA);
+    // FIXME: seems buggy because it completely forgets the PointerTargetSet!
+    PathFormula newPathFormula =
+        pmgr.makeEmptyPathFormulaWithContext(newSSA, PointerTargetSet.emptyPointerTargetSet());
     Region removedPredicates =
         splitAbstractionForReduction(rootAbstraction.asRegion(), pReducedContext).getSecond();
     Region expandedAbstraction = rmgr.makeAnd(reducedAbstraction.asRegion(), removedPredicates);
