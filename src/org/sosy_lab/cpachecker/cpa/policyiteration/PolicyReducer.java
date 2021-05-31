@@ -160,7 +160,10 @@ class PolicyReducer implements Reducer {
     BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
         .abstractStateToConstraints(fmgr, aSummaryState, false));
 
-    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
+    @SuppressWarnings("deprecation")
+    // TODO Can we refactor and move part of the code into an appropriate high-level method in
+    // PathFormulaManager?
+    PathFormula pf = PathFormula.createManually(formula, ssa, pointerTargetSet, 1);
 
     // Fake that the control has come from the entry state.
     PolicyIntermediateState generator = PolicyIntermediateState.of(node, pf, aEntryState);

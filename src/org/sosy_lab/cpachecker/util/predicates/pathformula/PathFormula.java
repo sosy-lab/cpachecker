@@ -20,6 +20,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ * A {@link BooleanFormula} that represents a path or a set of paths. Such formulas do not describe
+ * program states but program operations. All variables in path formulas have SSA indices, and the
+ * current mapping of variables to SSA indices is also stored as an {@link SSAMap}. Furthermore, a
+ * {@link PointerTargetSet} with information about pointers and how certain pointer operations are
+ * encoded in the formula is also stored.
+ *
+ * <p>Path formulas can be created with the methods in {@link PathFormulaManager}, which also
+ * provides methods with additional operations.
+ */
 public final class PathFormula implements Serializable {
 
   private static final long serialVersionUID = -7716850731790578620L;
@@ -28,12 +38,27 @@ public final class PathFormula implements Serializable {
   private final int length;
   private final PointerTargetSet pts;
 
-  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
-      int pLength) {
+  // Do not make public, cf. createManually()
+  PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
     this.formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
     this.length = pLength;
+  }
+
+  /**
+   * Create a new instance with full custom values.
+   *
+   * <p>WARNING: Most components should NOT call this method but instead one of the high-level
+   * methods in {@link PathFormulaManager} or at least one of the <code>withSomething</code> methods
+   * in this class. This method should only be called where strictly necessary, i.e., in low-level
+   * code that is the implementation of such high-level methods. Callers inside the same package
+   * should call the constructor.
+   */
+  @Deprecated
+  public static PathFormula createManually(
+      BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
+    return new PathFormula(pf, ssa, pts, pLength);
   }
 
   public BooleanFormula getFormula() {
