@@ -520,7 +520,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
             CounterexampleTraceInfo cexTraceInfo =
                 interpolationManager.buildCounterexampleTrace(
-                    new BlockFormulas(stemAndLoopBFList),
+                    BlockFormulas.createFromPathFormulas(stemAndLoopPathFormulaList),
                     transformedImmutableListCopy(
                         stemAndLoopStates, PredicateAbstractState::getPredicateState));
             CounterexampleInfo cexInfo =
@@ -618,7 +618,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
         CounterexampleTraceInfo cexTraceInfo =
             interpolationManager.buildCounterexampleTrace(
-                new BlockFormulas(bfList),
+                BlockFormulas.createFromPathFormulas(pathFormulaList),
                 transformedImmutableListCopy(
                     path.asStatesList(), PredicateAbstractState::getPredicateState));
         CounterexampleInfo cexInfo = pathChecker.createCounterexample(path, cexTraceInfo);
@@ -661,10 +661,9 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private boolean refineFinitePrefixes(ARGPath pPath, List<PathFormula> pPathFormulaList)
       throws CPAException, InterruptedException {
-    ImmutableList<BooleanFormula> booleanFormulas =
-        transformedImmutableListCopy(pPathFormulaList, PathFormula::getFormula);
     CounterexampleTraceInfo cexTraceInfo =
-        interpolationManager.buildCounterexampleTrace(new BlockFormulas(booleanFormulas));
+        interpolationManager.buildCounterexampleTrace(
+            BlockFormulas.createFromPathFormulas(pPathFormulaList));
 
     List<BooleanFormula> interpolants = cexTraceInfo.getInterpolants();
     logger.logf(
