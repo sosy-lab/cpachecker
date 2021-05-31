@@ -15,6 +15,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -282,6 +284,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     return makeAnd(pOldFormula, pEdge, errorConditions);
+  }
+
+  @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    if (pPathFormulas.isEmpty()) {
+      return makeEmptyPathFormula();
+    }
+    BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
+    int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
+    PathFormula last = Iterables.getLast(pPathFormulas);
+    return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
   }
 
   @Override

@@ -409,7 +409,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   (ARGState) reached.getFirstState(),
                   stemPath.asStatesList(),
                   AbstractionPosition.NONE);
-          PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
+          PathFormula stemPathFormula = pathFormulaManager.makeConjunction(stemPathFormulaList);
 
           // Check stem prefixes for infeasibility
           ImmutableList<BooleanFormula> stemBFList =
@@ -435,7 +435,9 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
                   AbstractionPosition.NONE);
           PathFormula loopPathFormula =
-              createSinglePathFormula(loopPathFormulaList, stemPathFormula);
+              loopPathFormulaList.isEmpty()
+                  ? pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula)
+                  : pathFormulaManager.makeConjunction(loopPathFormulaList);
 
           // Check loop prefixes for infeasibility
           ImmutableList<BooleanFormula> loopBFList =
@@ -753,37 +755,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
       }
       return proverEnvironment.isUnsat();
     }
-  }
-
-  private PathFormula createSinglePathFormula(
-      List<PathFormula> pPathFormulas, PathFormula pStartFormula) {
-    PathFormula result = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pStartFormula);
-    for (PathFormula next : pPathFormulas) {
-      BooleanFormula resultFormula =
-          formulaManagerView.getBooleanFormulaManager().and(result.getFormula(), next.getFormula());
-      result =
-          new PathFormula(
-              resultFormula,
-              next.getSsa(),
-              next.getPointerTargetSet(),
-              result.getLength() + next.getLength());
-    }
-
-    PathFormula lastListElement = Iterables.getLast(pPathFormulas);
-    assert result.getSsa().equals(lastListElement.getSsa())
-        : String.format(
-            "Inconsistent SSA-map produced:" + "%n(actual: %s)" + "%n(expected %s)",
-            result.getSsa(), lastListElement.getSsa());
-    assert result.getPointerTargetSet().equals(lastListElement.getPointerTargetSet())
-        : String.format(
-            "Inconsistent pointertarget-set produced:" + "%n(actual: %s)" + "%n(expected %s)",
-            result.getPointerTargetSet(), lastListElement.getPointerTargetSet());
-
-    return result;
-  }
-
-  private PathFormula createSinglePathFormula(List<PathFormula> pPathFormulas) {
-    return createSinglePathFormula(pPathFormulas, pathFormulaManager.makeEmptyPathFormula());
   }
 
   private Object lazyPrintNodes(ARGPath pStemPath) {

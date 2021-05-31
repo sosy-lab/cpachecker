@@ -135,6 +135,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    return delegate.makeConjunction(pPathFormulas);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return emptyFormula;
   }

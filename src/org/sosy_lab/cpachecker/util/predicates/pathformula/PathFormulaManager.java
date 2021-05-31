@@ -78,6 +78,20 @@ public interface PathFormulaManager {
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
   /**
+   * Create a conjunction of path formulas. The result has the conjunction of all formulas, the
+   * SSAMap and PointerTargetSet of the last list entry, and the sum of all lengths. If the list is
+   * empty, the result is equal to {@link #makeEmptyPathFormula()}).
+   *
+   * <p>WARNING: The input path formulas must already have matching SSA indices for this to make
+   * sense! The usual case to call this method is when you have a list of path formulas, where each
+   * path formula except the first was based on the result of a call to {@link
+   * #makeEmptyPathFormulaWithContextFrom(PathFormula)} with the previous path formula.
+   *
+   * <p>Note: This is not a commutative operation! The order of the list matters.
+   */
+  PathFormula makeConjunction(List<PathFormula> pathFormulas);
+
+  /**
    * Takes a variable name and its type to create the corresponding formula out of it. The <code>
    * pContext</code> is used to supply this method with the necessary {@link SSAMap} and (if
    * necessary) the {@link PointerTargetSet}. The variable is assumed not to be a function
