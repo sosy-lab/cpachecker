@@ -554,7 +554,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                 segmentList,
                 startSSAMap,
                 startPts,
-                solver.getFormulaManager(),
                 pfmgr,
                 AbstractionPosition.BOTH)
             .getFormula();

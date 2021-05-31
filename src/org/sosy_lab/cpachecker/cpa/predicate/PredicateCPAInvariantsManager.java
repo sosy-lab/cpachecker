@@ -589,7 +589,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   config,
                   cfa.getLoopStructure().orElseThrow(),
                   pfmgr,
-                  fmgr,
                   logger,
                   pInvariantShutdown)
               .generateLoopTransition(ssa, pts, pLocation);

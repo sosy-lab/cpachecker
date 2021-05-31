@@ -15,7 +15,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.InlineMe;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -256,7 +257,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     if (simplifyGeneratedPathFormulas) {
-      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+      pf = pf.withFormula(fmgr.simplify(pf.getFormula()));
     }
     return pf;
   }
@@ -286,6 +287,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    if (pPathFormulas.isEmpty()) {
+      return makeEmptyPathFormula();
+    }
+    BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
+    int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
+    PathFormula last = Iterables.getLast(pPathFormulas);
+    return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
@@ -294,31 +306,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
     return new PathFormula(
         bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
   }
 
-  @InlineMe(
-      replacement =
-          "new PathFormula(oldFormula.getFormula(), m, oldFormula.getPointerTargetSet(),"
-              + " oldFormula.getLength())",
-      imports = "org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula")
   @Override
-  @Deprecated
-  public final PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(),
-                           m,
-                           oldFormula.getPointerTargetSet(),
-                           oldFormula.getLength());
-  }
-
-  @Override
-  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m, PointerTargetSet pPts) {
-    return new PathFormula(oldFormula.getFormula(),
-        m,
-        pPts,
-        oldFormula.getLength());
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts, 0);
   }
 
   @Override
@@ -357,7 +352,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
-      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+      out = out.withFormula(fmgr.simplify(out.getFormula()));
     }
     return out;
   }
@@ -497,7 +492,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           } else {
             pf = pe.getPathFormula();
           }
-          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+          pf = this.makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
           pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
         }
         BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
