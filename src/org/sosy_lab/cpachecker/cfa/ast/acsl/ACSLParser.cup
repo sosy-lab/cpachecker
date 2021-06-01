@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import java.io.File;
@@ -40,6 +38,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.Block;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructure;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -119,6 +120,8 @@ parser code {:
                       x.getFileName().equals(filename)
                           || Path.of(x.getFileName()).getFileName().toString().equals(filename))
               .collect(ImmutableList.toImmutableList());
+        BlockStructureBuilder builder = new BlockStructureBuilder(pCfa);
+        BlockStructure blockStructure = builder.build(filename);
         ACSLParser parser =
             new ACSLParser(
                 scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger, commentPositions);
@@ -135,8 +138,7 @@ parser code {:
                 orderedCFALocs,
                 orderedLocs.get(i),
                 (ACSLAssertion) annotations.get(i),
-                commentPositions,
-                statementStackDepths);
+                blockStructure);
           } else {
             CFAEdge edgeForAnnotation = null;
             for (CFAEdge edge : orderedCFALocs) {
@@ -153,9 +155,9 @@ parser code {:
         }
         logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
         convertFunctionContractsIfNecessary(newCFA);
-        adjustAnnotationLocations(newCFA, filename, statementStackDepths);
+        adjustAnnotationLocations(newCFA, filename, blockStructure);
         // TODO: check whether used identifiers have been declared
-        checkBehaviors(newCFA.getEdgesToAnnotations(), newCFA, statementStackDepths);
+        checkBehaviors(newCFA.getEdgesToAnnotations(), newCFA, blockStructure);
       }
 
       return newCFA;
@@ -193,7 +195,7 @@ parser code {:
     private static void adjustAnnotationLocations(
         CFAWithACSLAnnotations cfaWithLocs,
         String currentFile,
-        Map<CFANode, Integer> statementStackDepths) {
+        BlockStructure blockStructure) {
       ImmutableList<CFAEdge> keys =
           ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().keySet());
       Set<ACSLAnnotation> moved = new HashSet<>();
@@ -213,7 +215,7 @@ parser code {:
               }
             } else if (annotation instanceof StatementContract) {
               if (handleStatementContract(
-                  cfaWithLocs, key, (StatementContract) annotation, statementStackDepths)) {
+                  cfaWithLocs, key, (StatementContract) annotation, blockStructure)) {
                 toRemove.add(annotation);
               }
             } else if (annotation instanceof ACSLLoopAnnotation) {
@@ -257,7 +259,7 @@ parser code {:
         CFAWithACSLAnnotations cfaWithLocs,
         CFAEdge edge,
         StatementContract annotation,
-        Map<CFANode, Integer> statementStackDepths) {
+        BlockStructure blockStructure) {
       // requirements have to be fulfilled by all entering edges
       for (int i = 0; i < edge.getPredecessor().getNumEnteringEdges(); i++) {
         cfaWithLocs
@@ -266,43 +268,29 @@ parser code {:
       }
       // Add statement contracts directly after the statement as well because some clauses have to
       // be evaluated in the post-state
-      if (edge.getDescription().equals("for")) {
-        while (edge.getSuccessor().getNumLeavingEdges() == 1) {
-          edge = edge.getSuccessor().getLeavingEdge(0);
+      Block innermostBlock = blockStructure.getInnermostBlockOf(edge.getSuccessor());
+      if (innermostBlock == null) {
+        // TODO: Ignore annotation instead of throwing exception
+        throw new AssertionError("Not inside a block");
+      } else if (innermostBlock.isFunction()) {
+        for (int i = 0; i < edge.getSuccessor().getNumLeavingEdges(); i++) {
+          cfaWithLocs
+              .getEdgesToAnnotations()
+              .put(edge.getSuccessor().getLeavingEdge(i), annotation.getCopyForPostState());
         }
-        edge = edge.getSuccessor().getLeavingEdge(0);
-        // edge is now "cond" or "!cond" edge of for-loop
-      }
-      int currentDepth =
-          statementStackDepths.getOrDefault(edge.getPredecessor(), DEFAULT_STATEMENT_STACK_DEPTH);
-      Queue<CFAEdge> waitlist = new ArrayDeque<>();
-      for (int i = 0; i < edge.getPredecessor().getNumLeavingEdges(); i++) {
-        waitlist.offer(edge.getPredecessor().getLeavingEdge(i));
-      }
-      boolean remove = true;
-      Set<CFAEdge> reachedSet = new HashSet<>();
-      while (!waitlist.isEmpty()) {
-        CFAEdge currentEdge = waitlist.poll();
-        reachedSet.add(currentEdge);
-        CFANode successor = currentEdge.getSuccessor();
-        if (statementStackDepths.getOrDefault(successor, DEFAULT_STATEMENT_STACK_DEPTH)
-            == currentDepth) {
-          if (currentEdge == edge) {
-            remove = false;
-          } else if (!currentEdge.getSuccessor().equals(edge.getPredecessor())) {
-            // we do not want to add the statement contract after a loop iteration, only after the
-            // whole loop
-            cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
-          }
-        } else {
-          for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-            if (!reachedSet.contains(successor.getLeavingEdge(i))) {
-              waitlist.offer(successor.getLeavingEdge(i));
-            }
+      } else {
+        for (CFAEdge blockLeavingEdge : innermostBlock.getLeavingEdges()) {
+          for (int i = 0; i < blockLeavingEdge.getSuccessor().getNumLeavingEdges(); i++) {
+            cfaWithLocs
+                .getEdgesToAnnotations()
+                .put(
+                    blockLeavingEdge.getSuccessor().getLeavingEdge(i),
+                    annotation.getCopyForPostState());
           }
         }
       }
-      return remove;
+      // TODO
+      return true;
     }
 
     /**
@@ -353,8 +341,7 @@ parser code {:
         List<CFAEdge> orderedCFALocs,
         FileLocation loc,
         ACSLAssertion annotation,
-        List<FileLocation> commentPositions,
-        Map<CFANode, Integer> statementStackDepths)
+        BlockStructure blockStructure)
         throws IOException {
       CFAEdge prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
       CFAEdge next = null;
@@ -367,99 +354,32 @@ parser code {:
           break;
         }
       }
-      if (next == null
-          || statementStackDepths.getOrDefault(prev.getPredecessor(), DEFAULT_STATEMENT_STACK_DEPTH)
-              > statementStackDepths.getOrDefault(
-                  next.getPredecessor(), DEFAULT_STATEMENT_STACK_DEPTH)) {
-        // Annotation is either placed at very end of a block or directly after a block
-        String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
-        String fileContentAfterAnnotation =
-            fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
-        int seekedDepth = 0;
-        while (!fileContentAfterAnnotation.isEmpty() && fileContentAfterAnnotation.charAt(0) != '{') {
-          if (fileContentAfterAnnotation.charAt(0) == '}') {
-            seekedDepth++;
-          }
-          fileContentAfterAnnotation = fileContentAfterAnnotation.substring(1).stripLeading();
-        }
-        if (statementStackDepths.getOrDefault(prev.getPredecessor(), DEFAULT_STATEMENT_STACK_DEPTH)
-            == seekedDepth) {
-          // Annotation is placed at very end of innermost block
+
+      Block innermostBlockOfAssertion = blockStructure.getInnermostBlockOf(loc);
+      CFANode node = next.getPredecessor();
+      if (next == null || !innermostBlockOfAssertion.getContainedNodes().contains(node)) {
+        Block innermostBlockOfPrevEdge = blockStructure.getInnermostBlockOf(prev.getSuccessor());
+        if (innermostBlockOfPrevEdge.equals(innermostBlockOfAssertion)) {
+          // Assertion is at very end of block (since next edge is after block)
           cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
         } else {
-          handleAssertionAfterBlockEnd(
-              cfaWithLocs, annotation, prev, seekedDepth, statementStackDepths);
+          Block lastBlock = null;
+          for (Block block : blockStructure.getBlocks()) {
+            if (!block.getContainedNodes().contains(prev.getSuccessor()) || block.getEndOffset() >= loc.getNodeOffset()) {
+              continue;
+            }
+            if (lastBlock == null || block.contains(lastBlock)) {
+              lastBlock = block;
+            }
+          }
+          for (CFAEdge edge : lastBlock.getLeavingEdges()) {
+            cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+          }
         }
       } else {
-        CFANode node = next.getPredecessor();
         for (int i = 0; i < node.getNumEnteringEdges(); i++) {
           CFAEdge currentEdge = node.getEnteringEdge(i);
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
-        }
-      }
-    }
-
-    private static void handleAssertionAfterBlockEnd(
-        CFAWithACSLAnnotations cfaWithLocs,
-        ACSLAssertion annotation,
-        CFAEdge prev,
-        int seekedDepth,
-        Map<CFANode, Integer> statementStackDepths) {
-      boolean afterLoop = false;
-      for (LoopStructure.Loop loop :
-          cfaWithLocs
-              .getLoopStructure()
-              .orElseThrow()
-              .getLoopsForFunction(prev.getSuccessor().getFunctionName())) {
-        if (afterLoop) {
-          break;
-        }
-        if (!loop.getInnerLoopEdges().contains(prev)) {
-          continue;
-        }
-        for (CFAEdge inEdge : loop.getIncomingEdges()) {
-          String description = inEdge.getDescription();
-          if (description.equals("while")
-              || description.equals("for")
-              || description.equals("do")
-              || (inEdge.getPredecessor().getNumEnteringEdges() == 1
-                  && inEdge.getPredecessor().getEnteringEdge(0).getDescription().equals("for"))) {
-            for (CFAEdge outEdge : loop.getOutgoingEdges()) {
-              if (statementStackDepths.getOrDefault(
-                      outEdge.getPredecessor(), DEFAULT_STATEMENT_STACK_DEPTH)
-                  == seekedDepth) {
-                cfaWithLocs.getEdgesToAnnotations().put(outEdge, annotation);
-                afterLoop = true;
-              }
-            }
-            break;
-          }
-        }
-      }
-      if (!afterLoop) {
-        Queue<CFAEdge> waitlist = new ArrayDeque<>();
-        Set<CFAEdge> reached = new HashSet<>();
-        waitlist.add(prev);
-        while (!waitlist.isEmpty()) {
-          CFAEdge current = waitlist.poll();
-          reached.add(current);
-          if (statementStackDepths.getOrDefault(current.getSuccessor(), DEFAULT_STATEMENT_STACK_DEPTH)
-              == seekedDepth) {
-            for (int i = 0; i < current.getSuccessor().getNumEnteringEdges(); i++) {
-              cfaWithLocs
-                  .getEdgesToAnnotations()
-                  .put(current.getSuccessor().getEnteringEdge(i), annotation);
-            }
-          } else if (statementStackDepths.getOrDefault(
-                  current.getSuccessor(), DEFAULT_STATEMENT_STACK_DEPTH)
-              > seekedDepth) {
-            for (int i = 0; i < current.getSuccessor().getNumLeavingEdges(); i++) {
-              CFAEdge edge = current.getSuccessor().getLeavingEdge(i);
-              if (!reached.contains(edge)) {
-                waitlist.add(edge);
-              }
-            }
-          }
         }
       }
     }
@@ -472,7 +392,7 @@ parser code {:
     public static void checkBehaviors(
         Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations,
         CFAWithACSLAnnotations cfa,
-        Map<CFANode, Integer> statementStackDepths) {
+        BlockStructure blockStructure) {
       Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
       // First, collect all behaviors where they are introduced
       for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
@@ -517,8 +437,7 @@ parser code {:
             assert inSameScope(
                     behaviorDeclarations.get(behavior.getName()).getSuccessor(),
                     entry.getKey().getSuccessor(),
-                    cfa,
-                    statementStackDepths)
+                    blockStructure)
                 : "Statement contract\n" + scontract + "\nis not in scope of " + behavior.getName();
           }
         } else if (annotation instanceof ACSLLoopAnnotation) {
@@ -529,8 +448,7 @@ parser code {:
             assert inSameScope(
                     behaviorDeclarations.get(behavior.getName()).getSuccessor(),
                     entry.getKey().getSuccessor(),
-                    cfa,
-                    statementStackDepths)
+                    blockStructure)
                 : "Loop annotation\n" + loopAnnotation + "\nis not in scope of " + behavior.getName();
           }
         } else if (annotation instanceof ACSLAssertion) {
@@ -541,8 +459,7 @@ parser code {:
             assert inSameScope(
                     behaviorDeclarations.get(behavior.getName()).getSuccessor(),
                     entry.getKey().getSuccessor(),
-                    cfa,
-                    statementStackDepths)
+                    blockStructure)
                 : "Assertion\n" + assertion + "\nis not in scope of " + behavior.getName();
           }
         }
@@ -586,58 +503,8 @@ parser code {:
     }
 
     private static boolean inSameScope(
-        CFANode oldNode, CFANode newNode, CFA cfa, Map<CFANode, Integer> statementStackDepths) {
-      if (statementStackDepths.getOrDefault(newNode, DEFAULT_STATEMENT_STACK_DEPTH)
-          < statementStackDepths.getOrDefault(oldNode, DEFAULT_STATEMENT_STACK_DEPTH)) {
-        return false;
-      }
-      return getInnermostScopeOf(oldNode, cfa, statementStackDepths).contains(newNode);
-    }
-
-    private static Set<CFANode> getInnermostScopeOf(
-        CFANode pNode, CFA cfa, Map<CFANode, Integer> statementStackDepths) {
-      Set<CFANode> inScope = new HashSet<>();
-      Set<CFANode> borderNodes = new HashSet<>();
-      Set<CFAEdge> initialWaitset = new HashSet<>();
-      Queue<CFAEdge> waitlist = new ArrayDeque<>();
-      int targetStatementStackDepth =
-          statementStackDepths.getOrDefault(pNode, DEFAULT_STATEMENT_STACK_DEPTH);
-      if (targetStatementStackDepth <= 0) {
-        // not inside a function
-        return ImmutableSet.copyOf(cfa.getAllNodes());
-      } else if (targetStatementStackDepth == 1) {
-        // not inside a block statement
-        return FluentIterable.from(cfa.getAllNodes())
-            .filter(x -> x.getFunctionName().equals(pNode.getFunctionName()))
-            .toSet();
-      }
-
-      for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
-        CFANode prev = pNode.getEnteringEdge(i).getPredecessor();
-        for (int j = 0; j < prev.getNumLeavingEdges(); j++) {
-          initialWaitset.add(prev.getLeavingEdge(j));
-        }
-        borderNodes.add(prev);
-      }
-      waitlist.addAll(initialWaitset);
-
-      while (!waitlist.isEmpty()) {
-        CFAEdge currentEdge = waitlist.poll();
-        CFANode successor = currentEdge.getSuccessor();
-        if (inScope.contains(successor) || borderNodes.contains(successor)) {
-          continue;
-        }
-        int currentStatementStackDepth = statementStackDepths.getOrDefault(successor, -1);
-        if (currentStatementStackDepth < targetStatementStackDepth) {
-          borderNodes.add(successor);
-        } else {
-          inScope.add(successor);
-          for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-            waitlist.add(successor.getLeavingEdge(i));
-          }
-        }
-      }
-      return inScope;
+        CFANode oldNode, CFANode newNode, BlockStructure blockStructure) {
+      return blockStructure.getNodesInInnermostBlockOf(oldNode).contains(newNode);
     }
 
     public List<FileLocation> getLocs() {
