@@ -14,7 +14,6 @@ import os
 import os.path
 import shutil
 import time
-import unittest
 import unittest.mock
 from unittest.mock import patch
 
@@ -163,6 +162,84 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
             lines_covered, lines_to_cover = c.collect_coverage()
 
         self.assertEqual(
+            lines_covered, {12, 13, 14, 15, 16, 17, 23, 27, 32, 33, 34}
+        )
+        self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
+
+
+class TestCoverageMultilineSwitchExpression1(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, "multiline_switch1.c")
+        aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
+        start_time = time.time()
+        with patch.object(self.logger, "info"):
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file,
+                start_time=start_time,
+                timer=generate_coverage.Timer(),
+            )
+            lines_covered, lines_to_cover = c.collect_coverage()
+
+        self.assertEqual(
+            lines_covered, {12, 13, 14, 15, 16, 17, 23, 24, 27, 32, 33, 34}
+        )
+        self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
+
+
+class TestCoverageMultilineSwitchExpression2(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, "multiline_switch2.c")
+        aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
+        start_time = time.time()
+        with patch.object(self.logger, "info"):
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file,
+                start_time=start_time,
+                timer=generate_coverage.Timer(),
+            )
+            lines_covered, lines_to_cover = c.collect_coverage()
+
+        self.assertEqual(
+            lines_covered, {12, 13, 14, 15, 16, 17, 23, 24, 25, 27, 32, 33, 34}
+        )
+        self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
+
+
+class TestCoverageMultilineSwitchExpression3(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, "multiline_switch3.c")
+        aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
+        start_time = time.time()
+        with patch.object(self.logger, "info"):
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file,
+                start_time=start_time,
+                timer=generate_coverage.Timer(),
+            )
+            lines_covered, lines_to_cover = c.collect_coverage()
+
+        self.assertEqual(
             lines_covered, {12, 13, 14, 15, 16, 17, 23, 24, 25, 26, 27, 32, 33, 34}
         )
         self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
@@ -187,8 +264,32 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
                 timer=generate_coverage.Timer(),
             )
             lines_covered, lines_to_cover = c.collect_coverage()
-        # Compound expression in cond (lines 3-4) is considered as fully
-        # evaluated even though line 4 cannot be reached.
+        self.assertEqual(
+            lines_covered,
+            {12, 16, 17, 18, 19, 20, 21, 27, 28, 29, 30, 31, 36, 37, 38},
+        )
+        self.assertEqual(lines_to_cover, {12, 13} | (set(range(16, 44)) - {26}))
+
+
+class TestCoverageMultilineSwitchExpressionAndCall1(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, "multiline_switch_and_call1.c")
+        aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
+        start_time = time.time()
+        with patch.object(self.logger, "info"):
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file,
+                start_time=start_time,
+                timer=generate_coverage.Timer(),
+            )
+            lines_covered, lines_to_cover = c.collect_coverage()
         self.assertEqual(
             lines_covered,
             {12, 13, 16, 17, 18, 19, 20, 21, 27, 28, 29, 30, 31, 36, 37, 38},
