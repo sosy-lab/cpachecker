@@ -156,6 +156,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   Collection<Object> getCurrentChain();
 
+  boolean hasChangeOnElement(Object pElement, UnmodifiableSMGState pOriginSMG);
+
   PersistentMap<String, SMGValue> getInvalidReads();
 
   boolean isTrackPredicatesEnabled();

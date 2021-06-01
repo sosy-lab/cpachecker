@@ -1736,6 +1736,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return Collections.unmodifiableList(errorInfo.getCurrentChain());
   }
 
+  @Override
+  public boolean hasChangeOnElement(Object pElement, UnmodifiableSMGState pOriginSMG) {
+    return !getHeap().containsElement(pElement) && pOriginSMG.getHeap().containsElement(pElement);
+  }
+
   @Nullable
   @Override
   public SMGValue getReplacedValue(SMGValue fresh) {

@@ -428,6 +428,49 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return getHeapObjects().contains(object);
   }
 
+  @Override
+  public boolean isStackObject(SMGObject pObject) {
+    String regionLabel = pObject.getLabel();
+    for (CLangStackFrame frame : getStackFrames()) {
+      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public boolean containsElement(Object elem) {
+    if (elem instanceof SMGObject) {
+      SMGObject smgObject = (SMGObject) elem;
+      return isObjectValid(smgObject)
+          && (isHeapObject(smgObject)
+              || getGlobalObjects().containsValue(smgObject)
+              || isStackObject(smgObject));
+    } else if (elem instanceof SMGEdgeHasValue) {
+      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
+              .filterAtOffset(edgeHasValue.getOffset())
+              .filterHavingValue(edgeHasValue.getValue())
+              .filterBySize(edgeHasValue.getSizeInBits());
+      SMGHasValueEdges edges = getHVEdges(filter);
+      return edges.size() != 0;
+    } else if (elem instanceof SMGEdgePointsTo) {
+      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
+      SMGEdgePointsToFilter filter =
+          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
+              .filterAtTargetOffset(edgePointsTo.getOffset())
+              .filterHavingValue(edgePointsTo.getValue());
+      Set<SMGEdgePointsTo> edges = getPtEdges(filter);
+      return !edges.isEmpty();
+    } else if (elem instanceof SMGValue) {
+      SMGValue smgValue = (SMGValue) elem;
+      return getValues().contains(smgValue);
+    }
+    return false;
+  }
+
   /**
    * Constant.
    *

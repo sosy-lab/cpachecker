@@ -42,6 +42,8 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
   /** check whether an object is part of the heap. */
   boolean isHeapObject(SMGObject object);
 
+  boolean isStackObject(SMGObject pObject);
+
   PersistentMap<String, SMGRegion> getGlobalObjects();
 
   /**
@@ -51,4 +53,6 @@ public interface UnmodifiableCLangSMG extends UnmodifiableSMG {
   SMGObject getFunctionReturnObject();
 
   Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation);
+
+  boolean containsElement(Object elem);
 }

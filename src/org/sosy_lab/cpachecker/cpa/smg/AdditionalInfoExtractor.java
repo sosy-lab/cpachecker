@@ -25,13 +25,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGReadParams;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -136,17 +131,27 @@ public class AdditionalInfoExtractor {
     Set<Object> toCheck = new LinkedHashSet<>();
     for (Object elem : invalidChain) {
       if (!visitedElems.contains(elem)) {
-        if (!containsInvalidElement(smgState.getHeap(), elem)) {
-          visitedElems.add(elem);
+        if (smgState.hasChangeOnElement(elem, prevSMGState)) {
+          if (elem instanceof SMGObject
+              && smgState.getHeap().isHeapObject((SMGObject) elem)
+              && !smgState.getHeap().isObjectValid((SMGObject) elem)) {
+            edgeWithAdditionalInfo.addInfo(
+                SMGConvertingTags.NOTE,
+                SMGAdditionalInfo.of(
+                    "Deallocation of " + ((SMGObject) elem).getLabel(), Level.WARNING));
+          } else {
+            visitedElems.add(elem);
+            edgeWithAdditionalInfo.addInfo(
+                SMGConvertingTags.NOTE,
+                SMGAdditionalInfo.of(
+                    getNoteMessageOnElement(prevSMGState.getHeap(), elem), Level.WARNING));
+          }
+
           for (Object additionalElem : prevSMGState.getCurrentChain()) {
             if (!visitedElems.contains(additionalElem) && !invalidChain.contains(additionalElem)) {
               toCheck.add(additionalElem);
             }
           }
-          edgeWithAdditionalInfo.addInfo(
-              SMGConvertingTags.NOTE,
-              SMGAdditionalInfo.of(
-                  getNoteMessageOnElement(prevSMGState.getHeap(), elem), Level.WARNING));
 
         } else {
           toCheck.add(elem);
@@ -167,46 +172,6 @@ public class AdditionalInfoExtractor {
     return result;
   }
 
-  private boolean containsInvalidElement(UnmodifiableCLangSMG smg, Object elem) {
-    if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
-      return smg.isHeapObject(smgObject)
-          || smg.getGlobalObjects().containsValue(smgObject)
-          || isStackObject(smg, smgObject);
-    } else if (elem instanceof SMGEdgeHasValue) {
-      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
-      SMGEdgeHasValueFilter filter =
-          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
-              .filterAtOffset(edgeHasValue.getOffset())
-              .filterHavingValue(edgeHasValue.getValue())
-              .filterBySize(edgeHasValue.getSizeInBits());
-      SMGHasValueEdges edges = smg.getHVEdges(filter);
-      return edges.size() != 0;
-    } else if (elem instanceof SMGEdgePointsTo) {
-      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
-      SMGEdgePointsToFilter filter =
-          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
-              .filterAtTargetOffset(edgePointsTo.getOffset())
-              .filterHavingValue(edgePointsTo.getValue());
-      Set<SMGEdgePointsTo> edges = smg.getPtEdges(filter);
-      return !edges.isEmpty();
-    } else if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
-      return smg.getValues().contains(smgValue);
-    }
-    return false;
-  }
-
-  private boolean isStackObject(UnmodifiableCLangSMG smg, SMGObject pObject) {
-    String regionLabel = pObject.getLabel();
-    for (CLangStackFrame frame : smg.getStackFrames()) {
-      if ((frame.containsVariable(regionLabel) && frame.getVariable(regionLabel) == pObject)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private boolean isReturnObject(UnmodifiableCLangSMG smg, SMGObject pObject) {
     for (CLangStackFrame frame : smg.getStackFrames()) {
       if (pObject == frame.getReturnObject()) {
@@ -225,7 +190,7 @@ public class AdditionalInfoExtractor {
         return "Function parameter " + smgObject.getLabel();
       } else if (smgObject.getLabel().contains("alloc")) {
         return "Allocate " + smgObject.getLabel();
-      } else if (isStackObject(smg, smgObject)) {
+      } else if (smg.isStackObject(smgObject)) {
         return "Variable " + smgObject.getLabel();
       } else if (isReturnObject(smg, smgObject)) {
         return "Return value from function";
