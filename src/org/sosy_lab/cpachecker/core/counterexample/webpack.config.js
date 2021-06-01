@@ -87,7 +87,7 @@ module.exports = {
         vendors: {
           chunks: "all",
           name: "vendors",
-          test: /(node_modules|src\/dependency_licenses\/licenses\.json)/,
+          test: /(node_modules)|(build_tmp\/dependencies\.json)/,
         },
       },
     },
