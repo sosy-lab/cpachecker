@@ -119,8 +119,8 @@ public class ReportGenerator {
   private final @Nullable Path logFile;
   private final ImmutableList<String> sourceFiles;
   private final Map<Integer, Object> argNodes;
-  private final Map<String, Object> argEdges;
-  private final Map<String, Object> argRelevantEdges;
+  private final Map<String, Multimap<String, Object>> argEdges;
+  private final Map<String, Multimap<String, Object>> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
   private final Map<String, Object> argReducedEdges;
   private final Map<String, Map<String, Object>> argReducedNodes;
@@ -365,14 +365,18 @@ public class ReportGenerator {
       writer.write("\n\"nodes\":");
       JSON.writeJSONString(argNodes.values(), writer);
       writer.write(",\n\"edges\":");
-      JSON.writeJSONString(argEdges.values(), writer);
+      for (Multimap<String, Object> edge : argEdges.values()) {
+        JSON.writeJSONString(edge.asMap(), writer);
+      }
       writer.write("\n");
     }
     if (!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()) {
       writer.write(",\n\"relevantnodes\":");
       JSON.writeJSONString(argRelevantNodes.values(), writer);
       writer.write(",\n\"relevantedges\":");
-      JSON.writeJSONString(argRelevantEdges.values(), writer);
+      for (Multimap<String, Object> relevantEdge : argRelevantEdges.values()) {
+        JSON.writeJSONString(relevantEdge.asMap(), writer);
+      }
       writer.write("\n");
     }
     if (!argReducedEdges.isEmpty() || !argReducedNodes.isEmpty()) {
@@ -724,7 +728,7 @@ public class ReportGenerator {
   }
 
   private void createCoveredArgEdge(int parentStateId, int coveringStateId) {
-    Map<String, Object> coveredEdge = new HashMap<>();
+    Multimap<String, Object> coveredEdge = HashMultimap.create();
     coveredEdge.put("source", parentStateId);
     coveredEdge.put("target", coveringStateId);
     coveredEdge.put("label", "covered by");
