@@ -12,10 +12,16 @@ import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.loopsummary.utils.GhostCFA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class LoopUnrolling extends AbstractStrategy {
 
@@ -30,6 +36,30 @@ public class LoopUnrolling extends AbstractStrategy {
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
   }
 
+  private Optional<GhostCFA> summaryCFA(CFANode pLoopStartNode, Integer pLoopBranchIndex) {
+    // Initialize Ghost CFA
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LSSTARTGHHOST");
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("LSENDGHHOST");
+    CFANode currentNode = startNodeGhostCFA;
+
+    for (int t = 0; t < maxUnrollingsStrategy; t++) {
+
+      Optional<CFANode> loopUnrollingSuccess =
+          unrollLoopOnce(pLoopStartNode, pLoopBranchIndex, currentNode, endNodeGhostCFA);
+      if (loopUnrollingSuccess.isEmpty()) {
+        return Optional.empty();
+      } else {
+        currentNode = loopUnrollingSuccess.orElseThrow();
+      }
+    }
+
+    CFAEdge blankOutgoingEdge =
+        new BlankEdge("Blank", FileLocation.DUMMY, currentNode, endNodeGhostCFA, "Blank");
+    currentNode.addLeavingEdge(blankOutgoingEdge);
+    endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
+    return Optional.of(new GhostCFA(startNodeGhostCFA, endNodeGhostCFA));
+  }
+
   @Override
   public Optional<Collection<? extends AbstractState>> summarizeLoopState(
       AbstractState pState, Precision pPrecision, TransferRelation pTransferRelation)
@@ -41,6 +71,42 @@ public class LoopUnrolling extends AbstractStrategy {
     // but may also be slower, since the loop unrolling has been done and must be transversed.
     // TODO, how can we see if we already applied loop unrolling in order to not apply it again once
     // the current unrolling has finished?
+
+    CFANode loopStartNode = AbstractStates.extractLocation(pState);
+
+    if (loopStartNode.getNumLeavingEdges() != 1) {
+      return Optional.empty();
+    }
+
+    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+      return Optional.empty();
+    }
+
+    loopStartNode = loopStartNode.getLeavingEdge(0).getSuccessor();
+
+    Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNode);
+    Integer loopBranchIndex;
+
+    if (loopBranchIndexOptional.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
+    }
+
+    GhostCFA ghostCFA;
+    Optional<GhostCFA> ghostCFASuccess = summaryCFA(loopStartNode, loopBranchIndex);
+
+    if (ghostCFASuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      ghostCFA = ghostCFASuccess.orElseThrow();
+    }
+
+    @SuppressWarnings("unused")
+    Collection<? extends AbstractState> realStatesEndCollection =
+        transverseGhostCFA(
+            ghostCFA, pState, pPrecision, loopStartNode, loopBranchIndex, pTransferRelation);
+
     return Optional.empty();
   }
 

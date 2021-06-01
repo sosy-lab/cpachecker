@@ -1849,7 +1849,6 @@ cpa.loopsummary.lookaheaditerations = 10
 
 # Should Loopsummary Statistics be recorded
 cpa.loopsummary.loopsummarystats = true
-cpa.loopsummary.loopsummarystats = no default value
 
 # Maximal amount of refinements the first refiner can make before going to
 # the second refiner
