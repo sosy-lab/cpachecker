@@ -29,8 +29,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -38,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.GhostCFA;
+import org.sosy_lab.cpachecker.cpa.loopsummary.utils.GhostCFA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -98,6 +100,16 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     constantMap.put("1", 1);
     loopVariableDependencies.put("1", constantMap);
 
+
+    // For simplicity check that all self dependencies are 1
+    // This can be improved upon, but for the start this implementation will do
+    // TODO Improve to the general case where self dependencies are not 1
+    for (Entry<String, Map<String, Integer>> e: loopVariableDependencies.entrySet()) {
+      if (e.getValue().get(e.getKey()) != 1) {
+        return Optional.empty();
+      }
+    }
+
     Integer loopVariableDelta;
     Optional<Integer> optionalLoopVariableDelta =
         getLoopVariableDelta(loopVariableDependencies, loopBoundExpression);
@@ -127,7 +139,12 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
 
     Optional<GhostCFA> optionalGhostCFA =
         buildGhostCFA(
-            loopVariableDelta, loopBoundExpression, matrixRepresentation, variableOrdering);
+            loopVariableDelta,
+            loopBoundExpression,
+            matrixRepresentation,
+            variableOrdering,
+            loopStartNode,
+            loopBranchIndex);
     GhostCFA ghostCFA;
     if (optionalGhostCFA.isEmpty()) {
       return Optional.empty();
@@ -169,27 +186,19 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     return resultMatrix;
   }
 
-  private Optional<GhostCFA> buildGhostCFA(
-      Integer pLoopVariableDelta,
-      CExpression pLoopBoundExpression,
+  private List<CExpression> generateAggregatedVariableAssignments(
+      CExpression loopIterations,
       List<List<Integer>> pMatrixRepresentation,
       List<String> pVariableOrdering) {
+
+    CType calculationType =
+        ((CBinaryExpression) loopIterations).getCalculationType(); // TODO Improve this
+    CType expressionType =
+        ((CBinaryExpression) loopIterations).getExpressionType(); // TODO Improve this
 
     // Generate the closed Expression for each Variable by multiplying Matrices according to
     // https://math.stackexchange.com/questions/2079950/compute-the-n-th-power-of-triangular-3-times3-matrix
     Integer maximalPower = pVariableOrdering.size() - 1;
-
-    CType calculationType = ((CBinaryExpression) pLoopBoundExpression).getCalculationType();
-    CType expressionType = ((CBinaryExpression) pLoopBoundExpression).getExpressionType();
-    CExpression loopIterations =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            expressionType,
-            calculationType,
-            pLoopBoundExpression,
-            CIntegerLiteralExpression.createDummyLiteral(
-                2 * ((long) pLoopVariableDelta), CNumericTypes.INT),
-            BinaryOperator.MINUS);
 
     CBinaryExpression loopBoundtwiceUnrollingExpression =
         new CBinaryExpression(
@@ -270,28 +279,203 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
                   leftHandSideVariableAssignments.get(j),
                   BinaryOperator.PLUS));
         }
+        // Update n choose k to n choose k + 1
         currentBoundExpression =
             new CBinaryExpression(
                 FileLocation.DUMMY,
                 expressionType,
                 calculationType,
                 currentBoundExpression,
-                loopBoundtwiceUnrollingExpression,
+                new CBinaryExpression(
+                    FileLocation.DUMMY,
+                    expressionType,
+                    calculationType,
+                    new CBinaryExpression(
+                        FileLocation.DUMMY,
+                        expressionType,
+                        calculationType,
+                        loopBoundtwiceUnrollingExpression,
+                        CIntegerLiteralExpression.createDummyLiteral(i, CNumericTypes.INT),
+                        BinaryOperator.MINUS),
+                    CIntegerLiteralExpression.createDummyLiteral(i, CNumericTypes.INT),
+                    BinaryOperator.DIVIDE),
                 BinaryOperator.MULTIPLY);
         currentMatrix = matrixPower(pMatrixRepresentation, i);
       }
     }
+    return leftHandSideVariableAssignments;
+  }
+
+  private Optional<GhostCFA> buildGhostCFA(
+      Integer pLoopVariableDelta,
+      CExpression pLoopBoundExpression,
+      List<List<Integer>> pMatrixRepresentation,
+      List<String> pVariableOrdering,
+      CFANode loopStartNode,
+      Integer loopBranchIndex) {
+
+    CType calculationType = ((CBinaryExpression) pLoopBoundExpression).getCalculationType();
+    CType expressionType = ((CBinaryExpression) pLoopBoundExpression).getExpressionType();
+    CExpression loopIterations =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            expressionType,
+            calculationType,
+            pLoopBoundExpression,
+            CIntegerLiteralExpression.createDummyLiteral(
+                2 * ((long) pLoopVariableDelta), CNumericTypes.INT),
+            BinaryOperator.MINUS);
+
+    List<CExpression> leftHandSideVariableAssignments =
+        generateAggregatedVariableAssignments(
+            loopIterations, pMatrixRepresentation, pVariableOrdering);
+
+    // Initialize Ghost CFA
+
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("LSSTARTGHHOST");
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("LSENDGHHOST");
+    CFANode currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS2");
+    CFAEdge loopIngoingConditionEdge = loopStartNode.getLeavingEdge(loopBranchIndex);
+    CFAEdge loopIngoingConditionDummyEdgeTrue =
+        overwriteStartEndStateEdge(
+            (CAssumeEdge) loopIngoingConditionEdge,
+            true,
+            startNodeGhostCFA,
+            currentEndNodeGhostCFA);
+    CFAEdge loopIngoingConditionDummyEdgeFalse =
+        overwriteStartEndStateEdge(
+            (CAssumeEdge) loopIngoingConditionEdge, false, startNodeGhostCFA, endNodeGhostCFA);
+    startNodeGhostCFA.addLeavingEdge(loopIngoingConditionDummyEdgeTrue);
+    currentEndNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeTrue);
+    startNodeGhostCFA.addLeavingEdge(loopIngoingConditionDummyEdgeFalse);
+    endNodeGhostCFA.addEnteringEdge(loopIngoingConditionDummyEdgeFalse);
+    CFANode currentStartNodeGhostCFA = currentEndNodeGhostCFA;
+    currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS3");
 
     // Unroll Loop once for plus minus relation, since the values are aggregated
-    // TODO
+    CFAEdge twiceLoopUnrollingAssumptionTrue =
+        new CAssumeEdge(
+            loopIterations + " - 2 > 0",
+            FileLocation.DUMMY,
+            currentStartNodeGhostCFA,
+            currentEndNodeGhostCFA,
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                expressionType,
+                calculationType,
+                CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
+                loopIterations,
+                BinaryOperator.LESS_THAN),
+            true);
+
+    currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingAssumptionTrue);
+    currentEndNodeGhostCFA.addEnteringEdge(twiceLoopUnrollingAssumptionTrue);
+
+    // Unroll Loop Twice in case the loop cannot be Unrolled more than two times
+    CFANode twiceLoopUnrollingCurrentNode = CFANode.newDummyCFANode("LS5");
+
+    CFAEdge twiceLoopUnrollingAssumptionFalse =
+        new CAssumeEdge(
+            loopIterations + " - 2 > 0",
+            FileLocation.DUMMY,
+            currentStartNodeGhostCFA,
+            endNodeGhostCFA,
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                expressionType,
+                calculationType,
+                CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT),
+                loopIterations,
+                BinaryOperator.LESS_THAN),
+            false);
+
+    currentStartNodeGhostCFA.addLeavingEdge(twiceLoopUnrollingAssumptionFalse);
+    twiceLoopUnrollingCurrentNode.addEnteringEdge(twiceLoopUnrollingAssumptionFalse);
+
+    Optional<CFANode> loopUnrollingSuccess =
+        unrollLoopOnce(
+            loopStartNode, loopBranchIndex, twiceLoopUnrollingCurrentNode, endNodeGhostCFA);
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      twiceLoopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
+    }
+
+    loopUnrollingSuccess =
+        unrollLoopOnce(
+            loopStartNode, loopBranchIndex, twiceLoopUnrollingCurrentNode, endNodeGhostCFA);
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      twiceLoopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
+    }
+    CFAEdge blankOutgoingEdge =
+        new BlankEdge(
+            "Blank", FileLocation.DUMMY, twiceLoopUnrollingCurrentNode, endNodeGhostCFA, "Blank");
+    twiceLoopUnrollingCurrentNode.addLeavingEdge(blankOutgoingEdge);
+    endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
+
+    // If the Loop can be Unrolled more than 2 times, unroll it once, make the summary and unroll it
+    // again
+
+    CFANode loopUnrollingCurrentNode = CFANode.newDummyCFANode("LS5");
+    loopUnrollingSuccess =
+        unrollLoopOnce(loopStartNode, loopBranchIndex, currentEndNodeGhostCFA, endNodeGhostCFA);
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      loopUnrollingCurrentNode = loopUnrollingSuccess.orElseThrow();
+    }
+    currentStartNodeGhostCFA = loopUnrollingCurrentNode;
+    currentEndNodeGhostCFA = CFANode.newDummyCFANode("LS6");
 
     // Set Variables to the calculated Expressions
-    // TODO
+    for (int i = 0; i < pVariableOrdering.size(); i++) {
+      String varName = pVariableOrdering.get(i);
+      CExpression varValue = leftHandSideVariableAssignments.get(i);
+      CVariableDeclaration pc =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              true,
+              CStorageClass.EXTERN, // TODO is this Correct?
+              CNumericTypes.INT, // TODO improve this
+              varName,
+              varName,
+              varName,
+              null);
+      CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, pc);
+      CExpressionAssignmentStatement cStatementEdge =
+          new CExpressionAssignmentStatement(FileLocation.DUMMY, leftHandSide, varValue);
+      CFAEdge dummyEdge =
+          new CStatementEdge(
+              varName + " = " + varValue,
+              cStatementEdge,
+              FileLocation.DUMMY,
+              currentStartNodeGhostCFA,
+              currentEndNodeGhostCFA);
+      currentStartNodeGhostCFA.addLeavingEdge(dummyEdge);
+      currentEndNodeGhostCFA.addEnteringEdge(dummyEdge);
+      currentStartNodeGhostCFA = currentEndNodeGhostCFA;
+      currentEndNodeGhostCFA = CFANode.newDummyCFANode("LSI");
+    }
 
     // Unroll Loop again for plus minus relation, since the values are aggregated
-    // TODO
+    loopUnrollingSuccess =
+        unrollLoopOnce(loopStartNode, loopBranchIndex, currentStartNodeGhostCFA, endNodeGhostCFA);
 
-    return Optional.empty();
+    if (loopUnrollingSuccess.isEmpty()) {
+      return Optional.empty();
+    } else {
+      currentStartNodeGhostCFA = loopUnrollingSuccess.orElseThrow();
+    }
+
+    blankOutgoingEdge =
+        new BlankEdge(
+            "Blank", FileLocation.DUMMY, currentStartNodeGhostCFA, endNodeGhostCFA, "Blank");
+    currentStartNodeGhostCFA.addLeavingEdge(blankOutgoingEdge);
+    endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
+
+    return Optional.of(new GhostCFA(startNodeGhostCFA, endNodeGhostCFA));
   }
 
   private List<List<Integer>> getMatrixRepresentation(
@@ -401,22 +585,25 @@ public class LinearExtrapolationStrategy extends AbstractExtrapolationStrategy {
     CFANode currentNode = pLoopStartNode.getLeavingEdge(pLoopBranchIndex).getSuccessor();
 
     while (currentNode != pLoopStartNode) {
-      assert currentNode.getNumLeavingEdges() == 2;
+      assert currentNode.getNumLeavingEdges() == 1
+          : "The edge does not have a single outgoing edge, as was expected";
       CFAEdge edge = currentNode.getLeavingEdge(0);
-      CExpressionAssignmentStatement statement =
-          (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
+      if (edge instanceof CStatementEdge) {
+        CExpressionAssignmentStatement statement =
+            (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
 
-      CExpression rigthSide = statement.getRightHandSide();
-      String variableToUpdate = ((CIdExpression) statement.getLeftHandSide()).getName();
+        CExpression rigthSide = statement.getRightHandSide();
+        String variableToUpdate = ((CIdExpression) statement.getLeftHandSide()).getName();
 
-      Map<String, Integer> thisVariableUpdate;
-      if (loopVariableDependencies.containsKey(variableToUpdate)) {
-        thisVariableUpdate = loopVariableDependencies.get(variableToUpdate);
-      } else {
-        thisVariableUpdate = new HashMap<>();
+        Map<String, Integer> thisVariableUpdate;
+        if (loopVariableDependencies.containsKey(variableToUpdate)) {
+          thisVariableUpdate = loopVariableDependencies.get(variableToUpdate);
+        } else {
+          thisVariableUpdate = new HashMap<>();
+        }
+        updateVariableDependencies(thisVariableUpdate, rigthSide);
+        loopVariableDependencies.put(variableToUpdate, thisVariableUpdate);
       }
-      updateVariableDependencies(thisVariableUpdate, rigthSide);
-      loopVariableDependencies.put(variableToUpdate, thisVariableUpdate);
 
       currentNode = edge.getSuccessor();
     }

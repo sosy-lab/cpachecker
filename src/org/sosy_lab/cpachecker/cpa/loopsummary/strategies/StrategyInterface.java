@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.loopsummary.utils.GhostCFA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public interface StrategyInterface {

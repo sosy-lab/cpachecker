@@ -1849,10 +1849,14 @@ cpa.loopsummary.lookaheaditerations = 10
 
 # Should Loopsummary Statistics be recorded
 cpa.loopsummary.loopsummarystats = true
+cpa.loopsummary.loopsummarystats = no default value
 
 # Maximal amount of refinements the first refiner can make before going to
 # the second refiner
 cpa.loopsummary.maxAmntFirstRefinements = 100
+
+# Maximal amount of unrollings the loop Unrolling strategy can make.
+cpa.loopsummary.maxUnrollings = 10
 
 # Strategies to be used in the Summary. The order of the strategies marks in
 # which order they are tried

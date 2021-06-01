@@ -24,7 +24,10 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.BaseStrategy;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.ConcolicExecution;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.DeterministicExecution;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopAcceleration;
+import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.LoopUnrolling;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.NaiveLoopAcceleration;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.extrapolation.ConstantExtrapolationStrategy;
@@ -42,7 +45,10 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     POLYNOMIALEXTRAPOLATION,
     LINEAREXTRAPOLATION,
     CONSTANTEXTRAPOLATION,
-    NONDETBOUNDCONSTANTEXTRAPOLATION
+    NONDETBOUNDCONSTANTEXTRAPOLATION,
+    LOOPUNROLLING,
+    CONCOLICEXECUTION,
+    DETERMINISTICEXECUTION,
   }
 
   @Option(
@@ -58,7 +64,8 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
               StrategiesEnum.POLYNOMIALEXTRAPOLATION,
               StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION, // See TODO in NondetBound File
               StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.LOOPACCELERATION,
+              StrategiesEnum.LOOPACCELERATION, // TODO Not yet implemented
+              StrategiesEnum.LOOPUNROLLING,
               StrategiesEnum.BASE));
 
   @Option(
@@ -67,6 +74,12 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
       description =
           "Maximal amount of refinements the first refiner can make before going to the second refiner")
   public int maxAmntFirstRefinements = 100;
+
+  @Option(
+      name = "maxUnrollings",
+      secure = true,
+      description = "Maximal amount of unrollings the loop Unrolling strategy can make.")
+  public int maxUnrollingsStrategy = 10;
 
   private List<StrategyInterface> strategiesClass = new ArrayList<>();
 
@@ -115,6 +128,16 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
           strategiesClass.add(
               new NondetBoundConstantExtrapolationStrategy(pLogger, pShutdownNotifier, i));
           break;
+        case LOOPUNROLLING:
+          strategiesClass.add(
+              new LoopUnrolling(pLogger, pShutdownNotifier, i, maxUnrollingsStrategy));
+          break;
+        case CONCOLICEXECUTION:
+          strategiesClass.add(new ConcolicExecution(pLogger, pShutdownNotifier, i));
+          break;
+        case DETERMINISTICEXECUTION:
+          strategiesClass.add(new DeterministicExecution(pLogger, pShutdownNotifier, i));
+          break;
       }
     }
 
@@ -141,7 +164,7 @@ public abstract class AbstractLoopSummaryCPA extends AbstractSingleWrapperCPA {
     return stats;
   }
 
-  List<StrategyInterface> getStrategies() {
+  public List<StrategyInterface> getStrategies() {
     return strategiesClass;
   }
 

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.GhostCFA;
+import org.sosy_lab.cpachecker.cpa.loopsummary.utils.GhostCFA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -50,7 +50,10 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
 
   // TODO: When this Strategy is used, loop unrolling starts occuring continously, since first the
   // predicate refinement is done before the loop summary refinement
-  // This strategy will always result in an overflow
+  //
+  // TODO: This strategy will always result in an overflow since the bound is nondet, meaning the
+  // extrapolation is nondet, which will always generate an overflow. Does it still make sense
+  // to include this as a valid Strategy?
 
   protected Optional<GhostCFA> summaryCFA(
       final CFANode loopStartNode,
@@ -59,7 +62,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     CFANode startNode = CFANode.newDummyCFANode("Ghost in the shell");
 
     String variableName =
-        "tmpVarForLoopBoundWithExtraUniqueIdentifierIfThisVaribeleNameWasAlreadyTakenSomethingIsWrongWhithYourCode";
+        "tmpVarForLoopBoundWithExtraUniqueIdentifierIfThisVaribeleNameWasAlreadyTakenSomethingIsWrongWithYourCode";
     CVariableDeclaration pc =
         new CVariableDeclaration(
             FileLocation.DUMMY,
