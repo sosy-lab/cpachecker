@@ -32,10 +32,14 @@ workerFiles.forEach((worker) => {
   workerNames.push(workerName);
   const workerPath = path.join(rawWorkerPath, worker);
   const workerContent = fs.readFileSync(workerPath);
-  const content = Buffer.concat([
+  let content = Buffer.concat([
     ...vendorFileContents,
     workerContent,
-  ]).toString("base64");
+  ]);
+  // Convert content to utf8 and strip comments
+  content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*/g,'')
+  // Convert content back to binary data and encode as base64
+  content = Buffer.from(content, "utf8").toString("base64");
 
   output += `\n const ${workerName} = "${template}${content}";\n`;
 });
