@@ -81,7 +81,7 @@ public class WitnessToOutputFormatsUtils {
    * @param edgesMap map that will be filled with information about the edges
    */
   public static void witnessToMapsForHTMLReport(
-      Witness witness, Map<String, Map<String, Object>> nodesMap, Map<String, Object> edgesMap) {
+      Witness witness, Map<String, Map<String, Object>> nodesMap, Map<String, Multimap<String, Object>> edgesMap) {
     NumericIdProvider idProvider = NumericIdProvider.create();
     String entryStateNode = witness.getEntryStateNodeId();
     Set<String> nodes = new HashSet<>();

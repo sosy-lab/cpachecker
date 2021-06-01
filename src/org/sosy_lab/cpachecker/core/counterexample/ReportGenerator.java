@@ -122,7 +122,7 @@ public class ReportGenerator {
   private final Map<String, Multimap<String, Object>> argEdges;
   private final Map<String, Multimap<String, Object>> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
-  private final Map<String, Object> argReducedEdges;
+  private final Map<String, Multimap<String, Object>> argReducedEdges;
   private final Map<String, Map<String, Object>> argReducedNodes;
   private Optional<Witness> witnessOptional;
 
@@ -383,7 +383,9 @@ public class ReportGenerator {
       writer.write(",\n\"reducednodes\":");
       JSON.writeJSONString(argReducedNodes.values(), writer);
       writer.write(",\n\"reducededges\":");
-      JSON.writeJSONString(argReducedEdges.values(), writer);
+      for (Multimap<String, Object> reducedEdge : argReducedEdges.values()) {
+        JSON.writeJSONString(reducedEdge.asMap(), writer);
+      }
       writer.write("\n");
     }
     writer.write("}\n");
