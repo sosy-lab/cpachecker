@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,6 +39,20 @@ public final class CoverageData {
       // Function declarations span the complete body, this is not desired.
       return false;
     }
+
+    if (pEdge instanceof ADeclarationEdge) {
+      String name = ((ADeclarationEdge) pEdge).getDeclaration().getName();
+      if (name != null && name.contains("__CPAchecker_TMP_")) {
+        // Avoid report temporal variable declaration as covered source code
+        return false;
+      }
+    }
+
+    if (pEdge instanceof AReturnStatementEdge && pEdge.toString().contains("__CPAchecker_TMP_")) {
+      // Avoid doubling of code coverage as return temporal variable value
+      return false;
+    }
+
     return true;
   }
 
