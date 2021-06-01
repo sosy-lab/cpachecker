@@ -26,7 +26,7 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
   private final int id = SMGCPA.getNewValue();
 
   public SMGOptionalObject(int pSize) {
-    super(pSize, "1/0", SMGObjectKind.OPTIONAL);
+    super(pSize, "Optional object", SMGObjectKind.OPTIONAL);
   }
 
   @Override
@@ -35,7 +35,7 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
   }
 
   public SMGOptionalObject(long pSize, int pLevel) {
-    super(pSize, "1/0", pLevel, SMGObjectKind.OPTIONAL);
+    super(pSize, "Optional object", pLevel, SMGObjectKind.OPTIONAL);
   }
 
   @Override
