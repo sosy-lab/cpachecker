@@ -127,12 +127,14 @@ public class Edge implements Comparable<Edge> {
           int lowA = diff.leftValue().stream().mapToInt(Integer::parseInt).min().getAsInt();
           int lowB = diff.rightValue().stream().mapToInt(Integer::parseInt).min().getAsInt();
           result = Integer.toString(Math.min(lowA, lowB));
+          newLabel = newLabel.removeAndCopy(key);
           break;
         case ENDLINE:
         case ENDOFFSET:
           int highA = diff.leftValue().stream().mapToInt(Integer::parseInt).max().getAsInt();
           int highB = diff.rightValue().stream().mapToInt(Integer::parseInt).max().getAsInt();
           result = Integer.toString(Math.max(highA, highB));
+          newLabel = newLabel.removeAndCopy(key);
           break;
         default:
           // incomparable information
