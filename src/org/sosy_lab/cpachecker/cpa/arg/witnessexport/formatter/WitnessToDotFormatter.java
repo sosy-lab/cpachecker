@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,6 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
@@ -118,16 +120,20 @@ public class WitnessToDotFormatter extends WitnessToOutputFormatter<String> {
       Edge pEdge, String pSourceNode, String pTargetNode, Appendable pTarget) throws IOException {
     List<String> labels = new ArrayList<>();
     String color = "";
-    for (Map.Entry<KeyDef, String> entry : pEdge.getLabel().getMapping().entrySet()) {
+    for (Entry<KeyDef, PersistentSet<String>> entry : pEdge.getLabel().getMapping().entrySet()) {
       KeyDef keyDef = entry.getKey();
-      String value = entry.getValue();
+      PersistentSet<String> value = entry.getValue();
       if (keyDef.keyFor.equals(ElementType.EDGE)) {
-        labels.add(eq(keyDef, value));
+        for (String s : value) {
+          labels.add(eq(keyDef, s));
+        }
         if (KeyDef.THREADID.equals(keyDef)) {
-          color = "colorscheme=set19 color=" + value; // trick to get different colors
+          color = "colorscheme=set19 color=" + Iterables.getOnlyElement(value); // trick to get different colors
         }
       } else if (keyDef.keyFor.equals(ElementType.NODE)) {
-        nodesToLabel.get(pTargetNode).add(eq(keyDef, value));
+        for (String s : value) {
+          nodesToLabel.get(pTargetNode).add(eq(keyDef, s));
+        }
       }
     }
     pTarget

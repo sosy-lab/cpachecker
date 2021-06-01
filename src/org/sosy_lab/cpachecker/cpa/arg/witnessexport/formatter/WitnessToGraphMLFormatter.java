@@ -11,12 +11,13 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.Map.Entry;
 import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -77,13 +78,17 @@ public class WitnessToGraphMLFormatter extends WitnessToOutputFormatter<Element>
   protected void createNewEdge(
       Edge pEdge, Element pSourceNode, Element pTargetNode, Appendable pTarget) {
     final Element edge = doc.createEdgeElement(pEdge.getSource(), pEdge.getTarget());
-    for (Map.Entry<KeyDef, String> entry : pEdge.getLabel().getMapping().entrySet()) {
+    for (Entry<KeyDef, PersistentSet<String>> entry : pEdge.getLabel().getMapping().entrySet()) {
       KeyDef keyDef = entry.getKey();
-      String value = entry.getValue();
+      PersistentSet<String> value = entry.getValue();
       if (keyDef.keyFor.equals(ElementType.EDGE)) {
-        doc.addDataElementChild(edge, keyDef, value);
+        for (String s : value) {
+          doc.addDataElementChild(edge, keyDef, s);
+        }
       } else if (keyDef.keyFor.equals(ElementType.NODE)) {
-        doc.addDataElementChild(pTargetNode, keyDef, value);
+        for (String s : value) {
+          doc.addDataElementChild(pTargetNode, keyDef, s);
+        }
       }
     }
   }

@@ -24,6 +24,7 @@ import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /** an immutable map of facts about the transition. */
@@ -31,7 +32,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   private static final TransitionCondition EMPTY = new TransitionCondition();
 
-  private final EnumMap<KeyDef, String> keyValues;
+  private final EnumMap<KeyDef, PersistentSet<String>> keyValues;
 
   private final Scope scope;
 
@@ -42,25 +43,27 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     scope = new Scope(Optional.empty(), ImmutableMap.of());
   }
 
-  private TransitionCondition(EnumMap<KeyDef, String> pKeyValues, Scope pScope) {
+  private TransitionCondition(EnumMap<KeyDef, PersistentSet<String>> pKeyValues, Scope pScope) {
     keyValues = pKeyValues;
     scope = pScope;
   }
 
   public TransitionCondition putAndCopy(final KeyDef pKey, final String pValue) {
-    if (pValue.equals(keyValues.get(pKey))) {
+    PersistentSet<String> valuesSet = keyValues.getOrDefault(pKey, PersistentSet.of());
+    if (valuesSet.contains(pValue)) {
       return this;
     }
-    EnumMap<KeyDef, String> newMap = keyValues.clone();
-    newMap.put(pKey, pValue);
+    valuesSet = valuesSet.addAndCopy(pValue);
+    EnumMap<KeyDef, PersistentSet<String>> newMap = keyValues.clone();
+    newMap.put(pKey, valuesSet);
     return new TransitionCondition(newMap, scope);
   }
 
   public TransitionCondition putAllAndCopy(TransitionCondition tc) {
     Optional<Scope> newScope = scope.mergeWith(tc.scope);
     checkArgument(newScope.isPresent(), "Cannot merge transitions due to conflicting scopes.");
-    EnumMap<KeyDef, String> newMap = null;
-    for (Entry<KeyDef, String> e : keyValues.entrySet()) {
+    EnumMap<KeyDef, PersistentSet<String>> newMap = null;
+    for (Entry<KeyDef, PersistentSet<String>> e : keyValues.entrySet()) {
       if (!tc.keyValues.containsKey(e.getKey())) {
         if (newMap == null) {
           newMap = tc.keyValues.clone();
@@ -73,7 +76,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   public TransitionCondition removeAndCopy(final KeyDef pKey) {
     if (keyValues.containsKey(pKey)) {
-      EnumMap<KeyDef, String> newMap = keyValues.clone();
+      EnumMap<KeyDef, PersistentSet<String>> newMap = keyValues.clone();
       newMap.remove(pKey);
       return new TransitionCondition(newMap, scope);
     } else {
@@ -91,7 +94,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         && scope.equals(((TransitionCondition) pOther).scope);
   }
 
-  public Map<KeyDef, String> getMapping() {
+  public Map<KeyDef, PersistentSet<String>> getMapping() {
     return keyValues;
   }
 
@@ -167,18 +170,30 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     if (this == pO) {
       return 0;
     }
-    Iterator<Map.Entry<KeyDef, String>> entryIterator = keyValues.entrySet().iterator();
-    Iterator<Map.Entry<KeyDef, String>> otherEntryIterator = pO.keyValues.entrySet().iterator();
+    Iterator<Entry<KeyDef, PersistentSet<String>>> entryIterator = keyValues.entrySet().iterator();
+    Iterator<Entry<KeyDef, PersistentSet<String>>> otherEntryIterator = pO.keyValues.entrySet().iterator();
     while (entryIterator.hasNext() && otherEntryIterator.hasNext()) {
-      Map.Entry<KeyDef, String> entry = entryIterator.next();
-      Map.Entry<KeyDef, String> otherEntry = otherEntryIterator.next();
+      Entry<KeyDef, PersistentSet<String>> entry = entryIterator.next();
+      Entry<KeyDef, PersistentSet<String>> otherEntry = otherEntryIterator.next();
       int compKey = entry.getKey().compareTo(otherEntry.getKey());
       if (compKey != 0) {
         return compKey;
       }
-      int compVal = entry.getValue().compareTo(otherEntry.getValue());
-      if (compVal != 0) {
-        return compVal;
+      Iterator<String> entryValueIterator = entry.getValue().iterator();
+      Iterator<String> otherEntryValueIterator = otherEntry.getValue().iterator();
+      while (entryValueIterator.hasNext() && otherEntryValueIterator.hasNext()) {
+        String entryValue = entryValueIterator.next();
+        String otherEntryValue = otherEntryValueIterator.next();
+        int compVal = entryValue.compareTo(otherEntryValue);
+        if (compVal != 0) {
+          return compVal;
+        }
+        if (!entryValueIterator.hasNext()) {
+          return -1;
+        }
+        if (!otherEntryValueIterator.hasNext()) {
+          return 1;
+        }
       }
     }
     if (!entryIterator.hasNext()) {

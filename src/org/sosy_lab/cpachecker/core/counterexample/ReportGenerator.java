@@ -19,8 +19,10 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -730,9 +732,9 @@ public class ReportGenerator {
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
-  public static Map<String, Object> createArgEdge(
+  public static Multimap<String, Object> createArgEdge(
       int parentStateId, int childStateId, List<CFAEdge> edges) {
-    Map<String, Object> argEdge = new HashMap<>();
+    Multimap<String, Object> argEdge = HashMultimap.create();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     StringBuilder edgeLabel = new StringBuilder();

@@ -13,10 +13,11 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /**
@@ -101,7 +102,7 @@ public class Edge implements Comparable<Edge> {
     if (!source.equals(pOther.source) || !target.equals(pOther.target)) {
       return Optional.empty();
     }
-    MapDifference<KeyDef, String> difference =
+    MapDifference<KeyDef, PersistentSet<String>> difference =
         Maps.difference(label.getMapping(), pOther.label.getMapping());
     // only merge edges if label mappings are comparable.
     if (!difference.entriesOnlyOnLeft().isEmpty() || !difference.entriesOnlyOnRight().isEmpty()) {
@@ -115,22 +116,22 @@ public class Edge implements Comparable<Edge> {
     newLabel = newLabel.withScope(newScope.orElseThrow());
     newLabel = newLabel.putAllAndCopy(label);
     // merge information from the label mappings.
-    for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :
+    for (Entry<KeyDef, ValueDifference<PersistentSet<String>>> diffEntry :
         difference.entriesDiffering().entrySet()) {
       KeyDef key = diffEntry.getKey();
-      ValueDifference<String> diff = diffEntry.getValue();
+      ValueDifference<PersistentSet<String>> diff = diffEntry.getValue();
       final String result;
       switch (key) {
         case STARTLINE:
         case OFFSET:
-          int lowA = Integer.parseInt(diff.leftValue());
-          int lowB = Integer.parseInt(diff.rightValue());
+          int lowA = diff.leftValue().stream().mapToInt(Integer::parseInt).min().getAsInt();
+          int lowB = diff.rightValue().stream().mapToInt(Integer::parseInt).min().getAsInt();
           result = Integer.toString(Math.min(lowA, lowB));
           break;
         case ENDLINE:
         case ENDOFFSET:
-          int highA = Integer.parseInt(diff.leftValue());
-          int highB = Integer.parseInt(diff.rightValue());
+          int highA = diff.leftValue().stream().mapToInt(Integer::parseInt).max().getAsInt();
+          int highB = diff.rightValue().stream().mapToInt(Integer::parseInt).max().getAsInt();
           result = Integer.toString(Math.max(highA, highB));
           break;
         default:

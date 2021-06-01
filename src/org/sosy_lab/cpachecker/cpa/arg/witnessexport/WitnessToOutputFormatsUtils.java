@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.io.IO;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToDotFormatter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter.WitnessToGraphMLFormatter;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -130,13 +133,15 @@ public class WitnessToOutputFormatsUtils {
         ExpressionTree<Object> tree = witness.getStateInvariant(edge.getTarget());
 
         List<CFAEdge> edges = witness.getCFAEdgeFor(edge);
-        Map<String, Object> edgeMap =
+        Multimap<String, Object> edgeMap =
             ReportGenerator.createArgEdge(
                 idProvider.provideNumericId(source),
                 idProvider.provideNumericId(edge.getTarget()),
                 edges);
-        for (java.util.Map.Entry<KeyDef, String> e : edge.getLabel().getMapping().entrySet()) {
-          edgeMap.put(e.getKey().toString(), e.getValue());
+        for (Entry<KeyDef, PersistentSet<String>> e : edge.getLabel().getMapping().entrySet()) {
+          for (String s : e.getValue()) {
+            edgeMap.put(e.getKey().toString(), s);
+          }
         }
         edgesMap.put(
             edge.getSource() + "->" + edge.getTarget(),
