@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-public class AndNode implements FormulaNode {
+class AndNode implements FormulaNode {
 
   private FormulaNode left;
   private FormulaNode right;
