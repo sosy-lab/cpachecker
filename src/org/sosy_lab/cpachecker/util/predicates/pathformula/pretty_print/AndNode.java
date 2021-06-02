@@ -17,11 +17,11 @@ class AndNode implements FormulaNode {
   private FormulaNode left;
   private FormulaNode right;
 
-  public void setLeft(FormulaNode pLeft) {
+  void setLeft(FormulaNode pLeft) {
     left = pLeft;
   }
 
-  public void setRight(FormulaNode pRight) {
+  void setRight(FormulaNode pRight) {
     right = pRight;
   }
 

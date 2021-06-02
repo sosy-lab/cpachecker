@@ -20,11 +20,11 @@ class OrNode implements FormulaNode {
   public OrNode() {
   }
 
-  public void setLeft(FormulaNode pLeft) {
+  void setLeft(FormulaNode pLeft) {
     left = pLeft;
   }
 
-  public void setRight(FormulaNode pRight) {
+  void setRight(FormulaNode pRight) {
     right = pRight;
   }
 

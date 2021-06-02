@@ -22,7 +22,7 @@ class NotNode implements FormulaNode {
 
   public NotNode () {}
 
-  public void setNode(FormulaNode pNode) {
+  void setNode(FormulaNode pNode) {
     node = pNode;
   }
 
