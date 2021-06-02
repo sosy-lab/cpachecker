@@ -82,13 +82,11 @@ class StatementBlock implements Block {
     }
   }
 
-  @Override
-  public void addEnteringEdge(CFAEdge edge) {
+  void addEnteringEdge(CFAEdge edge) {
     enteringEdges.add(edge);
   }
 
-  @Override
-  public void addLeavingEdge(CFAEdge edge) {
+  void addLeavingEdge(CFAEdge edge) {
     leavingEdges.add(edge);
   }
 }

@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
 class FunctionBlock implements Block {
-  // All the necessary information can be derived from the FunctionEntryNode
+
   private final FunctionEntryNode function;
 
   FunctionBlock(FunctionEntryNode pFunction) {
@@ -66,15 +66,5 @@ class FunctionBlock implements Block {
     CFATraversal traversal = CFATraversal.dfs();
     traversal = traversal.ignoreFunctionCalls();
     return traversal.collectNodesReachableFromTo(function, function.getExitNode());
-  }
-
-  @Override
-  public void addEnteringEdge(CFAEdge edge) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void addLeavingEdge(CFAEdge edge) {
-    throw new UnsupportedOperationException();
   }
 }

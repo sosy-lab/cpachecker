@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 class LoopBlock implements Block {
+
   private final int startOffset;
   private final int endOffset;
   private final Loop loop;
@@ -57,15 +58,5 @@ class LoopBlock implements Block {
   @Override
   public Set<CFANode> getContainedNodes() {
     return loop.getLoopNodes();
-  }
-
-  @Override
-  public void addEnteringEdge(CFAEdge edge) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void addLeavingEdge(CFAEdge edge) {
-    throw new UnsupportedOperationException();
   }
 }

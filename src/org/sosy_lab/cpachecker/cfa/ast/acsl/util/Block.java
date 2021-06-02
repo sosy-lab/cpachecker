@@ -28,10 +28,6 @@ public interface Block {
 
   Set<CFANode> getContainedNodes();
 
-  void addEnteringEdge(CFAEdge edge);
-
-  void addLeavingEdge(CFAEdge edge);
-
   default boolean contains(Block other) {
     return getStartOffset() < other.getStartOffset() && getEndOffset() > other.getEndOffset();
   }

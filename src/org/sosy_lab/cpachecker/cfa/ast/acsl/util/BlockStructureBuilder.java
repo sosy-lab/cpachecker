@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.util;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.FluentIterable;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
@@ -17,8 +18,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -50,16 +53,13 @@ public class BlockStructureBuilder {
     }
     convertFunctionsToFunctionBlocks(blocks);
     convertLoopsToLoopBlocks(blocks);
+    computeSetsForStatementBlocks(blocks);
     return new BlockStructure(cfa, blocks);
   }
 
   private void convertFunctionsToFunctionBlocks(Set<Block> blocks) {
     Map<FunctionEntryNode, Pair<Block, Integer>> functionsToBlocks = new HashMap<>();
-    for (Block block : blocks) {
-      if (block.isFunction() || block.isLoop()) {
-        // block was converted already
-        continue;
-      }
+    for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
       for (FunctionEntryNode functionHead : cfa.getAllFunctionHeads()) {
         int distance = block.getStartOffset() - functionHead.getFileLocation().getNodeOffset();
         if (distance > 0
@@ -96,11 +96,7 @@ public class BlockStructureBuilder {
     for (CFAEdge loopStart : loopStarts) {
       Block loop = null;
       int minDist = -1;
-      for (Block block : blocks) {
-        if (block.isFunction() || block.isLoop()) {
-          // block was converted already
-          continue;
-        }
+      for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
         int distance = block.getStartOffset() - loopStart.getFileLocation().getNodeOffset();
         if (loop == null || (distance > 0 && distance < minDist)) {
           loop = block;
@@ -123,5 +119,94 @@ public class BlockStructureBuilder {
         }
       }
     }
+  }
+
+  private void computeSetsForStatementBlocks(Set<Block> blocks) {
+    for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
+      for (CFANode node : cfa.getAllNodes()) {
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge edge = node.getLeavingEdge(i);
+          if (ignoreEdge(edge)) {
+            continue;
+          }
+          if (isEnteringEdge(edge, block)) {
+            block.addEnteringEdge(edge);
+          }
+          if (isLeavingEdge(edge, block)) {
+            block.addLeavingEdge(edge);
+          }
+        }
+      }
+      block.computeContainedNodes();
+    }
+  }
+
+  private boolean isEnteringEdge(CFAEdge edge, Block block) {
+    if (isInBlock(edge, block)) {
+      return false;
+    }
+    boolean atLeastOneInside = false;
+    Queue<CFANode> toVisit = new ArrayDeque<>();
+    Set<CFANode> visited = new HashSet<>();
+    toVisit.add(edge.getSuccessor());
+    while (!toVisit.isEmpty()) {
+      CFANode currentNode = toVisit.poll();
+      if (visited.contains(currentNode)
+          || !currentNode.getFunctionName().equals(edge.getPredecessor().getFunctionName())) {
+        continue;
+      }
+      visited.add(currentNode);
+      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+        CFAEdge currentEdge = currentNode.getLeavingEdge(i);
+        if (ignoreEdge(currentEdge)) {
+          toVisit.add(currentEdge.getSuccessor());
+        } else if (!isInBlock(currentEdge, block)) {
+          return false;
+        } else {
+          atLeastOneInside = true;
+        }
+      }
+    }
+    return atLeastOneInside;
+  }
+
+  private boolean isLeavingEdge(CFAEdge edge, Block block) {
+    if (!isInBlock(edge, block)) {
+      return false;
+    }
+    boolean atLeastOneOutside = false;
+    Queue<CFANode> toVisit = new ArrayDeque<>();
+    Set<CFANode> visited = new HashSet<>();
+    toVisit.add(edge.getSuccessor());
+    while (!toVisit.isEmpty()) {
+      CFANode currentNode = toVisit.poll();
+      if (visited.contains(currentNode)
+          || !currentNode.getFunctionName().equals(edge.getSuccessor().getFunctionName())) {
+        continue;
+      }
+      visited.add(currentNode);
+      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+        CFAEdge currentEdge = currentNode.getLeavingEdge(i);
+        if (ignoreEdge(currentEdge)) {
+          toVisit.add(currentEdge.getSuccessor());
+        } else if (isInBlock(currentEdge, block)) {
+          return false;
+        } else {
+          atLeastOneOutside = true;
+        }
+      }
+    }
+    return atLeastOneOutside;
+  }
+
+  private boolean isInBlock(CFAEdge edge, Block block) {
+    FileLocation location = edge.getFileLocation();
+    return block.getStartOffset() < location.getNodeOffset()
+        && location.getNodeOffset() < block.getEndOffset();
+  }
+
+  private boolean ignoreEdge(CFAEdge edge) {
+    return edge.getFileLocation().equals(FileLocation.DUMMY)
+        || edge.getDescription().contains("__CPAchecker_TMP");
   }
 }
