@@ -73,7 +73,9 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   public static LocalState createNextLocalState(LocalState state) {
-    return new LocalState(state, state.alwaysLocalData);
+    // Store DataInfo from previous function to be able to handle linked identifiers, which may
+    // refer to the outer functions
+    return new LocalState(state.DataInfo, state, state.alwaysLocalData);
   }
 
   public LocalState getClonedPreviousState() {
