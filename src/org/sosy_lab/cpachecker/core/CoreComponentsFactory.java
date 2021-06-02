@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -184,6 +185,9 @@ public class CoreComponentsFactory {
             + " analysis finishing in time. All other analyses are terminated."
   )
   private boolean useParallelAlgorithm = false;
+
+  @Option(secure = true, description = "converts a graphml witness to invariant witness")
+  private boolean useWitnessToInvariantAlgorithm = false;
 
   @Option(
     secure = true,
@@ -460,6 +464,8 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
+    } else if (useWitnessToInvariantAlgorithm) {
+      algorithm = new WitnessToInvariantWitnessAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new
           Explainer(
