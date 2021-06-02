@@ -65,8 +65,8 @@ public class ExpressionNode implements FormulaNode {
     operands.add(node);
   }
 
-  public List<FormulaNode> getOperands() {
-    return Collections.unmodifiableList(operands);
+  List<FormulaNode> getOperands() {
+    return operands;
   }
 
   @Override
