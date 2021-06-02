@@ -110,7 +110,7 @@ public class BlockStructureBuilder {
       loops.put(loop, loopStart);
     }
 
-    for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
       Set<CFAEdge> incomingEdges = loop.getIncomingEdges();
       if (incomingEdges.size() != 1) {
         continue;

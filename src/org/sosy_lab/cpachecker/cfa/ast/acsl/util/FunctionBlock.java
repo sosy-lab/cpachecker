@@ -23,18 +23,22 @@ class FunctionBlock implements Block {
     function = pFunction;
   }
 
+  @Override
   public boolean isFunction() {
     return true;
   }
 
+  @Override
   public boolean isLoop() {
     return false;
   }
 
+  @Override
   public int getStartOffset() {
     return function.getFileLocation().getNodeOffset();
   }
 
+  @Override
   public int getEndOffset() {
     return function.getFileLocation().getNodeOffset() + function.getFileLocation().getNodeLength();
   }
@@ -57,16 +61,19 @@ class FunctionBlock implements Block {
     return leavingEdges;
   }
 
+  @Override
   public Set<CFANode> getContainedNodes() {
     CFATraversal traversal = CFATraversal.dfs();
     traversal = traversal.ignoreFunctionCalls();
     return traversal.collectNodesReachableFromTo(function, function.getExitNode());
   }
 
+  @Override
   public void addEnteringEdge(CFAEdge edge) {
     throw new UnsupportedOperationException();
   }
 
+  @Override
   public void addLeavingEdge(CFAEdge edge) {
     throw new UnsupportedOperationException();
   }

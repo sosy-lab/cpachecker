@@ -30,18 +30,22 @@ class StatementBlock implements Block {
     endOffset = end;
   }
 
+  @Override
   public boolean isFunction() {
     return false;
   }
 
+  @Override
   public boolean isLoop() {
     return false;
   }
 
+  @Override
   public int getStartOffset() {
     return startOffset;
   }
 
+  @Override
   public int getEndOffset() {
     return endOffset;
   }
@@ -56,6 +60,7 @@ class StatementBlock implements Block {
     return leavingEdges;
   }
 
+  @Override
   public Set<CFANode> getContainedNodes() {
     return containedNodes;
   }
@@ -77,10 +82,12 @@ class StatementBlock implements Block {
     }
   }
 
+  @Override
   public void addEnteringEdge(CFAEdge edge) {
     enteringEdges.add(edge);
   }
 
+  @Override
   public void addLeavingEdge(CFAEdge edge) {
     leavingEdges.add(edge);
   }

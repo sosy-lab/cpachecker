@@ -24,18 +24,22 @@ class LoopBlock implements Block {
     loop = pLoop;
   }
 
+  @Override
   public boolean isFunction() {
     return false;
   }
 
+  @Override
   public boolean isLoop() {
     return true;
   }
 
+  @Override
   public int getStartOffset() {
     return startOffset;
   }
 
+  @Override
   public int getEndOffset() {
     return endOffset;
   }
@@ -50,14 +54,17 @@ class LoopBlock implements Block {
     return loop.getOutgoingEdges();
   }
 
+  @Override
   public Set<CFANode> getContainedNodes() {
     return loop.getLoopNodes();
   }
 
+  @Override
   public void addEnteringEdge(CFAEdge edge) {
     throw new UnsupportedOperationException();
   }
 
+  @Override
   public void addLeavingEdge(CFAEdge edge) {
     throw new UnsupportedOperationException();
   }

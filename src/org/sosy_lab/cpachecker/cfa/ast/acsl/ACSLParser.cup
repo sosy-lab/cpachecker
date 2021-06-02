@@ -90,8 +90,7 @@ parser code {:
         List<String> files,
         CFA pCfa,
         LogManager logger,
-        List<FileLocation> commentPositions,
-        Map<CFANode, Integer> statementStackDepths)
+        List<FileLocation> commentPositions)
         throws CParserException, IOException {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
       Stream<FileLocation> orderedAnnotationLocs =
