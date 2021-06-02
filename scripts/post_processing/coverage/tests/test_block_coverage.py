@@ -161,9 +161,7 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(
-            lines_covered, {12, 13, 14, 15, 16, 17, 23, 27, 32, 33, 34}
-        )
+        self.assertEqual(lines_covered, {12, 13, 14, 15, 16, 17, 23, 27, 32, 33, 34})
         self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
 
 

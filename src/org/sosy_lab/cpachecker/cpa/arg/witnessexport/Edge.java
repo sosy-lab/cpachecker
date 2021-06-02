@@ -124,15 +124,15 @@ public class Edge implements Comparable<Edge> {
       switch (key) {
         case STARTLINE:
         case OFFSET:
-          int lowA = diff.leftValue().stream().mapToInt(Integer::parseInt).min().getAsInt();
-          int lowB = diff.rightValue().stream().mapToInt(Integer::parseInt).min().getAsInt();
+          int lowA = diff.leftValue().stream().mapToInt(Integer::parseInt).min().orElseThrow();
+          int lowB = diff.rightValue().stream().mapToInt(Integer::parseInt).min().orElseThrow();
           result = Integer.toString(Math.min(lowA, lowB));
           newLabel = newLabel.removeAndCopy(key);
           break;
         case ENDLINE:
         case ENDOFFSET:
-          int highA = diff.leftValue().stream().mapToInt(Integer::parseInt).max().getAsInt();
-          int highB = diff.rightValue().stream().mapToInt(Integer::parseInt).max().getAsInt();
+          int highA = diff.leftValue().stream().mapToInt(Integer::parseInt).max().orElseThrow();
+          int highB = diff.rightValue().stream().mapToInt(Integer::parseInt).max().orElseThrow();
           result = Integer.toString(Math.max(highA, highB));
           newLabel = newLabel.removeAndCopy(key);
           break;
