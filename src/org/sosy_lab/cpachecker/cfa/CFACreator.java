@@ -22,7 +22,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -288,7 +287,6 @@ public class CFACreator {
 
   // data structures for parsing ACSL annotations
   private final List<FileLocation> commentPositions = new ArrayList<>();
-  private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
 
   private final LogManager logger;
   private final Parser parser;
@@ -465,7 +463,7 @@ public class CFACreator {
       if (!commentPositions.isEmpty()) {
         cfa =
             ACSLParser.parseACSLAnnotations(
-                sourceFiles, cfa, logger, commentPositions, statementStackDepths);
+                sourceFiles, cfa, logger, commentPositions);
       }
 
       return cfa;
@@ -575,8 +573,6 @@ public class CFACreator {
     if (pParseResult instanceof ParseResultWithCommentLocations) {
       commentPositions.addAll(
           ((ParseResultWithCommentLocations) pParseResult).getCommentLocations());
-      statementStackDepths.putAll(
-          ((ParseResultWithCommentLocations) pParseResult).getStatementStackDepths());
     }
 
     // check the super CFA starting at the main function

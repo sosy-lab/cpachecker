@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -87,9 +86,6 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
-
-  // Data structure to keep track of nesting depth of statements for ACSL parsing
-  private final Map<CFANode, Integer> statementStackDepths = new HashMap<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -371,7 +367,7 @@ class CFABuilder extends ASTVisitor {
     }
 
     return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, statementStackDepths);
+        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions);
   }
 
   private void handleFunctionDefinition(
@@ -417,8 +413,6 @@ class CFABuilder extends ASTVisitor {
             functionBuilder.getGlobalDeclarations(),
             pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope)));
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
-
-    statementStackDepths.putAll(functionBuilder.getStatementStackDepths());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
     functionBuilder.finish();
