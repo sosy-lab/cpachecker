@@ -147,7 +147,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     LockTreeNode locks = getLockNode();
     if (locks == null) {
       // Lock analysis is disabled
-    } else if (locks.size() == 0) {
+    } else if (locks.getSize() == 0) {
       sb.append(" without locks");
     } else {
       sb.append(" with ");

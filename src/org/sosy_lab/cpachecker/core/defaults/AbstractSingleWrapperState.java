@@ -14,7 +14,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -36,15 +35,15 @@ public abstract class AbstractSingleWrapperState
     return pArg0 -> ((AbstractSingleWrapperState)pArg0).getWrappedState();
   }
 
-  private final @Nullable AbstractState wrappedState;
+  private final AbstractState wrappedState;
 
-  protected AbstractSingleWrapperState(@Nullable AbstractState pWrappedState) {
+  protected AbstractSingleWrapperState(AbstractState pWrappedState) {
     // TODO this collides with some CPAs' way of handling dummy states, but it should really be not null here
     // Preconditions.checkNotNull(pWrappedState);
     wrappedState = pWrappedState;
   }
 
-  public @Nullable AbstractState getWrappedState() {
+  public AbstractState getWrappedState() {
     return wrappedState;
   }
 

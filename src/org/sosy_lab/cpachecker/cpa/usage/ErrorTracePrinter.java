@@ -229,7 +229,7 @@ public abstract class ErrorTracePrinter {
         continue;
       }
 
-      if (uinfo1.getLockNode().size() == 0 && uinfo2.getLockNode().size() == 0) {
+      if (uinfo1.getLockNode().getSize() == 0 && uinfo2.getLockNode().getSize() == 0) {
         if (printEmptyLockStates) {
           emptyLockSetUnsafes.inc();
         } else {
