@@ -10,17 +10,13 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.util;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class BlockStructure {
-
-  private final CFA cfa;
   private final ImmutableSet<Block> blocks;
 
-  public BlockStructure(CFA pCfa, Set<Block> pBlocks) {
-    cfa = pCfa;
+  public BlockStructure(Set<Block> pBlocks) {
     blocks = ImmutableSet.copyOf(pBlocks);
   }
 

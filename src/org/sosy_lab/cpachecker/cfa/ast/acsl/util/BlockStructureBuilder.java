@@ -54,7 +54,7 @@ public class BlockStructureBuilder {
     convertFunctionsToFunctionBlocks(blocks);
     convertLoopsToLoopBlocks(blocks);
     computeSetsForStatementBlocks(blocks);
-    return new BlockStructure(cfa, blocks);
+    return new BlockStructure(blocks);
   }
 
   private void convertFunctionsToFunctionBlocks(Set<Block> blocks) {
