@@ -205,7 +205,7 @@ public class LocalTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> parameterTypes,
       String calledFunctionName) {
-    LocalState newState = LocalState.createNextLocalState(state);
+    LocalState newState = state.createNextLocalState();
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 

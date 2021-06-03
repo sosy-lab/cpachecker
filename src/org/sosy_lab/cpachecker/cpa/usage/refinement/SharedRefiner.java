@@ -45,7 +45,7 @@ public class SharedRefiner extends GenericSinglePathRefiner {
     SingletonPrecision emptyPrecision = SingletonPrecision.getInstance();
 
     LocalState lastState = AbstractStates.extractStateByType(pPath.getLastState(), LocalState.class);
-    LocalState initialState = LocalState.createInitialLocalState(lastState);
+    LocalState initialState = lastState.createInitialLocalState();
 
     Collection<LocalState> successors = Collections.singleton(initialState);
     UsageInfo sharedUsage = pPath.getUsageInfo();

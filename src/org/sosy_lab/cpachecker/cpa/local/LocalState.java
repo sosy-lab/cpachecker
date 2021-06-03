@@ -18,14 +18,13 @@ import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public final class LocalState implements LatticeAbstractState<LocalState> {
+public class LocalState implements LatticeAbstractState<LocalState> {
 
   public static enum DataType {
     LOCAL,
@@ -48,11 +47,11 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
         };
   }
   // map from variable id to its type
-  private final LocalState previousState;
-  private final Map<AbstractIdentifier, DataType> DataInfo;
-  private final ImmutableSet<String> alwaysLocalData;
+  protected final LocalState previousState;
+  protected final Map<AbstractIdentifier, DataType> DataInfo;
+  protected final ImmutableSet<String> alwaysLocalData;
 
-  private LocalState(
+  protected LocalState(
       Map<AbstractIdentifier, DataType> oldMap, LocalState state, ImmutableSet<String> localData) {
     DataInfo = new HashMap<>(oldMap);
     // Strange, but 'new TreeMap<>(oldMap)' lost some values: "id -> null" appears
@@ -60,22 +59,16 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
     alwaysLocalData = localData;
   }
 
-  private LocalState(LocalState state, ImmutableSet<String> localData) {
-    this(new HashMap<>(), state, localData);
+  public static LocalState createInitialLocalState(ImmutableSet<String> localData) {
+    return new LocalState(new HashMap<>(), null, localData);
   }
 
-  public static LocalState createInitialLocalState(Set<String> localData) {
-    return new LocalState(null, ImmutableSet.copyOf(localData));
+  public LocalState createInitialLocalState() {
+    return createInitialLocalState(this.alwaysLocalData);
   }
 
-  public static LocalState createInitialLocalState(LocalState state) {
-    return new LocalState(null, state.alwaysLocalData);
-  }
-
-  public static LocalState createNextLocalState(LocalState state) {
-    // Store DataInfo from previous function to be able to handle linked identifiers, which may
-    // refer to the outer functions
-    return new LocalState(state.DataInfo, state, state.alwaysLocalData);
+  public LocalState createNextLocalState() {
+    return copy(new HashMap<>(), this);
   }
 
   public LocalState getClonedPreviousState() {
@@ -83,15 +76,19 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   public LocalState copy() {
-    return new LocalState(this.DataInfo, this.previousState, this.alwaysLocalData);
+    return copy(this.previousState);
   }
 
-  private LocalState clone(LocalState pPreviousState) {
-    return new LocalState(this.DataInfo, pPreviousState, this.alwaysLocalData);
+  protected LocalState copy(Map<AbstractIdentifier, DataType> oldMap, LocalState state) {
+    return new LocalState(oldMap, state, this.alwaysLocalData);
+  }
+
+  protected LocalState copy(LocalState pPreviousState) {
+    return copy(this.DataInfo, pPreviousState);
   }
 
   public LocalState expand(LocalState rootState) {
-    return this.clone(rootState.previousState);
+    return copy(rootState.previousState);
   }
 
   public boolean checkIsAlwaysLocal(AbstractIdentifier name) {
@@ -191,7 +188,7 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
       joinedPreviousState = this.previousState;
     }
 
-    LocalState joinState = this.clone(joinedPreviousState);
+    LocalState joinState = this.copy(joinedPreviousState);
 
     Sets.union(this.DataInfo.keySet(), pState2.DataInfo.keySet())
         .forEach(
@@ -253,5 +250,35 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
     return from(DataInfo.keySet())
         .transform(id -> id + " - " + getDataInfo(id))
         .join(Joiner.on("\n"));
+  }
+
+  public static class LocalStateComplete extends LocalState {
+    protected LocalStateComplete(
+        Map<AbstractIdentifier, DataType> oldMap, LocalState state, ImmutableSet<String> localData) {
+      super(oldMap, state, localData);
+    }
+
+    public static LocalStateComplete
+        createInitialLocalStateComplete(ImmutableSet<String> localData) {
+      return new LocalStateComplete(new HashMap<>(), null, localData);
+    }
+
+    @Override
+    public LocalState createInitialLocalState() {
+      return createInitialLocalStateComplete(this.alwaysLocalData);
+    }
+
+    @Override
+    public LocalState createNextLocalState() {
+      // Store DataInfo from previous function to be able to handle linked identifiers, which may
+      // refer to the outer functions
+      return new LocalStateComplete(this.DataInfo, this, this.alwaysLocalData);
+    }
+
+    @Override
+    protected LocalStateComplete copy(Map<AbstractIdentifier, DataType> oldMap, LocalState state) {
+      return new LocalStateComplete(oldMap, state, this.alwaysLocalData);
+    }
+
   }
 }

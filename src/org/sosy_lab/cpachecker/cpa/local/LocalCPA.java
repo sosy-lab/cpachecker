@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.local;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -27,12 +26,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.local.LocalState.LocalStateComplete;
 
 @Options(prefix = "cpa.local")
 public class LocalCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
   @Option(name = "localvariables", description = "variables, which are always local", secure = true)
-  private Set<String> localVariables = ImmutableSet.of();
+  private ImmutableSet<String> localVariables = ImmutableSet.of();
+
+  @Option(description = "remove information from outer functions", secure = true)
+  private boolean cleanFunctionStacks = true;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LocalCPA.class);
@@ -49,7 +52,11 @@ public class LocalCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition p) {
-    return LocalState.createInitialLocalState(localVariables);
+    if (cleanFunctionStacks) {
+      return LocalState.createInitialLocalState(localVariables);
+    } else {
+      return LocalStateComplete.createInitialLocalStateComplete(localVariables);
+    }
   }
 
   @Override
