@@ -97,7 +97,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate")
 public class PredicateApplyOperator implements ApplyOperator {
 
-  private final String rename(String name) { return name + "__ENV"; };
+  private final String rename(String name) {
+    return name + "__ENV";
+  }
 
   private final String localRename(String name) {
     if (name.contains("::")) {

@@ -38,7 +38,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -162,7 +161,6 @@ public class PointerStatistics implements Statistics {
     return replLocSetBot;
   }
 
-  @Nullable
   @Override
   public String getName() {
     return "Points-To";

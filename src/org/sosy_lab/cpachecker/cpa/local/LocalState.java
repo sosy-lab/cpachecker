@@ -79,12 +79,12 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     return copy(this.previousState);
   }
 
-  protected LocalState copy(Map<AbstractIdentifier, DataType> oldMap, LocalState state) {
-    return new LocalState(oldMap, state, this.alwaysLocalData);
-  }
-
   protected LocalState copy(LocalState pPreviousState) {
     return copy(this.DataInfo, pPreviousState);
+  }
+
+  protected LocalState copy(Map<AbstractIdentifier, DataType> oldMap, LocalState state) {
+    return new LocalState(oldMap, state, this.alwaysLocalData);
   }
 
   public LocalState expand(LocalState rootState) {
@@ -231,7 +231,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (obj == null || !(obj instanceof LocalState)) {
       return false;
     }
     LocalState other = (LocalState) obj;

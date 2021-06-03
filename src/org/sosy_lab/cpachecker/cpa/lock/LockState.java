@@ -40,7 +40,6 @@ public final class LockState extends AbstractLockState {
     }
 
     public LockTreeNode() {
-      super();
     }
 
     @Override

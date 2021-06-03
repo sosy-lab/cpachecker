@@ -70,11 +70,7 @@ public class ValueAnalysisStateWithEdge extends ValueAnalysisState implements Ab
         ValueAndType val = entry.getValue();
         if (assignments.containsKey(mem)) {
           ValueAndType otherVal = assignments.get(mem);
-          if (val.equals(otherVal) || val.getValue() == UnknownValue.getInstance()) {
-
-          } else {
-            return false;
-          }
+          return (val.equals(otherVal) || val.getValue() == UnknownValue.getInstance());
         } else {
           return false;
         }

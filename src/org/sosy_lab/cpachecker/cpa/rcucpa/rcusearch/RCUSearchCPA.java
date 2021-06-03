@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.rcucpa.rcusearch;
 
 import java.util.Collection;
 import java.util.Collections;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -86,7 +85,6 @@ public class RCUSearchCPA extends AbstractCPA implements ConfigurableProgramAnal
     pointerCPA.collectStatistics(statsCollection);
   }
 
-  @Nullable
   @Override
   public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
     if (type.isAssignableFrom(getClass())){

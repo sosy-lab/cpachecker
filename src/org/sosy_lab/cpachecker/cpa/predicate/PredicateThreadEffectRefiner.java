@@ -132,7 +132,7 @@ public class PredicateThreadEffectRefiner extends PredicateCPARefiner {
             feasibleCexFound = true;
           }
         }
-        if (feasibleCexFound == false) {
+        if (!feasibleCexFound) {
           ((GlobalRefinementStrategy) strategy).updatePrecisionAndARG();
           effectCheckTime.stop();
           return CounterexampleInfo.spurious();

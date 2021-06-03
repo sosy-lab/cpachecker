@@ -101,7 +101,7 @@ public class ValueAnalysisApplyOperator implements ApplyOperator {
 
     for (MemoryLocation mem : allMems) {
       if (mem.isOnFunctionStack()) {
-
+        // Do nothing
       } else if (newSrc.contains(mem)) {
         ValueAndType oldVal = newSrc.getValueAndTypeFor(mem);
         ValueAndType newVal = pChild.getValueAndTypeFor(mem);

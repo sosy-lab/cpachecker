@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,7 +39,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
     private boolean isLooped;
 
-    private UsageCore(@Nonnull Access atype, @Nonnull CFANode n, SingleIdentifier ident) {
+    private UsageCore(Access atype, CFANode n, SingleIdentifier ident) {
       node = n;
       accessType = atype;
       keyState = null;
@@ -62,8 +61,8 @@ public final class UsageInfo implements Comparable<UsageInfo> {
   }
 
   private UsageInfo(
-      @Nonnull Access atype,
-      @Nonnull CFANode n,
+      Access atype,
+      CFANode n,
       SingleIdentifier ident,
       ImmutableList<CompatibleNode> pStates) {
     this(new UsageCore(atype, n, ident), new UsagePoint(pStates, atype), null);
@@ -98,11 +97,11 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     return IRRELEVANT_USAGE;
   }
 
-  public @Nonnull CFANode getCFANode() {
+  public CFANode getCFANode() {
     return core.node;
   }
 
-  public @NonNull SingleIdentifier getId() {
+  public SingleIdentifier getId() {
     assert (core.id != null);
     return core.id;
   }

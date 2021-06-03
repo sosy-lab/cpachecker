@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,7 +65,8 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   AbstractState popFromWaitlist();
 
-  default void finalize(@SuppressWarnings("unused") @Nullable ConfigurableProgramAnalysis pCpa) {}
+  default void finalize(@SuppressWarnings("unused") ConfigurableProgramAnalysis pCpa) {
+  }
 
   default ImmutableMap<String, AbstractStatValue> getStatistics() {
     return ImmutableMap.of();

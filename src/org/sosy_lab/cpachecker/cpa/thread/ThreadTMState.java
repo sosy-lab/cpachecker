@@ -66,6 +66,11 @@ public class ThreadTMState extends ThreadState {
   }
 
   @Override
+  public int hashCode() {
+    return Objects.hash(removedSet, threadSet, currentThread);
+  }
+
+  @Override
   public int compareTo(CompatibleState pOther) {
     int result = super.compareTo(pOther);
     ThreadTMState other = (ThreadTMState) pOther;

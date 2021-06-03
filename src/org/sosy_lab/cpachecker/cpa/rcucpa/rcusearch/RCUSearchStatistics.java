@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -179,7 +178,6 @@ public class RCUSearchStatistics implements Statistics {
     RCUSearchStateStatistics.getInstance().printStatistics(writer);
   }
 
-  @Nullable
   @Override
   public String getName() {
     return "RCU Search";
