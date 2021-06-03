@@ -355,8 +355,8 @@ parser code {:
       }
 
       Block innermostBlockOfAssertion = blockStructure.getInnermostBlockOf(loc);
-      CFANode node = next.getPredecessor();
-      if (next == null || !innermostBlockOfAssertion.getContainedNodes().contains(node)) {
+      if (next == null
+          || !innermostBlockOfAssertion.getContainedNodes().contains(next.getPredecessor())) {
         Block innermostBlockOfPrevEdge = blockStructure.getInnermostBlockOf(prev.getSuccessor());
         if (innermostBlockOfPrevEdge.equals(innermostBlockOfAssertion)) {
           // Assertion is at very end of block (since next edge is after block)
@@ -376,6 +376,7 @@ parser code {:
           }
         }
       } else {
+        CFANode node = next.getPredecessor();
         for (int i = 0; i < node.getNumEnteringEdges(); i++) {
           CFAEdge currentEdge = node.getEnteringEdge(i);
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
