@@ -86,7 +86,15 @@ public class BlockStructureBuilder {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge currentEdge = node.getLeavingEdge(i);
         String description = currentEdge.getDescription();
-        if (description.equals("do") || description.equals("while") || description.equals("for")) {
+        if (description.equals("do")
+            || description.equals("while")
+            || (description.equals("for") && currentEdge.getSuccessor().getNumLeavingEdges() == 2)
+            || (currentEdge.getPredecessor().getNumEnteringEdges() == 1
+                && currentEdge
+                    .getPredecessor()
+                    .getEnteringEdge(0)
+                    .getDescription()
+                    .equals("for"))) {
           loopStarts.add(currentEdge);
         }
       }
@@ -98,7 +106,7 @@ public class BlockStructureBuilder {
       int minDist = -1;
       for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
         int distance = block.getStartOffset() - loopStart.getFileLocation().getNodeOffset();
-        if (loop == null || (distance > 0 && distance < minDist)) {
+        if (distance > 0 && (loop == null || distance < minDist)) {
           loop = block;
           minDist = distance;
         }
@@ -107,15 +115,12 @@ public class BlockStructureBuilder {
     }
 
     for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      Set<CFAEdge> incomingEdges = loop.getIncomingEdges();
-      if (incomingEdges.size() != 1) {
-        continue;
-      }
       for (Entry<Block, CFAEdge> entry : loops.entrySet()) {
-        if (incomingEdges.contains(entry.getValue())) {
+        if(loop.getLoopHeads().contains(entry.getValue().getSuccessor())) {
           Block oldBlock = entry.getKey();
           blocks.remove(oldBlock);
           blocks.add(new LoopBlock(oldBlock.getStartOffset(), oldBlock.getEndOffset(), loop));
+          break;
         }
       }
     }
