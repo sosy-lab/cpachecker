@@ -172,6 +172,9 @@ SPDX-License-Identifier: Apache-2.0
         -->
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
+          <!-- The common library does not allow to compile CPAchecker in the newer version 0.3000-486-g4e9577e,
+               thus we simply use the older version 0.3000-469-g2da6c474 -->
+          <exclude org="org.sosy_lab" module="common"/>
         </dependency>
 
         <!-- LassoRanker
