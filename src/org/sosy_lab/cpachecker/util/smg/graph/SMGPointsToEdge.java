@@ -14,10 +14,15 @@ public class SMGPointsToEdge implements SMGEdge {
 
   private final SMGObject pointsToObject;
   private final BigInteger offset;
+  private final SMGTargetSpecifier targetSpecifier;
 
-  public SMGPointsToEdge(SMGObject pPointsToObject, BigInteger pOffset) {
+  public SMGPointsToEdge(
+      SMGObject pPointsToObject,
+      BigInteger pOffset,
+      SMGTargetSpecifier pTargetSpecifier) {
     pointsToObject = pPointsToObject;
     offset = pOffset;
+    targetSpecifier = pTargetSpecifier;
   }
 
   public SMGObject pointsTo() {
@@ -27,5 +32,9 @@ public class SMGPointsToEdge implements SMGEdge {
   @Override
   public BigInteger getOffset() {
     return offset;
+  }
+
+  public SMGTargetSpecifier targetSpecifier() {
+    return targetSpecifier;
   }
 }

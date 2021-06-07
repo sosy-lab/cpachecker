@@ -15,17 +15,14 @@ public class SMGHasValueEdge implements SMGEdge {
 
   private final SMGValue value;
   private final CType type;
-  private final Object targetSpecifier;
   private final BigInteger offset;
 
   public SMGHasValueEdge(
       SMGValue pValue,
       CType pType,
-      Object pTargetSpecifier,
       BigInteger pOffset) {
     value = pValue;
     type = pType;
-    targetSpecifier = pTargetSpecifier;
     offset = pOffset;
   }
 
@@ -35,10 +32,6 @@ public class SMGHasValueEdge implements SMGEdge {
 
   public CType getType() {
     return type;
-  }
-
-  public Object targetSpecifier() {
-    return targetSpecifier;
   }
 
   @Override
