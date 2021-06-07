@@ -2437,9 +2437,6 @@ cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
 
-# recompute block formula from ARG path edges
-cpa.predicate.refinement.recomputeBlockFormulas = false
-
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
@@ -3315,27 +3312,16 @@ dependencegraph.considerPointees = true
 # where branching is represented by a single assumption (with true- and
 # false-edges)
 dependencegraph.controldeps.considerInverseAssumption = true
-dependencegraph.controldeps.considerInverseAssumption = no default value
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
-dependencegraph.controldeps.use = no default value
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
-dependencegraph.exportDot = no default value
-
-# Run flow dependence analysis with constant propagation
-dependencegraph.flowdep.constantPropagation = no default value
-
-# Whether to consider constraints on program variables (e.g., x > 10) as
-# definitions.
-dependencegraph.flowdep.constraintIsDef = no default value
 
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
-dependencegraph.flowdeps.use = no default value
 
 # Whether to include only functions reachable from the main function in the
 # dependence graph.

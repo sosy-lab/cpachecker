@@ -33,10 +33,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
 /**
- * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable.
+ * Maps a variable name to its latest "SSA index", that should be used when referring to that
+ * variable.
  */
-public class SSAMap implements Serializable {
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability because of CType
+public final class SSAMap implements Serializable {
 
   private static final long serialVersionUID = 7618801653203679876L;
 
