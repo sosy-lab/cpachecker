@@ -10,9 +10,10 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseDir;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -45,9 +46,8 @@ public class LlvmParserWithClang extends LlvmParser {
       return parse0(pFilename, preprocessor.getDumpDirectory());
     }
 
-    try {
-      Path tempDir = Files.createTempDirectory("clang-results");
-      return parse0(pFilename, tempDir);
+    try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("clang-results")) {
+      return parse0(pFilename, tempDir.toPath());
     } catch (IOException e) {
       throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
     }
