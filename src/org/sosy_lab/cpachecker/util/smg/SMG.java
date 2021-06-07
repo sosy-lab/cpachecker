@@ -11,8 +11,11 @@ package org.sosy_lab.cpachecker.util.smg;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -20,8 +23,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 public class SMG {
   private final ImmutableSet<SMGObject> smgObjects;
   private final ImmutableSet<SMGValue> smgValues;
-  private final ImmutableMap<SMGObject, SMGHasValueEdge> hasValueEdges;
-  private final ImmutableMap<SMGObject, SMGPointsToEdge> pointsToEdges;
+  private final ImmutableMap<SMGObject, Set<SMGHasValueEdge>> hasValueEdges;
+  private final ImmutableMap<SMGObject, Set<SMGPointsToEdge>> pointsToEdges;
   private final ImmutableMap<BigInteger, SMGObject> edges;
 
   private final ImmutableMap<SMGObject, Set<SMGObject>> notEqualObjects;
@@ -40,6 +43,31 @@ public class SMG {
   }
 
   public void addObject(SMGObject pObject) {
+  }
+
+  public SMGObject getNullObject() {
+    return nullObject;
+  }
+
+  public Collection<SMGObject> getObjects() {
+    return ImmutableSet.copyOf(smgObjects);
+  }
+
+  public Collection<SMGEdge> getEdges(SMGObject pRegion) {
+
+    if (hasValueEdges.containsKey(pRegion)) {
+      return ImmutableSet.copyOf(hasValueEdges.get(pRegion));
+    }
+
+    if (pointsToEdges.containsKey(pRegion)) {
+      return ImmutableSet.copyOf(pointsToEdges.get(pRegion));
+    }
+
+    return ImmutableSet.of();
+  }
+
+  public Collection<SMGListSegment> getDLLs() {
+    return ImmutableSet.of();
   }
 
 }
