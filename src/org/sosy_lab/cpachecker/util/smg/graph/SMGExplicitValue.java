@@ -39,4 +39,23 @@ public class SMGExplicitValue implements SMGValue {
   public BigInteger getValue() {
     return value;
   }
+
+  @Override
+  public int compareTo(SMGValue pArg) {
+    return getValue().compareTo(pArg.getValue());
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof SMGExplicitValue)) {
+      return false;
+    }
+    SMGExplicitValue otherValue = (SMGExplicitValue) other;
+    return value.equals(otherValue.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
 }

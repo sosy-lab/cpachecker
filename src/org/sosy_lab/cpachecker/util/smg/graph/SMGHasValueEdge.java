@@ -11,21 +11,18 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class SMGHasValueEdge implements SMGEdge {
+public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   private final SMGValue value;
   private final CType type;
-  private final Object targetSpecifier;
   private final BigInteger offset;
 
   public SMGHasValueEdge(
       SMGValue pValue,
       CType pType,
-      Object pTargetSpecifier,
       BigInteger pOffset) {
     value = pValue;
     type = pType;
-    targetSpecifier = pTargetSpecifier;
     offset = pOffset;
   }
 
@@ -37,12 +34,35 @@ public class SMGHasValueEdge implements SMGEdge {
     return type;
   }
 
-  public Object targetSpecifier() {
-    return targetSpecifier;
-  }
-
   @Override
   public BigInteger getOffset() {
     return offset;
   }
+
+  @Override
+  public int compareTo(SMGHasValueEdge pArg0) {
+    return value.compareTo(pArg0.value);
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof SMGHasValueEdge)) {
+      return false;
+    }
+    SMGHasValueEdge otherEdge = (SMGHasValueEdge) other;
+    if (otherEdge.offset.equals(offset)
+        && otherEdge.value.equals(value)
+        && type.equals(otherEdge.type)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
 }
+
+

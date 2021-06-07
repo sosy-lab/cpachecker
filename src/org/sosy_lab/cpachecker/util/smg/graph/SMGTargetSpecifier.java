@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
-import java.math.BigInteger;
+public enum SMGTargetSpecifier {
 
-public interface SMGValue extends SMGNode, Comparable<SMGValue> {
-
-  BigInteger getValue();
-
-  @Override
-  boolean equals(Object other);
+  IS_REGION,
+  IS_FIRST_POINTER,
+  IS_LAST_POINTER,
+  IS_ALL_POINTER
 
 }
