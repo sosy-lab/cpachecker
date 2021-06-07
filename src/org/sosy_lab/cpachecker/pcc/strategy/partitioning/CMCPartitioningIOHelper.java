@@ -56,7 +56,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     this(pConfig, pLogger, pShutdownNotifier, ImmutableSet.of(), ImmutableSet.of(), null);
   }
 
-  public @Nullable  int[][] getEdgesForPartition(final int pIndex) {
+  public int @Nullable [][] getEdgesForPartition(final int pIndex) {
     if (0 <= pIndex && pIndex < getNumPartitions() && pIndex < savedSuccessors.size()) {
       return savedSuccessors.get(pIndex);
     }

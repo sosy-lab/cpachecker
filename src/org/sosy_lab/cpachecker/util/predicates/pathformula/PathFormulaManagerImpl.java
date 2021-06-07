@@ -307,10 +307,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeTrue(),
-                           oldFormula.getSsa(),
-                           oldFormula.getPointerTargetSet(),
-                           0);
+    return new PathFormula(
+        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
   }
 
   @Override

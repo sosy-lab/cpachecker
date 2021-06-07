@@ -135,8 +135,9 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.5.1" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.5.1" conf="build->default; contrib->sources" />
+        <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.7.1" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.7.1" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
@@ -172,9 +173,6 @@ SPDX-License-Identifier: Apache-2.0
         -->
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
-          <!-- The common library does not allow to compile CPAchecker in the newer version 0.3000-486-g4e9577e,
-               thus we simply use the older version 0.3000-469-g2da6c474 -->
-          <exclude org="org.sosy_lab" module="common"/>
         </dependency>
 
         <!-- LassoRanker
@@ -193,7 +191,7 @@ SPDX-License-Identifier: Apache-2.0
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.5.1"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.7.1"/>
 
     </dependencies>
 </ivy-module>
