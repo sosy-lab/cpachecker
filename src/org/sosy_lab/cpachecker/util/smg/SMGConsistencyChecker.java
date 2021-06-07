@@ -78,36 +78,4 @@ public final class SMGConsistencyChecker {
     }
   }
 
-  /**
-   * Checks field consistency of a given SMG.
-   *
-   * @param smg - the SMG to be checked
-   * @throws SMGInconsistentcyException - if the given SMG is inconsistent.
-   */
-  public static void checkFieldConsistency(SMG smg) throws SMGInconsistentcyException {
-    // TODO
-    throw new UnsupportedOperationException("not yet implemented");
-  }
-
-  /**
-   * Checks nesting consistency of a given SMG.
-   *
-   * @param smg - the SMG to be checked
-   * @throws SMGInconsistentcyException - if the given SMG is inconsistent.
-   */
-  public static void checkNestingConsistency(SMG smg) throws SMGInconsistentcyException {
-    // TODO
-    throw new UnsupportedOperationException("not yet implemented");
-  }
-
-  /**
-   * Checks DLLs consistency of a given SMG.
-   *
-   * @param smg - the SMG to be checked
-   * @throws SMGInconsistentcyException - if the given SMG is inconsistent.
-   */
-  public static void checkDLLSConsistency(SMG smg) throws SMGInconsistentcyException {
-    // TODO
-    throw new UnsupportedOperationException("not yet implemented");
-  }
 }

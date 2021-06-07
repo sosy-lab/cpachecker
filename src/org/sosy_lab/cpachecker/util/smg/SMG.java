@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Set;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
@@ -24,26 +25,26 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  * modified copy but do not modify a certain instance.
  */
 public class SMG {
-  private final ImmutableSet<SMGObject> smgObjects;
-  private final ImmutableSet<SMGValue> smgValues;
-  private final ImmutableMap<SMGObject, Set<SMGHasValueEdge>> hasValueEdges;
-  private final ImmutableMap<SMGValue, Set<SMGPointsToEdge>> pointsToEdges;
-
+  // TODO I don't like using utility implementations of the old SMG analysis
+  private final PersistentSet<SMGObject> smgObjects;
+  private final PersistentSet<SMGValue> smgValues;
+  private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
+  private final PersistentMap<SMGValue, PersistentSet<SMGPointsToEdge>> pointsToEdges;
 
   private final SMGObject nullObject = SMGObject.nullInstance();
 
   public SMG() {
-    pointsToEdges = ImmutableMap.of();
-    hasValueEdges = ImmutableMap.of();
-    smgValues = ImmutableSet.of();
-    smgObjects = ImmutableSet.of(nullObject);
+    pointsToEdges = PathCopyingPersistentTreeMap.of();
+    hasValueEdges = PathCopyingPersistentTreeMap.of();
+    smgValues = PersistentSet.of();
+    smgObjects = PersistentSet.<SMGObject>of().addAndCopy(nullObject);
   }
 
   private SMG(
-      ImmutableSet<SMGObject> pSmgObjects,
-      ImmutableSet<SMGValue> pSmgValues,
-      ImmutableMap<SMGObject, Set<SMGHasValueEdge>> pHasValueEdges,
-      ImmutableMap<SMGValue, Set<SMGPointsToEdge>> pPointsToEdges) {
+      PersistentSet<SMGObject> pSmgObjects,
+      PersistentSet<SMGValue> pSmgValues,
+      PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
+      PersistentMap<SMGValue, PersistentSet<SMGPointsToEdge>> pPointsToEdges) {
     smgObjects = pSmgObjects;
     smgValues = pSmgValues;
     hasValueEdges = pHasValueEdges;
@@ -57,14 +58,7 @@ public class SMG {
    * @return a modified copy of the SMG
    */
   public SMG copyAndAddObject(SMGObject pObject) {
-    ImmutableSet<SMGObject> pSMGObjects = ImmutableSet.<SMGObject>builder().add(pObject)
-        .addAll(smgObjects)
-        .build();
-    return new SMG(
-        pSMGObjects,
-        smgValues,
-        hasValueEdges,
-        pointsToEdges);
+    return new SMG(smgObjects.addAndCopy(pObject), smgValues, hasValueEdges, pointsToEdges);
   }
 
   /**
@@ -74,13 +68,7 @@ public class SMG {
    * @return a modified copy of the SMG
    */
   public SMG copyAndAddValue(SMGValue pValue) {
-    ImmutableSet<SMGValue> pSMGValues =
-        ImmutableSet.<SMGValue>builder().add(pValue).addAll(smgValues).build();
-    return new SMG(
-        smgObjects,
-        pSMGValues,
-        hasValueEdges,
-        pointsToEdges);
+    return new SMG(smgObjects, smgValues.addAndCopy(pValue), hasValueEdges, pointsToEdges);
   }
 
   /**
@@ -96,19 +84,9 @@ public class SMG {
       return this;
     }
 
-    ImmutableMap.Builder<SMGObject, Set<SMGHasValueEdge>> hVBuilder =
-        ImmutableMap.<SMGObject, Set<SMGHasValueEdge>>builder().putAll(hasValueEdges);
-
-    ImmutableSet.Builder<SMGHasValueEdge> setBuilder = ImmutableSet.builder();
-    setBuilder.addAll(hasValueEdges.get(source)).add(edge);
-
-    hVBuilder.put(source, setBuilder.build());
-
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hVBuilder.build(),
-        pointsToEdges);
+    PersistentSet<SMGHasValueEdge> edges = hasValueEdges.getOrDefault(source, PersistentSet.of());
+    edges.addAndCopy(edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
   }
 
   /**
@@ -124,21 +102,10 @@ public class SMG {
       return this;
     }
 
-    ImmutableMap.Builder<SMGValue, Set<SMGPointsToEdge>> pTBuilder =
-        ImmutableMap.<SMGValue, Set<SMGPointsToEdge>>builder().putAll(pointsToEdges);
-
-    ImmutableSet.Builder<SMGPointsToEdge> setBuilder = ImmutableSet.builder();
-    setBuilder.addAll(pointsToEdges.get(source)).add(edge);
-
-    pTBuilder.put(source, setBuilder.build());
-
-    return new SMG(
-        smgObjects,
-        smgValues,
-        hasValueEdges,
-        pTBuilder.build());
+    PersistentSet<SMGPointsToEdge> edges = pointsToEdges.getOrDefault(source, PersistentSet.of());
+    edges.addAndCopy(edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
   }
-
 
   public SMGObject getNullObject() {
     return nullObject;

@@ -50,4 +50,14 @@ public class SMGDoublyLinkedListSegment extends SMGListSegment {
     return minLength;
   }
 
+  @Override
+  public boolean equals(Object pOther) {
+    return super.equals(pOther);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
 }

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 import java.math.BigInteger;
 
-public interface SMGValue extends SMGNode {
+public interface SMGValue extends SMGNode, Comparable<SMGValue> {
 
   BigInteger getValue();
 
