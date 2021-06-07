@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-public class OrNode implements FormulaNode {
+class OrNode implements FormulaNode {
 
   private FormulaNode left;
   private FormulaNode right;
@@ -20,11 +20,11 @@ public class OrNode implements FormulaNode {
   public OrNode() {
   }
 
-  public void setLeft(FormulaNode pLeft) {
+  void setLeft(FormulaNode pLeft) {
     left = pLeft;
   }
 
-  public void setRight(FormulaNode pRight) {
+  void setRight(FormulaNode pRight) {
     right = pRight;
   }
 

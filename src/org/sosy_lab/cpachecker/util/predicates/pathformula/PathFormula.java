@@ -30,6 +30,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * <p>Path formulas can be created with the methods in {@link PathFormulaManager}, which also
  * provides methods with additional operations.
  */
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PathFormula implements Serializable {
 
   private static final long serialVersionUID = -7716850731790578620L;

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print;
 
 import com.google.common.base.Splitter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -26,7 +27,7 @@ public class ExpressionNode implements FormulaNode {
     negated = false;
   }
 
-  public void negateOperator() {
+  void negateOperator() {
     negated = !negated;
   }
 
@@ -52,7 +53,7 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public List<FormulaNode> getSuccessors() {
-    return operands;
+    return Collections.unmodifiableList(operands);
   }
 
   @Override
@@ -60,11 +61,11 @@ public class ExpressionNode implements FormulaNode {
     return FormulaNodeType.ExpressionNode;
   }
 
-  public void addOperand(ExpressionNode node) {
+  void addOperand(ExpressionNode node) {
     operands.add(node);
   }
 
-  public List<FormulaNode> getOperands() {
+  List<FormulaNode> getOperands() {
     return operands;
   }
 
@@ -134,9 +135,5 @@ public class ExpressionNode implements FormulaNode {
         return pNegated ? "!" + pOperator : pOperator;
     }
 
-  }
-
-  public void setOperands(List<FormulaNode> pOperands) {
-    operands = pOperands;
   }
 }
