@@ -13,7 +13,6 @@ import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -112,29 +111,19 @@ public class SMG {
   }
 
   public Collection<SMGObject> getObjects() {
-    return ImmutableSet.copyOf(smgObjects);
+    return smgObjects;
   }
 
   public Collection<SMGValue> getValues() {
-    return ImmutableSet.copyOf(smgValues);
+    return smgValues;
   }
 
-  public Collection<SMGEdge> getEdges(SMGObject pRegion) {
-
-    if (hasValueEdges.containsKey(pRegion)) {
-      return ImmutableSet.copyOf(hasValueEdges.get(pRegion));
-    }
-
-    return ImmutableSet.of();
+  public Collection<SMGHasValueEdge> getEdges(SMGObject pRegion) {
+    return hasValueEdges.getOrDefault(pRegion, PersistentSet.of());
   }
 
-  public Collection<SMGEdge> getEdges(SMGValue pValue) {
-
-    if (pointsToEdges.containsKey(pValue)) {
-      return ImmutableSet.copyOf(pointsToEdges.get(pValue));
-    }
-
-    return ImmutableSet.of();
+  public Collection<SMGPointsToEdge> getEdges(SMGValue pValue) {
+    return pointsToEdges.getOrDefault(pValue, PersistentSet.of());
   }
 
   public Collection<SMGListSegment> getDLLs() {
