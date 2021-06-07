@@ -24,7 +24,7 @@ public class SMG {
   private final ImmutableSet<SMGObject> smgObjects;
   private final ImmutableSet<SMGValue> smgValues;
   private final ImmutableMap<SMGObject, Set<SMGHasValueEdge>> hasValueEdges;
-  private final ImmutableMap<SMGObject, Set<SMGPointsToEdge>> pointsToEdges;
+  private final ImmutableMap<SMGValue, Set<SMGPointsToEdge>> pointsToEdges;
   private final ImmutableMap<BigInteger, SMGObject> edges;
 
   private final ImmutableMap<SMGObject, Set<SMGObject>> notEqualObjects;
@@ -57,10 +57,6 @@ public class SMG {
 
     if (hasValueEdges.containsKey(pRegion)) {
       return ImmutableSet.copyOf(hasValueEdges.get(pRegion));
-    }
-
-    if (pointsToEdges.containsKey(pRegion)) {
-      return ImmutableSet.copyOf(pointsToEdges.get(pRegion));
     }
 
     return ImmutableSet.of();
