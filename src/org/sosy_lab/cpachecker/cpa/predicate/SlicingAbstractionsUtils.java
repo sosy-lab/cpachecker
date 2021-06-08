@@ -303,14 +303,14 @@ public class SlicingAbstractionsUtils {
     if (segmentList == null) {
       segmentList = ImmutableList.of();
     }
-    return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pFmgr, pPfmgr, withInvariants);
+    return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pPfmgr, withInvariants);
   }
 
   /**
    * For better scaling, call this method instead of {@link
    * SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap, PointerTargetSet,
-   * FormulaManagerView, PathFormulaManager, ImmutableSet)} if you already have calculated the
-   * segmentList (states between start and stop state).
+   * PathFormulaManager, ImmutableSet)} if you already have calculated the segmentList (states
+   * between start and stop state).
    */
   public static PathFormula buildPathFormula(
       ARGState start,
@@ -318,7 +318,6 @@ public class SlicingAbstractionsUtils {
       List<ARGState> segmentList,
       SSAMap pSSAMap,
       PointerTargetSet pPts,
-      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       ImmutableSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
@@ -330,16 +329,15 @@ public class SlicingAbstractionsUtils {
     // start with either an empty PathFormula or the abstraction state of start
     // (depending on what the caller specified)
     if (withInvariants.contains(AbstractionPosition.START)) {
-      startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pFmgr);
+      startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pPfmgr);
     } else {
-      startFormula =
-          emptyPathFormulaWithSSAMap(pFmgr.getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
+      startFormula = pPfmgr.makeEmptyPathFormulaWithContext(pSSAMap, pPts);
     }
 
     // Add assumptions if any:
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
-    if (other != null) {
+    if (other != null && !(other instanceof DCAState)) {
       if (stop.isTarget() && other instanceof OverflowState) {
         other = ((OverflowState) other).getParent();
       }
@@ -422,15 +420,9 @@ public class SlicingAbstractionsUtils {
   }
 
   private static PathFormula invariantPathFormulaFromState(
-      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, FormulaManagerView fmgr) {
+      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, PathFormulaManager pfmgr) {
     BooleanFormula initFormula = getPredicateState(state).getAbstractionFormula().asFormula();
-    BooleanFormula instatiatedInitFormula = fmgr.instantiate(initFormula, pSSAMap);
-    return emptyPathFormulaWithSSAMap(instatiatedInitFormula, pSSAMap, pPts);
-  }
-
-  private static PathFormula emptyPathFormulaWithSSAMap(BooleanFormula formula, SSAMap pSSAMap, PointerTargetSet pPts) {
-    PathFormula resultPathFormula = new PathFormula(formula, pSSAMap, pPts, 0);
-    return resultPathFormula;
+    return pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContext(pSSAMap, pPts), initFormula);
   }
 
   /**

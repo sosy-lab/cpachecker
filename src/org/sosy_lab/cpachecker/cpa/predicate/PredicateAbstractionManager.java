@@ -207,8 +207,9 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> predicates)
       throws SolverException, InterruptedException {
 
+    @SuppressWarnings("deprecation") // just faking a PF to be able to reuse one of our methods
     PathFormula pf =
-        new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
+        PathFormula.createManually(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =
@@ -934,13 +935,17 @@ public class PredicateAbstractionManager {
     Map<BooleanFormula, Region> info = infoBuilder.build();
     Set<BooleanFormula> toStateLemmas = info.keySet();
     Set<BooleanFormula> filteredLemmas;
+    @SuppressWarnings("deprecation")
+    // safe here because weakeningManager cares only about formula and SSAMap
+    PathFormula pf =
+        PathFormula.createManually(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0);
     cartesianAbstractionTimer.start();
     try {
       filteredLemmas =
           weakeningManager.findInductiveWeakeningForRCNF(
               SSAMap.emptySSAMap(),
               ImmutableSet.of(),
-              new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0),
+              pf,
               toStateLemmas);
     } finally {
       cartesianAbstractionTimer.stop();

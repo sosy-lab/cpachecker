@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-public class NotNode implements FormulaNode {
+class NotNode implements FormulaNode {
 
   private FormulaNode node;
 
@@ -22,7 +22,7 @@ public class NotNode implements FormulaNode {
 
   public NotNode () {}
 
-  public void setNode(FormulaNode pNode) {
+  void setNode(FormulaNode pNode) {
     node = pNode;
   }
 
@@ -46,6 +46,11 @@ public class NotNode implements FormulaNode {
   @Override
   public int hashCode() {
     return Objects.hash(node, NotNode.class);
+  }
+
+  @Override
+  public boolean logicallyEquivalentTo(FormulaNode input) {
+    return input.logicallyEquivalentTo(node);
   }
 
   @Override

@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-public class OrNode implements FormulaNode {
+class OrNode implements FormulaNode {
 
   private FormulaNode left;
   private FormulaNode right;
@@ -20,11 +20,11 @@ public class OrNode implements FormulaNode {
   public OrNode() {
   }
 
-  public void setLeft(FormulaNode pLeft) {
+  void setLeft(FormulaNode pLeft) {
     left = pLeft;
   }
 
-  public void setRight(FormulaNode pRight) {
+  void setRight(FormulaNode pRight) {
     right = pRight;
   }
 
@@ -49,6 +49,18 @@ public class OrNode implements FormulaNode {
   @Override
   public int hashCode() {
     return Objects.hash(left, right, OrNode.class);
+  }
+
+  @Override
+  public boolean logicallyEquivalentTo(FormulaNode node) {
+    if (node instanceof OrNode) {
+      OrNode orNode = (OrNode) node;
+      if ((orNode.left.logicallyEquivalentTo(left) && orNode.right.logicallyEquivalentTo(right)) ||
+          (orNode.left.logicallyEquivalentTo(right) && orNode.right.logicallyEquivalentTo(left))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

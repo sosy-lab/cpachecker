@@ -219,7 +219,7 @@ public class ReportGenerator {
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
       if (rootStates.size() != 1) {
-        logger.log(Level.INFO, "Could not determine ARG root for witness view");
+        logger.log(Level.FINER, "Could not determine ARG root for witness view");
         return;
       }
       ARGState rootState = rootStates.iterator().next();

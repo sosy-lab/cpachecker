@@ -616,7 +616,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
               : Optional.empty();
       // Build PathFormula
       try {
-        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), lastEdge);
+        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContextFrom(pathFormula), lastEdge);
       } catch (CPATransferException e) {
         // Failed to compute the Pathformula
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);

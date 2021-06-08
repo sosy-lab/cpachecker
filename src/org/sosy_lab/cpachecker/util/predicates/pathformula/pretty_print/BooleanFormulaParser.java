@@ -29,11 +29,15 @@ public class BooleanFormulaParser {
   }
 
   /**
-   * Parse the string representation of a boolean formula, reduce and simplify clauses and convert it to infix notation.
+   * Parse the string representation of a boolean formula, reduce and simplify clauses and convert
+   * it to infix notation.
+   *
+   * <p>TODO: cf. #887
+   *
    * @param formula the formula to be parsed
    * @return A syntax tree of the boolean formula with infix string representation
    */
-  public static FormulaNode parse(String formula) {
+  static FormulaNode parse(String formula) {
     ArrayDeque<FormulaNode> syntaxStack = new ArrayDeque<>();
     String currentString = "";
     for (int i = 0; i < formula.length(); i++) {
