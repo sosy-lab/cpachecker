@@ -80,7 +80,7 @@ public final class ModificationsRcdState
     return Objects.equals(locationInOriginalCfa, that.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, that.locationInGivenCfa)
         && Objects.equals(changedVarsInGivenCfa, that.changedVarsInGivenCfa)
-        && Objects.equals(hasRelevantModification, that.hasRelevantModification);
+        && (hasRelevantModification == that.hasRelevantModification);
   }
 
   @Override
