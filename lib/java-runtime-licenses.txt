@@ -155,7 +155,7 @@ SPDX-FileCopyrightText: 2002-2018 LAMP/EPFL and Lightbend, Inc.
 SPDX-License-Identifier: BSD-3-Clause AND Apache-2.0
 
 ## SoSy-Lab Common
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 
 ## SpotBugs Annotations
