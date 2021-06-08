@@ -26,54 +26,51 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 public class VariableIdentifierVisitor extends DefaultCExpressionVisitor<Set<String>, NoException> {
 
   @Override
-  protected Set<String> visitDefault(CExpression pExp) throws NoException {
+  protected Set<String> visitDefault(final CExpression pExp) throws NoException {
     return new HashSet<>();
   }
 
   @Override
-  public Set<String> visit(CArraySubscriptExpression pE) throws NoException {
-
-    Set<String> set1 = pE.getArrayExpression().accept(this);
-    Set<String> set2 = pE.getSubscriptExpression().accept(this);
-    set1.addAll(set2);
-    return set1;
+  public Set<String> visit(final CArraySubscriptExpression pE) throws NoException {
+    Set<String> resultSet = pE.getArrayExpression().accept(this);
+    resultSet.addAll(pE.getSubscriptExpression().accept(this));
+    return resultSet;
   }
 
   @Override
-  public Set<String> visit(CBinaryExpression pE) throws NoException {
-    Set<String> set1 = pE.getOperand1().accept(this);
-    Set<String> set2 = pE.getOperand2().accept(this);
-    set1.addAll(set2);
-    return set1;
+  public Set<String> visit(final CBinaryExpression pE) throws NoException {
+    Set<String> resultSet = pE.getOperand1().accept(this);
+    resultSet.addAll(pE.getOperand2().accept(this));
+    return resultSet;
   }
 
   @Override
-  public Set<String> visit(CCastExpression pE) throws NoException {
+  public Set<String> visit(final CCastExpression pE) throws NoException {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<String> visit(CComplexCastExpression pE) throws NoException {
+  public Set<String> visit(final CComplexCastExpression pE) throws NoException {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<String> visit(CFieldReference pE) throws NoException {
+  public Set<String> visit(final CFieldReference pE) throws NoException {
     return pE.getFieldOwner().accept(this);
   }
 
   @Override
-  public Set<String> visit(CIdExpression pE) throws NoException {
+  public Set<String> visit(final CIdExpression pE) throws NoException {
     return Sets.newHashSet(pE.getDeclaration().getQualifiedName());
   }
 
   @Override
-  public Set<String> visit(CUnaryExpression pE) throws NoException {
+  public Set<String> visit(final CUnaryExpression pE) throws NoException {
     return pE.getOperand().accept(this);
   }
 
   @Override
-  public Set<String> visit(CPointerExpression pE) throws NoException {
+  public Set<String> visit(final CPointerExpression pE) throws NoException {
     return pE.getOperand().accept(this);
   }
 }
