@@ -123,35 +123,30 @@ parser code {:
         List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
         int skipped = 0;
         for (int i = 0; i < orderedLocs.size(); i++) {
-          if (parser.shouldSkip(annotations.get(i))) {
+          ACSLAnnotation currentAnnotation = annotations.get(i);
+          FileLocation currentAnnotationLocation = orderedLocs.get(i);
+          if (parser.shouldSkip(currentAnnotation, currentAnnotationLocation)) {
             skipped++;
             continue;
-          }
-          if (annotations.get(i) instanceof ACSLAssertion) {
+          } else if (currentAnnotation instanceof ACSLAssertion) {
             handleAssertion(
                 newCFA,
                 orderedCFALocs,
-                orderedLocs.get(i),
-                (ACSLAssertion) annotations.get(i),
+                currentAnnotationLocation,
+                (ACSLAssertion) currentAnnotation,
                 blockStructure);
           } else {
-            CFAEdge edgeForAnnotation = null;
             for (CFAEdge edge : orderedCFALocs) {
-              if (edge.getFileLocation().getNodeOffset() > orderedLocs.get(i).getNodeOffset()) {
-                edgeForAnnotation = edge;
+              if (edge.getFileLocation().getNodeOffset() > currentAnnotationLocation.getNodeOffset()) {
+                newCFA.getEdgesToAnnotations().put(edge, currentAnnotation);
                 break;
               }
             }
-            // Only assertions may be placed at the end of a file,
-            // so there should be another edge after the current annotation
-            assert edgeForAnnotation != null;
-            newCFA.getEdgesToAnnotations().put(edgeForAnnotation, annotations.get(i));
           }
         }
         logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
         convertFunctionContractsIfNecessary(newCFA);
         adjustAnnotationLocations(newCFA, filename, blockStructure);
-        // TODO: check whether used identifiers have been declared
         checkBehaviors(newCFA.getEdgesToAnnotations(), newCFA, blockStructure);
       }
 
@@ -516,11 +511,20 @@ parser code {:
       return scanner;
     }
 
-    private boolean shouldSkip(ACSLAnnotation annotation) {
+    private boolean shouldSkip(ACSLAnnotation annotation, FileLocation annotationLocation) {
       try {
         boolean allIdentifiersInScope =
             annotation.getPredicateRepresentation().accept(identifierCheckingVisitor);
-        return !allIdentifiersInScope;
+        if (allIdentifiersInScope) {
+          if (!(annotation instanceof ACSLAssertion)) {
+            // Only assertions may be placed at the end of a file,
+            // so there should be another edge after the annotation for it to be valid
+            CFAEdge lastEdge = orderedCFALocs.get(orderedCFALocs.size() - 1);
+            return lastEdge.getFileLocation().getNodeOffset() < annotationLocation.getNodeOffset();
+          }
+          return false;
+        }
+        return true;
       } catch (UnrecognizedCodeException e) {
         return true;
       }
