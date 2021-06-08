@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 
@@ -52,7 +53,7 @@ parser code {:
     private static final int DEFAULT_STATEMENT_STACK_DEPTH = -1;
 
     private ACSLScanner scanner;
-    private ACSLTermToCExpressionVisitor visitor;
+    private IdentifierCheckingVisitor identifierCheckingVisitor;
     private final Set<Behavior> behaviors = new HashSet();
     // Maps binders to the set of logic expressions that are in their scope
     private final Map<Binder, Set<ACSLLogicExpression>> binders = new HashMap();
@@ -61,7 +62,6 @@ parser code {:
     private List<FileLocation> orderedLocs;
     private List<CFAEdge> orderedCFALocs;
     private List<FileLocation> commentPositions;
-    private final Set<Integer> annotationsToSkip = new HashSet<>();
 
     private ACSLParser(
         ACSLScanner pScanner,
@@ -75,7 +75,8 @@ parser code {:
       scanner = pScanner;
       cfa = pCfa;
       logger = pLogger;
-      visitor = new ACSLTermToCExpressionVisitor(cfa, logger);
+      identifierCheckingVisitor =
+          new IdentifierCheckingVisitor(new ACSLTermToCExpressionVisitor(cfa, logger));
       orderedLocs = pOrderedLocs;
       orderedCFALocs = pOrderedCFALocs;
       commentPositions = pCommentPositions;
@@ -122,7 +123,7 @@ parser code {:
         List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
         int skipped = 0;
         for (int i = 0; i < orderedLocs.size(); i++) {
-          if (parser.shouldSkip(i)) {
+          if (parser.shouldSkip(annotations.get(i))) {
             skipped++;
             continue;
           }
@@ -515,16 +516,14 @@ parser code {:
       return scanner;
     }
 
-    public void checkIdentifier(ACSLIdentifier i) {
+    private boolean shouldSkip(ACSLAnnotation annotation) {
       try {
-        visitor.visit(i);
-      } catch (AssertionError e) {
-        annotationsToSkip.add(scanner.getCurrentAnnotation());
+        boolean allIdentifiersInScope =
+            annotation.getPredicateRepresentation().accept(identifierCheckingVisitor);
+        return !allIdentifiersInScope;
+      } catch (UnrecognizedCodeException e) {
+        return true;
       }
-    }
-
-    public boolean shouldSkip(int i) {
-      return annotationsToSkip.contains(i);
     }
 :}
 
