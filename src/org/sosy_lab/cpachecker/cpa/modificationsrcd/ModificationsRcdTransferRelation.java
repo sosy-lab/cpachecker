@@ -249,8 +249,9 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     return Optional.empty();
   }
 
-  private boolean declarationNameAlreadyExistsInOtherCFA(final boolean isOtherOrigCFA, final CDeclarationEdge pDeclEdge) {
-    if(!pDeclEdge.getDeclaration().isGlobal()) {
+  private boolean declarationNameAlreadyExistsInOtherCFA(
+      final boolean isOtherOrigCFA, final CDeclarationEdge pDeclEdge) {
+    if (!pDeclEdge.getDeclaration().isGlobal()) {
       if (containsDeclaration(
           isOtherOrigCFA
               ? funToVarsOrig.get(pDeclEdge.getSuccessor().getFunctionName())
@@ -261,7 +262,8 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     }
 
     return containsDeclaration(
-        isOtherOrigCFA ? funToVarsOrig.get("") : funToVarsGiven.get(""), pDeclEdge.getDeclaration().getOrigName());
+        isOtherOrigCFA ? funToVarsOrig.get("") : funToVarsGiven.get(""),
+        pDeclEdge.getDeclaration().getOrigName());
   }
 
   private boolean containsDeclaration(@Nullable final Set<String> varNames, final String varName) {
@@ -454,6 +456,4 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
 
     return !Collections.disjoint(usedVars, pVars);
   }
-
-
 }
