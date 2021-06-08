@@ -110,7 +110,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
-  @Option(secure = true, description = "get an initial precision from a predicate analysis file")
+  @Option(secure = true, description = "get an initial precision from a predicate precision file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
@@ -192,7 +192,7 @@ public class ValueAnalysisCPA extends AbstractCPA
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
 
-    if (initialPredicatePrecisionFile != null){
+    if (initialPredicatePrecisionFile != null) {
 
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
@@ -205,53 +205,48 @@ public class ValueAnalysisCPA extends AbstractCPA
         AbstractionManager abstractionManager =
             new AbstractionManager(regionManager, pConfig, logger, solver);
 
-        PredicatePrecision predPrec =
-            readAndParsePredPrecFile(pCfa, formulaManager, abstractionManager);
+        PredicatePrecision predPrec = parsePredPrecFile(pCfa, formulaManager, abstractionManager);
 
         if (!predPrec.isEmpty()) {
-          return initialPrecision.withIncrement(
-              convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
-        } else {
-          return VariableTrackingPrecision
-              .createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
+          initialPrecision =
+              initialPrecision.withIncrement(
+                  convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
         }
       }
     }
 
-    else {
+    if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
-      return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
+      initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
+
+    return initialPrecision;
   }
 
-  private PredicatePrecision readAndParsePredPrecFile(
-      final CFA pCfa,
-      final FormulaManagerView pFMgr,
-      final AbstractionManager abstractionManager) {
+  private PredicatePrecision parsePredPrecFile(
+      final CFA pCfa, final FormulaManagerView pFMgr, final AbstractionManager abstractionManager) {
 
     // create managers for the predicate map parser for parsing the predicates from the given
     // predicate precision file
 
-    PredicateMapParser mapParser = new PredicateMapParser(pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
-    PredicatePrecision predPrec = PredicatePrecision.empty();
+    PredicateMapParser mapParser =
+        new PredicateMapParser(
+            pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
 
     try {
-      predPrec = mapParser.parsePredicates(initialPredicatePrecisionFile);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPredicatePrecisionFile);
-      return predPrec;
-    } catch (PredicateParsingFailedException pE) {
-      logger.logUserException(Level.WARNING, pE, "Could not parse predicate precision from file named " + initialPredicatePrecisionFile);
-      return predPrec;
+      return mapParser.parsePredicates(initialPredicatePrecisionFile);
+    } catch (IOException | PredicateParsingFailedException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not read precision from file named " + initialPredicatePrecisionFile);
+      return PredicatePrecision.empty();
     }
-
-    return predPrec;
   }
 
   private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
-      final PredicatePrecision pPredPrec,
-      final FormulaManagerView pFMgr) {
+      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
     Collection<AbstractionPredicate> predicates = new HashSet<>();
 
     predicates.addAll(pPredPrec.getLocalPredicates().values());
