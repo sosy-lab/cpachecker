@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -391,18 +392,25 @@ class ExpressionValueVisitor
               SMGKnownAddressValue lValAddress = (SMGKnownAddressValue) lVal;
               SMGKnownAddressValue rValAddress = (SMGKnownAddressValue) rVal;
               if (lValAddress.getObject().equals(rValAddress.getObject())) {
-                CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
-                BigInteger sizeOfLVal;
-                if (lVarType instanceof CPointerType) {
-                  sizeOfLVal =
-                      smgExpressionEvaluator.machineModel
-                          .getSizeofInBits(((CPointerType) lVarType).getType());
-                } else {
-                  throw new AssertionError("unhandled type for pointer comparison: " + lVarType);
-                }
-                SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
-                diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
-                return singletonList(SMGValueAndState.of(newState, diff));
+                  CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+                  final CType type;
+                  if (lVarType instanceof CPointerType) {
+                    // normal pointer type
+                    type = ((CPointerType) lVarType).getType();
+                  } else if (lVarType instanceof CSimpleType) {
+                    // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
+                    // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+                    type = lVarType;
+                  } else {
+                    throw new AssertionError(
+                        String.format(
+                            "unhandled type '%s' for pointer comparison using '%s'.",
+                            lVarType, lVarInBinaryExp));
+                  }
+                  BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
+                  SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
+                  diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
+                  return singletonList(SMGValueAndState.of(newState, diff));
               }
             }
             // else

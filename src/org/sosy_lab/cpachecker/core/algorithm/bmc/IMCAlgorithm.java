@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -83,6 +83,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
 
+  private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
@@ -121,6 +122,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
     solver = predCpa.getSolver();
+    pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
   }
@@ -327,11 +329,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private PathFormula makeFalsePathFormula() {
-    return new PathFormula(
-        bfmgr.makeFalse(),
-        SSAMap.emptySSAMap(),
-        PointerTargetSet.emptyPointerTargetSet(),
-        0);
+    return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
   }
 
   private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {

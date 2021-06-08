@@ -23,9 +23,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -295,12 +295,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Set<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
-    return pNode
-        .getFunctionParameters()
-        .stream()
-        .map(x -> MemoryLocation.valueOf(x.getQualifiedName()))
-        .collect(Collectors.toSet());
+  private ImmutableSet<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
+    return Collections3.transformedImmutableSetCopy(
+        pNode.getFunctionParameters(), x -> MemoryLocation.valueOf(x.getQualifiedName()));
   }
 
   private ReachingDefState handleReturnStatement(

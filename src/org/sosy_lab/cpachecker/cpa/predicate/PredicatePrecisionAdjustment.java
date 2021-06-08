@@ -201,7 +201,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
+    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
     // initialize path formula with current invariants
     // we don't want to add trivially true invariants
