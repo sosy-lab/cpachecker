@@ -50,18 +50,13 @@ import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 
 parser code {:
 
-    private static final int DEFAULT_STATEMENT_STACK_DEPTH = -1;
-
     private ACSLScanner scanner;
     private IdentifierCheckingVisitor identifierCheckingVisitor;
     private final Set<Behavior> behaviors = new HashSet();
-    // Maps binders to the set of logic expressions that are in their scope
-    private final Map<Binder, Set<ACSLLogicExpression>> binders = new HashMap();
     private CFAWithACSLAnnotations cfa;
     private LogManager logger;
     private List<FileLocation> orderedLocs;
     private List<CFAEdge> orderedCFALocs;
-    private List<FileLocation> commentPositions;
 
     private ACSLParser(
         ACSLScanner pScanner,
@@ -69,8 +64,7 @@ parser code {:
         CFAWithACSLAnnotations pCfa,
         List<FileLocation> pOrderedLocs,
         List<CFAEdge> pOrderedCFALocs,
-        LogManager pLogger,
-        List<FileLocation> pCommentPositions) {
+        LogManager pLogger) {
       super(pScanner, sf);
       scanner = pScanner;
       cfa = pCfa;
@@ -79,7 +73,6 @@ parser code {:
           new IdentifierCheckingVisitor(new ACSLTermToCExpressionVisitor(cfa, logger));
       orderedLocs = pOrderedLocs;
       orderedCFALocs = pOrderedCFALocs;
-      commentPositions = pCommentPositions;
     }
 
     public static CFA parseACSLAnnotations(
@@ -119,7 +112,7 @@ parser code {:
         BlockStructure blockStructure = builder.build(filename);
         ACSLParser parser =
             new ACSLParser(
-                scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger, commentPositions);
+                scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger);
         List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
         int skipped = 0;
         for (int i = 0; i < orderedLocs.size(); i++) {
@@ -331,8 +324,7 @@ parser code {:
         List<CFAEdge> orderedCFALocs,
         FileLocation loc,
         ACSLAssertion annotation,
-        BlockStructure blockStructure)
-        throws IOException {
+        BlockStructure blockStructure) {
       CFAEdge prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
       CFAEdge next = null;
       // We can start with the second edge because we have at least one edge with node offset zero,
@@ -496,14 +488,6 @@ parser code {:
     private static boolean inSameScope(
         CFANode oldNode, CFANode newNode, BlockStructure blockStructure) {
       return blockStructure.getNodesInInnermostBlockOf(oldNode).contains(newNode);
-    }
-
-    public List<FileLocation> getLocs() {
-      return orderedLocs;
-    }
-
-    public CFAWithACSLAnnotations getCFA() {
-      return cfa;
     }
 
     @Override
