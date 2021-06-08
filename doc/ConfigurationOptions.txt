@@ -3113,6 +3113,9 @@ cpa.value.initAssumptionVars = false
 # get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
 
+# get an initial precision from a predicate precision file
+cpa.value.initialPredicatePrecisionFile = no default value
+
 # apply optimizations based on equality of input interpolant and candidate
 # interpolant
 cpa.value.interpolation.applyItpEqualityOptimization = true
