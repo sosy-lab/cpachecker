@@ -51,10 +51,20 @@ public abstract class Preprocessor {
     }
   }
 
+  /**
+   * Preprocess the given file and potentially write the result to a dump file depending on the specifications set on the preprocessor.
+   * 
+   * @param file The file to preprocess.
+   * @return The preprocessed file.
+   */
   public String preprocess(String file) throws CParserException, InterruptedException {
     String result = preprocess0(file);
-    getAndWriteDumpedFile(result, file);
+    getAndWriteDumpFile(result, file);
     return result;
+  }
+
+  public Path getDumpDirectory() {
+    return dumpDirectory;
   }
 
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
@@ -97,10 +107,14 @@ public abstract class Preprocessor {
     }
   }
 
-  protected Path getAndWriteDumpedFile(String programCode, String file) {
-    if (dumpResults() && dumpDirectory != null) {
-      final Path dumpFile = dumpDirectory.resolve(getDumpFileOfFile(file)).normalize();
-      if (dumpFile.startsWith(dumpDirectory)) {
+  protected Path getAndWriteDumpFile(String programCode, String file) {
+    return getAndWriteDumpFile(programCode, file, dumpDirectory);
+  }
+
+  protected Path getAndWriteDumpFile(String programCode, String file, Path pDumpDirectory) {
+    if (dumpResults() && pDumpDirectory != null) {
+      final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file)).normalize();
+      if (dumpFile.startsWith(pDumpDirectory)) {
         try {
           IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);
         } catch (IOException e) {
