@@ -112,7 +112,9 @@ public class TestTargetReductionSpanningSet {
     for (CFAEdgeNode node : ordered) {
       componentElems = new ArrayDeque<>();
       dfs(node, true, visited, componentElems);
-      componentsBuilder.add(componentElems);
+      if (!componentElems.isEmpty()) {
+        componentsBuilder.add(componentElems);
+      }
     }
 
     return componentsBuilder.build();
