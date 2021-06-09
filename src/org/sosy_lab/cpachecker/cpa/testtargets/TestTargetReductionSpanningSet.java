@@ -40,6 +40,7 @@ public class TestTargetReductionSpanningSet {
                 constructSubsumptionGraph(pTargets, pCfa.getMainFunction()))));
   }
 
+
   private ImmutableSet<CFAEdgeNode>
       constructSubsumptionGraph(final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
     ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
@@ -60,16 +61,15 @@ public class TestTargetReductionSpanningSet {
       targetToCopy.put(entry.getValue(), entry.getKey());
     }
 
-    DomTree<CFANode> inverseDomTree =
-        Dominance.createDomTree(
-            entryExit.getSecond(),
-            CFAUtils::allPredecessorsOf,
-            CFAUtils::allSuccessorsOf),
+    // TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
+
+    DomTree<CFANode>
+        inverseDomTree =
+            Dominance.createDomTree(
+                entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf),
         domTree =
             Dominance.createDomTree(
-                entryExit.getFirst(),
-                CFAUtils::allSuccessorsOf,
-                CFAUtils::allPredecessorsOf);
+                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf);
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -79,9 +79,9 @@ public class TestTargetReductionSpanningSet {
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
-            && (domTree.isAncestorOf(// pred is ancestor/dominator of succ
-                domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
+            && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
+                    domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
+                    domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
                 || inverseDomTree.isAncestorOf(
                     inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()),
                     inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor())))) {
