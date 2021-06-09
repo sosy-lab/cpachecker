@@ -139,7 +139,7 @@ parser code {:
           }
         }
         logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
-        convertFunctionContractsIfNecessary(newCFA);
+        convertFunctionContractsIfNecessary(initialEdges);
         adjustAnnotationLocations(initialEdges, newCFA, filename, blockStructure);
         checkBehaviors(newCFA.getEdgesToAnnotations(), newCFA, blockStructure);
       }
@@ -147,25 +147,20 @@ parser code {:
       return newCFA;
     }
 
-    private static void convertFunctionContractsIfNecessary(CFAWithACSLAnnotations cfaWithLocs) {
-      ImmutableList<CFAEdge> keys =
-          ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().keySet());
-      for (CFAEdge edge : keys) {
+    private static void convertFunctionContractsIfNecessary(
+        Map<ACSLAnnotation, CFAEdge> initialEdges) {
+      for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
+        CFAEdge edge = entry.getValue();
         if (edge instanceof CDeclarationEdge
             && ((CDeclarationEdge) edge).getDeclaration() instanceof CFunctionDeclaration) {
           continue;
         }
-        Collection<ACSLAnnotation> annotations =
-            ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().get(edge));
-        for (ACSLAnnotation annotation : annotations) {
-          if (annotation instanceof FunctionContract) {
-            StatementContract statementContract =
-                StatementContract.fromFunctionContract(
-                    ImmutableList.of(), (FunctionContract) annotation);
-            cfaWithLocs.getEdgesToAnnotations().remove(edge, annotation);
-            cfaWithLocs.getEdgesToAnnotations().put(edge, statementContract);
-          }
-        }
+        ACSLAnnotation annotation = entry.getKey();
+        assert annotation instanceof FunctionContract;
+        StatementContract statementContract =
+            StatementContract.fromFunctionContract(ImmutableList.of(), (FunctionContract) annotation);
+        initialEdges.remove(annotation);
+        initialEdges.put(statementContract, edge);
       }
     }
 
