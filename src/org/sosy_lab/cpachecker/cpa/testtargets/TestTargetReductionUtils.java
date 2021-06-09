@@ -20,6 +20,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
@@ -41,7 +42,6 @@ public final class TestTargetReductionUtils {
     // a set of nodes that has already been created to prevent duplicates
     Set<CFANode> successorNodes = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 2);
     Set<CFANode> visited = new HashSet<>();
-    Set<CFANode> allReached = new HashSet<>();
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
     CFANode currentNode;
     Set<CFANode> toExplore = Sets.newHashSetWithExpectedSize(pTestTargets.size() + 1);
@@ -69,15 +69,11 @@ public final class TestTargetReductionUtils {
           target);
     }
 
-    allReached.add(pEntryNode);
-
     for (CFANode predecessor : toExplore) {
       if (!successorNodes.contains(predecessor)) {
       // get next node in the queue
       waitlist.add(predecessor);
       visited.clear();
-      } else {
-        allReached.add(predecessor);
       }
 
       while (!waitlist.isEmpty()) {
@@ -85,7 +81,6 @@ public final class TestTargetReductionUtils {
 
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
           if (successorNodes.contains(leaving.getSuccessor())) {
-            allReached.add(leaving.getSuccessor());
             if (!origCFANodeToCopyMap.get(predecessor)
                 .hasEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor()))) {
               copyAsDummyEdge(
@@ -101,19 +96,42 @@ public final class TestTargetReductionUtils {
       }
     }
 
-    //  remove unreachable test targets
-    Collection<CFAEdge> toDelete = new ArrayList<>();
-    for (CFAEdge target : pTestTargets) {
-      if (!allReached.contains(target.getPredecessor())) {
-        toDelete.add(target);
-        pCopiedEdgeToTestTargetsMap.remove(target);
-      }
-    }
-    pTestTargets.removeAll(toDelete);
+    removeUnreachableTestGoals(
+        pTestTargets, pCopiedEdgeToTestTargetsMap, origCFANodeToCopyMap.get(pEntryNode));
 
     return Pair.of(
-        origCFANodeToCopyMap.get(pEntryNode),
-        origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+        origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+  }
+
+  private static void removeUnreachableTestGoals(
+      final Set<CFAEdge> pTestTargets,
+      final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
+      CFANode pEntry) {
+    Set<CFANode> visited = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    visited.add(pEntry);
+    waitlist.add(pEntry);
+
+    CFANode pred;
+    while (!waitlist.isEmpty()) {
+      pred = waitlist.poll();
+      for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
+        if (visited.add(succ)) {
+          waitlist.add(succ);
+        }
+      }
+    }
+
+    Collection<CFAEdge> toDelete = new ArrayList<>();
+    for (Entry<CFAEdge, CFAEdge> mapEntry : pCopiedEdgeToTestTargetsMap.entrySet()) {
+      if (!visited.contains(mapEntry.getKey().getPredecessor())) {
+        pTestTargets.remove(mapEntry.getValue());
+        toDelete.add(mapEntry.getKey());
+      }
+    }
+    for (CFAEdge unreachTarget : toDelete) {
+      pCopiedEdgeToTestTargetsMap.remove(unreachTarget);
+    }
   }
 
   public static CFAEdge copyAsDummyEdge(final CFANode pred, final CFANode succ) {
@@ -123,7 +141,7 @@ public final class TestTargetReductionUtils {
     return newEdge;
   }
 
-  public static void drawGraph(Path pOutputfile, CFANode pEntry) throws IOException {
+  public static void drawGraph(final Path pOutputfile, final CFANode pEntry) throws IOException {
     try (Writer sb = IO.openOutputFile(pOutputfile, Charset.defaultCharset())) {
       sb.append("digraph " + "CFA" + " {\n");
       // define the graphic representation for all subsequent nodes
