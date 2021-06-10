@@ -96,17 +96,23 @@ public final class TestTargetReductionUtils {
       }
     }
 
-    removeUnreachableTestGoals(
-        pTestTargets, pCopiedEdgeToTestTargetsMap, origCFANodeToCopyMap.get(pEntryNode));
-
-    return Pair.of(
-        origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+    if (removeUnreachableTestGoalsAndIsReachExit(
+        pTestTargets,
+        pCopiedEdgeToTestTargetsMap,
+        origCFANodeToCopyMap.get(pEntryNode),
+        origCFANodeToCopyMap.get(pEntryNode.getExitNode()))) {
+      return Pair.of(
+          origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+    } else {
+      return Pair.of(origCFANodeToCopyMap.get(pEntryNode), null);
+    }
   }
 
-  private static void removeUnreachableTestGoals(
+  private static boolean removeUnreachableTestGoalsAndIsReachExit(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> pCopiedEdgeToTestTargetsMap,
-      CFANode pEntry) {
+      final CFANode pEntry,
+      final CFANode pExit) {
     Set<CFANode> visited = new HashSet<>();
     Deque<CFANode> waitlist = new ArrayDeque<>();
     visited.add(pEntry);
@@ -132,6 +138,8 @@ public final class TestTargetReductionUtils {
     for (CFAEdge unreachTarget : toDelete) {
       pCopiedEdgeToTestTargetsMap.remove(unreachTarget);
     }
+
+    return visited.contains(pExit);
   }
 
   public static CFAEdge copyAsDummyEdge(final CFANode pred, final CFANode succ) {

@@ -48,11 +48,6 @@ public class TestTargetReductionSpanningSet {
     CFAEdgeNode node;
     Map<CFAEdge, CFAEdgeNode> edgeToNode = Maps.newHashMapWithExpectedSize(pTargets.size());
     Map<CFAEdge, CFAEdge> copyToTarget = Maps.newHashMapWithExpectedSize(pTargets.size());
-    for (CFAEdge target : pTargets) {
-      node = new CFAEdgeNode(target);
-      edgeToNode.put(target, node);
-      nodeBuilder.add(node);
-    }
 
     Pair<CFANode, CFANode> entryExit =
         TestTargetReductionUtils.buildTestGoalGraph(pTargets, copyToTarget, pStartNode);
@@ -61,15 +56,26 @@ public class TestTargetReductionSpanningSet {
       targetToCopy.put(entry.getValue(), entry.getKey());
     }
 
-    // TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
+    for (CFAEdge target : pTargets) {
+      node = new CFAEdgeNode(target);
+      edgeToNode.put(target, node);
+      nodeBuilder.add(node);
+    }
+
+    /*try {
+      TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
+    } catch (IOException e) {
+    }*/
 
     DomTree<CFANode>
-        inverseDomTree =
-            Dominance.createDomTree(
-                entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf),
         domTree =
             Dominance.createDomTree(
-                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf);
+                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf),
+        inverseDomTree =
+            entryExit.getSecond() != null
+                ? Dominance.createDomTree(
+                    entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf)
+                : null;
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -82,9 +88,10 @@ public class TestTargetReductionSpanningSet {
             && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
                     domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
                     domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
-                || inverseDomTree.isAncestorOf(
-                    inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()),
-                    inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor())))) {
+                || (inverseDomTree != null
+                    && inverseDomTree.isAncestorOf(
+                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()),
+                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()))))) {
           /*
            * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
