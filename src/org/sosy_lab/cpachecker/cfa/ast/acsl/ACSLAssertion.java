@@ -28,7 +28,13 @@ public class ACSLAssertion implements ACSLAnnotation {
     predicate = p.simplify();
   }
 
-  public List<Behavior> getEnclosingBehaviors() {
+  @Override
+  public List<Behavior> getDeclaredBehaviors() {
+    return ImmutableList.of();
+  }
+
+  @Override
+  public List<Behavior> getReferencedBehaviors() {
     return enclosingBehaviors;
   }
 

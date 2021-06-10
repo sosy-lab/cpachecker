@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 public class ACSLLoopAnnotation implements ACSLAnnotation {
 
@@ -35,17 +35,24 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
     ImmutableMap.Builder<List<Behavior>, ACSLLoopInvariant> builder =
         ImmutableMap.builderWithExpectedSize(pAdditionalInvariants.size());
     for (Entry<List<Behavior>, ACSLLoopInvariant> entry : pAdditionalInvariants.entrySet()) {
-      builder.put(entry.getKey(), new ACSLLoopInvariant(entry.getValue().getPredicate().simplify()));
+      builder.put(
+          entry.getKey(), new ACSLLoopInvariant(entry.getValue().getPredicate().simplify()));
     }
     additionalInvariants = builder.build();
   }
 
-  public Set<Behavior> getReferencedBehaviors() {
-    Set<Behavior> referencedBehaviors = new HashSet<>();
+  @Override
+  public List<Behavior> getDeclaredBehaviors() {
+    return ImmutableList.of();
+  }
+
+  @Override
+  public List<Behavior> getReferencedBehaviors() {
+    Builder<Behavior> referencedBehaviors = ImmutableList.builder();
     for (List<Behavior> behaviors : additionalInvariants.keySet()) {
       referencedBehaviors.addAll(behaviors);
     }
-    return referencedBehaviors;
+    return referencedBehaviors.build();
   }
 
   @Override

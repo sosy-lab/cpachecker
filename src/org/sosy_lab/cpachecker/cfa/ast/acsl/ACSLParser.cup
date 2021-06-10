@@ -141,7 +141,7 @@ parser code {:
         logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
         convertFunctionContractsIfNecessary(initialEdges);
         adjustAnnotationLocations(initialEdges, newCFA, filename, blockStructure);
-        checkBehaviors(newCFA.getEdgesToAnnotations(), newCFA, blockStructure);
+        checkBehaviors(newCFA, blockStructure);
       }
 
       return newCFA;
@@ -339,13 +339,11 @@ parser code {:
 
     /**
      * Make sure that all behaviors are actually in scope when they are referenced.
-     *
-     * <p>This function should only be called after the locations of all annotations have been fixed.
      */
-    public static void checkBehaviors(
-        Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations,
+    private static void checkBehaviors(
         CFAWithACSLAnnotations cfa,
         BlockStructure blockStructure) {
+      Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations = cfa.getEdgesToAnnotations();
       Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
       // First, collect all behaviors where they are introduced
       for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
@@ -356,7 +354,7 @@ parser code {:
             // Behaviors are stored in post-state representation as well, but no need to add twice
             continue;
           }
-          for (Behavior behavior : fcontract.getBehaviors()) {
+          for (Behavior behavior : fcontract.getDeclaredBehaviors()) {
             behaviorDeclarations.put(
                 behavior.getName(),
                 cfa.getFunctionHead(entry.getKey().getPredecessor().getFunctionName())
@@ -369,7 +367,7 @@ parser code {:
             // where pre-state representation is placed
             continue;
           }
-          for (Behavior behavior : scontract.getBehaviors()) {
+          for (Behavior behavior : scontract.getDeclaredBehaviors()) {
             behaviorDeclarations.put(behavior.getName(), entry.getKey());
           }
         }
@@ -377,44 +375,14 @@ parser code {:
       // Now check whether all referenced behaviors are still in scope
       for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
         ACSLAnnotation annotation = entry.getValue();
-        if (annotation instanceof StatementContract) {
-          StatementContract scontract = (StatementContract) annotation;
-          if (!scontract.isPreStateRepresentation()) {
-            // No need to check twice, a behavior is either in scope for the whole statement or for
-            // none of it
-            continue;
-          }
-          for (Behavior behavior : scontract.getEnclosingBehaviors()) {
-            assert behaviorDeclarations.containsKey(behavior.getName())
-                : "Unknown behavior: " + behavior.getName();
-            assert inSameScope(
-                    behaviorDeclarations.get(behavior.getName()).getSuccessor(),
-                    entry.getKey().getSuccessor(),
-                    blockStructure)
-                : "Statement contract\n" + scontract + "\nis not in scope of " + behavior.getName();
-          }
-        } else if (annotation instanceof ACSLLoopAnnotation) {
-          ACSLLoopAnnotation loopAnnotation = (ACSLLoopAnnotation) annotation;
-          for (Behavior behavior : loopAnnotation.getReferencedBehaviors()) {
-            assert behaviorDeclarations.containsKey(behavior.getName())
-                : "Unknown behavior: " + behavior.getName();
-            assert inSameScope(
-                    behaviorDeclarations.get(behavior.getName()).getSuccessor(),
-                    entry.getKey().getSuccessor(),
-                    blockStructure)
-                : "Loop annotation\n" + loopAnnotation + "\nis not in scope of " + behavior.getName();
-          }
-        } else if (annotation instanceof ACSLAssertion) {
-          ACSLAssertion assertion = (ACSLAssertion) annotation;
-          for (Behavior behavior : assertion.getEnclosingBehaviors()) {
-            assert behaviorDeclarations.containsKey(behavior.getName())
-                : "Unknown behavior: " + behavior.getName();
-            assert inSameScope(
-                    behaviorDeclarations.get(behavior.getName()).getSuccessor(),
-                    entry.getKey().getSuccessor(),
-                    blockStructure)
-                : "Assertion\n" + assertion + "\nis not in scope of " + behavior.getName();
-          }
+        for (Behavior behavior : annotation.getReferencedBehaviors()) {
+          assert behaviorDeclarations.containsKey(behavior.getName())
+              : "Unknown behavior: " + behavior.getName();
+          assert inSameScope(
+                  behaviorDeclarations.get(behavior.getName()).getSuccessor(),
+                  entry.getKey().getSuccessor(),
+                  blockStructure)
+              : "Annotation\n" + annotation + "\nis not in scope of " + behavior.getName();
         }
       }
     }

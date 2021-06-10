@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.util.List;
+
 public interface ACSLAnnotation {
 
   /**
@@ -23,4 +25,13 @@ public interface ACSLAnnotation {
    * clauses are fulfilled.
    */
   ACSLPredicate getCompletenessPredicate();
+
+  /** Returns all behaviors declared in the annotation. */
+  List<Behavior> getDeclaredBehaviors();
+
+  /**
+   * Returns all behaviors that are referenced by the annotation. The returned list does not contain
+   * newly declared behaviors, those can be acquired via {@link #getDeclaredBehaviors()}.
+   */
+  List<Behavior> getReferencedBehaviors();
 }

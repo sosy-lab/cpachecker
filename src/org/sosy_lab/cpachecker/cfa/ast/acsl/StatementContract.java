@@ -57,16 +57,18 @@ public class StatementContract implements ACSLAnnotation {
         fcontract.getRequires(),
         fcontract.getEnsures(),
         enclosing,
-        fcontract.getBehaviors(),
+        fcontract.getDeclaredBehaviors(),
         fcontract.getCompletenessClauses());
   }
 
-  public List<Behavior> getEnclosingBehaviors() {
-    return enclosingBehaviors;
+  @Override
+  public List<Behavior> getDeclaredBehaviors() {
+    return ownBehaviors;
   }
 
-  public List<Behavior> getBehaviors() {
-    return ownBehaviors;
+  @Override
+  public List<Behavior> getReferencedBehaviors() {
+    return enclosingBehaviors;
   }
 
   public boolean isPreStateRepresentation() {
