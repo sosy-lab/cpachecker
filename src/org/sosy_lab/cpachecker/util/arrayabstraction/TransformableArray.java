@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -178,6 +179,10 @@ public final class TransformableArray {
   public static ImmutableSet<ArrayOperation> getArrayOperations(CFAEdge pEdge) {
 
     Objects.requireNonNull(pEdge, "pEdge must not be null");
+
+    if (pEdge instanceof CFunctionSummaryEdge) {
+      return getArrayOperations(((CFunctionSummaryEdge) pEdge).getExpression());
+    }
 
     Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
     if (optAstNode.isPresent()) {
