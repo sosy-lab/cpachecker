@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/* TODO find out why CFunctionCallExpression aren't collected*/
 
 public class ExpressionCollector extends ForwardingCFAVisitor {
   private final Set<CExpression> expressions = Sets.newHashSet();

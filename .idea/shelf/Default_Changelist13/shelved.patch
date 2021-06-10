@@ -1,0 +1,299 @@
+Index: src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/CFAMutator.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>// This file is part of CPAchecker,\r\n// a tool for configurable software verification:\r\n// https://cpachecker.sosy-lab.org\r\n//\r\n// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>\r\n//\r\n// SPDX-License-Identifier: Apache-2.0\r\n\r\npackage org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;\r\n\r\nimport java.util.ArrayList;\r\nimport java.util.Set;\r\nimport org.sosy_lab.cpachecker.cfa.CFA;\r\nimport org.sosy_lab.cpachecker.cfa.MutableCFA;\r\nimport org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;\r\nimport org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;\r\nimport org.sosy_lab.cpachecker.cfa.ast.c.CExpression;\r\nimport org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;\r\nimport org.sosy_lab.cpachecker.cfa.ast.c.CStatement;\r\nimport org.sosy_lab.cpachecker.cfa.model.CFAEdge;\r\nimport org.sosy_lab.cpachecker.cfa.model.CFANode;\r\nimport org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;\r\nimport org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;\r\n\r\npublic class CFAMutator {\r\n\r\n  public static ArrayList<CFAEdge> calcPossibleMutations(CFA originalCFA, CFAEdge edge) {\r\n    switch (edge.getEdgeType()) {\r\n      case StatementEdge:\r\n        return generateStatementEdgeMutations(originalCFA, (CStatementEdge) edge);\r\n\r\n      case AssumeEdge:\r\n        return generateAssumeEdgeMutations((CAssumeEdge) edge);\r\n\r\n      default:\r\n        return new ArrayList<>();\r\n    }\r\n  }\r\n\r\n  private static ArrayList<CFAEdge> generateStatementEdgeMutations(\r\n      CFA originalCFA,\r\n      CStatementEdge statementEdge) {\r\n    CStatement statement = statementEdge.getStatement();\r\n    ArrayList<CFAEdge> alternativeStatements = new ArrayList<>();\r\n\r\n    if (statement instanceof CExpressionAssignmentStatement) {\r\n      final CExpressionAssignmentStatement expressionAssignmentStatement =\r\n          (CExpressionAssignmentStatement) statement;\r\n      final Set<CExpression> expressions = ExpressionCollector.collectExpressions(originalCFA);\r\n      CExpression originalExpression = expressionAssignmentStatement.getRightHandSide();\r\n\r\n      for (CExpression expression : expressions) {\r\n        if (!originalExpression.equals(expression)) {\r\n\r\n          alternativeStatements.add(\r\n              new CStatementEdge(\r\n                  statementEdge.getRawStatement(),\r\n                  exchangeExpression(expressionAssignmentStatement, expression),\r\n                  statementEdge.getFileLocation(),\r\n                  statementEdge.getPredecessor(),\r\n                  statementEdge.getSuccessor()));\r\n        }\r\n      }\r\n    }\r\n\r\n    return alternativeStatements;\r\n  }\r\n\r\n  private static CStatement exchangeExpression(\r\n      CExpressionAssignmentStatement expressionAssignmentStatement,\r\n      CExpression expression) {\r\n    return new CExpressionAssignmentStatement(\r\n        expressionAssignmentStatement.getFileLocation(),\r\n        expressionAssignmentStatement.getLeftHandSide(),\r\n        expression);\r\n  }\r\n\r\n  private static ArrayList<CFAEdge> generateAssumeEdgeMutations(CAssumeEdge assumeEdge) {\r\n    CExpression expression = assumeEdge.getExpression();\r\n    ArrayList<CFAEdge> alternativeExpressions = new ArrayList<>();\r\n\r\n    if (expression instanceof CBinaryExpression) {\r\n      final CBinaryExpression binaryExpression = (CBinaryExpression) expression;\r\n\r\n      for (BinaryOperator operator : BinaryOperator.values()) {\r\n        if (binaryExpression.getOperator().isLogicalOperator() == operator.isLogicalOperator()\r\n            && binaryExpression.getOperator() != operator) {\r\n          final CBinaryExpression modifiedExpression =\r\n              exchangeBinaryOperator(binaryExpression, operator);\r\n\r\n          alternativeExpressions.add(\r\n              new CAssumeEdge(\r\n                  modifiedExpression.toASTString(),\r\n                  assumeEdge.getFileLocation(),\r\n                  assumeEdge.getPredecessor(),\r\n                  assumeEdge.getSuccessor(),\r\n                  modifiedExpression,\r\n                  assumeEdge.getTruthAssumption()));\r\n        }\r\n      }\r\n    }\r\n\r\n    return alternativeExpressions;\r\n  }\r\n\r\n  private static CBinaryExpression exchangeBinaryOperator(\r\n      CBinaryExpression binaryExpression,\r\n      BinaryOperator operator) {\r\n    return\r\n        new CBinaryExpression(\r\n            binaryExpression.getFileLocation(),\r\n            binaryExpression.getExpressionType(),\r\n            binaryExpression.getCalculationType(),\r\n            binaryExpression.getOperand1(),\r\n            binaryExpression.getOperand2(),\r\n            operator);\r\n  }\r\n\r\n  public static MutableCFA exchangeEdge(\r\n      MutableCFA currentCFA, CFAEdge edgeToRemove, CFAEdge edgeToInsert) {\r\n    final CFANode predecessorNode = edgeToRemove.getPredecessor();\r\n    final CFANode successorNode = edgeToRemove.getSuccessor();\r\n\r\n    for (int i = 0; i < predecessorNode.getNumLeavingEdges(); i++) {\r\n      final CFAEdge edge = predecessorNode.getLeavingEdge(i);\r\n\r\n      if (edge.getLineNumber() == edgeToInsert.getLineNumber()) {\r\n        predecessorNode.removeLeavingEdge(edge);\r\n        predecessorNode.addLeavingEdge(edgeToInsert);\r\n      }\r\n    }\r\n\r\n    for (int a = 0; a < successorNode.getNumEnteringEdges(); a++) {\r\n      final CFAEdge edge = successorNode.getEnteringEdge(a);\r\n\r\n      if (edge.getLineNumber() == edgeToInsert.getLineNumber()) {\r\n        successorNode.removeEnteringEdge(edge);\r\n        successorNode.addEnteringEdge(edgeToInsert);\r\n      }\r\n    }\r\n\r\n    return currentCFA;\r\n  }\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/CFAMutator.java b/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/CFAMutator.java
+--- a/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/CFAMutator.java	(revision b9bdbc261559c3d82861a299f6312199da5044fe)
++++ b/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/CFAMutator.java	(date 1622557146791)
+@@ -9,6 +9,7 @@
+ package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
+ 
+ import java.util.ArrayList;
++import java.util.Map;
+ import java.util.Set;
+ import org.sosy_lab.cpachecker.cfa.CFA;
+ import org.sosy_lab.cpachecker.cfa.MutableCFA;
+@@ -17,10 +18,12 @@
+ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
++import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+ import org.sosy_lab.cpachecker.cfa.model.CFANode;
+ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
++import org.sosy_lab.cpachecker.cfa.types.c.CType;
+ 
+ public class CFAMutator {
+ 
+@@ -37,6 +40,7 @@
+     }
+   }
+ 
++
+   private static ArrayList<CFAEdge> generateStatementEdgeMutations(
+       CFA originalCFA,
+       CStatementEdge statementEdge) {
+@@ -49,13 +53,16 @@
+       final Set<CExpression> expressions = ExpressionCollector.collectExpressions(originalCFA);
+       CExpression originalExpression = expressionAssignmentStatement.getRightHandSide();
+ 
++      generateExpressionMutations(originalCFA, originalExpression);
++
+       for (CExpression expression : expressions) {
+         if (!originalExpression.equals(expression)) {
++          final CStatement newStatement = exchangeExpression(expressionAssignmentStatement, expression);
+ 
+           alternativeStatements.add(
+               new CStatementEdge(
+-                  statementEdge.getRawStatement(),
+-                  exchangeExpression(expressionAssignmentStatement, expression),
++                  newStatement.toASTString(),
++                  newStatement,
+                   statementEdge.getFileLocation(),
+                   statementEdge.getPredecessor(),
+                   statementEdge.getSuccessor()));
+@@ -63,9 +70,47 @@
+       }
+     }
+ 
++
+     return alternativeStatements;
+   }
+ 
++  private static ArrayList<CExpression> generateExpressionMutations(CFA cfa, CExpression originalExpression){
++    ArrayList<CExpression> alternativeExpressions = new ArrayList();
++    final Set<CExpression> expressions = ExpressionCollector.collectExpressions(cfa);
++    final Map<CType, Set<CExpression>> sortedExpression = ExpressionCollector.sortByType(expressions);
++
++    originalExpression.getExpressionType();
++
++    if(originalExpression instanceof CBinaryExpression){
++      alternativeExpressions = generateBinaryExpressionMutations((CBinaryExpression) originalExpression);
++    } else if (originalExpression instanceof CUnaryExpression){
++
++    }
++
++    for (CExpression expression : expressions) {
++      if (!originalExpression.equals(expression) &&  originalExpression.getExpressionType().equals(expression.getExpressionType())) {
++        alternativeExpressions.add(expression);
++      }
++    }
++
++    return alternativeExpressions;
++  }
++
++  private static ArrayList<CExpression> generateBinaryExpressionMutations(CBinaryExpression binaryExpression){
++    ArrayList<CExpression> alternativeExpressions = new ArrayList();
++
++    for (BinaryOperator operator : BinaryOperator.values()) {
++      if (binaryExpression.getOperator().isLogicalOperator() == operator.isLogicalOperator()
++          && binaryExpression.getOperator() != operator) {
++        final CBinaryExpression modifiedExpression =
++            exchangeBinaryOperator(binaryExpression, operator);
++        alternativeExpressions.add(modifiedExpression);
++      }
++    }
++
++    return alternativeExpressions;
++  }
++
+   private static CStatement exchangeExpression(
+       CExpressionAssignmentStatement expressionAssignmentStatement,
+       CExpression expression) {
+Index: src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/ExpressionCollector.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>// This file is part of CPAchecker,\r\n// a tool for configurable software verification:\r\n// https://cpachecker.sosy-lab.org\r\n//\r\n// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>\r\n//\r\n// SPDX-License-Identifier: Apache-2.0\r\n\r\npackage org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;\r\n\r\nimport com.google.common.collect.FluentIterable;\r\nimport com.google.common.collect.ImmutableSet;\r\nimport com.google.common.collect.Sets;\r\nimport java.util.Set;\r\nimport org.sosy_lab.cpachecker.cfa.CFA;\r\nimport org.sosy_lab.cpachecker.cfa.ast.c.CExpression;\r\nimport org.sosy_lab.cpachecker.cfa.model.CFAEdge;\r\nimport org.sosy_lab.cpachecker.util.CFATraversal;\r\nimport org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;\r\nimport org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;\r\nimport org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;\r\nimport org.sosy_lab.cpachecker.util.CFAUtils;\r\n\r\n\r\npublic class ExpressionCollector extends ForwardingCFAVisitor {\r\n  private final Set<CExpression> expressions = Sets.newHashSet();\r\n\r\n  public ExpressionCollector() {\r\n    super(new EdgeCollectingCFAVisitor());\r\n  }\r\n\r\n  @Override\r\n  public TraversalProcess visitEdge(CFAEdge edge) {\r\n    ImmutableSet<? extends CExpression> currentExpressions =\r\n        FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(edge))\r\n            .transformAndConcat(CFAUtils::traverseRecursively)\r\n            .filter(CExpression.class)\r\n            .toSet();\r\n\r\n    expressions.addAll(currentExpressions);\r\n\r\n    return super.visitEdge(edge);\r\n  }\r\n\r\n  private Set<CExpression> getExpressions() {\r\n    return expressions;\r\n  }\r\n\r\n  public static Set<CExpression> collectExpressions(CFA cfa) {\r\n    final ExpressionCollector expressionCollector = new ExpressionCollector();\r\n    CFATraversal.dfs()\r\n        .ignoreSummaryEdges()\r\n        .traverseOnce(cfa.getMainFunction(), expressionCollector);\r\n\r\n    return expressionCollector.getExpressions();\r\n  }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/ExpressionCollector.java b/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/ExpressionCollector.java
+--- a/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/ExpressionCollector.java	(revision b9bdbc261559c3d82861a299f6312199da5044fe)
++++ b/src/org/sosy_lab/cpachecker/core/algorithm/automatic_program_repair/ExpressionCollector.java	(date 1622557612213)
+@@ -10,11 +10,15 @@
+ 
+ import com.google.common.collect.FluentIterable;
+ import com.google.common.collect.ImmutableSet;
++import com.google.common.collect.Maps;
+ import com.google.common.collect.Sets;
++import java.util.Map;
+ import java.util.Set;
+ import org.sosy_lab.cpachecker.cfa.CFA;
+ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
++import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
++import org.sosy_lab.cpachecker.cfa.types.c.CType;
+ import org.sosy_lab.cpachecker.util.CFATraversal;
+ import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+ import org.sosy_lab.cpachecker.util.CFATraversal.ForwardingCFAVisitor;
+@@ -54,4 +58,24 @@
+ 
+     return expressionCollector.getExpressions();
+   }
++
++  public static Map<CType, Set<CExpression>> sortByType(Set<CExpression> expressions){
++    final Map<CType, Set<CExpression>> expressionsSortedByType = Maps.newHashMap();
++
++    for(CExpression expression : expressions){
++      CType type = expression.getExpressionType();
++      if(type instanceof CFunctionType){
++        CFunctionType function = (CFunctionType) expression;
++        type = function.getReturnType();
++      }
++
++      if (expressionsSortedByType.containsKey(type)){
++        expressionsSortedByType.get(type).add(expression);
++      } else {
++        expressionsSortedByType.put(type, Sets.newHashSet(expression));
++      }
++
++    }
++    return expressionsSortedByType;
++  }
+ }
+Index: test/programs/automatic_program_repair/swap.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>// This file is part of CPAchecker,\r\n// a tool for configurable software verification:\r\n// https://cpachecker.sosy-lab.org\r\n//\r\n// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>\r\n//\r\n// SPDX-License-Identifier: Apache-2.0\r\n\r\nextern int __VERIFIER_nondet_int();\r\n\r\n// Error on line 23, should be second = temp\r\nint main() {\r\n    int first = __VERIFIER_nondet_int();\r\n    int second = __VERIFIER_nondet_int();\r\n    int firstCopy = first;\r\n    int secondCopy = second;\r\n    int temp = first;\r\n\r\n    temp = first;\r\n\r\n    first = second;\r\n\r\n    second = first;\r\n\r\n\r\n    if ((first == firstCopy || second == secondCopy) && firstCopy != secondCopy){\r\n        goto ERROR;\r\n\r\n    } else {\r\n        goto EXIT;\r\n\r\n    }\r\n\r\n\r\n  EXIT: return 0;\r\n  ERROR: return 1;\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/test/programs/automatic_program_repair/swap.c b/test/programs/automatic_program_repair/swap.c
+--- a/test/programs/automatic_program_repair/swap.c	(revision b9bdbc261559c3d82861a299f6312199da5044fe)
++++ b/test/programs/automatic_program_repair/swap.c	(date 1622467053745)
+@@ -17,20 +17,14 @@
+     int temp = first;
+ 
+     temp = first;
+-
+     first = second;
+-
+     second = first;
+ 
+-
+     if ((first == firstCopy || second == secondCopy) && firstCopy != secondCopy){
+         goto ERROR;
+-
+     } else {
+         goto EXIT;
+-
+     }
+-
+ 
+   EXIT: return 0;
+   ERROR: return 1;
+Index: test/config/automaticProgramRepair.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>windows-1252
+===================================================================
+diff --git a/test/config/automaticProgramRepair.properties b/test/config/automaticProgramRepair.properties
+new file mode 100644
+--- /dev/null	(date 1622122493176)
++++ b/test/config/automaticProgramRepair.properties	(date 1622122493176)
+@@ -0,0 +1,16 @@
++# This file is part of CPAchecker,
++# a tool for configurable software verification:
++# https://cpachecker.sosy-lab.org
++#
++# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
++#
++# SPDX-License-Identifier: Apache-2.0
++
++
++#include ../../config/includes/faultLocalization-traceformulas.properties
++#include ../../config/predicateAnalysis.properties
++
++faultLocalization.by_traceformula.type=MAXORG
++analysis.algorithm.automaticProgramRepair=true
++# internal analysis.
++programRepair.internalAnalysisConfigFile = ../../config/predicateAnalysis-faultlocalization-maxsatorg.properties
+\ No newline at end of file
+Index: test/test-sets/automatic-program-repair.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/test/test-sets/automatic-program-repair.xml b/test/test-sets/automatic-program-repair.xml
+new file mode 100644
+--- /dev/null	(date 1622202239872)
++++ b/test/test-sets/automatic-program-repair.xml	(date 1622202239872)
+@@ -0,0 +1,35 @@
++<?xml version="1.0"?>
++
++<!-- This file is part of CPAchecker, -->
++<!-- a tool for configurable software verification: -->
++<!-- https://cpachecker.sosy-lab.org -->
++<!-- -->
++<!-- SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org> -->
++<!-- -->
++<!-- SPDX-License-Identifier: Apache-2.0 -->
++
++<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
++<benchmark tool="cpachecker" timelimit="300 s" memlimit="1000 MB" cpuCores="1">
++
++  <option name="-noout"/>
++  <option name="-heap">13000M</option>
++  <option name="-setprop">statistics.memory=true</option>
++
++  <rundefinition>
++    <option name="-config">test/config/automaticProgramRepair.properties</option>
++  </rundefinition>
++
++  <requiredfiles>../config/automaticProgramRepair.properties</requiredfiles>
++
++  <tasks>
++    <include>../programs/fault_localization/*.yml</include>
++  </tasks>
++
++  <columns>
++    <column title="total">time for CPAchecker</column>
++    <column title="cpa time">time for CPA algorithm</column>
++    <column title="reached">Size of reached set</column>
++    <column title="fix">Fix found</column>
++
++  </columns>
++</benchmark>
+Index: test/config/faultLocalization-traceformulas.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>windows-1252
+===================================================================
+diff --git a/test/config/faultLocalization-traceformulas.properties b/test/config/faultLocalization-traceformulas.properties
+new file mode 100644
+--- /dev/null	(date 1622122493157)
++++ b/test/config/faultLocalization-traceformulas.properties	(date 1622122493157)
+@@ -0,0 +1,11 @@
++# This file is part of CPAchecker,
++# a tool for configurable software verification:
++# https://cpachecker.sosy-lab.org
++#
++# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
++#
++# SPDX-License-Identifier: Apache-2.0
++
++# always store counterexample must be set to true to use fault localization
++analysis.alwaysStoreCounterexamples=true
++analysis.algorithm.faultLocalization.by_traceformula=true
+Index: config/automaticProgramRepair.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This file is part of CPAchecker,\r\n# a tool for configurable software verification:\r\n# https://cpachecker.sosy-lab.org\r\n#\r\n# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>\r\n#\r\n# SPDX-License-Identifier: Apache-2.0\r\n\r\n#include includes/faultLocalization-traceformulas.properties\r\n#include predicateAnalysis.properties\r\n\r\nfaultLocalization.by_traceformula.type=MAXORG\r\nanalysis.algorithm.automaticProgramRepair=true\r\n# internal analysis.\r\nprogramRepair.internalAnalysisConfigFile = predicateAnalysis-faultlocalization-maxsatorg.properties
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>windows-1252
+===================================================================
+diff --git a/config/automaticProgramRepair.properties b/config/automaticProgramRepair.properties
+--- a/config/automaticProgramRepair.properties	(revision b9bdbc261559c3d82861a299f6312199da5044fe)
++++ b/config/automaticProgramRepair.properties	(date 1622557265694)
+@@ -11,5 +11,6 @@
+ 
+ faultLocalization.by_traceformula.type=MAXORG
+ analysis.algorithm.automaticProgramRepair=true
++
+ # internal analysis.
+ programRepair.internalAnalysisConfigFile = predicateAnalysis-faultlocalization-maxsatorg.properties
+\ No newline at end of file

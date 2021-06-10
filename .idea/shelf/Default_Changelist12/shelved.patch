@@ -1,0 +1,101 @@
+Index: src/org/sosy_lab/cpachecker/core/algorithm/AutomaticProgramRepair.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>// This file is part of CPAchecker,\r\n// a tool for configurable software verification:\r\n// https://cpachecker.sosy-lab.org\r\n//\r\n// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>\r\n//\r\n// SPDX-License-Identifier: Apache-2.0\r\n\r\npackage org.sosy_lab.cpachecker.core.algorithm;\r\n\r\nimport static com.google.common.collect.FluentIterable.from;\r\n\r\nimport com.google.common.base.Optional;\r\nimport com.google.common.collect.FluentIterable;\r\nimport com.google.common.collect.TreeMultimap;\r\nimport java.io.IOException;\r\nimport java.io.PrintStream;\r\nimport java.nio.file.Path;\r\nimport java.util.ArrayList;\r\nimport java.util.Collection;\r\nimport java.util.logging.Level;\r\nimport org.checkerframework.checker.nullness.qual.Nullable;\r\nimport org.sosy_lab.common.Optionals;\r\nimport org.sosy_lab.common.ShutdownNotifier;\r\nimport org.sosy_lab.common.configuration.AnnotatedValue;\r\nimport org.sosy_lab.common.configuration.Configuration;\r\nimport org.sosy_lab.common.configuration.ConfigurationBuilder;\r\nimport org.sosy_lab.common.configuration.FileOption;\r\nimport org.sosy_lab.common.configuration.InvalidConfigurationException;\r\nimport org.sosy_lab.common.configuration.Option;\r\nimport org.sosy_lab.common.configuration.Options;\r\nimport org.sosy_lab.common.log.LogManager;\r\nimport org.sosy_lab.cpachecker.cfa.CFA;\r\nimport org.sosy_lab.cpachecker.cfa.MutableCFA;\r\nimport org.sosy_lab.cpachecker.cfa.model.CFAEdge;\r\nimport org.sosy_lab.cpachecker.cfa.model.CFANode;\r\nimport org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;\r\nimport org.sosy_lab.cpachecker.core.CoreComponentsFactory;\r\nimport org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.CFAMutator;\r\nimport org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;\r\nimport org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;\r\nimport org.sosy_lab.cpachecker.core.interfaces.AbstractState;\r\nimport org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;\r\nimport org.sosy_lab.cpachecker.core.interfaces.Precision;\r\nimport org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;\r\nimport org.sosy_lab.cpachecker.core.interfaces.Statistics;\r\nimport org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;\r\nimport org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;\r\nimport org.sosy_lab.cpachecker.core.reachedset.ReachedSet;\r\nimport org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;\r\nimport org.sosy_lab.cpachecker.core.specification.Specification;\r\nimport org.sosy_lab.cpachecker.cpa.arg.ARGState;\r\nimport org.sosy_lab.cpachecker.exceptions.CPAException;\r\nimport org.sosy_lab.cpachecker.util.AbstractStates;\r\nimport org.sosy_lab.cpachecker.util.CFATraversal;\r\nimport org.sosy_lab.cpachecker.util.faultlocalization.Fault;\r\nimport org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;\r\nimport org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;\r\nimport org.sosy_lab.cpachecker.util.statistics.StatTimer;\r\nimport org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;\r\nimport org.sosy_lab.java_smt.api.SolverException;\r\n\r\n@Options(prefix = \"programRepair\")\r\npublic class AutomaticProgramRepair implements Algorithm, StatisticsProvider, Statistics {\r\n\r\n  private final FaultLocalizationWithTraceFormula algorithm;\r\n  private final Configuration config;\r\n  private final LogManager logger;\r\n  private final CFA cfa;\r\n  private final Specification specification;\r\n  private final ShutdownNotifier shutdownNotifier;\r\n\r\n  private final StatTimer totalTime = new StatTimer(\"Total time for bug repair\");\r\n  private boolean fixFound = false;\r\n\r\n  @Option(secure = true, required = true, description = \"Config file of the internal analysis.\")\r\n  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)\r\n  private AnnotatedValue<Path> internalAnalysisConfigFile;\r\n\r\n  public AutomaticProgramRepair(\r\n      final Algorithm pStoreAlgorithm,\r\n      final Configuration pConfig,\r\n      final LogManager pLogger,\r\n      final CFA pCfa,\r\n      final Specification pSpecification,\r\n      final ShutdownNotifier pShutdownNotifier)\r\n      throws InvalidConfigurationException {\r\n\r\n    if (!(pStoreAlgorithm instanceof FaultLocalizationWithTraceFormula)) {\r\n      throw new InvalidConfigurationException(\r\n          \"Option FaultLocalizationWithTraceFormula required, found: \"\r\n              + pStoreAlgorithm.getClass());\r\n    }\r\n\r\n    config = pConfig;\r\n    algorithm = (FaultLocalizationWithTraceFormula) pStoreAlgorithm;\r\n    cfa = pCfa;\r\n    logger = pLogger;\r\n    specification = pSpecification;\r\n    shutdownNotifier = pShutdownNotifier;\r\n\r\n    config.inject(this);\r\n  }\r\n\r\n  @Override\r\n  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {\r\n    totalTime.start();\r\n    AlgorithmStatus status = algorithm.getAlgorithm().run(reachedSet);\r\n\r\n    try {\r\n      logger.log(Level.INFO, \"Starting bug repair...\");\r\n\r\n      for (FaultLocalizationInfo faultLocalizationInfo : localizeFaults(reachedSet)) {\r\n        runAlgorithm(faultLocalizationInfo);\r\n      }\r\n\r\n      logger.log(Level.INFO, \"Stopping bug repair...\");\r\n    } catch (InvalidConfigurationException e) {\r\n      logger.logUserException(Level.SEVERE, e, \"Invalid configuration\");\r\n    } catch (SolverException e) {\r\n      logger.logUserException(Level.SEVERE, e, \"Solver Failure\");\r\n    } finally {\r\n      totalTime.stop();\r\n    }\r\n\r\n    status = algorithm.getAlgorithm().run(reachedSet);\r\n\r\n    return status;\r\n  }\r\n\r\n  private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo)\r\n      throws CPAException, InterruptedException {\r\n\r\n    for (Fault fault : faultLocalizationInfo.getRankedList()) {\r\n      CFAEdge edge = fault.iterator().next().correspondingEdge();\r\n\r\n      for (CFAEdge newEdge : CFAMutator.calcPossibleMutations(cfa, edge)) {\r\n        final MutableCFA mutatedCFA = CFAMutator.exchangeEdge(cloneCFA(), edge, newEdge);\r\n\r\n        try {\r\n          final ReachedSet newReachedSet = rerun(mutatedCFA);\r\n\r\n          if (!newReachedSet.hasViolatedProperties()) {\r\n            logger.log(Level.INFO, \"Successfully patched fault\");\r\n            logger.log(\r\n                Level.INFO,\r\n                \"Replaced \"\r\n                    + edge.getRawStatement()\r\n                    + \" with \"\r\n                    + newEdge.getRawStatement()\r\n                    + \" on line \"\r\n                    + edge.getLineNumber());\r\n\r\n            fixFound = true;\r\n\r\n            return;\r\n          }\r\n\r\n        } catch (InvalidConfigurationException e) {\r\n          logger.logUserException(Level.SEVERE, e, \"Invalid configuration\");\r\n        } catch (IOException e) {\r\n          logger.logUserException(Level.SEVERE, e, \"IO failed\");\r\n        }\r\n      }\r\n    }\r\n\r\n    logger.log(Level.INFO, \"No fix found for \" + faultLocalizationInfo.toString());\r\n  }\r\n\r\n  private ReachedSet rerun(MutableCFA mutatedCFA)\r\n      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {\r\n    Configuration internalAnalysisConfig = buildSubConfig(internalAnalysisConfigFile.value());\r\n\r\n    CoreComponentsFactory coreComponents =\r\n        new CoreComponentsFactory(\r\n            internalAnalysisConfig, logger, shutdownNotifier, new AggregatedReachedSets());\r\n\r\n    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(mutatedCFA, specification);\r\n    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);\r\n    // TODO add a proper check\r\n    FaultLocalizationWithTraceFormula algo =\r\n        (FaultLocalizationWithTraceFormula)\r\n            coreComponents.createAlgorithm(cpa, mutatedCFA, specification);\r\n    ReachedSet reached =\r\n        createInitialReachedSet(cpa, mutatedCFA.getMainFunction(), coreComponents, logger);\r\n\r\n    algo.getAlgorithm().run(reached);\r\n\r\n    return reached;\r\n  }\r\n\r\n  // TODO temp solution: copied from NestingAlgorithm\r\n  private Configuration buildSubConfig(Path singleConfigFileName)\r\n      throws IOException, InvalidConfigurationException {\r\n\r\n    ConfigurationBuilder singleConfigBuilder = Configuration.builder();\r\n\r\n    // TODO next line overrides existing options with options loaded from file.\r\n    // Perhaps we want to keep some global options like 'specification'?\r\n    singleConfigBuilder.loadFromFile(singleConfigFileName);\r\n\r\n    Configuration singleConfig = singleConfigBuilder.build();\r\n    // checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);\r\n    return singleConfig;\r\n  }\r\n\r\n  // TODO temp solution: copied from NestingAlgorithm\r\n  private ReachedSet createInitialReachedSet(\r\n      ConfigurableProgramAnalysis cpa,\r\n      CFANode mainFunction,\r\n      CoreComponentsFactory pFactory,\r\n      LogManager singleLogger)\r\n      throws InterruptedException {\r\n    singleLogger.log(Level.FINE, \"Creating initial reached set\");\r\n\r\n    AbstractState initialState =\r\n        cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());\r\n    Precision initialPrecision =\r\n        cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());\r\n\r\n    ReachedSet reached = pFactory.createReachedSet();\r\n    reached.add(initialState, initialPrecision);\r\n    return reached;\r\n  }\r\n\r\n  private MutableCFA cloneCFA() {\r\n    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();\r\n\r\n    for (final String function : cfa.getAllFunctionNames()) {\r\n      nodes.putAll(\r\n          function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));\r\n    }\r\n\r\n    MutableCFA clonedCFA =\r\n        new MutableCFA(\r\n            cfa.getMachineModel(),\r\n            cfa.getAllFunctions(),\r\n            nodes,\r\n            cfa.getMainFunction(),\r\n            cfa.getFileNames(),\r\n            cfa.getLanguage());\r\n\r\n    cfa.getLoopStructure().ifPresent(clonedCFA::setLoopStructure);\r\n    cfa.getLiveVariables().ifPresent(clonedCFA::setLiveVariables);\r\n\r\n    return clonedCFA;\r\n  }\r\n\r\n  private ArrayList<FaultLocalizationInfo> localizeFaults(ReachedSet reachedSet)\r\n      throws InterruptedException, InvalidConfigurationException, SolverException, CPAException {\r\n    algorithm.checkOptions();\r\n\r\n    ArrayList<FaultLocalizationInfo> faultLocalizationInfos = new ArrayList<>();\r\n\r\n    FluentIterable<CounterexampleInfo> counterExamples =\r\n        Optionals.presentInstances(\r\n            from(reachedSet)\r\n                .filter(AbstractStates::isTargetState)\r\n                .filter(ARGState.class)\r\n                .transform(ARGState::getCounterexampleInformation));\r\n\r\n    // run algorithm for every error\r\n    logger.log(Level.INFO, \"Starting fault localization...\");\r\n    for (CounterexampleInfo info : counterExamples) {\r\n      CFAPathWithAssumptions assumptions = info.getCFAPathWithAssignments();\r\n      Optional<FaultLocalizationInfo> optionalFaultLocalizationInfo =\r\n          algorithm.calcFaultLocalizationInfo(assumptions, info, algorithm.getFaultAlgorithm());\r\n\r\n      if (optionalFaultLocalizationInfo.isPresent()) {\r\n        faultLocalizationInfos.add(optionalFaultLocalizationInfo.get());\r\n      }\r\n    }\r\n    logger.log(Level.INFO, \"Stopping fault localization...\");\r\n    return faultLocalizationInfos;\r\n  }\r\n\r\n  @Override\r\n  public void collectStatistics(Collection<Statistics> statsCollection) {\r\n    statsCollection.add(this);\r\n    if (algorithm instanceof Statistics) {\r\n      statsCollection.add(algorithm);\r\n    }\r\n    if (algorithm instanceof StatisticsProvider) {\r\n      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);\r\n    }\r\n  }\r\n\r\n  @Override\r\n  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {\r\n    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);\r\n    writer.writingStatisticsTo(out).put(totalTime);\r\n    writer.put(\"Fix found\", fixFound);\r\n  }\r\n\r\n  @Override\r\n  public @Nullable\r\n  String getName() {\r\n    return getClass().getSimpleName();\r\n  }\r\n\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/org/sosy_lab/cpachecker/core/algorithm/AutomaticProgramRepair.java b/src/org/sosy_lab/cpachecker/core/algorithm/AutomaticProgramRepair.java
+--- a/src/org/sosy_lab/cpachecker/core/algorithm/AutomaticProgramRepair.java	(revision b9bdbc261559c3d82861a299f6312199da5044fe)
++++ b/src/org/sosy_lab/cpachecker/core/algorithm/AutomaticProgramRepair.java	(date 1622555048231)
+@@ -15,6 +15,8 @@
+ import com.google.common.collect.TreeMultimap;
+ import java.io.IOException;
+ import java.io.PrintStream;
++import java.io.Writer;
++import java.nio.charset.Charset;
+ import java.nio.file.Path;
+ import java.util.ArrayList;
+ import java.util.Collection;
+@@ -29,6 +31,7 @@
+ import org.sosy_lab.common.configuration.InvalidConfigurationException;
+ import org.sosy_lab.common.configuration.Option;
+ import org.sosy_lab.common.configuration.Options;
++import org.sosy_lab.common.io.IO;
+ import org.sosy_lab.common.log.LogManager;
+ import org.sosy_lab.cpachecker.cfa.CFA;
+ import org.sosy_lab.cpachecker.cfa.MutableCFA;
+@@ -53,6 +56,7 @@
+ import org.sosy_lab.cpachecker.exceptions.CPAException;
+ import org.sosy_lab.cpachecker.util.AbstractStates;
+ import org.sosy_lab.cpachecker.util.CFATraversal;
++import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
+ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+@@ -123,8 +127,6 @@
+       totalTime.stop();
+     }
+ 
+-    status = algorithm.getAlgorithm().run(reachedSet);
+-
+     return status;
+   }
+ 
+@@ -153,6 +155,8 @@
+ 
+             fixFound = true;
+ 
++            writeFixToFile(mutatedCFA);
++
+             return;
+           }
+ 
+@@ -167,6 +171,22 @@
+     logger.log(Level.INFO, "No fix found for " + faultLocalizationInfo.toString());
+   }
+ 
++  private void writeFixToFile(CFA mutatedCFA){
++    final Path oldFile = mutatedCFA.getFileNames().get(0);
++    final String newFileName = "FIX_" + oldFile.getFileName();
++    final Path path = oldFile.getFileSystem().getPath(newFileName);
++
++    try {
++      String code = new CFAToCTranslator(config).translateCfa(mutatedCFA);
++      try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
++        writer.write(code);
++      }
++    } catch (CPAException | IOException | InvalidConfigurationException e) {
++      logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
++    }
++
++  }
++
+   private ReachedSet rerun(MutableCFA mutatedCFA)
+       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+     Configuration internalAnalysisConfig = buildSubConfig(internalAnalysisConfigFile.value());
+@@ -178,13 +198,12 @@
+     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(mutatedCFA, specification);
+     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+     // TODO add a proper check
+-    FaultLocalizationWithTraceFormula algo =
+-        (FaultLocalizationWithTraceFormula)
++    Algorithm algo =
+             coreComponents.createAlgorithm(cpa, mutatedCFA, specification);
+     ReachedSet reached =
+         createInitialReachedSet(cpa, mutatedCFA.getMainFunction(), coreComponents, logger);
+ 
+-    algo.getAlgorithm().run(reached);
++    algo.run(reached);
+ 
+     return reached;
+   }
+@@ -290,7 +309,7 @@
+     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+     writer.writingStatisticsTo(out).put(totalTime);
+     writer.put("Fix found", fixFound);
+-  }
++}
+ 
+   @Override
+   public @Nullable

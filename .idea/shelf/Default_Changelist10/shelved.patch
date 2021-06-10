@@ -1,0 +1,21 @@
+Index: test/config/faultLocalization-traceformulas.properties
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>windows-1252
+===================================================================
+diff --git a/test/config/faultLocalization-traceformulas.properties b/test/config/faultLocalization-traceformulas.properties
+new file mode 100644
+--- /dev/null	(date 1617357895961)
++++ b/test/config/faultLocalization-traceformulas.properties	(date 1617357895961)
+@@ -0,0 +1,11 @@
++# This file is part of CPAchecker,
++# a tool for configurable software verification:
++# https://cpachecker.sosy-lab.org
++#
++# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
++#
++# SPDX-License-Identifier: Apache-2.0
++
++# always store counterexample must be set to true to use fault localization
++analysis.alwaysStoreCounterexamples=true
++analysis.algorithm.faultLocalization.by_traceformula=true

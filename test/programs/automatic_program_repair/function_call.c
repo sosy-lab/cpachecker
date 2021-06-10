@@ -8,24 +8,23 @@
 
 extern int __VERIFIER_nondet_int();
 
-// Error on line 23, should be second = temp
+// Error on line 16, add(first, second)
 int main() {
     int first = __VERIFIER_nondet_int();
     int second = __VERIFIER_nondet_int();
-    int firstCopy = first;
-    int secondCopy = second;
-    int temp = first;
 
-    temp = first;
-    first = second;
-    second = first;
+    int result = add(first, first);
 
-    if ((first == firstCopy || second == secondCopy) && firstCopy != secondCopy){
-        goto ERROR;
-    } else {
+    if (first + second == result){
         goto EXIT;
+    } else {
+        goto ERROR;
     }
 
   EXIT: return 0;
   ERROR: return 1;
+}
+
+int add(int a, int b){
+  return a + b;
 }
