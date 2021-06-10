@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -73,9 +74,6 @@ public class ArrayAbstractionNondetSingleCell {
     CBinaryExpression loopCondition =
         (CBinaryExpression) pTransformableLoop.getEnterLoopCfaEdge().getExpression();
 
-    CExpressionAssignmentStatement initStatement =
-        (CExpressionAssignmentStatement)
-            pTransformableLoop.getInitLoopIndexCfaEdge().getStatement();
     CExpressionAssignmentStatement updateStatement =
         (CExpressionAssignmentStatement)
             pTransformableLoop.getUpdateLoopIndexCfaEdge().getStatement();
@@ -91,7 +89,7 @@ public class ArrayAbstractionNondetSingleCell {
             loopCondition.getExpressionType(),
             loopCondition.getCalculationType(),
             pTransformableLoop.getLoopIndexExpression(),
-            initStatement.getRightHandSide(),
+            pTransformableLoop.getLoopIndexInitExpression(),
             initConditionOperator);
 
     CIntegerLiteralExpression zeroLiteral =
@@ -137,6 +135,13 @@ public class ArrayAbstractionNondetSingleCell {
     for (CfaTransformer.Edge edge :
         Iterables.concat(loopNode.iterateEntering(), loopNode.iterateLeaving())) {
       CFAEdge oldCfaEdge = edge.getOldCfaEdge();
+
+      // skip blank edges, required for while loops
+      if (oldCfaEdge.getEdgeType() == CFAEdgeType.BlankEdge
+          && oldCfaEdge.getPredecessor().getNumEnteringEdges() == 1) {
+        oldCfaEdge = oldCfaEdge.getPredecessor().getEnteringEdge(0);
+      }
+
       if (oldCfaEdge.equals(pTransformableLoop.getInitLoopIndexCfaEdge())) {
         initEdge = edge;
       } else if (oldCfaEdge.equals(pTransformableLoop.getUpdateLoopIndexCfaEdge())) {

@@ -15,15 +15,21 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -36,8 +42,9 @@ public final class TransformableLoop {
 
   private final CFANode loopCfaNode;
   private final CIdExpression loopIndexExpression;
+  private final CExpression loopIndexInitExpression;
 
-  private final CStatementEdge initLoopIndexCfaEdge;
+  private final CFAEdge initLoopIndexCfaEdge;
   private final CStatementEdge updateLoopIndexCfaEdge;
   private final CAssumeEdge enterLoopCfaEdge;
   private final CAssumeEdge exitLoopCfaEdge;
@@ -47,7 +54,8 @@ public final class TransformableLoop {
   private TransformableLoop(
       CFANode pLoopCfaNode,
       CIdExpression pLoopIndexExpression,
-      CStatementEdge pInitLoopIndexCfaEdge,
+      CExpression pLoopIndexInitExpression,
+      CFAEdge pInitLoopIndexCfaEdge,
       CStatementEdge pUpdateLoopIndexCfaEdge,
       CAssumeEdge pEnterLoopCfaEdge,
       CAssumeEdge pExitLoopCfaEdge,
@@ -55,6 +63,7 @@ public final class TransformableLoop {
 
     loopCfaNode = pLoopCfaNode;
     loopIndexExpression = pLoopIndexExpression;
+    loopIndexInitExpression = pLoopIndexInitExpression;
     initLoopIndexCfaEdge = pInitLoopIndexCfaEdge;
     updateLoopIndexCfaEdge = pUpdateLoopIndexCfaEdge;
     enterLoopCfaEdge = pEnterLoopCfaEdge;
@@ -100,7 +109,11 @@ public final class TransformableLoop {
     return ArrayAbstractionUtils.getMemoryLocation(loopIndexExpression);
   }
 
-  public CStatementEdge getInitLoopIndexCfaEdge() {
+  public CExpression getLoopIndexInitExpression() {
+    return loopIndexInitExpression;
+  }
+
+  public CFAEdge getInitLoopIndexCfaEdge() {
     return initLoopIndexCfaEdge;
   }
 
@@ -125,8 +138,9 @@ public final class TransformableLoop {
     private CFANode node;
 
     private CIdExpression indexCIdExpression = null;
+    private CExpression loopIndexInitExpression = null;
 
-    private CStatementEdge initLoopIndexCfaEdge = null;
+    private CFAEdge initLoopIndexCfaEdge = null;
     private CStatementEdge updateLoopIndexCfaEdge = null;
     private CAssumeEdge enterLoopCfaEdge = null;
     private CAssumeEdge exitLoopCfaEdge = null;
@@ -134,6 +148,48 @@ public final class TransformableLoop {
     private boolean initStatementEdges() {
 
       for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(node)) {
+
+        // skip blank edges, required for while loops
+        if (enteringEdge.getEdgeType() == CFAEdgeType.BlankEdge
+            && enteringEdge.getPredecessor().getNumEnteringEdges() == 1) {
+          enteringEdge = enteringEdge.getPredecessor().getEnteringEdge(0);
+        }
+
+        if (enteringEdge instanceof CDeclarationEdge) {
+          CDeclarationEdge declarationEdge = (CDeclarationEdge) enteringEdge;
+          CDeclaration declaration = declarationEdge.getDeclaration();
+
+          // handle LHS
+          if (indexCIdExpression != null) {
+
+            MemoryLocation lhsMemoryLocation =
+                MemoryLocation.valueOf(declaration.getQualifiedName());
+            MemoryLocation indexMemoryLocation =
+                ArrayAbstractionUtils.getMemoryLocation(indexCIdExpression);
+
+            if (!lhsMemoryLocation.equals(indexMemoryLocation)) {
+              return false;
+            }
+          }
+
+          // handle RHS
+          if (declaration instanceof CVariableDeclaration) {
+            CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+            CInitializer initializer = variableDeclaration.getInitializer();
+
+            if (initializer instanceof CInitializerExpression) {
+              CExpression initExpression = ((CInitializerExpression) initializer).getExpression();
+
+              if (initExpression instanceof CIntegerLiteralExpression
+                  && initLoopIndexCfaEdge == null) {
+
+                initLoopIndexCfaEdge = declarationEdge;
+                loopIndexInitExpression = initExpression;
+              }
+            }
+          }
+        }
+
         if (enteringEdge instanceof CStatementEdge) {
 
           CStatementEdge statementEdge = (CStatementEdge) enteringEdge;
@@ -172,6 +228,7 @@ public final class TransformableLoop {
             if (rhs instanceof CIntegerLiteralExpression && initLoopIndexCfaEdge == null) {
 
               initLoopIndexCfaEdge = statementEdge;
+              loopIndexInitExpression = rhs;
 
             } else if (rhs instanceof CBinaryExpression && updateLoopIndexCfaEdge == null) {
 
@@ -300,6 +357,7 @@ public final class TransformableLoop {
       return new TransformableLoop(
           node,
           indexCIdExpression,
+          loopIndexInitExpression,
           initLoopIndexCfaEdge,
           updateLoopIndexCfaEdge,
           enterLoopCfaEdge,
