@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.taint;
 
 import com.google.common.base.Joiner;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,7 +47,6 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
     logger = plogger;
     map = new HashMap<>(state.map);
     pointerMap = new HashMap<>(state.pointerMap);
-    // constantsMap = state.constantsMap;
     isTarget = false;
     violations = Collections.emptySet();
   }
@@ -60,7 +58,6 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
     pointerMap = new HashMap<>(state.pointerMap);
     isTarget = target;
     violations = NamedProperty.singleton(violation);
-    // logger.log(Level.INFO, "isTarget: " + isTarget + " | violations: " + violations);
   }
 
   public static TaintAnalysisState copyOf(TaintAnalysisState state) {
@@ -78,9 +75,6 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
 
   private void addToMap(final MemoryLocation value, final Boolean tainted) {
     map.put(value, tainted);
-    // MemoryLocation mem = MemoryLocation.valueOf(value);
-    // memoryMap.put(mem, tainted);
-    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted+ " || "+mem);
   }
 
   public void change(MemoryLocation var, Boolean tainted) {
@@ -100,8 +94,6 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
     if(getPointerTo(value) != null)
       return map.get(getPointerTo(value));
     return map.get(value);
-    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
-    // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
 
   public void remove(MemoryLocation var) {
@@ -110,8 +102,6 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
 
   private void removeFromMap(final MemoryLocation value) {
     map.remove(value);
-    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
-    // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
 
   // Pointer Logic
@@ -132,8 +122,6 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
   private MemoryLocation getPointerMap(final MemoryLocation from) {
     return pointerMap.get(from);
-    // logger.log(Level.INFO, "Hinzugefügt: "+value+": "+tainted);
-    // hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
 
   @Override

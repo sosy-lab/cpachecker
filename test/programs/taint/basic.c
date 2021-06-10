@@ -1,5 +1,5 @@
 extern int getchar();
-extern void printf(int);
+extern void printf(char*, int);
 
 int main(void){
 	int a, b, c, d;						// T(*) = U
@@ -8,7 +8,7 @@ int main(void){
 	c = a;                 				// T(c) = T
 	d = b;								// T(d) = U
 	c = 2;								// T(c) = U
-	printf(a);							// T(a) = T
-	printf(b);							// T(b) = U
+	printf("%d", a);					// T(a) = T
+	printf("%d", a);					// T(b) = U
 	return 0;
 }
