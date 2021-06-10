@@ -149,19 +149,27 @@ parser code {:
 
     private static void convertFunctionContractsIfNecessary(
         Map<ACSLAnnotation, CFAEdge> initialEdges) {
+      Map<ACSLAnnotation, CFAEdge> newInitialEdges = new HashMap<>();
+      Set<ACSLAnnotation> toRemove = new HashSet<>();
       for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
-        CFAEdge edge = entry.getValue();
-        if (edge instanceof CDeclarationEdge
-            && ((CDeclarationEdge) edge).getDeclaration() instanceof CFunctionDeclaration) {
-          continue;
-        }
         ACSLAnnotation annotation = entry.getKey();
-        assert annotation instanceof FunctionContract;
-        StatementContract statementContract =
-            StatementContract.fromFunctionContract(ImmutableList.of(), (FunctionContract) annotation);
-        initialEdges.remove(annotation);
-        initialEdges.put(statementContract, edge);
+        if (annotation instanceof FunctionContract) {
+          CFAEdge edge = entry.getValue();
+          if (edge instanceof CDeclarationEdge
+              && ((CDeclarationEdge) edge).getDeclaration() instanceof CFunctionDeclaration) {
+            continue;
+          }
+          StatementContract statementContract =
+              StatementContract.fromFunctionContract(
+                  ImmutableList.of(), (FunctionContract) annotation);
+          toRemove.add(annotation);
+          newInitialEdges.put(statementContract, edge);
+        }
       }
+      for (ACSLAnnotation annotation : toRemove) {
+        initialEdges.remove(annotation);
+      }
+      initialEdges.putAll(newInitialEdges);
     }
 
     /**
