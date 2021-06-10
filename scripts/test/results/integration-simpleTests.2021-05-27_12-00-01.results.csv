@@ -1,6 +1,0 @@
-tool	CPAchecker automatic-program-repair:37256	CPAchecker automatic-program-repair:37256	CPAchecker automatic-program-repair:37256	CPAchecker automatic-program-repair:37256	CPAchecker automatic-program-repair:37256
-run set	0	0	0	0	0
-../test/programs/simple/	status	cputime (s)	walltime (s)	memory (MB)	host
-functionCall.yml	ERROR (1)	0.461265241	0.47085149586200714	21.041152	apollon142
-loop1.yml	ERROR (1)	0.557111357	0.5831407599616796	26.771456	apollon111
-uninitVars.cil.yml	ERROR (1)	0.470734136	0.495474194874987	24.301568	apollon142
