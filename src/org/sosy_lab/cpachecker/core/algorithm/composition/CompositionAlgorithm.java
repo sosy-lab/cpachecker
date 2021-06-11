@@ -141,9 +141,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
               + " of "
               + getName());
 
-      for (Statistics s : currentSubStat) {
-        StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
-      }
+         for (Statistics s : currentSubStat) {
+          StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
+        }
     }
 
     @Override
@@ -163,17 +163,17 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Option(
-      secure = true,
-      required = true,
-      description =
-          "list of files with configurations to use, which are optionally suffixed "
-              + "according to one of the followig schemes:"
-              + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
-              + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
-              + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
-              + "noreuse (i.e., start from scratch)."
-              + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
-              + "If no (correct) limit is given a default limit is used."
+    secure = true,
+    required = true,
+    description =
+        "list of files with configurations to use, which are optionally suffixed "
+            + "according to one of the followig schemes:"
+            + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
+            + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
+            + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
+            + "noreuse (i.e., start from scratch)."
+            + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
+            + "If no (correct) limit is given a default limit is used."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
@@ -183,42 +183,42 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Option(
-      secure = true,
-      description =
-          "print the statistics of each component of the composition algorithm"
-              + " directly after the component's computation is finished"
+    secure = true,
+    description =
+    "print the statistics of each component of the composition algorithm"
+            + " directly after the component's computation is finished"
   )
   private  INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
 
   @Option(
-      secure = true,
-      description =
-          "let each analysis part of the composition algorithm write output files"
-              + " and not only the last one that is executed"
+    secure = true,
+    description =
+    "let each analysis part of the composition algorithm write output files"
+            + " and not only the last one that is executed"
   )
   private boolean writeIntermediateOutputFiles = true;
 
   @Option(
-      secure = true,
-      name = "initCondition",
-      description =
-          "Whether or not to create an initial condition, that excludes no paths, "
-              + "before first analysis is run."
-              + "Required when first analysis uses condition from conditional model checking"
+    secure = true,
+    name = "initCondition",
+    description =
+        "Whether or not to create an initial condition, that excludes no paths, "
+            + "before first analysis is run."
+            + "Required when first analysis uses condition from conditional model checking"
   )
   private boolean generateInitialFalseCondition = false;
 
   @Option(
-      secure = true,
-      name = "propertyChecked",
-      description = "Enable when composition algorithm is used to check a specification"
+    secure = true,
+    name = "propertyChecked",
+    description = "Enable when composition algorithm is used to check a specification"
   )
   private boolean isPropertyChecked = true;
 
   @Option(
-      secure = true,
-      name = "condition.file",
-      description = "where to store initial condition, when generated"
+    secure = true,
+    name = "condition.file",
+    description = "where to store initial condition, when generated"
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
@@ -261,8 +261,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         reason ->
             logger.logf(
                 Level.WARNING,
-                "Shutdown of analysis run %d requested (%s).",
-                stats.noOfRuns,
+            "Shutdown of analysis run %d requested (%s).",
+            stats.noOfRuns,
                 reason);
     if (generateInitialFalseCondition) {
       generateInitialFalseCondition();
@@ -341,7 +341,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             continue;
           }
 
-          currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
+            currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
           if (currentRun == null) {
             logger
                 .log(Level.WARNING, "Skip current analysis because analysis could not be set up.");
@@ -730,25 +730,25 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
           constrPrec = new RefinableConstraintsPrecision(pConfig);
         }
-        ConstraintsPrecision constrPrecInter;
+      ConstraintsPrecision constrPrecInter;
         boolean changed = false;
 
-        for (ReachedSet previousReached : pPreviousReachedSets) {
-          if (previousReached != null) {
-            for (Precision prec : previousReached.getPrecisions()) {
-              constrPrecInter = Precisions.extractPrecisionByType(prec, ConstraintsPrecision.class);
-              if (constrPrecInter != null && !(constrPrecInter instanceof FullConstraintsPrecision)) {
-                constrPrec = constrPrec.join(constrPrecInter);
+      for (ReachedSet previousReached : pPreviousReachedSets) {
+        if (previousReached != null) {
+          for (Precision prec : previousReached.getPrecisions()) {
+            constrPrecInter = Precisions.extractPrecisionByType(prec, ConstraintsPrecision.class);
+            if (constrPrecInter != null && !(constrPrecInter instanceof FullConstraintsPrecision)) {
+              constrPrec = constrPrec.join(constrPrecInter);
                 changed = true;
-              }
             }
           }
         }
+      }
         if (changed) {
-          resultPrec =
-              Precisions.replaceByType(
-                  resultPrec, constrPrec, Predicates.instanceOf(ConstraintsPrecision.class));
-        }
+        resultPrec =
+            Precisions.replaceByType(
+                resultPrec, constrPrec, Predicates.instanceOf(ConstraintsPrecision.class));
+      }
       } catch (InvalidConfigurationException e) {
         logger.logException(Level.INFO, e, "Reuse of precision failed. Continue without reuse");
       }
@@ -791,7 +791,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-        trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+          trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }
 

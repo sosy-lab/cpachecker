@@ -1698,8 +1698,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
 
-    CFANode nextNode = new CFANode(cfa.getFunction());
-    locStack.push(nextNode);
+    locStack.push(new CFANode(cfa.getFunction()));
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);
