@@ -178,15 +178,16 @@ parser code {:
      * @param initialEdges The initial assignment of ACSL annotations to CFA edges.
      * @param cfaWithLocs A CFA holding the location information about the annotations.
      * @param currentFile Name of the file the annotations of which should be handled.
-     * @param blockStructure The @llink{BlockStructure} of the current file.
+     * @param blockStructure The {@link BlockStructure} of the current file.
      */
     private static void adjustAnnotationLocations(
         Map<ACSLAnnotation, CFAEdge> initialEdges,
         CFAWithACSLAnnotations cfaWithLocs,
         String currentFile,
         BlockStructure blockStructure) {
-      for (ACSLAnnotation annotation : initialEdges.keySet()) {
-        CFAEdge edge = initialEdges.get(annotation);
+      for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
+        ACSLAnnotation annotation = entry.getKey();
+        CFAEdge edge = entry.getValue();
         if (edge.getFileLocation().getFileName().equals(currentFile)) {
           if (annotation instanceof FunctionContract) {
             handleFunctionContract(
@@ -260,13 +261,11 @@ parser code {:
     }
 
     /**
-     * Adds the given annotation to the correct edges in the CFA and signals to remove it from the
-     * current one if necessary.
+     * Adds the given loop annotation to the correct edges in the CFA.
      *
      * @param cfaWithLocs A CFA holding location information about the annotation.
      * @param edge The edge on which the annotation was originally placed.
-     * @param annotation The annotation to be handled.
-     * @return true if the annotation should be removed from the current edge, false otherwise.
+     * @param annotation The loop annotation to be handled.
      */
     private static void handleLoopAnnotation(
         CFAWithACSLAnnotations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
@@ -294,8 +293,10 @@ parser code {:
      * Adds the given assertion to the correct edges in the CFA.
      *
      * @param cfaWithLocs A CFA holding location information about the annotation.
+     * @param orderedCFALocs An list of all edges in the CFA orderd by their occurence in the file.
      * @param loc The location at which the annotation was originally placed.
      * @param annotation The annotation to be handled.
+     * @param blockStructure The {@link BlockStructure} of the program.
      */
     private static void handleAssertion(
         CFAWithACSLAnnotations cfaWithLocs,
@@ -345,9 +346,7 @@ parser code {:
       }
     }
 
-    /**
-     * Make sure that all behaviors are actually in scope when they are referenced.
-     */
+    /** Make sure that all behaviors are actually in scope when they are referenced. */
     private static void checkBehaviors(
         CFAWithACSLAnnotations cfa,
         BlockStructure blockStructure) {
