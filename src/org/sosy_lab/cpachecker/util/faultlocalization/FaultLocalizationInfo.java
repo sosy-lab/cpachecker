@@ -41,7 +41,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
   private final Optional<BooleanFormula> precondition;
-  private final ImmutableList<BooleanFormula> atoms;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
@@ -72,7 +71,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     rankedList = ImmutableList.copyOf(pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
-    atoms = ImmutableList.of();
   }
 
   /**
@@ -105,7 +103,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
-    atoms = ImmutableList.of();
   }
 
   /**
@@ -132,7 +129,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       Set<Fault> pFaults,
       FaultScoring pScoring,
       BooleanFormula pPrecondition,
-      ImmutableList<BooleanFormula> pAtoms,
       CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),
@@ -142,7 +138,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pScoring, pFaults);
     precondition = Optional.of(pPrecondition);
-    atoms = pAtoms;
     htmlWriter = new FaultReportWriter();
   }
 
@@ -265,7 +260,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         Collections.singletonMap(
             "fl-precondition",
             precondition.isPresent()
-                ? InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms)
+                ? precondition.orElseThrow().toString()
                 : ""),
         writer);
   }
