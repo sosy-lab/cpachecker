@@ -94,7 +94,8 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
         directTranslationTest("main.c", true),
         directTranslationTest("multipleErrors.c", false),
         directTranslationTest("simple2.c", true),
-        directTranslationTest("simple.c", true));
+        directTranslationTest("simple.c", true),
+        directTranslationTest("multipleLoops.c", false));
   }
 
   private static Object[] directTranslationTest(final String pProgram, final boolean pVerdict) {

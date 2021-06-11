@@ -405,7 +405,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
       if (pLastEdge) {
         AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
-        pf = pfm.makeEmptyPathFormula(pf);
+        pf = pfm.makeEmptyPathFormulaWithContextFrom(pf);
 
         PersistentMap<CFANode, Integer> abstractionLocations = predFakeState.getAbstractionLocationsOnPath();
         Integer newLocInstance =

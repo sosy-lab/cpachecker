@@ -12,16 +12,16 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-public class AndNode implements FormulaNode {
+class AndNode implements FormulaNode {
 
   private FormulaNode left;
   private FormulaNode right;
 
-  public void setLeft(FormulaNode pLeft) {
+  void setLeft(FormulaNode pLeft) {
     left = pLeft;
   }
 
-  public void setRight(FormulaNode pRight) {
+  void setRight(FormulaNode pRight) {
     right = pRight;
   }
 
@@ -51,6 +51,18 @@ public class AndNode implements FormulaNode {
   @Override
   public int hashCode() {
     return Objects.hash(left, right, AndNode.class);
+  }
+
+  @Override
+  public boolean logicallyEquivalentTo(FormulaNode node) {
+    if (node instanceof AndNode) {
+      AndNode andNode = (AndNode) node;
+      if ((andNode.left.logicallyEquivalentTo(left) && andNode.right.logicallyEquivalentTo(right)) ||
+          (andNode.left.logicallyEquivalentTo(right) && andNode.right.logicallyEquivalentTo(left))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

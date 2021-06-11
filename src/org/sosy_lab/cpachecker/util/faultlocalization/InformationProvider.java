@@ -109,10 +109,9 @@ public class InformationProvider {
       FormulaNode atomRoot = BooleanFormulaParser.parse(atom);
       if (atomRoot.getType().equals(FormulaNode.FormulaNodeType.ExpressionNode)) {
         ExpressionNode exNode = (ExpressionNode) atomRoot;
-        if (exNode.getOperands().size() == 2 &&
-            exNode.getOperator().contains("=")) {
-          FormulaNode left = exNode.getOperands().get(0);
-          FormulaNode right = exNode.getOperands().get(1);
+        if (exNode.getSuccessors().size() == 2 && exNode.getOperator().contains("=")) {
+          FormulaNode left = exNode.getSuccessors().get(0);
+          FormulaNode right = exNode.getSuccessors().get(1);
           if (left.toString().contains("__VERIFIER_nondet")) {
             nondetToName.put(left.toString(), right.toString());
           }

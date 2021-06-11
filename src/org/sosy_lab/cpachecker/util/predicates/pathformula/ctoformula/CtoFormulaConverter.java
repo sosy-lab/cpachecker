@@ -1000,7 +1000,11 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newPts, newLength);
+
+    @SuppressWarnings("deprecation")
+    // This is an intended use, CtoFormulaConverter just does not have access to the constructor
+    PathFormula result = PathFormula.createManually(newFormula, newSsa, newPts, newLength);
+    return result;
   }
 
   /**
@@ -1801,8 +1805,8 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
-    } 
-    
+    }
+
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {
       logger.logfOnce(
           Level.WARNING,

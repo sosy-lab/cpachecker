@@ -311,7 +311,7 @@ public class PathChecker {
       if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         pathFormula =
             BAMBlockFormulaStrategy.rebuildStateAfterFunctionCall(
-                pmgr, pathFormula, callstack.pop(), ((FunctionReturnEdge) edge).getPredecessor());
+                pathFormula, callstack.pop(), ((FunctionReturnEdge) edge).getPredecessor());
       }
 
       pathFormula = pmgr.makeAnd(pathFormula, edge);

@@ -90,7 +90,7 @@ public class AlternativePrecondition {
       if (entry.getSelector() == null || formula == null) {
         return false;
       }
-      CFAEdge edge = entry.getSelector().getEdge();
+      CFAEdge edge = entry.getSelector().correspondingEdge();
 
       FormulaManagerView fmgr = context.getSolver().getFormulaManager();
       Map<String, Formula> formulaVariables = fmgr.extractVariables(formula);
@@ -106,7 +106,7 @@ public class AlternativePrecondition {
             toMerge = toMerge.builder().deleteVariable(variable).build();
           }
         }
-        // merge the maps to obtain a SSAMap that represents the inital state (pre-condition)
+        // merge the maps to obtain a SSAMap that represents the initial state (pre-condition)
         preConditionMap =
             SSAMap.merge(
                 preConditionMap,

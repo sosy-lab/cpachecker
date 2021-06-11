@@ -465,7 +465,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       // set abstraction to true (we don't know better)
       AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula);
 
-      PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
+      PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
       // update abstraction locations map
       PersistentMap<CFANode, Integer> abstractionLocations = pElement.getAbstractionLocationsOnPath();
@@ -486,7 +486,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PredicateAbstractState predicateElement = (PredicateAbstractState) pElement;
     PathFormula pathFormula = computedPathFormulae.get(predicateElement);
     if (pathFormula == null) {
-      pathFormula = pathFormulaManager.makeEmptyPathFormula(predicateElement.getPathFormula());
+      pathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(predicateElement.getPathFormula());
     }
     boolean result = true;
 
