@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +47,7 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
 
   @Override
   public List<Behavior> getReferencedBehaviors() {
-    Builder<Behavior> referencedBehaviors = ImmutableList.builder();
+    ImmutableList.Builder<Behavior> referencedBehaviors = ImmutableList.builder();
     for (List<Behavior> behaviors : additionalInvariants.keySet()) {
       referencedBehaviors.addAll(behaviors);
     }
