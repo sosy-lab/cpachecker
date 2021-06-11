@@ -395,7 +395,7 @@ parser code {:
       }
     }
 
-    public List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
+    private List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
       try {
         Symbol symbol = this.parse();
         if (symbol != null) {
@@ -408,21 +408,21 @@ parser code {:
       }
     }
 
-    public String getCurrentFunctionName() {
+    private String getCurrentFunctionName() {
       int currentOffset = orderedLocs.get(scanner.getCurrentAnnotation()).getNodeOffset();
-      for (int i = 0; i < orderedCFALocs.size(); i++) {
-        if (orderedCFALocs.get(i).getFileLocation().getNodeOffset() > currentOffset) {
-          return orderedCFALocs.get(i).getSuccessor().getFunctionName();
+      for (CFAEdge edge : orderedCFALocs) {
+        if (edge.getFileLocation().getNodeOffset() > currentOffset) {
+          return edge.getSuccessor().getFunctionName();
         }
       }
       return orderedCFALocs.get(orderedCFALocs.size() - 1).getSuccessor().getFunctionName();
     }
 
-    public void putBehavior(Behavior behavior) {
+    private void putBehavior(Behavior behavior) {
       behaviors.add(behavior);
     }
 
-    public Behavior getBehavior(String behaviorName) {
+    private Behavior getBehavior(String behaviorName) {
       for (Behavior behavior : behaviors) {
         if (behavior.getName().equals(behaviorName)) {
           return behavior;
