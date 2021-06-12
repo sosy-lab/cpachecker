@@ -8,9 +8,10 @@
 
 const fs = require("fs");
 const path = require("path");
+const zlib = require('zlib');
 
 const rawWorkerPath = path.join(__dirname, "../worker");
-const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js");
+const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js.gz");
 const vendorPath = path.join(__dirname, "../vendor");
 
 const template = "data:text/plain;base64,";
@@ -37,16 +38,15 @@ workerFiles.forEach((worker) => {
     workerContent,
   ]);
   // Convert content to utf8 and strip comments
-  content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm,'$1')
+  content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1')
   // Convert content back to binary data and encode as base64
   content = Buffer.from(content, "utf8").toString("base64");
-  
+
   output += `\n const ${workerName} = "${template}${content}";\n`;
 });
 
 const allWorkers = workerNames.join(", ");
 output += `\n export { ${allWorkers} };`;
-
-fs.writeFileSync(workerDataFile, output);
+zlib.gzip(output, (_, buf) => fs.writeFileSync(workerDataFile, buf));
 
 console.log("Injected worker data.");

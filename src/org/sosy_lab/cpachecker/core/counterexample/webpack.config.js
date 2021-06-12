@@ -53,6 +53,10 @@ module.exports = {
           },
         ],
       },
+      {
+       test: /\.gz$/i,
+       use: 'gzip-loader',
+     },
     ],
   },
   optimization: {
@@ -72,7 +76,7 @@ module.exports = {
           preset: [
             'default',
             {
-              discardComments: { 
+              discardComments: {
                 removeAll: true
               },
             },
@@ -108,7 +112,7 @@ module.exports = {
         __dirname,
         buildTmpFolder + "dependencies.json"
       ),
-      workerData: path.resolve(__dirname, buildTmpFolder + "workerData.js"),
-    },
-  },
+      workerData: path.resolve(__dirname, buildTmpFolder + "workerData.js.gz"),
+    }
+  }
 };
