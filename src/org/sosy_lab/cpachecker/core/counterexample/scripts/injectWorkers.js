@@ -37,10 +37,10 @@ workerFiles.forEach((worker) => {
     workerContent,
   ]);
   // Convert content to utf8 and strip comments
-  content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*/g,'')
+  content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm,'$1')
   // Convert content back to binary data and encode as base64
   content = Buffer.from(content, "utf8").toString("base64");
-
+  
   output += `\n const ${workerName} = "${template}${content}";\n`;
 });
 
