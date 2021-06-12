@@ -25,11 +25,13 @@ describe("Error path section in Report.js", function () {
 
   describe("Start button click test in CFA tab", function () {
     it("Clicked Error path element in error path code", function () {
-      element(
-        by.css(
-          "#errorpath_section > header > div.btn-group > button.btn.btn-warning"
+      browser
+        .actions()
+        .mouseMove(
+          element(by.css("#errorpath_section > header > div.btn-group > button.btn.btn-warning"))
         )
-      ).click();
+        .click()
+        .perform();
       browser.wait(EC.presenceOf(element(by.css(".clickedErrPathElement"))));
       expect(
         hasClass(element(by.id("errpath-0")), "clickedErrPathElement")
