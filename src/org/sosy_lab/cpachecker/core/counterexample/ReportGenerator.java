@@ -90,6 +90,7 @@ public class ReportGenerator {
   private static final String HTML_TEMPLATE = "report.html";
   private static final String CSS_TEMPLATE = "build/bundle.css";
   private static final String JS_TEMPLATE = "build/bundle.js";
+  private static final String WORKER_DATA_TEMPLATE = "build/workerData.js";
   private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
   private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";
 
@@ -312,6 +313,7 @@ public class ReportGenerator {
         insertArgJson(writer);
         insertSourceFileNames(writer);
 
+        insertJsFile(writer, WORKER_DATA_TEMPLATE);
         insertJsFile(writer, VENDOR_JS_TEMPLATE);
         insertJsFile(writer, JS_TEMPLATE);
       }

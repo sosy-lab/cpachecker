@@ -89,6 +89,11 @@ module.exports = {
           name: "vendors",
           test: /(node_modules)|(build_tmp\/dependencies\.json)|(vendor)/,
         },
+        workerData: {
+          chunks: "all",
+          name: "workerData",
+          test: /(build_tmp\/workerData\.js)/,
+        },
       },
     },
     // Make vendor bundle change less often even if our own code changes.
