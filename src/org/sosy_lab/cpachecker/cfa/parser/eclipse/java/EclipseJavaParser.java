@@ -291,21 +291,19 @@ class EclipseJavaParser implements JavaParser {
   private Optional<String> findMethodInPathList(List<Path> pPathList, String pMainFunctionPath) {
     for (Path path : pPathList) {
       // In case only file without method name is given
-      Path pathToFile = path.resolve(Paths.get(pMainFunctionPath + JAVA_SOURCE_FILE_EXTENSION));
+      Path pathToFile = path.resolve(pMainFunctionPath + JAVA_SOURCE_FILE_EXTENSION);
       if (Files.exists(pathToFile)) {
-        return Optional.of(path.resolve(Paths.get(pMainFunctionPath)).toString());
+        return Optional.of(path.resolve(pMainFunctionPath).toString());
       }
       // In case file and method name is given
       int indexOfLastSlash = pMainFunctionPath.lastIndexOf('/');
       if (indexOfLastSlash >= 0) {
         Path pathToFileParent =
             path.resolve(
-                Paths.get(
-                    pMainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
+                pMainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION);
         if (Files.exists(pathToFileParent)) {
-          return Optional.of(path
-              .resolve(Paths.get(pMainFunctionPath.substring(0, indexOfLastSlash)))
-              .toString());
+          return Optional.of(
+              path.resolve(pMainFunctionPath.substring(0, indexOfLastSlash)).toString());
         }
       }
     }

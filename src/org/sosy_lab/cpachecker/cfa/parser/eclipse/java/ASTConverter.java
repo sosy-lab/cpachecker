@@ -1507,7 +1507,7 @@ class ASTConverter {
       final java.util.Optional<JClassType> superClassInTypeOfObject = directSubClassesOfTypeObject.stream()
           .filter(v -> v.getName().equals(superclass.getName())).findFirst();
       if (superClassInTypeOfObject.isPresent()) {
-        return superClassInTypeOfObject.get();
+        return superClassInTypeOfObject.orElseThrow();
       } else {
         jTypeOfSuperClass =
             createJClassTypeFromClass(superclass, VisibilityModifier.PUBLIC, pTypeHierarchy);
@@ -1601,11 +1601,11 @@ class ASTConverter {
     for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
       boolean match = true;
       Class<?>[] parameterTypes = constructor.getParameterTypes();
-      if (parameterTypes.length != argumentsAsClassArray.get().size()) {
+      if (parameterTypes.length != argumentsAsClassArray.orElseThrow().size()) {
         continue;
       }
       for (int i = 0; i < parameterTypes.length; i++) {
-        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.get().get(i))) {
+        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.orElseThrow().get(i))) {
           match = false;
           break;
         }
