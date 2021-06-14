@@ -10,5 +10,5 @@ format_version: "1.0"
 input_files:
   - pack6/TryCatch3/
 properties:
-  - property_file: ./assert.prp
+  - property_file: "../../../config/properties/assert.prp"
     expected_verdict: true

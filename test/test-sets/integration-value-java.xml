@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks>
-    <propertyfile>../programs/java/TryCatch/assert.prp</propertyfile>
+    <propertyfile>../config/properties/assert.prp</propertyfile>
     <include>../programs/java/TryCatch/*.yml</include>
   </tasks>
 
