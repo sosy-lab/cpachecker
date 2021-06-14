@@ -11,19 +11,26 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -105,6 +112,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
@@ -117,16 +125,20 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.xml.sax.SAXException;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+
+  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -158,8 +170,34 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
-    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    @Option(
+        secure = true,
+        description =
+            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
+                + " values in the TestComp format. It is used for function-calls to calls of"
+                + " VERIFIER_nondet_*. The file is provided via the option"
+                + " functionValuesForRandom ")
+    private boolean ignoreFunctionValueExceptRandom = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled ")
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+    private Path functionValuesForRandom = null;
+
+    @Option(
+        secure = true,
+        description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
+
+    @Option(
+      secure = true,
+      description = "Allow the given extern functions and interpret them as pure functions"
+          + " although the value analysis does not support their semantics"
+          + " and this can produce wrong results.")
+    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -179,6 +217,18 @@ public class ValueAnalysisTransferRelation
 
     boolean isIgnoreFunctionValue() {
       return ignoreFunctionValue;
+    }
+
+    public boolean isIgnoreFunctionValueExceptRandom() {
+      return ignoreFunctionValueExceptRandom;
+    }
+
+    public Path getFunctionValuesForRandom() {
+      return functionValuesForRandom;
+    }
+
+    boolean isAllowedUnsupportedOption(String func) {
+      return allowedUnsupportedFunctions.contains(func);
     }
   }
 
@@ -224,6 +274,7 @@ public class ValueAnalysisTransferRelation
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
+  private Map<Integer, String> valuesFromFile;
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -242,11 +293,17 @@ public class ValueAnalysisTransferRelation
       booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
-      booleanVariables   = ImmutableSet.of();
+      booleanVariables = ImmutableSet.of();
     }
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      setupFunctionValuesForRandom();
+    }
   }
 
   @Override
@@ -775,11 +832,19 @@ public class ValueAnalysisTransferRelation
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          if (!options.isAllowedUnsupportedOption(func)) {
+            throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          }
 
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
 
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+          if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
+            if (!options.isAllowedUnsupportedOption(func)) {
+              throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
+            }
+          }
         } else if (expression instanceof CFunctionCallAssignmentStatement) {
 
           return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
@@ -1274,6 +1339,14 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof ThreadingState) {
+        result.clear();
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
@@ -1543,6 +1616,18 @@ public class ValueAnalysisTransferRelation
     }
   }
 
+  private @NonNull ValueAnalysisState strengthenWithThreads(
+      ThreadingState pThreadingState, ValueAnalysisState pState) throws CPATransferException {
+    final FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    final FunctionEntryNode succ = function.getSuccessor();
+    final String calledFunctionName = succ.getFunctionName();
+    return handleFunctionCallEdge(
+        function, function.getArguments(), succ.getFunctionParameters(), calledFunctionName);
+  }
+
   private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
@@ -1639,13 +1724,37 @@ public class ValueAnalysisTransferRelation
    } else {
      return null;
    }
+  }
 
-
+  /** Load the FunctionValues for random functinos from the given Testcomp Testcase */
+  private void setupFunctionValuesForRandom() {
+    try {
+      this.valuesFromFile =
+          TestCompTestcaseLoader.loadTestcase(options.getFunctionValuesForRandom());
+    } catch (ParserConfigurationException | SAXException | IOException e) {
+      // Nothing to do here, as we are not able to lead the additional information, hence ignoring
+      // the file
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+              options.getFunctionValuesForRandom()));
+    }
   }
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValue()) {
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      return new ExpressionValueVisitorWithPredefinedValues(
+          pState,
+          pFunctionName,
+          ValueAnalysisTransferRelation.indexForNextRandomValue,
+          machineModel,
+          logger,
+          valuesFromFile);
+    } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);

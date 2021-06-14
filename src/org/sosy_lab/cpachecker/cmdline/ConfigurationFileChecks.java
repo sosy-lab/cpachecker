@@ -28,6 +28,7 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
 import com.google.common.truth.Expect;
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -130,8 +131,10 @@ public class ConfigurationFileChecks {
           "overflow.config",
           "termination.config",
           "termination.violation.witness",
+          // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
+          "witness.validation.correctness.isa",
           "pcc.proofgen.doPCC",
           "pcc.strategy",
           "pcc.cmc.configFiles",
@@ -216,11 +219,10 @@ public class ConfigurationFileChecks {
             .filter(resource -> resource.getResourceName().endsWith(".properties"))
             .filter(resource -> resource.getResourceName().contains("cpachecker"))
             .map(ResourceInfo::url);
-    try (@SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
-        Stream<Path> configFiles =
-            Files.walk(CONFIG_DIR)
-                .filter(path -> path.getFileName().toString().endsWith(".properties"))
-                .sorted()) {
+    try (Stream<Path> configFiles =
+        Files.walk(CONFIG_DIR)
+            .filter(path -> path.getFileName().toString().endsWith(".properties"))
+            .sorted()) {
       return Stream.concat(configResources, configFiles).toArray();
     }
   }
@@ -283,6 +285,7 @@ public class ConfigurationFileChecks {
     checkOption(config, "java.sourcepath");
     checkOption(config, "java.version");
     checkOption(config, "parser.usePreprocessor");
+    checkOption(config, "parser.useClang");
 
     if (!configFile.toString().contains("ldv")) {
       // LDV configs are specific to their use case, so these options are allowed
@@ -344,6 +347,10 @@ public class ConfigurationFileChecks {
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
 
+    if(!new File(tempFolder.getRoot().getAbsolutePath() + "/Goals.txt").createNewFile()) {
+      throw new RuntimeException("File already exists!");
+    }
+
     copyFile(
         "config/specification/AssumptionGuidingAutomaton.spc",
         tempFolder.newFolder("config").getAbsolutePath(),
@@ -400,6 +407,7 @@ public class ConfigurationFileChecks {
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
+    final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -446,6 +454,8 @@ public class ConfigurationFileChecks {
       if (!Strings.isNullOrEmpty(spec)) {
         assertThat(spec).endsWith("specification/modifications-present.spc");
       }
+    } else if(isConditionalTesting) {
+      assertThat(spec).endsWith("specification/StopAtLeaves.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");

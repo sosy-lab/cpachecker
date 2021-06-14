@@ -141,6 +141,18 @@ with considerably less effort -->
             </td>
           </tr>
         </table>
+          <table class="fault-table" ng-show="hideErrorTable && hasPrecondition">
+            <tr>
+              <td class="fault-precond-header">
+                Precondition (initial variable assignment):
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p class="precondition">{{precondition}}</p>
+              </td>
+            </tr>
+          </table>
           <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
             <tr>
               <td class="fault-rank" data-toggle="tooltip" data-placement="bottom" title="Rank">
@@ -163,7 +175,7 @@ with considerably less effort -->
                     <strong>Current values:</strong>
                   </summary>
                   <table id="fault-values" class="value-table">
-                    <th><td>Name</td><td>Value</td></th>
+                    <tr><th>Name</th><th>Value</th></tr>
                     <tr ng-repeat="(variable,value) in fault.valDict">
                       <td ng-bind-html="htmlTrusted(variable)"></td>
                       <td ng-bind-html="htmlTrusted(value)"></td>
@@ -220,7 +232,7 @@ with considerably less effort -->
       </ul>
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
-        <nav class="navbar navbar-light bg-light">slid
+        <nav class="navbar navbar-light bg-light">
           <div class="nav-item">
             <label>
               <strong>Displayed CFA</strong>
@@ -301,7 +313,7 @@ with considerably less effort -->
                 <a ng-click="setSourceFile($index)">{{file}}</a>
               </li>
             </ul>
-          </div>slid
+          </div>
           <label>
             <strong>{{sourceFiles[selectedSourceFile]}}</strong>
           </label>

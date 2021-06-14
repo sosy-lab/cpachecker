@@ -124,7 +124,8 @@ public final class AbstractStates {
     return e == null ? ImmutableList.of() : e.getLocationNodes();
   }
 
-  public static FluentIterable<CFANode> extractLocations(Iterable<AbstractState> pStates) {
+  public static FluentIterable<CFANode> extractLocations(
+      Iterable<? extends AbstractState> pStates) {
     return from(pStates).transformAndConcat(AbstractStates::extractLocations);
   }
 

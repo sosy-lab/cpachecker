@@ -49,9 +49,8 @@ public class SMG implements UnmodifiableSMG {
   private NeqRelation neq = new NeqRelation();
   private PersistentMultimap<SMGObject, SMGObject> possibleEquals;
 
-  private final PredRelation pathPredicate = new PredRelation();
-  private PredRelation errorPredicate = new PredRelation();
-
+  private final SMGPredicateRelation pathPredicate = new SMGPredicateRelation();
+  private SMGPredicateRelation errorPredicate = new SMGPredicateRelation();
 
   private final MachineModel machine_model;
 
@@ -324,17 +323,17 @@ public class SMG implements UnmodifiableSMG {
   }
 
   @Override
-  public PredRelation getPathPredicateRelation() {
+  public SMGPredicateRelation getPathPredicateRelation() {
     return pathPredicate;
   }
 
   @Override
-  public PredRelation getErrorPredicateRelation() {
+  public SMGPredicateRelation getErrorPredicateRelation() {
     return errorPredicate;
   }
 
   public void resetErrorRelation() {
-    errorPredicate = new PredRelation();
+    errorPredicate = new SMGPredicateRelation();
   }
 
   /* ********************************************* */

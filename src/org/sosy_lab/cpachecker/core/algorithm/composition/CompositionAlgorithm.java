@@ -128,7 +128,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       pOut.println("Number of algorithms provided:    " + configFiles.size());
       pOut.println("Number of composite analysis runs:        " + noOfRuns);
       pOut.println("Total time: " + totalTimer);
-      pOut.println("Times per algorithm: ");
 
       printSubStatistics(pOut, pResult, pReached);
     }
@@ -791,7 +790,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
 
     for (AbstractionPredicate pred : predicates) {
-      for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {
+      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
           trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }

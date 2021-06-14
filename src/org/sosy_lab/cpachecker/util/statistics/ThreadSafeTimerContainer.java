@@ -12,7 +12,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -33,7 +32,8 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    * <p>We use WeakReferences to avoid memory leak when deleting timers. WeakReference allows us to
    * access the wrapped Timer before GC.
    */
-  private final Map<WeakReference<TimerWrapper>, Timer> activeTimers = new IdentityHashMap<>();
+  private final IdentityHashMap<WeakReference<TimerWrapper>, Timer> activeTimers =
+      new IdentityHashMap<>();
 
   private final ReferenceQueue<TimerWrapper> referenceQueue = new ReferenceQueue<>();
 

@@ -15,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4 //pointer
+      4, //pointer
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
@@ -101,7 +103,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, // bool
-      8 // pointer
+      8, // pointer
+      ByteOrder.LITTLE_ENDIAN // endianness
   ),
 
   /** Machine model representing an ARM machine with alignment: */
@@ -132,7 +135,8 @@ public enum MachineModel {
       // alignof other
       1, // void
       4, // bool
-      4 // pointer
+      4, // pointer
+      ByteOrder.LITTLE_ENDIAN // endianness
   );
   // numeric types
   private final int sizeofShort;
@@ -147,6 +151,8 @@ public enum MachineModel {
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
+
+  private final transient ByteOrder endianness;
 
   // alignof numeric types
   private final int alignofShort;
@@ -190,7 +196,8 @@ public enum MachineModel {
       int pAlignofLongDouble,
       int pAlignofVoid,
       int pAlignofBool,
-      int pAlignofPtr) {
+      int pAlignofPtr,
+      ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -212,6 +219,7 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
       ptrEquivalent = CNumericTypes.INT;
@@ -379,6 +387,10 @@ public enum MachineModel {
       default:
         throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
+  }
+
+  public ByteOrder getEndianness() {
+    return endianness;
   }
 
   public int getSizeofInBits(CSimpleType type) {

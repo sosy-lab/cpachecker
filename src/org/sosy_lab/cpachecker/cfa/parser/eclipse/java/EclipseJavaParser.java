@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
@@ -341,7 +340,7 @@ class EclipseJavaParser implements JavaParser {
     List<Path> alreadyWalkedPaths = new ArrayList<>();
     for (Path directory : javaSourcePaths) {
       try (Stream<Path> files = getJavaFilesInPath(directory)) {
-        for (Path filePath : files.collect(Collectors.toList())) {
+        for (Path filePath : files.collect(ImmutableList.toImmutableList())) {
           if (alreadyWalkedPaths.contains(filePath)) {
             continue;
           }
@@ -355,7 +354,6 @@ class EclipseJavaParser implements JavaParser {
   }
 
   @MustBeClosed
-  @SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
   private Stream<Path> getJavaFilesInPath(Path mainDirectory) throws IOException {
     return Files.walk(mainDirectory, FileVisitOption.FOLLOW_LINKS)
         .filter(Files::isRegularFile)

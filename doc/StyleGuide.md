@@ -192,6 +192,9 @@ Several other collection methods from Java have the same disadvantage as above,
 but have no direct replacement because they accept null values and Guava doesn't.
 Null values in collections are typically bad design anyway,
 so make sure null is avoided and replace them.
+The `Collectors.toList/Map/Set()` results have the additional disadvantage
+that they do not guarantee mutability,
+but it is easy to accidentally mutate them and thus introduce a bug.
 
 | Java method - AVOID         | Guava method - USE AFTER REMOVING NULL VALUES |
 | ----------------------------|-----------------------------------------------|

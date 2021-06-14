@@ -275,7 +275,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       final Collection<AbstractState> exitStates,
       final ReachedSet reached) {
     assert reached != null;
-    for (AbstractState exitState : exitStates) {
+    for (AbstractState exitState : exitStates) { // blocks without an exit are never added to the cache
       data.registerInitialState(initialState, exitState, reached);
     }
   }

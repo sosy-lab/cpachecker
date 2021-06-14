@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
 import com.google.common.base.VerifyException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
@@ -46,7 +48,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     Set<FaultContribution> soft = new HashSet<>(tf.getEntries().toSelectorList());
     int initSize = soft.size();
     // if a selector is true (i. e. enabled) it cannot be part of the result set. This usually
-    // happens if the selector is a part of the pre-condition
+    // happens if the selector is part of the pre-condition
     soft.removeIf(
         fc ->
             bmgr.isTrue(((Selector) fc).getFormula())
@@ -71,6 +73,17 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       }
     }
     stats.totalTime.stop();
+    pContext
+        .getLogger()
+        .log(
+            Level.FINEST,
+            "tfresult="
+                + Arrays.toString(
+                    hard.stream()
+                        .flatMap(Collection::stream)
+                        .map(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+                        .sorted()
+                        .toArray()));
     return hard;
   }
 

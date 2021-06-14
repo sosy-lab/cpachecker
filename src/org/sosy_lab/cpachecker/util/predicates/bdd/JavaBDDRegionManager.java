@@ -79,7 +79,8 @@ class JavaBDDRegionManager implements RegionManager {
   private final ReferenceQueue<JavaBDDRegion> referenceQueue =
       new ReferenceQueue<>();
   // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
-  private final Map<Reference<? extends JavaBDDRegion>, BDD> referenceMap = new IdentityHashMap<>();
+  private final IdentityHashMap<Reference<? extends JavaBDDRegion>, BDD> referenceMap =
+      new IdentityHashMap<>();
 
   @Option(secure = true, description = "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
   private double initTableRatio = 0.001;

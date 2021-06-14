@@ -373,13 +373,6 @@ public final class Solver implements AutoCloseable {
     return environment;
   }
 
-  public OptimizationProverEnvironment newCachedOptEnvironment() {
-    throw new UnsupportedOperationException("Java-SMT does not support cached prover enviroments.");
-    // OptimizationProverEnvironment environment = solvingContext.newCachedOptimizationProverEnvironment();
-    // environment = new OptimizationProverEnvironmentView(environment, fmgr);
-    // return environment;
-  }
-
   /**
    * Checks whether a formula is unsat.
    */

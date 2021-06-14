@@ -13,7 +13,10 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
 
-  <rundefinition></rundefinition>
+  <rundefinition name="sv-comp21">
+    <option name="-svcomp21"/>
+    <option name="-benchmark"/>
+  </rundefinition>
 
   <!--
     We collect error- and proof-witness files for further steps in our BuildBot.
@@ -24,11 +27,10 @@ SPDX-License-Identifier: Apache-2.0
   <resultfiles>**.graphml*</resultfiles>
   <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">termination.compressWitness=true</option>
 
-  <option name="-svcomp21"/>
   <option name="-heap">10000M</option>
-  <option name="-benchmark" />
-  <option name="-timelimit">900 s</option>
+  <option name="-timelimit">900s</option>
 
   <tasks name="ReachSafety-Arrays">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
@@ -74,6 +76,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-XCSP.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="ReachSafety-Combinations">
+    <includesfile>../programs/benchmarks/ReachSafety-Combinations.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
 
   <tasks name="ConcurrencySafety-Main">
     <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
@@ -86,10 +92,15 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <excludesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 </benchmark>

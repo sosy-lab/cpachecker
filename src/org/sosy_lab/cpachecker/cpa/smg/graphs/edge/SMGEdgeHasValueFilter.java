@@ -134,6 +134,6 @@ public class SMGEdgeHasValueFilter {
   public String toString() {
     return String.format(
         "Filter %s<object=%s@%d, value=%s, size=%d>",
-        valueComplement ? "" : "NOT", object, offset, value, sizeInBits);
+        valueComplement ? "NOT" : "", object, offset, value, sizeInBits);
   }
 }

@@ -52,8 +52,7 @@ output.disable = false
 # directory to put all output files in
 output.path = "output/"
 
-# base directory for all input & output files
-# (except for the configuration file itself)
+# base directory for all paths in default values
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
@@ -155,6 +154,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -208,6 +208,9 @@ analysis.algorithm.faultLocalization.by_coverage = false
 # for found property violation, perform fault localization with trace
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
+
+# Use fault localization with distance metrics
+analysis.algorithm.faultlocalization.by_distance = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
@@ -381,6 +384,9 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
+# Enable converting test goals to conditions.
+analysis.testGoalConverter = no default value
+
 # Replace thread creation operations with a special function callsso, any
 # analysis can go through the function
 analysis.threadOperationsTransform = false
@@ -479,9 +485,6 @@ analysis.unknownIfUnrestrictedProgram = false
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
-# Use explainer for fault localization with distance metrics 
-analysis.useExplainer = false
-
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -574,9 +577,8 @@ bdd.pjbdd.cacheRatio = 0.1
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
 
-# Threadsafe reference counting is very costly, with this option gc can be
-# disabled. Only applicable with useInts = true.
-bdd.pjbdd.disableGC = false
+# Disable thread safe bdd operations.
+bdd.pjbdd.disableThreadSafety = false
 
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
@@ -671,6 +673,10 @@ bmc.invariantsExport = no default value
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
+# Try to simplify the structure of formulas for the sat check of BMC. The
+# improvement depends on the underlying SMT solver.
+bmc.simplifyBooleanFormula = false
+
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
@@ -751,9 +757,6 @@ cfa.checkNullPointers = false
 # Whether to have a single target node per function for all invalid null
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
-
-# Whether to create dependence graph for the CFA of the program
-cfa.createDependenceGraph = false
 
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
@@ -900,6 +903,13 @@ conditional.verifier.generatorConfig = no default value
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
 
+# The input file with all goals that were previously reached
+conditional_testing.inputfile = no default value
+
+# The strategy to use
+conditional_testing.strategy = no default value
+  enum:     [NAIVE, PROPAGATION]
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -985,9 +995,6 @@ counterexample.export.compressWitness = true
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
 
-# export counterexample to file as Dot/Graphviz automaton
-counterexample.export.dot = "Counterexample.%d.dot"
-
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
@@ -1039,10 +1046,10 @@ counterexample.export.filters = no default value
 # is found
 counterexample.export.formula = "Counterexample.%d.smt2"
 
-# export counterexample as graph
+# export counterexample as Dot/Graphviz visualization
 counterexample.export.graph = "Counterexample.%d.dot"
 
-# export counterexample to file as GraphML automaton
+# export counterexample witness as GraphML automaton
 counterexample.export.graphml = "Counterexample.%d.graphml"
 
 # export test harness to file as code
@@ -1065,6 +1072,9 @@ counterexample.export.report = "Counterexample.%d.html"
 
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
+
+# export counterexample witness as Dot/Graphviz visualization
+counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
@@ -1200,7 +1210,8 @@ cpa.arg.export.code.blockAtFunctionEnd = KEEPBLOCK
 
 # How to deal with target states during code generation
 cpa.arg.export.code.handleTargetStates = NONE
-  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA, VERIFIERERROR]
+  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA, VERIFIERERROR,
+             REACHASMEMSAFETY, REACHASOVERFLOW, REACHASTERMINATION]
 
 # write include directives
 cpa.arg.export.code.header = true
@@ -1474,7 +1485,8 @@ cpa.callstack.traverseBackwards = false
 
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
-          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg"}
+          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg",
+          "atexit"}
 
 # firing relation to be used in the precision adjustment operator
 cpa.chc.firingRelation = "Always"
@@ -1607,24 +1619,24 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
-# export automaton to file
+# Export the trace-abtraction automaton to a file in dot-format.
 cpa.dca.refiner.dotExport = false
 
-# file for saving the automaton in DOT format (%s will be replaced with
-# automaton name)
+# Filename that the interpolation automaton will be written to. %s will get
+# replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# Keep infeasible dummy states that allow for better debugging
+# If set to true, all infeasible dummy states will be kept in the ARG.
 cpa.dca.refiner.keepInfeasibleStates = false
 
-# Set number of refinements for the trace abstraction algorithm
-cpa.dca.refiner.maxRefinementIterations = 0
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.dca.refiner.maxRefinementIterations = 10
 
-# Allows to abort the analysis early in order to only produce the ARG
+# Skip the analysis (including the refinement) entirely, so that the ARG is
+# left unmodified. This is used for debugging purposes.
 cpa.dca.refiner.skipAnalysis = false
-
-# Abort the refinement of finite prefixes for the purpose of better debugging
-cpa.dca.refiner.skipRefinement = false
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -1873,9 +1885,6 @@ cpa.lpi.toLemmasAlgorithm = "RCNF"
 # -1 to never increase the depth.
 cpa.lpi.unrollingRefinementThreshold = 2
 
-# Use caching optimization solver
-cpa.lpi.useCachingOptSolver = false
-
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
 
@@ -2080,13 +2089,6 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
-# Load the theory for bitvector and floating point encoding during startup.
-# Only disable this option if an SMT solver does not support a certain theory
-# and you know that the following analysis does not require a certain theory.
-# The enabled option helps with nice user messages if a certain theory cannot
-# be loaded.
-cpa.predicate.createFormulaEncodingEagerly = true
-
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
 cpa.predicate.defaultAllocationSize = 4
@@ -2107,21 +2109,30 @@ cpa.predicate.enableBlockreducer = false
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
-# solvers that do not support bitvectors, or for increased performance.
+# solvers that do not support bitvectors, or for increased performance. If
+# UNSUPPORTED, solvers can be used that support none of the possible
+# alternatives, but CPAchecker will crash if bitvectors are required by the
+# analysis.
 cpa.predicate.encodeBitvectorAs = BITVECTOR
-  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for floats. If different from FLOAT, the specified
 # theory is used to approximate floats. This can be used for solvers that do
-# not support floating-point arithmetic, or for increased performance.
+# not support floating-point arithmetic, or for increased performance. If
+# UNSUPPORTED, solvers can be used that support none of the possible
+# alternatives, but CPAchecker will crash if floats are required by the
+# analysis.
 cpa.predicate.encodeFloatAs = FLOAT
-  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for integers. If different from INTEGER, the
 # specified theory is used to approximate integers. This can be used for
-# solvers that do not support integers, or for increased performance.
+# solvers that do not support integers, or for increased performance. If
+# UNSUPPORTED, solvers can be used that support none of the possible
+# alternatives, but CPAchecker will crash if integers are required by the
+# analysis.
 cpa.predicate.encodeIntegerAs = INTEGER
-  enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
 # normal value or an UF representing the overflow.
@@ -2237,10 +2248,10 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = -1
 
-# When then builtin strlen is called, approximate it up to length set by this
-# option.If the string passed to strlen is longer, the return value will be
-# overapproximated via nondet.
-cpa.predicate.maxPreciseStrlenSize = 100
+# When builtin functions like memcmp/strlen/etc. are called, unroll them up
+# to this bound.If the passed arguments are longer, the return value will be
+# overapproximated.
+cpa.predicate.maxPreciseStrFunctionSize = 100
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
@@ -2426,9 +2437,6 @@ cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
 
-# recompute block formula from ARG path edges
-cpa.predicate.refinement.recomputeBlockFormulas = false
-
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
@@ -2569,14 +2577,20 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
-# Use SMT arrays for encoding heap memory instead of uninterpreted function.
-# This is more precise but may lead to interpolation failures.
+# Use SMT arrays for encoding heap memory instead of uninterpreted function
+# (ignored if useByteArrayForHeap=true). This is more precise but may lead to
+# interpolation failures.
 cpa.predicate.useArraysForHeap = true
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
+
+# Use SMT byte array for encoding heap memory instead of uninterpreted
+# function. This is more close to c heap implementation but may be to
+# expensive.
+cpa.predicate.useByteArrayForHeap = false
 
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
@@ -3071,11 +3085,26 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
+# Allow the given extern functions and interpret them as pure functions
+# although the value analysis does not support their semantics and this can
+# produce wrong results.
+cpa.value.allowedUnsupportedFunctions = {}
+
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# Fixed set of values for function calls to VERIFIER_nondet_*. Does only
+# work, if ignoreFunctionValueExceptRandom is enabled 
+cpa.value.functionValuesForRandom = no default value
+
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
+
+# If 'ignoreFunctionValue' is set to true, this option allows to provide a
+# fixed set of values in the TestComp format. It is used for function-calls
+# to calls of VERIFIER_nondet_*. The file is provided via the option
+# functionValuesForRandom 
+cpa.value.ignoreFunctionValueExceptRandom = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -3083,6 +3112,9 @@ cpa.value.initAssumptionVars = false
 
 # get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
+
+# get an initial precision from a predicate precision file
+cpa.value.initialPredicatePrecisionFile = no default value
 
 # apply optimizations based on equality of input interpolant and candidate
 # interpolant
@@ -3269,13 +3301,20 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to consider pointees. Only if this option is set to true, a pointer
+# analysis is run during system dependence graph (SDG) construction and
+# dependencies of pointees are inserted into the SDG. If this option is set
+# to false, pointers are completely ignored and the resulting SDG is an
+# under-approximation that lacks all pointee dependencies.
+dependencegraph.considerPointees = true
+
 # Whether to take an assumption edge 'p' as control dependence if edge 'not
 # p' is a control dependence. This creates a larger slice, but may reduce the
 # size of the state space for deterministic programs. This behavior is also
 # closer to the static program slicing based on control-flow graphs (CFGs),
 # where branching is represented by a single assumption (with true- and
 # false-edges)
-dependencegraph.controldeps.considerInverseAssumption = false
+dependencegraph.controldeps.considerInverseAssumption = true
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
@@ -3284,15 +3323,35 @@ dependencegraph.controldeps.use = true
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
 
-# Run flow dependence analysis with constant propagation
-dependencegraph.flowdep.constantPropagation = false
-
-# Whether to consider constraints on program variables (e.g., x > 10) as
-# definitions.
-dependencegraph.flowdep.constraintIsDef = false
-
 # Whether to consider (data-)flow dependencies.
 dependencegraph.flowdeps.use = true
+
+# Whether to include only functions reachable from the main function in the
+# dependence graph.
+dependencegraph.onlyReachableFunctions = true
+
+# The maximum duration a single pointer analysis method is allowed to run
+# (use seconds or specify a unit; 0 for infinite).
+dependencegraph.pointerAnalysisTime = 0s
+
+# The computation methods used for pointer analysis. If no method is
+# specified, an imprecise over-approximation of the global pointer state is
+# created without running any actual pointer analysis. If at least one
+# computation method is specified, the first one in the list is run with the
+# time limit set by 'dependencegraph.pointerAnalysisTime'. If this method is
+# able to create a valid global pointer state in time, the state is used and
+# no other methods are run. Otherwise, if a second computation method is
+# specified, the second method is run with the same time limit. If the method
+# is able to create a valid global pointer state in time, the state is used
+# and no other methods are run. The same is true for all subsequent
+# computation methods specified in the list. If no computation method is able
+# to create a valid global pointer state in time, an imprecise
+# over-approximation of the global pointer state is created without running
+# any actual pointer analysis. A pointer analysis is only run if
+# 'dependencegraph.considerPointees' is set to true. Available computation
+# methods: PointerStateComputationMethod.FLOW_SENSITIVE,
+# PointerStateComputationMethod.FLOW_INSENSITIVE
+dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
@@ -3590,6 +3649,14 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
+# The command line for calling the clang preprocessor. May contain binary
+# name and arguments, but won't be expanded by a shell. The source file name
+# will be appended to this string. Clang needs to print the output to stdout.
+parser.clang = "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout"
+
+# Whether to dump the results of the preprocessor to disk.
+parser.clang.dumpResults = true
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -3614,8 +3681,12 @@ parser.readLineDirectives = false
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
 
+# For C files, convert to LLVM IR with clang first and then use the LLVM
+# parser.
+parser.useClang = false
+
 # For C files, run the preprocessor on them before parsing. Note that all
-# file numbers printed by CPAchecker will refer to the pre-processed file,
+# line numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
 
@@ -3995,6 +4066,12 @@ slicing.exportToC.file = "programSlice.%d.c"
 slicing.extractor = ALL
   enum:     [ALL, REDUCER, SYNTAX]
 
+# Whether to allow edges in the resulting slice that are only partially
+# relevant (e.g. function calls where not every parameter is relevant).
+# Setting this parameter to true can decrease the size of the resulting
+# slice.
+slicing.partiallyRelevantEdges = true
+
 # what kind of slicing to use
 slicing.type = STATIC
   enum:     [STATIC, IDENTITY]
@@ -4145,6 +4222,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
+# Only genenerate for __VERIFIER_nondet calls
+testHarnessExport.onlyVerifierNondet = false
+
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
@@ -4175,12 +4255,17 @@ testcase.progress = RELATIVE_TOTAL
 # property specification
 testcase.reportCoveredErrorCallAsError = false
 
+# CFA edge if only a specific edge should be considered, e.g., in
+# counterexample check
+testcase.targets.edge = no default value
+
 # Name of target function if target type is FUN_CALL
 testcase.targets.funName = no default value
 
 # Which strategy to use to optimize set of test target edges
 testcase.targets.optimization.strategy = NONE
-  enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
+  enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
+             ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
@@ -4302,6 +4387,9 @@ witness.useInvariantsAsAssumptions = true
 # When validating a correctness witness, use this configuration file instead
 # of the current one.
 witness.validation.correctness.config = no default value
+
+# Use correctness witness as invariants specification automaton (ISA).
+witness.validation.correctness.isa = false
 
 # The witness to validate.
 witness.validation.file = no default value

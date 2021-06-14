@@ -62,7 +62,7 @@ public final class ModificationsState
     ModificationsState that = (ModificationsState) pO;
     return Objects.equals(locationInOriginalCfa, that.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, that.locationInGivenCfa)
-        && Objects.equals(hasModification, that.hasModification);
+        && hasModification == that.hasModification;
   }
 
   @Override

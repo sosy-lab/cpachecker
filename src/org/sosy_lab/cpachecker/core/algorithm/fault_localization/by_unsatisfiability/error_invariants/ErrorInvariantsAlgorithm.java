@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -39,11 +40,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -62,20 +61,20 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
 
-  private ShutdownNotifier shutdownNotifier;
-  private Configuration config;
-  private LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
+  private final LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
-  private List<SSAMap> maps;
+  private ImmutableList<SSAMap> maps;
 
   // Memorize already processed interpolants to minimize solver calls
-  private Multimap<BooleanFormula, Integer> memorize;
+  private final Multimap<BooleanFormula, Integer> memorize;
 
-  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
-  private StatCounter searchCalls = new StatCounter("Number of search calls");
-  private StatCounter solverCalls = new StatCounter("Numer of solver calls");
-  private StatCounter memoizationCalls =
+  private final StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
+  private final StatCounter searchCalls = new StatCounter("Number of search calls");
+  private final StatCounter solverCalls = new StatCounter("Number of solver calls");
+  private final StatCounter memoizationCalls =
       new StatCounter("Number of interpolant-interval cache hits");
 
   /**
@@ -131,7 +130,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants();
-    Set<Interval> allIntervals = new HashSet<>();
+    List<Interval> sortedIntervals = new ArrayList<>();
 
     // calculate interval boundaries for each interpolant
     for (int i = 0; i < interpolants.size(); i++) {
@@ -141,35 +140,83 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
               search(0, i, interpolant, true),
               search(i, tf.traceSize(), interpolant, false) - 1,
               interpolant);
-      allIntervals.add(current);
+      sortedIntervals.add(current);
     }
 
-    // sort the intervals and calculate abstrace error trace
-    List<Interval> sortedIntervals =
-        allIntervals.stream()
-            .sorted(Comparator.comparingInt(interval -> interval.start))
-            .collect(Collectors.toList());
-    List<Selector> selectors = errorTrace.getEntries().toSelectorList();
+    // sort the intervals and calculate abstract error trace
+    sortedIntervals.sort(Comparator.comparingInt(Interval::getStart));
+    ImmutableList<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
     for (Interval currInterval : sortedIntervals) {
-      if (currInterval.start > prevEnd) {
+      if (currInterval.getStart() > prevEnd) {
         abstractTrace.add(maxInterval);
-        if (maxInterval.end < tf.traceSize()) {
-          abstractTrace.add(selectors.get(maxInterval.end));
+        if (maxInterval.getEnd() < tf.traceSize()) {
+          abstractTrace.add(selectors.get(maxInterval.getEnd()));
         }
-        prevEnd = maxInterval.end;
+        prevEnd = maxInterval.getEnd();
         maxInterval = currInterval;
       } else {
-        if (currInterval.end > maxInterval.end) {
+        if (currInterval.getEnd() > maxInterval.getEnd()) {
           maxInterval = currInterval;
         }
       }
     }
     totalTime.stop();
+
+    abstractTrace =
+        summarize(
+            abstractTrace, context.getSolver().getFormulaManager().getBooleanFormulaManager());
+
     // transform error trace to report format
     return createFaults(abstractTrace);
+  }
+
+  /**
+   * Summarize the abstract trace by summarizing interpolants which are followed by the same
+   * selector
+   *
+   * @param abstractTrace the extended list
+   * @param bmgr the boolean formula manager
+   * @return summarized list
+   */
+  private List<AbstractTraceElement> summarize(
+      List<AbstractTraceElement> abstractTrace, BooleanFormulaManager bmgr) {
+    if (abstractTrace.size() < 2) {
+      return new ArrayList<>(abstractTrace);
+    }
+
+    /*
+    Example:           will be transformed to
+    Interpolant 0      Interpolant 0 && Interpolant 1
+    Selector 0         Selector 0
+    Interpolant 1
+    Selector 0
+    Interpolant 2      Interpolant 2
+    Selector 1         Selector 1
+     */
+
+    List<AbstractTraceElement> summarizedList = new ArrayList<>();
+    Selector lastSelector = null;
+
+    for (AbstractTraceElement abstractTraceElement : abstractTrace) {
+      if (abstractTraceElement instanceof Selector) {
+        if (abstractTraceElement.equals(lastSelector)) {
+          Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
+          Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
+          Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
+          summarizedList.add(summarizedList.size()-1, merged);
+        } else {
+          summarizedList.add(abstractTraceElement);
+          lastSelector = (Selector) abstractTraceElement;
+        }
+      } else {
+        summarizedList.add(abstractTraceElement);
+      }
+    }
+
+    return summarizedList;
   }
 
   /**
@@ -181,10 +228,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
    */
   private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace) {
     // Stores description of last interval
-    List<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
+    ImmutableList<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
     Selector prev = allSelectors.get(0);
     Set<Fault> faults = new HashSet<>();
-    FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
     for (int i = 0; i < abstractTrace.size(); i++) {
       AbstractTraceElement errorInvariant = abstractTrace.get(i);
       if (errorInvariant instanceof Selector) {
@@ -192,10 +238,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);
-        continue;
-      }
-      if (errorInvariant instanceof Interval) {
+      } else if (errorInvariant instanceof Interval) {
         Interval curr = (Interval) errorInvariant;
+        curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         Selector next;
         if (i + 1 < abstractTrace.size()) {
           next = (Selector) abstractTrace.get(i + 1);
@@ -210,53 +255,24 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
           contributions.add(prev);
         }
         curr.replaceErrorSet(contributions);
-        String description = extractRelevantInformation(fmgr, curr);
-        curr.addInfo(FaultInfo.justify("The describing interpolant: " + description));
-        curr.addInfo(FaultInfo.hint("This interpolant sums up the meaning of the marked edges."));
         curr.setIntendedIndex(i);
-        faults.add(curr);
-        continue;
+        // precondition has an own entry in FLInfo -> exclude it from here
+        if (i != 0 || !curr.invariant.equals(errorTrace.getPrecondition())) {
+          faults.add(curr);
+        }
       }
     }
 
     String abstractErrorTrace =
         abstractTrace.stream().map(e -> " - " + e).collect(Collectors.joining("\n"));
     logger.log(Level.INFO, "Abstract error trace:\n" + abstractErrorTrace);
+    logger.log(Level.FINEST, "tfresult=" + Arrays.toString(abstractTrace
+            .stream()
+            .filter(tr -> tr instanceof Selector)
+            .map(fc -> ((Selector)fc).correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .sorted()
+            .toArray()));
     return faults;
-  }
-
-  /**
-   * Extracts the fault-relevant information from the given formula. Since the original trace
-   * formulas are often too detailed for a concise description of the fault, this method reduces the
-   * displayed information to the relevant one.
-   *
-   * @param fmgr formula manager to instantiate and uninstantiate formulas
-   * @param interval interval to extract information from
-   * @return relevant information
-   */
-  private String extractRelevantInformation(FormulaManagerView fmgr, Interval interval) {
-    BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
-    List<String> helpfulFormulas = new ArrayList<>();
-    Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
-    for (BooleanFormula f : conjunctions) {
-      if (f.toString().contains("_ADDRESS_OF")) {
-        List<String> findName = Splitter.on("__ADDRESS_OF_").splitToList(f.toString());
-        if (findName.size() > 1) {
-          List<String> extractName = Splitter.on("@").splitToList(findName.get(1));
-          if (!extractName.isEmpty()) {
-            helpfulFormulas.add("(`values_of` " + extractName.get(0) + ")");
-            continue;
-          }
-        }
-      }
-      helpfulFormulas.add(BooleanFormulaParser.parse(fmgr.uninstantiate(f)).toString());
-    }
-    // return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@",
-    // "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
-    return helpfulFormulas.stream()
-        .distinct()
-        .map(s -> s.replaceAll("@", ""))
-        .collect(Collectors.joining(" ∧ "));
   }
 
   /**
@@ -363,8 +379,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /** Stores the interpolant for a selector and its boundaries */
   public static class Interval extends Fault implements AbstractTraceElement {
 
-    private int start;
-    private int end;
+    private final int start;
+    private final int end;
     private BooleanFormula invariant;
 
     public Interval(int pStart, int pEnd, BooleanFormula pInvariant) {
@@ -373,9 +389,23 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       invariant = pInvariant;
     }
 
+    public static Interval merge(final Interval pFirst, final Interval pSecond, final BooleanFormulaManager pBmgr) {
+        int newStart = Integer.min(pFirst.start, pSecond.start);
+        int newEnd = Integer.max(pFirst.end, pSecond.end);
+        return new Interval(newStart, newEnd, pBmgr.and(pFirst.getInvariant(), pSecond.getInvariant()));
+    }
+
+    public int getEnd() {
+      return end;
+    }
+
+    public int getStart() {
+      return start;
+    }
+
     @Override
     public String toString() {
-      return "Interval [" + start + ";" + end + "]: " + BooleanFormulaParser.parse(invariant);
+      return "Interval [" + start + ";" + end + "]: " + invariant;
     }
 
     @Override
@@ -388,6 +418,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             && super.equals(q);
       }
       return false;
+    }
+
+    public BooleanFormula getInvariant() {
+      return invariant;
     }
 
     @Override

@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -1001,7 +1000,11 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newPts, newLength);
+
+    @SuppressWarnings("deprecation")
+    // This is an intended use, CtoFormulaConverter just does not have access to the constructor
+    PathFormula result = PathFormula.createManually(newFormula, newSsa, newPts, newLength);
+    return result;
   }
 
   /**
@@ -1802,8 +1805,6 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
-    } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
-      result = "builtin functions for arithmetic with overflow handling";
     }
 
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {
