@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -193,7 +192,6 @@ public class FaultLocalizationWithTraceFormula
                   .filter(ARGState.class)
                   .transform(ARGState::getCounterexampleInformation));
 
-
       // run algorithm for every error
       logger.log(Level.INFO, "Starting fault localization...");
       for (CounterexampleInfo info : counterExamples) {
@@ -285,16 +283,10 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
 
-      ImmutableList<BooleanFormula> nondets =
-          tf.getEntries().toAtomList().stream()
-              .filter(f -> f.toString().contains("__VERIFIER_nondet"))
-              .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
-              .collect(ImmutableList.toImmutableList());
       FaultLocalizationInfo info = new FaultLocalizationInfo(
           errorIndicators,
           scoring,
           tf.getPrecondition(),
-          nondets,
           pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
@@ -306,7 +298,7 @@ public class FaultLocalizationWithTraceFormula
       info.apply();
       logger.log(
           Level.INFO,
-          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
+          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info);
 
     } catch (SolverException sE) {
       throw new CPAException(

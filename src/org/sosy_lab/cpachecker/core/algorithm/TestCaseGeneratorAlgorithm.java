@@ -77,12 +77,14 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   @Option(secure = true, name = "progress", description = "defines how progress is computed")
   private ProgressComputation progressType = ProgressComputation.RELATIVE_TOTAL;
 
+
+
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final Set<CFAEdge> testTargets;
+  private Set<CFAEdge> testTargets;
   private final SpecificationProperty specProp;
   private final TestCaseExporter exporter;
   private double progress = 0;
@@ -108,6 +110,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
+
     exporter = new TestCaseExporter(pCfa, logger, pConfig);
 
     if (pSpec.getProperties().size() == 1) {

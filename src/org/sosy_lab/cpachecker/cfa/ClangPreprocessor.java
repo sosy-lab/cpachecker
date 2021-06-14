@@ -9,6 +9,8 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,9 +43,18 @@ public class ClangPreprocessor extends Preprocessor {
     config.inject(this);
   }
 
-  public Path preprocessAndGetDumpedFile(String file) throws CParserException, InterruptedException {
+  /**
+   * Preprocess the given file and return the file to which the result has been dumped.
+   * 
+   * @param file The file to preprocess.
+   * @param dumpDirectory The required dump directory where the dump file will be written to.
+   * @return The path denoting the dump file.
+   */
+  public Path preprocessAndGetDumpedFile(String file, Path dumpDirectory)
+      throws CParserException, InterruptedException {
+    checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     String result = preprocess0(file);
-    return getAndWriteDumpedFile(result, file);
+    return getAndWriteDumpFile(result, file, dumpDirectory);
   }
 
   @Override
@@ -63,7 +74,7 @@ public class ClangPreprocessor extends Preprocessor {
 
   @Override
   protected String getDumpFileOfFile(String file) {
-    return file.replaceAll("\\.c", ".ll");
+    return file.replaceFirst("(\\.c|\\.i)$", ".ll");
   }
 
   private String extractVersionNumberFromLlvmJ() {

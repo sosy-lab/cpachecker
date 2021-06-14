@@ -1074,7 +1074,7 @@ public class PolicyIterationManager {
     BooleanFormula policy = bfmgr.and(policies);
 
     return Pair.of(BOUND_COMPUTED, PolicyBound.of(
-        firstBound.getFormula().updateFormula(policy),
+        firstBound.getFormula().withFormula(policy),
         combinedBound,
         firstBound.getPredecessor(),
         allDependencies
@@ -1169,8 +1169,7 @@ public class PolicyIterationManager {
 
       // Context for converting the template to formula, used for determining
       // used SSA map and PointerTargetSet.
-      PathFormula contextFormula =
-          stateFormulaConversionManager.getPathFormula(backpointer, fmgr, false);
+      PathFormula contextFormula = stateFormulaConversionManager.getPathFormula(backpointer, false);
       for (Entry<Template, PolicyBound> entry : backpointer) {
         Template t = entry.getKey();
         Set<String> fVars = extractFunctionNames(
@@ -1183,7 +1182,7 @@ public class PolicyIterationManager {
     }
 
     return PolicyBound.of(
-        inputPathFormula.updateFormula(policyFormula), bound, backpointer,
+        inputPathFormula.withFormula(policyFormula), bound, backpointer,
         dependencies);
   }
 

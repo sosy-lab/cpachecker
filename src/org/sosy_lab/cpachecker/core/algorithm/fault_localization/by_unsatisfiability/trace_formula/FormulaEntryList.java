@@ -17,11 +17,11 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
@@ -39,8 +39,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     entries.add(new FormulaEntry(pAtomId, pSSAMap, pSelector, pAtom));
   }
 
-  public void addEntry(
-      int pos, FormulaEntry entry) {
+  public void addEntry(int pos, FormulaEntry entry) {
     entries.add(pos, entry);
   }
 
@@ -83,7 +82,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   public ImmutableList<CFAEdge> toEdgeList() {
-    return toTStream(entry -> entry.selector).map(Selector::getEdge).collect(ImmutableList.toImmutableList());
+    return toTStream(entry -> entry.selector).map(Selector::correspondingEdge).collect(ImmutableList.toImmutableList());
   }
 
   private <T> Stream<T> toTStream(Function<FormulaEntry, T> mapping) {
@@ -157,6 +156,5 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     public PreconditionEntry(SSAMap pSSAMap) {
       super(-1, pSSAMap, null, null);
     }
-
   }
 }
