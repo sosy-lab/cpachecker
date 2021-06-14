@@ -266,7 +266,7 @@ public class PredicateCPA
       case "SEP":
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager());
+        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager(), solver);
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
@@ -370,7 +370,7 @@ public class PredicateCPA
         return getPredicateManager()
             .checkCoverage(
                 e1.getAbstractionFormula(),
-                pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+                pathFormulaManager.makeEmptyPathFormulaWithContextFrom(e1.getPathFormula()),
                 e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);

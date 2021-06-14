@@ -25,7 +25,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+
+
 public class TestTargetProvider implements Statistics {
+
 
   private static TestTargetProvider instance = null;
 
@@ -58,7 +61,8 @@ public class TestTargetProvider implements Statistics {
       default:
         edgeCriterion = type.getEdgeCriterion();
     }
-    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, optimization);
+
+    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption, pCfa);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -69,17 +73,21 @@ public class TestTargetProvider implements Statistics {
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
-      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption) {
+      final Predicate<CFAEdge> criterion,
+      final TestTargetAdaption pAdaption,
+      final CFA pCfa) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
 
+
     numNonOptimizedTargets = edges.size();
 
     optimizationTimer.start();
     try {
-    edges = pAdaption.adaptTestTargets(edges);
+      edges = pAdaption.adaptTestTargets(edges, pCfa);
+
     } finally {
       optimizationTimer.stopIfRunning();
     }

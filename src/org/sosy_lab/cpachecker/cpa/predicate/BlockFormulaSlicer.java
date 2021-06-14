@@ -120,7 +120,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState end = path.get(i);
       final Set<ARGState> block = blocks.get(i);
 
-      final PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
+      final PathFormula oldPf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf);
       pf = buildFormula(start, end, block, oldPf, importantEdges);
       pfs.add(pf.getFormula());
     }

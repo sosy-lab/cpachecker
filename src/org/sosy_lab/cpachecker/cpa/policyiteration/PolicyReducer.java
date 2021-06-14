@@ -160,7 +160,10 @@ class PolicyReducer implements Reducer {
     BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
         .abstractStateToConstraints(fmgr, aSummaryState, false));
 
-    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
+    @SuppressWarnings("deprecation")
+    // TODO Can we refactor and move part of the code into an appropriate high-level method in
+    // PathFormulaManager?
+    PathFormula pf = PathFormula.createManually(formula, ssa, pointerTargetSet, 1);
 
     // Fake that the control has come from the entry state.
     PolicyIntermediateState generator = PolicyIntermediateState.of(node, pf, aEntryState);
@@ -211,7 +214,7 @@ class PolicyReducer implements Reducer {
         // If bound for this template is present in the summary, add it after the abstraction.
         BooleanFormula policyFormula = stateFormulaConversionManager
             .templateToConstraint(template, pBound, pfmgr, fmgr, inputPath);
-        PathFormula policy = inputPath.updateFormula(policyFormula);
+        PathFormula policy = inputPath.withFormula(policyFormula);
         insertedBound = PolicyBound.of(
             policy,
             pBound.getBound(),

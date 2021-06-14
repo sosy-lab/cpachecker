@@ -152,7 +152,6 @@ public enum MachineModel {
   private final int sizeofBool;
   private final int sizeofPtr;
 
-  @SuppressWarnings("ImmutableEnumChecker")
   private final transient ByteOrder endianness;
 
   // alignof numeric types

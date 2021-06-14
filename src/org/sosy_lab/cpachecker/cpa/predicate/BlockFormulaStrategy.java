@@ -15,8 +15,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -34,6 +36,11 @@ public class BlockFormulaStrategy {
 
     public BlockFormulas(List<BooleanFormula> pFormulas) {
       this.formulas = ImmutableList.copyOf(pFormulas);
+    }
+
+    public static BlockFormulas createFromPathFormulas(List<PathFormula> pPathFormulas) {
+      return new BlockFormulas(
+          Collections3.transformedImmutableListCopy(pPathFormulas, PathFormula::getFormula));
     }
 
     public BlockFormulas(List<BooleanFormula> pFormulas, BooleanFormula pBranchingFormula) {

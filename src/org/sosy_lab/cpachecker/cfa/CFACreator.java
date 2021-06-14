@@ -370,7 +370,10 @@ public class CFACreator {
       }
 
       if (useClang) {
-          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
+        if (usePreprocessor) {
+          logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+        }
+        ClangPreprocessor clang = new ClangPreprocessor(config, logger);
         parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
       } else {
         parser = outerParser;
