@@ -71,12 +71,10 @@ public final class Specification {
         if (specProp.getProperty() instanceof LabelledFormula) {
           try {
             LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
-            Scope scope;
-            if (cfa.getLanguage().equals(Language.JAVA)) {
-              scope = DummyScope.getInstance();
-            } else {
-              scope = new CProgramScope(cfa, logger);
-            }
+            Scope scope =
+                cfa.getLanguage() == Language.C
+                    ? new CProgramScope(cfa, logger)
+                    : DummyScope.getInstance();
             Automaton automaton =
                 Ltl2BuechiConverter.convertFormula(
                     formula,
