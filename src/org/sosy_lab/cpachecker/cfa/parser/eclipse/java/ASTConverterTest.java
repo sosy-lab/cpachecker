@@ -38,15 +38,11 @@ public class ASTConverterTest {
 
   @Test
   public void testGetClassOfPrimitiveType() {
-    Optional<Class<?>> optionalOfPrimitiveType =
-        ASTConverter.getClassOfPrimitiveType(JSimpleType.getInt());
-    assertThat(optionalOfPrimitiveType.get()).isEqualTo(int.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getInt())).isEqualTo(int.class);
 
-    optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getLong());
-    assertThat(optionalOfPrimitiveType.get()).isEqualTo(long.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getLong())).isEqualTo(long.class);
 
-    optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid());
-    assertThat(optionalOfPrimitiveType).isEqualTo(Optional.absent());
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid())).isEqualTo(void.class);
   }
 
   @Test

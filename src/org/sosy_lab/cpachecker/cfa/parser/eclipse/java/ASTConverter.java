@@ -167,7 +167,7 @@ class ASTConverter {
 
   /** Map for unboxing of JClassTypes */
   private static final ImmutableMap<String, JBasicType> unboxingMap =
-       ImmutableMap.<String, JBasicType>builder()
+      ImmutableMap.<String, JBasicType>builder()
           .put("java.lang.Boolean", JBasicType.BOOLEAN)
           .put("java.lang.Byte", JBasicType.BYTE)
           .put("java.lang.Character", JBasicType.CHAR)
@@ -176,6 +176,7 @@ class ASTConverter {
           .put("java.lang.Long", JBasicType.LONG)
           .put("java.lang.Short", JBasicType.SHORT)
           .put("java.lang.Double", JBasicType.DOUBLE)
+          .put("java.lang.Void", JBasicType.VOID)
           .build();
 
   /**
@@ -1674,7 +1675,7 @@ class ASTConverter {
   static Optional<Class<?>> getClassOfJType(
       JType pJType, Set<ImportDeclaration> pImportDeclarations) {
     if (pJType instanceof JSimpleType) {
-      return getClassOfPrimitiveType((JSimpleType) pJType);
+      return Optional.of(getClassOfPrimitiveType((JSimpleType) pJType));
     }
     if (pJType instanceof JClassOrInterfaceType) {
       final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
@@ -1730,7 +1731,7 @@ class ASTConverter {
   }
 
   @VisibleForTesting
-  static Optional<Class<?>> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
+  static Class<?> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
     Class<?> cls;
     switch (pJSimpleType.getType()) {
       case BOOLEAN:
@@ -1749,7 +1750,7 @@ class ASTConverter {
         cls = int.class;
         break;
       case VOID:
-        cls = null;
+        cls = void.class;
         break;
       case LONG:
         cls = long.class;
@@ -1763,11 +1764,7 @@ class ASTConverter {
       default:
         throw new AssertionError("Unknown primitive type " + pJSimpleType);
     }
-    if (cls == null) {
-      return Optional.absent();
-    } else {
-      return Optional.of(cls);
-    }
+    return cls;
   }
 
   private List<JType> getJTypesOfParameters(List<?> arguments) {
