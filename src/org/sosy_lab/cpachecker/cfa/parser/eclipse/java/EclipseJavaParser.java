@@ -25,9 +25,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.eclipse.jdt.core.JavaCore;
@@ -334,16 +336,15 @@ class EclipseJavaParser implements Parser {
 
   private List<JavaFileAST> getASTsOfProgram() throws IOException {
     List<JavaFileAST> astsOfFoundFiles = new ArrayList<>();
-    List<Path> alreadyWalkedPaths = new ArrayList<>();
+    Set<Path> alreadyParsedPaths = new HashSet<>();
     for (Path directory : javaSourcePaths) {
       try (Stream<Path> files = getJavaFilesInPath(directory)) {
         for (Path filePath : files.collect(ImmutableList.toImmutableList())) {
-          if (alreadyWalkedPaths.contains(filePath)) {
+          if (!alreadyParsedPaths.add(filePath)) {
             continue;
           }
           CompilationUnit ast = parse(filePath, IGNORE_METHOD_BODY);
           astsOfFoundFiles.add(new JavaFileAST(filePath, ast));
-          alreadyWalkedPaths.add(filePath);
         }
       }
     }
