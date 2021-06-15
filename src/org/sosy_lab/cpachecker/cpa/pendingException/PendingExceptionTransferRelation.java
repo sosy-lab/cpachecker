@@ -190,7 +190,7 @@ public class PendingExceptionTransferRelation
 
     if (statement instanceof JMethodInvocationStatement) {
       JSimpleDeclaration simpleDeclaration =
-          ((JMethodInvocationStatement) statement).getSimpleDeclaration();
+          ((JMethodInvocationStatement) statement).getFunctionCallExpression().getDeclaration();
       if (simpleDeclaration != null) {
         state.setMethodInvocationObject(
             getScopedVariableName(functionName, simpleDeclaration.getName()));

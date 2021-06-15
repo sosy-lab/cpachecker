@@ -1969,9 +1969,9 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       Optional<JType> optionalJTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression);
       if (optionalJTypeOfThrown.isEmpty()) {
         astCreator.convertExpressionWithSideEffects(throwStatementExpression);
-        jTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression).get();
+        jTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression).orElseThrow();
       } else {
-        jTypeOfThrown = optionalJTypeOfThrown.get();
+        jTypeOfThrown = optionalJTypeOfThrown.orElseThrow();
       }
     } else {
       assert thrown != null;
