@@ -13,10 +13,10 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -68,7 +68,9 @@ public class CFACreatorTest {
     JMethodDeclaration functionDefinition5 =
         createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "int_int");
     when(N5.getFunctionDefinition()).thenReturn(functionDefinition5);
-    cfa = buildExampleCfa(N1, N2, N3, N4, N5);
+    cfa =
+        Maps.uniqueIndex(
+            ImmutableList.of(N1, N2, N3, N4, N5), node -> node.getFunctionDefinition().getName());
   }
 
   @Test
@@ -77,8 +79,7 @@ public class CFACreatorTest {
     String sourceFile = "test/programs/java/CallTests";
     String mainFunction = "pack5.CallTests_true_assert.main_String[]";
     FunctionEntryNode result =
-        CFACreator.getJavaMainMethod(
-            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
+        CFACreator.getJavaMainMethod(ImmutableList.of(sourceFile), mainFunction, cfa);
 
     assertThat(result).isEqualTo(N1);
   }
@@ -89,21 +90,15 @@ public class CFACreatorTest {
     String sourceFile = "pack5.CallTests_true_assert";
     String mainFunction = "callTests_true_assert";
 
-    assertThat(
-        CFACreator.getJavaMainMethod(
-            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
+    assertThat(CFACreator.getJavaMainMethod(ImmutableList.of(sourceFile), mainFunction, cfa))
         .isEqualTo(N3);
 
     mainFunction = "callTests_true_assert_int";
-    assertThat(
-        CFACreator.getJavaMainMethod(
-            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
+    assertThat(CFACreator.getJavaMainMethod(ImmutableList.of(sourceFile), mainFunction, cfa))
         .isEqualTo(N4);
 
     mainFunction = "callTests_true_assert_int_int";
-    assertThat(
-        CFACreator.getJavaMainMethod(
-            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa))
+    assertThat(CFACreator.getJavaMainMethod(ImmutableList.of(sourceFile), mainFunction, cfa))
         .isEqualTo(N5);
   }
 
@@ -114,8 +109,7 @@ public class CFACreatorTest {
     String mainFunction = "main";
 
     FunctionEntryNode result =
-        CFACreator.getJavaMainMethod(
-            new ArrayList<>(ImmutableList.of(sourceFile)), mainFunction, cfa);
+        CFACreator.getJavaMainMethod(ImmutableList.of(sourceFile), mainFunction, cfa);
 
     assertThat(result).isEqualTo(N1);
   }
@@ -123,17 +117,12 @@ public class CFACreatorTest {
   private JMethodDeclaration createFunctionDefinition(
       String classPath, String methodName, String parametersSubString) {
     String name = classPath + "_" + methodName;
-    List<String> parameters;
-    if (!parametersSubString.isEmpty()) {
-      parameters = Arrays.asList(parametersSubString.split("_"));
-    } else {
-      parameters = ImmutableList.of();
-    }
+    List<String> parameters = Splitter.on('_').splitToList(parametersSubString);
     List<JParameterDeclaration> jParameterDeclarations = new ArrayList<>(parameters.size());
     for (String parameter : parameters) {
       jParameterDeclarations.add(
           new JParameterDeclaration(
-              mock(FileLocation.class), mock(JType.class), parameter, "stub", false));
+              FileLocation.DUMMY, mock(JType.class), parameter, "stub", false));
     }
     if (!parametersSubString.isEmpty()) {
       name = name + "_" + parametersSubString;
@@ -163,16 +152,5 @@ public class CFACreatorTest {
     when(declaringClass.getName()).thenReturn(classPath);
     when(declaringClass.getSimpleName()).thenReturn(simpleClassName);
     return declaringClass;
-  }
-
-  private ImmutableMap<String, FunctionEntryNode> buildExampleCfa(JMethodEntryNode... nodeArray) {
-
-    ImmutableMap.Builder<String, FunctionEntryNode> result = ImmutableMap.builder();
-
-    for (JMethodEntryNode node : nodeArray) {
-      result.put(node.getFunctionDefinition().getName(), node);
-    }
-
-    return result.build();
   }
 }
