@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,10 +67,10 @@ public class TestTargetReductionSpanningSet {
       nodeBuilder.add(node);
     }
 
-    /*try {
+    try {
       TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
     } catch (IOException e) {
-    }*/
+    }
 
     DomTree<CFANode>
         domTree =
@@ -90,8 +95,8 @@ public class TestTargetReductionSpanningSet {
                     domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
                 || (inverseDomTree != null
                     && inverseDomTree.isAncestorOf(
-                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()),
-                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()))))) {
+                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()),
+                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()))))) {
           /*
            * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
@@ -210,6 +215,18 @@ public class TestTargetReductionSpanningSet {
       }
 
       return superNode;
+    }
+
+    @Override
+    public String toString() {
+      return representativeTarget
+          + "\n predecessors:"
+          + Joiner.on('\t')
+              .join(from(predecessors).transform(edgeNode -> edgeNode.representativeTarget))
+          + "\n successors:"
+          + Joiner.on('\t')
+              .join(from(successors).transform(edgeNode -> edgeNode.representativeTarget))
+          + "\n";
     }
   }
 
