@@ -33,7 +33,7 @@ public enum TestTargetType {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {
       return edge ->
-          (edge instanceof AssumeEdge) || (TestTargetProvider.isTerminatingFunctionCall(edge));
+          (edge instanceof AssumeEdge) || TestTargetProvider.isTerminatingFunctionCall(edge);
     }
 
     @Override
