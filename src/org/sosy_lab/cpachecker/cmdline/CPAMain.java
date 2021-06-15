@@ -423,9 +423,6 @@ public class CPAMain {
         case "bc":
           language = Language.LLVM;
           break;
-        case "java":
-          language = Language.JAVA;
-          break;
         case "c":
         case "i":
         case "h":

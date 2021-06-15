@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.concat;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Splitter;
@@ -105,8 +107,8 @@ class EclipseJavaParser implements Parser {
 
   private final String entryMethod;
 
-  private ImmutableList<Path> javaSourcePaths;
-  private ImmutableList<Path> javaClassPaths;
+  private ImmutableList<Path> javaSourcePaths = ImmutableList.of();
+  private ImmutableList<Path> javaClassPaths = ImmutableList.of();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -140,29 +142,6 @@ class EclipseJavaParser implements Parser {
     }
   }
 
-  private void setMissingClassPath(List<String> sourceFiles) throws InvalidConfigurationException {
-
-    if (sourceFiles.size() == 1 && sourceFiles.get(0).endsWith(".java")) {
-      ImmutableList<Path> pathToProgram = convertToPathList(sourceFiles.get(0));
-      javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
-    } else {
-      javaClassPaths =
-          transformedImmutableListCopy(sourceFiles, v -> {
-            assert v != null;
-            return Paths.get(v);
-          });
-    }
-    if (javaSourcepath.isEmpty()) {
-      javaSourcePaths = javaClassPaths;
-    } else {
-      javaSourcePaths = convertToPathList(javaSourcepath);
-    }
-
-    if (javaSourcePaths.isEmpty()) {
-      throw new InvalidConfigurationException("No valid Paths could be found.");
-    }
-  }
-
   /**
    * Converts a string with a path or multiple paths to files separated by a path separator to an
    * immutable list of Paths. Path separator in Linux is ':'
@@ -189,126 +168,62 @@ class EclipseJavaParser implements Parser {
   @Override
   public ParseResult parseFiles(List<String> sourceFiles)
       throws ParserException, IOException, InvalidConfigurationException {
-    if (javaClasspath.isEmpty()) {
-      setMissingClassPath(sourceFiles);
-      return parse(entryMethod);
-    } else {
-      return parse(sourceFiles.get(0));
-    }
+    checkArgument(!sourceFiles.isEmpty());
+    // There are two ways to configure CPAchecker for Java programs:
+    // A) Main function via property file or config option + source paths on command line
+    // B) Source paths via config options + main function on command line
+    // We need to distinguish them:
+    final String firstSourceFile = sourceFiles.get(0);
+    if (sourceFiles.size() == 1 && searchForClassFile(firstSourceFile).isPresent()) {
+      // B)
+      return parse(firstSourceFile);
 
+    } else if (sourceFiles.size() != 1 || Files.exists(Paths.get(firstSourceFile))) {
+      // A)
+      List<Path> sourcePaths = transformedImmutableListCopy(sourceFiles, Paths::get);
+      javaClassPaths = concat(javaClassPaths, sourcePaths).toList();
+      javaSourcePaths = concat(javaSourcePaths, sourcePaths).toList();
+      return parse(entryMethod);
+
+    } else {
+      // misconfiguration
+      if (javaSourcePaths.isEmpty()) {
+        // seems like A) was attempted
+        throw new JParserException(
+            "Path '"
+                + firstSourceFile
+                + "' does not exist. If this is the name of the main class, then "
+                + "either class path or source path need to be given with -classpath/-sourcepath.");
+      } else {
+        // seems like B) was attempted
+        throw new JParserException(
+            "Could not find class " + firstSourceFile + " in the specified paths");
+      }
+    }
   }
 
   /**
    * Parse the program of the Main class in this file into a CFA.
    *
-   * @param entryFunction The Main Class File of the program to parse.
+   * @param entryPoint The Main Class File of the program to parse (with optional method attached).
    * @return The CFA.
    */
-  private ParseResult parse(String entryFunction) throws JParserException, IOException {
-    String mainClassAbsolutePath = getAbsolutePathToEntryFunction(entryFunction) + ".java";
-    String mainClassFile = stripMethodNameFromEntryFunction(entryFunction);
-    Scope scope = prepareScope(mainClassFile);
-    ParseResult result = buildCFA(parse(getPathToFile(mainClassAbsolutePath)), scope);
+  private ParseResult parse(String entryPoint) throws JParserException, IOException {
+    String mainClass = entryPoint;
+    Optional<Path> mainClassFile = searchForClassFile(mainClass);
+    if (mainClassFile.isEmpty() && mainClass.contains(".")) {
+      // strip method name
+      mainClass = mainClass.substring(0, mainClass.lastIndexOf('.'));
+      mainClassFile = searchForClassFile(mainClass);
+    }
+    if (mainClassFile.isEmpty()) {
+      throw new JParserException("Could not find class " + mainClass + " in the specified paths");
+    }
+
+    Scope scope = prepareScope(mainClass);
+    ParseResult result = buildCFA(parse(mainClassFile.orElseThrow()), scope);
     exportTypeHierarchy(scope);
     return result;
-  }
-
-  private String stripMethodNameFromEntryFunction(String mainFunctionName) {
-    Optional<Path> mainClassFile = searchForClassFile(mainFunctionName);
-    while (mainClassFile.isEmpty() && !mainFunctionName.isEmpty()) {
-      if (mainFunctionName.contains(".")) {
-        mainFunctionName = removeFromStringEverythingAfterLastOccurrenceOf(mainFunctionName, ".");
-        mainClassFile = searchForClassFile(mainFunctionName);
-      } else {
-        break;
-      }
-    }
-
-    return mainFunctionName;
-  }
-
-  private static String removeFromStringEverythingAfterLastOccurrenceOf(
-      String string, final String separator) {
-    int indexOfLastString = string.lastIndexOf(separator);
-    if (indexOfLastString >= 0) {
-      return string.substring(0, indexOfLastString);
-    } else {
-      return string;
-    }
-  }
-
-  /**
-   * Returns the path of a file using javaSourcePaths variable.
-   *
-   * @param fileName Name of the file
-   * @return path to file
-   * @throws JParserException is thrown if file is not found
-   */
-  private Path getPathToFile(String fileName) throws JParserException {
-    Path mainClassFile;
-    if (!fileName.endsWith(".java")) {
-      mainClassFile =
-          searchForClassFile(fileName)
-              .orElseThrow(
-                  () -> new JParserException("Could not find main class in the specified paths"));
-    } else {
-      mainClassFile = Paths.get(fileName); // TODO check for file exists
-    }
-    return mainClassFile;
-  }
-
-  /**
-   * Splits the path to an entry point into path to class and entry method. If the entry point
-   * method is not given, method will return default entry method. JavaClassPaths has to be set for
-   * this method to work!
-   *
-   * @param entryFunctionPath path to entry method
-   * @return Array with first element being absolute path to class, second element relative path and
-   *     third element entry method
-   */
-  private String getAbsolutePathToEntryFunction(String entryFunctionPath) throws JParserException {
-    if (entryFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
-      entryFunctionPath =
-          entryFunctionPath.substring(
-              0, entryFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
-    }
-    // TODO check if replacing with slash works for windows
-    entryFunctionPath = entryFunctionPath.replaceAll("\\.", "/");
-    Optional<String> mainClassAbsolutePath =
-        findMethodInPathList(javaSourcePaths, entryFunctionPath);
-    if (mainClassAbsolutePath.isEmpty()) {
-      mainClassAbsolutePath = findMethodInPathList(javaClassPaths, entryFunctionPath);
-    }
-    String finalEntryFunctionPath = entryFunctionPath;
-    return mainClassAbsolutePath.orElseThrow(
-        () ->
-            new JParserException(
-                "Could not find entry point. JavaClassPaths: "
-                    + javaClassPaths
-                    + " EntryFunctionPath: "
-                    + finalEntryFunctionPath));
-  }
-
-  private Optional<String> findMethodInPathList(List<Path> pPathList, String pMainFunctionPath) {
-    for (Path path : pPathList) {
-      // In case only file without method name is given
-      Path pathToFile = path.resolve(pMainFunctionPath + JAVA_SOURCE_FILE_EXTENSION);
-      if (Files.exists(pathToFile)) {
-        return Optional.of(path.resolve(pMainFunctionPath).toString());
-      }
-      // In case file and method name is given
-      int indexOfLastSlash = pMainFunctionPath.lastIndexOf('/');
-      if (indexOfLastSlash >= 0) {
-        Path pathToFileParent =
-            path.resolve(
-                pMainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION);
-        if (Files.exists(pathToFileParent)) {
-          return Optional.of(
-              path.resolve(pMainFunctionPath.substring(0, indexOfLastSlash)).toString());
-        }
-      }
-    }
-    return Optional.empty();
   }
 
   private void exportTypeHierarchy(Scope pScope) {
@@ -325,13 +240,13 @@ class EclipseJavaParser implements Parser {
     }
   }
 
-  private Scope prepareScope(String mainClassFileName) throws JParserException, IOException {
+  private Scope prepareScope(String mainClassName) throws JParserException, IOException {
 
     List<JavaFileAST> astsOfFoundFiles = getASTsOfProgram();
 
     TypeHierarchy typeHierarchy = TypeHierarchy.createTypeHierachy(logger, astsOfFoundFiles);
 
-    return new Scope(mainClassFileName, typeHierarchy, logger);
+    return new Scope(mainClassName, typeHierarchy, logger);
   }
 
   private List<JavaFileAST> getASTsOfProgram() throws IOException {
