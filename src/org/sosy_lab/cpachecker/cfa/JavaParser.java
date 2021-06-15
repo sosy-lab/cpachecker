@@ -15,6 +15,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public interface JavaParser extends Parser {
-  ParseResult parseFile(List<String> sourceFiles, String mainFunctionName)
+  ParseResult parseFile(List<String> sourceFiles)
       throws ParserException, IOException, InterruptedException, InvalidConfigurationException;
 }

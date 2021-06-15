@@ -364,7 +364,7 @@ public class CFACreator {
           throw new InvalidConfigurationException(
               "Entry function for java programs must match pattern " + regExPattern);
         }
-        parser = Parsers.getJavaParser(logger, config);
+        parser = Parsers.getJavaParser(logger, config, mainFunctionName);
         break;
       case C:
         regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
@@ -693,7 +693,7 @@ public class CFACreator {
     }
 
     if (language == Language.JAVA) {
-      parseResult = ((JavaParser) parser).parseFile(sourceFiles, mainFunctionName);
+      parseResult = ((JavaParser) parser).parseFile(sourceFiles);
     } else if (sourceFiles.size() == 1) {
 
       parseResult = parser.parseFile(sourceFiles.get(0));

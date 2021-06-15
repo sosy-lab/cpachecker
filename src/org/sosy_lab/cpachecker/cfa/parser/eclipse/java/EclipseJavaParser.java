@@ -103,6 +103,8 @@ class EclipseJavaParser implements JavaParser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
+  private final String entryMethod;
+
   private ImmutableList<Path> javaSourcePaths;
   private ImmutableList<Path> javaClassPaths;
 
@@ -112,12 +114,12 @@ class EclipseJavaParser implements JavaParser {
   private static final boolean PARSE_METHOD_BODY = false;
   static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
-  public EclipseJavaParser(LogManager pLogger, Configuration config)
+  public EclipseJavaParser(LogManager pLogger, Configuration config, String pEntryMethod)
       throws InvalidConfigurationException {
 
     config.inject(this);
-
     logger = pLogger;
+    entryMethod = pEntryMethod;
 
     if (!javaSourcepath.isEmpty() && javaClasspath.isEmpty()) {
       javaClasspath = javaSourcepath;
@@ -185,11 +187,11 @@ class EclipseJavaParser implements JavaParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> sourceFiles, String mainFunctionName)
+  public ParseResult parseFile(List<String> sourceFiles)
       throws ParserException, IOException, InvalidConfigurationException {
     if (javaClasspath.isEmpty()) {
       setMissingClassPath(sourceFiles);
-      return parseFile(mainFunctionName);
+      return parseFile(entryMethod);
     } else {
       return parseFile(sourceFiles.get(0));
     }
