@@ -382,27 +382,27 @@ public class CFACreator {
 
         if (usePreprocessor) {
           CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
-      }
-
-      if (useClang) {
-        if (usePreprocessor) {
-          logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
         }
-        ClangPreprocessor clang = new ClangPreprocessor(config, logger);
-        parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
-      } else {
-        parser = outerParser;
-      }
 
-      break;
-    case LLVM:
-      parser = Parsers.getLlvmParser(logger, machineModel);
-      language = Language.C; // After parsing we will have a CFA representing C code
-      break;
+        if (useClang) {
+          if (usePreprocessor) {
+            logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+          }
+          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
+          parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+        } else {
+          parser = outerParser;
+        }
 
-    default:
-      throw new AssertionError();
+        break;
+      case LLVM:
+        parser = Parsers.getLlvmParser(logger, machineModel);
+        language = Language.C; // After parsing we will have a CFA representing C code
+        break;
+
+      default:
+        throw new AssertionError();
     }
 
     stats.parsingTime = parser.getParseTime();
