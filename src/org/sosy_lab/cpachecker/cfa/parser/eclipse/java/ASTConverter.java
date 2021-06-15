@@ -1739,37 +1739,36 @@ class ASTConverter {
   @VisibleForTesting
   static Optional<Class<?>> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
     Class<?> cls;
-    final String name = pJSimpleType.getType().toASTString();
-    switch (name) {
-      case "boolean":
+    switch (pJSimpleType.getType()) {
+      case BOOLEAN:
         cls = boolean.class;
         break;
-      case "char":
+      case CHAR:
         cls = char.class;
         break;
-      case "double":
+      case DOUBLE:
         cls = double.class;
         break;
-      case "float":
+      case FLOAT:
         cls = float.class;
         break;
-      case "int":
+      case INT:
         cls = int.class;
         break;
-      case "void":
+      case VOID:
         cls = null;
         break;
-      case "long":
+      case LONG:
         cls = long.class;
         break;
-      case "short":
+      case SHORT:
         cls = short.class;
         break;
-      case "byte":
+      case BYTE:
         cls = byte.class;
         break;
       default:
-        throw new CFAGenerationRuntimeException("Unknown primitive type " + name);
+        throw new AssertionError("Unknown primitive type " + pJSimpleType);
     }
     if (cls == null) {
       return Optional.absent();
