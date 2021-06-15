@@ -43,16 +43,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.JavaParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-/**
- * Wrapper around the JDT Parser and CFA-Builder Implementation.
- */
+/** Wrapper around the JDT Parser and CFA-Builder Implementation. */
 @Options
-class EclipseJavaParser implements JavaParser {
+class EclipseJavaParser implements Parser {
 
   @Option(
       secure = true,
