@@ -16,8 +16,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,10 +65,10 @@ public class TestTargetReductionSpanningSet {
       nodeBuilder.add(node);
     }
 
-    try {
+    /*try {
       TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
     } catch (IOException e) {
-    }
+    }*/
 
     DomTree<CFANode>
         domTree =
