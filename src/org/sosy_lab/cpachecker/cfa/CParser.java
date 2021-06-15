@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.IOException;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,18 +69,6 @@ public interface CParser extends Parser {
       throws CParserException, InterruptedException {
     return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
-
-  /**
-   * Parse the content of files into a single CFA.
-   *
-   * @param filenames The List of files to parse. The first part of the pair should be the filename,
-   *     the second part should be the prefix which will be appended to static variables
-   * @return The CFA.
-   * @throws IOException If file cannot be read.
-   * @throws CParserException If parser or CFA builder cannot handle the C code.
-   */
-  ParseResult parseFile(List<String> filenames)
-      throws CParserException, IOException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.

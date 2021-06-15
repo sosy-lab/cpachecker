@@ -187,13 +187,13 @@ class EclipseJavaParser implements JavaParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> sourceFiles)
+  public ParseResult parseFiles(List<String> sourceFiles)
       throws ParserException, IOException, InvalidConfigurationException {
     if (javaClasspath.isEmpty()) {
       setMissingClassPath(sourceFiles);
-      return parseFile(entryMethod);
+      return parse(entryMethod);
     } else {
-      return parseFile(sourceFiles.get(0));
+      return parse(sourceFiles.get(0));
     }
 
   }
@@ -204,8 +204,7 @@ class EclipseJavaParser implements JavaParser {
    * @param entryFunction The Main Class File of the program to parse.
    * @return The CFA.
    */
-  @Override
-  public ParseResult parseFile(String entryFunction) throws JParserException, IOException {
+  private ParseResult parse(String entryFunction) throws JParserException, IOException {
     String mainClassAbsolutePath = getAbsolutePathToEntryFunction(entryFunction) + ".java";
     String mainClassFile = stripMethodNameFromEntryFunction(entryFunction);
     Scope scope = prepareScope(mainClassFile);

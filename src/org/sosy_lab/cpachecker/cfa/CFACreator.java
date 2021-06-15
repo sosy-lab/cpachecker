@@ -692,23 +692,7 @@ public class CFACreator {
       // TODO Thus verification is different
     }
 
-    if (language == Language.JAVA) {
-      parseResult = ((JavaParser) parser).parseFile(sourceFiles);
-    } else if (sourceFiles.size() == 1) {
-
-      parseResult = parser.parseFile(sourceFiles.get(0));
-
-    } else {
-      // when there is more than one file which should be evaluated, the
-      // program denotations are separated from each other and a prefix for
-      // static variables is generated
-      if (language != Language.C) {
-        throw new InvalidConfigurationException(
-            "Multiple program files not supported for languages other than C.");
-      }
-
-      parseResult = ((CParser) parser).parseFile(sourceFiles);
-    }
+    parseResult = parser.parseFiles(sourceFiles);
 
     if (parseResult.isEmpty()) {
       switch (language) {

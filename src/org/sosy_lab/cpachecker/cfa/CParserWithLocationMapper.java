@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.BOMParser;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Encapsulates a {@link CParser} instance and tokenizes all files first.
@@ -69,15 +68,6 @@ public class CParserWithLocationMapper implements CParser {
     this.logger = pLogger;
     this.realParser = pRealParser;
     readLineDirectives = pReadLineDirectives;
-  }
-
-  @Override
-  public ParseResult parseFile(String pFilename)
-      throws ParserException, IOException, InterruptedException {
-    CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
-    String tokenizedCode = tokenizeSourcefile(pFilename, sourceOriginMapping);
-    return realParser.parseString(
-        pFilename, tokenizedCode, sourceOriginMapping, CProgramScope.empty());
   }
 
   private String tokenizeSourcefile(String pFilename,
@@ -202,7 +192,7 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
+  public ParseResult parseFiles(List<String> pFilenames)
       throws CParserException, IOException, InterruptedException {
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
