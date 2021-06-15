@@ -29,6 +29,18 @@ public enum TestTargetType {
       return getEdgeCriterion();
     }
   },
+  TEST_COMP_ASSUME {
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion() {
+      return edge ->
+          (edge instanceof AssumeEdge) || (TestTargetProvider.isTerminatingFunctionCall(edge));
+    }
+
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion(final String pProp) {
+      return getEdgeCriterion();
+    }
+  },
   ERROR_CALL {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {

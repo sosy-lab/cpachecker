@@ -447,7 +447,7 @@ public class CPAMain {
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
       ImmutableMap.<Property, TestTargetType>builder()
-          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.TEST_COMP_ASSUME)
           .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
           .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
           .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
