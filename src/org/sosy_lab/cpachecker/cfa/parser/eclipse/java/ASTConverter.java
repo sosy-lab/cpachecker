@@ -704,13 +704,7 @@ class ASTConverter {
       return (JMethodInvocationAssignmentStatement) node;
 
     } else if (node instanceof JMethodInvocationExpression) {
-      JSimpleDeclaration jSimpleDeclaration = null;
-      if (s.getExpression() instanceof MethodInvocation
-          && ((MethodInvocation) s.getExpression()).getExpression() instanceof SimpleName) {
-        jSimpleDeclaration =
-            scope.lookupVariable(((SimpleName) ((MethodInvocation) s.getExpression()).getExpression()).getIdentifier());
-      }
-      return new JMethodInvocationStatement(getFileLocation(s), (JMethodInvocationExpression) node, jSimpleDeclaration);
+      return new JMethodInvocationStatement(getFileLocation(s), (JMethodInvocationExpression) node);
 
     } else if (node instanceof JExpression) {
       return new JExpressionStatement(getFileLocation(s), (JExpression) node);
@@ -799,8 +793,7 @@ class ASTConverter {
             (JClassType) getDeclaringClassType(binding),
             functionName,
             params,
-            declaration),
-        null);
+            declaration));
   }
 
   private JConstructorType convertConstructorType(IMethodBinding pBinding) {

@@ -1249,7 +1249,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             new JStatementEdge(
                 condExp.toString(),
                 new JMethodInvocationStatement(
-                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp, null),
+                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp),
                 fileLocation,
                 prevNode,
                 lastNode);
@@ -2932,7 +2932,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
                                         pParametersToCallWith,
                                         pConstructorToInvoke);
     JStatement superInvocationStatement =
-        new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation, null);
+        new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation);
 
     CFANode prevNode = locStack.pop();
     CFANode nextNode = new CFANode(cfa.getFunction());

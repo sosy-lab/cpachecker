@@ -26,23 +26,14 @@ public final class JMethodInvocationStatement extends AFunctionCallStatement
 
   private static final long serialVersionUID = 8432702267615877780L;
 
-  private final JSimpleDeclaration simpleDeclaration;
-
   public JMethodInvocationStatement(
-      FileLocation pFileLocation,
-      JMethodInvocationExpression pFunctionCall,
-      JSimpleDeclaration pJSimpleDeclaration) {
+      FileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {
     super(pFileLocation, pFunctionCall);
-    this.simpleDeclaration = pJSimpleDeclaration;
   }
 
   @Override
   public JMethodInvocationExpression getFunctionCallExpression() {
     return (JMethodInvocationExpression) super.getFunctionCallExpression();
-  }
-
-  public JSimpleDeclaration getSimpleDeclaration() {
-    return simpleDeclaration;
   }
 
   @Override
