@@ -36,7 +36,7 @@ public class JClassLiteralExpression extends ALiteralExpression implements JLite
     checkArgument(
         pJType instanceof JClassOrInterfaceType
             || pJType instanceof JArrayType
-            || (pJType instanceof JSimpleType && !pJType.equals(JSimpleType.getNull())),
+            || pJType instanceof JSimpleType,
         "Type of class literals can only be class, interface, array, or primitive type, "
             + "or the pseudo-type void");
   }
