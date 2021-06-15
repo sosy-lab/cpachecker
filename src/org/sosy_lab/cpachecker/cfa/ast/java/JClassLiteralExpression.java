@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -27,18 +26,18 @@ public class JClassLiteralExpression extends ALiteralExpression implements JLite
 
   private static final long serialVersionUID = -5629884765912549873L;
 
-  private JClassLiteralExpression(FileLocation pFileLocation, Type pType) {
-    super(pFileLocation, pType);
-  }
+  private final JType type;
 
   public JClassLiteralExpression(FileLocation pFileLocation, JType pJType) {
-    this(pFileLocation, (Type) pJType);
+    // FIXME: Passing pJType as expression type is wrong, it needs to be Class<pJType>
+    super(pFileLocation, pJType);
     checkArgument(
         pJType instanceof JClassOrInterfaceType
             || pJType instanceof JArrayType
             || pJType instanceof JSimpleType,
         "Type of class literals can only be class, interface, array, or primitive type, "
             + "or the pseudo-type void");
+    type = pJType;
   }
 
   @Override
@@ -47,13 +46,13 @@ public class JClassLiteralExpression extends ALiteralExpression implements JLite
   }
 
   @Override
-  public Type getValue() {
-    return getExpressionType();
+  public JType getValue() {
+    return type;
   }
 
   @Override
   public String toASTString() {
-    return getExpressionType().toString();
+    return getValue() + ".class";
   }
 
   @Override
