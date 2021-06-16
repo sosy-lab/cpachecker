@@ -1075,6 +1075,9 @@ class ASTConverter {
   }
 
   private String addCounterToName(String pName) {
+    if (!scope.variableNameInUse(pName, pName)) {
+      return pName;
+    }
     int i = 0;
     String sep = "__";
     while (scope.variableNameInUse(pName + sep + i, pName)) {
