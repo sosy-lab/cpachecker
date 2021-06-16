@@ -15,6 +15,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -1527,11 +1528,9 @@ class ASTConverter {
       compilationUnit = compilationUnit.getParent();
     }
     // Make set of importDeclarations
-    return ((List<?>) ((CompilationUnit) compilationUnit).imports())
-        .stream()
-            .filter(v -> v instanceof ImportDeclaration)
-            .map(ImportDeclaration.class::cast)
-            .collect(ImmutableSet.toImmutableSet());
+    return FluentIterable.from((List<?>) ((CompilationUnit) compilationUnit).imports())
+        .filter(ImportDeclaration.class)
+        .toSet();
   }
 
   private VisibilityModifier getVisibilityModifierForConstructor(Constructor<?> pConstructor) {

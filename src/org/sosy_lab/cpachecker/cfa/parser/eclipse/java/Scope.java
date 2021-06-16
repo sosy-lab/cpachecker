@@ -471,20 +471,18 @@ class Scope {
       JClassOrInterfaceType pType) {
 
     if (typeHierarchy.isExternType(pType)) {
-      return ImmutableMap.<String, JFieldDeclaration>builder().build();
+      return ImmutableMap.of();
     }
 
     Set<JFieldDeclaration> fieldDecls = getFieldDeclarations(pType);
 
     for (JFieldDeclaration declaration : fieldDecls) {
       if (!declaration.isStatic()) {
-        return ImmutableMap.<String, JFieldDeclaration>builder()
-            .put(declaration.getName(), declaration)
-            .build();
+        return ImmutableMap.of(declaration.getName(), declaration);
       }
     }
 
-    return ImmutableMap.<String, JFieldDeclaration>builder().build();
+    return ImmutableMap.of();
   }
 
   public String getFileOfCurrentType() {
