@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
-import org.sosy_lab.cpachecker.cpa.value.type.IllegalArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
@@ -2199,11 +2198,7 @@ public abstract class AbstractExpressionValueVisitor
 
   private ArrayValue createArrayValue(JArrayType pType, long pArraySize) {
 
-    if(pArraySize < 0){
-      return new IllegalArrayValue(pType);
-    }
-
-    if (pArraySize > Integer.MAX_VALUE) {
+    if (pArraySize < 0 || pArraySize > Integer.MAX_VALUE) {
       throw new AssertionError("Trying to create array of size " + pArraySize
           + ". Java arrays can't be smaller than 0 or bigger than the max int value.");
     }
