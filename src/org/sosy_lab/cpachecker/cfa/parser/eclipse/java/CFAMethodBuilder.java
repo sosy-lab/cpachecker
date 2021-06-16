@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -31,8 +30,6 @@ import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
-import org.eclipse.jdt.core.dom.CatchClause;
-import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
@@ -51,8 +48,6 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
-import org.eclipse.jdt.core.dom.ThrowStatement;
-import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.sosy_lab.common.log.LogManager;
@@ -73,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpressionIsPendingExceptionThrown;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -88,8 +82,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -103,7 +95,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.java.JThrowStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
@@ -136,15 +127,6 @@ class CFAMethodBuilder extends ASTVisitor {
   // Data structure for handling switch-statements
   private final Deque<JExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
-
-  // Data structure for handling try catch throw
-  // First value of list is post catch nodes, second is post finally node
-  private final Deque<List<Optional<CFANode>>> tryStack = new ArrayDeque<>();
-  private final static String EDGE_DESCRIPTION_AFTER_CAUGHT_EXCEPTION =
-      "go to end of try after caught exception";
-  private final static String EDGE_DESCRIPTION_AFTER_LAST_CATCH_CLAUSE =
-      "go to end of try after last catch clause";
-  private static final String EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE = "Enter first catch clause";
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -747,19 +729,12 @@ class CFAMethodBuilder extends ASTVisitor {
 
         unsuccessfulNode = handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
       }
-      if (nodeIsInTryStatement(assertStatement)) {
-        blankEdge =
-            new BlankEdge(
-                rawSignature, fileloc, unsuccessfulNode, getPreCatchNode().orElseThrow(),
-                "assert fail");
-        addToCFA(blankEdge);
-      } else {
+
         CFANode endNode = new CFATerminationNode(methodName);
         cfaNodes.add(endNode);
         blankEdge = new BlankEdge(rawSignature, fileloc, unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
       }
-    }
 
     return SKIP_CHILDREN;
   }
@@ -1367,9 +1342,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
           addToCFA(blankEdge);
         }
       }
-      boolean isPreviousNodePreCatchNode =
-          !tryStack.isEmpty() && prevNode == getPreCatchNode().orElseThrow();
-      if (prevNode.getNumEnteringEdges() > 0 && !isPreviousNodePreCatchNode) {
+      if (prevNode.getNumEnteringEdges() > 0) {
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
         addToCFA(blankEdge);
       }
@@ -1737,335 +1710,6 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     // skip visiting children of switch, because switchBody was handled before
     return SKIP_CHILDREN;
-  }
-
-  @Override
-  public boolean visit(TryStatement pTryStatement) {
-    FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
-
-    CFANode prevNode = locStack.pop();
-
-    CFANode tryNode = new CFANode(cfa.getFunction());
-
-    cfaNodes.add(tryNode);
-    locStack.push(tryNode);
-
-    CFANode preCatchNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(preCatchNode);
-
-    CFANode postCatchNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(postCatchNode);
-
-    if (pTryStatement.getFinally() != null) {
-      CFANode postFinallyNode = new CFANode(cfa.getFunction());
-      cfaNodes.add(postFinallyNode);
-
-      tryStack.push(
-          ImmutableList.of(
-              Optional.of(preCatchNode), Optional.of(postCatchNode), Optional.of(postFinallyNode)));
-    } else {
-      tryStack.push(
-          ImmutableList.of(
-              Optional.of(preCatchNode), Optional.of(postCatchNode), Optional.empty()));
-    }
-    CFANode hasPendingExceptionNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(hasPendingExceptionNode);
-
-    JIdExpression jIdExpression = new JIdExpressionIsPendingExceptionThrown();
-
-    final Optional<CFANode> postFinallyNode = getPostFinallyNode();
-    createConditionEdges(
-        jIdExpression,
-        fileloc,
-        prevNode,
-        postFinallyNode.isEmpty() ? postCatchNode : postFinallyNode.orElseThrow(),
-        hasPendingExceptionNode);
-
-    BlankEdge blankEdge =
-        new BlankEdge(pTryStatement.toString(), fileloc, hasPendingExceptionNode, tryNode, "try");
-    addToCFA(blankEdge);
-
-    return VISIT_CHILDREN;
-  }
-
-  @Override
-  public void endVisit(TryStatement pTryStatement) {
-
-    if (getPostFinallyNode().isPresent()) {
-
-      CFANode prevNode = locStack.pop();
-      final CFANode postFinallyNode = getPostFinallyNode().orElseThrow();
-
-      FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
-
-      // Unreachable node can happen when assert false is in finally block
-      if (prevNode != null && prevNode.getNumEnteringEdges() != 0) {
-        BlankEdge blankEdge =
-            new BlankEdge(
-                pTryStatement.toString(), fileloc, prevNode, postFinallyNode, "End of finally");
-        addToCFA(blankEdge);
-      }
-      locStack.push(postFinallyNode);
-    }
-    tryStack.pop();
-  }
-
-  @Override
-  public boolean visit(CatchClause pCatchClauseNode) {
-
-    CFANode prevNode = locStack.pop();
-
-    if (isFirstCatchClause(pCatchClauseNode)) {
-      // True if throw statement was reached
-      CFANode preCatchNode = getPreCatchNode().orElseThrow();
-      if (preCatchNode != prevNode) {
-        BlankEdge blankEdge =
-            new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                prevNode,
-                preCatchNode,
-                EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE);
-        addToCFA(blankEdge);
-        prevNode = preCatchNode;
-      }
-    }
-
-    FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
-
-    CFANode exceptionDoesNotMatchNode = new CFANode(cfa.getFunction());
-
-    cfaNodes.add(exceptionDoesNotMatchNode);
-    locStack.push(exceptionDoesNotMatchNode);
-
-    CFANode exceptionMatchesNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(exceptionMatchesNode);
-    locStack.push(exceptionMatchesNode);
-
-    JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
-
-    JExpression jRunTimeTypePendingException = new PendingExceptionOfJRunTimeType();
-
-    final JExpression instanceOfExpression =
-        astCreator.createInstanceOfExpression(
-            jRunTimeTypePendingException,
-            (JClassOrInterfaceType) jDeclarationOfException.getType(),
-            fileloc);
-
-    createConditionEdges(
-        instanceOfExpression, fileloc, prevNode, exceptionMatchesNode, exceptionDoesNotMatchNode);
-
-    return VISIT_CHILDREN;
-  }
-
-  @Override
-  public void endVisit(CatchClause pCatchClause) {
-    final CFANode prevNode = locStack.pop();
-    final CFANode nextNode = locStack.peek();
-
-    if (isReachableNode(prevNode)) {
-
-      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
-
-        boolean isBlankEdge =
-            (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();
-
-        if (isBlankEdge) {
-
-          // the only entering edge is a BlankEdge, so we delete this edge and prevNode
-
-          CFANode prevPrevNode = prevEdge.getPredecessor();
-          assert prevPrevNode.getNumLeavingEdges() == 1;
-          prevNode.removeEnteringEdge(prevEdge);
-          prevPrevNode.removeLeavingEdge(prevEdge);
-
-          BlankEdge blankEdge =
-              new BlankEdge("", prevEdge.getFileLocation(), prevPrevNode, nextNode, "");
-          addToCFA(blankEdge);
-        }
-      }
-
-      if (prevNode.getNumEnteringEdges() > 0) {
-        BlankEdge blankEdge =
-            new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                prevNode,
-                getPostCatchNode().orElseThrow(),
-                EDGE_DESCRIPTION_AFTER_CAUGHT_EXCEPTION);
-        addToCFA(blankEdge);
-      }
-    }
-
-    if (isLastCatchClause(pCatchClause)) {
-      final CFANode postCatchNode = getPostCatchNode().orElseThrow();
-      BlankEdge blankEdge =
-          new BlankEdge(
-              "",
-              FileLocation.DUMMY,
-              nextNode,
-              postCatchNode,
-              EDGE_DESCRIPTION_AFTER_LAST_CATCH_CLAUSE);
-      addToCFA(blankEdge);
-      locStack.pop();
-      locStack.push(postCatchNode);
-    }
-  }
-
-  private boolean isFirstCatchClause(CatchClause pCatchClause){
-    final List<?> catchClauses = ((TryStatement) pCatchClause.getParent()).catchClauses();
-    if( pCatchClause == catchClauses.get(0)){
-      return true;
-    }
-    return false;
-  }
-
-  private boolean isLastCatchClause(CatchClause pCatchClause){
-    final List<?> catchClauses = ((TryStatement) pCatchClause.getParent()).catchClauses();
-    if( pCatchClause == catchClauses.get(catchClauses.size() - 1)){
-      return true;
-    }
-    return false;
-  }
-
-  private Optional<CFANode> getPreCatchNode() {
-    assert tryStack.peek() != null && tryStack.peek().size() == 3;
-    return tryStack.peek().get(0);
-  }
-
-  private Optional<CFANode> getPostCatchNode() {
-    assert tryStack.peek() != null && tryStack.peek().size() == 3;
-    return tryStack.peek().get(1);
-  }
-
-  private Optional<CFANode> getPostFinallyNode() {
-    assert tryStack.peek() != null && tryStack.peek().size() == 3;
-    return tryStack.peek().get(2);
-  }
-
-  @Override
-  public void endVisit(ThrowStatement pThrowStatement) {
-    handleElseCondition(pThrowStatement);
-    final Expression throwStatementExpression;
-    if (pThrowStatement.getExpression() instanceof ParenthesizedExpression) {
-      throwStatementExpression =
-          ((ParenthesizedExpression) pThrowStatement.getExpression()).getExpression();
-    } else {
-      throwStatementExpression = pThrowStatement.getExpression();
-    }
-    JSimpleDeclaration thrown = scope.lookupVariable(throwStatementExpression.toString());
-    final String thrownName;
-    if (thrown != null) {
-      thrownName = thrown.getName();
-    } else {
-      thrownName = throwStatementExpression.toString();
-    }
-    FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
-
-    CFANode prevNode = locStack.pop();
-
-    final JType jTypeOfThrown;
-    if (thrown == null && throwStatementExpression instanceof ClassInstanceCreation) {
-      Optional<JType> optionalJTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression);
-      if (optionalJTypeOfThrown.isEmpty()) {
-        astCreator.convertExpressionWithSideEffects(throwStatementExpression);
-        jTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression).orElseThrow();
-      } else {
-        jTypeOfThrown = optionalJTypeOfThrown.orElseThrow();
-      }
-    } else {
-      assert thrown != null;
-      jTypeOfThrown = thrown.getType();
-    }
-    if (!tryStack.isEmpty() && !nodeIsInCatchClause(pThrowStatement)) {
-      final Optional<CFANode> preCatchNode = getPreCatchNode();
-
-      JLeftHandSide leftHandSide = PendingExceptionOfJIdExpression.create();
-      JIdExpression rightHandSide = new JIdExpression(fileloc, jTypeOfThrown, thrownName, null);
-
-      JExpressionAssignmentStatement jExpressionAssignmentStatement =
-          new JExpressionAssignmentStatement(fileloc, leftHandSide, rightHandSide);
-      JThrowStatementEdge jThrowStatementEdge =
-          new JThrowStatementEdge(
-              pThrowStatement.toString(),
-              jExpressionAssignmentStatement,
-              fileloc,
-              prevNode,
-              preCatchNode.orElseGet(() -> cfa.getExitNode()));
-
-      addToCFA(jThrowStatementEdge);
-
-      if (!locStack.isEmpty() && !elseStack.isEmpty()) {
-        locStack.push(locStack.peek());
-      } else {
-        locStack.push(preCatchNode.orElseThrow());
-      }
-    } else {
-      final CFANode nextNode = new CFANode(cfa.getFunction());
-      cfaNodes.add(nextNode);
-      locStack.push(nextNode);
-
-      JLeftHandSide leftHandSide = new JIdExpression(fileloc, jTypeOfThrown, "thrown", null);
-      JIdExpression rightHandSide = new JIdExpression(fileloc, jTypeOfThrown, thrownName, null);
-
-      JExpressionAssignmentStatement jExpressionAssignmentStatement =
-          new JExpressionAssignmentStatement(fileloc, leftHandSide, rightHandSide);
-      JStatementEdge jStatementEdge =
-          new JStatementEdge(
-              pThrowStatement.toString(),
-              jExpressionAssignmentStatement,
-              fileloc,
-              prevNode,
-              nextNode);
-
-      addToCFA(jStatementEdge);
-    }
-  }
-
-  private Optional<JType> getJTypeFromTypeHierarchy(Expression pExpression) {
-    if (scope.containsClassType(((ClassInstanceCreation) pExpression).getType().toString())) {
-      return Optional.of(
-          scope.getClassType(((ClassInstanceCreation) pExpression).getType().toString()));
-    } else if (scope.containsClassType(
-        "java.lang." + ((ClassInstanceCreation) pExpression).getType().toString())) {
-      return Optional.of(
-          scope.getClassType(
-              ("java.lang." + ((ClassInstanceCreation) pExpression).getType().toString())));
-    }
-
-    return Optional.empty();
-  }
-
-  private boolean nodeIsInCatchClause(ASTNode pASTNode) {
-    ASTNode current = pASTNode.getParent();
-    while (current != null
-        && !(current instanceof MethodDeclaration)) { // null when root node is reached
-      if (current instanceof CatchClause) {
-        return true;
-      } else if (current instanceof TryStatement) {
-        return false;
-      }
-      current = current.getParent();
-    }
-    return false;
-  }
-
-  private boolean nodeIsInTryStatement(ASTNode pASTNode) {
-    ASTNode current = pASTNode.getParent();
-    while (current != null
-        && !(current instanceof MethodDeclaration)) { // null when root node is reached
-      if (current instanceof TryStatement) {
-        return true;
-      } else if (current instanceof CatchClause) {
-        return false;
-      }
-      final ASTNode parent = current.getParent();
-      if(parent instanceof TryStatement && ((TryStatement) parent).getFinally() == current){
-        return false;
-      }
-      current = parent;
-    }
-    return false;
   }
 
   @Override
@@ -2745,20 +2389,9 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       astCreator.resetConditionalExpression();
     }
 
-    CFAEdge edge;
-    if (nodeIsInTryStatement(returnStatement)) {
-      edge =
-          new BlankEdge(
-              returnStatement.toString(),
-              fileloc,
-              prevNode,
-              getPreCatchNode().orElseThrow(),
-              returnStatement.toString());
-    } else {
-      edge =
+    JReturnStatementEdge edge =
           new JReturnStatementEdge(
               returnStatement.toString(), cfJReturnStatement, fileloc, prevNode, functionExitNode);
-    }
     addToCFA(edge);
 
     locStack.push(nextNode);
