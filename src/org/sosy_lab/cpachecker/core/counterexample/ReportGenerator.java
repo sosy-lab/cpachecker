@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
-import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
@@ -477,7 +476,7 @@ public class ReportGenerator {
 
   private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
       throws IOException {
-    if (isReadable(sourcePath)) {
+    if (Files.isReadable(sourcePath) && !Files.isDirectory(sourcePath)) {
       int lineNumber = 1;
       try (BufferedReader source =
           new BufferedReader(
