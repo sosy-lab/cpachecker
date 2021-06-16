@@ -529,7 +529,7 @@ class ASTConverter {
               convert(type),
               name,
               nameAndInitializer.getName(),
-              getQualifiedName(nameAndInitializer.getName()),
+              getQualifiedName(name),
               nameAndInitializer.getInitializer(),
               mB.isFinal());
 
@@ -578,7 +578,7 @@ class ASTConverter {
         convert(type),
         name,
         d.getName().getFullyQualifiedName(),
-        getQualifiedName(d.getName().getFullyQualifiedName()),
+        getQualifiedName(name),
         initializerExpression,
         mB.isFinal());
   }
@@ -1062,7 +1062,7 @@ class ASTConverter {
               convert(type),
               name,
               nameAndInitializer.getName(),
-              getQualifiedName(nameAndInitializer.getName()),
+              getQualifiedName(name),
               nameAndInitializer.getInitializer(),
               mB.isFinal());
 
