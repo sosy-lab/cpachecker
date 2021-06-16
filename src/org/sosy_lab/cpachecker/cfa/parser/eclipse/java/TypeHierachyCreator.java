@@ -23,6 +23,7 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
@@ -164,16 +165,28 @@ class TypeHierachyCreator extends ASTVisitor {
     if (typeBinding != null) {
 
       if (typeBinding.isTopLevel()) {
+        boolean isPublic = false;
+        for (Object mod : node.modifiers()) {
+          if (!(mod instanceof Modifier)) {
+            continue;
+          }
+          if (((Modifier) mod).isPublic()) {
+            isPublic = true;
+            break;
+          }
+        }
 
-        String simpleName = node.getName().getIdentifier();
-        String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
+        if (isPublic) {
+          String simpleName = node.getName().getIdentifier();
+          String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
 
-        if (!expectedFilename.equals(fileOfCU)) {
-          classNameException = true;
-          expectedName = expectedFilename;
-          className = simpleName;
+          if (!expectedFilename.equals(fileOfCU)) {
+            classNameException = true;
+            expectedName = expectedFilename;
+            className = simpleName;
 
-          return SKIP_CHILDREN;
+            return SKIP_CHILDREN;
+          }
         }
       }
 

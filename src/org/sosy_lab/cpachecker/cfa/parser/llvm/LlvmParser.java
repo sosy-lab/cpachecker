@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -46,8 +47,17 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename)
-      throws ParserException, InterruptedException {
+  public ParseResult parseFiles(final List<String> pFilenames)
+      throws ParserException, InterruptedException, InvalidConfigurationException {
+
+    if (pFilenames.size() > 1) {
+      throw new InvalidConfigurationException(
+          "Multiple program files not supported when using LLVM frontend.");
+    }
+    return parseFile(pFilenames.get(0));
+  }
+
+  protected ParseResult parseFile(final String pFilename) throws LLVMParserException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
         Module llvmModule = Module.parseIR(pFilename, llvmContext)) {

@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.nio.file.Path;
-
+import java.util.List;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseDir;
 import org.sosy_lab.common.log.LogManager;
@@ -38,16 +39,22 @@ public class LlvmParserWithClang extends LlvmParser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename)
-      throws ParserException, InterruptedException {
+  public ParseResult parseFiles(final List<String> pFilenames)
+      throws ParserException, InterruptedException, InvalidConfigurationException {
+
+    if (pFilenames.size() > 1) {
+      throw new InvalidConfigurationException(
+          "Multiple program files not supported when using LLVM frontend.");
+    }
+    String filename = pFilenames.get(0);
 
     if (preprocessor.getDumpDirectory() != null) {
       // Writing to the output directory is possible.
-      return parse0(pFilename, preprocessor.getDumpDirectory());
+      return parse0(filename, preprocessor.getDumpDirectory());
     }
 
     try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("clang-results")) {
-      return parse0(pFilename, tempDir.toPath());
+      return parse0(filename, tempDir.toPath());
     } catch (IOException e) {
       throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
     }

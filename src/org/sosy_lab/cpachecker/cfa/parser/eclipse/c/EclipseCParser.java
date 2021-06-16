@@ -165,7 +165,7 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
+  public ParseResult parseFiles(List<String> pFilenames)
       throws CParserException, InterruptedException {
 
     return parseSomething(
@@ -189,14 +189,6 @@ class EclipseCParser implements CParser {
           return wrapCode(pFileName, ((FileContentToParse) pContent).getFileContent());
         });
 
-  }
-
-  /** This method parses a single file where no prefix for static variables is needed. */
-  @Override
-  public ParseResult parseFile(String pFileName)
-      throws CParserException, IOException, InterruptedException {
-
-    return parseFile(ImmutableList.of(pFileName));
   }
 
   /** This method parses a single string, where no prefix for static variables is needed. */

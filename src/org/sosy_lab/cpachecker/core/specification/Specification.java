@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -70,6 +71,10 @@ public final class Specification {
         if (specProp.getProperty() instanceof LabelledFormula) {
           try {
             LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
+            Scope scope =
+                cfa.getLanguage() == Language.C
+                    ? new CProgramScope(cfa, logger)
+                    : DummyScope.getInstance();
             Automaton automaton =
                 Ltl2BuechiConverter.convertFormula(
                     formula,
@@ -77,7 +82,7 @@ public final class Specification {
                     config,
                     logger,
                     cfa.getMachineModel(),
-                    new CProgramScope(cfa, logger),
+                    scope,
                     pShutdownNotifier);
             return new Specification(
                 pProperties,

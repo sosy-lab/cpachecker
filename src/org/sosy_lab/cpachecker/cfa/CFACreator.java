@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -51,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -105,9 +109,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 @Options
 public class CFACreator {
 
-  private static final String JAVA_MAIN_METHOD_CFA_SUFFIX = "_main_String[]";
-
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
+  public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; //TODO
 
   @Option(
       secure = true,
@@ -136,16 +139,15 @@ public class CFACreator {
   @Option(
       secure = true,
       name = "analysis.entryFunction",
-      regexp = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$",
       description = "entry function")
   private String mainFunctionName = "main";
 
-  @Option(secure=true, name="analysis.machineModel",
+  @Option(secure = true, name = "analysis.machineModel",
       description = "the machine model, which determines the sizes of types like int")
   private MachineModel machineModel = MachineModel.LINUX32;
 
-  @Option(secure=true, name="analysis.interprocedural",
-      description="run interprocedural analysis")
+  @Option(secure = true, name = "analysis.interprocedural",
+      description = "run interprocedural analysis")
   private boolean interprocedural = true;
 
   @Option(secure=true, name="analysis.functionPointerCalls",
@@ -278,8 +280,8 @@ public class CFACreator {
   )
   private boolean addLabels = false;
 
-  @Option(secure=true,
-      description="Programming language of the input program. If not given explicitly, "
+  @Option(secure = true,
+      description = "Programming language of the input program. If not given explicitly, "
           + "auto-detection will occur")
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
@@ -287,6 +289,10 @@ public class CFACreator {
   private final LogManager logger;
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
+  private static final String EXAMPLE_JAVA_METHOD_NAME =
+      "Please note that a method has to be given in the following notation:\n <ClassName>_"
+          + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_Car\n"
+          + "for the method drive(int speed, Car car) in the class Car.";
 
   private static class CFACreatorStatistics implements Statistics {
 
@@ -350,43 +356,53 @@ public class CFACreator {
     this.stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
-
+    String regExPattern;
     switch (language) {
-    case JAVA:
-      parser = Parsers.getJavaParser(logger, config);
-      break;
-    case C:
+      case JAVA:
+        regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
+        if (!mainFunctionName.matches(regExPattern)) {
+          throw new InvalidConfigurationException(
+              "Entry function for java programs must match pattern " + regExPattern);
+        }
+        parser = Parsers.getJavaParser(logger, config, mainFunctionName);
+        break;
+      case C:
+        regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
+        if (!mainFunctionName.matches(regExPattern)) {
+          throw new InvalidConfigurationException(
+              "Entry function for c programs must match pattern " + regExPattern);
+        }
         CParser outerParser =
             CParser.Factory.getParser(
                 logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
 
-      outerParser =
-          new CParserWithLocationMapper(
-              config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
+        outerParser =
+            new CParserWithLocationMapper(
+                config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
 
-      if (usePreprocessor) {
-        CPreprocessor preprocessor = new CPreprocessor(config, logger);
-        outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
-      }
-
-      if (useClang) {
         if (usePreprocessor) {
-          logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+          CPreprocessor preprocessor = new CPreprocessor(config, logger);
+          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
         }
-        ClangPreprocessor clang = new ClangPreprocessor(config, logger);
-        parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
-      } else {
-        parser = outerParser;
-      }
 
-      break;
-    case LLVM:
-      parser = Parsers.getLlvmParser(logger, machineModel);
-      language = Language.C; // After parsing we will have a CFA representing C code
-      break;
+        if (useClang) {
+          if (usePreprocessor) {
+            logger.log(Level.WARNING, "Option -preprocess is ignored when used with option -clang");
+          }
+          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
+          parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+        } else {
+          parser = outerParser;
+        }
 
-    default:
-      throw new AssertionError();
+        break;
+      case LLVM:
+        parser = Parsers.getLlvmParser(logger, machineModel);
+        language = Language.C; // After parsing we will have a CFA representing C code
+        break;
+
+      default:
+        throw new AssertionError();
     }
 
     stats.parsingTime = parser.getParseTime();
@@ -423,14 +439,15 @@ public class CFACreator {
   /**
    * Parse some files and create a CFA, including all post-processing etc.
    *
-   * @param sourceFiles  The files to parse.
+   * @param sourceFiles The files to parse.
    * @return A representation of the CFA.
-   * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
-   * @throws IOException If an I/O error occurs.
-   * @throws ParserException If the parser or the CFA builder cannot handle the C code.
+   * @throws InvalidConfigurationException If the main function that was specified in the
+   *                                       configuration is not found.
+   * @throws IOException                   If an I/O error occurs.
+   * @throws ParserException               If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     Preconditions.checkArgument(
         !sourceFiles.isEmpty(), "At least one source file must be provided!");
@@ -447,14 +464,15 @@ public class CFACreator {
       FunctionEntryNode mainFunction;
 
       switch (language) {
-      case JAVA:
-        mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
-        break;
-      case C:
-        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
-        break;
-      default:
-        throw new AssertionError();
+        case JAVA:
+          mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
+          checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
+          break;
+        case C:
+          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          break;
+        default:
+          throw new AssertionError();
       }
 
       return createCFA(c, mainFunction);
@@ -462,6 +480,46 @@ public class CFACreator {
     } finally {
       stats.totalTime.stop();
     }
+  }
+
+  @VisibleForTesting
+  static FunctionEntryNode getJavaMainMethod(
+      List<String> sourceFiles, String mainFunction, Map<String, FunctionEntryNode> cfas)
+      throws InvalidConfigurationException {
+    Optional<FunctionEntryNode> mainMethodKey = Optional.empty();
+
+    for (String sourceFile : sourceFiles) {
+      // Try classPath given in sourceFiles and plain method name in mainFunction
+      String classPath = sourceFile.replace("\\/", ".");
+
+      mainMethodKey = findJavaFunctionInCfa(cfas, classPath, mainFunction).stream().findFirst();
+
+      // Try classPath given in sourceFiles and relative Path with main function name in
+      // mainFunctionName
+      if (mainMethodKey.isEmpty()) {
+        int indexOfLastSlash = mainFunction.lastIndexOf('.');
+        if (indexOfLastSlash >= 0) {
+          classPath = mainFunction.substring(0, indexOfLastSlash);
+          String mainFunctionExtracted = mainFunction.substring(indexOfLastSlash + 1);
+          mainMethodKey =
+              findJavaFunctionInCfa(cfas, classPath, mainFunctionExtracted).stream().findFirst();
+        }
+      }
+
+      // Try classPath given in sourceFiles and relative Path without main function name in
+      // mainFunctionName
+      if (mainMethodKey.isEmpty()) {
+        classPath = mainFunction;
+        mainMethodKey = findJavaFunctionInCfa(cfas, classPath, "main").stream().findFirst();
+      }
+      if (mainMethodKey.isPresent()) {
+        break;
+      }
+    }
+    return mainMethodKey.orElseThrow(
+        () ->
+            new InvalidConfigurationException(
+                "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
   private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
@@ -619,29 +677,22 @@ public class CFACreator {
     return parseResult;
   }
 
-  /** This method parses the sourceFiles and builds a CFA for each function.
-   * The ParseResult is only a Wrapper for the CFAs of the functions and global declarations. */
+  /**
+   * This method parses the sourceFiles and builds a CFA for each function. The ParseResult is only
+   * a Wrapper for the CFAs of the functions and global declarations.
+   */
   private ParseResult parseToCFAs(final List<String> sourceFiles)
-          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     final ParseResult parseResult;
 
     if (language == Language.C) {
       checkIfValidFiles(sourceFiles);
+    } else if (language == Language.JAVA) {
+      // TODO Handling is different for java as files are extracted in EclipseJavaParser
+      // TODO Thus verification is different
     }
 
-    if (sourceFiles.size() == 1) {
-      parseResult = parser.parseFile(sourceFiles.get(0));
-    } else {
-      // when there is more than one file which should be evaluated, the
-      // programdenotations are separated from each other and a prefix for
-      // static variables is generated
-      if (language != Language.C) {
-        throw new InvalidConfigurationException(
-            "Multiple program files not supported for languages other than C.");
-      }
-
-      parseResult = ((CParser) parser).parseFile(sourceFiles);
-    }
+    parseResult = parser.parseFiles(sourceFiles);
 
     if (parseResult.isEmpty()) {
       switch (language) {
@@ -744,46 +795,114 @@ public class CFACreator {
     return false;
   }
 
-  private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)
+  private static Set<FunctionEntryNode> findJavaFunctionInCfa(
+      Map<String, FunctionEntryNode> cfas, final String classPath, final String mainMethodName)
       throws InvalidConfigurationException {
 
-    Preconditions.checkArgument(
-        sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
-    String mainClassName = sourceFiles.get(0);
+    Set<FunctionEntryNode> nodesWithCorrectClassPath =
+        getCfaNodesOfClass(cfas, classPath);
 
-    // try specified function
-    FunctionEntryNode mainFunction = cfas.get(mainFunctionName);
+    // Try method name has parameters declared (No parameter is also a declared parameter)
+    String fullName = classPath + "_" + mainMethodName;
+    Set<FunctionEntryNode> mainMethodValues =
+        nodesWithCorrectClassPath.stream()
+            .filter(v -> v.getFunctionDefinition().getName().equals(fullName))
+            .collect(ImmutableSet.toImmutableSet());
 
-    if (mainFunction != null) {
-      return mainFunction;
+    // Try method name has no parameters declared
+    if (mainMethodValues.isEmpty()) {
+
+      mainMethodValues =
+          nodesWithCorrectClassPath.stream()
+              .filter(
+                  v ->
+                      ((JMethodDeclaration) v.getFunctionDefinition())
+                          .getSimpleName()
+                          .equals(mainMethodName))
+              .collect(ImmutableSet.toImmutableSet());
     }
 
-    if (!mainFunctionName.equals("main")) {
-      // function explicitly given by user, but not found
-      throw new InvalidConfigurationException("Method " + mainFunctionName + " not found.\n" +
-          "Please note that a method has to be given in the following notation:\n <ClassName>_" +
-          "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_pack1.Car\n" +
-          "for the method drive(int speed, Car car) in the class Car.");
-    }
+    if (mainMethodValues.size() >= 2) {
+      StringBuilder exceptionMessage = new StringBuilder();
+      mainMethodValues.forEach(
+          (k) ->
+              exceptionMessage
+                  .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
+                  .append("\n"));
 
-    mainFunction = cfas.get(mainClassName + JAVA_MAIN_METHOD_CFA_SUFFIX);
-
-    if (mainFunction == null) {
       throw new InvalidConfigurationException(
-          "No main method in given main class found, please specify one.");
+          "Two or more matching functions for \""
+              + mainMethodName
+              + "\" found:\n"
+              + exceptionMessage.toString()
+              + EXAMPLE_JAVA_METHOD_NAME);
     }
 
-    return mainFunction;
+    return mainMethodValues;
+  }
+
+  private static Set<FunctionEntryNode> getCfaNodesOfClass(
+      Map<String, FunctionEntryNode> cfas,
+      String classPath) {
+    return cfas.values().stream()
+        .filter(
+            v ->
+                ((JMethodDeclaration) v.getFunctionDefinition())
+                    .getDeclaringClass()
+                    .getName()
+                    .equals(classPath))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  private void checkForAmbiguousMethod(
+      FunctionEntryNode mainFunction, String mainMethodName, Map<String, FunctionEntryNode> cfas) {
+    if (!mainFunction.getFunctionDefinition().getName().equals(mainFunctionName)) {
+      Set<FunctionEntryNode> pNodesWithCorrectClassPath =
+          getCfaNodesOfClass(
+              cfas,
+              ((JMethodDeclaration) mainFunction.getFunctionDefinition())
+                  .getDeclaringClass()
+                  .getName());
+      Set<FunctionEntryNode> methodsWithSameName =
+          pNodesWithCorrectClassPath.stream()
+              .filter(
+                  v ->
+                      hasMethodName(v, mainMethodName))
+              .collect(ImmutableSet.toImmutableSet());
+
+      if (methodsWithSameName.size() > 1) {
+        String foundMethods = methodsWithSameName.stream()
+            .map(m -> m.getFunctionDefinition().getName())
+            .collect(Collectors.joining("\n"));
+
+        logger.log(
+            Level.WARNING,
+            "Multiple methods with same name but different parameters found. Make sure you picked the right one.\n"
+                + "Methods found:\n\n"
+                + foundMethods
+                + "\n\n"
+                + EXAMPLE_JAVA_METHOD_NAME);
+      }
+    }
+  }
+
+  private static boolean hasMethodName(FunctionEntryNode entryNode, String methodName) {
+    final JMethodDeclaration functionDefinition =
+        (JMethodDeclaration) entryNode.getFunctionDefinition();
+    return (functionDefinition.getDeclaringClass().getName()
+        + "."
+        + functionDefinition.getSimpleName())
+        .equals(methodName)
+        || functionDefinition.getSimpleName().equals(methodName);
   }
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
     for (String file : sourceFiles) {
-      checkIfValidFile(file);
+      checkIfValidFile(Paths.get(file));
     }
   }
 
-  private void checkIfValidFile(String fileDenotation) throws InvalidConfigurationException {
-    Path file = Paths.get(fileDenotation);
+  private void checkIfValidFile(Path file) throws InvalidConfigurationException {
 
     try {
       IO.checkReadableFile(file);
