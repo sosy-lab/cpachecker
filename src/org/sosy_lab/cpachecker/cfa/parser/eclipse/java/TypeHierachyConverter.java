@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,14 +53,13 @@ class TypeHierachyConverter {
   }
 
   /**
-   * Converts a Method Declaration
-   * of the JDT AST to a MethodDeclaration of the CFA AST
+   * Converts a Method Declaration of the JDT AST to a MethodDeclaration of the CFA AST
    *
    * @param md The method declaration to be transformed.
    * @param pFileOfDeclaration The File this method declaration was parsed from.
    * @return The CFA AST of this method declaration.
    */
-  public JMethodDeclaration convert(final MethodDeclaration md, String pFileOfDeclaration) {
+  public JMethodDeclaration convert(final MethodDeclaration md, Path pFileOfDeclaration) {
 
     IMethodBinding methodBinding = md.resolveBinding();
 
@@ -122,7 +122,7 @@ class TypeHierachyConverter {
    * @param fd Declarations given to be transformed.
    * @return intern AST of the Field Declarations.
    */
-  public Set<JFieldDeclaration> convert(FieldDeclaration fd, String pFileOfDeclaration) {
+  public Set<JFieldDeclaration> convert(FieldDeclaration fd, Path pFileOfDeclaration) {
 
     Set<JFieldDeclaration> result = new HashSet<>();
 
@@ -201,8 +201,7 @@ class TypeHierachyConverter {
   }
 
   private List<JParameterDeclaration> convertParameterList(
-      List<SingleVariableDeclaration> ps, String fileOfDeclaration,
-      String methodName) {
+      List<SingleVariableDeclaration> ps, Path fileOfDeclaration, String methodName) {
     List<JParameterDeclaration> paramsList = new ArrayList<>(ps.size());
 
     for (org.eclipse.jdt.core.dom.SingleVariableDeclaration c : ps) {
@@ -212,8 +211,8 @@ class TypeHierachyConverter {
     return paramsList;
   }
 
-  private JParameterDeclaration convertParameter(SingleVariableDeclaration p,
-      String fileOfDeclaration, String methodName) {
+  private JParameterDeclaration convertParameter(
+      SingleVariableDeclaration p, Path fileOfDeclaration, String methodName) {
 
     JType type = convert(p.getType());
 
@@ -229,7 +228,7 @@ class TypeHierachyConverter {
     return typeConverter.convert(pType);
   }
 
-  private FileLocation convertFileLocation(ASTNode l, String fileOfDeclaration) {
+  private FileLocation convertFileLocation(ASTNode l, Path fileOfDeclaration) {
 
     if (l == null) {
       return FileLocation.DUMMY;
@@ -241,7 +240,7 @@ class TypeHierachyConverter {
     CompilationUnit co = (CompilationUnit) l.getRoot();
 
     return new FileLocation(
-        fileOfDeclaration,
+        fileOfDeclaration.toString(),
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),

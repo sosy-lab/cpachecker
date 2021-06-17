@@ -15,6 +15,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -485,12 +486,8 @@ class Scope {
     return ImmutableMap.of();
   }
 
-  public String getFileOfCurrentType() {
-    if (typeHierarchy.containsType(classStack.peek())) {
-      return typeHierarchy.getFileOfType(classStack.peek());
-    } else {
-      return "";
-    }
+  public Path getFileOfCurrentType() {
+    return typeHierarchy.getFileOfType(classStack.peek());
   }
 
   public boolean containsInterfaceType(String typeName) {

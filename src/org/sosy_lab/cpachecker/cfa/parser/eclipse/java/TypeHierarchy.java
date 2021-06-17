@@ -15,6 +15,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +40,7 @@ final class TypeHierarchy {
   /*
    * Maps the filename of the file to the type, which it was created from.
    */
-  private Map<JClassOrInterfaceType, String> fileOfTypes;
+  private Map<JClassOrInterfaceType, Path> fileOfTypes;
 
   private Map<JClassOrInterfaceType, Set<JMethodDeclaration>> methodDeclarationsOfType;
 
@@ -73,7 +74,7 @@ final class TypeHierarchy {
     return typeSet;
   }
 
-  public Map<JClassOrInterfaceType, String> getFileOfTypes() {
+  public Map<JClassOrInterfaceType, Path> getFileOfTypes() {
     return fileOfTypes;
   }
 
@@ -139,7 +140,7 @@ final class TypeHierarchy {
   }
 
   @Nullable
-  public String getFileOfType(JClassOrInterfaceType pType) {
+  public Path getFileOfType(JClassOrInterfaceType pType) {
     return fileOfTypes.get(pType);
   }
 
@@ -216,8 +217,8 @@ final class TypeHierarchy {
     typeTable = pTypeTable;
   }
 
-  void updateTypeHierarchy(AnonymousClassDeclaration pDeclaration, String pFileName,
-      LogManager pLogger) {
+  void updateTypeHierarchy(
+      AnonymousClassDeclaration pDeclaration, Path pFileName, LogManager pLogger) {
 
     // this hierarchyCreator has to be initialized after fileOfTypes was updated,
     // so we don't overwrite this update below
@@ -231,7 +232,7 @@ final class TypeHierarchy {
   static class THTypeTable {
 
     private final Map<String, JClassOrInterfaceType> types = new HashMap<>();
-    private final Map<JClassOrInterfaceType, String> typeOfFiles = new HashMap<>();
+    private final Map<JClassOrInterfaceType, Path> typeOfFiles = new HashMap<>();
 
     private final Map<JClassOrInterfaceType, Set<JMethodDeclaration>>
                                                     methodDeclarationsOfType = new HashMap<>();
@@ -249,7 +250,7 @@ final class TypeHierarchy {
       return ImmutableMap.copyOf(types);
     }
 
-    public Map<JClassOrInterfaceType, String> getTypeOfFiles() {
+    public Map<JClassOrInterfaceType, Path> getTypeOfFiles() {
       return new HashMap<>(typeOfFiles);
     }
 
@@ -291,7 +292,7 @@ final class TypeHierarchy {
       fieldDeclarationsOfType.put(declaringClass, jFieldDeclarations);
     }
 
-    public void registerFileNameOfType(JClassOrInterfaceType type, String fileName) {
+    public void registerFileNameOfType(JClassOrInterfaceType type, Path fileName) {
       typeOfFiles.put(type, fileName);
     }
 
