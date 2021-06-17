@@ -97,7 +97,7 @@ class TypeHierachyCreator extends ASTVisitor {
     Path oldFileOfCU = fileOfCU;
 
     for (JavaFileAST ast : pJavaProgram) {
-      fileOfCU = ast.getFile().getFileName();
+      fileOfCU = ast.getFile();
       CompilationUnit cu = ast.getAst();
       cu.accept(this);
 
@@ -178,7 +178,7 @@ class TypeHierachyCreator extends ASTVisitor {
           String simpleName = node.getName().getIdentifier();
           String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
 
-          if (!expectedFilename.equals(fileOfCU.toString())) {
+          if (!expectedFilename.equals(fileOfCU.getFileName().toString())) {
             classNameException = true;
             expectedName = expectedFilename;
             className = simpleName;
