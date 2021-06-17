@@ -140,11 +140,10 @@ public abstract class ITPStrategy {
       Set<String> allowedVariables = Sets.intersection(variablesInA, variablesInB).immutableCopy();
       Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
 
-      variablesInInterpolant.removeAll(allowedVariables);
-
-      if (!variablesInInterpolant.isEmpty()) {
+      if (!allowedVariables.containsAll(variablesInInterpolant)) {
         throw new SolverException("Interpolant " + interpolants.get(i) +
-          " contains forbidden variable(s) " + variablesInInterpolant);
+            " contains forbidden variable(s) "
+            + Sets.difference(variablesInInterpolant, allowedVariables));
       }
     }
   }
