@@ -18,7 +18,6 @@ import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -160,7 +159,7 @@ public class CFABuilder {
 
   public ParseResult build(final Module pModule, final String pFilename) throws LLVMException {
     visit(pModule, pFilename);
-    List<Path> input_file = ImmutableList.of(Paths.get(pFilename));
+    List<Path> input_file = ImmutableList.of(Path.of(pFilename));
 
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }

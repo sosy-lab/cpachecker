@@ -208,7 +208,7 @@ public class ConfigurationFileChecks {
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
-  private static final Path CONFIG_DIR = Paths.get("config");
+  private static final Path CONFIG_DIR = Path.of("config");
 
   @Parameters(name = "{0}")
   public static Object[] getConfigFiles() throws IOException {
@@ -248,7 +248,7 @@ public class ConfigurationFileChecks {
     if (pConfigFile instanceof Path) {
       configFile = (Path) pConfigFile;
     } else if (pConfigFile instanceof URL) {
-      configFile = Paths.get(((URL) pConfigFile).toURI());
+      configFile = Path.of(((URL) pConfigFile).toURI());
     } else {
       throw new AssertionError("Unexpected config file " + pConfigFile);
     }
@@ -332,7 +332,7 @@ public class ConfigurationFileChecks {
       return false;
     }
     Path basePath = CONFIG_DIR.relativize((Path) configFile);
-    return basePath.getName(0).equals(Paths.get("unmaintained"));
+    return basePath.getName(0).equals(Path.of("unmaintained"));
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -380,7 +380,7 @@ public class ConfigurationFileChecks {
    *     the output file.
    */
   private static void copyFile(String from, String to, String... toMore) throws IOException {
-    try (Reader r = Files.newBufferedReader(Paths.get(from));
+    try (Reader r = Files.newBufferedReader(Path.of(from));
         Writer w = IO.openOutputFile(Paths.get(to, toMore), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
@@ -469,7 +469,7 @@ public class ConfigurationFileChecks {
       assume()
           .that((Iterable<?>) configFile)
           .containsNoneOf(
-              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
+              Path.of("includes"), Path.of("pcc"), Path.of("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();

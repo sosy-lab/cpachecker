@@ -12,7 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -144,7 +144,7 @@ public class CParserLocationTest {
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
     assertThat(mainLoc.getFileName()).isEqualTo(expectedFileName);
     assertThat(mainLoc.getNiceFileName())
-        .isEqualTo(Paths.get(expectedFileName).getFileName().toString());
+        .isEqualTo(Path.of(expectedFileName).getFileName().toString());
     assertThat(mainLoc.getStartingLineNumber()).isEqualTo(1);
     assertThat(mainLoc.getEndingLineNumber()).isEqualTo(1);
     assertThat(mainLoc.getStartingLineInOrigin()).isEqualTo(1);
@@ -153,7 +153,7 @@ public class CParserLocationTest {
     FileLocation additionalLoc = result.getFunctions().get("foo").getFileLocation();
     assertThat(additionalLoc.getFileName()).isEqualTo(expectedAdditionalFileName);
     assertThat(additionalLoc.getNiceFileName())
-        .isEqualTo(Paths.get(expectedAdditionalFileName).getFileName().toString());
+        .isEqualTo(Path.of(expectedAdditionalFileName).getFileName().toString());
     assertThat(additionalLoc.getStartingLineNumber()).isEqualTo(1);
     assertThat(additionalLoc.getEndingLineNumber()).isEqualTo(1);
     assertThat(additionalLoc.getStartingLineInOrigin()).isEqualTo(1);

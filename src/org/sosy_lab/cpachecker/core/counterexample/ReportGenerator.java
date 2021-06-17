@@ -32,7 +32,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -107,7 +106,7 @@ public class ReportGenerator {
     name = "report.file",
     description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reportFile = Paths.get("Report.html");
+  private Path reportFile = Path.of("Report.html");
 
   @Option(
     secure = true,

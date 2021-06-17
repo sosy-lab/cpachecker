@@ -14,7 +14,7 @@ import com.google.common.base.Optional;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -103,7 +103,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
       // builder.appendTo(w);
       IO.writeFile(
-          Paths.get(name.getAbsolutePath()),
+          Path.of(name.getAbsolutePath()),
           Charset.defaultCharset(),
           (Appender) a -> builder.appendTo(a));
       // w.close();

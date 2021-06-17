@@ -95,7 +95,7 @@ class EclipseJavaParser implements Parser {
       name = "java.typeHierarchyFile",
       description = "export TypeHierarchy as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
+  private Path exportTypeHierarchyFile = Path.of("typeHierarchy.dot");
 
   @SuppressWarnings("deprecation")
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
@@ -154,7 +154,7 @@ class EclipseJavaParser implements Parser {
 
     for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
         .split(javaPath)) {
-      Path path = Paths.get(pathAsString);
+      Path path = Path.of(pathAsString);
       if (!Files.exists(path)) {
         logger.log(Level.WARNING, "Path", path, "could not be found.");
       } else {
@@ -178,7 +178,7 @@ class EclipseJavaParser implements Parser {
       // B)
       return parse(firstSourceFile);
 
-    } else if (sourceFiles.size() != 1 || Files.exists(Paths.get(firstSourceFile))) {
+    } else if (sourceFiles.size() != 1 || Files.exists(Path.of(firstSourceFile))) {
       // A)
       List<Path> sourcePaths = transformedImmutableListCopy(sourceFiles, Paths::get);
       javaClassPaths = concat(javaClassPaths, sourcePaths).toList();

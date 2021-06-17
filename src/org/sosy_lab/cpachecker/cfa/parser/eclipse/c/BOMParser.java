@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -70,7 +70,7 @@ public class BOMParser {
    */
   public static String filterAndDecode(String pFilename) throws IOException, CParserException {
     try (BufferedInputStream in =
-        new BufferedInputStream(MoreFiles.asByteSource(Paths.get(pFilename)).openStream())) {
+        new BufferedInputStream(MoreFiles.asByteSource(Path.of(pFilename)).openStream())) {
       List<Integer> codeBeginning = new ArrayList<>();
       int c = 0;
       int counter = 0;

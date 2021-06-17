@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -61,7 +60,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
   @Option(secure=true, name="reducedCfaFile", description="write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reducedCfaFile = Paths.get("ReducedCfa.rsf");
+  private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
 
   private int functionCallSeq = 0;
   private final Deque<FunctionEntryNode> inliningStack;

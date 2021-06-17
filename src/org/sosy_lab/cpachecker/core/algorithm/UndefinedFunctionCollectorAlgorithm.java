@@ -14,7 +14,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,7 +70,7 @@ public class UndefinedFunctionCollectorAlgorithm
 
   @Option(secure = true, description = "export undefined functions as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path stubsFile = Paths.get("stubs.c");
+  private Path stubsFile = Path.of("stubs.c");
 
   @Option(secure = true, description = "Set of functions that should be ignored")
   private Set<String> allowedFunctions =

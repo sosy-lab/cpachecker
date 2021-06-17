@@ -14,7 +14,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -46,7 +45,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   @Option(name = "output", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputStatFileName = Paths.get("unsafe_rawdata");
+  private Path outputStatFileName = Path.of("unsafe_rawdata");
 
   @Option(
     description = "use single file for output or dump every error trace to its own file",
@@ -70,8 +69,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   protected void init() {
     try {
       globalWriter =
-          Files.newBufferedWriter(
-              Paths.get(outputStatFileName.toString()), Charset.defaultCharset());
+          Files.newBufferedWriter(Path.of(outputStatFileName.toString()), Charset.defaultCharset());
       logger.log(Level.FINE, "Print statistics about unsafe cases");
       printCountStatistics(globalWriter, container.getUnsafeIterator());
     } catch (IOException e) {

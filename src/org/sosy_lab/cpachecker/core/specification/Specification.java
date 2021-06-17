@@ -18,7 +18,6 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -86,7 +85,7 @@ public final class Specification {
                     pShutdownNotifier);
             return new Specification(
                 pProperties,
-                ImmutableListMultimap.of(Paths.get(""), automaton));
+                ImmutableListMultimap.of(Path.of(""), automaton));
           } catch (InterruptedException e) {
             throw new InvalidConfigurationException(
                 String.format(
@@ -235,7 +234,7 @@ public final class Specification {
     properties = ImmutableSet.of();
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
         ImmutableListMultimap.builder();
-    multiplePropertiesBuilder.putAll(Paths.get(""), ImmutableList.copyOf(pSpecificationAutomata));
+    multiplePropertiesBuilder.putAll(Path.of(""), ImmutableList.copyOf(pSpecificationAutomata));
     pathToSpecificationAutomata = multiplePropertiesBuilder.build();
   }
 

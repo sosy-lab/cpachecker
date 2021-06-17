@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,7 +44,7 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
       name = "proof",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  protected Path proofFile = Paths.get("arg.obj");
+  protected Path proofFile = Path.of("arg.obj");
 
   private final Configuration valConfig;
   private final ProofCheckAlgorithm checkingAlgorithm;

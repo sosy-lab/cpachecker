@@ -21,7 +21,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.Level;
@@ -87,7 +86,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   @Option(secure = true, name = "file", description = "write residual program to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path residualProgram = Paths.get("residualProgram.c");
+  private Path residualProgram = Path.of("residualProgram.c");
 
   @Option(secure = true, name = "assumptionGuider",
       description = "set specification file to automaton which guides analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
@@ -108,7 +107,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
             + "If set to 'null', no pixel graphic is exported."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportPixelFile = Paths.get("residProgPixel");
+  private Path exportPixelFile = Path.of("residProgPixel");
 
   @Option(
       secure = true,

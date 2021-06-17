@@ -16,7 +16,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.MoreStrings;
@@ -38,7 +37,7 @@ public abstract class Preprocessor {
       name = "preprocessor.dumpDirectory",
       description = "Directory where to dump the results of the preprocessor.")
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path dumpDirectory = Paths.get("preprocessed");
+  private Path dumpDirectory = Path.of("preprocessed");
 
   private final LogManager logger;
 

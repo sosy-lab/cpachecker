@@ -4046,7 +4046,7 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 # path to condition files plus additional assumption guiding automaton when
 # condition itself is in propriertary format and not in witness format
 slicing.conditionFiles = {
-          Paths.get("output/AssumptionAutomaton.txt"),
+          Path.of("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
               .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")}
 

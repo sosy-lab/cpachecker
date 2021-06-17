@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -82,9 +81,9 @@ public class LlvmParser implements Parser {
         LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
     String decodedBasePath = URLDecoder.decode(encodedBasePath, StandardCharsets.UTF_8);
 
-    Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
+    Path cpacheckerDir = Path.of(decodedBasePath).getParent();
     if (cpacheckerDir != null) {
-      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+      Path runtimeLibDir = Path.of(cpacheckerDir.toString(), "lib", "java", "runtime");
       libDirs.add(runtimeLibDir);
     } else {
       logger.logf(

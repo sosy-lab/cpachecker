@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -109,9 +108,9 @@ class EclipseCParser implements CParser {
    * The pre-processor of Eclipse CDT needs this to resolve relative includes.
    */
   private static String fixPath(String pPath) {
-    Path path = Paths.get(pPath);
+    Path path = Path.of(pPath);
     if (!path.toString().isEmpty() && !path.isAbsolute() && path.getParent() == null) {
-      return Paths.get(".").resolve(path).toString();
+      return Path.of(".").resolve(path).toString();
     }
     return pPath;
   }
@@ -121,7 +120,7 @@ class EclipseCParser implements CParser {
   }
 
   private FileContent wrapFile(String pFileName) throws IOException {
-    String code = MoreFiles.asCharSource(Paths.get(pFileName), Charset.defaultCharset()).read();
+    String code = MoreFiles.asCharSource(Path.of(pFileName), Charset.defaultCharset()).read();
     return wrapCode(pFileName, code);
   }
 

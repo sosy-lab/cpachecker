@@ -22,7 +22,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -184,7 +183,7 @@ public class CFACreator {
 
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaToCFile = Paths.get("cfa.c");
+  private Path exportCfaToCFile = Path.of("cfa.c");
 
   @Option(secure=true, name="cfa.callgraph.export",
       description="dump a simple call graph")
@@ -193,19 +192,19 @@ public class CFACreator {
   @Option(secure=true, name="cfa.callgraph.file",
       description="file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionCallsFile = Paths.get("functionCalls.dot");
+  private Path exportFunctionCallsFile = Path.of("functionCalls.dot");
 
   @Option(
       secure = true,
       name = "cfa.callgraph.fileUsed",
       description = "file name for call graph as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportFunctionCallsUsedFile = Paths.get("functionCallsUsed.dot");
+  private Path exportFunctionCallsUsedFile = Path.of("functionCallsUsed.dot");
 
   @Option(secure=true, name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = Paths.get("cfa.dot");
+  private Path exportCfaFile = Path.of("cfa.dot");
 
   @Option(
     secure = true,
@@ -220,7 +219,7 @@ public class CFACreator {
     description = "export CFA as .ser file (dump Java objects)"
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path serializeCfaFile = Paths.get("cfa.ser.gz");
+  private Path serializeCfaFile = Path.of("cfa.ser.gz");
 
   @Option(
     secure = true,
@@ -232,7 +231,7 @@ public class CFACreator {
             + "If set to 'null', no pixel graphic is exported."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaPixelFile = Paths.get("cfaPixel");
+  private Path exportCfaPixelFile = Path.of("cfaPixel");
 
   @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -898,7 +897,7 @@ public class CFACreator {
 
   private void checkIfValidFiles(List<String> sourceFiles) throws InvalidConfigurationException {
     for (String file : sourceFiles) {
-      checkIfValidFile(Paths.get(file));
+      checkIfValidFile(Path.of(file));
     }
   }
 
@@ -933,7 +932,7 @@ public class CFACreator {
 
     } else if (sourceFiles.size() == 1) {
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      Path path = Paths.get(sourceFiles.get(0)).getFileName();
+      Path path = Path.of(sourceFiles.get(0)).getFileName();
       if (path != null) {
         String filename = path.toString(); // remove directory
 

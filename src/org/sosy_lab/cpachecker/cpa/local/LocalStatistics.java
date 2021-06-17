@@ -16,7 +16,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -37,7 +36,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class LocalStatistics implements Statistics {
   @Option(description = "A path to a precision output", name = "path", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFileName = Paths.get("localsave");
+  private Path outputFileName = Path.of("localsave");
 
   private final LogManager logger;
 

@@ -14,7 +14,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -49,7 +48,7 @@ public abstract class ErrorTracePrinter {
 
   @Option(name = "falseUnsafesOutput", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
+  private Path outputFalseUnsafes = Path.of("FalseUnsafes");
 
   @Option(
     name = "filterMissedFiles",
@@ -99,7 +98,7 @@ public abstract class ErrorTracePrinter {
     if (loc == null || loc.equals(FileLocation.DUMMY)) {
       return false;
     }
-    if (filterMissedFiles && !Files.exists(Paths.get(loc.getFileName()))) {
+    if (filterMissedFiles && !Files.exists(Path.of(loc.getFileName()))) {
       return false;
     }
     return true;
