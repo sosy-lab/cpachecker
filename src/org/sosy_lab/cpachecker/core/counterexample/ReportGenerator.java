@@ -17,6 +17,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -38,6 +39,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -58,6 +60,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -169,6 +172,8 @@ public class ReportGenerator {
       return;
     }
 
+    ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
+
     extractWitness(pResult, pCfa, pReached);
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
@@ -185,7 +190,7 @@ public class ReportGenerator {
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
-        fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        fillOutTemplate(null, reportFile, pCfa, allInputFiles, dotBuilder, pStatistics);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
@@ -195,6 +200,7 @@ public class ReportGenerator {
             counterExample,
             counterExampleFiles.getPath(counterExample.getUniqueId()),
             pCfa,
+            allInputFiles,
             dotBuilder,
             pStatistics);
       }
@@ -242,6 +248,7 @@ public class ReportGenerator {
       @Nullable CounterexampleInfo counterExample,
       Path reportPath,
       CFA cfa,
+      Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       String statistics) {
 
@@ -262,7 +269,7 @@ public class ReportGenerator {
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(writer);
+          insertSources(writer, allInputFiles);
         } else if (line.contains("LOG")) {
           insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
@@ -466,10 +473,10 @@ public class ReportGenerator {
     writer.write(exitTableLine);
   }
 
-  private void insertSources(Writer report) throws IOException {
+  private void insertSources(Writer report, Iterable<Path> allSources) throws IOException {
     int index = 0;
-    for (String sourceFile : sourceFiles) {
-      insertSource(Paths.get(sourceFile), report, index);
+    for (Path sourceFile : allSources) {
+      insertSource(sourceFile, report, index);
       index++;
     }
   }
@@ -595,6 +602,32 @@ public class ReportGenerator {
     writer.write("var sourceFiles = ");
     JSON.writeJSONString(sourceFiles, writer);
     writer.write(";\n");
+  }
+
+  /** Returns ordered set of input files that were relevant for this verification run. */
+  private ImmutableSet<Path> getAllInputFiles(CFA cfa) {
+    // Typically, input files are given on the command line (and appear in sourceFiles).
+    // However, this list can also include directories, and it can miss files that are #included.
+    // So we augment it with files from the file locations in the CFA.
+    // Selecting file locations from all function definitions does not find all files,
+    // it misses included header that do not happen to define functions, just other definitions and
+    // macros. But this actually seems like a good thing to not add lots of useless system headers.
+
+    Set<FileLocation> allLocations = new LinkedHashSet<>();
+    allLocations.add(cfa.getMainFunction().getFileLocation()); // We want this as first element
+    FluentIterable.from(cfa.getAllFunctionHeads())
+        .transform(FunctionEntryNode::getFileLocation)
+        .copyInto(allLocations);
+    allLocations.remove(FileLocation.DUMMY);
+    allLocations.remove(FileLocation.MULTIPLE_FILES);
+
+    return FluentIterable.concat(
+            Collections2.transform(sourceFiles, Path::of),
+            Collections2.transform(allLocations, loc -> Path.of(loc.getFileName())))
+        .filter(path -> !path.toString().isEmpty())
+        .filter(path -> Files.isReadable(path))
+        .filter(path -> !Files.isDirectory(path))
+        .toSet();
   }
 
   /** Build ARG data for all ARG states in the reached set. */
