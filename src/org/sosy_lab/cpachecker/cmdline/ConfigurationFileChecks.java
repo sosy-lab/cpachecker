@@ -37,7 +37,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
@@ -381,7 +380,7 @@ public class ConfigurationFileChecks {
    */
   private static void copyFile(String from, String to, String... toMore) throws IOException {
     try (Reader r = Files.newBufferedReader(Path.of(from));
-        Writer w = IO.openOutputFile(Paths.get(to, toMore), StandardCharsets.UTF_8)) {
+        Writer w = IO.openOutputFile(Path.of(to, toMore), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
   }

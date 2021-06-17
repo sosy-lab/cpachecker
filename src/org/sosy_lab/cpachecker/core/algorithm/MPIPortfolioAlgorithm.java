@@ -29,7 +29,6 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -290,7 +289,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
         Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
-            .map(Paths::get)
+            .map(Path::of)
             .filter(path -> Files.exists(path.resolve(pRequiredBin)))
             .findFirst();
     if (pathOpt.isEmpty()) {
