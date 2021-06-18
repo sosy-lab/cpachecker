@@ -62,6 +62,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       int pEndingLineInOrigin,
       boolean pOffsetRelatedToOrigin) {
     fileName = checkNotNull(pFileName);
+    checkArgument(!fileName.isEmpty(), "Non-empty file name required");
     niceFileName = checkNotNull(pNiceFileName);
     offset = pOffset;
     length = pLength;
@@ -140,6 +141,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         offsetRelatedToOrigin);
   }
 
+  /** Return the non-null and non-empty file name. */
   public String getFileName() {
     return fileName;
   }

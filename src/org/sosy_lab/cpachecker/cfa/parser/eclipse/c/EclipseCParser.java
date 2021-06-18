@@ -209,7 +209,7 @@ class EclipseCParser implements CParser {
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode)
       throws CParserException, InterruptedException {
     // parse
-    IASTTranslationUnit ast = parse(wrapCode("", pCode), ParseContext.dummy());
+    IASTTranslationUnit ast = parse(wrapCode("<fragment>", pCode), ParseContext.dummy());
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
