@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -304,8 +303,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   @SuppressWarnings({"resource", "null"})
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     checkArgument(
         pReachedSet instanceof ForwardingReachedSet,
         "SelectionAlgorithm needs ForwardingReachedSet");
@@ -437,7 +435,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   /** build all components for the analysis and run the further analysis. */
   private AlgorithmStatus run0(ReachedSet pReachedSet, final Path chosenConfig)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException {
     Algorithm chosenAlgorithm;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
