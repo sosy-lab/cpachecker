@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
@@ -145,7 +144,6 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     return fileName;
   }
 
-  @VisibleForTesting
   public String getNiceFileName() {
     return niceFileName;
   }
