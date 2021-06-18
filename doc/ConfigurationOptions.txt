@@ -205,12 +205,12 @@ analysis.algorithm.conditionAdjustment = false
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
 
+# Use fault localization with distance metrics
+analysis.algorithm.faultLocalization.by_distance = false
+
 # for found property violation, perform fault localization with trace
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
-
-# Use fault localization with distance metrics
-analysis.algorithm.faultlocalization.by_distance = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
@@ -3368,21 +3368,24 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
-# The distance metric that ought to be used for the computation of the
-# distance
-explainer.distanceMetric = ADM
-  enum:     [ADM, CFDM, PG]
-
-# Configuration of the first step of the Explainer Algorithm
-explainer.firstStep = no default value
-
-# The number that specifies how many times are we going to iterate over the
-# reachedSet
-explainer.stopAfter = 40
-
 # Ranking algorithm to use for fault localization
 faultLocalization.by_coverage.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]
+
+# Configuration to use for initial program-state exploration
+faultLocalization.by_distance.analysis = no default value
+
+# The distance metric that ought to be used for the computation of the
+# distance
+faultLocalization.by_distance.metric = ADM
+  enum:     [ADM, CFDM, PG]
+
+# Maximum number of explorations to run for collecting error paths, before
+# performing fault localization.  Exploration runs stop when the program
+# under analysis is fully explored or the specified number of runs is
+# reached. Fault localization may be more precise if more error paths are
+# available.
+faultLocalization.by_distance.stopAfter = 40
 
 # disable flow-sensitive trace formula (may increase runtime)
 faultLocalization.by_traceformula.errorInvariants.disableFSTF = false
