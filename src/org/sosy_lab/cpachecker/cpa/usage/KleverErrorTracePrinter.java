@@ -208,14 +208,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Path currentPath = errorPathFile.getPath(createUniqueName(pId));
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
 
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (ParserConfigurationException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (DOMException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
-    } catch (InvalidConfigurationException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
+    } catch (IOException
+        | ParserConfigurationException
+        | DOMException
+        | InvalidConfigurationException e) {
+      logger.logfUserException(Level.WARNING, e, "Exception during printing unsafe %s", pId);
     }
   }
 

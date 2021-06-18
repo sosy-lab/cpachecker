@@ -73,7 +73,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       logger.log(Level.FINE, "Print statistics about unsafe cases");
       printCountStatistics(globalWriter, container.getUnsafeIterator());
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during init actions: " + e.getMessage());
+      logger.logUserException(Level.WARNING, e, "I/O error during init actions");
     }
   }
 
@@ -82,7 +82,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     try {
       globalWriter.close();
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during finish actions: " + e.getMessage());
+      logger.logUserException(Level.WARNING, e, "I/O error during finish actions");
     }
   }
 
@@ -123,7 +123,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         writer.close();
       }
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception while printing unsafe " + id + ": " + e.getMessage());
+      logger.logfUserException(Level.WARNING, e, "I/O error while printing unsafe %s", id);
     }
   }
 

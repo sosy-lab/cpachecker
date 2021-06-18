@@ -177,7 +177,7 @@ public abstract class ErrorTracePrinter {
             writer.append(createUniqueName(id) + "\n");
           }
         } catch (IOException e) {
-          logger.log(Level.SEVERE, e.getMessage());
+          logger.logUserException(Level.WARNING, e, "Could not write error trace");
         }
       }
     }

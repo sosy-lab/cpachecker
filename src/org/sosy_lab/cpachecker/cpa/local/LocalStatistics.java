@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.local;
 
 import com.google.common.io.MoreFiles;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -74,13 +73,8 @@ public class LocalStatistics implements Statistics {
           writer.append(entry.getValue().toLog() + "\n");
         }
       }
-    } catch (FileNotFoundException e) {
-      logger.log(
-          Level.SEVERE,
-          "Cannot open file " + outputFileName + " for output result of shared analysis");
-      return;
     } catch (IOException e) {
-      logger.log(Level.SEVERE, e.getMessage());
+      logger.logUserException(Level.WARNING, e, "Could not write LOCALCPA precision");
       return;
     }
   }

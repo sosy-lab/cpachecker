@@ -809,8 +809,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 pRecurrentStartInWitness.getName()));
         automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
       } catch (InvalidAutomatonException | IOException | InvalidConfigurationException e) {
-        logger.log(Level.INFO, "Failed to set up specification to check assumptions.");
-        logger.logException(Level.FINE, e, "Failure during set up of assumptions check");
+        logger.logUserException(
+            Level.INFO, e, "Failed to set up specification to check assumptions.");
         return false;
       }
       automata.add(terminationAutomaton);
