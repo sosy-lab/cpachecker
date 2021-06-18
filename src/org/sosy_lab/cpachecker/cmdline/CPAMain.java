@@ -713,7 +713,7 @@ public class CPAMain {
       WitnessOptions pOptions, Map<String, String> pOverrideOptions) {
     String specs = pOverrideOptions.get(SPECIFICATION_OPTION);
     String witnessSpec = pOptions.witness.toString();
-    specs = specs == null ? witnessSpec : (specs + "," + witnessSpec.toString());
+    specs = specs == null ? witnessSpec : (specs + "," + witnessSpec);
     pOverrideOptions.put(SPECIFICATION_OPTION, specs);
   }
 
