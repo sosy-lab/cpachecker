@@ -15,6 +15,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
@@ -23,7 +24,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   private static final long serialVersionUID = 6652099907084949014L;
 
-  private final String fileName;
+  private final Path fileName;
   private final String niceFileName;
 
   private final int offset;
@@ -38,10 +39,10 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   private final boolean offsetRelatedToOrigin;
 
   public FileLocation(
-      String pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
+      Path pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
     this(
         pFileName,
-        pFileName,
+        pFileName.toString(),
         pOffset,
         pLength,
         pStartingLine,
@@ -52,7 +53,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   public FileLocation(
-      String pFileName,
+      Path pFileName,
       String pNiceFileName,
       int pOffset,
       int pLength,
@@ -62,7 +63,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       int pEndingLineInOrigin,
       boolean pOffsetRelatedToOrigin) {
     fileName = checkNotNull(pFileName);
-    checkArgument(!fileName.isEmpty(), "Non-empty file name required");
+    checkArgument(!fileName.toString().isEmpty(), "Non-empty file name required");
     niceFileName = checkNotNull(pNiceFileName);
     offset = pOffset;
     length = pLength;
@@ -74,7 +75,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   public static final FileLocation DUMMY =
-      new FileLocation("<none>", 0, 0, 0, 0) {
+      new FileLocation(Path.of("<none>"), 0, 0, 0, 0) {
         private static final long serialVersionUID = -3012034075570811723L;
 
         @Override
@@ -89,7 +90,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       };
 
   public static final FileLocation MULTIPLE_FILES =
-      new FileLocation("<multiple files>", 0, 0, 0, 0) {
+      new FileLocation(Path.of("<multiple files>"), 0, 0, 0, 0) {
         private static final long serialVersionUID = -1725179775900132985L;
 
         @Override
@@ -99,14 +100,14 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
         @Override
         public String toString() {
-          return getFileName();
+          return getFileName().toString();
         }
       };
 
   public static FileLocation merge(List<FileLocation> locations) {
     checkArgument(!Iterables.isEmpty(locations));
 
-    String fileName = null;
+    Path fileName = null;
     String niceFileName = null;
     int startingLine = Integer.MAX_VALUE;
     int startingLineInOrigin = Integer.MAX_VALUE;
@@ -157,7 +158,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   /** Return the non-null and non-empty file name. */
-  public String getFileName() {
+  public Path getFileName() {
     return fileName;
   }
 

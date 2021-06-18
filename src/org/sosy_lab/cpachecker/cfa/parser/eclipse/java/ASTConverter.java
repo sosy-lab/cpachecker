@@ -400,7 +400,7 @@ class ASTConverter {
     CompilationUnit co = (CompilationUnit) l.getRoot();
 
     return new FileLocation(
-        scope.getFileOfCurrentType().toString(),
+        scope.getFileOfCurrentType(),
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),

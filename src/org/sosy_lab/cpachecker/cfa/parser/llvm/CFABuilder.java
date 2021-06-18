@@ -1929,6 +1929,6 @@ public class CFABuilder {
 
   private FileLocation getLocation(final Value pItem, final String pFileName) {
     assert pItem != null;
-    return new FileLocation(pFileName, 0, 1, 0, 0);
+    return new FileLocation(Path.of(pFileName), 0, 1, 0, 0);
   }
 }

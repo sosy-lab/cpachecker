@@ -240,7 +240,7 @@ class TypeHierachyConverter {
     CompilationUnit co = (CompilationUnit) l.getRoot();
 
     return new FileLocation(
-        fileOfDeclaration.toString(),
+        fileOfDeclaration,
         l.getStartPosition(),
         l.getLength(),
         co.getLineNumber(l.getStartPosition()),

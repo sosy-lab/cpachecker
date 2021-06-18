@@ -138,7 +138,7 @@ class ParseContext {
     final boolean offsetRelatedToOrigin = sourceOriginMapping.isMappingToIdenticalLineNumbers();
 
     return new FileLocation(
-        originFileName.toString(),
+        originFileName,
         mapFileNameToNameForHumans(originFileName.toString()),
         l.getNodeOffset(),
         l.getNodeLength(),

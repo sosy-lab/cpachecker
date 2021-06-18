@@ -622,7 +622,7 @@ public class ReportGenerator {
 
     return FluentIterable.concat(
             Collections2.transform(sourceFiles, Path::of),
-            Collections2.transform(allLocations, loc -> Path.of(loc.getFileName())))
+            Collections2.transform(allLocations, FileLocation::getFileName))
         .filter(path -> Files.isReadable(path))
         .filter(path -> !Files.isDirectory(path))
         .toSet();

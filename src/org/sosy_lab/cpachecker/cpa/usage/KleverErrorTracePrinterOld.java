@@ -84,7 +84,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
               .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
-              .getFileName();
+              .getFileName()
+              .toString();
 
       GraphMlBuilder builder =
           new GraphMlBuilder(
@@ -219,7 +220,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
     FileLocation location = pEdge.getFileLocation();
     assert (location != null) : "should be filtered";
-    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName());
+    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName().toString());
     builder.addDataElementChild(
         result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));
     builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(location.getNodeOffset()));

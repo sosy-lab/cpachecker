@@ -98,7 +98,7 @@ public abstract class ErrorTracePrinter {
     if (loc == null || !loc.isRealLocation()) {
       return false;
     }
-    if (filterMissedFiles && !Files.exists(Path.of(loc.getFileName()))) {
+    if (filterMissedFiles && !Files.exists(loc.getFileName())) {
       return false;
     }
     return true;

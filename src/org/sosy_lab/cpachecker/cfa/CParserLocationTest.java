@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -66,7 +67,7 @@ public class CParserLocationTest {
     ParseResult result = parser.parseString(fileName, code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
-    assertThat(mainLoc.getFileName()).isEqualTo(expectedFileName);
+    assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName()).isEmpty();
     assertThat(mainLoc.getStartingLineNumber()).isEqualTo(1);
     assertThat(mainLoc.getEndingLineNumber()).isEqualTo(1);
@@ -84,7 +85,7 @@ public class CParserLocationTest {
     ParseResult result = parser.parseString(fileName, code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
-    assertThat(mainLoc.getFileName()).isEqualTo(expectedFileName);
+    assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName()).isEmpty();
     assertThat(mainLoc.getStartingLineNumber()).isEqualTo(2);
     assertThat(mainLoc.getEndingLineNumber()).isEqualTo(2);
@@ -102,7 +103,7 @@ public class CParserLocationTest {
     ParseResult result = parser.parseString(fileName, code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
-    assertThat(mainLoc.getFileName()).isEqualTo(expectedFileName);
+    assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName()).isEmpty();
     assertThat(mainLoc.getStartingLineNumber()).isEqualTo(2);
     assertThat(mainLoc.getEndingLineNumber()).isEqualTo(2);
@@ -120,7 +121,7 @@ public class CParserLocationTest {
     ParseResult result = parser.parseString(fileName, code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
-    assertThat(mainLoc.getFileName()).isEqualTo("foo.c");
+    assertThat(mainLoc.getFileName()).isEqualTo(Path.of("foo.c"));
     assertThat(mainLoc.getNiceFileName()).isEqualTo("foo.c");
     assertThat(mainLoc.getStartingLineNumber()).isEqualTo(2);
     assertThat(mainLoc.getEndingLineNumber()).isEqualTo(2);
@@ -143,7 +144,7 @@ public class CParserLocationTest {
         parser.parseString(ImmutableList.of(main, additional), new CSourceOriginMapping());
 
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
-    assertThat(mainLoc.getFileName()).isEqualTo(expectedFileName);
+    assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
     assertThat(mainLoc.getNiceFileName())
         .isEqualTo(Path.of(expectedFileName).getFileName().toString());
     assertThat(mainLoc.getStartingLineNumber()).isEqualTo(1);
@@ -152,7 +153,7 @@ public class CParserLocationTest {
     assertThat(mainLoc.getEndingLineInOrigin()).isEqualTo(1);
 
     FileLocation additionalLoc = result.getFunctions().get("foo").getFileLocation();
-    assertThat(additionalLoc.getFileName()).isEqualTo(expectedAdditionalFileName);
+    assertThat(additionalLoc.getFileName()).isEqualTo(Path.of(expectedAdditionalFileName));
     assertThat(additionalLoc.getNiceFileName())
         .isEqualTo(Path.of(expectedAdditionalFileName).getFileName().toString());
     assertThat(additionalLoc.getStartingLineNumber()).isEqualTo(1);
