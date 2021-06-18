@@ -62,7 +62,7 @@ configuration-documentation:
   <<: *binary_check
   script:
     - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
-    - "ant $ANT_PROPS_CHECKS build-documentation"
+    - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
