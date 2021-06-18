@@ -184,11 +184,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           // may be thrown only be counterexample check, if not will be thrown again in finally
           // block due to respective shutdown notifier call)
           status = status.withPrecise(false);
-        } catch (Exception e2) {
-          // precaution always set precision to false, thus last target state not handled in case of
-          // exception
-          status = status.withPrecise(false);
-          throw e2;
         } finally {
 
           assert ARGUtils.checkARG(pReached);

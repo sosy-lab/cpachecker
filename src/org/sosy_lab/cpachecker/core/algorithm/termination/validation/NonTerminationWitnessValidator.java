@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -477,7 +478,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 witness.getInitialVariables(),
                 witness.getStates(),
                 pStemEndCycleStart.getName()));
-      } catch (Exception e) {
+      } catch (InvalidAutomatonException e) {
         logger.logException(Level.INFO, e, "Failed to set up specification to check recurrent set");
         return false;
       }
@@ -807,7 +808,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 witness.getStates(),
                 pRecurrentStartInWitness.getName()));
         automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
-      } catch (Exception e) {
+      } catch (InvalidAutomatonException | IOException | InvalidConfigurationException e) {
         logger.log(Level.INFO, "Failed to set up specification to check assumptions.");
         logger.logException(Level.FINE, e, "Failure during set up of assumptions check");
         return false;
