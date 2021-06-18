@@ -51,12 +51,13 @@ public abstract class Preprocessor {
   }
 
   /**
-   * Preprocess the given file and potentially write the result to a dump file depending on the specifications set on the preprocessor.
-   * 
+   * Preprocess the given file and potentially write the result to a dump file depending on the
+   * specifications set on the preprocessor.
+   *
    * @param file The file to preprocess.
    * @return The preprocessed file.
    */
-  public String preprocess(String file) throws CParserException, InterruptedException {
+  public String preprocess(Path file) throws CParserException, InterruptedException {
     String result = preprocess0(file);
     getAndWriteDumpFile(result, file);
     return result;
@@ -67,12 +68,12 @@ public abstract class Preprocessor {
   }
 
   @SuppressWarnings("JdkObsolete") // buffer is accessed from several threads
-  protected String preprocess0(String file) throws CParserException, InterruptedException {
+  protected String preprocess0(Path file) throws CParserException, InterruptedException {
     // create command line
     List<String> argList =
         Lists.newArrayList(
             Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().split(getCommandLine()));
-    argList.add(file);
+    argList.add(file.toString());
     String[] args = argList.toArray(new String[0]);
 
     logger.log(Level.FINE, "Running", MoreStrings.lazyString(this::getName), argList);
@@ -106,13 +107,13 @@ public abstract class Preprocessor {
     }
   }
 
-  protected Path getAndWriteDumpFile(String programCode, String file) {
+  protected Path getAndWriteDumpFile(String programCode, Path file) {
     return getAndWriteDumpFile(programCode, file, dumpDirectory);
   }
 
-  protected Path getAndWriteDumpFile(String programCode, String file, Path pDumpDirectory) {
+  protected Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
     if (dumpResults() && pDumpDirectory != null) {
-      final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file)).normalize();
+      final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file.toString())).normalize();
       if (dumpFile.startsWith(pDumpDirectory)) {
         try {
           IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);

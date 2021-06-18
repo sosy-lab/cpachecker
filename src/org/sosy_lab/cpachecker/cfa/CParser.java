@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,13 +34,13 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 public interface CParser extends Parser {
 
   class FileToParse {
-    private final String fileName;
+    private final Path fileName;
 
-    public FileToParse(String pFileName) {
+    public FileToParse(Path pFileName) {
       this.fileName = pFileName;
     }
 
-    public String getFileName() {
+    public Path getFileName() {
       return fileName;
     }
   }
@@ -47,7 +48,7 @@ public interface CParser extends Parser {
   class FileContentToParse extends FileToParse {
     private final String fileContent;
 
-    public FileContentToParse(String pFileName, String pFileContent) {
+    public FileContentToParse(Path pFileName, String pFileContent) {
       super(pFileName);
       this.fileContent = pFileContent;
     }

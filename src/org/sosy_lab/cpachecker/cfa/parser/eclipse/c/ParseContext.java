@@ -12,6 +12,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Strings;
+import java.nio.file.Path;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -117,7 +118,7 @@ class ParseContext {
       return FileLocation.DUMMY;
     }
 
-    final String fileName = l.getFileName();
+    final Path fileName = Path.of(l.getFileName());
     final int startingLineInInput = l.getStartingLineNumber();
     final int endingLineInInput = l.getEndingLineNumber();
 
@@ -132,13 +133,13 @@ class ParseContext {
     if (!startingInOrigin.getFileName().equals(endingInOrigin.getFileName())) {
       return FileLocation.MULTIPLE_FILES;
     }
-    final String originFileName = startingInOrigin.getFileName();
+    final Path originFileName = startingInOrigin.getFileName();
 
     final boolean offsetRelatedToOrigin = sourceOriginMapping.isMappingToIdenticalLineNumbers();
 
     return new FileLocation(
-        originFileName,
-        mapFileNameToNameForHumans(originFileName),
+        originFileName.toString(),
+        mapFileNameToNameForHumans(originFileName.toString()),
         l.getNodeOffset(),
         l.getNodeLength(),
         startingLineInInput,

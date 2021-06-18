@@ -132,12 +132,13 @@ public class CParserLocationTest {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public void multiFileTest() throws CParserException, InterruptedException {
     String mainCode = "void main() { }";
-    FileContentToParse main = new FileContentToParse(fileName, mainCode);
+    FileContentToParse main = new FileContentToParse(Path.of(fileName), mainCode);
 
     String additionalCode = "void foo() { }";
     String additionalFileName = fileName.replace("test", "additional");
     String expectedAdditionalFileName = expectedFileName.replace("test", "additional");
-    FileContentToParse additional = new FileContentToParse(additionalFileName, additionalCode);
+    FileContentToParse additional =
+        new FileContentToParse(Path.of(additionalFileName), additionalCode);
     ParseResult result =
         parser.parseString(ImmutableList.of(main, additional), new CSourceOriginMapping());
 

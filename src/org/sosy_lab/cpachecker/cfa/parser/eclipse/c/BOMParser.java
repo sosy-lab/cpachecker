@@ -68,9 +68,9 @@ public class BOMParser {
    * @throws CParserException - if we have a unknown BOM or a BOM file with non ascii characters in
    *     the code
    */
-  public static String filterAndDecode(String pFilename) throws IOException, CParserException {
+  public static String filterAndDecode(Path pFilename) throws IOException, CParserException {
     try (BufferedInputStream in =
-        new BufferedInputStream(MoreFiles.asByteSource(Path.of(pFilename)).openStream())) {
+        new BufferedInputStream(MoreFiles.asByteSource(pFilename).openStream())) {
       List<Integer> codeBeginning = new ArrayList<>();
       int c = 0;
       int counter = 0;

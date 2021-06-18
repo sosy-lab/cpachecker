@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.time.Timer;
@@ -52,11 +53,12 @@ class CParserWithPreprocessor implements CParser {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
-      String programCode = preprocessor.preprocess(f);
+      Path path = Path.of(f);
+      String programCode = preprocessor.preprocess(path);
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(new FileContentToParse(f, programCode));
+      programs.add(new FileContentToParse(path, programCode));
     }
     return realParser.parseString(programs, new CSourceOriginMapping());
   }

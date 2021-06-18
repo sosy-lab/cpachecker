@@ -70,14 +70,15 @@ public class CParserWithLocationMapper implements CParser {
     readLineDirectives = pReadLineDirectives;
   }
 
-  private String tokenizeSourcefile(String pFilename,
-      CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException {
+  private String tokenizeSourcefile(Path pFilename, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, IOException {
     String code = BOMParser.filterAndDecode(pFilename);
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
-  private String processCode(final String fileName, String pCode,
-      CSourceOriginMapping sourceOriginMapping) throws CParserException {
+  private String processCode(
+      final Path fileName, String pCode, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException {
     StringBuilder tokenizedCode = new StringBuilder();
 
     LexerOptions options = new LexerOptions();
@@ -89,7 +90,7 @@ public class CParserWithLocationMapper implements CParser {
       int absoluteLineNumber = 1;
       int relativeLineNumber = absoluteLineNumber;
 
-      String rangeLinesOriginFilename = fileName;
+      Path rangeLinesOriginFilename = fileName;
       int includeStartedWithAbsoluteLine = 1;
 
       Token token;
@@ -137,7 +138,7 @@ public class CParserWithLocationMapper implements CParser {
                 if (file.charAt(0) == '"' && file.charAt(file.length()-1) == '"') {
                   file = file.substring(1, file.length()-1);
                 }
-                rangeLinesOriginFilename = file;
+                rangeLinesOriginFilename = Path.of(file);
               }
             }
           }
@@ -176,7 +177,7 @@ public class CParserWithLocationMapper implements CParser {
   public ParseResult parseString(
       String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException {
-    String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
+    String tokenizedCode = processCode(Path.of(pFilename), pCode, pSourceOriginMapping);
 
     return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
   }
@@ -198,11 +199,12 @@ public class CParserWithLocationMapper implements CParser {
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
-      String programCode = tokenizeSourcefile(f, sourceOriginMapping);
+      Path path = Path.of(f);
+      String programCode = tokenizeSourcefile(path, sourceOriginMapping);
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
-      programFragments.add(new FileContentToParse(f, programCode));
+      programFragments.add(new FileContentToParse(path, programCode));
     }
     return realParser.parseString(programFragments, sourceOriginMapping);
   }

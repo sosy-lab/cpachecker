@@ -46,7 +46,7 @@ public class LlvmParserWithClang extends LlvmParser {
       throw new InvalidConfigurationException(
           "Multiple program files not supported when using LLVM frontend.");
     }
-    String filename = pFilenames.get(0);
+    Path filename = Path.of(pFilenames.get(0));
 
     if (preprocessor.getDumpDirectory() != null) {
       // Writing to the output directory is possible.
@@ -66,7 +66,8 @@ public class LlvmParserWithClang extends LlvmParser {
     throw new UnsupportedOperationException();
   }
 
-  private ParseResult parse0(final String pFileName, final Path pDumpDirectory) throws ParserException, InterruptedException {
+  private ParseResult parse0(final Path pFileName, final Path pDumpDirectory)
+      throws ParserException, InterruptedException {
     Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFileName, pDumpDirectory);
     return super.parseFile(dumpedFile.toString());
   }
