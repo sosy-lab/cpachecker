@@ -280,13 +280,13 @@ public class SelectionAlgorithm extends NestingAlgorithm {
           Level.WARNING,
           e,
           "Skipping preAnalysisAlgorithm because the configuration file "
-              + preAnalysisConfig.toString()
+              + preAnalysisConfig
               + " is invalid");
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     } catch (IOException e) {
       String message =
           "Skipping preAnalysisAlgorithm because the configuration file "
-              + preAnalysisConfig.toString()
+              + preAnalysisConfig
               + " could not be read";
       if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
         logger.log(Level.WARNING, message);
@@ -448,13 +448,13 @@ public class SelectionAlgorithm extends NestingAlgorithm {
           Level.WARNING,
           e,
           "Skipping SelectionAlgorithm because the configuration file "
-              + chosenConfig.toString()
+              + chosenConfig
               + " is invalid");
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     } catch (IOException e) {
       String message =
           "Skipping SelectionAlgorithm because the configuration file "
-              + chosenConfig.toString()
+              + chosenConfig
               + " could not be read";
       if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
         logger.log(Level.WARNING, message);

@@ -606,7 +606,7 @@ public class CFABuilder {
             curNode = newNode(pFunction);
             addEdge(
                 new CStatementEdge(
-                    expr.toASTString() + i.toString(),
+                    expr.toASTString() + i,
                     (CStatement) expr,
                     exprLocation,
                     prevNode,

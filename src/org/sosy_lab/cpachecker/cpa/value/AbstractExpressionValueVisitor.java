@@ -1922,7 +1922,7 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       default:
-        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString()
+        throw new AssertionError("Unsupported binary operation " + pBinaryOperator
             + " on floating point values");
       }
 

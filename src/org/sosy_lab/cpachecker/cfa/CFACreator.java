@@ -833,7 +833,7 @@ public class CFACreator {
           "Two or more matching functions for \""
               + mainMethodName
               + "\" found:\n"
-              + exceptionMessage.toString()
+              + exceptionMessage
               + EXAMPLE_JAVA_METHOD_NAME);
     }
 

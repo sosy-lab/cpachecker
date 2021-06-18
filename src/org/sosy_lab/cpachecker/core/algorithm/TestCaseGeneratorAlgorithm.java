@@ -217,7 +217,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   CounterexampleInfo cexInfo = ARGUtils.tryGetOrCreateCounterexampleInformation(argState, cpa, assumptionToEdgeAllocator).orElseThrow();
                   exporter.writeTestCaseFiles(cexInfo, Optional.ofNullable(specProp));
 
-                  logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
+                  logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
 
                   if (shouldReportCoveredErrorCallAsError()) {
@@ -237,14 +237,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   }
                   logger.log(
                       Level.FINE,
-                      "Status was not precise. Current test target is not removed:"
-                          + targetEdge.toString());
+                      "Status was not precise. Current test target is not removed:" + targetEdge);
                 }
               } else {
                 logger.log(
                     Level.FINE,
-                    "Found test target is not in provided set of test targets:"
-                        + targetEdge.toString());
+                    "Found test target is not in provided set of test targets:" + targetEdge);
               }
             } else {
               logger.log(Level.FINE, "Target edge was null.");

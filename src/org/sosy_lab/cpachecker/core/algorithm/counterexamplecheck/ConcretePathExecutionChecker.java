@@ -121,8 +121,11 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
       for (String str : exec.getErrorOutput()) {
         errorOut.append(str);
       }
-      throw new CounterexampleAnalysisFailed("Could not compile the concrete error path. The compiler finished with exitCode "
-                                             + exitCode + "\n The output was: \n" + errorOut.toString());
+      throw new CounterexampleAnalysisFailed(
+          "Could not compile the concrete error path. The compiler finished with exitCode "
+              + exitCode
+              + "\n The output was: \n"
+              + errorOut);
     }
   }
 

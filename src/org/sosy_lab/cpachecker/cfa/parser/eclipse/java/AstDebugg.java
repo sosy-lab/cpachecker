@@ -9,13 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.util.logging.Level;
-
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.sosy_lab.common.log.LogManager;
-
 
 /**
  * This Visitor simply extracts the AST of the JDT Parser for debug Purposes.
@@ -31,7 +29,7 @@ class AstDebugg extends ASTVisitor {
   @Override
   public void preVisit(ASTNode node) {
     if (isProblematicNode(node)) {
-      logger.log(Level.WARNING, "Error in node " + node.toString());
+      logger.log(Level.WARNING, "Error in node " + node);
     }
   }
 

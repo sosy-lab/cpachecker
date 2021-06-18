@@ -499,7 +499,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           Level.WARNING,
           e,
           "Skipping one analysis because the configuration file "
-              + singleConfigFileName.toString()
+              + singleConfigFileName
               + " could not be read");
       return null;
     }

@@ -222,7 +222,7 @@ public class AssumptionToEdgeAllocator {
         return "";
       }
 
-      return returnExp.toASTString() + " = " + value.toString();
+      return returnExp.toASTString() + " = " + value;
     }
 
     return "";
@@ -337,7 +337,7 @@ public class AssumptionToEdgeAllocator {
       Object value = getValueObject(op, pFunctionName, pConcreteState);
 
       if (value != null) {
-        return op.toASTString() + " == " + value.toString();
+        return op.toASTString() + " == " + value;
       } else {
         return "";
       }

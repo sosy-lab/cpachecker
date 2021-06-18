@@ -368,9 +368,11 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     if (usesParallelCompositionOfProgramAndCondition()) {
       if (getAssumptionGuider() == null) {
         throw new InvalidConfigurationException(
-          "For current strategy " + getStrategy().toString() +
-          ", the control automaton guiding the exploration based on the condition is needed. " +
-          "Please set the option residualprogram.assumptionGuider."); }
+            "For current strategy "
+                + getStrategy()
+                + ", the control automaton guiding the exploration based on the condition is"
+                + " needed. Please set the option residualprogram.assumptionGuider.");
+      }
     }
   }
 

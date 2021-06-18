@@ -30,8 +30,7 @@ public final class SMGConsistencyChecker {
         || nullPointer.getSize().intValue() != 0
         || nullPointer.getNestingLevel() != 0
         || nullPointer.getOffset().intValue() != 0) {
-      throw new SMGInconsistencyException(
-          "Inconsistent smg: " + smg.toString() + "\n Invalid nullObject");
+      throw new SMGInconsistencyException("Inconsistent smg: " + smg + "\n Invalid nullObject");
     }
 
     checkInvalidRegionConsistency(smg);
@@ -48,11 +47,7 @@ public final class SMGConsistencyChecker {
     Optional<SMGListSegment> invalidDLL = smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
     if (invalidDLL.isPresent()) {
         throw new SMGInconsistencyException(
-            "Inconsistent smg: "
-                + smg.toString()
-                + "\n Invalid DLL found: "
-                + invalidDLL.toString());
-
+          "Inconsistent smg: " + smg + "\n Invalid DLL found: " + invalidDLL);
     }
   }
 
@@ -68,11 +63,7 @@ public final class SMGConsistencyChecker {
 
         if (!smg.getEdges(region).isEmpty()) {
           throw new SMGInconsistencyException(
-              "Inconsistent smg: "
-                  + smg.toString()
-                  + "\n Invalid region "
-                  + region.toString()
-                  + " has outgoing edges.");
+              "Inconsistent smg: " + smg + "\n Invalid region " + region + " has outgoing edges.");
         }
       }
     }

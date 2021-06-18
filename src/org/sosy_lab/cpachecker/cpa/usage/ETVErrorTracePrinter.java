@@ -104,7 +104,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       } else if (id instanceof LocalVariableIdentifier) {
         writer.append("##" + ((LocalVariableIdentifier) id).getFunction() + "\n");
       } else {
-        logger.log(Level.WARNING, "What is it? " + id.toString());
+        logger.log(Level.WARNING, "What is it? " + id);
       }
       writer.append(id.getDereference() + "\n");
       writer.append(id.getType().toASTString(id.getName()) + "\n");

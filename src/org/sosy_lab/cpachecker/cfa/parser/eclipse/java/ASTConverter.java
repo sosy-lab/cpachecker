@@ -392,8 +392,7 @@ class ASTConverter {
     if (l == null) {
       return FileLocation.DUMMY;
     } else if (l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT) {
-      logger.log(Level.WARNING, "Can't find Placement Information for :"
-          + l.toString());
+      logger.log(Level.WARNING, "Can't find Placement Information for :" + l);
       return FileLocation.DUMMY;
     }
 
@@ -1645,7 +1644,7 @@ class ASTConverter {
         result.add(getClassOfJType(expression.getExpressionType(), pImportDeclarations).get());
       }
       else {
-        throw new AssertionError("Cannot find class of " + argument.toString());
+        throw new AssertionError("Cannot find class of " + argument);
       }
     }
     if (pArguments.size() != result.size()) {
@@ -1783,8 +1782,7 @@ class ASTConverter {
         }
 
       } else {
-        throw new CFAGenerationRuntimeException(
-            "Could not process argument: " + argument.toString() + " .");
+        throw new CFAGenerationRuntimeException("Could not process argument: " + argument + " .");
       }
     }
     return ImmutableList.copyOf(parameterList);
@@ -1834,8 +1832,7 @@ class ASTConverter {
                 qualifiedName,
                 jType instanceof JClassType && ((JClassType) jType).isFinal()));
       } else {
-        throw new CFAGenerationRuntimeException(
-            "Could not process argument: " + argument.toString() + " .");
+        throw new CFAGenerationRuntimeException("Could not process argument: " + argument + " .");
       }
     }
     return ImmutableList.copyOf(parameterList);
@@ -2339,8 +2336,7 @@ class ASTConverter {
       declaration = createVariableDeclarationFromBinding(e, vb);
     }
 
-    assert name.equals(declaration.getOrigName()) :
-      "Created a false declaration for " + e.toString();
+    assert name.equals(declaration.getOrigName()) : "Created a false declaration for " + e;
 
     JType type = convert(e.resolveTypeBinding());
 
@@ -2743,7 +2739,7 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
       return BinaryOperator.CONDITIONAL_AND;
     } else {
-      throw new CFAGenerationRuntimeException("Could not process Operator: " + op.toString());
+      throw new CFAGenerationRuntimeException("Could not process Operator: " + op);
     }
   }
 
@@ -2763,8 +2759,7 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.XOR)) {
       return BinaryOperator.LOGICAL_XOR;
     } else {
-      throw new CFAGenerationRuntimeException(
-          "Could not proccess Operator: " + op.toString());
+      throw new CFAGenerationRuntimeException("Could not proccess Operator: " + op);
     }
   }
 
@@ -2937,8 +2932,7 @@ class ASTConverter {
 
     if (param == null) {
       throw new CFAGenerationRuntimeException(
-        "Formal Parameter " + formalParameter.toString()
-            + " could not be proccessed", formalParameter);
+          "Formal Parameter " + formalParameter + " could not be proccessed", formalParameter);
       }
 
     JIdExpression paramIdExpr = new JIdExpression(
