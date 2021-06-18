@@ -38,7 +38,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -614,13 +613,12 @@ public class ReportGenerator {
     // it misses included header that do not happen to define functions, just other definitions and
     // macros. But this actually seems like a good thing to not add lots of useless system headers.
 
-    Set<FileLocation> allLocations = new LinkedHashSet<>();
-    allLocations.add(cfa.getMainFunction().getFileLocation()); // We want this as first element
-    FluentIterable.from(cfa.getAllFunctionHeads())
-        .transform(FunctionEntryNode::getFileLocation)
-        .copyInto(allLocations);
-    allLocations.remove(FileLocation.DUMMY);
-    allLocations.remove(FileLocation.MULTIPLE_FILES);
+    Set<FileLocation> allLocations =
+        FluentIterable.of(cfa.getMainFunction()) // We want this as first element
+            .append(cfa.getAllFunctionHeads())
+            .transform(FunctionEntryNode::getFileLocation)
+            .filter(FileLocation::isRealLocation)
+            .toSet();
 
     return FluentIterable.concat(
             Collections2.transform(sourceFiles, Path::of),

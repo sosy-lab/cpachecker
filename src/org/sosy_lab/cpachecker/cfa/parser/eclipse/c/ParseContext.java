@@ -65,7 +65,7 @@ class ParseContext {
     StringBuilder sb = new StringBuilder();
 
     FileLocation fileLocation = getLocation(node);
-    if (!FileLocation.DUMMY.equals(fileLocation)) {
+    if (fileLocation.isRealLocation()) {
       sb.append(fileLocation);
       sb.append(": ");
     }

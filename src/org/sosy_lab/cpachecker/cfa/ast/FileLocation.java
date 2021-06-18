@@ -78,6 +78,11 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         private static final long serialVersionUID = -3012034075570811723L;
 
         @Override
+        public boolean isRealLocation() {
+          return false;
+        }
+
+        @Override
         public String toString() {
           return "none";
         }
@@ -86,6 +91,11 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   public static final FileLocation MULTIPLE_FILES =
       new FileLocation("<multiple files>", 0, 0, 0, 0) {
         private static final long serialVersionUID = -1725179775900132985L;
+
+        @Override
+        public boolean isRealLocation() {
+          return false;
+        }
 
         @Override
         public String toString() {
@@ -139,6 +149,11 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         startingLineInOrigin,
         endingLineInOrigin,
         offsetRelatedToOrigin);
+  }
+
+  /** Whether this is a real location or a dummy one like {@link FileLocation#DUMMY} */
+  public boolean isRealLocation() {
+    return true;
   }
 
   /** Return the non-null and non-empty file name. */

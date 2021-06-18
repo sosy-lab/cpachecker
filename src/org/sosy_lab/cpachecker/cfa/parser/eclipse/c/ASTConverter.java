@@ -1684,7 +1684,7 @@ class ASTConverter {
       for (IASTDeclarator c : declarators) {
 
         FileLocation declaratorLocation = getLocation(c);
-        if (FileLocation.DUMMY.equals(declaratorLocation)) {
+        if (!declaratorLocation.isRealLocation()) {
           declaratorLocation = fileLoc;
         } else if (c == declarators[0]) {
           declaratorLocation =

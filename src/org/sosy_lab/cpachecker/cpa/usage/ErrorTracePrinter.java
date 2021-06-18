@@ -95,7 +95,7 @@ public abstract class ErrorTracePrinter {
       return false;
     }
     FileLocation loc = e.getFileLocation();
-    if (loc == null || loc.equals(FileLocation.DUMMY)) {
+    if (loc == null || !loc.isRealLocation()) {
       return false;
     }
     if (filterMissedFiles && !Files.exists(Path.of(loc.getFileName()))) {

@@ -675,7 +675,7 @@ public class AutomatonGraphmlCommon {
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
-      if (!FileLocation.DUMMY.equals(location)) {
+      if (location.isRealLocation()) {
         location =
             new FileLocation(
                 location.getFileName(),
@@ -697,7 +697,7 @@ public class AutomatonGraphmlCommon {
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
       FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
-      if (!FileLocation.DUMMY.equals(statementLocation)) {
+      if (statementLocation.isRealLocation()) {
         return Collections.singleton(statementLocation);
       }
     }
@@ -709,7 +709,7 @@ public class AutomatonGraphmlCommon {
         if (call instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement statement = (AFunctionCallAssignmentStatement) call;
           FileLocation callLocation = statement.getRightHandSide().getFileLocation();
-          if (!FileLocation.DUMMY.equals(callLocation)) {
+          if (callLocation.isRealLocation()) {
             return Collections.singleton(callLocation);
           }
         }
@@ -721,7 +721,7 @@ public class AutomatonGraphmlCommon {
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
         FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
-        if (!FileLocation.DUMMY.equals(switchLocation)) {
+        if (switchLocation.isRealLocation()) {
           location = switchLocation;
         } else {
           SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
@@ -733,7 +733,7 @@ public class AutomatonGraphmlCommon {
         }
 
       }
-      if (!FileLocation.DUMMY.equals(location)) {
+      if (location.isRealLocation()) {
         return Collections.singleton(location);
       }
     }
@@ -822,8 +822,9 @@ public class AutomatonGraphmlCommon {
         BlankEdge edge = (BlankEdge) pEdge;
         String switchPrefix = "switch (";
         if (edge.getDescription().equals(switchPrefix + switchOperand + ")")
-            && !FileLocation.DUMMY.equals(edge.getFileLocation())
-            && assumeExpression.getFileLocation().getNodeOffset() == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
+            && edge.getFileLocation().isRealLocation()
+            && assumeExpression.getFileLocation().getNodeOffset()
+                == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
           switchNode = edge.getSuccessor();
           return TraversalProcess.ABORT;
         }

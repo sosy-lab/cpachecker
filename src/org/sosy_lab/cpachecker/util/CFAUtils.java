@@ -472,10 +472,9 @@ public class CFAUtils {
         from(getAstNodesFromCfaEdge(pEdge))
             .transformAndConcat(node -> traverseRecursively(node))
             .transform(AAstNode::getFileLocation)
+            .append(pEdge.getFileLocation())
+            .filter(FileLocation::isRealLocation)
             .copyInto(new HashSet<>());
-
-    result.add(pEdge.getFileLocation());
-    result.remove(FileLocation.DUMMY);
 
     if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
       FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();

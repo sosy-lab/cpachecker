@@ -263,7 +263,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     if (getNumLeavingEdges() > 0) {
       CFAEdge edge = getLeavingEdge(0);
 
-      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+      if (edge.getFileLocation().isRealLocation()) {
         return "before " + edge.getFileLocation();
       }
     }
@@ -271,7 +271,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     if (getNumEnteringEdges() > 0) {
       CFAEdge edge = getEnteringEdge(0);
 
-      if (!edge.getFileLocation().equals(FileLocation.DUMMY)) {
+      if (edge.getFileLocation().isRealLocation()) {
         return "after " + edge.getFileLocation();
       }
     }
