@@ -264,7 +264,7 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertJs(writer, cfa, dotBuilder, counterExample);
+          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
@@ -293,6 +293,7 @@ public class ReportGenerator {
   private void insertJs(
       Writer writer,
       CFA cfa,
+      Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
@@ -306,7 +307,7 @@ public class ReportGenerator {
         } else if (line.contains("ARG_JSON_INPUT")) {
           insertArgJson(writer);
         } else if (line.contains("SOURCE_FILES")) {
-          insertSourceFileNames(writer);
+          insertSourceFileNames(writer, allInputFiles);
         } else {
           writer.write(line);
           writer.write('\n');
@@ -597,9 +598,10 @@ public class ReportGenerator {
     }
   }
 
-  private void insertSourceFileNames(Writer writer) throws IOException {
+  private void insertSourceFileNames(Writer writer, Iterable<Path> allSourceFiles)
+      throws IOException {
     writer.write("var sourceFiles = ");
-    JSON.writeJSONString(sourceFiles, writer);
+    JSON.writeJSONString(allSourceFiles, writer);
     writer.write(";\n");
   }
 
