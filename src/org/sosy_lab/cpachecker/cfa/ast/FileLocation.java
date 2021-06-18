@@ -14,6 +14,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.List;
@@ -24,7 +27,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   private static final long serialVersionUID = 6652099907084949014L;
 
-  private final Path fileName;
+  private final transient Path fileName;
   private final String niceFileName;
 
   private final int offset;
@@ -243,6 +246,61 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       return prefix + "line " + startingLineInOrigin;
     } else {
       return prefix + "lines " + startingLineInOrigin + "-" + endingLineInOrigin;
+    }
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  @SuppressWarnings({"UnusedVariable", "unused"}) // parameter is required by API
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    private static final long serialVersionUID = -3730421630343690695L;
+
+    private final String fileName;
+    private final String niceFileName;
+    private final int offset;
+    private final int length;
+    private final int startingLine;
+    private final int endingLine;
+    private final int startingLineInOrigin;
+    private final int endingLineInOrigin;
+    private final boolean offsetRelatedToOrigin;
+
+    SerializationProxy(FileLocation loc) {
+      fileName = loc.fileName.toString();
+      niceFileName = loc.niceFileName;
+      offset = loc.offset;
+      length = loc.length;
+      startingLine = loc.startingLine;
+      endingLine = loc.endingLine;
+      startingLineInOrigin = loc.startingLineInOrigin;
+      endingLineInOrigin = loc.endingLineInOrigin;
+      offsetRelatedToOrigin = loc.offsetRelatedToOrigin;
+    }
+
+    private Object readResolve() {
+      FileLocation result = new FileLocation(
+          Path.of(fileName),
+          niceFileName,
+          offset,
+          length,
+          startingLine,
+          endingLine,
+          startingLineInOrigin,
+          endingLineInOrigin,
+          offsetRelatedToOrigin);
+
+      if (result.equals(DUMMY)) {
+        return DUMMY;
+      } else if (result.equals(MULTIPLE_FILES)) {
+        return MULTIPLE_FILES;
+      }
+      return result;
     }
   }
 }
