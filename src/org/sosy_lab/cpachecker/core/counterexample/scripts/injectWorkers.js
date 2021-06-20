@@ -11,10 +11,8 @@ const path = require("path");
 const zlib = require('zlib');
 
 const rawWorkerPath = path.join(__dirname, "../worker");
-const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js.gz");
+const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js");
 const vendorPath = path.join(__dirname, "../vendor");
-
-const template = "data:text/plain;base64,";
 
 const workerFiles = ["argWorker.js", "cfaWorker.js"];
 const vendorFiles = fs.readdirSync(vendorPath).filter(file => !file.includes("license"));
@@ -39,14 +37,15 @@ workerFiles.forEach((worker) => {
   ]);
   // Convert content to utf8 and strip comments
   content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1')
-  // Convert content back to binary data and encode as base64
-  content = Buffer.from(content, "utf8").toString("base64");
+  // Compress content and encode as base64
+  content = zlib.deflateSync(content).toString("base64");
 
-  output += `\n const ${workerName} = "${template}${content}";\n`;
+  output += `\n const ${workerName} = "${content}";\n`;
 });
 
 const allWorkers = workerNames.join(", ");
 output += `\n export { ${allWorkers} };`;
-zlib.gzip(output, (_, buf) => fs.writeFileSync(workerDataFile, buf));
+
+fs.writeFileSync(workerDataFile, output);
 
 console.log("Injected worker data.");

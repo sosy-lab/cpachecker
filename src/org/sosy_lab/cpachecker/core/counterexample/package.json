@@ -22,7 +22,6 @@
 		"eslint": "^7.24.0",
 		"eslint-config-prettier": "^8.2.0",
 		"eslint-plugin-prettier": "^3.4.0",
-		"gzip-loader": "0.0.1",
 		"is-docker": "^2.2.1",
 		"jasmine": "^3.7.0",
 		"jasmine-jquery": "^2.1.1",

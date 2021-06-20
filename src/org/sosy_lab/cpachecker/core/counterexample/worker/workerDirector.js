@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { argWorkerData, cfaWorkerData } from "workerData";
+const zlib = require('zlib');
 
 const handleWorkerMessage = (msg, worker, callback) => {
   worker.busy = false;
@@ -16,14 +17,19 @@ const handleWorkerMessage = (msg, worker, callback) => {
   }
 };
 
-const argWorker = new Worker(argWorkerData);
+const base64Header = "data:text/plain;base64,";
+
+const argWorkerDataDecompressed = base64Header + zlib.inflateSync(new Buffer(argWorkerData, "base64")).toString("base64");
+const cfaWorkerDataDecompressed = base64Header + zlib.inflateSync(new Buffer(cfaWorkerData, "base64")).toString("base64");
+
+const argWorker = new Worker(argWorkerDataDecompressed);
 argWorker.workerName = "argWorker";
 argWorker.onmessage = (result) =>
   handleWorkerMessage(result.data, argWorker, argWorker.callback);
 argWorker.onerror = (err) =>
   handleWorkerMessage(err.message, argWorker, argWorker.onErrorCallback);
 
-const cfaWorker = new Worker(cfaWorkerData);
+const cfaWorker = new Worker(cfaWorkerDataDecompressed);
 cfaWorker.workerName = "cfaWorker";
 cfaWorker.onmessage = (result) =>
   handleWorkerMessage(result.data, cfaWorker, cfaWorker.callback);

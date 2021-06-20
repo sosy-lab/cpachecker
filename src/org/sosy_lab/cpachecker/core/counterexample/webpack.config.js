@@ -52,11 +52,7 @@ module.exports = {
             },
           },
         ],
-      },
-      {
-       test: /\.gz$/i,
-       use: 'gzip-loader',
-     },
+      }
     ],
   },
   optimization: {
@@ -112,7 +108,7 @@ module.exports = {
         __dirname,
         buildTmpFolder + "dependencies.json"
       ),
-      workerData: path.resolve(__dirname, buildTmpFolder + "workerData.js.gz"),
+      workerData: path.resolve(__dirname, buildTmpFolder + "workerData.js"),
     }
   }
 };
