@@ -95,6 +95,10 @@ solver.mathsat5.loadOptimathsat5 = false
 solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
+# Enable additional assertion checks within Princess. The main usage is
+# debugging. This option can cause a performance overhead.
+solver.princess.enableAssertions = false
+
 # log all queries as Princess-specific Scala code
 solver.princess.logAllQueriesAsScala = false
 
