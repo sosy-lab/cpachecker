@@ -511,6 +511,10 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("__GNUC__", "4");
       macrosBuilder.put("__GNUC_MINOR__", "7");
 
+      // Our version of CDT does not recognize _Float128 yet:
+      // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/471
+      macrosBuilder.put("_Float128", "__float128");
+
       MACROS = macrosBuilder.build();
     }
 
