@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -287,6 +289,7 @@ public class CFACreator {
 
   // data structures for parsing ACSL annotations
   private final List<FileLocation> commentPositions = new ArrayList<>();
+  private final List<ACSLBlock> blocks = new ArrayList<>();
 
   private final LogManager logger;
   private final Parser parser;
@@ -464,9 +467,11 @@ public class CFACreator {
       CFA cfa = createCFA(c, mainFunction);
 
       if (!commentPositions.isEmpty()) {
+        BlockStructureBuilder blockStructureBuilder = new BlockStructureBuilder(cfa);
+        blockStructureBuilder.addAll(blocks);
         cfa =
             ACSLParser.parseACSLAnnotations(
-                sourceFiles, cfa, logger, commentPositions);
+                sourceFiles, cfa, logger, commentPositions, blockStructureBuilder.build());
       }
 
       return cfa;
@@ -574,8 +579,10 @@ public class CFACreator {
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
     if (pParseResult instanceof ParseResultWithCommentLocations) {
+      ParseResultWithCommentLocations withCommentLocations = ((ParseResultWithCommentLocations) pParseResult);
       commentPositions.addAll(
-          ((ParseResultWithCommentLocations) pParseResult).getCommentLocations());
+          withCommentLocations.getCommentLocations());
+      blocks.addAll(withCommentLocations.getBlocks());
     }
 
     // check the super CFA starting at the main function

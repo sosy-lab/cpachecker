@@ -34,9 +34,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.Block;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructure;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -79,7 +78,8 @@ parser code {:
         List<String> files,
         CFA pCfa,
         LogManager logger,
-        List<FileLocation> commentPositions)
+        List<FileLocation> commentPositions,
+        BlockStructure blockStructure)
         throws CParserException, IOException {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
       Stream<FileLocation> orderedAnnotationLocs =
@@ -108,8 +108,6 @@ parser code {:
                       x.getFileName().equals(filename)
                           || Path.of(x.getFileName()).getFileName().toString().equals(filename))
               .collect(ImmutableList.toImmutableList());
-        BlockStructureBuilder builder = new BlockStructureBuilder(pCfa);
-        BlockStructure blockStructure = builder.build(filename);
         ACSLParser parser =
             new ACSLParser(
                 scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger);
@@ -239,7 +237,7 @@ parser code {:
       }
       // Add statement contracts directly after the statement as well because some clauses have to
       // be evaluated in the post-state
-      Block innermostBlock = blockStructure.getInnermostBlockOf(edge.getSuccessor());
+      ACSLBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getSuccessor());
       assert innermostBlock != null : "Not inside a block";
       if (innermostBlock.isFunction()) {
         for (int i = 0; i < edge.getSuccessor().getNumLeavingEdges(); i++) {
@@ -316,16 +314,16 @@ parser code {:
         }
       }
 
-      Block innermostBlockOfAssertion = blockStructure.getInnermostBlockOf(loc);
+      ACSLBlock innermostBlockOfAssertion = blockStructure.getInnermostBlockOf(loc);
       if (next == null
           || !innermostBlockOfAssertion.getContainedNodes().contains(next.getPredecessor())) {
-        Block innermostBlockOfPrevEdge = blockStructure.getInnermostBlockOf(prev.getSuccessor());
+        ACSLBlock innermostBlockOfPrevEdge = blockStructure.getInnermostBlockOf(prev.getSuccessor());
         if (innermostBlockOfPrevEdge.equals(innermostBlockOfAssertion)) {
           // Assertion is at very end of block (since next edge is after block)
           cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
         } else {
-          Block lastBlock = null;
-          for (Block block : blockStructure.getBlocks()) {
+          ACSLBlock lastBlock = null;
+          for (ACSLBlock block : blockStructure.getBlocks()) {
             if (!block.getContainedNodes().contains(prev.getSuccessor()) || block.getEndOffset() >= loc.getNodeOffset()) {
               continue;
             }

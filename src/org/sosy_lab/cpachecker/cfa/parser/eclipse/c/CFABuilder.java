@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -84,8 +85,9 @@ class CFABuilder extends ASTVisitor {
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = new HashSet<>();
 
-  // Data structure for storing locations of ACSL annotations
+  // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
+  private final List<ACSLBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -367,7 +369,7 @@ class CFABuilder extends ASTVisitor {
     }
 
     return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions);
+        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
   }
 
   private void handleFunctionDefinition(
@@ -415,6 +417,7 @@ class CFABuilder extends ASTVisitor {
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
+    blocks.addAll(functionBuilder.getBlocks());
     functionBuilder.finish();
   }
 

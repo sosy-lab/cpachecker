@@ -9,24 +9,25 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl.util;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class BlockStructure {
-  private final ImmutableSet<Block> blocks;
+  private final ImmutableSet<ACSLBlock> blocks;
 
-  public BlockStructure(Set<Block> pBlocks) {
+  BlockStructure(Collection<ACSLBlock> pBlocks) {
     blocks = ImmutableSet.copyOf(pBlocks);
   }
 
-  public Set<Block> getBlocks() {
+  public Set<ACSLBlock> getBlocks() {
     return blocks;
   }
 
-  public Block getInnermostBlockOf(CFANode node) {
-    Block innermostBlock = null;
-    for (Block block : blocks) {
+  public ACSLBlock getInnermostBlockOf(CFANode node) {
+    ACSLBlock innermostBlock = null;
+    for (ACSLBlock block : blocks) {
       if (block.getContainedNodes().contains(node)
           && (innermostBlock == null || innermostBlock.contains(block))) {
         innermostBlock = block;
@@ -35,9 +36,9 @@ public class BlockStructure {
     return innermostBlock;
   }
 
-  public Block getInnermostBlockOf(FileLocation location) {
-    Block innermostBlock = null;
-    for (Block block : blocks) {
+  public ACSLBlock getInnermostBlockOf(FileLocation location) {
+    ACSLBlock innermostBlock = null;
+    for (ACSLBlock block : blocks) {
       if (block.getStartOffset() < location.getNodeOffset()
           && location.getNodeOffset() < block.getEndOffset()
           && (innermostBlock == null || innermostBlock.contains(block))) {

@@ -15,11 +15,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
-class FunctionBlock implements Block {
+public class FunctionBlock implements ACSLBlock {
 
   private final FunctionEntryNode function;
 
-  FunctionBlock(FunctionEntryNode pFunction) {
+  public FunctionBlock(FunctionEntryNode pFunction) {
     function = pFunction;
   }
 

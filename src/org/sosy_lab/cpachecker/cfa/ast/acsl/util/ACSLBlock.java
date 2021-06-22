@@ -12,7 +12,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public interface Block {
+public interface ACSLBlock {
 
   boolean isFunction();
 
@@ -22,13 +22,21 @@ public interface Block {
 
   int getEndOffset();
 
+  /**
+   * Returns the entering edges of the block. An edge is an entering edge if it is not inside the
+   * block but the next concrete edge is.
+   */
   Set<CFAEdge> getEnteringEdges();
 
+  /**
+   * Returns the leaving edges of the block. An edge is a leaving edge if it is inside the
+   * block but the next concrete edge is not.
+   */
   Set<CFAEdge> getLeavingEdges();
 
   Set<CFANode> getContainedNodes();
 
-  default boolean contains(Block other) {
+  default boolean contains(ACSLBlock other) {
     return getStartOffset() < other.getStartOffset() && getEndOffset() > other.getEndOffset();
   }
 }
