@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.InvariantSamplingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.invariantsampling.InvariantSamplingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Factory class for the three core components of CPAchecker:
  * algorithm, cpa and reached set.
  */
-@Options(prefix="analysis")
+@Options(prefix = "analysis")
 public class CoreComponentsFactory {
 
 
@@ -93,20 +93,23 @@ public class CoreComponentsFactory {
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(secure=true, description="use assumption collecting algorithm")
+  @Option(secure = true, description = "use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
-  @Option(secure=true, name="algorithm.conditionAdjustment",
-      description="use adjustable conditions algorithm")
+  @Option(secure = true, name = "algorithm.conditionAdjustment",
+      description = "use adjustable conditions algorithm")
   private boolean useAdjustableConditions = false;
 
   @Option(secure = true, name = "algorithm.pdr", description = "use PDR algorithm")
   private boolean usePDR = false;
 
-  @Option(secure=true, name="algorithm.CEGAR",
+  @Option(secure = true, name = "algorithm.invariantsampling", description = "use invariant sampling algorithm")
+  private boolean useInvariantSampling = false;
+
+  @Option(secure = true, name = "algorithm.CEGAR",
       description = "use CEGAR algorithm for lazy counter-example guided analysis"
-        + "\nYou need to specify a refiner with the cegar.refiner option."
-        + "\nCurrently all refiner require the use of the ARGCPA.")
+          + "\nYou need to specify a refiner with the cegar.refiner option."
+          + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useCEGAR = false;
 
   @Option(
@@ -139,58 +142,58 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Construct the program slice for the given configuration.")
   private boolean constructProgramSlice = false;
 
-  @Option(secure=true, name="algorithm.BMC",
-      description="use a BMC like algorithm that checks for satisfiability "
-        + "after the analysis has finished, works only with PredicateCPA")
+  @Option(secure = true, name = "algorithm.BMC",
+      description = "use a BMC like algorithm that checks for satisfiability "
+          + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.IMC",
-    description = "use McMillan's interpolation-based model checking algorithm, "
-        + "works only with PredicateCPA and large-block encoding")
+      secure = true,
+      name = "algorithm.IMC",
+      description = "use McMillan's interpolation-based model checking algorithm, "
+          + "works only with PredicateCPA and large-block encoding")
   private boolean useIMC = false;
 
-  @Option(secure=true, name="algorithm.impact",
-      description="Use McMillan's Impact algorithm for lazy interpolation")
+  @Option(secure = true, name = "algorithm.impact",
+      description = "Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "useCompositionAnalysis",
-    description = "select an analysis from a set of analyses after unknown result")
+      secure = true,
+      name = "useCompositionAnalysis",
+      description = "select an analysis from a set of analyses after unknown result")
   private boolean useCompositionAlgorithm = false;
 
   @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
-    private boolean useTestCaseGeneratorAlgorithm = false;
+  private boolean useTestCaseGeneratorAlgorithm = false;
 
-  @Option(secure=true, name="restartAfterUnknown",
-      description="restart the analysis using a different configuration after unknown result")
+  @Option(secure = true, name = "restartAfterUnknown",
+      description = "restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "selectAnalysisHeuristically",
-    description = "Use heuristics to select the analysis"
+      secure = true,
+      name = "selectAnalysisHeuristically",
+      description = "Use heuristics to select the analysis"
   )
   private boolean useHeuristicSelectionAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "useParallelAnalyses",
-    description =
-        "Use analyses parallely. The resulting reachedset is the one of the first"
-            + " analysis finishing in time. All other analyses are terminated."
+      secure = true,
+      name = "useParallelAnalyses",
+      description =
+          "Use analyses parallely. The resulting reachedset is the one of the first"
+              + " analysis finishing in time. All other analyses are terminated."
   )
   private boolean useParallelAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.MPI",
-    description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
-        + "is the one of the first analysis returning in time. All other mpi-processes will "
-        + "get aborted.")
+      secure = true,
+      name = "algorithm.MPI",
+      description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+          + "is the one of the first analysis returning in time. All other mpi-processes will "
+          + "get aborted.")
   private boolean useMPIProcessAlgorithm = false;
 
   @Option(
@@ -210,9 +213,9 @@ public class CoreComponentsFactory {
   private boolean forceCexStore = false;
 
   @Option(
-    secure = true,
-    name = "split.program",
-    description = "Split program in subprograms which can be analyzed separately afterwards"
+      secure = true,
+      name = "split.program",
+      description = "Split program in subprograms which can be analyzed separately afterwards"
   )
   private boolean splitProgram = false;
 
@@ -222,23 +225,23 @@ public class CoreComponentsFactory {
           "memorize previously used (incomplete) reached sets after a restart of the analysis")
   private boolean memorizeReachedAfterRestart = false;
 
-  @Option(secure=true, name="algorithm.analysisWithEnabler",
-      description="use a analysis which proves if the program satisfies a specified property"
+  @Option(secure = true, name = "algorithm.analysisWithEnabler",
+      description = "use a analysis which proves if the program satisfies a specified property"
           + " with the help of an enabler CPA to separate differnt program paths")
   private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.proofCheck",
-      description="use a proof check algorithm to validate a previously generated proof")
+  @Option(secure = true, name = "algorithm.proofCheck",
+      description = "use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.proofCheckReadConfig",
-      description="use a proof check algorithm to validate a previously generated proof"
+  @Option(secure = true, name = "algorithm.proofCheckReadConfig",
+      description = "use a proof check algorithm to validate a previously generated proof"
           + "and read the configuration for checking from the proof")
   private boolean useProofCheckAlgorithmWithStoredConfig = false;
 
-  @Option(secure=true, name="algorithm.proofCheckAndGetHWRequirements",
-      description="use a proof check algorithm to validate a previously generated proof"
-      + "and extract requirements on a (reconfigurable) HW from the proof")
+  @Option(secure = true, name = "algorithm.proofCheckAndGetHWRequirements",
+      description = "use a proof check algorithm to validate a previously generated proof"
+          + "and extract requirements on a (reconfigurable) HW from the proof")
   private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
 
   @Option(
@@ -257,15 +260,15 @@ public class CoreComponentsFactory {
               + " ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
-  @Option(secure=true, name="checkProof",
+  @Option(secure = true, name = "checkProof",
       description = "do analysis and then check analysis result")
   private boolean useResultCheckAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.nonterminationWitnessCheck",
-    description =
-        "use nontermination witness validator to check a violation witness for termination"
+      secure = true,
+      name = "algorithm.nonterminationWitnessCheck",
+      description =
+          "use nontermination witness validator to check a violation witness for termination"
   )
   private boolean useNonTerminationWitnessValidation = false;
 
@@ -326,12 +329,6 @@ public class CoreComponentsFactory {
       name = "algorithm.faultlocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
-
-  @Option(
-      secure = true,
-      name = "algorithm.invariantsampling",
-      description = "Use an algorithm that tries to learn loop invariants.")
-  private boolean useInvariantSamplingAlgorithm = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -407,6 +404,9 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useInvariantSampling) {
+      algorithm =
+          new InvariantSamplingAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -470,9 +470,6 @@ public class CoreComponentsFactory {
           shutdownNotifier,
           specification,
           cfa);
-    } else if (useInvariantSamplingAlgorithm) {
-      algorithm =
-          new InvariantSamplingAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -601,11 +598,15 @@ public class CoreComponentsFactory {
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
       if (useCustomInstructionRequirementExtraction) {
-        algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
+        algorithm =
+            new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger,
+                shutdownNotifier, cfa);
       }
 
       if (unexploredPathsAsProgram) {
-        algorithm = new ResidualProgramConstructionAfterAnalysisAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
+        algorithm =
+            new ResidualProgramConstructionAfterAnalysisAlgorithm(cfa, algorithm, config, logger,
+                shutdownNotifier, specification);
       }
 
       if (unknownIfUnrestrictedProgram) {
@@ -682,7 +683,7 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useInvariantSamplingAlgorithm
+        || useInvariantSampling
         || useFaultLocalizationWithDistanceMetrics) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
