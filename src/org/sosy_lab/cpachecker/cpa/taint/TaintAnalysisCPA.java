@@ -25,10 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.taint.TaintAnalysisTransferRelation.TaintTransferOptions;
 
-/**
- * Instances of this class are configurable program analyses for analyzing a program to gain
- * information about pointer aliasing.
- */
 @Options(prefix = "cpa.taint")
 public class TaintAnalysisCPA extends AbstractCPA {
 

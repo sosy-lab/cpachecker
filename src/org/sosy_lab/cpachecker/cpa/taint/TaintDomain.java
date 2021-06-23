@@ -8,27 +8,29 @@
 
 package org.sosy_lab.cpachecker.cpa.taint;
 
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public enum TaintDomain implements AbstractDomain {
   INSTANCE;
 
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
-    // TaintAnalysisState state1 = (TaintAnalysisState) pState1;
+    TaintAnalysisState state1 = (TaintAnalysisState) pState1;
     TaintAnalysisState state2 = (TaintAnalysisState) pState2;
     TaintAnalysisState result = state2;
-    // for (Entry<MemoryLocation, LocationSet> pointsToEntry : state1.getPointsToMap().entrySet()) {
-    // result = result.addPointsToInformation(pointsToEntry.getKey(), pointsToEntry.getValue());
-    // }
-    // if (result.equals(state2)) {
-    // return state2;
-    // }
-    // if (result.equals(state1)) {
-    // return state1;
-    // }
+    for (Entry<MemoryLocation, Boolean> tainted : state1.getTaintedMap().entrySet()) {
+      result = result.addTaintToInformation(tainted.getKey(), tainted.getValue());
+    }
+    if (result.equals(state2)) {
+      return state2;
+    }
+    if (result.equals(state1)) {
+      return state1;
+    }
     return result;
   }
 

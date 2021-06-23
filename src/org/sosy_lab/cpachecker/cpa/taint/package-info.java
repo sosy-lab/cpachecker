@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * A CPA based on tracking explicit or symbolic values for variables. Documentation:
- * https://www.sosy-lab.org/research/pub/2013-FASE.Explicit-State_Software_Model_Checking_Based_on_CEGAR_and_Interpolation.pdf
+ * A CPA based on tracking the taint status for variables.
  */
 package org.sosy_lab.cpachecker.cpa.taint;

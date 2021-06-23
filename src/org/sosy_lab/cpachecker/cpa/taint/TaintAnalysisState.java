@@ -12,10 +12,12 @@ import com.google.common.base.Joiner;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.mockito.internal.matchers.Null;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -28,8 +30,8 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
 
   private final boolean isTarget;
 
-  private HashMap<MemoryLocation, Boolean> map = new HashMap<>();
-  private HashMap<MemoryLocation, MemoryLocation> pointerMap = new HashMap<>();
+  private Map<MemoryLocation, Boolean> taintedMap = new HashMap<>();
+  private Map<MemoryLocation, MemoryLocation> pointerMap = new HashMap<>();
 
   private final Set<Property> violations;
 
@@ -37,7 +39,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
 
   public TaintAnalysisState(LogManager plogger) {
     logger = plogger;
-    map = new HashMap<>();
+    taintedMap = new HashMap<>();
     pointerMap = new HashMap<>();
     isTarget = false;
     violations = Collections.emptySet();
@@ -45,7 +47,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
 
   private TaintAnalysisState(TaintAnalysisState state, LogManager plogger) {
     logger = plogger;
-    map = new HashMap<>(state.map);
+    taintedMap = new HashMap<>(state.taintedMap);
     pointerMap = new HashMap<>(state.pointerMap);
     isTarget = false;
     violations = Collections.emptySet();
@@ -54,7 +56,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   private TaintAnalysisState(
       TaintAnalysisState state, LogManager plogger, Boolean target, String violation) {
     logger = plogger;
-    map = new HashMap<>(state.map);
+    taintedMap = new HashMap<>(state.taintedMap);
     pointerMap = new HashMap<>(state.pointerMap);
     isTarget = target;
     violations = NamedProperty.singleton(violation);
@@ -74,7 +76,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
 
   private void addToMap(final MemoryLocation value, final Boolean tainted) {
-    map.put(value, tainted);
+    taintedMap.put(value, tainted);
   }
 
   public void change(MemoryLocation var, Boolean tainted) {
@@ -82,18 +84,18 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
 
   private void changeMap(final MemoryLocation value, final Boolean tainted) {
-    map.replace(value, tainted);
+    taintedMap.replace(value, tainted);
     logger.log(Level.FINEST, "Changed: " + value + " => " + tainted);
   }
 
   public Boolean getStatus(MemoryLocation var) {
-    return getMap(var);
+    return getFromMap(var);
   }
 
-  private Boolean getMap(final MemoryLocation value) {
+  private Boolean getFromMap(final MemoryLocation value) {
     if(getPointerTo(value) != null)
-      return map.get(getPointerTo(value));
-    return map.get(value);
+      return taintedMap.get(getPointerTo(value));
+    return taintedMap.get(value);
   }
 
   public void remove(MemoryLocation var) {
@@ -101,8 +103,29 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
 
   private void removeFromMap(final MemoryLocation value) {
-    map.remove(value);
+    taintedMap.remove(value);
   }
+
+  public Map<MemoryLocation, Boolean> getTaintedMap() {
+    return Collections.unmodifiableMap(this.taintedMap);
+  }
+
+  public TaintAnalysisState addTaintToInformation(MemoryLocation value, Boolean tainted) {
+    if (getFromMap(value) == null) {
+      TaintAnalysisState result = copyOf(this);
+      result.addToMap(value, tainted);
+      return result;
+    } else if (getFromMap(value) == tainted) {
+      return this;
+    } else if (getFromMap(value) != tainted && tainted) {
+      TaintAnalysisState result = copyOf(this);
+      result.changeMap(value, tainted);
+      return result;
+    } else {
+      return this;
+    }
+  }
+
 
   // Pointer Logic
   public void addPointerTo(MemoryLocation from, MemoryLocation to) {
@@ -118,17 +141,20 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
     pointerMap.remove(from);
   }
   public MemoryLocation getPointerTo(MemoryLocation from) {
-    return getPointerMap(from);
+    return getPointerMapTo(from);
   }
-  private MemoryLocation getPointerMap(final MemoryLocation from) {
+  private MemoryLocation getPointerMapTo(final MemoryLocation from) {
     return pointerMap.get(from);
   }
+  // public Map<MemoryLocation, LocationSet> getPointsToMap() {
+  //   return Collections.unmodifiableMap(this.pointerMap);
+  // }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("Tainted: [");
-    for (Entry<MemoryLocation, Boolean> entry : map.entrySet()) {
+    for (Entry<MemoryLocation, Boolean> entry : taintedMap.entrySet()) {
       String key = entry.getKey().toString();
       sb.append(" <");
       sb.append(key);
@@ -137,7 +163,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
       sb.append(">\n");
     }
 
-    return sb.append("] size->  ").append(map.size()).toString();
+    return sb.append("] size->  ").append(taintedMap.size()).toString();
   }
 
   /**
@@ -150,7 +176,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, map);
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, taintedMap);
     sb.append("]");
 
     return sb.toString();
