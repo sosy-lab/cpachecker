@@ -2195,6 +2195,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       lastStatement.accept(this);
       locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
       scope.leaveBlock();
+      IASTFileLocation location = compoundExp.getFileLocation();
+      blocks.add(
+          new StatementBlock(
+              location.getNodeOffset(),
+              location.getNodeOffset() + location.getNodeLength(),
+              false,
+              rootNode,
+              locStack.peek()));
       return locStack.pop();
     }
 
@@ -2243,6 +2251,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     lastNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
     scope.leaveBlock();
+
+
+    IASTFileLocation location = compoundExp.getFileLocation();
+    blocks.add(
+        new StatementBlock(
+            location.getNodeOffset(),
+            location.getNodeOffset() + location.getNodeLength(),
+            false,
+            rootNode,
+            lastNode));
     return lastNode;
   }
 
