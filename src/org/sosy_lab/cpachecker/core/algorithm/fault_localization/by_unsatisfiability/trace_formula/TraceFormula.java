@@ -57,7 +57,10 @@ public abstract class TraceFormula {
     @Option(
         secure = true,
         name = "filter",
-        description = "filter the alternative precondition by scopes")
+        description = "The alternative precondition consists of all initial variable assignments "
+            + " and a failing variable assignment for all nondet variables. By default only "
+            + " variables in the main function are part of the precondition. "
+            + "Overwrite the default by adding functions to this option, e.g., \"main,doStuff\"")
     private List<String> filter = new ArrayList<>(ImmutableList.of("main"));
 
     // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
@@ -65,27 +68,36 @@ public abstract class TraceFormula {
     @Option(
         secure = true,
         name = "ignore",
-        description = "do not add variables to alternative precondition (separate by commas)")
+        description = "The alternative precondition consists of all initial variable assignments. "
+            + "If a variable assignment seems suspicious, it might be useful to exclude it from "
+            + "the precondition. To do this, add these variables to this option, e.g., main::x,doStuff::y. "
+            + "Make sure to add the function in which the variable is used as prefix, separated by two ':'")
     private List<String> ignore = new ArrayList<>();
 
     @Option(
         secure = true,
         name = "disable",
-        description = "do not create selectors for this variables (separate by commas)")
+        description = "Usually every statement that is not part of the precondition gets a selector. "
+            + "If a certain variable is known to not cause the error, add it to this option, e.g., "
+            + "main::x,doStuff::y")
     private List<String> disable = new ArrayList<>();
 
     @Option(
         secure = true,
         name = "altpre",
         description =
-            "add initial variable assignments to the pre-condition instead of just using failing"
-                + " variable assignments for nondet variables")
+            "Add initial variable assignments to the pre-condition instead of just using failing"
+                + " variable assignments for nondet variables.")
     private boolean forcePre = false;
 
     @Option(
         secure = true,
         name = "uniqueselectors",
-        description = "equal statements on the same line get the same selector")
+        description = "By default, every executed statement gets its own selector. "
+            + "If a loop is part of the program to analyze, the number of selectors can increase which"
+            + " also increases the run time of max-sat drastically. To use the same selector for equal"
+            + " statements (on the same line), set this option to true. Note that enabling this option "
+            + " also decreases the quality of results.")
     private boolean reduceSelectors = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
@@ -301,14 +313,8 @@ public abstract class TraceFormula {
         String formulaString = entries.toAtomList().get(i).toString();
         Selector selector = entries.toSelectorList().get(i);
         for (String disable : options.disable) {
-          if (disable.contains("::")) {
-            if (formulaString.contains(disable)) {
-              selector.disable();
-            }
-          } else {
-            if (formulaString.contains("::" + disable)) {
-              selector.disable();
-            }
+          if (formulaString.contains(disable)) {
+            selector.disable();
           }
         }
       }

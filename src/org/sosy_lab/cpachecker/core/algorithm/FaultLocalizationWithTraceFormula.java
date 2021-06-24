@@ -103,7 +103,8 @@ public class FaultLocalizationWithTraceFormula
   private boolean disableFSTF = false;
 
   @Option(secure=true, name="maxsat.ban",
-      description="ban faults with certain variables")
+      description="Do not show faults that contain a certain variable. This is especially useful "
+          + "to filter specific faults if the first run results in many candidates.")
   private List<String> ban = new ArrayList<>();
 
   public FaultLocalizationWithTraceFormula(
