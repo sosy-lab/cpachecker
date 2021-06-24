@@ -102,7 +102,8 @@ public class FaultLocalizationWithTraceFormula
           "disable flow-sensitive trace formula (may increase runtime)") // can decrease runtime
   private boolean disableFSTF = false;
 
-  @Option(secure = true, name = "maxsat.ban", description = "ban faults with certain variables")
+  @Option(secure=true, name="maxsat.ban",
+      description="ban faults with certain variables")
   private List<String> ban = new ArrayList<>();
 
   public FaultLocalizationWithTraceFormula(
@@ -160,28 +161,32 @@ public class FaultLocalizationWithTraceFormula
   public void checkOptions () throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && disableFSTF) {
       throw new InvalidConfigurationException(
-          "The option flow-sensitive trace formula will be ignored since the error invariants"
-              + " algorithm is not selected");
+          "The option 'disableFSTF' (flow-sensitive trace formula) requires the error invariants"
+              + " algorithm");
     }
     if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(
-          "The option ban will be ignored since the error invariants algorithm is not selected");
+          "The option 'ban' cannot be used together with the error invariants algorithm. Use MAX-SAT instead.");
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
-          "The option reduceselectors requires the MAXSAT algorithm");
+          "The option 'reduceselectors' requires the MAX-SAT algorithm");
     }
     if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
-          "The option ban will be ignored because it is not applicable on the error invariants"
+          "The option 'ban' is not applicable for the error invariants"
               + " algorithm");
     }
     if (!options.getDisable().isEmpty()) {
-      if (options.getDisable().stream()
-          .anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
-        throw new InvalidConfigurationException(
-            "The option traceformula.disable needs scoped variables."
-                + " Make sure to input the variables with their scope as prefix, e.g. main::x.");
+      if (options.getDisable().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.disable' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function:variable.");
+      }
+    }
+    if (!options.getFilter().isEmpty()) {
+      if (options.getFilter().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.filter' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function:variable.");
       }
     }
   }
@@ -334,7 +339,7 @@ public class FaultLocalizationWithTraceFormula
     for (Fault errorIndicator : copy) {
       for (FaultContribution faultContribution : errorIndicator) {
         BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
-        for (String b : ban) {
+        for (String b: ban) {
           if (b.contains("::")){
             if (curr.toString().contains(b + "@")){
               pErrorIndicators.remove(errorIndicator);

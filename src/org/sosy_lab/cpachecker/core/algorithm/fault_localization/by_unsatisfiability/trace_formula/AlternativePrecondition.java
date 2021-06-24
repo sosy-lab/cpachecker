@@ -65,8 +65,7 @@ public class AlternativePrecondition {
     private SSAMap preConditionMap;
     private final FormulaContext context;
 
-    private AlternativePreconditionHelper(
-        FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
+    private AlternativePreconditionHelper(FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
       context = pContext;
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
@@ -130,14 +129,8 @@ public class AlternativePrecondition {
 
       // check if variable is ignored
       for (String ign : ignore) {
-        if (ign.contains("::")) {
-          if (formula.toString().contains(ign + "@")) {
-            return false;
-          }
-        } else {
-          if (formula.toString().contains("::" + ign + "@")) {
-            return false;
-          }
+        if (formula.toString().contains(ign + "@")) {
+          return false;
         }
       }
 
