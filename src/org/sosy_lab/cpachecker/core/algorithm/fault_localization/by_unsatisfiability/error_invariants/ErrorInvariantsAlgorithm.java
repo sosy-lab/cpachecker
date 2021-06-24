@@ -240,7 +240,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         faults.add(singleton);
       } else if (errorInvariant instanceof Interval) {
         Interval curr = (Interval) errorInvariant;
-        curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
+        // curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         Selector next;
         if (i + 1 < abstractTrace.size()) {
           next = (Selector) abstractTrace.get(i + 1);

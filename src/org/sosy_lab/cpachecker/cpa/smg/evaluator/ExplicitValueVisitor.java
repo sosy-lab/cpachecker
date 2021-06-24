@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -241,5 +242,10 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
       throws UnrecognizedCodeException {
     return evaluateLeftHandSideExpression(pLValue);
+  }
+
+  @Override
+  public Value visit(JClassLiteralExpression pJClassLiteralExpression) {
+    return UnknownValue.getInstance();
   }
 }

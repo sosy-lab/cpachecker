@@ -14,7 +14,7 @@ import com.google.common.base.Optional;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -84,7 +84,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
               .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
-              .getFileName();
+              .getFileName()
+              .toString();
 
       GraphMlBuilder builder =
           new GraphMlBuilder(
@@ -103,18 +104,15 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
       // builder.appendTo(w);
       IO.writeFile(
-          Paths.get(name.getAbsolutePath()),
+          Path.of(name.getAbsolutePath()),
           Charset.defaultCharset(),
           (Appender) a -> builder.appendTo(a));
       // w.close();
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (ParserConfigurationException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (DOMException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
-    } catch (InvalidConfigurationException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
+    } catch (IOException
+        | ParserConfigurationException
+        | DOMException
+        | InvalidConfigurationException e) {
+      logger.logfUserException(Level.WARNING, e, "Exception during printing unsafe %s", pId);
     }
   }
 
@@ -219,7 +217,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
     FileLocation location = pEdge.getFileLocation();
     assert (location != null) : "should be filtered";
-    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName());
+    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName().toString());
     builder.addDataElementChild(
         result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));
     builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(location.getNodeOffset()));

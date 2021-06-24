@@ -13,7 +13,6 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +48,7 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
-    originalProgram = Paths.get(TEST_DIR_PATH, pProgram);
+    originalProgram = Path.of(TEST_DIR_PATH, pProgram);
   }
 
   private CFAToCTranslator getTranslator() throws InvalidConfigurationException {

@@ -49,6 +49,7 @@ The following command-line arguments are allowed:
  - `-64`			sets `analysis.machineModel = Linux64`
  - `-skipRecursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
  - `-preprocess`		sets `parser.usePreprocessor = true`
+ - `-clang`			sets `parser.useClang = true`
  - `-java`  			sets `language = JAVA`
  - `-secureMode`		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
  - `-debug` 			enables the JVM debug interface on TCP port 5005 for remote debugging

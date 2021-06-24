@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistentcyException;
+import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
@@ -22,16 +22,15 @@ public final class SMGConsistencyChecker {
    * Checks consistency of a given SMG.
    *
    * @param smg - the SMG to be checked
-   * @throws SMGInconsistentcyException - if the given SMG is inconsistent.
+   * @throws SMGInconsistencyException - if the given SMG is inconsistent.
    */
-  public static void checkBasicConsistency(SMG smg) throws SMGInconsistentcyException {
+  public static void checkBasicConsistency(SMG smg) throws SMGInconsistencyException {
     SMGObject nullPointer = smg.getNullObject();
     if (nullPointer.isValid()
         || nullPointer.getSize().intValue() != 0
         || nullPointer.getNestingLevel() != 0
         || nullPointer.getOffset().intValue() != 0) {
-      throw new SMGInconsistentcyException(
-          "Inconsistent smg: " + smg.toString() + "\n Invalid nullObject");
+      throw new SMGInconsistencyException("Inconsistent smg: " + smg + "\n Invalid nullObject");
     }
 
     checkInvalidRegionConsistency(smg);
@@ -47,12 +46,8 @@ public final class SMGConsistencyChecker {
   private static void checkValidDLLConsistency(SMG smg) {
     Optional<SMGListSegment> invalidDLL = smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
     if (invalidDLL.isPresent()) {
-        throw new SMGInconsistentcyException(
-            "Inconsistent smg: "
-                + smg.toString()
-                + "\n Invalid DLL found: "
-                + invalidDLL.toString());
-
+        throw new SMGInconsistencyException(
+          "Inconsistent smg: " + smg + "\n Invalid DLL found: " + invalidDLL);
     }
   }
 
@@ -67,12 +62,8 @@ public final class SMGConsistencyChecker {
       if (!region.isValid()) {
 
         if (!smg.getEdges(region).isEmpty()) {
-          throw new SMGInconsistentcyException(
-              "Inconsistent smg: "
-                  + smg.toString()
-                  + "\n Invalid region "
-                  + region.toString()
-                  + " has outgoing edges.");
+          throw new SMGInconsistencyException(
+              "Inconsistent smg: " + smg + "\n Invalid region " + region + " has outgoing edges.");
         }
       }
     }

@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +73,7 @@ public class TraceFormulaTest {
             .build();
 
     String test_dir = "test/programs/fault_localization/";
-    Path program = Paths.get(test_dir, name);
+    Path program = Path.of(test_dir, name);
 
     return CPATestRunner.run(config, program.toString(), logLevel);
   }

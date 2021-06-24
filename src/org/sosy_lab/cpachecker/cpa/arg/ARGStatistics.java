@@ -27,7 +27,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -83,7 +82,7 @@ public class ARGStatistics implements Statistics {
   @Option(secure=true, name="file",
       description="export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argFile = Paths.get("ARG.dot");
+  private Path argFile = Path.of("ARG.dot");
 
   @Option(
     secure = true,
@@ -95,7 +94,7 @@ public class ARGStatistics implements Statistics {
             + "If set to 'null', no pixel graphic is exported."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path pixelGraphicFile = Paths.get("ARG");
+  private Path pixelGraphicFile = Path.of("ARG");
 
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
@@ -119,12 +118,12 @@ public class ARGStatistics implements Statistics {
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
+  private Path simplifiedArgFile = Path.of("ARGSimplified.dot");
 
   @Option(secure=true, name="refinements.file",
       description="export simplified ARG that shows all refinements to .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
+  private Path refinementGraphFile = Path.of("ARGRefinements.dot");
 
   @Option(secure = true, name = "translateToC",
       description = "translate final ARG into C program")
@@ -133,7 +132,7 @@ public class ARGStatistics implements Statistics {
   @Option(secure = true, name = "CTranslation.file",
       description = "translate final ARG into this C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argCFile = Paths.get("ARG.c");
+  private Path argCFile = Path.of("ARG.c");
 
   @Option(
       secure = true,
@@ -146,7 +145,7 @@ public class ARGStatistics implements Statistics {
       name = "automaton.exportSpcZipFile",
       description = "translate final ARG into an automaton, depends on 'automaton.export=true'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path automatonSpcZipFile = Paths.get("ARG_parts.zip");
+  private Path automatonSpcZipFile = Path.of("ARG_parts.zip");
 
   @Option(
       secure = true,
@@ -332,7 +331,7 @@ public class ARGStatistics implements Statistics {
     int sepIx = path.lastIndexOf(".");
     String prefix = path.substring(0, sepIx);
     String extension = path.substring(sepIx);
-    return Paths.get(prefix + "-" + partitionKey + extension);
+    return Path.of(prefix + "-" + partitionKey + extension);
   }
 
   private void exportARG(

@@ -509,8 +509,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGHasValueEdges fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
-    SMGObject newObject = new SMGRegion(pOptionalObject.getSize(),
-        "Concrete object of " + pOptionalObject.toString(), pOptionalObject.getLevel());
+    SMGObject newObject =
+        new SMGRegion(
+            pOptionalObject.getSize(),
+            "Concrete object of " + pOptionalObject,
+            pOptionalObject.getLevel());
 
     heap.addHeapObject(newObject);
     heap.setValidity(newObject, heap.isObjectValid(pOptionalObject));
@@ -561,8 +564,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return getPointerFromValue(nextPointer);
     } else {
       throw new AssertionError(
-          "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
-              + " pointing to abstraction " + pListSeg.toString());
+          "Unexpected dereference of pointer "
+              + pPointerToAbstractObject.getValue()
+              + " pointing to abstraction "
+              + pListSeg);
     }
   }
 
@@ -611,8 +616,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return getPointerFromValue(prevPointer);
     } else {
       throw new AssertionError(
-          "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
-              + " pointing to abstraction " + pListSeg.toString());
+          "Unexpected dereference of pointer "
+              + pPointerToAbstractObject.getValue()
+              + " pointing to abstraction "
+              + pListSeg);
     }
   }
 
@@ -622,10 +629,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
 
     if (pPointerToAbstractObject
-        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) { throw new SMGInconsistentException(
-            "Target specifier of pointer " + pPointerToAbstractObject.getValue()
-                + "that leads to a sll has unexpected target specifier "
-                + pPointerToAbstractObject.getTargetSpecifier().toString()); }
+        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
+      throw new SMGInconsistentException(
+          "Target specifier of pointer "
+              + pPointerToAbstractObject.getValue()
+              + "that leads to a sll has unexpected target specifier "
+              + pPointerToAbstractObject.getTargetSpecifier());
+    }
 
     SMGRegion newConcreteRegion =
         new SMGRegion(pListSeg.getSize(), "concrete sll segment ID " + SMGCPA.getNewValue(), 0);
@@ -755,8 +765,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         break;
       default:
         throw new SMGInconsistentException(
-            "Target specifier of pointer " + pPointerToAbstractObject.getValue()
-                + "that leads to a dll has unexpected target specifier " + tg.toString());
+            "Target specifier of pointer "
+                + pPointerToAbstractObject.getValue()
+                + "that leads to a dll has unexpected target specifier "
+                + tg);
     }
 
     long hfo = pListSeg.getHfo();
@@ -1720,7 +1732,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       for (SMGObject obj : unreachable) {
         error.append(obj.getLabel());
       }
-      setMemLeak("Memory leak of " + error.toString() + " is detected", unreachable);
+      setMemLeak("Memory leak of " + error + " is detected", unreachable);
     }
     //TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);

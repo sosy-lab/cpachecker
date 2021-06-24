@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -221,7 +220,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     description = "where to store initial condition, when generated"
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
+  private Path initialCondition = Path.of("AssumptionAutomaton.txt");
 
   private AlgorithmCompositionStrategy selectionStrategy; // TODO initialize, set up
 

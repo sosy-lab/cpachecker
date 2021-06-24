@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -157,7 +156,7 @@ public class CustomInstructionApplications {
         name = "ciSignature",
         description = "Signature for custom instruction, describes names and order of input and output variables of a custom instruction")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    protected Path ciSpec = Paths.get("ci_spec.txt");
+    protected Path ciSpec = Path.of("ci_spec.txt");
 
     protected final LogManager logger;
     protected final ShutdownNotifier shutdownNotifier;
@@ -206,7 +205,7 @@ public class CustomInstructionApplications {
       description = "File specifying start locations of custom instruction applications"
     )
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
+    private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
     public CustomInstructionApplicationsFromFile(Configuration pConfig, final CFA pCfa,
         LogManager pLogger, ShutdownNotifier pSdNotifier) throws InvalidConfigurationException {
@@ -248,7 +247,7 @@ public class CustomInstructionApplications {
       description = "File specifying start locations of custom instruction applications"
     )
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
+    private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
     public CustomInstructionApplicationsAutomatic(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
@@ -294,7 +293,7 @@ public class CustomInstructionApplications {
 
     @Option(secure=true, name="definitionFile", description = "File to dump start location of identified custom instruction applications")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path foundCustomInstructionsDefinition = Paths.get("ci_def.txt");
+    private Path foundCustomInstructionsDefinition = Path.of("ci_def.txt");
 
     public CustomInstructionsForBinaryOperator(Configuration pConfig, LogManager pLogger,
         ShutdownNotifier pSdNotifier, CFA pCfa) throws InvalidConfigurationException {

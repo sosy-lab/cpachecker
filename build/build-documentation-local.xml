@@ -19,7 +19,7 @@ SPDX-License-Identifier: Apache-2.0
         <srcfiles dir="${source.dir}" includes="**/*.java"/>
     </uptodate>
 
-    <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
+    <target name="build-documentation" depends="build-project" unless="${documentation.uptodate}">
         <echo message="running OptionCollector..." level="info"/>
 
         <echo file="${documentation.options.file}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}${line.separator}# This file is part of CPAchecker,${line.separator}# a tool for configurable software verification:${line.separator}# https://cpachecker.sosy-lab.org${line.separator}#${line.separator}"/>

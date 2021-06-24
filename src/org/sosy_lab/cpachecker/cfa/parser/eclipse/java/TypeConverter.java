@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ArrayType;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.PrimitiveType;
@@ -89,6 +90,11 @@ abstract class TypeConverter {
     } else {
       return JSimpleType.getUnspecified();
     }
+  }
+
+  public final JType convert(Expression pExpression) {
+    ITypeBinding binding = pExpression.resolveTypeBinding();
+    return convert(binding);
   }
 
   public abstract JClassType convertClassType(ITypeBinding t);
