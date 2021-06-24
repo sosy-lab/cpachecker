@@ -283,14 +283,16 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
 
-      FaultLocalizationInfo info = new FaultLocalizationInfo(
-          errorIndicators,
-          scoring,
-          tf.getPrecondition(),
-          pInfo);
+      FaultLocalizationInfo info =
+          new FaultLocalizationInfo(
+              errorIndicators,
+              scoring,
+              tf.getPrecondition(),
+              context.getSolver().getFormulaManager(),
+              pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        info.replaceHtmlWriter(new IntervalReportWriter());
+        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
         info.setSortIntended(true);
       }
 
