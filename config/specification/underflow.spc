@@ -9,6 +9,11 @@
 // This automaton contains the specification of the
 // category Overflows of the
 // Competition on Software Verification.
+CONTROL AUTOMATON Underflows
 
-#include overflows.spc
-#include underflow.spc
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  CHECK("underflow") -> ERROR("CWE 191 Integer Underflow: in $location");
+
+END AUTOMATON

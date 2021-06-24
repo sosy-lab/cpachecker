@@ -293,6 +293,9 @@ public class CPAMain {
           CommonPropertyType.VALID_FREE,
           CommonPropertyType.VALID_MEMTRACK);
 
+  private static final ImmutableSet<? extends Property> OVERFLOW_PROPERTY_TYPES =
+      Sets.immutableEnumSet(CommonPropertyType.OVERFLOW, CommonPropertyType.UNDERFLOW);
+
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
    *
@@ -478,8 +481,8 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
-    } else if (properties.contains(CommonPropertyType.OVERFLOW)) {
-      if (properties.size() != 1) {
+    } else if (!Collections.disjoint(properties, OVERFLOW_PROPERTY_TYPES)) {
+      if (!OVERFLOW_PROPERTY_TYPES.containsAll(properties)) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
@@ -559,6 +562,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
+          .put(CommonPropertyType.UNDERFLOW, "sv-comp-overflow")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();

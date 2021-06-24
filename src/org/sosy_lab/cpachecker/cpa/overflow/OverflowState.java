@@ -30,17 +30,26 @@ public final class OverflowState
   private final ImmutableSet<? extends AExpression> assumptions;
   private final OverflowState parent;
   private final boolean nextHasOverflow;
+  private final boolean nextHasUnderflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
+  private static final String PROPERTY_UNDERFLOW = "underflow";
 
-  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow) {
-    this(pAssumptions, pNextHasOverflow, null);
+  public OverflowState(
+      Set<? extends AExpression> pAssumptions,
+      boolean pNextHasOverflow,
+      boolean pNextHasUnderflow) {
+    this(pAssumptions, pNextHasOverflow, pNextHasUnderflow, null);
   }
 
   public OverflowState(
-      Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow, OverflowState pParent) {
+      Set<? extends AExpression> pAssumptions,
+      boolean pNextHasOverflow,
+      boolean pNextHasUnderflow,
+      OverflowState pParent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
     parent = pParent;
     nextHasOverflow = pNextHasOverflow;
+    nextHasUnderflow = pNextHasUnderflow;
   }
 
   public boolean hasOverflow() {
@@ -49,6 +58,14 @@ public final class OverflowState
 
   public boolean nextHasOverflow() {
     return nextHasOverflow;
+  }
+
+  public boolean hasUnderflow() {
+    return parent != null && parent.nextHasUnderflow;
+  }
+
+  public boolean nextHasUnderflow() {
+    return nextHasUnderflow;
   }
 
   public AbstractStateWithAssumptions getParent() {
@@ -62,7 +79,7 @@ public final class OverflowState
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumptions, nextHasOverflow);
+    return Objects.hash(assumptions, nextHasOverflow, nextHasUnderflow);
   }
 
   @Override
@@ -75,6 +92,7 @@ public final class OverflowState
     }
     OverflowState that = (OverflowState) pO;
     return nextHasOverflow == that.nextHasOverflow
+        && nextHasUnderflow == that.nextHasUnderflow
         && assumptions.equals(that.assumptions);
   }
 
@@ -84,6 +102,8 @@ public final class OverflowState
         + getReadableAssumptions()
         + "], nextHasOverflow="
         + nextHasOverflow
+        + ", nextHasUnderflow="
+        + nextHasUnderflow
         + '}';
   }
 
@@ -92,6 +112,10 @@ public final class OverflowState
     if (hasOverflow()) {
       return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
     }
+    if (hasUnderflow()) {
+      return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
+    }
+
     return "";
   }
 
@@ -119,6 +143,9 @@ public final class OverflowState
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals(PROPERTY_OVERFLOW)) {
       return hasOverflow();
+    }
+    if (pProperty.equals(PROPERTY_UNDERFLOW)) {
+      return hasUnderflow();
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }

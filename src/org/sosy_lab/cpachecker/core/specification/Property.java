@@ -27,6 +27,8 @@ public interface Property {
 
     OVERFLOW("G ! overflow"),
 
+    UNDERFLOW("G ! underflow"),
+
     DEADLOCK("G ! deadlock"),
 
     TERMINATION("F end"),

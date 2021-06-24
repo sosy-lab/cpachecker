@@ -23,12 +23,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
+import org.sosy_lab.cpachecker.util.ArithmeticUnderflowAssumptionBuilder;
 
 /** CPA for detecting overflows in C programs. */
 public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
 
   private final CBinaryExpressionBuilder expressionBuilder;
   private final ArithmeticOverflowAssumptionBuilder noOverflowAssumptionBuilder;
+  private final ArithmeticUnderflowAssumptionBuilder noUnderflowAssumptionBuilder;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(OverflowCPA.class);
@@ -40,17 +42,22 @@ public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnaly
     expressionBuilder = new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
     noOverflowAssumptionBuilder =
         new ArithmeticOverflowAssumptionBuilder(pCfa, pLogger, pConfiguration);
+    noUnderflowAssumptionBuilder =
+        new ArithmeticUnderflowAssumptionBuilder(pCfa, pLogger, pConfiguration);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new OverflowTransferRelation(noOverflowAssumptionBuilder, expressionBuilder);
+    return new OverflowTransferRelation(
+        noOverflowAssumptionBuilder,
+        noUnderflowAssumptionBuilder,
+        expressionBuilder);
   }
 
 
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    return new OverflowState(ImmutableSet.of(), false);
+    return new OverflowState(ImmutableSet.of(), false, false);
   }
 }
