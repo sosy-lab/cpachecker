@@ -184,9 +184,9 @@ public class FaultLocalizationWithTraceFormula
             + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function:variable.");
       }
     }
-    if (!options.getFilter().isEmpty()) {
-      if (options.getFilter().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
-        throw new InvalidConfigurationException("The option 'traceformula.filter' needs scoped variables."
+    if (!ban.isEmpty()) {
+      if (ban.stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'faultlocalization.by_traceformula.ban' needs scoped variables."
             + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function:variable.");
       }
     }
