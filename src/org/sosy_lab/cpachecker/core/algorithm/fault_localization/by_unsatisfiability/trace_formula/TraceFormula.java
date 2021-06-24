@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +58,7 @@ public abstract class TraceFormula {
         secure = true,
         name = "filter",
         description = "filter the alternative precondition by scopes")
-    private String filter = "main";
+    private List<String> filter = new ArrayList<>(ImmutableList.of("main"));
 
     // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
     // pre-condition
@@ -66,15 +66,13 @@ public abstract class TraceFormula {
         secure = true,
         name = "ignore",
         description = "do not add variables to alternative precondition (separate by commas)")
-    private String ignore = "";
+    private List<String> ignore = new ArrayList<>();
 
-    // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
-    // pre-condition
     @Option(
         secure = true,
         name = "disable",
         description = "do not create selectors for this variables (separate by commas)")
-    private String disable = "";
+    private List<String> disable = new ArrayList<>();
 
     @Option(
         secure = true,
@@ -94,15 +92,15 @@ public abstract class TraceFormula {
       pConfiguration.inject(this);
     }
 
-    public String getFilter() {
+    public List<String> getFilter() {
       return filter;
     }
 
-    public String getDisable() {
+    public List<String> getDisable() {
       return disable;
     }
 
-    public String getIgnore() {
+    public List<String> getIgnore() {
       return ignore;
     }
 
@@ -299,11 +297,10 @@ public abstract class TraceFormula {
 
     // disable selectors
     if (!options.disable.isEmpty()) {
-      List<String> disabled = Splitter.on(",").splitToList(options.disable);
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.toAtomList().get(i).toString();
         Selector selector = entries.toSelectorList().get(i);
-        for (String disable : disabled) {
+        for (String disable : options.disable) {
           if (disable.contains("::")) {
             if (formulaString.contains(disable)) {
               selector.disable();

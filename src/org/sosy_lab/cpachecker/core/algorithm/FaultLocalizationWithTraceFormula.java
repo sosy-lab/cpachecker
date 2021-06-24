@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
@@ -21,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -102,9 +102,8 @@ public class FaultLocalizationWithTraceFormula
           "disable flow-sensitive trace formula (may increase runtime)") // can decrease runtime
   private boolean disableFSTF = false;
 
-  @Option(secure=true, name="maxsat.ban",
-      description="ban faults with certain variables")
-  private String ban = "";
+  @Option(secure = true, name = "maxsat.ban", description = "ban faults with certain variables")
+  private List<String> ban = new ArrayList<>();
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
@@ -164,7 +163,7 @@ public class FaultLocalizationWithTraceFormula
           "The option flow-sensitive trace formula will be ignored since the error invariants"
               + " algorithm is not selected");
     }
-    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
+    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(
           "The option ban will be ignored since the error invariants algorithm is not selected");
     }
@@ -172,10 +171,18 @@ public class FaultLocalizationWithTraceFormula
       throw new InvalidConfigurationException(
           "The option reduceselectors requires the MAXSAT algorithm");
     }
-    if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
+    if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
           "The option ban will be ignored because it is not applicable on the error invariants"
               + " algorithm");
+    }
+    if (!options.getDisable().isEmpty()) {
+      if (options.getDisable().stream()
+          .anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException(
+            "The option traceformula.disable needs scoped variables."
+                + " Make sure to input the variables with their scope as prefix, e.g. main::x.");
+      }
     }
   }
 
@@ -323,12 +330,11 @@ public class FaultLocalizationWithTraceFormula
    * @param pErrorIndicators result set
    */
   private void ban(Set<Fault> pErrorIndicators) {
-    List<String> banned = Splitter.on(",").splitToList(ban);
     Set<Fault> copy = new HashSet<>(pErrorIndicators);
     for (Fault errorIndicator : copy) {
       for (FaultContribution faultContribution : errorIndicator) {
         BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
-        for (String b: banned) {
+        for (String b : ban) {
           if (b.contains("::")){
             if (curr.toString().contains(b + "@")){
               pErrorIndicators.remove(errorIndicator);
