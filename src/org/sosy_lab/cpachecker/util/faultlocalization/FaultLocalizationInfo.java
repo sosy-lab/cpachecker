@@ -280,7 +280,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         manager.visit(precondition.orElseThrow(), visitor);
         preconditionString = visitor.getString();
       } else {
-        preconditionString = precondition.get().toString();
+        preconditionString = precondition.orElseThrow().toString();
       }
     }
       JSON.writeJSONString(Collections.singletonMap("fl-precondition", preconditionString), writer);
