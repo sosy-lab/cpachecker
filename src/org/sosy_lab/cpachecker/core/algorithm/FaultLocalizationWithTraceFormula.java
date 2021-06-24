@@ -184,6 +184,12 @@ public class FaultLocalizationWithTraceFormula
             + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function:variable.");
       }
     }
+    if (!options.getIgnore().isEmpty()) {
+      if (options.getIgnore().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.ignore' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function:variable.");
+      }
+    }
     if (!ban.isEmpty()) {
       if (ban.stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
         throw new InvalidConfigurationException("The option 'faultlocalization.by_traceformula.ban' needs scoped variables."
@@ -340,14 +346,14 @@ public class FaultLocalizationWithTraceFormula
     for (Fault errorIndicator : copy) {
       for (FaultContribution faultContribution : errorIndicator) {
         BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
-        for (String b: ban) {
-          if (b.contains("::")){
-            if (curr.toString().contains(b + "@")){
+        for (String banned: ban) {
+          if (banned.contains("::")){
+            if (curr.toString().contains(banned + "@")){
               pErrorIndicators.remove(errorIndicator);
               break;
             }
           } else {
-            if (curr.toString().contains("::"+b +"@")){
+            if (curr.toString().contains("::"+banned +"@")){
               pErrorIndicators.remove(errorIndicator);
               break;
             }
