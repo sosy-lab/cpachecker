@@ -80,7 +80,7 @@ public class StatementBlock implements ACSLBlock {
       return false;
     }
 
-    enteringEdges.addAll(CFAUtils.enteringEdges(firstNode).toList());
+    CFAUtils.enteringEdges(firstNode).copyInto(enteringEdges);
 
     Set<CFAEdge> visited = new HashSet<>();
     Queue<CFAEdge> waitlist = new ArrayDeque<>(enteringEdges);
