@@ -15,6 +15,8 @@ import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class StatementBlock implements ACSLBlock {
@@ -71,7 +73,7 @@ public class StatementBlock implements ACSLBlock {
     return containedNodes;
   }
 
-  boolean computeContainedNodes(Collection<CFANode> nodes) {
+  boolean computeSets(Collection<CFANode> nodes) {
     // remove nodes that were optimized away by CPAchecker
     endNodes.removeIf(node -> !nodes.contains(node));
     if (!nodes.contains(firstNode) || endNodes.isEmpty()) {
@@ -88,6 +90,15 @@ public class StatementBlock implements ACSLBlock {
         continue;
       }
       visited.add(currentEdge);
+      if (currentEdge instanceof CFunctionCallEdge) {
+        // If currentEdge is a function call, then continue with the return edge and skip
+        // everything in between
+        CFunctionSummaryEdge summaryEdge = ((CFunctionCallEdge) currentEdge).getSummaryEdge();
+        for (int i = 0; i < summaryEdge.getSuccessor().getNumEnteringEdges(); i++) {
+          waitlist.add(summaryEdge.getSuccessor().getEnteringEdge(i));
+        }
+        continue;
+      }
       CFANode successor = currentEdge.getSuccessor();
       if (endNodes.contains(successor)) {
         leavingEdges.add(currentEdge);

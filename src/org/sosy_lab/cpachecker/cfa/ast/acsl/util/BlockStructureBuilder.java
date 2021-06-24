@@ -35,7 +35,7 @@ public class BlockStructureBuilder {
   private void computeSetsForStatementBlocks() {
     Set<ACSLBlock> toRemove = new HashSet<>();
     for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
-      if (!block.computeContainedNodes(cfa.getAllNodes())) {
+      if (!block.computeSets(cfa.getAllNodes())) {
         toRemove.add(block);
       }
     }
