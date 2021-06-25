@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -105,7 +106,7 @@ public class FaultLocalizationWithTraceFormula
   @Option(secure=true, name="maxsat.ban",
       description="Do not show faults that contain a certain variable. This is especially useful "
           + "to filter specific faults if the first run results in many candidates.")
-  private List<String> ban = new ArrayList<>();
+  private List<String> ban = ImmutableList.of();
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,

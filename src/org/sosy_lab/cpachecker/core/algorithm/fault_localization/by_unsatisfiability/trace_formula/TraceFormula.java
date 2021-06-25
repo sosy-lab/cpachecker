@@ -61,7 +61,7 @@ public abstract class TraceFormula {
             + " and a failing variable assignment for all nondet variables. By default only "
             + " variables in the main function are part of the precondition. "
             + "Overwrite the default by adding functions to this option, e.g., \"main,doStuff\"")
-    private List<String> filter = new ArrayList<>(ImmutableList.of("main"));
+    private List<String> filter = ImmutableList.of("main");
 
     // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
     // pre-condition
@@ -72,7 +72,7 @@ public abstract class TraceFormula {
             + "If a variable assignment seems suspicious, it might be useful to exclude it from "
             + "the precondition. To do this, add these variables to this option, e.g., main::x,doStuff::y. "
             + "Make sure to add the function in which the variable is used as prefix, separated by two ':'")
-    private List<String> ignore = new ArrayList<>();
+    private List<String> ignore = ImmutableList.of();
 
     @Option(
         secure = true,
@@ -80,7 +80,7 @@ public abstract class TraceFormula {
         description = "Usually every statement that is not part of the precondition gets a selector. "
             + "If a certain variable is known to not cause the error, add it to this option, e.g., "
             + "main::x,doStuff::y")
-    private List<String> disable = new ArrayList<>();
+    private List<String> disable = ImmutableList.of();
 
     @Option(
         secure = true,
