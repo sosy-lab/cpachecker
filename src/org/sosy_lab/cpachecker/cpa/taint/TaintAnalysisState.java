@@ -72,6 +72,9 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
 
   public void assignTaint(MemoryLocation var, Boolean tainted) {
+    if(tainted == null) {
+      tainted = false;
+    }
     addToMap(var, tainted);
   }
 
@@ -80,6 +83,9 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
 
   public void change(MemoryLocation var, Boolean tainted) {
+    if(tainted == null) {
+      tainted = false;
+    }
     changeMap(var, tainted);
   }
 
@@ -174,10 +180,11 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
-
-    sb.append("[");
-    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, taintedMap);
-    sb.append("]");
+    if(taintedMap != null) {
+      sb.append("[");
+      Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, taintedMap);
+      sb.append("]");
+    }
 
     return sb.toString();
   }

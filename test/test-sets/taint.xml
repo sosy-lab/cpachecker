@@ -15,15 +15,14 @@ SPDX-License-Identifier: Apache-2.0
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
 -->
-<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="30s" hardtimelimit="120s" memlimit="8000 MB" cpuCores="4">
   <rundefinition>
-    <option name="-taintAnalysis"/>
     <option name="-preprocess" />
   </rundefinition>
 
-  <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   <tasks>
-    <include>../../test/programs/taint/*.yml</include>
+    <option name="-config">config/taintAnalysis.properties</option>
+    <include>../../test/programs/taint/nist/*.yml</include>
   </tasks>
   <columns>
     <column title="total">time for CPAchecker</column>
