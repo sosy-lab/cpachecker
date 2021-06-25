@@ -254,7 +254,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   @SuppressWarnings({"UnusedVariable", "unused"}) // parameter is required by API
-  protected void readObject(ObjectInputStream in) throws IOException {
+  private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
