@@ -3397,7 +3397,7 @@ faultLocalization.by_traceformula.errorInvariants.disableFSTF = false
 # Do not show faults that contain a certain variable. This is especially
 # useful to filter specific faults if the first run results in many
 # candidates.
-faultLocalization.by_traceformula.maxsat.ban = new ArrayList<>()
+faultLocalization.by_traceformula.maxsat.ban = []
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
@@ -4296,20 +4296,20 @@ traceformula.altpre = false
 # Usually every statement that is not part of the precondition gets a
 # selector. If a certain variable is known to not cause the error, add it to
 # this option, e.g., main::x,doStuff::y
-traceformula.disable = new ArrayList<>()
+traceformula.disable = []
 
 # The alternative precondition consists of all initial variable assignments 
 # and a failing variable assignment for all nondet variables. By default only
 #  variables in the main function are part of the precondition. Overwrite the
 # default by adding functions to this option, e.g., "main,doStuff"
-traceformula.filter = new ArrayList<>(ImmutableList.of("main"))
+traceformula.filter = ["main"]
 
 # The alternative precondition consists of all initial variable assignments.
 # If a variable assignment seems suspicious, it might be useful to exclude it
 # from the precondition. To do this, add these variables to this option,
 # e.g., main::x,doStuff::y. Make sure to add the function in which the
 # variable is used as prefix, separated by two ':'
-traceformula.ignore = new ArrayList<>()
+traceformula.ignore = []
 
 # By default, every executed statement gets its own selector. If a loop is
 # part of the program to analyze, the number of selectors can increase which
