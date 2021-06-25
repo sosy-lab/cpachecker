@@ -109,7 +109,7 @@ to specify the wrapped CPA, depending whether this CPA wraps one or
 several other CPAs (the latter is only used for CompositeCPA). This option
 has to be prefixed with the identifier of the CPA as described above.
 
-A simple example (the first line could be ommitted as it's the default):
+A simple example (the first line could be omitted as it is the default):
 
 ```
 cpa = cpa.composite.CompositeCPA
