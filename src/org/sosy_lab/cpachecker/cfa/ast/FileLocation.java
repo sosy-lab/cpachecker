@@ -249,12 +249,12 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     }
   }
 
-  private Object writeReplace() {
+  protected Object writeReplace() {
     return new SerializationProxy(this);
   }
 
   @SuppressWarnings({"UnusedVariable", "unused"}) // parameter is required by API
-  private void readObject(ObjectInputStream in) throws IOException {
+  protected void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
