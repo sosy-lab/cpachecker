@@ -116,7 +116,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 
     sb.append("{");
     sb.append("\\n");
-    sb.append("[Policy]="+policy.toString());
+    sb.append("[Policy]=" + policy);
     sb.append("\\n");
 //    sb.append("[Default Level]="+defaultlevel.toString());
 //    sb.append("\\n");

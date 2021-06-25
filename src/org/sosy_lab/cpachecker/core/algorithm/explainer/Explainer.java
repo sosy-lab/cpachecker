@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
-@Options(prefix = "explainer")
+@Options(prefix = "faultLocalization.by_distance")
 public class Explainer extends NestingAlgorithm {
 
   private enum Metric {
@@ -68,14 +68,14 @@ public class Explainer extends NestingAlgorithm {
 
   @Option(
       secure = true,
-      name = "firstStep",
-      description = "Configuration of the first step of the Explainer Algorithm")
+      name = "analysis",
+      description = "Configuration to use for initial program-state exploration")
   @FileOption(Type.REQUIRED_INPUT_FILE)
-  private Path firstStepConfig;
+  private Path firstStepConfig = null;
 
   @Option(
       secure = true,
-      name = "distanceMetric",
+      name = "metric",
       description = "The distance metric that ought to be used for the computation of the distance")
   private Metric distanceMetric = Metric.ADM;
 
@@ -83,7 +83,10 @@ public class Explainer extends NestingAlgorithm {
       secure = true,
       name = "stopAfter",
       description =
-          "The number that specifies how many times are we going to iterate over the reachedSet")
+          "Maximum number of explorations to run for collecting error paths, before performing"
+              + " fault localization.  Exploration runs stop when the program under analysis is"
+              + " fully explored or the specified number of runs is reached. Fault localization may"
+              + " be more precise if more error paths are available.")
   private int stopAfter = 40;
 
   private PredicateCPA cpa;
@@ -275,7 +278,7 @@ public class Explainer extends NestingAlgorithm {
         mainFunction,
         singleShutdownManager,
         aggregateReached,
-        ImmutableSet.of("analysis.algorithm.faultlocalization.by_distance"),
+        ImmutableSet.of("analysis.algorithm.faultLocalization.by_distance"),
         stats.getSubStatistics());
   }
 

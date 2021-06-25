@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -346,7 +345,7 @@ public abstract class TraceFormula {
 
   @Override
   public String toString() {
-    return "TraceFormula{" + BooleanFormulaParser.parse(getTraceFormula()) + "}";
+    return "TraceFormula{" + getTraceFormula() + "}";
   }
 
   public static class SelectorTrace extends TraceFormula {

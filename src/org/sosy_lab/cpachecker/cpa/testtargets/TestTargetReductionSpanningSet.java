@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +43,7 @@ public class TestTargetReductionSpanningSet {
                 constructSubsumptionGraph(pTargets, pCfa.getMainFunction()))));
   }
 
+
   private ImmutableSet<CFAEdgeNode>
       constructSubsumptionGraph(final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
     ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
@@ -47,11 +51,6 @@ public class TestTargetReductionSpanningSet {
     CFAEdgeNode node;
     Map<CFAEdge, CFAEdgeNode> edgeToNode = Maps.newHashMapWithExpectedSize(pTargets.size());
     Map<CFAEdge, CFAEdge> copyToTarget = Maps.newHashMapWithExpectedSize(pTargets.size());
-    for (CFAEdge target : pTargets) {
-      node = new CFAEdgeNode(target);
-      edgeToNode.put(target, node);
-      nodeBuilder.add(node);
-    }
 
     Pair<CFANode, CFANode> entryExit =
         TestTargetReductionUtils.buildTestGoalGraph(pTargets, copyToTarget, pStartNode);
@@ -60,16 +59,26 @@ public class TestTargetReductionSpanningSet {
       targetToCopy.put(entry.getValue(), entry.getKey());
     }
 
-    DomTree<CFANode> inverseDomTree =
-        Dominance.createDomTree(
-            entryExit.getSecond(),
-            CFAUtils::allPredecessorsOf,
-            CFAUtils::allSuccessorsOf),
+    for (CFAEdge target : pTargets) {
+      node = new CFAEdgeNode(target);
+      edgeToNode.put(target, node);
+      nodeBuilder.add(node);
+    }
+
+    /*try {
+      TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
+    } catch (IOException e) {
+    }*/
+
+    DomTree<CFANode>
         domTree =
             Dominance.createDomTree(
-                entryExit.getFirst(),
-                CFAUtils::allSuccessorsOf,
-                CFAUtils::allPredecessorsOf);
+                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf),
+        inverseDomTree =
+            entryExit.getSecond() != null
+                ? Dominance.createDomTree(
+                    entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf)
+                : null;
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -79,12 +88,13 @@ public class TestTargetReductionSpanningSet {
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
-            && (domTree.isAncestorOf(// pred is ancestor/dominator of succ
-                domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
-                || inverseDomTree.isAncestorOf(
-                    inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()),
-                    inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor())))) {
+            && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
+                    domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
+                    domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
+                || (inverseDomTree != null
+                    && inverseDomTree.isAncestorOf(
+                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()),
+                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()))))) {
           /*
            * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
@@ -112,7 +122,9 @@ public class TestTargetReductionSpanningSet {
     for (CFAEdgeNode node : ordered) {
       componentElems = new ArrayDeque<>();
       dfs(node, true, visited, componentElems);
-      componentsBuilder.add(componentElems);
+      if (!componentElems.isEmpty()) {
+        componentsBuilder.add(componentElems);
+      }
     }
 
     return componentsBuilder.build();
@@ -201,6 +213,18 @@ public class TestTargetReductionSpanningSet {
       }
 
       return superNode;
+    }
+
+    @Override
+    public String toString() {
+      return representativeTarget
+          + "\n predecessors:"
+          + Joiner.on('\t')
+              .join(from(predecessors).transform(edgeNode -> edgeNode.representativeTarget))
+          + "\n successors:"
+          + Joiner.on('\t')
+              .join(from(successors).transform(edgeNode -> edgeNode.representativeTarget))
+          + "\n";
     }
   }
 

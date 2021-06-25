@@ -379,12 +379,6 @@ public class TestTargetMinimizerEssential {
             CFAUtils::allPredecessorsOf,
             CFAUtils::allSuccessorsOf);
 
-    try {
-      inverseDomTree.getId(pCopiedFunctionEntryExit.getFirst());
-    } catch (IllegalArgumentException e) {
-      return; // exit not reachable
-    }
-
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
     while (!waitlist.isEmpty()) {

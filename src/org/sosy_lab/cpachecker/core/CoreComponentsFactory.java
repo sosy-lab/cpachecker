@@ -323,7 +323,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.faultlocalization.by_distance",
+      name = "algorithm.faultLocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
 

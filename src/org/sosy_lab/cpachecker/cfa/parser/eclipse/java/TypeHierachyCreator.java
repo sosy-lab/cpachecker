@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -23,6 +24,7 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
@@ -51,10 +53,8 @@ class TypeHierachyCreator extends ASTVisitor {
   private final THTypeTable typeTable;
   private final TypeHierachyConverter converter;
 
-  /**
-   * FileName of File, which was parsed into the currently visited Compilation Unit.
-   */
-  private String fileOfCU;
+  /** FileName of File, which was parsed into the currently visited Compilation Unit. */
+  private Path fileOfCU;
 
   /**
    * Used for propagating errors due to wrong naming of files of classes.
@@ -77,16 +77,15 @@ class TypeHierachyCreator extends ASTVisitor {
   }
 
   /**
-   * Creates the visitor with the given default file name.
-   * The created types are stored in the type table.
+   * Creates the visitor with the given default file name. The created types are stored in the type
+   * table.
    *
-   * <p>This constructor is useful when this class's visit-methods are not used through
-   * {@link #createTypeHierachy}, but directly.
-   * When calling <code>createTypeHierachy</code>, the file names will be set according to the
-   * parsed ASTs. Otherwise, the file name provided in this method will be used.</p>
-   *
+   * <p>This constructor is useful when this class's visit-methods are not used through {@link
+   * #createTypeHierachy}, but directly. When calling <code>createTypeHierachy</code>, the file
+   * names will be set according to the parsed ASTs. Otherwise, the file name provided in this
+   * method will be used.
    */
-  public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable, String fileName) {
+  public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable, Path fileName) {
     logger = pLogger;
     typeTable = pTypeTable;
     converter = new TypeHierachyConverter(logger, typeTable);
@@ -95,10 +94,10 @@ class TypeHierachyCreator extends ASTVisitor {
 
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public void createTypeHierachy(List<JavaFileAST> pJavaProgram) throws JParserException {
-    String oldFileOfCU = fileOfCU;
+    Path oldFileOfCU = fileOfCU;
 
     for (JavaFileAST ast : pJavaProgram) {
-      fileOfCU = ast.getFile().getFileName().toString();
+      fileOfCU = ast.getFile();
       CompilationUnit cu = ast.getAst();
       cu.accept(this);
 
@@ -164,16 +163,28 @@ class TypeHierachyCreator extends ASTVisitor {
     if (typeBinding != null) {
 
       if (typeBinding.isTopLevel()) {
+        boolean isPublic = false;
+        for (Object mod : node.modifiers()) {
+          if (!(mod instanceof Modifier)) {
+            continue;
+          }
+          if (((Modifier) mod).isPublic()) {
+            isPublic = true;
+            break;
+          }
+        }
 
-        String simpleName = node.getName().getIdentifier();
-        String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
+        if (isPublic) {
+          String simpleName = node.getName().getIdentifier();
+          String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
 
-        if (!expectedFilename.equals(fileOfCU)) {
-          classNameException = true;
-          expectedName = expectedFilename;
-          className = simpleName;
+          if (!expectedFilename.equals(fileOfCU.getFileName().toString())) {
+            classNameException = true;
+            expectedName = expectedFilename;
+            className = simpleName;
 
-          return SKIP_CHILDREN;
+            return SKIP_CHILDREN;
+          }
         }
       }
 
