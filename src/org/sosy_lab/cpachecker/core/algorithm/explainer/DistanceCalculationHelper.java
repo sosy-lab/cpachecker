@@ -76,8 +76,8 @@ public class DistanceCalculationHelper {
     }
 
     if (errorLine == null) {
-      // for endless loops that never reach the verifier
-      return path;
+      // no __VERIFIER_assert on the path, so we do not filter
+      return new ArrayList<>(path);
     }
 
     for (CFAEdge f : path) {
