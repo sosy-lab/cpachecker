@@ -63,29 +63,17 @@ public class DistanceCalculationHelper {
     }
     List<CFAEdge> filteredEdges = new ArrayList<>();
 
-    Integer errorLine = null;
     // find error line
     for (CFAEdge f : path) {
       if (f.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(f.getCode());
         if (code.get(0).equals("__VERIFIER_assert")) {
-          errorLine = f.getLineNumber();
           break;
         }
       }
-    }
-
-    if (errorLine == null) {
-      // no __VERIFIER_assert on the path, so we do not filter
-      return new ArrayList<>(path);
-    }
-
-    for (CFAEdge f : path) {
-      if (f.getLineNumber() == errorLine) {
-        break;
-      }
       filteredEdges.add(f);
     }
+
     return filteredEdges;
   }
 
