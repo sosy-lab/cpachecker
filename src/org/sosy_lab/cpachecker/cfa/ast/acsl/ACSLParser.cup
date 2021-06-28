@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -19,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -83,22 +83,17 @@ parser code {:
         throws CParserException, IOException {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
       Stream<FileLocation> orderedAnnotationLocs =
-          commentPositions.stream()
-              .sorted((loc1, loc2) -> Integer.compare(loc1.getNodeOffset(), loc2.getNodeOffset()));
+          commentPositions.stream().sorted(Comparator.comparingInt(FileLocation::getNodeOffset));
       EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
       CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), edgeVisitor);
       ImmutableList<CFAEdge> orderedCFALocs =
           edgeVisitor.getVisitedEdges().stream()
-              .sorted(
-                  (edge1, edge2) ->
-                      Integer.compare(
-                          edge1.getFileLocation().getNodeOffset(),
-                          edge2.getFileLocation().getNodeOffset()))
+              .sorted(Comparator.comparingInt(pEdge -> pEdge.getFileLocation().getNodeOffset()))
               .collect(ImmutableList.toImmutableList());
       CFAWithACSLAnnotations newCFA = new CFAWithACSLAnnotations(pCfa);
 
       for (String filename : files) {
-        Reader reader = new FileReader(new File(filename), StandardCharsets.UTF_8);
+        Reader reader = new FileReader(filename, StandardCharsets.UTF_8);
         ACSLScanner scanner = new ACSLScanner(reader);
 
       ImmutableList<FileLocation> orderedLocs =
@@ -123,7 +118,6 @@ parser code {:
           } else if (currentAnnotation instanceof ACSLAssertion) {
             handleAssertion(
                 newCFA,
-                orderedCFALocs,
                 currentAnnotationLocation,
                 (ACSLAssertion) currentAnnotation,
                 blockStructure);
@@ -291,47 +285,25 @@ parser code {:
      * Adds the given assertion to the correct edges in the CFA.
      *
      * @param cfaWithLocs A CFA holding location information about the annotation.
-     * @param orderedCFALocs An list of all edges in the CFA orderd by their occurence in the file.
      * @param loc The location at which the annotation was originally placed.
      * @param annotation The annotation to be handled.
      * @param blockStructure The {@link BlockStructure} of the program.
      */
     private static void handleAssertion(
         CFAWithACSLAnnotations cfaWithLocs,
-        List<CFAEdge> orderedCFALocs,
         FileLocation loc,
         ACSLAssertion annotation,
         BlockStructure blockStructure) {
-      CFAEdge prev = orderedCFALocs.get(orderedCFALocs.size() - 1);
-      CFAEdge next = null;
-      // We can start with the second edge because we have at least one edge with node offset zero,
-      // and an assertion will surely never be placed before the start of the file
-      for (int i = 1; i < orderedCFALocs.size(); i++) {
-        if (orderedCFALocs.get(i).getFileLocation().getNodeOffset() > loc.getNodeOffset()) {
-          prev = orderedCFALocs.get(i - 1);
-          next = orderedCFALocs.get(i);
-          break;
-        }
-      }
-
-      ACSLBlock innermostBlockOfAssertion = blockStructure.getInnermostBlockOf(loc);
-      if (next == null
-          || !innermostBlockOfAssertion.getContainedNodes().contains(next.getPredecessor())) {
-        ACSLBlock innermostBlockOfPrevEdge = blockStructure.getInnermostBlockOf(prev.getSuccessor());
-        if (innermostBlockOfPrevEdge.equals(innermostBlockOfAssertion)) {
-          // Assertion is at very end of block (since next edge is after block)
-          cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
+      ACSLBlock block = blockStructure.getInnermostBlockOf(loc);
+      CFAEdge next = blockStructure.getNextEdge(block, loc);
+      if (next == null) {
+        // assertion is at very end of block (after every leaving edge)
+        Set<CFAEdge> prev = blockStructure.getPrevEdges(block, loc);
+        if (prev.isEmpty()) {
+          // assertion is at beginning of block -> block is empty apart from annotation
+          // TODO: This case might have to be handled for blocks created via explicit braces
         } else {
-          ACSLBlock lastBlock = null;
-          for (ACSLBlock block : blockStructure.getBlocks()) {
-            if (!block.getContainedNodes().contains(prev.getSuccessor()) || block.getEndOffset() >= loc.getNodeOffset()) {
-              continue;
-            }
-            if (lastBlock == null || block.contains(lastBlock)) {
-              lastBlock = block;
-            }
-          }
-          for (CFAEdge edge : lastBlock.getLeavingEdges()) {
+          for (CFAEdge edge : prev) {
             cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
           }
         }
