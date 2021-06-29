@@ -1715,7 +1715,8 @@ class WitnessFactory implements EdgeAppender {
     ExpressionTree<Object> prev = stateInvariants.get(pStateId);
     ExpressionTree<Object> other = stateInvariants.get(pOtherStateId);
     if (prev == null || other == null) {
-//      stateInvariants.put(pStateId, ExpressionTrees.getTrue());
+      // if one of the merged nodes has no invariant so far, we conservatively need to assume that
+      // its invariant is just "true"
       return ExpressionTrees.getTrue();
     }
     // This is wrong: Can't simply extend the invariant to both states if one of the states
