@@ -3101,6 +3101,13 @@ cpa.value.initAssumptionVars = false
 # get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
 
+# which source to use for the initial precision
+cpa.value.initialPrecisionSource = "PRECISION_FILE"
+  allowed values: [NONE, PRECISION_FILE, WITNESS]
+
+# build initial precision from invariants in supplied correctness witness
+cpa.value.initialPrecisionWitness = no default value
+
 # apply optimizations based on equality of input interpolant and candidate
 # interpolant
 cpa.value.interpolation.applyItpEqualityOptimization = true
