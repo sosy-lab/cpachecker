@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -166,6 +167,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures to collect blocks as defined by ACSL
   private final List<ACSLBlock> blocks = new ArrayList<>();
+  private final Deque<CFANode> blockStarts = new LinkedList<>();
 
   private final FunctionScope scope;
   private final ASTConverter astCreator;
@@ -583,9 +585,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Handle each kind of expression
     if (statement instanceof IASTCompoundStatement) {
-      if (statement.getPropertyInParent() == IGNUASTCompoundStatementExpression.STATEMENT) {
+      ASTNodeProperty property = statement.getPropertyInParent();
+      if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
         // IGNUASTCompoundStatementExpression content is already handled
         return PROCESS_SKIP;
+      } else if (property == IASTCompoundStatement.NESTED_STATEMENT) {
+        blockStarts.push(locStack.peek());
       }
 
       scope.enterBlock();
@@ -910,9 +915,20 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
     } else if (statement instanceof IASTCompoundStatement) {
-      if (statement.getPropertyInParent() == IGNUASTCompoundStatementExpression.STATEMENT) {
+      ASTNodeProperty property = statement.getPropertyInParent();
+      if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
         // IGNUASTCompoundStatementExpression content is already handled
         return PROCESS_SKIP;
+      } else if (property == IASTCompoundStatement.NESTED_STATEMENT) {
+        CFANode blockStart = blockStarts.pop();
+        IASTFileLocation location = statement.getFileLocation();
+        blocks.add(
+            new StatementBlock(
+                location.getNodeOffset(),
+                location.getNodeOffset() + location.getNodeLength(),
+                false,
+                blockStart,
+                locStack.peek()));
       }
 
       locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());

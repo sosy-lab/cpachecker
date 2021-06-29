@@ -301,7 +301,7 @@ parser code {:
         Set<CFAEdge> prev = blockStructure.getPrevEdges(block, loc);
         if (prev.isEmpty()) {
           // assertion is at beginning of block -> block is empty apart from annotation
-          // TODO: This case might have to be handled for blocks created via explicit braces
+          // TODO: This case has to be handled for blocks created via explicit braces
         } else {
           for (CFAEdge edge : prev) {
             cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
