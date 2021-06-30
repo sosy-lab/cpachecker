@@ -74,7 +74,8 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
     Set<InvariantWitness> invariantWitnesses = new HashSet<>();
     for (ExpressionTreeLocationInvariant invariant : invariants) {
       invariantWitnesses.addAll(
-          InvariantWitnessFactory.getFactory(logger, cfa).fromLocationInvariant(invariant));
+          InvariantWitnessFactory.getFactory(logger, cfa)
+              .fromNodeAndInvariant(invariant.getLocation(), invariant.asExpressionTree()));
     }
 
     for (InvariantWitness invariantWitness : invariantWitnesses) {

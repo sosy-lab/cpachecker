@@ -130,7 +130,7 @@ public class InvariantExportAlgorithm implements Algorithm {
         continue;
       }
 
-      witnesses.addAll(invariantWitnessFactory.fromLocationAndInvariant(node, invariant));
+      witnesses.addAll(invariantWitnessFactory.fromNodeAndInvariant(node, invariant));
     }
     exportWitnesses(Sets.difference(witnesses.build(), alreadySeen));
   }

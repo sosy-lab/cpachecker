@@ -8,46 +8,28 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
+import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class InvariantWitness {
   private final ExpressionTree<Object> formula;
-  private final InvariantWitnessLocation location;
+  private final CFANode node;
+  private final FileLocation location;
 
-  private InvariantWitness(ExpressionTree<Object> pFormula, InvariantWitnessLocation pLocation) {
-    formula = pFormula;
-    location = pLocation;
+  InvariantWitness(ExpressionTree<Object> pFormula, FileLocation pLocation, CFANode pNode) {
+    formula = Objects.requireNonNull(pFormula);
+    node = Objects.requireNonNull(pNode);
+    location = Objects.requireNonNull(pLocation);
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  static class Builder {
-    private InvariantWitnessLocation location;
-    private ExpressionTree<Object> formula;
-
-    private Builder() {}
-
-    Builder formula(ExpressionTree<Object> pFormula) {
-      formula = pFormula;
-      return this;
-    }
-
-    Builder location(
-        String pFileName, String pFileHash, int pLine, int pColumn, String pFunctionName) {
-      location = new InvariantWitnessLocation(pFileName, pFileHash, pFunctionName, pLine, pColumn);
-      return this;
-    }
-
-    InvariantWitness build() {
-      return new InvariantWitness(formula, location);
-    }
-
-  }
-
-  public InvariantWitnessLocation getLocation() {
+  public FileLocation getLocation() {
     return location;
+  }
+
+  public CFANode getNode() {
+    return node;
   }
 
   public ExpressionTree<Object> getFormula() {
@@ -56,8 +38,12 @@ public class InvariantWitness {
 
   @Override
   public int hashCode() {
-    return 31 * location.hashCode() + formula.hashCode();
+    int hashCode = location.hashCode();
+    hashCode = 31 * hashCode + formula.hashCode();
+    hashCode = 31 * hashCode + node.hashCode();
+    return hashCode;
   }
+
 
   @Override
   public boolean equals(Object pObj) {
@@ -70,11 +56,13 @@ public class InvariantWitness {
     }
     InvariantWitness other = (InvariantWitness) pObj;
 
-    return other.formula.equals(formula) && other.location.equals(location);
+    return other.formula.equals(formula)
+        && other.location.equals(location)
+        && other.node.equals(node);
   }
 
   @Override
   public String toString() {
-    return "Invariant at " + location + ": " + formula;
+    return formula.toString();
   }
 }

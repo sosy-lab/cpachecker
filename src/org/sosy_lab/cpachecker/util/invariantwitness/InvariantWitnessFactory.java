@@ -15,6 +15,7 @@ import com.google.common.collect.Table;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -26,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class InvariantWitnessFactory {
@@ -34,21 +34,21 @@ public class InvariantWitnessFactory {
   private final CFA cfa;
   private final Table<String, Integer, Integer> lineOffsetsByFile;
 
-  public InvariantWitnessFactory(LogManager pLogger, CFA pCfa) {
+  private InvariantWitnessFactory(LogManager pLogger, CFA pCfa) {
     logger = pLogger;
     cfa = pCfa;
     lineOffsetsByFile = getLineOffsetsByFile(cfa, logger);
   }
 
   /* Returns a factory - possibly always the same possibly always a different one. Consider calling this method sparingly, since creation of a factory could be expensive. */
-  public static InvariantWitnessFactory getFactory(LogManager pLogger, CFA pCfa) {
+  public static InvariantWitnessFactory getFactory(LogManager pLogger, CFA pCFA) {
     // TODO Possibly Cache factory by pCfa
-    return new InvariantWitnessFactory(pLogger, pCfa);
+    return new InvariantWitnessFactory(pLogger, pCFA);
   }
 
-  public Set<InvariantWitness> fromLocationAndInvariant(
-      CFANode location, ExpressionTree<Object> invariant) {
-    Set<FileLocation> effectiveLocations = getEffectiveLocations(location);
+  public Collection<InvariantWitness> fromNodeAndInvariant(
+      CFANode node, ExpressionTree<Object> invariant) {
+    Set<FileLocation> effectiveLocations = getEffectiveLocations(node);
     ImmutableSet.Builder<InvariantWitness> result = ImmutableSet.builder();
     if (effectiveLocations.isEmpty()) {
       logger.logf(
@@ -61,12 +61,7 @@ public class InvariantWitnessFactory {
       final int lineOffset = lineOffsetsByFile.get(fileName, lineNumber);
       final int offsetInLine = invariantLocation.getNodeOffset() - lineOffset;
 
-      InvariantWitness invariantWitness =
-          InvariantWitness.builder()
-              .formula(invariant)
-              .location(fileName, "file_hash", lineNumber, offsetInLine, location.getFunctionName())
-              .build();
-      // TODO extract meta-data
+      InvariantWitness invariantWitness = new InvariantWitness(invariant, invariantLocation, node);
 
       result.add(invariantWitness);
     }
@@ -74,9 +69,9 @@ public class InvariantWitnessFactory {
     return result.build();
   }
 
-  /* Assumes that CPAchecker is the producer of this invariant */
-  public Set<InvariantWitness> fromLocationInvariant(ExpressionTreeLocationInvariant invariant) {
-    return fromLocationAndInvariant(invariant.getLocation(), invariant.asExpressionTree());
+  public Collection<InvariantWitness> fromFileLocationAndInvariant(
+      FileLocation fileLocation, ExpressionTree<Object> invariant) {
+    return null;
   }
 
   private static Table<String, Integer, Integer> getLineOffsetsByFile(CFA cfa, LogManager logger) {
