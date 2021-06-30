@@ -31,7 +31,7 @@ public class BlockStructure {
   public ACSLBlock getInnermostBlockOf(FileLocation location) {
     ACSLBlock innermostBlock = null;
     for (ACSLBlock block : blocks) {
-      if (block.getStartOffset() < location.getNodeOffset()
+      if (block.getStartOffset() <= location.getNodeOffset()
           && location.getNodeOffset() < block.getEndOffset()
           && (innermostBlock == null || innermostBlock.contains(block))) {
         innermostBlock = block;
