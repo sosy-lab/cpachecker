@@ -8,15 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Table;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -27,17 +20,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class InvariantWitnessFactory {
   private final LogManager logger;
   private final CFA cfa;
-  private final Table<String, Integer, Integer> lineOffsetsByFile;
 
   private InvariantWitnessFactory(LogManager pLogger, CFA pCfa) {
     logger = pLogger;
     cfa = pCfa;
-    lineOffsetsByFile = getLineOffsetsByFile(cfa, logger);
   }
 
   /* Returns a factory - possibly always the same possibly always a different one. Consider calling this method sparingly, since creation of a factory could be expensive. */
@@ -56,11 +48,6 @@ public class InvariantWitnessFactory {
     }
 
     for (FileLocation invariantLocation : effectiveLocations) {
-      final String fileName = invariantLocation.getFileName();
-      final int lineNumber = invariantLocation.getStartingLineInOrigin();
-      final int lineOffset = lineOffsetsByFile.get(fileName, lineNumber);
-      final int offsetInLine = invariantLocation.getNodeOffset() - lineOffset;
-
       InvariantWitness invariantWitness = new InvariantWitness(invariant, invariantLocation, node);
 
       result.add(invariantWitness);
@@ -71,31 +58,29 @@ public class InvariantWitnessFactory {
 
   public Collection<InvariantWitness> fromFileLocationAndInvariant(
       FileLocation fileLocation, ExpressionTree<Object> invariant) {
-    return null;
+    ImmutableSet.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
+    for (CFANode candidate : cfa.getAllNodes()) {
+      if (nodeMatchesFileLocation(candidate, fileLocation)) {
+        resultBuilder.add(new InvariantWitness(invariant, fileLocation, candidate));
+      } else {
+        logger.log(Level.INFO, "Could not determine CFANode for invariant at " + fileLocation);
+      }
+    }
+    return resultBuilder.build();
   }
 
-  private static Table<String, Integer, Integer> getLineOffsetsByFile(CFA cfa, LogManager logger) {
-    ImmutableTable.Builder<String, Integer, Integer> result = ImmutableTable.builder();
-
-    for (Path filename : cfa.getFileNames()) {
-      if (Files.isRegularFile(filename)) {
-        String fileContent;
-        try {
-          fileContent = Files.readString(filename);
-        } catch (IOException pE) {
-          logger.logfUserException(Level.WARNING, pE, "Could not read file %s", filename);
-          continue;
-        }
-
-        List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
-        int currentOffset = 0;
-        for (int lineNumber = 0; lineNumber < sourceLines.size(); lineNumber++) {
-          result.put(filename.toString(), lineNumber + 1, currentOffset);
-          currentOffset += sourceLines.get(lineNumber).length() + 1;
+  private boolean nodeMatchesFileLocation(CFANode node, FileLocation fileLocation) {
+    for (CFAEdge entering : CFAUtils.enteringEdges(node)) {
+      if (entering.getFileLocation().compareTo(fileLocation) < 0
+          && !entering.getFileLocation().equals(FileLocation.DUMMY)) {
+        for (CFAEdge leaving : CFAUtils.leavingEdges(node)) {
+          if (leaving.getFileLocation().compareTo(fileLocation) >= 0) {
+            return true;
+          }
         }
       }
     }
-    return result.build();
+    return false;
   }
 
   private Set<FileLocation> getEffectiveLocations(CFANode node) {

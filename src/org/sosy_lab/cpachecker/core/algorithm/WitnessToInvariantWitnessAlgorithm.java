@@ -47,14 +47,14 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
   private final InvariantWitnessWriter invariantExporter;
 
   public WitnessToInvariantWitnessAlgorithm(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;
-    cfa = pCfa;
+    cfa = pCFA;
     shutdownNotifier = pShutdownNotifier;
-    invariantExporter = InvariantWitnessWriter.getWriter(pConfig);
+    invariantExporter = InvariantWitnessWriter.getWriter(pConfig, pCFA, pLogger);
   }
 
   @Override

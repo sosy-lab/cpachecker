@@ -17,6 +17,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,6 +60,7 @@ public final class InvariantWitnessWriter {
     UUID uuid = UUID.randomUUID();
     Path outFile = outDir.resolve(uuid + ".invariantwitness.yaml");
 
+    logger.log(Level.INFO, "Exporting invariant " + uuid);
     String entry = invariantWitnessToYamlEntry(invariantWitness);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       writer.write(entry);

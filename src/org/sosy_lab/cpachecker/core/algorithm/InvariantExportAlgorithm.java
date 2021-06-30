@@ -76,7 +76,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     cfa = pCFA;
     shutdownNotifier = pShutdownManager.getNotifier();
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
-    invariantWitnessWriter = InvariantWitnessWriter.getWriter(pConfig);
+    invariantWitnessWriter = InvariantWitnessWriter.getWriter(pConfig, pCFA, pLogger);
 
     alreadySeen = new HashSet<>();
 
