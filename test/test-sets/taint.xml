@@ -15,21 +15,14 @@ SPDX-License-Identifier: Apache-2.0
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
 -->
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
   <option name="-heap">10000M</option>
   <rundefinition>
     <option name="-preprocess" />
   </rundefinition>
 
-  <tasks>
+  <tasks name="SARD 100">
     <option name="-config">config/taintAnalysis.properties</option>
-    <include>../../test/programs/taint/nist/*.yml</include>
+    <include>../programs/taint/nist/*.yml</include>
   </tasks>
-  <columns>
-    <column title="total">time for CPAchecker</column>
-    <column title="reached">Size of reached set</column>
-    <column title="refiners">Number of refinements</column>
-    <column title="time_refiners">Time for refinements</column>
-    <column title="merges">Number of constraints removed in merge</column>
-  </columns>
 </benchmark>
