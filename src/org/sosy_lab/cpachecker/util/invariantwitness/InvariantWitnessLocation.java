@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
+import com.google.errorprone.annotations.Immutable;
+
+@Immutable
 public class InvariantWitnessLocation {
   private final String fileName;
   private final String fileHash;

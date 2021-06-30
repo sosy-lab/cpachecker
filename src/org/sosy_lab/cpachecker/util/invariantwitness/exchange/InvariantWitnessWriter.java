@@ -11,19 +11,40 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.errorprone.annotations.Immutable;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.UUID;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessLocation;
 
-public class InvariantWitnessWriter {
+@Options(prefix = "invariantStore.export")
+public final class InvariantWitnessWriter {
   private static final String FORMAT_VERSION = "0.1";
 
-  private static class Entry {
-    private final String entryType;
-    private final EntryMetadata metadata;
-    private final EntryLocation location;
-    private final EntryLoopInvariant loopInvariant;
+  @Option(
+      secure = true,
+      required = true,
+      description = "The directory where the invariants are stored.")
+  @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
+  private Path outDir;
 
-    public Entry(
+  @Immutable
+  private static class Entry {
+    public final String entryType;
+    public final EntryMetadata metadata;
+    public final EntryLocation location;
+    public final EntryLoopInvariant loopInvariant;
+
+    private Entry(
         String entryType,
         EntryMetadata metadata,
         EntryLocation location,
@@ -35,7 +56,7 @@ public class InvariantWitnessWriter {
     }
 
     public String getEntryType() {
-      return this.entryType;
+      return entryType;
     }
 
     public EntryMetadata getMetadata() {
@@ -51,26 +72,28 @@ public class InvariantWitnessWriter {
     }
   }
 
+  @Immutable
   private static class EntryMetadata {
-    private final String formatVerison;
+    public final String formatVerison;
 
-    public EntryMetadata(String formatVerison) {
+    private EntryMetadata(String formatVerison) {
       this.formatVerison = formatVerison;
     }
 
     public String getFormatVerison() {
-      return this.formatVerison;
+      return formatVerison;
     }
   }
 
+  @Immutable
   private static class EntryLocation {
-    private final String fileName;
-    private final String fileHash;
-    private final int line;
-    private final int column;
-    private final String function;
+    public final String fileName;
+    public final String fileHash;
+    public final int line;
+    public final int column;
+    public final String function;
 
-    public EntryLocation(String fileName, String fileHash, int line, int column, String function) {
+    private EntryLocation(String fileName, String fileHash, int line, int column, String function) {
       this.fileName = fileName;
       this.fileHash = fileHash;
       this.line = line;
@@ -79,57 +102,71 @@ public class InvariantWitnessWriter {
     }
 
     public String getFileName() {
-      return this.fileName;
+      return fileName;
     }
 
     public String getFileHash() {
-      return this.fileHash;
+      return fileHash;
     }
 
     public int getLine() {
-      return this.line;
+      return line;
     }
 
     public int getColumn() {
-      return this.column;
+      return column;
     }
 
     public String getFunction() {
-      return this.function;
+      return function;
     }
   }
 
+  @Immutable
   private static class EntryLoopInvariant {
-    private String string;
-    private String type;
-    private String format;
+    public final String string;
+    public final String type;
+    public final String format;
 
-    public EntryLoopInvariant(String string, String type, String format) {
+    private EntryLoopInvariant(String string, String type, String format) {
       this.string = string;
       this.type = type;
       this.format = format;
     }
 
     public String getString() {
-      return this.string;
+      return string;
     }
 
     public String getType() {
-      return this.type;
+      return type;
     }
 
     public String getFormat() {
-      return this.format;
+      return format;
     }
   }
 
-  private InvariantWitnessWriter() {}
-
-  public static InvariantWitnessWriter getWriter() {
-    return new InvariantWitnessWriter();
+  private InvariantWitnessWriter(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
   }
 
-  public String invariantWitnessToYamlEntry(InvariantWitness invariantWitness) {
+  public static InvariantWitnessWriter getWriter(Configuration pConfig)
+      throws InvalidConfigurationException {
+    return new InvariantWitnessWriter(pConfig);
+  }
+
+  public void exportInvariantWitness(InvariantWitness invariantWitness) throws IOException {
+    UUID uuid = UUID.randomUUID();
+    Path outFile = outDir.resolve(uuid + ".invariantwitness.yaml");
+
+    String entry = invariantWitnessToYamlEntry(invariantWitness);
+    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
+      writer.write(entry);
+    }
+  }
+
+  private String invariantWitnessToYamlEntry(InvariantWitness invariantWitness) {
     EntryMetadata metadata = new EntryMetadata(FORMAT_VERSION);
 
     InvariantWitnessLocation witnessLocation = invariantWitness.getLocation();
@@ -154,3 +191,4 @@ public class InvariantWitnessWriter {
     }
   }
 }
+

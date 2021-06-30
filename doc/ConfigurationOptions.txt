@@ -3464,8 +3464,8 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
 
-# The directory where the invariant is stored.
-invariantStore.outDir = no default value
+# The directory where the invariants are stored.
+invariantStore.export.outDir = no default value
 
 # The witness from which invariants should be generated.
 invariantStore.witness = no default value

@@ -23,26 +23,27 @@ public class InvariantWitness {
     return new Builder();
   }
 
-  public static class Builder {
+  static class Builder {
     private InvariantWitnessLocation location;
     private ExpressionTree<Object> formula;
 
     private Builder() {}
 
-    public Builder formula(ExpressionTree<Object> pFormula) {
+    Builder formula(ExpressionTree<Object> pFormula) {
       formula = pFormula;
       return this;
     }
 
-    public Builder location(
+    Builder location(
         String pFileName, String pFileHash, int pLine, int pColumn, String pFunctionName) {
       location = new InvariantWitnessLocation(pFileName, pFileHash, pFunctionName, pLine, pColumn);
       return this;
     }
 
-    public InvariantWitness build() {
+    InvariantWitness build() {
       return new InvariantWitness(formula, location);
     }
+
   }
 
   public InvariantWitnessLocation getLocation() {
