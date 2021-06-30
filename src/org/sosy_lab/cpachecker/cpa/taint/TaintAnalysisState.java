@@ -17,7 +17,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.mockito.internal.matchers.Null;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -121,9 +120,9 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
       TaintAnalysisState result = copyOf(this);
       result.addToMap(value, tainted);
       return result;
-    } else if (getFromMap(value) == tainted) {
+    } else if (getFromMap(value).equals(tainted)) {
       return this;
-    } else if (getFromMap(value) != tainted && tainted) {
+    } else if (!getFromMap(value).equals(tainted) && tainted) {
       TaintAnalysisState result = copyOf(this);
       result.changeMap(value, tainted);
       return result;

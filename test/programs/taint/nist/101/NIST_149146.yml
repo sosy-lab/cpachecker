@@ -6,10 +6,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '1.0'
+format_version: '2.0'
 
-# old file name: simple_bitshift_true-unreach-label.c
-input_files: 'basic.c'
-
-properties:
-  - property_file: ../../config/properties/unreach-label.prp
+input_files: 'NIST_149146.c'
