@@ -119,7 +119,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
-  private final String mergeType = "SEP";
+  private String mergeType = "SEP";
 
   @Option(
       secure = true,
@@ -127,17 +127,17 @@ public class ValueAnalysisCPA extends AbstractCPA
       toUppercase = true,
       values = {"SEP", "JOIN", "NEVER", "EQUALS"},
       description = "which stop operator to use for ValueAnalysisCPA")
-  private final String stopType = "SEP";
+  private String stopType = "SEP";
 
   @Option(secure=true, description="get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private final Path initialPrecisionFile = null;
+  private Path initialPrecisionFile = null;
 
  @Option(
      secure = true,
      description = "build initial precision from invariants in supplied correctness witness")
  @FileOption(Type.OPTIONAL_INPUT_FILE)
- private final Path initialPrecisionWitness = null;
+ private Path initialPrecisionWitness = null;
 
  @Option(
      secure = true,
@@ -146,13 +146,13 @@ public class ValueAnalysisCPA extends AbstractCPA
      description = "which source to use for the initial precision"
  )
  // default need to be "PRECISION_FILE" for backwards-compatibility
- private final String initialPrecisionSource = "PRECISION_FILE";
+ private String initialPrecisionSource = "PRECISION_FILE";
 
   @Option(
       secure = true,
       name = "unknownValueHandling",
       description = "Tells the value analysis how to handle unknown values.")
-  private final UnknownValueStrategy unknownValueStrategy = UnknownValueStrategy.DISCARD;
+  private UnknownValueStrategy unknownValueStrategy = UnknownValueStrategy.DISCARD;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
