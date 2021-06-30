@@ -46,4 +46,37 @@ public class InvariantWitnessLocation {
   public int getColumn() {
     return column;
   }
+
+  @Override
+  public int hashCode() {
+    int hashCode = fileName.hashCode();
+    hashCode = 31 * hashCode + fileHash.hashCode();
+    hashCode = 31 * hashCode + functionName.hashCode();
+    hashCode = 31 * hashCode + Integer.hashCode(line);
+    hashCode = 31 * hashCode + Integer.hashCode(column);
+    return hashCode;
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (pObj == this) {
+      return true;
+    }
+
+    if (!(pObj instanceof InvariantWitnessLocation)) {
+      return false;
+    }
+    InvariantWitnessLocation other = (InvariantWitnessLocation) pObj;
+
+    return fileName.equals(other.fileName)
+        && fileHash.equals(other.fileHash)
+        && functionName.equals(other.functionName)
+        && line == other.line
+        && column == other.column;
+  }
+
+  @Override
+  public String toString() {
+    return "Line " + line + ":" + column + " (" + functionName + ")";
+  }
 }

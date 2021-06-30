@@ -53,4 +53,28 @@ public class InvariantWitness {
   public ExpressionTree<Object> getFormula() {
     return formula;
   }
+
+  @Override
+  public int hashCode() {
+    return 31 * location.hashCode() + formula.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (pObj == this) {
+      return true;
+    }
+
+    if (!(pObj instanceof InvariantWitness)) {
+      return false;
+    }
+    InvariantWitness other = (InvariantWitness) pObj;
+
+    return other.formula.equals(formula) && other.location.equals(location);
+  }
+
+  @Override
+  public String toString() {
+    return "Invariant at " + location + ": " + formula;
+  }
 }
