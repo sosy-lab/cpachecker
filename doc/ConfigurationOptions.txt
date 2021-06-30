@@ -3469,6 +3469,7 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 
 # The directory where the invariants are stored.
 invariantStore.export.outDir = no default value
+invariantStore.import.storeDirectory = no default value
 
 # Strategy for generating invariants
 invariantStore.invariantGenerationStrategy = REACHED_SET
