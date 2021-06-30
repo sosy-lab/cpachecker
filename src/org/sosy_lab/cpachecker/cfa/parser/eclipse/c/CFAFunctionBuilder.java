@@ -167,7 +167,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures to collect blocks as defined by ACSL
   private final List<ACSLBlock> blocks = new ArrayList<>();
-  private final Deque<CFANode> blockStarts = new LinkedList<>();
+  private final Deque<CFANode> blockStarts = new ArrayDeque<>();
 
   private final FunctionScope scope;
   private final ASTConverter astCreator;
