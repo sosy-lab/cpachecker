@@ -28,21 +28,6 @@ public class BlockStructure {
     blocks = ImmutableSet.copyOf(pBlocks);
   }
 
-  public Set<ACSLBlock> getBlocks() {
-    return blocks;
-  }
-
-  public ACSLBlock getInnermostBlockOf(CFANode node) {
-    ACSLBlock innermostBlock = null;
-    for (ACSLBlock block : blocks) {
-      if (block.getContainedNodes().contains(node)
-          && (innermostBlock == null || innermostBlock.contains(block))) {
-        innermostBlock = block;
-      }
-    }
-    return innermostBlock;
-  }
-
   public ACSLBlock getInnermostBlockOf(FileLocation location) {
     ACSLBlock innermostBlock = null;
     for (ACSLBlock block : blocks) {
@@ -53,10 +38,6 @@ public class BlockStructure {
       }
     }
     return innermostBlock;
-  }
-
-  public Set<CFANode> getNodesInInnermostBlockOf(CFANode node) {
-    return getInnermostBlockOf(node).getContainedNodes();
   }
 
   private boolean ignoreEdge(CFAEdge edge) {
@@ -99,7 +80,7 @@ public class BlockStructure {
     // There is at least one block end directly before the specified location, so return all leaving
     // edges of the last of these blocks
     ACSLBlock lastBlock = null;
-    for (ACSLBlock block : getBlocks()) {
+    for (ACSLBlock block : blocks) {
       if (!block.getContainedNodes().contains(prev.getPredecessor())
           || block.getEndOffset() >= location.getNodeOffset()) {
         continue;

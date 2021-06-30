@@ -231,7 +231,7 @@ parser code {:
       }
       // Add statement contracts directly after the statement as well because some clauses have to
       // be evaluated in the post-state
-      ACSLBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getSuccessor());
+      ACSLBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getFileLocation());
       assert innermostBlock != null : "Not inside a block";
       if (innermostBlock.isFunction()) {
         for (int i = 0; i < edge.getSuccessor().getNumLeavingEdges(); i++) {
@@ -355,9 +355,7 @@ parser code {:
           assert behaviorDeclarations.containsKey(behavior.getName())
               : "Unknown behavior: " + behavior.getName();
           assert inSameScope(
-                  behaviorDeclarations.get(behavior.getName()).getSuccessor(),
-                  entry.getKey().getSuccessor(),
-                  blockStructure)
+                  behaviorDeclarations.get(behavior.getName()), entry.getKey(), blockStructure)
               : "Annotation\n" + annotation + "\nis not in scope of " + behavior.getName();
         }
       }
@@ -400,8 +398,10 @@ parser code {:
     }
 
     private static boolean inSameScope(
-        CFANode oldNode, CFANode newNode, BlockStructure blockStructure) {
-      return blockStructure.getNodesInInnermostBlockOf(oldNode).contains(newNode);
+        CFAEdge declarationEdge, CFAEdge referenceEdge, BlockStructure blockStructure) {
+      return blockStructure
+          .getInnermostBlockOf(declarationEdge.getFileLocation())
+          .contains(blockStructure.getInnermostBlockOf(referenceEdge.getFileLocation()));
     }
 
     @Override
