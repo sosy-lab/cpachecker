@@ -244,9 +244,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     int customIdx = 1337;
     SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(customIdx);
-    PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula emptyWithCustomSSA =
-        pfmgrFwd.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
+        pfmgrFwd.makeEmptyPathFormulaWithContext(ssaMap, PointerTargetSet.emptyPointerTargetSet());
     PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
@@ -314,8 +313,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   private PathFormula makePathFormulaWithCustomIndex(
       PathFormulaManager pPfmgr, String pVar, CType pType, int pIndex) {
     SSAMap ssaMap = SSAMap.emptySSAMap().builder().setIndex(pVar, pType, pIndex).build();
-    PathFormula empty = pPfmgr.makeEmptyPathFormula();
-    return pPfmgr.makeNewPathFormula(empty, ssaMap, empty.getPointerTargetSet());
+    return pPfmgr.makeEmptyPathFormulaWithContext(ssaMap, PointerTargetSet.emptyPointerTargetSet());
   }
 
   @Test

@@ -13,6 +13,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +38,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -78,6 +81,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -90,6 +97,12 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -133,20 +146,25 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
- @Option(
-     secure = true,
-     description = "build initial precision from invariants in supplied correctness witness")
- @FileOption(Type.OPTIONAL_INPUT_FILE)
- private Path initialPrecisionWitness = null;
+  @Option(
+      secure = true,
+      description = "build initial precision from invariants in supplied correctness witness")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path initialPrecisionWitness = null;
 
- @Option(
-     secure = true,
-     toUppercase = true,
-     values = {"NONE", "PRECISION_FILE", "WITNESS"},
-     description = "which source to use for the initial precision"
- )
- // default need to be "PRECISION_FILE" for backwards-compatibility
- private String initialPrecisionSource = "PRECISION_FILE";
+  @Option(
+      secure = true,
+      toUppercase = true,
+      values = {"NONE", "PRECISION_FILE", "PREDICATE_PRECISION_FILE", "WITNESS"},
+      description = "which source to use for the initial precision"
+  )
+  // default need to be "PRECISION_FILE" for backwards-compatibility
+  private String initialPrecisionSource = "PRECISION_FILE";
+
+  @Option(secure = true,
+          description = "get an initial precision from a predicate precision file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
 
   @Option(
       secure = true,
@@ -224,10 +242,17 @@ public class ValueAnalysisCPA extends AbstractCPA
         return emptyInitialPrecision();
       }
       return initialPrecisionFromPrecisionFile();
+    } else if (initialPrecisionSource.equals("PREDICATE_PRECISION_FILE")) {
+      if (initialPredicatePrecisionFile == null) {
+        logger.log(Level.WARNING,
+            "Properties state to use initial precision from predicate precision file, but no file was provided!");
+        return emptyInitialPrecision();
+      }
+      return initialPrecisionFromPredicatePrecisionFile();
     } else if (initialPrecisionSource.equals("WITNESS")) {
       if (initialPrecisionWitness == null) {
         logger.log(Level.WARNING,
-            "Properties state to use initial precision from correctness witness, but no witness file was provided!");
+            "Properties state to use initial precision from correctness witness, but no file was provided!");
         return emptyInitialPrecision();
       }
       return initialPrecisionFromWitness();
@@ -248,6 +273,33 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     // refine the refinable component precision with increment from file
     return initialPrecision.withIncrement(restoreMappingFromFile(cfa));
+  }
+
+  private VariableTrackingPrecision initialPrecisionFromPredicatePrecisionFile()
+      throws InvalidConfigurationException {
+    VariableTrackingPrecision initialPrecision =
+        VariableTrackingPrecision.createRefineablePrecision(config, emptyInitialPrecision());
+
+    // convert the predicate precision to variable tracking precision and
+    // refine precision with increment from the newly gained variable tracking precision
+    // otherwise return empty precision if given predicate precision is empty
+
+    try (Solver solver = Solver.create(this.config, this.logger, this.shutdownNotifier)) {
+      FormulaManagerView formulaManager = solver.getFormulaManager();
+
+      RegionManager regionManager = new SymbolicRegionManager(solver);
+      AbstractionManager abstractionManager =
+          new AbstractionManager(regionManager, this.config, logger, solver);
+
+      PredicatePrecision predPrec = parsePredPrecFile(this.cfa, formulaManager, abstractionManager);
+
+      if (!predPrec.isEmpty()) {
+        return initialPrecision.withIncrement(
+                convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
+      }
+    }
+
+    return initialPrecision;
   }
 
   private VariableTrackingPrecision initialPrecisionFromWitness()
@@ -280,6 +332,48 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
 
     return emptyInitialPrecision();
+  }
+
+  private PredicatePrecision parsePredPrecFile(
+      final CFA pCfa, final FormulaManagerView pFMgr, final AbstractionManager abstractionManager) {
+
+    // create managers for the predicate map parser for parsing the predicates from the given
+    // predicate precision file
+
+    PredicateMapParser mapParser =
+        new PredicateMapParser(
+            pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+
+    try {
+      return mapParser.parsePredicates(initialPredicatePrecisionFile);
+    } catch (IOException | PredicateParsingFailedException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not read precision from file named " + initialPredicatePrecisionFile);
+      return PredicatePrecision.empty();
+    }
+  }
+
+  private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
+      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
+    Collection<AbstractionPredicate> predicates = new HashSet<>();
+
+    predicates.addAll(pPredPrec.getLocalPredicates().values());
+    predicates.addAll(pPredPrec.getGlobalPredicates());
+    predicates.addAll(pPredPrec.getFunctionPredicates().values());
+
+    SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
+    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
+
+    // Get the variables from the predicate precision
+    for (AbstractionPredicate pred : predicates) {
+      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
+        trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+      }
+    }
+
+    return trackedVariables;
   }
 
   private ImmutableList<MemoryLocation> memoryLocsInExpressionTree(ExpressionTree<Object> expTree) {
@@ -491,7 +585,6 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-
     List<String> contents = null;
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());

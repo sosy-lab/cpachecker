@@ -82,7 +82,7 @@ public class ToFormulaVisitor
     PathFormula clearContext =
         context == null
             ? pathFormulaManager.makeEmptyPathFormula()
-            : pathFormulaManager.makeEmptyPathFormula(context);
+            : pathFormulaManager.makeEmptyPathFormulaWithContextFrom(context);
     PathFormula invariantPathFormula;
     try {
       invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);

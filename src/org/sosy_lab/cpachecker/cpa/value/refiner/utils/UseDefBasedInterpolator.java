@@ -262,7 +262,7 @@ public class UseDefBasedInterpolator {
 
     @Override
     public List<MemoryLocation> visit(final CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
     }
 
     @Override

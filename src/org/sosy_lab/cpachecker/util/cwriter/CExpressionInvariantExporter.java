@@ -97,7 +97,7 @@ public class CExpressionInvariantExporter {
       Appendable out, Path filename, UnmodifiableReachedSet pReachedSet)
       throws IOException, InterruptedException {
 
-    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename.toString());
+    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
 
     int lineNo = 0;
     String line;
@@ -128,7 +128,7 @@ public class CExpressionInvariantExporter {
 
   /** Return mapping from line numbers to states associated with the given line. */
   private Map<Integer, BooleanFormula> getInvariantsForFile(
-      UnmodifiableReachedSet pReachedSet, String filename) {
+      UnmodifiableReachedSet pReachedSet, Path filename) {
 
     // One formula per reported state.
     Multimap<Integer, BooleanFormula> byState = HashMultimap.create();

@@ -853,6 +853,8 @@ class WebInterface:
                     elif option == "-cbmc":
                         params.append(("option", "analysis.checkCounterexamples=true"))
                         params.append(("option", "counterexample.checker=CBMC"))
+                    elif option == "-clang":
+                        params.append(("option", "parser.useClang=true"))
                     elif option == "-preprocess":
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":

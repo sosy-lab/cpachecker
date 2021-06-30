@@ -18,7 +18,6 @@ import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -160,7 +159,7 @@ public class CFABuilder {
 
   public ParseResult build(final Module pModule, final String pFilename) throws LLVMException {
     visit(pModule, pFilename);
-    List<Path> input_file = ImmutableList.of(Paths.get(pFilename));
+    List<Path> input_file = ImmutableList.of(Path.of(pFilename));
 
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }
@@ -607,7 +606,7 @@ public class CFABuilder {
             curNode = newNode(pFunction);
             addEdge(
                 new CStatementEdge(
-                    expr.toASTString() + i.toString(),
+                    expr.toASTString() + i,
                     (CStatement) expr,
                     exprLocation,
                     prevNode,
@@ -1116,7 +1115,7 @@ public class CFABuilder {
       case LShr: // Logical shift right
         // GNU C performs a logical shift for unsigned types
         op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
-        operand1Exp = getExpression(operand1, op1type, pFileName);
+        operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
         // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
@@ -1136,7 +1135,7 @@ public class CFABuilder {
 
         // operand2 should always be treated as an unsigned value
         op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned = */ true);
-        operand2Exp = getExpression(operand2, op2type, pFileName);
+        operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
 
         // GNU C performs an arithmetic shift for signed types
         // op1type is signed by default for integer types
@@ -1930,6 +1929,6 @@ public class CFABuilder {
 
   private FileLocation getLocation(final Value pItem, final String pFileName) {
     assert pItem != null;
-    return new FileLocation(pFileName, 0, 1, 0, 0);
+    return new FileLocation(Path.of(pFileName), 0, 1, 0, 0);
   }
 }

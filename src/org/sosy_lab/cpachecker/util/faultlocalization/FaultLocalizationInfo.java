@@ -33,7 +33,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private boolean sortIntended;
-  private ImmutableList<Fault> rankedList;
+  private final ImmutableList<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
   /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
@@ -41,7 +41,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
   private final Optional<BooleanFormula> precondition;
-  private final ImmutableList<BooleanFormula> atoms;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
@@ -72,7 +71,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     rankedList = ImmutableList.copyOf(pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
-    atoms = ImmutableList.of();
   }
 
   /**
@@ -105,7 +103,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
-    atoms = ImmutableList.of();
   }
 
   /**
@@ -132,7 +129,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       Set<Fault> pFaults,
       FaultScoring pScoring,
       BooleanFormula pPrecondition,
-      ImmutableList<BooleanFormula> pAtoms,
       CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),
@@ -142,7 +138,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pScoring, pFaults);
     precondition = Optional.of(pPrecondition);
-    atoms = pAtoms;
     htmlWriter = new FaultReportWriter();
   }
 
@@ -182,8 +177,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pErrorIndicators possible candidates for the error
    * @return FaultLocalizationOutputs of the CFAEdges.
    */
-  public static Set<Fault> transform(
-      Set<Set<CFAEdge>> pErrorIndicators) {
+  public static Set<Fault> transform(Set<Set<CFAEdge>> pErrorIndicators) {
     Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
       transformed.add(
@@ -262,9 +256,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   public void writePrecondition(Writer writer) throws IOException {
-    JSON.writeJSONString(Collections.singletonMap("fl-precondition",
-        precondition.isPresent() ?
-            InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms) :
-            ""), writer);
+    JSON.writeJSONString(
+        Collections.singletonMap(
+            "fl-precondition",
+            precondition.isPresent()
+                ? precondition.orElseThrow().toString()
+                : ""),
+        writer);
   }
 }

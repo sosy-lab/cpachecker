@@ -30,7 +30,6 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -258,7 +257,7 @@ public class CPAMain {
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
+    private Path configurationOutputFile = Path.of("UsedConfiguration.properties");
 
     @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
@@ -266,7 +265,7 @@ public class CPAMain {
     @Option(secure=true, name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path exportStatisticsFile = Paths.get("Statistics.txt");
+    private Path exportStatisticsFile = Path.of("Statistics.txt");
 
     @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
@@ -365,7 +364,7 @@ public class CPAMain {
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
-    String filename = Paths.get(configFilename).getFileName().toString();
+    String filename = Path.of(configFilename).getFileName().toString();
     // remove the extension (most likely ".properties")
     return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
   }
@@ -447,7 +446,7 @@ public class CPAMain {
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
       ImmutableMap.<Property, TestTargetType>builder()
-          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.TEST_COMP_ASSUME)
           .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
           .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
           .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
@@ -560,6 +559,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
+          .put(CommonPropertyType.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
@@ -582,7 +582,7 @@ public class CPAMain {
     String propertyFile = propertyFiles.get(0);
 
     // Parse property files
-    PropertyFileParser parser = new PropertyFileParser(Paths.get(propertyFile));
+    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
@@ -713,7 +713,7 @@ public class CPAMain {
       WitnessOptions pOptions, Map<String, String> pOverrideOptions) {
     String specs = pOverrideOptions.get(SPECIFICATION_OPTION);
     String witnessSpec = pOptions.witness.toString();
-    specs = specs == null ? witnessSpec : (specs + "," + witnessSpec.toString());
+    specs = specs == null ? witnessSpec : (specs + "," + witnessSpec);
     pOverrideOptions.put(SPECIFICATION_OPTION, specs);
   }
 

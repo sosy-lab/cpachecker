@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -774,7 +775,11 @@ public final class ValueAnalysisState
     List<ExpressionTree<Object>> result = new ArrayList<>();
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      NumericValue num = entry.getValue().getValue().asNumericValue();
+      Value valueOfEntry = entry.getValue().getValue();
+      if(valueOfEntry instanceof EnumConstantValue){
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
@@ -833,7 +838,7 @@ public final class ValueAnalysisState
                   break;
                 }
               }
-              if(val == null) {
+              if (val == null) {
                 val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
               }
             } else {

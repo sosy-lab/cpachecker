@@ -553,7 +553,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 // If no location remains, the invariant has been disproved at all possible
                 // locations
                 if (remainingLocations.isEmpty()) {
-                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate);
                 }
               }
               iterator.remove();

@@ -19,7 +19,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -256,7 +255,7 @@ class CmdLineArguments {
       }
       if (foundMatchingArg) {
         // nothing left to do
-      } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
+      } else if (arg.startsWith("-") && Files.notExists(Path.of(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           @Nullable Path configFile = resolveConfigFile(argName);
@@ -300,7 +299,7 @@ class CmdLineArguments {
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches()
-          && Files.notExists(Paths.get(newValue))) {
+          && Files.notExists(Path.of(newValue))) {
         @Nullable Path configFile = resolveConfigFile(newValue);
 
         if (configFile != null) {
@@ -408,7 +407,7 @@ class CmdLineArguments {
   private static @Nullable Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
-    Path file = Paths.get(fileName);
+    Path file = Path.of(fileName);
 
     // look in current directory first
     if (Files.exists(file)) {

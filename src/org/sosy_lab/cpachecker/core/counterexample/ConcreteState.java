@@ -152,38 +152,49 @@ public final class ConcreteState {
 
     Memory memory = allocatedMemory.get(memoryName);
 
-    if (memory.hasValue(address)) {
-      if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(memoryName)) {
-        Preconditions.checkArgument(
-            machineModel != null,
-            "Sound computation of heap values with byte array encodings requires the machine model.");
+    if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(memoryName)) {
+      Preconditions.checkArgument(
+          machineModel != null,
+          "Sound computation of heap values with byte array encodings requires the machine model.");
 
-        // For ByteArray heap encoding actual values needs to be computed.
-        int typeSizeInByte = machineModel.getSizeof(exp.getExpressionType()).intValueExact();
-        // TODO missing handling for unaligned bitfields
-        if (typeSizeInByte == 1) {
+      // For ByteArray heap encoding actual values needs to be computed.
+      int typeSizeInByte = machineModel.getSizeof(exp.getExpressionType()).intValueExact();
+      // TODO missing handling for unaligned bitfields
+      if (typeSizeInByte == 1) {
+        if (memory.hasValue(address)) {
           // no special handling needed for byte size values
           return memory.getValue(address);
         }
-        // read bytes one by one
-        int offset = 0;
-        int ret = 0;
-        while (offset < typeSizeInByte) {
-          BigInteger byteJunk =
-              (BigInteger) memory.getValue(address.addOffset(BigInteger.valueOf(offset)));
-          int shiftBy;
-          // handle endianness
-          if (machineModel.getEndianness() == ByteOrder.BIG_ENDIAN) {
-            shiftBy = 8 * (typeSizeInByte - 1 - offset++);
-          } else {
-            shiftBy = 8 * offset++;
-          }
-          // bitwise left shift byte junks and adding up return value
-          ret += byteJunk.intValueExact() << shiftBy;
-        }
-        return BigInteger.valueOf(ret);
+        return null;
       }
-
+      // read bytes one by one
+      int offset = 0;
+      int ret = 0;
+      boolean memoryHasValue = false;
+      while (offset < typeSizeInByte) {
+        Address addressWithOffset = address.addOffset(BigInteger.valueOf(offset));
+        // handle don't care bytes optimized by SMT solver
+        BigInteger byteJunk;
+        if (memory.hasValue(addressWithOffset)) {
+          memoryHasValue = true;
+          byteJunk = (BigInteger) memory.getValue(addressWithOffset);
+        } else {
+          byteJunk = BigInteger.ZERO;
+        }
+        int shiftBy;
+        // handle endianness
+        if (machineModel.getEndianness() == ByteOrder.BIG_ENDIAN) {
+          shiftBy = 8 * (typeSizeInByte - 1 - offset++);
+        } else {
+          shiftBy = 8 * offset++;
+        }
+        // bitwise left shift byte junks and adding up return value
+        ret += byteJunk.intValueExact() << shiftBy;
+      }
+      // return null if all bytes are don't cares
+      return memoryHasValue ? BigInteger.valueOf(ret) : null;
+    }
+    if (memory.hasValue(address)) {
       return memory.getValue(address);
     }
 
