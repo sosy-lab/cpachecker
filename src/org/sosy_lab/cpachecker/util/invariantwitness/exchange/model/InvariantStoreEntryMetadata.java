@@ -8,18 +8,24 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
 public class InvariantStoreEntryMetadata {
-  public final String formatVerison;
+  @JsonProperty("format_version")
+  private final String formatVersion;
 
-  public InvariantStoreEntryMetadata() {
-    this.formatVerison = "0.1";
+  public InvariantStoreEntryMetadata(@JsonProperty("format_version") String pFormatVersion) {
+    formatVersion = pFormatVersion;
   }
 
-  public String getFormatVerison() {
-    return formatVerison;
+  public InvariantStoreEntryMetadata() {
+    this.formatVersion = "0.1";
+  }
+
+  public String getFormatVersion() {
+    return formatVersion;
   }
 
   @Override
@@ -31,11 +37,11 @@ public class InvariantStoreEntryMetadata {
       return false;
     }
     InvariantStoreEntryMetadata other = (InvariantStoreEntryMetadata) o;
-    return formatVerison.equals(other.formatVerison);
+    return formatVersion.equals(other.formatVersion);
   }
 
   @Override
   public int hashCode() {
-    return formatVerison.hashCode();
+    return formatVersion.hashCode();
   }
 }

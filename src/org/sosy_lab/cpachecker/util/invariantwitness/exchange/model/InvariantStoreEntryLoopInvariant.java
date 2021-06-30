@@ -8,15 +8,24 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
 public class InvariantStoreEntryLoopInvariant {
-  public final String string;
-  public final String type;
-  public final String format;
+  @JsonProperty("string")
+  private final String string;
 
-  public InvariantStoreEntryLoopInvariant(String string, String type, String format) {
+  @JsonProperty("type")
+  private final String type;
+
+  @JsonProperty("format")
+  private final String format;
+
+  public InvariantStoreEntryLoopInvariant(
+      @JsonProperty("string") String string,
+      @JsonProperty("type") String type,
+      @JsonProperty("format") String format) {
     this.string = string;
     this.type = type;
     this.format = format;

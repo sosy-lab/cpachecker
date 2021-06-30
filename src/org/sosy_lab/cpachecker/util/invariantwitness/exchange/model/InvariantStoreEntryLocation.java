@@ -8,18 +8,32 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
 public class InvariantStoreEntryLocation {
-  public final String fileName;
-  public final String fileHash;
-  public final int line;
-  public final int column;
-  public final String function;
+  @JsonProperty("file_name")
+  private final String fileName;
+
+  @JsonProperty("file_hash")
+  private final String fileHash;
+
+  @JsonProperty("line")
+  private final int line;
+
+  @JsonProperty("column")
+  private final int column;
+
+  @JsonProperty("function")
+  private final String function;
 
   public InvariantStoreEntryLocation(
-      String fileName, String fileHash, int line, int column, String function) {
+      @JsonProperty("file_name") String fileName,
+      @JsonProperty("file_hash") String fileHash,
+      @JsonProperty("line") int line,
+      @JsonProperty("column") int column,
+      @JsonProperty("function") String function) {
     this.fileName = fileName;
     this.fileHash = fileHash;
     this.line = line;
