@@ -37,8 +37,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessProvider;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
@@ -54,7 +56,7 @@ public class InvariantExportAlgorithm implements Algorithm {
   private final InvariantWitnessFactory invariantWitnessFactory;
   private final InvariantWitnessWriter invariantWitnessWriter;
 
-  private final Set<InvariantWitness> alreadySeen;
+  private final Set<InvariantWitness> alreadyExported;
 
   @Option(secure = true, description = "Strategy for generating invariants")
   private InvariantGeneratorFactory invariantGenerationStrategy =
@@ -78,7 +80,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
     invariantWitnessWriter = InvariantWitnessWriter.getWriter(pConfig, pCFA, pLogger);
 
-    alreadySeen = new HashSet<>();
+    alreadyExported = new HashSet<>();
 
     generator =
         invariantGenerationStrategy.createInvariantGenerator(
@@ -123,16 +125,15 @@ public class InvariantExportAlgorithm implements Algorithm {
     ExpressionTreeSupplier supplier = getCurrentSupplier();
     ImmutableSet.Builder<InvariantWitness> witnesses = ImmutableSet.builder();
     for (CFANode node : cfa.getAllNodes()) {
-      // TODO <Object> or extends?
       ExpressionTree<Object> invariant = supplier.getInvariantFor(node);
 
-      if (invariant.toString().equals("1")) {
+      if (invariant.equals(ExpressionTrees.getTrue())) {
         continue;
       }
 
       witnesses.addAll(invariantWitnessFactory.fromNodeAndInvariant(node, invariant));
     }
-    exportWitnesses(Sets.difference(witnesses.build(), alreadySeen));
+    exportWitnesses(Sets.difference(witnesses.build(), alreadyExported));
   }
 
   private ExpressionTreeSupplier getCurrentSupplier() {
@@ -154,7 +155,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     }
     logger.log(Level.INFO, "Found " + witnesses.size() + " new invariants and will export them.");
     for (InvariantWitness witness : witnesses) {
-      alreadySeen.add(witness);
+      alreadyExported.add(witness);
       logger.log(Level.INFO, "Exporting invariant " + witness);
       invariantWitnessWriter.exportInvariantWitness(witness);
     }
@@ -244,6 +245,23 @@ public class InvariantExportAlgorithm implements Algorithm {
           AggregatedReachedSets pAggregatedReachedSets,
           TargetLocationProvider pTargetLocationProvider) {
         return new DoNothingInvariantGenerator();
+      }
+    },
+
+    INVARIANT_STORE {
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider)
+          throws InvalidConfigurationException, CPAException, InterruptedException {
+        return InvariantWitnessProvider.getInvariantGenerator(
+            pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
       }
     };
 

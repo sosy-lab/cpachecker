@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 import java.io.IOException;
@@ -17,6 +18,12 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InvariantStoreUtil {
   public static Table<String, Integer, Integer> getLineOffsetsByFile(Collection<Path> filenames)
@@ -41,5 +48,35 @@ public class InvariantStoreUtil {
       }
     }
     return result.build();
+  }
+
+  public static Collection<CFANode> getNodeCandiadates(FileLocation fileLocation, CFA cfa) {
+
+    ImmutableSet.Builder<CFANode> result = ImmutableSet.builder();
+    for (CFANode candidate : cfa.getAllNodes()) {
+      if (candidate instanceof FunctionEntryNode || candidate instanceof FunctionExitNode) {
+        // We only consider loop invariants
+        continue;
+      }
+
+      if (nodeMatchesFileLocation(candidate, fileLocation)) {
+        result.add(candidate);
+      }
+    }
+
+    return result.build();
+  }
+
+  private static boolean nodeMatchesFileLocation(CFANode node, FileLocation fileLocation) {
+    boolean existsEdgeBefore =
+        CFAUtils.enteringEdges(node)
+            .filter(edge -> !edge.getFileLocation().equals(FileLocation.DUMMY))
+            .anyMatch(edge -> edge.getFileLocation().compareTo(fileLocation) < 0);
+    boolean existsEdgeAfter =
+        CFAUtils.leavingEdges(node)
+            .filter(edge -> !edge.getFileLocation().equals(FileLocation.DUMMY))
+            .anyMatch(edge -> edge.getFileLocation().compareTo(fileLocation) >= 0);
+
+    return existsEdgeBefore && existsEdgeAfter;
   }
 }

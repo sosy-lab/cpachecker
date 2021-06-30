@@ -20,11 +20,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public class InvariantWitnessFactory {
   private final LogManager logger;
+
+  @SuppressWarnings("unused")
   private final CFA cfa;
 
   private InvariantWitnessFactory(LogManager pLogger, CFA pCfa) {
@@ -56,31 +57,9 @@ public class InvariantWitnessFactory {
     return result.build();
   }
 
-  public Collection<InvariantWitness> fromFileLocationAndInvariant(
-      FileLocation fileLocation, ExpressionTree<Object> invariant) {
-    ImmutableSet.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
-    for (CFANode candidate : cfa.getAllNodes()) {
-      if (nodeMatchesFileLocation(candidate, fileLocation)) {
-        resultBuilder.add(new InvariantWitness(invariant, fileLocation, candidate));
-      } else {
-        logger.log(Level.INFO, "Could not determine CFANode for invariant at " + fileLocation);
-      }
-    }
-    return resultBuilder.build();
-  }
-
-  private boolean nodeMatchesFileLocation(CFANode node, FileLocation fileLocation) {
-    for (CFAEdge entering : CFAUtils.enteringEdges(node)) {
-      if (entering.getFileLocation().compareTo(fileLocation) < 0
-          && !entering.getFileLocation().equals(FileLocation.DUMMY)) {
-        for (CFAEdge leaving : CFAUtils.leavingEdges(node)) {
-          if (leaving.getFileLocation().compareTo(fileLocation) >= 0) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+  public InvariantWitness fromLocationAndInvariant(
+      FileLocation fileLocation, CFANode node, ExpressionTree<Object> invariant) {
+    return new InvariantWitness(invariant, fileLocation, node);
   }
 
   private Set<FileLocation> getEffectiveLocations(CFANode node) {

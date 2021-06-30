@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessProvider;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -958,7 +959,23 @@ abstract class AbstractBMCAlgorithm
           TargetLocationProvider pTargetLocationProvider) {
         return new DoNothingInvariantGenerator();
       }
+    },
 
+    INVARIANT_STORE {
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider)
+          throws InvalidConfigurationException, CPAException, InterruptedException {
+        return InvariantWitnessProvider.getInvariantGenerator(
+            pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
+      }
     };
 
     abstract InvariantGenerator createInvariantGenerator(

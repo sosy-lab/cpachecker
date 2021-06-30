@@ -18,13 +18,17 @@ import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,22 +38,35 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.expressions.DownwardCastingVisitor;
+import org.sosy_lab.cpachecker.util.expressions.DownwardCastingVisitor.IncompatibleLeafTypesException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "invariantStore.import")
 public class InvariantWitnessProvider {
@@ -57,7 +74,7 @@ public class InvariantWitnessProvider {
       secure = true,
       required = true,
       description = "The directory where the invariants are stored.")
-  private Path storeDirectory;
+  private String storeDirectory;
 
   private final Table<String, Integer, Integer> lineOffsetsByFile;
   private final LogManager logger;
@@ -66,14 +83,22 @@ public class InvariantWitnessProvider {
   private final CProgramScope scope;
   private final ParserTools parserTools;
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+  private final CFA cfa;
+
+  private final Set<Path> processedFiles;
+  private final Set<InvariantWitness> knownWitnesses;
 
   private InvariantWitnessProvider(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
+    cfa = pCFA;
     lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames());
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
+
+    processedFiles = new HashSet<>();
+    knownWitnesses = new HashSet<>();
 
     scope = new CProgramScope(pCFA, pLogger);
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
@@ -99,26 +124,52 @@ public class InvariantWitnessProvider {
 
       @Override
       public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
-        throw new UnsupportedOperationException("Can only produce expression trees");
+        return new InvariantSupplier() {
+          private final Map<CFANode, ExpressionTree<Object>> witnessesByNode =
+              provider.getCurrentWitnessesByNodes();
+          private final DownwardCastingVisitor<Object, AExpression> caster =
+              new DownwardCastingVisitor<>(AExpression.class);
+
+          @Override
+          public BooleanFormula getInvariantFor(
+              CFANode pNode,
+              Optional<CallstackStateEqualsWrapper> pCallstackInformation,
+              FormulaManagerView pFmgr,
+              PathFormulaManager pPfmgr,
+              @Nullable PathFormula pContext)
+              throws InterruptedException {
+            ExpressionTree<Object> invariant =
+                witnessesByNode.getOrDefault(pNode, ExpressionTrees.getTrue());
+
+            ToFormulaVisitor visitor = new ToFormulaVisitor(pFmgr, pPfmgr, pContext);
+
+            try {
+              return invariant.accept(caster).accept(visitor);
+            } catch (ToFormulaException e) {
+              pLogger.logDebugException(e);
+            } catch (IncompatibleLeafTypesException e) {
+              // This is an unexpected programming error.
+              // We should never see an ExpressionTree that is not ExprTree<AExpression>
+              throw new AssertionError(e);
+            }
+
+            return pFmgr.getBooleanFormulaManager().makeTrue();
+          }
+        };
       }
 
       @Override
       public ExpressionTreeSupplier getExpressionTreeSupplier()
           throws CPAException, InterruptedException {
-        // TODO Thread-safety: Is the parser thread-safe?
-        ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-        Collection<InvariantWitness> witnesses = provider.getCurrentWitnesses();
-        Map<CFANode, ExpressionTree<Object>> witnessesByNode =
-            witnesses.stream()
-                .collect(
-                    Collectors.toMap(
-                        InvariantWitness::getNode, InvariantWitness::getFormula, factory::or));
 
         return new ExpressionTreeSupplier() {
+          private final Map<CFANode, ExpressionTree<Object>> witnessesByNode =
+              provider.getCurrentWitnessesByNodes();
 
           @Override
           public ExpressionTree<Object> getInvariantFor(CFANode pNode) {
-            return witnessesByNode.getOrDefault(pNode, ExpressionTrees.getTrue());
+            return ExpressionTrees.cast(
+                witnessesByNode.getOrDefault(pNode, ExpressionTrees.getTrue()));
           }
         };
       }
@@ -143,16 +194,34 @@ public class InvariantWitnessProvider {
   public Collection<InvariantWitness> getCurrentWitnesses() throws InterruptedException {
     ImmutableCollection.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(storeDirectory, (p) -> p.toFile().isFile())) {
+        Files.newDirectoryStream(Path.of(storeDirectory), (p) -> p.toFile().isFile())) {
       for (Path file : stream) {
-        // TODO Filter out processed files
+        if (processedFiles.contains(file)) {
+          continue;
+        }
+
         resultBuilder.addAll(parseStoreFile(file));
+
+        processedFiles.add(file);
       }
     } catch (IOException | DirectoryIteratorException x) {
       // TODO
+      logger.logException(Level.INFO, x, "");
     }
 
-    return resultBuilder.build();
+    knownWitnesses.addAll(resultBuilder.build());
+
+    return Collections.unmodifiableSet(knownWitnesses);
+  }
+
+  public Map<CFANode, ExpressionTree<Object>> getCurrentWitnessesByNodes()
+      throws InterruptedException {
+    // TODO Thread-safety: Is the parser thread-safe?
+    ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
+    Collection<InvariantWitness> witnesses = getCurrentWitnesses();
+    return witnesses.stream()
+        .collect(
+            Collectors.toMap(InvariantWitness::getNode, InvariantWitness::getFormula, factory::or));
   }
 
   private Collection<InvariantWitness> parseStoreFile(Path file)
@@ -166,9 +235,89 @@ public class InvariantWitnessProvider {
     }
 
     FileLocation fileLocation = parseFileLocation(entry.getLocation());
-    ExpressionTree<Object> invariantFormula =
-        parseAssertString(entry.getLoopInvariant().getString(), entry.getLocation().function);
-    return invariantWitnessFactory.fromFileLocationAndInvariant(fileLocation, invariantFormula);
+
+    String rawInvariant = entry.getLoopInvariant().getString();
+    String functionName = entry.getLocation().getFunction();
+
+    Collection<CFANode> candidateNodes = InvariantStoreUtil.getNodeCandiadates(fileLocation, cfa);
+
+    CProgramScope functionScope = scope.withFunctionScope(functionName);
+    ImmutableSet.Builder<InvariantWitness> result = ImmutableSet.builder();
+    for (CFANode candidateNode : candidateNodes) {
+      Collection<FileLocation> possiblyUsageLocations = tryFindUsageLocations(candidateNode);
+
+      if (possiblyUsageLocations.isEmpty()) {
+        continue;
+      }
+
+      int minOffset =
+          possiblyUsageLocations.stream()
+              .map(f -> f.getNodeOffset())
+              .min(Integer::compare)
+              .orElse(0);
+      int maxOffset =
+          possiblyUsageLocations.stream()
+              .map(f -> f.getNodeOffset())
+              .max(Integer::compare)
+              .orElse(0);
+
+      ExpressionTree<Object> invariantFormula =
+          ExpressionTrees.cast(
+              CParserUtils.parseStatementsAsExpressionTree(
+                  Set.of(rawInvariant),
+                  Optional.empty(),
+                  parser,
+                  functionScope.withLocationDescriptor(
+                      f -> minOffset <= f.getNodeOffset() && f.getNodeOffset() <= maxOffset),
+                  parserTools));
+
+      if (invariantFormula.equals(ExpressionTrees.getTrue())) {
+        // These are useless!
+        continue;
+      }
+
+      result.add(
+          invariantWitnessFactory.fromLocationAndInvariant(
+              fileLocation, candidateNode, invariantFormula));
+    }
+
+    return result.build();
+  }
+
+  private Collection<FileLocation> tryFindUsageLocations(CFANode rootNode) {
+    ImmutableSet.Builder<FileLocation> result = ImmutableSet.builder();
+
+    Queue<CFANode> waitlist = new ArrayDeque<>();
+    Set<CFANode> visited = new HashSet<>();
+    waitlist.add(rootNode);
+
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.remove();
+      if (visited.contains(current)) {
+        continue;
+      }
+
+      visited.add(current);
+
+      for (int leavingEdgeId = 0; leavingEdgeId < current.getNumLeavingEdges(); leavingEdgeId++) {
+        CFAEdge leavingEdge = current.getLeavingEdge(leavingEdgeId);
+
+        if (leavingEdge instanceof FunctionReturnEdge || leavingEdge instanceof FunctionCallEdge) {
+          continue;
+        }
+
+        if (!leavingEdge.getFileLocation().equals(FileLocation.DUMMY)) {
+          result.add(leavingEdge.getFileLocation());
+        }
+
+        if (leavingEdge.getSuccessor().getReversePostorderId() < current.getReversePostorderId()) {
+          // Not a backward edge
+          waitlist.add(leavingEdge.getSuccessor());
+        }
+      }
+    }
+
+    return result.build();
   }
 
   private FileLocation parseFileLocation(InvariantStoreEntryLocation entryLocation) {
@@ -180,16 +329,5 @@ public class InvariantWitnessProvider {
         0,
         entryLocation.getLine(),
         entryLocation.getLine());
-  }
-
-  private ExpressionTree<Object> parseAssertString(String assertString, String functionName)
-      throws InterruptedException {
-    return ExpressionTrees.cast(
-        CParserUtils.parseStatementsAsExpressionTree(
-            Set.of(assertString),
-            Optional.empty(),
-            parser,
-            scope.withFunctionScope(functionName),
-            parserTools));
   }
 }
