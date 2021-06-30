@@ -319,6 +319,9 @@ analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
 # run interprocedural analysis
 analysis.interprocedural = true
 
+# Runs an algorithm that produces and exports invariants
+analysis.invariantExport = false
+
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM]
@@ -499,7 +502,7 @@ analysis.useParallelAnalyses = false
 analysis.useTestCaseGeneratorAlgorithm = false
 
 # converts a graphml witness to invariant witness
-analysis.useWitnessToInvariantAlgorithm = false
+analysis.witnessToInvariant = false
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
@@ -3466,6 +3469,10 @@ invariantGeneration.kInduction.terminateOnCounterexample = false
 
 # The directory where the invariants are stored.
 invariantStore.export.outDir = no default value
+
+# Strategy for generating invariants
+invariantStore.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
 
 # The witness from which invariants should be generated.
 invariantStore.witness = no default value

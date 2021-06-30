@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -79,6 +80,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -186,8 +188,17 @@ public class CoreComponentsFactory {
   )
   private boolean useParallelAlgorithm = false;
 
-  @Option(secure = true, description = "converts a graphml witness to invariant witness")
+  @Option(
+      secure = true,
+      name = "witnessToInvariant",
+      description = "converts a graphml witness to invariant witness")
   private boolean useWitnessToInvariantAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "invariantExport",
+      description = "Runs an algorithm that produces and exports invariants")
+  private boolean useInvariantExportAlgorithm = false;
 
   @Option(
     secure = true,
@@ -392,7 +403,7 @@ public class CoreComponentsFactory {
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
         && !runCBMCasExternalTool
-        && (useBMC || useIMC);
+        && (useBMC || useIMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -466,6 +477,17 @@ public class CoreComponentsFactory {
 
     } else if (useWitnessToInvariantAlgorithm) {
       algorithm = new WitnessToInvariantWitnessAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useInvariantExportAlgorithm) {
+      algorithm =
+          new InvariantExportAlgorithm(
+              config,
+              logger,
+              shutdownManager,
+              cfa,
+              specification,
+              reachedSetFactory,
+              new CachingTargetLocationProvider(shutdownNotifier, logger, cfa),
+              aggregatedReachedSets);
     } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new
           Explainer(
