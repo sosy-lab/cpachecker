@@ -22,8 +22,9 @@ int main(void)
     b = a;
     c = b + 0;
     c = 5;
-    __VERIFIER_assert_tainted(buf);
-    __VERIFIER_assert_untainted(int);
+    __VERIFIER_assert_tainted(a);
+    __VERIFIER_assert_tainted(b);
+    __VERIFIER_assert_untainted(c);
     
     return 0;
 }

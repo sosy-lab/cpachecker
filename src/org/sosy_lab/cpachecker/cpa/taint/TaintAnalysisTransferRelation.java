@@ -299,11 +299,16 @@ public class TaintAnalysisTransferRelation
                 || func.equals("fgets")
                 || func.equals("fopen")) {
                   AFunctionCallExpression exp = pFunctionCallAssignment.getRightHandSide();
-                  AExpression param = exp.getParameterExpressions().get(0);
-                  String param_ = param.toString();
-                  param_ = param_.replace("&", "");
-                  MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, param_);
-                  newElement.change(memoryLocation1, true);
+                  if(exp.getParameterExpressions().size() > 0 && exp.getParameterExpressions().get(0) != null) {
+                    AExpression param = exp.getParameterExpressions().get(0);
+                    String param_ = param.toString();
+                    param_ = param_.replace("&", "");
+                    MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, param_);
+                    newElement.change(memoryLocation1, true);
+                  } else {
+                    MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, leftSide.toString());
+                    newElement.change(memoryLocation1, true);
+                  }
             }
           } else msg = msg + " | useCriticalSourceFunctions: False";
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
@@ -335,7 +340,17 @@ public class TaintAnalysisTransferRelation
                   TaintAnalysisState.copyOf(
                       state, true, "Assumed variable '" + memoryLocation + "' was tainted");
             }
-          } if (options.isUseCriticalSourceFunctions()) { // Critical Source Functions
+          } else if(func.equals("strncpy")) {
+            AExpression param0 = exp.getParameterExpressions().get(0);
+            MemoryLocation memoryLocation0 = MemoryLocation.valueOf(functionName, param0.toString());
+            AExpression param1 = exp.getParameterExpressions().get(1);
+            MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, param1.toString());
+            if(memoryLocation1.toString().contains("main::argv") || (state.getStatus(memoryLocation1) != null && state.getStatus(memoryLocation1))) {
+              newElement.change(memoryLocation0, true);
+              msg = msg + " | "+memoryLocation0.toString() + " got tainted!";
+            }
+          }
+          if (options.isUseCriticalSourceFunctions()) { // Critical Source Functions
             if (func.equals("getchar")
               || func.equals("scanf")
               || func.equals("gets")
@@ -364,6 +379,9 @@ public class TaintAnalysisTransferRelation
                   tainted = true;
                 }
               }
+              if(exp.getParameterExpressions().get(0).toString().contains("%s")) {
+                tainted = false;
+              }
               if(tainted) {
                 newElement =
                   TaintAnalysisState.copyOf(
@@ -376,8 +394,7 @@ public class TaintAnalysisTransferRelation
                 || func.equals("fputs")
                 || func.equals("fputc")
                 || func.equals("fwrite")
-                || func.equals("strcpy")
-                || func.equals("strncpy"))
+                || func.equals("strcpy"))
             {
               msg = msg + " | MemLoc:" + memoryLocation1+": "+state.getStatus(memoryLocation1);
               if(memoryLocation1.toString().contains("main::argv") || (state.getStatus(memoryLocation1) != null && state.getStatus(memoryLocation1)))
