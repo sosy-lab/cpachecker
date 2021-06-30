@@ -342,7 +342,7 @@ class WitnessFactory implements EdgeAppender {
       // GraphBuilder.CFA_FULL actually returns the ARG states corresponding to pTo in pFromState
       stateToARGStates.putAll(pTo, fromStates);
     } else {
-      assert false : "Unknown witness type";
+      throw new AssertionError("Unknown witness type");
     }
 
     Collection<TransitionCondition> transitions =
