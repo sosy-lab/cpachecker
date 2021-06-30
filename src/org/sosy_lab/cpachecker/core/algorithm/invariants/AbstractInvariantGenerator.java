@@ -29,10 +29,6 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   @Override
   public abstract void cancel();
 
-  @Override
-  public AggregatedReachedSets get() throws CPAException, InterruptedException {
-    return new AggregatedReachedSets();
-  }
 
   @Override
   public abstract boolean isProgramSafe();

@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -75,7 +74,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -274,7 +272,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
 
         if (bfmgr.isTrue(branchingFormula)) {
-          logger.log(Level.WARNING, "Could not create error path because of missing branching information!");
+          logger.log(
+              Level.WARNING,
+              "Could not create error path because of missing branching information!");
           return Optional.empty();
         }
 
@@ -290,7 +290,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         if (!stillSatisfiable) {
           // should not occur
-          logger.log(Level.WARNING, "Could not create error path information because of inconsistent branching information!");
+          logger.log(
+              Level.WARNING,
+              "Could not create error path information because of inconsistent branching"
+                  + " information!");
           return Optional.empty();
         }
 
@@ -349,8 +352,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 assignmentToPathAllocator);
 
       } catch (InvalidConfigurationException e) {
-        // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
-        logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
+        // Configuration has somehow changed and can no longer be used to create the solver and path
+        // formula manager
+        logger.logUserException(
+            Level.WARNING, e, "Could not replay error path to get a more precise model");
         return Optional.empty();
       }
 
@@ -388,14 +393,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                   ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
               if (invariantGenerator.isStarted()) {
                 try {
-                  if (invariantGenerator instanceof KInductionInvariantGenerator) {
-                    tmpExpressionTreeSupplier =
-                        ((KInductionInvariantGenerator) invariantGenerator)
-                            .getExpressionTreeSupplier();
-                  } else {
-                    tmpExpressionTreeSupplier =
-                        new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
-                  }
+                  tmpExpressionTreeSupplier = invariantGenerator.getExpressionTreeSupplier();
                 } catch (CPAException | InterruptedException e1) {
                   tmpExpressionTreeSupplier =
                       ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;

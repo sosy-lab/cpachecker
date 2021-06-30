@@ -68,7 +68,9 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCa
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -97,6 +99,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -927,8 +931,14 @@ abstract class AbstractBMCAlgorithm
           }
 
           @Override
-          public AggregatedReachedSets get() throws CPAException, InterruptedException {
-            return pAggregatedReachedSets;
+          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+            return new FormulaInvariantsSupplier(pAggregatedReachedSets);
+          }
+
+          @Override
+          public ExpressionTreeSupplier getExpressionTreeSupplier()
+              throws CPAException, InterruptedException {
+            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
           }
         };
       }

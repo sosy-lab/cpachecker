@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLoca
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -77,8 +76,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
-import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -190,12 +187,7 @@ class KInductionProver implements AutoCloseable {
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (invariantGenerationRunning) {
       try {
-        if (invariantGenerator instanceof KInductionInvariantGenerator) {
-          return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
-        } else {
-          // in the general case we have to retrieve the invariants from a reachedset
-          return new FormulaInvariantsSupplier(invariantGenerator.get());
-        }
+        return invariantGenerator.getSupplier();
       } catch (CPAException e) {
         logger.logUserException(Level.FINE, e, "Invariant generation failed.");
         invariantGenerationRunning = false;
@@ -214,7 +206,7 @@ class KInductionProver implements AutoCloseable {
       return expressionTreeSupplier;
     }
     try {
-      return new ExpressionTreeInvariantSupplier(invariantGenerator.get(), cfa);
+      return invariantGenerator.getExpressionTreeSupplier();
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
       invariantGenerationRunning = false;

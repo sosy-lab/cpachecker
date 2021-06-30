@@ -142,7 +142,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     private CfaCandidateInvariantExtractorFactories guessCandidatesFromCFA =
         CfaCandidateInvariantExtractorFactories.ASSUME_EDGES_PLAIN;
 
-    @Option(secure = true, description = "For correctness-witness validation: Shut down if a candidate invariant is found to be incorrect.")
+    @Option(
+        secure = true,
+        description =
+            "For correctness-witness validation: Shut down if a candidate invariant is found to be"
+                + " incorrect.")
     private boolean terminateOnCounterexample = false;
 
     @Option(
@@ -390,11 +394,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   }
 
   @Override
-  public AggregatedReachedSets get() {
-    throw new UnsupportedOperationException(
-        "This invariant generator does only return an invariant supplier via the method getSupplier()");
-  }
-
   public InvariantSupplier getSupplier() throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
 
@@ -416,6 +415,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     }
   }
 
+  @Override
   public ExpressionTreeSupplier getExpressionTreeSupplier()
       throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
@@ -534,7 +534,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             public CandidateInvariant next() {
               if (safetyPropertyConfirmed) {
                 throw new NoSuchElementException(
-                    "No more candidates available: The safety property has already been confirmed.");
+                    "No more candidates available: The safety property has already been"
+                        + " confirmed.");
               }
               return candidate = iterator.next();
             }
@@ -666,7 +667,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throws InvalidConfigurationException {
         if (!pCfa.getVarClassification().isPresent()) {
           throw new InvalidConfigurationException(
-              "Variable classification not available but required to generate candidate invariants.");
+              "Variable classification not available but required to generate candidate"
+                  + " invariants.");
         }
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
         if (!loopHeads.isPresent()) {
@@ -824,7 +826,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throws InvalidConfigurationException {
         if (!pCfa.getVarClassification().isPresent()) {
           throw new InvalidConfigurationException(
-              "Variable classification not available but required to generate candidate invariants.");
+              "Variable classification not available but required to generate candidate"
+                  + " invariants.");
         }
         VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();

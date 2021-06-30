@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Trivial implementation of an invariant generator
@@ -25,5 +26,16 @@ public class DoNothingInvariantGenerator extends AbstractInvariantGenerator {
   @Override
   public boolean isProgramSafe() {
     return false;
+  }
+
+  @Override
+  public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+  }
+
+  @Override
+  public ExpressionTreeSupplier getExpressionTreeSupplier()
+      throws CPAException, InterruptedException {
+    return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 }
