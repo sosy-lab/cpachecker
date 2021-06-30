@@ -81,6 +81,11 @@ public class StatementBlock implements ACSLBlock {
     }
 
     CFAUtils.enteringEdges(firstNode).copyInto(enteringEdges);
+    if (endNodes.size() == 1 && endNodes.contains(firstNode)) {
+      // Block is empty, so there is no need to compute contained nodes or leaving edges.
+      // However, do not discard this block as it may contain ACSL assertions
+      return true;
+    }
 
     Set<CFAEdge> visited = new HashSet<>();
     Queue<CFAEdge> waitlist = new ArrayDeque<>(enteringEdges);

@@ -91,7 +91,7 @@ public class BlockStructure {
       return ImmutableSet.of();
     }
 
-    ACSLBlock innermostBlockOfPrevEdge = getInnermostBlockOf(prev.getSuccessor());
+    ACSLBlock innermostBlockOfPrevEdge = getInnermostBlockOf(prev.getFileLocation());
     if (innermostBlockOfPrevEdge.equals(pBlock)) {
       return CFAUtils.enteringEdges(prev.getSuccessor()).toSet();
     }

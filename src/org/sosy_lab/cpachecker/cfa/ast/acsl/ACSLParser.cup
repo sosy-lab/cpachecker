@@ -298,14 +298,13 @@ parser code {:
       CFAEdge next = blockStructure.getNextEdge(block, loc);
       if (next == null) {
         // assertion is at very end of block (after every leaving edge)
-        Set<CFAEdge> prev = blockStructure.getPrevEdges(block, loc);
-        if (prev.isEmpty()) {
+        Set<CFAEdge> edges = blockStructure.getPrevEdges(block, loc);
+        if (edges.isEmpty()) {
           // assertion is at beginning of block -> block is empty apart from annotation
-          // TODO: This case has to be handled for blocks created via explicit braces
-        } else {
-          for (CFAEdge edge : prev) {
-            cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
-          }
+          edges = block.getEnteringEdges();
+        }
+        for (CFAEdge edge : edges) {
+          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
         }
       } else {
         CFANode node = next.getPredecessor();
