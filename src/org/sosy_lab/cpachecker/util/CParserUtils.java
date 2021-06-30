@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.util;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
@@ -70,9 +70,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -80,21 +80,21 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 
-class CParserUtils {
+public class CParserUtils {
 
   private static final String CPACHECKER_TMP_PREFIX = "__CPAchecker_TMP";
 
-  static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
+  public static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     return parse(addFunctionDeclaration(pSource), parser, scope);
   }
 
-  static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
+  public static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
   }
 
-  static List<AExpression> convertStatementsToAssumptions(
+  public static List<AExpression> convertStatementsToAssumptions(
       Iterable<CStatement> assumptions, MachineModel machineModel, LogManager logger)
       throws InvalidAutomatonException {
     ImmutableList.Builder<AExpression> result = ImmutableList.builder();
@@ -206,7 +206,7 @@ class CParserUtils {
    * @return a collection of C statements.
    * @throws InvalidAutomatonException if the input strings cannot be interpreted as C statements.
    */
-  static Collection<CStatement> parseStatements(
+  public static Collection<CStatement> parseStatements(
       Set<String> pStatements,
       Optional<String> pResultFunction,
       CParser pCParser,
@@ -293,7 +293,7 @@ class CParserUtils {
    * @return an expression tree conjoining the expressions of successfully parsed expression
    *     statements.
    */
-  static ExpressionTree<AExpression> parseStatementsAsExpressionTree(
+  public static ExpressionTree<AExpression> parseStatementsAsExpressionTree(
       Set<String> pStatements,
       Optional<String> pResultFunction,
       CParser pCParser,
@@ -695,9 +695,10 @@ class CParserUtils {
   }
 
   /**
-   * Instances of this class are aggregates of utilities required for the parsing functions of {@link CParserUtils}.
+   * Instances of this class are aggregates of utilities required for the parsing functions of
+   * {@link CParserUtils}.
    */
-  static class ParserTools {
+  public static class ParserTools {
 
     private final ExpressionTreeFactory<AExpression> expressionTreeFactory;
 
@@ -716,8 +717,10 @@ class CParserUtils {
       logger = Objects.requireNonNull(pLogger);
     }
 
-    static ParserTools create(ExpressionTreeFactory<AExpression> pExpressionTreeFactory,
-        MachineModel pMachineModel, LogManager pLogger) {
+    public static ParserTools create(
+        ExpressionTreeFactory<AExpression> pExpressionTreeFactory,
+        MachineModel pMachineModel,
+        LogManager pLogger) {
       return new ParserTools(pExpressionTreeFactory, pMachineModel, pLogger);
     }
 
