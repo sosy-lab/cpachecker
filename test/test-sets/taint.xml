@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition>
     <option name="-preprocess" />
   </rundefinition>
-  <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  <propertyfile>../config/properties/taint-error.prp</propertyfile>
 
   <tasks name="TDD">
     <option name="-config">config/taintAnalysis.properties</option>

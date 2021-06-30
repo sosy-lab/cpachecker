@@ -9,23 +9,22 @@
 package org.sosy_lab.cpachecker.cpa.taint;
 
 import com.google.common.base.Joiner;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public final class TaintAnalysisState implements AbstractState, Graphable, Targetable {
+public final class TaintAnalysisState implements AbstractState, Graphable, AbstractQueryableState {
 
   private final boolean isTarget;
 
@@ -98,8 +97,9 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
   }
 
   private Boolean getFromMap(final MemoryLocation value) {
-    if(getPointerTo(value) != null)
+    if(getPointerTo(value) != null) {
       return taintedMap.get(getPointerTo(value));
+    }
     return taintedMap.get(value);
   }
 
@@ -167,8 +167,11 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
       sb.append(entry.getValue());
       sb.append(">\n");
     }
-
-    return sb.append("] size->  ").append(taintedMap.size()).toString();
+    sb.append("] size->  ").append(taintedMap.size());
+    if (isTarget) {
+      sb.append("Violations:\n").append(Joiner.on("\n").join(violations));
+    }
+    return sb.toString();
   }
 
   /**
@@ -193,13 +196,18 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Targe
     return false;
   }
 
+
   @Override
-  public boolean isTarget() {
-    return isTarget;
+  public String getCPAName() {
+    return "TaintAnalysisCPA";
   }
 
   @Override
-  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return violations;
+  public boolean checkProperty(String property) throws InvalidQueryException {
+    if (!"taint-error".equals(property)) {
+      throw new InvalidQueryException(
+          String.format("%s cannot check the property %s!", getCPAName(), property));
+    }
+    return isTarget;
   }
 }

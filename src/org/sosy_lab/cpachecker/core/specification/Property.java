@@ -29,6 +29,8 @@ public interface Property {
 
     DEADLOCK("G ! deadlock"),
 
+    TAINT_ERROR("G ! taint-error"),
+
     TERMINATION("F end"),
     ;
 
