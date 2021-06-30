@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 
 /**
  * Factory class for creating {@link Slicer} objects. The concrete <code>Slicer</code> that is
@@ -40,7 +40,7 @@ public class SlicerFactory implements StatisticsProvider {
     /**
      * Use static program slicing based on dependence graph of CFA
      *
-     * @see org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder
+     * @see org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph
      * @see StaticSlicer
      */
     STATIC,
@@ -63,15 +63,6 @@ public class SlicerFactory implements StatisticsProvider {
     @Option(secure = true, name = "type", description = "what kind of slicing to use")
     private SlicingType slicingType = SlicingType.STATIC;
 
-    @Option(
-        secure = true,
-        name = "partiallyRelevantEdges",
-        description =
-            "Whether to allow edges in the resulting slice that are only partially relevant (e.g."
-                + " function calls where not every parameter is relevant). Setting this parameter"
-                + " to true can decrease the size of the resulting slice.")
-    private boolean partiallyRelevantEdges = true;
-
     public SlicerOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -91,14 +82,16 @@ public class SlicerFactory implements StatisticsProvider {
     stats = new ArrayList<>();
   }
 
-  private CSystemDependenceGraph createDependenceGraph(
+  private DependenceGraph createDependenceGraph(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws CPAException, InvalidConfigurationException {
+      throws InterruptedException, InvalidConfigurationException {
 
-    final CSystemDependenceGraphBuilder depGraphBuilder =
-        new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
+    final DependenceGraphBuilder depGraphBuilder =
+        DependenceGraph.builder(pCfa, pConfig, pLogger, pShutdownNotifier);
     try {
       return depGraphBuilder.build();
+    } catch (CPAException ex) {
+      throw new AssertionError("DependenceGraph construction failed: " + ex);
     } finally {
       depGraphBuilder.collectStatistics(stats);
     }
@@ -111,7 +104,7 @@ public class SlicerFactory implements StatisticsProvider {
    */
   public Slicer create(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws CPAException, InvalidConfigurationException {
+      throws InterruptedException, InvalidConfigurationException {
     SlicerOptions options = new SlicerOptions(pConfig);
 
     final SlicingCriteriaExtractor extractor;
@@ -133,15 +126,9 @@ public class SlicerFactory implements StatisticsProvider {
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {
       case STATIC:
-        CSystemDependenceGraph dependenceGraph =
+        DependenceGraph dependenceGraph =
             createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
-        return new StaticSlicer(
-            extractor,
-            pLogger,
-            pShutdownNotifier,
-            pConfig,
-            dependenceGraph,
-            options.partiallyRelevantEdges);
+        return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, dependenceGraph);
       case IDENTITY:
         return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
       default:

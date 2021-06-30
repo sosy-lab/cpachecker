@@ -114,8 +114,7 @@ final class SliceToCfaConverter {
 
       MemoryLocation memoryLocation = MemoryLocation.valueOf(parameter.getQualifiedName());
 
-      Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(declarationEdge);
-      if (memoryLocations == null || memoryLocations.contains(memoryLocation)) {
+      if (relevantMemoryLocations.get(declarationEdge).contains(memoryLocation)) {
         result.add(element);
       }
     }
@@ -141,8 +140,7 @@ final class SliceToCfaConverter {
 
     if (optRetVar.isPresent()) {
       MemoryLocation memoryLocation = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
-      Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(originalDeclarationEdge);
-      if (memoryLocations != null && !memoryLocations.contains(memoryLocation)) {
+      if (!relevantMemoryLocations.get(originalDeclarationEdge).contains(memoryLocation)) {
         relevantReturnType = CVoidType.VOID;
       }
     }

@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.pjbdd.api.DD;
+import org.sosy_lab.pjbdd.node.BDD;
 
 public class PJBDDRegion implements Region {
 
-  private final DD bddRep;
+  private BDD bddRep;
 
-  public PJBDDRegion(DD bdd) {
+  public PJBDDRegion(BDD bdd) {
     this.bddRep = bdd;
   }
 
@@ -47,11 +47,11 @@ public class PJBDDRegion implements Region {
     return bddRep.toString();
   }
 
-  public static Region wrap(DD bdd) {
+  public static Region wrap(BDD bdd) {
     return new PJBDDRegion(bdd);
   }
 
-  public static DD unwrap(Region pRegion) {
+  public static BDD unwrap(Region pRegion) {
     if (pRegion instanceof PJBDDRegion) {
       return ((PJBDDRegion) pRegion).bddRep;
     }

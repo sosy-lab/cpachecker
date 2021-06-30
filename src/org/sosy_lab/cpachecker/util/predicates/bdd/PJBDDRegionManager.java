@@ -40,17 +40,18 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.pjbdd.api.Builders;
-import org.sosy_lab.pjbdd.api.Builders.ParallelizationType;
-import org.sosy_lab.pjbdd.api.Creator;
-import org.sosy_lab.pjbdd.api.CreatorBuilder;
-import org.sosy_lab.pjbdd.api.DD;
+import org.sosy_lab.pjbdd.Builders;
+import org.sosy_lab.pjbdd.Builders.ParallelizationType;
+import org.sosy_lab.pjbdd.creator.bdd.BDDBuilder;
+import org.sosy_lab.pjbdd.creator.bdd.Creator;
+import org.sosy_lab.pjbdd.creator.bdd.intBDD.IntBuilder;
+import org.sosy_lab.pjbdd.node.BDD;
 
 public class PJBDDRegionManager implements RegionManager {
 
   private final Region trueFormula;
   private final Region falseFormula;
-  private final Creator bddCreator;
+  private final Creator<BDD> bddCreator;
 
   public PJBDDRegionManager(Configuration pConfig) throws InvalidConfigurationException {
     BuildFromConfig buildFromConfig = new BuildFromConfig(pConfig);
@@ -71,9 +72,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Region fromFormula(
-      BooleanFormula pF,
-      FormulaManagerView fmgr,
-      Function<BooleanFormula, Region> atomToRegion) {
+      BooleanFormula pF, FormulaManagerView fmgr, Function<BooleanFormula, Region> atomToRegion) {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     if (bfmgr.isFalse(pF)) {
       return makeFalse();
@@ -89,17 +88,14 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region f) {
-    DD bdd = unwrap(f);
-    return Triple.of(
-        wrap(bddCreator.makeIthVar(bdd.getVariable())),
-        wrap(bdd.getHigh()),
-        wrap(bdd.getLow()));
+    BDD bdd = unwrap(f);
+    return Triple.of(wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
   @Override
   public void printStatistics(PrintStream out) {
     out.println("Stats to be printed");
-    // TODO out.print(bddCreator.getCreatorStats().prettyPrint());
+    // TODO    out.print(bddCreator.getCreatorStats().prettyPrint());
   }
 
   @Override
@@ -167,18 +163,19 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public Region makeExists(Region f1, Region... f2) {
-    DD[] bddLevels = new DD[f2.length];
+    BDD[] bddLevels = new BDD[f2.length];
     IntStream.range(0, f2.length).forEach(i -> bddLevels[i] = unwrap(f2[i]));
     return wrap(bddCreator.makeExists(unwrap(f1), bddLevels));
   }
 
+
   @Override
   public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
     Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
-    DD bdd = unwrap(pRegion);
+    BDD bdd = unwrap(pRegion);
     for (int i = 0; i < pOldPredicates.length; i++) {
-      DD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
-      DD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
+      BDD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
+      BDD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
       bdd = bddCreator.makeReplace(bdd, oldVar, newVar);
     }
     return wrap(bdd);
@@ -204,28 +201,38 @@ public class PJBDDRegionManager implements RegionManager {
     private int cacheSize = 0;
 
     @Option(
-      secure = true,
-      description = "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
+        secure = true,
+        description =
+            "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
     @IntegerOption(min = 1)
     private int threads = Runtime.getRuntime().availableProcessors();
 
     @Option(
-      secure = true,
-      description = "Initial size of the BDD node table in percentage of available Java heap memory (only"
-          + " used if initTableSize is 0).")
+        secure = true,
+        description =
+            "Initial size of the BDD node table in percentage of available Java heap memory (only"
+                + " used if initTableSize is 0).")
     private double initTableRatio = 0.001;
 
     @Option(
-      secure = true,
-      description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
+        secure = true,
+        description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
     @IntegerOption(min = 0)
     private int initTableSize = 0;
 
     @Option(
-      secure = true,
-      description = "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
-          + " cache size).")
+        secure = true,
+        description =
+            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
+                + " cache size).")
     private double cacheRatio = 0.1;
+
+    @Option(
+        secure = true,
+        description =
+            "Threadsafe reference counting is very costly, with this option gc can be disabled."
+                + " Only applicable with useInts = true.")
+    private boolean disableGC = false;
 
     @Option(secure = true, description = "Use internal a int based bdd representation.")
     private boolean useInts = false;
@@ -237,24 +244,19 @@ public class PJBDDRegionManager implements RegionManager {
       pConfig.inject(this);
     }
 
-    private Creator makeCreator() {
+    private Creator<BDD> makeCreator() {
       if (useInts) {
-        CreatorBuilder intBuilder = Builders.intBuilder();
+        IntBuilder intBuilder = Builders.newIntBuilder();
         resolveProperties(intBuilder);
         return intBuilder.build();
       }
 
-      CreatorBuilder builder;
-      if (useChainedBDD) {
-        builder = Builders.cbddBuilder();
-      } else {
-        builder = Builders.bddBuilder();
-      }
+      BDDBuilder builder = Builders.newBDDBuilder();
       resolveProperties(builder);
       return builder.build();
     }
 
-    private void resolveProperties(CreatorBuilder pBuilder) {
+    private void resolveProperties(BDDBuilder pBuilder) {
 
       if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
         initTableSize = 100000;
@@ -269,14 +271,45 @@ public class PJBDDRegionManager implements RegionManager {
         cacheSize = Math.min((int) (initTableSize * cacheRatio), 10000);
       }
 
-      pBuilder.setParallelism(tableParallelism)
+      pBuilder
+          .setParallelism(tableParallelism)
           .setVarCount(varCount)
-          .setCacheSize(cacheSize)
+          .setSelectedCacheSize(cacheSize)
           .setThreads(threads)
           .setTableSize(initTableSize)
           .setIncreaseFactor(increaseFactor);
       if (threads == 1) {
         pBuilder.setParallelizationType(ParallelizationType.NONE);
+      }
+      if (useChainedBDD) {
+        pBuilder.setUseChained(true);
+      }
+    }
+
+    private void resolveProperties(IntBuilder pBuilder) {
+
+      if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
+        initTableSize = 100000;
+      }
+
+      if (initTableSize == 0) {
+        // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
+        double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
+        initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
+      }
+      if (cacheSize == 0) {
+        cacheSize = (int) (initTableSize * cacheRatio);
+      }
+
+      pBuilder
+          .setParallelism(tableParallelism)
+          .setVarCount(varCount)
+          .setSelectedCacheSize(cacheSize)
+          .setThreads(threads)
+          .setTableSize(initTableSize)
+          .setIncreaseFactor(increaseFactor);
+      if (disableGC) {
+        pBuilder.disableGC();
       }
     }
   }
@@ -285,19 +318,17 @@ public class PJBDDRegionManager implements RegionManager {
    * Class for creating BDDs out of a formula. This class directly uses the BDD objects and their
    * manual reference counting, because for large formulas, the
    *
-   * <p>
-   * All visit* methods from this class return methods that have not been ref'ed.
+   * <p>All visit* methods from this class return methods that have not been ref'ed.
    */
-  private class FormulaToRegionConverter implements BooleanFormulaVisitor<DD>, AutoCloseable {
+  private class FormulaToRegionConverter implements BooleanFormulaVisitor<BDD>, AutoCloseable {
 
     private final Function<BooleanFormula, Region> atomToRegion;
     private final BooleanFormulaManager bfmgr;
 
-    private final Map<BooleanFormula, DD> cache = new HashMap<>();
+    private final Map<BooleanFormula, BDD> cache = new HashMap<>();
 
     FormulaToRegionConverter(
-        FormulaManagerView pFmgr,
-        Function<BooleanFormula, Region> pAtomToRegion) {
+        FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
       atomToRegion = pAtomToRegion;
       bfmgr = pFmgr.getBooleanFormulaManager();
     }
@@ -309,27 +340,27 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public DD visitConstant(boolean pB) {
+    public BDD visitConstant(boolean pB) {
       return pB ? bddCreator.makeTrue() : bddCreator.makeFalse();
     }
 
     @Override
-    public DD visitBoundVar(BooleanFormula pBooleanFormula, int pI) {
+    public BDD visitBoundVar(BooleanFormula pBooleanFormula, int pI) {
       throw new UnsupportedOperationException("Not yet implemented"); // TODO
     }
 
     @Override
-    public DD visitNot(BooleanFormula pBooleanFormula) {
+    public BDD visitNot(BooleanFormula pBooleanFormula) {
       return bddCreator.makeNot(convert(pBooleanFormula));
     }
 
     @Override
-    public DD visitAnd(List<BooleanFormula> pList) {
+    public BDD visitAnd(List<BooleanFormula> pList) {
       if (pList.isEmpty()) {
         return bddCreator.makeFalse();
       }
 
-      DD result = bddCreator.makeTrue();
+      BDD result = bddCreator.makeTrue();
       for (BooleanFormula bFormula : pList) {
         result = bddCreator.makeAnd(result, convert(bFormula));
       }
@@ -337,12 +368,12 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public DD visitOr(List<BooleanFormula> pList) {
+    public BDD visitOr(List<BooleanFormula> pList) {
       if (pList.isEmpty()) {
         return bddCreator.makeFalse();
       }
 
-      DD result = bddCreator.makeFalse();
+      BDD result = bddCreator.makeFalse();
       for (BooleanFormula bFormula : pList) {
         result = bddCreator.makeOr(result, convert(bFormula));
       }
@@ -350,31 +381,31 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public DD visitXor(BooleanFormula pBooleanFormula, BooleanFormula pBooleanFormula1) {
+    public BDD visitXor(BooleanFormula pBooleanFormula, BooleanFormula pBooleanFormula1) {
       return bddCreator.makeXor(convert(pBooleanFormula), convert(pBooleanFormula1));
     }
 
     @Override
-    public DD visitEquivalence(BooleanFormula pBooleanFormula, BooleanFormula pBooleanFormula1) {
+    public BDD visitEquivalence(BooleanFormula pBooleanFormula, BooleanFormula pBooleanFormula1) {
       return bddCreator.makeEqual(convert(pBooleanFormula), convert(pBooleanFormula1));
     }
 
     @Override
-    public DD visitImplication(BooleanFormula pBooleanFormula, BooleanFormula pBooleanFormula1) {
+    public BDD visitImplication(BooleanFormula pBooleanFormula, BooleanFormula pBooleanFormula1) {
       return bddCreator.makeImply(convert(pBooleanFormula), convert(pBooleanFormula1));
     }
 
     @Override
-    public DD visitIfThenElse(
+    public BDD visitIfThenElse(
         BooleanFormula pBooleanFormula1,
         BooleanFormula pBooleanFormula2,
         BooleanFormula pBooleanFormula3) {
-      return bddCreator
-          .makeIte(convert(pBooleanFormula1), convert(pBooleanFormula2), convert(pBooleanFormula3));
+      return bddCreator.makeIte(
+          convert(pBooleanFormula1), convert(pBooleanFormula2), convert(pBooleanFormula3));
     }
 
     @Override
-    public DD visitQuantifier(
+    public BDD visitQuantifier(
         Quantifier pQuantifier,
         BooleanFormula pBooleanFormula,
         List<Formula> pList,
@@ -383,16 +414,15 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public DD visitAtom(
-        BooleanFormula pBooleanFormula,
-        FunctionDeclaration<BooleanFormula> pFunctionDeclaration) {
+    public BDD visitAtom(
+        BooleanFormula pBooleanFormula, FunctionDeclaration<BooleanFormula> pFunctionDeclaration) {
       return unwrap(atomToRegion.apply(pBooleanFormula));
     }
 
     // Convert one BooleanFormula (recursively)
     // and return a result that is also put in the cache.
-    private DD convert(BooleanFormula pOperand) {
-      DD operand = cache.get(pOperand);
+    private BDD convert(BooleanFormula pOperand) {
+      BDD operand = cache.get(pOperand);
       if (operand == null) {
         operand = bfmgr.visit(pOperand, this);
         cache.put(pOperand, operand);
@@ -403,8 +433,8 @@ public class PJBDDRegionManager implements RegionManager {
 
   private class RegionBuilder implements RegionCreator.RegionBuilder {
 
-    private final List<DD> cubes = new ArrayList<>();
-    private DD currentCube;
+    private final List<BDD> cubes = new ArrayList<>();
+    private BDD currentCube;
 
     @Override
     public void startNewConjunction() {
@@ -429,7 +459,7 @@ public class PJBDDRegionManager implements RegionManager {
       checkState(currentCube != null);
 
       for (int i = 0; i < cubes.size(); i++) {
-        DD cubeAtI = cubes.get(i);
+        BDD cubeAtI = cubes.get(i);
 
         if (cubeAtI == null) {
           cubes.set(i, currentCube);
@@ -454,11 +484,11 @@ public class PJBDDRegionManager implements RegionManager {
         return falseFormula;
       } else {
 
-        DD[] clauses = cubes.stream().filter(bdd -> bdd != null).toArray(DD[]::new);
+        BDD[] clauses = cubes.stream().filter(bdd -> bdd != null).toArray(BDD[]::new);
 
-        DD result = bddCreator.makeFalse();
+        BDD result = bddCreator.makeFalse();
 
-        for (DD bdd : clauses) {
+        for (BDD bdd : clauses) {
           result = bddCreator.makeOr(result, bdd);
         }
 

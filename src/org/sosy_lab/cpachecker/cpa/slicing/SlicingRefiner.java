@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -69,7 +71,7 @@ import org.sosy_lab.cpachecker.util.slicing.Slicer;
  * <p>[1] Weiser, 1984: Program Slicing.
  */
 @Options(prefix = "cpa.slicing.refinement")
-public class SlicingRefiner implements Refiner {
+public class SlicingRefiner implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
@@ -538,6 +540,13 @@ public class SlicingRefiner implements Refiner {
             .filter(Predicates.instanceOf(SlicingPrecision.class))
             .first()
             .orNull();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (slicer instanceof StatisticsProvider) {
+      ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
+    }
   }
 
   private static final class StateSlicingPrecision {
