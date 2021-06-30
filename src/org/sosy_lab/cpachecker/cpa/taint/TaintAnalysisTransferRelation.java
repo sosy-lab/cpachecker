@@ -379,9 +379,9 @@ public class TaintAnalysisTransferRelation
                   tainted = true;
                 }
               }
-              if(exp.getParameterExpressions().get(0).toString().contains("%s")) {
-                tainted = false;
-              }
+              // if(exp.getParameterExpressions().get(0).toString().contains("%s")) {
+              //   tainted = false;
+              // }
               if(tainted) {
                 newElement =
                   TaintAnalysisState.copyOf(
@@ -394,7 +394,8 @@ public class TaintAnalysisTransferRelation
                 || func.equals("fputs")
                 || func.equals("fputc")
                 || func.equals("fwrite")
-                || func.equals("strcpy"))
+                || func.equals("strcpy")
+                || func.equals("strcat"))
             {
               msg = msg + " | MemLoc:" + memoryLocation1+": "+state.getStatus(memoryLocation1);
               if(memoryLocation1.toString().contains("main::argv") || (state.getStatus(memoryLocation1) != null && state.getStatus(memoryLocation1)))

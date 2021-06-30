@@ -41,6 +41,8 @@ def download(tests, test_suite):
             r = requests.get('https://samate.nist.gov/SARD/'+match.group(1))
             source = r.text
             yml = template.replace('***', "NIST_"+test+".c")
+            if(test_suite == 100):
+                yml = yml.replace('true', 'false')
             f = open(os.path.dirname(os.path.realpath(__file__)) + "/nist/"+str(test_suite)+"/NIST_"+test+".c", "w")
             f.write(source)
             f.close()
