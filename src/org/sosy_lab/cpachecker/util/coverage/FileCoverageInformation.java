@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
@@ -65,14 +66,49 @@ class FileCoverageInformation {
     String delimiter = "";
     if (info != null) {
       for (Entry<String, ImmutableSet<SMGKnownExpValue>> entry : info.entries()) {
-        result.append(delimiter + entry.getKey() + " = [");
-        result.append(
-            entry.getValue().stream().map(v -> v.toString()).collect(Collectors.joining(", ")));
-        result.append("]");
+        result.append(delimiter + entry.getKey() + " = {");
+        prettyFormatInfoString(entry.getValue(), result);
+        result.append("}");
         delimiter = ", ";
       }
     }
     return result.toString();
+  }
+
+  private void prettyFormatInfoString(ImmutableSet<SMGKnownExpValue> pExpValueSet, StringBuilder pResult) {
+    List<SMGKnownExpValue> sortedList = pExpValueSet.stream().sorted().collect(Collectors.toList());
+    Long prevMin = null;
+    long prevMax = Long.MIN_VALUE;
+    String delimiter = "";
+    for (SMGKnownExpValue smgKnownExpValue : sortedList) {
+      long value = smgKnownExpValue.getAsLong();
+      if (prevMin != null) {
+        if (prevMax + 1 == value) {
+          prevMax = value;
+        } else {
+          printValues(prevMin, prevMax, delimiter, pResult);
+          prevMin = value;
+          prevMax = value;
+          delimiter = ", ";
+        }
+      } else {
+        prevMin = value;
+        prevMax = value;
+      }
+    }
+    if (prevMin != null) {
+      printValues(prevMin, prevMax, delimiter, pResult);
+    }
+  }
+
+  private void printValues(Long pPrevMin, long pPrevMax, String pDelimiter, StringBuilder pResult) {
+    if (pPrevMin.equals(pPrevMax)) {
+      pResult.append(pDelimiter + pPrevMin);
+    } else if (pPrevMin.equals(pPrevMax - 1)) {
+      pResult.append(pDelimiter + pPrevMin + ", " + pPrevMax);
+    } else {
+      pResult.append(pDelimiter + "[" + pPrevMin + ".." + pPrevMax + "]");
+    }
   }
 
   public String getCounterInfo(Integer pLine) {
