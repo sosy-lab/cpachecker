@@ -1139,15 +1139,13 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode thenNode = newCFANode();
     locStack.push(thenNode);
 
-    // TODO: Else is ignored
-    //  (also part of ACSL block since statement contract has to hold for both branches)
     IASTFileLocation location = ifStatement.getFileLocation();
     blocks.add(
         new StatementBlock(
             location.getNodeOffset(),
             location.getNodeOffset() + location.getNodeLength(),
             false,
-            thenNode,
+            prevNode,
             postIfNode));
 
     CFANode elseNode;
