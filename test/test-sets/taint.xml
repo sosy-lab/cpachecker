@@ -19,20 +19,26 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-heap">10000M</option>
   <rundefinition>
     <option name="-preprocess" />
+    <option name="-taintAnalysis"/>
   </rundefinition>
   <propertyfile>../config/properties/taint-error.prp</propertyfile>
 
   <tasks name="TDD">
-    <option name="-config">config/taintAnalysis.properties</option>
     <include>../programs/taint/tests/*.yml</include>
   </tasks>
-
   <tasks name="SARD 100">
-    <option name="-config">config/taintAnalysis.properties</option>
     <include>../programs/taint/nist/100/*.yml</include>
   </tasks>
   <tasks name="SARD 101">
-    <option name="-config">config/taintAnalysis.properties</option>
     <include>../programs/taint/nist/101/*.yml</include>
   </tasks>
+
+  <rundefinition name="Taint and VAjoin">
+    <option name="-taintAnalysis-join"/>
+    <option name="-preprocess" />
+  </rundefinition>
+  <rundefinition name="Taint and Pred">
+    <option name="-taintAnalysis-pred"/>
+    <option name="-preprocess" />
+  </rundefinition>
 </benchmark>
