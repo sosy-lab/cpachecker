@@ -167,7 +167,7 @@ public class AdditionalInfoExtractor {
     PersistentMap<String, SMGValue> readValues = smgState.getReadValues();
     for (Entry<String, SMGValue> entry : readValues.entrySet()) {
       if (smgState.isExplicit(entry.getValue())) {
-        result.add(entry.getKey() + " = " + smgState.getExplicit(entry.getValue()));
+        result.add(entry.getKey() + " = " + smgState.getExplicit(entry.getValue()).getValue());
       }
     }
     return result;
