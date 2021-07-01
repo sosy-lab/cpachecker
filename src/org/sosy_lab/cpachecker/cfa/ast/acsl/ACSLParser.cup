@@ -109,9 +109,11 @@ parser code {:
         List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
         int skipped = 0;
         Map<ACSLAnnotation, CFAEdge> initialEdges = new HashMap<>();
+        Map<ACSLAnnotation, FileLocation> annotationLocations = new HashMap<>();
         for (int i = 0; i < orderedLocs.size(); i++) {
           ACSLAnnotation currentAnnotation = annotations.get(i);
           FileLocation currentAnnotationLocation = orderedLocs.get(i);
+          annotationLocations.put(currentAnnotation, currentAnnotationLocation);
           if (parser.shouldSkip(currentAnnotation, currentAnnotationLocation)) {
             skipped++;
             continue;
@@ -131,37 +133,12 @@ parser code {:
           }
         }
         logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
-        convertFunctionContractsIfNecessary(initialEdges);
-        adjustAnnotationLocations(initialEdges, newCFA, filename, blockStructure);
+        adjustAnnotationLocations(
+            initialEdges, newCFA, filename, blockStructure, annotationLocations);
         checkBehaviors(newCFA, blockStructure);
       }
 
       return newCFA;
-    }
-
-    private static void convertFunctionContractsIfNecessary(
-        Map<ACSLAnnotation, CFAEdge> initialEdges) {
-      Map<ACSLAnnotation, CFAEdge> newInitialEdges = new HashMap<>();
-      Set<ACSLAnnotation> toRemove = new HashSet<>();
-      for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
-        ACSLAnnotation annotation = entry.getKey();
-        if (annotation instanceof FunctionContract) {
-          CFAEdge edge = entry.getValue();
-          if (edge instanceof CDeclarationEdge
-              && ((CDeclarationEdge) edge).getDeclaration() instanceof CFunctionDeclaration) {
-            continue;
-          }
-          StatementContract statementContract =
-              StatementContract.fromFunctionContract(
-                  ImmutableList.of(), (FunctionContract) annotation);
-          toRemove.add(annotation);
-          newInitialEdges.put(statementContract, edge);
-        }
-      }
-      for (ACSLAnnotation annotation : toRemove) {
-        initialEdges.remove(annotation);
-      }
-      initialEdges.putAll(newInitialEdges);
     }
 
     /**
@@ -172,32 +149,48 @@ parser code {:
      * @param currentFile Name of the file the annotations of which should be handled.
      * @param blockStructure The {@link BlockStructure} of the current file.
      */
-    private static void adjustAnnotationLocations(
-        Map<ACSLAnnotation, CFAEdge> initialEdges,
-        CFAWithACSLAnnotations cfaWithLocs,
-        String currentFile,
-        BlockStructure blockStructure) {
-      for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
-        ACSLAnnotation annotation = entry.getKey();
-        CFAEdge edge = entry.getValue();
-        if (edge.getFileLocation().getFileName().equals(currentFile)) {
-          if (annotation instanceof FunctionContract) {
+  private static void adjustAnnotationLocations(
+      Map<ACSLAnnotation, CFAEdge> initialEdges,
+      CFAWithACSLAnnotations cfaWithLocs,
+      String currentFile,
+      BlockStructure blockStructure,
+      Map<ACSLAnnotation, FileLocation> annotationLocations) {
+    for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
+      ACSLAnnotation annotation = entry.getKey();
+      CFAEdge edge = entry.getValue();
+      if (edge.getFileLocation().getFileName().equals(currentFile)) {
+        if (annotation instanceof FunctionContract) {
+          FileLocation annotationLocation = annotationLocations.get(annotation);
+          if (blockStructure.getInnermostBlockOf(annotationLocation) == null) {
             handleFunctionContract(
                 cfaWithLocs, (CDeclarationEdge) edge, (FunctionContract) annotation);
-          } else if (annotation instanceof StatementContract) {
-            handleStatementContract(
-                cfaWithLocs, edge, (StatementContract) annotation, blockStructure);
-          } else if (annotation instanceof ACSLLoopAnnotation) {
-            handleLoopAnnotation(cfaWithLocs, edge, (ACSLLoopAnnotation) annotation);
-          } else if (annotation instanceof ACSLAssertion) {
-            // already handled
           } else {
-            throw new AssertionError(
-                "Unknown annotation type for annotation\n" + annotation.toString());
+            handleStatementContract(
+                cfaWithLocs,
+                edge,
+                StatementContract.fromFunctionContract(
+                    ImmutableList.of(), (FunctionContract) annotation),
+                blockStructure,
+                annotationLocation);
           }
+        } else if (annotation instanceof StatementContract) {
+          handleStatementContract(
+              cfaWithLocs,
+              edge,
+              (StatementContract) annotation,
+              blockStructure,
+              annotationLocations.get(annotation));
+        } else if (annotation instanceof ACSLLoopAnnotation) {
+          handleLoopAnnotation(cfaWithLocs, edge, (ACSLLoopAnnotation) annotation);
+        } else if (annotation instanceof ACSLAssertion) {
+          // already handled
+        } else {
+          throw new AssertionError(
+              "Unknown annotation type for annotation\n" + annotation.toString());
         }
       }
     }
+  }
 
     private static void handleFunctionContract(
         CFAWithACSLAnnotations cfaWithLocs, CDeclarationEdge edge, FunctionContract annotation) {
@@ -218,39 +211,32 @@ parser code {:
       }
     }
 
-    private static void handleStatementContract(
-        CFAWithACSLAnnotations cfaWithLocs,
-        CFAEdge edge,
-        StatementContract annotation,
-        BlockStructure blockStructure) {
-      // requirements have to be fulfilled by all entering edges
+  private static void handleStatementContract(
+      CFAWithACSLAnnotations cfaWithLocs,
+      CFAEdge edge,
+      StatementContract annotation,
+      BlockStructure blockStructure,
+      FileLocation annotationLocation) {
+    ACSLBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getFileLocation());
+    assert innermostBlock != null : "Not inside a block";
+    if (annotationLocation.getNodeOffset() < innermostBlock.getStartOffset()) {
+      // this is a statement contract for a block statement, e.g. a while-loop
+      for (CFAEdge enteringEdge : innermostBlock.getEnteringEdges()) {
+        cfaWithLocs.getEdgesToAnnotations().put(enteringEdge, annotation.getCopyForPreState());
+      }
+      for (CFAEdge leavingEdge : innermostBlock.getLeavingEdges()) {
+        cfaWithLocs.getEdgesToAnnotations().put(leavingEdge, annotation.getCopyForPostState());
+      }
+    } else {
+      // this is a statement contract for a simple statement, e.g. x = 10;
       for (int i = 0; i < edge.getPredecessor().getNumEnteringEdges(); i++) {
         cfaWithLocs
             .getEdgesToAnnotations()
             .put(edge.getPredecessor().getEnteringEdge(i), annotation.getCopyForPreState());
       }
-      // Add statement contracts directly after the statement as well because some clauses have to
-      // be evaluated in the post-state
-      ACSLBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getFileLocation());
-      assert innermostBlock != null : "Not inside a block";
-      if (innermostBlock.isFunction()) {
-        for (int i = 0; i < edge.getSuccessor().getNumLeavingEdges(); i++) {
-          cfaWithLocs
-              .getEdgesToAnnotations()
-              .put(edge.getSuccessor().getLeavingEdge(i), annotation.getCopyForPostState());
-        }
-      } else {
-        for (CFAEdge blockLeavingEdge : innermostBlock.getLeavingEdges()) {
-          for (int i = 0; i < blockLeavingEdge.getSuccessor().getNumLeavingEdges(); i++) {
-            cfaWithLocs
-                .getEdgesToAnnotations()
-                .put(
-                    blockLeavingEdge.getSuccessor().getLeavingEdge(i),
-                    annotation.getCopyForPostState());
-          }
-        }
-      }
+      cfaWithLocs.getEdgesToAnnotations().put(edge, annotation.getCopyForPostState());
     }
+  }
 
     /**
      * Adds the given loop annotation to the correct edges in the CFA.
@@ -316,9 +302,7 @@ parser code {:
     }
 
     /** Make sure that all behaviors are actually in scope when they are referenced. */
-    private static void checkBehaviors(
-        CFAWithACSLAnnotations cfa,
-        BlockStructure blockStructure) {
+    private static void checkBehaviors(CFAWithACSLAnnotations cfa, BlockStructure blockStructure) {
       Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations = cfa.getEdgesToAnnotations();
       Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
       // First, collect all behaviors where they are introduced

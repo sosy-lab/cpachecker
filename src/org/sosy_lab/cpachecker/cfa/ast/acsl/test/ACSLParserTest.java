@@ -61,6 +61,7 @@ public class ACSLParserTest {
     b.add(succeedingTask("nested.c", 2));
     b.add(succeedingTask("simple.c", 3));
     b.add(failingTask("badVariable.c"));
+    b.add(succeedingTask("statements.c", 1));
 
     b.add(succeedingTask("after_if.c", 1));
     b.add(succeedingTask("after_else.c", 1));
@@ -71,6 +72,7 @@ public class ACSLParserTest {
     b.add(succeedingTask("after_for_loop.c", 1));
     b.add(succeedingTask("after_for_loop2.c", 1));
     b.add(succeedingTask("in_middle.c", 1));
+    b.add(succeedingTask("traps.c", 2));
     return b.build();
   }
 
