@@ -27,8 +27,10 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGReadParams;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -143,8 +145,7 @@ public class AdditionalInfoExtractor {
             visitedElems.add(elem);
             edgeWithAdditionalInfo.addInfo(
                 SMGConvertingTags.NOTE,
-                SMGAdditionalInfo.of(
-                    getNoteMessageOnElement(prevSMGState.getHeap(), elem), Level.WARNING));
+                SMGAdditionalInfo.of(getNoteMessageOnElement(prevSMGState, elem), Level.WARNING));
           }
 
           for (Object additionalElem : prevSMGState.getCurrentChain()) {
@@ -181,18 +182,35 @@ public class AdditionalInfoExtractor {
     return false;
   }
 
-  private String getNoteMessageOnElement(UnmodifiableCLangSMG smg, Object elem) {
-    if (elem instanceof SMGEdge || elem instanceof Integer || elem instanceof SMGValue) {
+  private String getNoteMessageOnElement(UnmodifiableSMGState pState, Object elem) {
+    if (elem instanceof SMGEdgeHasValue) {
+      SMGEdgeHasValue edge = (SMGEdgeHasValue) elem;
+      SMGValue value = edge.getValue();
+      SMGKnownExpValue explicit = pState.getExplicit(value);
+      if (explicit != null) {
+        return "Assign " + explicit.getValue() + " to " + edge.getObject().getLabel();
+      } else {
+        return "Assign value to " + edge.getObject().getLabel();
+      }
+    } else if (elem instanceof SMGEdge || elem instanceof Integer) {
       return "Assign";
+    } else if (elem instanceof SMGValue) {
+      SMGValue value = (SMGValue) elem;
+      SMGKnownExpValue explicit = pState.getExplicit(value);
+      if (explicit != null) {
+        return "Assign " + explicit.getValue();
+      } else {
+        return "Assign";
+      }
     } else if (elem instanceof SMGObject) {
       SMGObject smgObject = (SMGObject) elem;
-      if (isFunctionParameter(smg, smgObject)) {
+      if (isFunctionParameter(pState.getHeap(), smgObject)) {
         return "Function parameter " + smgObject.getLabel();
       } else if (smgObject.getLabel().contains("alloc")) {
         return "Allocate " + smgObject.getLabel();
-      } else if (smg.isStackObject(smgObject)) {
+      } else if (pState.getHeap().isStackObject(smgObject)) {
         return "Variable " + smgObject.getLabel();
-      } else if (isReturnObject(smg, smgObject)) {
+      } else if (isReturnObject(pState.getHeap(), smgObject)) {
         return "Return value from function";
       } else {
         return "Create object for " + smgObject.getLabel();
