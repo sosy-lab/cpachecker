@@ -35,6 +35,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -92,6 +94,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private static final String HAS_LEAKS = "has-leaks";
   private static final String HAS_HEAP_OBJECTS = "has-heap-objects";
 
+  // Performance counters
+  private int stops = 0;
+  private TimeSpan stopTime = TimeSpan.ofMillis(0);
+
   private static final Pattern externalAllocationRecursivePattern =
       Pattern.compile("^(r_)(\\d+)(_.*)$");
 
@@ -131,6 +137,26 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public PersistentMap<String, SMGValue> getReadValues() {
     return errorInfo.getReadValues();
+  }
+
+  @Override
+  public TimeSpan getStopTime() {
+    return stopTime;
+  }
+
+  @Override
+  public void increaseStopTime(Timer pTimer) {
+    stopTime = TimeSpan.sum(stopTime, pTimer.getSumTime());
+  }
+
+  @Override
+  public int getStopCounter() {
+    return stops;
+  }
+
+  @Override
+  public void increaseStopCounter() {
+    stops = stops + 1;
   }
 
   @Override
@@ -1448,15 +1474,26 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return false;
     }
 
+    increaseStopCounter();
+    reachedState.increaseStopCounter();
+    Timer timer = new Timer();
+    timer.start();
+
     if (options.isHeapAbstractionEnabled()) {
       SMGJoin join = new SMGJoin(heap, reachedState.getHeap(), this, reachedState);
 
       if (!join.isDefined()) {
+        timer.stop();
+        increaseStopTime(timer);
+        reachedState.increaseStopTime(timer);
         return false;
       }
 
       SMGJoinStatus jss = join.getStatus();
       if (jss != SMGJoinStatus.EQUAL && jss != SMGJoinStatus.RIGHT_ENTAIL) {
+        timer.stop();
+        increaseStopTime(timer);
+        reachedState.increaseStopTime(timer);
         return false;
       }
 
@@ -1467,10 +1504,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       s1.pruneUnreachable();
       s2.pruneUnreachable();
       logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
+      timer.stop();
+      increaseStopTime(timer);
+      reachedState.increaseStopTime(timer);
       return s1.errorInfo.hasMemoryLeak() == s2.errorInfo.hasMemoryLeak();
 
     } else {
-      return SMGIsLessOrEqual.isLessOrEqual(reachedState.getHeap(), heap);
+      boolean lessOrEqual = SMGIsLessOrEqual.isLessOrEqual(reachedState.getHeap(), heap);
+      timer.stop();
+      increaseStopTime(timer);
+      reachedState.increaseStopTime(timer);
+      return lessOrEqual;
     }
   }
 

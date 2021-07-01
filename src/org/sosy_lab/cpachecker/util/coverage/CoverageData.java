@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -134,6 +135,13 @@ public final class CoverageData {
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
     final int endingLine = loc.getEndingLineInOrigin();
     collector.addAdditionalInfo(endingLine, pInfo);
+  }
+
+  public void addCounterInfoOnEdge(final CFAEdge pEdge, Integer pCounter, TimeSpan pTimeSpan) {
+    final FileLocation loc = pEdge.getFileLocation();
+    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
+    final int endingLine = loc.getEndingLineInOrigin();
+    collector.addCounterInfo(endingLine, pCounter, pTimeSpan);
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {

@@ -24,6 +24,7 @@ public class AdditionalCoverageReportLcov {
   private final static String FUNCTIONDATA = "FNDA:";
   private final static String LINEDATA = "DA:";
   private final static String ADDITIONAL = "ADD:";
+  private final static String COUNTER_TAG = "TIMERS:";
 
   public static void write(CoverageData pCoverage, Writer w) throws IOException {
 
@@ -54,6 +55,10 @@ public class AdditionalCoverageReportLcov {
         String additionalInfo = fileInfos.getAdditionalInfo(line);
         if (!additionalInfo.isEmpty()) {
           w.append(ADDITIONAL + additionalInfo + "\n");
+        }
+        String counterInfo = fileInfos.getCounterInfo(line);
+        if (!counterInfo.isEmpty()) {
+          w.append(COUNTER_TAG + counterInfo + "\n");
         }
       }
       w.append("end_of_record\n");

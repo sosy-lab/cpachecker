@@ -16,6 +16,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
@@ -181,4 +183,12 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
   SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration);
 
   Map<MemoryLocation, SMGRegion> getStackVariables();
+
+  int getStopCounter();
+
+  TimeSpan getStopTime();
+
+  void increaseStopCounter();
+
+  void increaseStopTime(Timer pTimer);
 }

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -60,18 +61,23 @@ public abstract class CoverageCollector {
     if (argState != null && smgState != null) {
       PersistentMap<String, SMGValue> valueMessages = smgState.getReadValues();
       PersistentMultimap<String, SMGKnownExpValue> result = PersistentMultimap.of();
+      TimeSpan stopTime = smgState.getStopTime();
+      int stopCounter = smgState.getStopCounter();
       for (Entry<String, SMGValue> entry : valueMessages.entrySet()) {
         if (smgState.isExplicit(entry.getValue())) {
           result = result.putAndCopy(entry.getKey(), smgState.getExplicit(entry.getValue()));
         }
       }
-      if (!result.isEmpty()) {
-        for (ARGState child : argState.getParents()) {
-          // Do not specially check child.isCovered, as the edge to covered state also should be
-          // marked as covered edge
-          List<CFAEdge> edges = child.getEdgesToChild(argState);
-          for (CFAEdge innerEdge : edges) {
+      for (ARGState child : argState.getParents()) {
+        // Do not specially check child.isCovered, as the edge to covered state also should be
+        // marked as covered edge
+        List<CFAEdge> edges = child.getEdgesToChild(argState);
+        for (CFAEdge innerEdge : edges) {
+          if (!result.isEmpty()) {
             pCov.addInfoOnEdge(innerEdge, result);
+          }
+          if (stopCounter > 0) {
+            pCov.addCounterInfoOnEdge(innerEdge, stopCounter, stopTime);
           }
         }
       }

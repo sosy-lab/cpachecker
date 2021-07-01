@@ -33,6 +33,7 @@ public class CoverageReportGcov {
   private final static String SOURCEFILE = "\t-:\t0:Source:";
   private final static String WORKING_DIRECTORY = "\t-:\t0:Working directory:";
   private final static String ADDITIONAL_TAG = "info ";
+  private final static String COUNTER_TAG = "counter ";
 
 
 
@@ -67,6 +68,10 @@ public class CoverageReportGcov {
         String additionalInfo = fileInfos.getAdditionalInfo(line);
         if (!additionalInfo.isEmpty()) {
           w.append(ADDITIONAL_TAG + additionalInfo + "\n");
+        }
+        String counterInfo = fileInfos.getCounterInfo(line);
+        if (!counterInfo.isEmpty()) {
+          w.append(COUNTER_TAG + counterInfo + "\n");
         }
       }
     }

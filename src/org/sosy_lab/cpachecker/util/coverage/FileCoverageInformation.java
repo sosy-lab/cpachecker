@@ -20,6 +20,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
@@ -45,6 +46,8 @@ class FileCoverageInformation {
   final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
   final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
   PersistentMap<Integer, PersistentMultimap<String, SMGKnownExpValue>> additionalInfo =
+      PathCopyingPersistentTreeMap.of();
+  PersistentMap<Integer, PersistentMultimap<Integer, Long>> counters =
       PathCopyingPersistentTreeMap.of();
   PersistentMap<Integer, String> sourceCode = PathCopyingPersistentTreeMap.of();
 
@@ -72,6 +75,22 @@ class FileCoverageInformation {
     return result.toString();
   }
 
+  public String getCounterInfo(Integer pLine) {
+    PersistentMultimap<Integer, Long> info = counters.get(pLine);
+    if (info != null) {
+      long numStops = 0;
+      long timeStops = 0;
+      for (Entry<Integer, ImmutableSet<Long>> entry : info.entries()) {
+        numStops = numStops + entry.getKey();
+        for (Long time : entry.getValue()) {
+          timeStops = timeStops + time;
+        }
+      }
+      return numStops + " stops for total time " + timeStops + " ms";
+    }
+    return "";
+  }
+
   void addAdditionalInfo(int pLine, PersistentMultimap<String, SMGKnownExpValue> pAdditionalInfo) {
     PersistentMultimap<String, SMGKnownExpValue> currentInfo = additionalInfo.get(pLine);
     if (currentInfo == null) {
@@ -79,6 +98,15 @@ class FileCoverageInformation {
     }
     currentInfo = currentInfo.putAllAndCopy(pAdditionalInfo);
     additionalInfo = additionalInfo.putAndCopy(pLine, currentInfo);
+  }
+
+  void addCounterInfo(int pLine, Integer counter, TimeSpan pTimeSpan) {
+    PersistentMultimap<Integer, Long> currentInfo = counters.get(pLine);
+    if (currentInfo == null) {
+      currentInfo = PersistentMultimap.of();
+    }
+    currentInfo = currentInfo.putAndCopy(counter, pTimeSpan.asMillis());
+    counters = counters.putAndCopy(pLine, currentInfo);
   }
 
   void addVisitedAssume(AssumeEdge pEdge) {
