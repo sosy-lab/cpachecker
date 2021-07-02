@@ -36,7 +36,7 @@ public class EnsuresClause {
     if (this == other) {
       return true;
     }
-    if (other == null || getClass() != other.getClass()) {
+    if (!(other instanceof EnsuresClause)) {
       return false;
     }
     EnsuresClause that = (EnsuresClause) other;

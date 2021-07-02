@@ -62,7 +62,7 @@ public class Behavior {
     if (this == other) {
       return true;
     }
-    if (other == null || getClass() != other.getClass()) {
+    if (!(other instanceof Behavior)) {
       return false;
     }
     Behavior behavior = (Behavior) other;
