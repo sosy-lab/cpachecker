@@ -107,6 +107,29 @@ public class SMG {
     return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
   }
 
+  /**
+   * Creates a copy of the SMG an adds the given has value edges.
+   *
+   * @param edges - the edges to be added
+   * @param source - the source object
+   * @return a modified copy of the SMG
+   */
+  public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source) {
+
+    return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
+  }
+
+  /**
+   * Creates a copy of the SMG an adds the given points to edges.
+   *
+   * @param edges - the edges to be added
+   * @param source - the source value
+   * @return a modified copy of the SMG
+   */
+  public SMG copyAndSetPTEdges(PersistentSet<SMGPointsToEdge> edges, SMGValue source) {
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
+  }
+
   public SMGObject getNullObject() {
     return nullObject;
   }
@@ -140,6 +163,10 @@ public class SMG {
 
   public Set<SMGPointsToEdge> getPTEdges() {
     return pointsToEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+  }
+
+  public SMG copy() {
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges);
   }
 
 }
