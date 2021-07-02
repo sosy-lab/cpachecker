@@ -49,7 +49,7 @@ public class SMGJoinFields {
 
   /**
    * Implementation of Algorithm 3.
-   * 
+   *
    * @param obj1 - SMGObject of smg1
    * @param obj2 - SMGObject of smg2
    */
@@ -123,8 +123,8 @@ public class SMGJoinFields {
               retSet.add(
                   new SMGHasValueEdge(
                       SMGSymbolicValue.of(edge.hasValue().getNestingLevel()),
-                      edge.getOffset(),
-                      edge.getSizeInBits()));
+                      edge.getSizeInBits(),
+                      edge.getOffset()));
             });
 
     return PersistentSet.copyOf(retSet);
@@ -163,7 +163,7 @@ public class SMGJoinFields {
 
   /**
    * Implementation of Algorithm 3 step 2.
-   * 
+   *
    * @param obj1 - SMGObject of smg1
    * @param obj2 - SMGObject of smg2
    */
