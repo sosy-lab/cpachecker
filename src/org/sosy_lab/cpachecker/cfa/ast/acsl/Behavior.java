@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.util.Objects;
+
 public class Behavior {
 
   private final String name;
@@ -53,5 +55,23 @@ public class Behavior {
         + requiresClause.toString()
         + '\n'
         + ensuresClause.toString();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null || getClass() != other.getClass()) {
+      return false;
+    }
+    Behavior behavior = (Behavior) other;
+    // We require that behaviors have globally unique names, so this is enough here
+    return Objects.equals(name, behavior.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name);
   }
 }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.util.Objects;
+
 public class RequiresClause {
 
   private final ACSLPredicate predicate;
@@ -27,5 +29,22 @@ public class RequiresClause {
   @Override
   public String toString() {
     return "requires " + predicate.toString() + ';';
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null || getClass() != other.getClass()) {
+      return false;
+    }
+    RequiresClause that = (RequiresClause) other;
+    return Objects.equals(predicate, that.predicate);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(predicate);
   }
 }

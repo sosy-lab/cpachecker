@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
 import java.util.List;
+import java.util.Objects;
 
 public class CompletenessClause {
 
@@ -68,6 +69,23 @@ public class CompletenessClause {
     }
     builder.append(';');
     return kind.toString() + builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null || getClass() != other.getClass()) {
+      return false;
+    }
+    CompletenessClause that = (CompletenessClause) other;
+    return Objects.equals(behaviors, that.behaviors) && kind == that.kind;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(behaviors, kind);
   }
 
   public enum RelationKind {
