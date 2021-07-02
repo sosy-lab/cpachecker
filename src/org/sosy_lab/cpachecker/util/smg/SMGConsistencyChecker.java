@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -78,13 +77,13 @@ public final class SMGConsistencyChecker {
    * @param smg - the SMG to be checked
    * @throws SMGInconsistencyException - if the given SMG is inconsistent.
    */
-  public static void checkFieldConsistency(SMG smg, MachineModel machineModel)
+  public static void checkFieldConsistency(SMG smg)
       throws SMGInconsistencyException {
-    smg.getHVEdges().forEach(e -> checkFieldConsistency(smg, e, machineModel));
+    smg.getHVEdges().forEach(e -> checkFieldConsistency(smg, e));
   }
 
   private static void
-      checkFieldConsistency(SMG smg, SMGHasValueEdge edge, MachineModel machineModel) {
+      checkFieldConsistency(SMG smg, SMGHasValueEdge edge) {
     if (edge.getSizeInBits().compareTo(edge.getOffset()) <= 0) {
       throw new SMGInconsistencyException(
           "Inconsistent smg: "
