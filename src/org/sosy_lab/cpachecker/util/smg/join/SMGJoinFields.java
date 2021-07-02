@@ -23,10 +23,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.util.smg.PersistentMapCollector;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGExplicitValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -242,14 +242,14 @@ public class SMGJoinFields {
 
   private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, BigInteger>>
       mapOffsetToSizeCollector() {
-    return PersistentMapCollector
-        .toPersistentMap(SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits);
+    return PathCopyingPersistentTreeMap
+        .toPathCopyingPersistentTreeMap(SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits);
   }
 
   private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, SMGHasValueEdge>>
       mapOffsetToEdgeCollector() {
-    return PersistentMapCollector
-        .toPersistentMap(SMGHasValueEdge::getOffset, e -> e);
+    return PathCopyingPersistentTreeMap
+        .toPathCopyingPersistentTreeMap(SMGHasValueEdge::getOffset, e -> e);
   }
 
   public SMG getSmg1() {
