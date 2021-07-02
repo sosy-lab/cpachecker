@@ -184,7 +184,7 @@ public class SMGJoinFields {
     PersistentSortedMap<BigInteger, BigInteger> map2 = getNullEdgesMapOffsetToSize(obj2, pSmg2);
     Set<SMGHasValueEdge> commonNullValueEdgeSet = new LinkedHashSet<>();
 
-    obj1EdgesWithZeroOffsetToSize.entrySet().stream().forEach(entry -> {
+    obj1EdgesWithZeroOffsetToSize.entrySet().forEach(entry -> {
       commonNullValueEdgeSet.addAll(getNullEdgesIntersection(entry, map2));
     });
 

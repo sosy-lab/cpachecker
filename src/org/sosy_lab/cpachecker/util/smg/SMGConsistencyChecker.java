@@ -87,9 +87,9 @@ public final class SMGConsistencyChecker {
     if (edge.getSizeInBits().compareTo(edge.getOffset()) <= 0) {
       throw new SMGInconsistencyException(
           "Inconsistent smg: "
-              + smg.toString()
+              + smg
               + "\n Edge "
-              + edge.toString()
+              + edge
               + " points outside of it's field.");
     }
   }
