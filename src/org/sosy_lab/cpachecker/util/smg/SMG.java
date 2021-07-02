@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -154,15 +154,21 @@ public class SMG {
     return smgObjects.stream()
         .filter(i -> i instanceof SMGDoublyLinkedListSegment)
         .map(i -> (SMGDoublyLinkedListSegment) i)
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public Set<SMGHasValueEdge> getHVEdges() {
-    return hasValueEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+    return hasValueEdges.values()
+        .stream()
+        .flatMap(Collection::stream)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public Set<SMGPointsToEdge> getPTEdges() {
-    return pointsToEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+    return pointsToEdges.values()
+        .stream()
+        .flatMap(Collection::stream)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public SMG copy() {

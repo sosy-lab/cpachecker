@@ -14,18 +14,19 @@
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.PersistentMapCollector;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGExplicitValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -104,8 +105,8 @@ public class SMGJoinFields {
         pSMG1.getEdges(pObject1)
             .stream()
             .filter(createEqNullValuePredicate(false))
-            .collect(Collectors.toSet());
-    TreeMap<BigInteger, SMGHasValueEdge> obj2OffsetToEdges =
+            .collect(ImmutableSet.toImmutableSet());
+    PersistentSortedMap<BigInteger, SMGHasValueEdge> obj2OffsetToEdges =
         pSMG2.getEdges(pObject2).stream().collect(mapOffsetToEdgeCollector());
 
     obj1EdgesWOZero.stream()
@@ -140,9 +141,9 @@ public class SMGJoinFields {
    */
   private void updateStatus(SMG oldSmg, SMG newSmg, SMGJoinStatus pNewStatus, SMGObject object) {
     // filter for null edges and map offsets on sizes
-    TreeMap<BigInteger, BigInteger> oldEdgesWithZeroOffsetToSize =
+    PersistentSortedMap<BigInteger, BigInteger> oldEdgesWithZeroOffsetToSize =
         getNullEdgesMapOffsetToSize(object, oldSmg);
-    TreeMap<BigInteger, BigInteger> newEdgesWithZeroOffsetToSize =
+    PersistentSortedMap<BigInteger, BigInteger> newEdgesWithZeroOffsetToSize =
         getNullEdgesMapOffsetToSize(object, newSmg);
 
     boolean applyUpdate =
@@ -175,12 +176,12 @@ public class SMGJoinFields {
 
     // 2a)
     Set<SMGHasValueEdge> edgesObj1Without0Address =
-        obj1Edges.stream().filter(createEqNullValuePredicate(false)).collect(Collectors.toSet());
+        obj1Edges.stream().filter(createEqNullValuePredicate(false)).collect(ImmutableSet.toImmutableSet());
 
     // 2b)
-    TreeMap<BigInteger, BigInteger> obj1EdgesWithZeroOffsetToSize =
+    PersistentSortedMap<BigInteger, BigInteger> obj1EdgesWithZeroOffsetToSize =
         getNullEdgesMapOffsetToSize(obj1, pSmg1);
-    TreeMap<BigInteger, BigInteger> map2 = getNullEdgesMapOffsetToSize(obj2, pSmg2);
+    PersistentSortedMap<BigInteger, BigInteger> map2 = getNullEdgesMapOffsetToSize(obj2, pSmg2);
     Set<SMGHasValueEdge> commonNullValueEdgeSet = new LinkedHashSet<>();
 
     obj1EdgesWithZeroOffsetToSize.entrySet().stream().forEach(entry -> {
@@ -189,7 +190,7 @@ public class SMGJoinFields {
 
     // 2c)
     Set<SMGHasValueEdge> obj2EdgesWithoutZero =
-        obj2Edges.stream().filter(createEqNullValuePredicate(false)).collect(Collectors.toSet());
+        obj2Edges.stream().filter(createEqNullValuePredicate(false)).collect(ImmutableSet.toImmutableSet());
 
     Set<SMGHasValueEdge> missingNullEdgeSet = new LinkedHashSet<>();
     obj2EdgesWithoutZero.forEach(edge -> {
@@ -214,7 +215,7 @@ public class SMGJoinFields {
 
   private Collection<SMGHasValueEdge> getNullEdgesIntersection(
       Entry<BigInteger, BigInteger> pEntry,
-      TreeMap<BigInteger, BigInteger> pMap) {
+      PersistentSortedMap<BigInteger, BigInteger> pMap) {
     return pMap.subMap(pEntry.getKey(), pEntry.getKey().add(pEntry.getValue()))
         .entrySet()
         .stream()
@@ -223,10 +224,11 @@ public class SMGJoinFields {
           BigInteger resultSize = pEntry.getValue().max(next.getValue());
           return new SMGHasValueEdge(SMGExplicitValue.nullInstance(), resultSize, resultOffset);
         })
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
-  private TreeMap<BigInteger, BigInteger> getNullEdgesMapOffsetToSize(SMGObject pObj, SMG pSMG) {
+  private PersistentSortedMap<BigInteger, BigInteger>
+      getNullEdgesMapOffsetToSize(SMGObject pObj, SMG pSMG) {
     return pSMG.getEdges(pObj)
         .stream()
         .filter(createEqNullValuePredicate(true))
@@ -238,18 +240,16 @@ public class SMGJoinFields {
     return edge -> equals == edge.hasValue().equals(SMGExplicitValue.nullInstance());
   }
 
-  private Collector<SMGHasValueEdge, ?, TreeMap<BigInteger, BigInteger>>
+  private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, BigInteger>>
       mapOffsetToSizeCollector() {
-    return Collectors.toMap(
-        SMGHasValueEdge::getOffset,
-        SMGHasValueEdge::getSizeInBits,
-        (e, n) -> e,
-        TreeMap::new);
+    return PersistentMapCollector
+        .toPersistentMap(SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits);
   }
 
-  private Collector<SMGHasValueEdge, ?, TreeMap<BigInteger, SMGHasValueEdge>>
+  private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, SMGHasValueEdge>>
       mapOffsetToEdgeCollector() {
-    return Collectors.toMap(SMGHasValueEdge::getOffset, e -> e, (e, n) -> e, TreeMap::new);
+    return PersistentMapCollector
+        .toPersistentMap(SMGHasValueEdge::getOffset, e -> e);
   }
 
   public SMG getSmg1() {
