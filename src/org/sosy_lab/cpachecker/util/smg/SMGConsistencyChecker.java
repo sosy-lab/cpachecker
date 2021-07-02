@@ -49,7 +49,7 @@ public final class SMGConsistencyChecker {
     Optional<SMGDoublyLinkedListSegment> invalidDLL =
         smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
     if (invalidDLL.isPresent()) {
-        throw new SMGInconsistencyException(
+      throw new SMGInconsistencyException(
           "Inconsistent smg: " + smg + "\n Invalid DLL found: " + invalidDLL);
     }
   }
@@ -85,7 +85,7 @@ public final class SMGConsistencyChecker {
 
   private static void
       checkFieldConsistency(SMG smg, SMGHasValueEdge edge, MachineModel machineModel) {
-    if (machineModel.getSizeof(edge.getType()).compareTo(edge.getOffset()) <= 0) {
+    if (edge.getSizeInBits().compareTo(edge.getOffset()) <= 0) {
       throw new SMGInconsistencyException(
           "Inconsistent smg: "
               + smg.toString()

@@ -9,20 +9,17 @@
 package org.sosy_lab.cpachecker.util.smg.graph;
 
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   private final SMGValue value;
-  private final CType type;
+  // Do not use type but type size
+  private final BigInteger sizeInBits;
   private final BigInteger offset;
 
-  public SMGHasValueEdge(
-      SMGValue pValue,
-      CType pType,
-      BigInteger pOffset) {
+  public SMGHasValueEdge(SMGValue pValue, BigInteger pSizeInBits, BigInteger pOffset) {
     value = pValue;
-    type = pType;
+    sizeInBits = pSizeInBits;
     offset = pOffset;
   }
 
@@ -30,8 +27,8 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     return value;
   }
 
-  public CType getType() {
-    return type;
+  public BigInteger getSizeInBits() {
+    return sizeInBits;
   }
 
   @Override
@@ -52,7 +49,7 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     SMGHasValueEdge otherEdge = (SMGHasValueEdge) other;
     if (otherEdge.offset.equals(offset)
         && otherEdge.value.equals(value)
-        && type.equals(otherEdge.type)) {
+        && sizeInBits.equals(otherEdge.sizeInBits)) {
       return true;
     }
 
@@ -64,5 +61,3 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     return super.hashCode();
   }
 }
-
-
