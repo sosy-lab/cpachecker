@@ -76,17 +76,17 @@ public final class SMGConsistencyChecker {
    * Checks field consistency of a given SMG.
    *
    * @param smg - the SMG to be checked
-   * @throws SMGInconsistentcyException - if the given SMG is inconsistent.
+   * @throws SMGInconsistencyException - if the given SMG is inconsistent.
    */
   public static void checkFieldConsistency(SMG smg, MachineModel machineModel)
-      throws SMGInconsistentcyException {
+      throws SMGInconsistencyException {
     smg.getHVEdges().forEach(e -> checkFieldConsistency(smg, e, machineModel));
   }
 
   private static void
       checkFieldConsistency(SMG smg, SMGHasValueEdge edge, MachineModel machineModel) {
     if (machineModel.getSizeof(edge.getType()).compareTo(edge.getOffset()) <= 0) {
-      throw new SMGInconsistentcyException(
+      throw new SMGInconsistencyException(
           "Inconsistent smg: "
               + smg.toString()
               + "\n Edge "
