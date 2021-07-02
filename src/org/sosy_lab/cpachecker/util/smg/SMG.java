@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -84,7 +85,7 @@ public class SMG {
     }
 
     PersistentSet<SMGHasValueEdge> edges = hasValueEdges.getOrDefault(source, PersistentSet.of());
-    edges.addAndCopy(edge);
+    edges = edges.addAndCopy(edge);
     return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
   }
 
@@ -102,7 +103,7 @@ public class SMG {
     }
 
     PersistentSet<SMGPointsToEdge> edges = pointsToEdges.getOrDefault(source, PersistentSet.of());
-    edges.addAndCopy(edge);
+    edges = edges.addAndCopy(edge);
     return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
   }
 
@@ -110,35 +111,35 @@ public class SMG {
     return nullObject;
   }
 
-  public Collection<SMGObject> getObjects() {
+  public Set<SMGObject> getObjects() {
     return smgObjects;
   }
 
-  public Collection<SMGValue> getValues() {
+  public Set<SMGValue> getValues() {
     return smgValues;
   }
 
-  public Collection<SMGHasValueEdge> getEdges(SMGObject pRegion) {
+  public Set<SMGHasValueEdge> getEdges(SMGObject pRegion) {
     return hasValueEdges.getOrDefault(pRegion, PersistentSet.of());
   }
 
-  public Collection<SMGPointsToEdge> getEdges(SMGValue pValue) {
+  public Set<SMGPointsToEdge> getEdges(SMGValue pValue) {
     return pointsToEdges.getOrDefault(pValue, PersistentSet.of());
   }
 
-  public Collection<SMGDoublyLinkedListSegment> getDLLs() {
+  public Set<SMGDoublyLinkedListSegment> getDLLs() {
     return smgObjects.stream()
         .filter(i -> i instanceof SMGDoublyLinkedListSegment)
         .map(i -> (SMGDoublyLinkedListSegment) i)
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 
-  public Collection<SMGHasValueEdge> getHVEdges() {
-    return hasValueEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+  public Set<SMGHasValueEdge> getHVEdges() {
+    return hasValueEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
   }
 
-  public Collection<SMGPointsToEdge> getPTEdges() {
-    return pointsToEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+  public Set<SMGPointsToEdge> getPTEdges() {
+    return pointsToEdges.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
   }
 
 }
