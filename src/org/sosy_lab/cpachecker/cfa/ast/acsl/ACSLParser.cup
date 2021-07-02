@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructure;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -82,27 +80,27 @@ parser code {:
         BlockStructure blockStructure)
         throws CParserException, IOException {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
-      Stream<FileLocation> orderedAnnotationLocs =
-          commentPositions.stream().sorted(Comparator.comparingInt(FileLocation::getNodeOffset));
       EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
       CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), edgeVisitor);
       ImmutableList<CFAEdge> orderedCFALocs =
-          edgeVisitor.getVisitedEdges().stream()
-              .sorted(Comparator.comparingInt(pEdge -> pEdge.getFileLocation().getNodeOffset()))
-              .collect(ImmutableList.toImmutableList());
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(pEdge -> pEdge.getFileLocation().getNodeOffset()),
+              edgeVisitor.getVisitedEdges());
       CFAWithACSLAnnotations newCFA = new CFAWithACSLAnnotations(pCfa);
 
       for (String filename : files) {
-        Reader reader = new FileReader(filename, StandardCharsets.UTF_8);
-        ACSLScanner scanner = new ACSLScanner(reader);
-
+      ACSLScanner scanner = new ACSLScanner(new FileReader(filename, StandardCharsets.UTF_8));
       ImmutableList<FileLocation> orderedLocs =
-          orderedAnnotationLocs
-              .filter(
-                  x ->
-                      x.getFileName().equals(filename)
-                          || Path.of(x.getFileName()).getFileName().toString().equals(filename))
-              .collect(ImmutableList.toImmutableList());
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(FileLocation::getNodeOffset),
+              FluentIterable.from(commentPositions)
+                  .filter(
+                      x ->
+                          x.getFileName().equals(filename)
+                              || Path.of(x.getFileName())
+                                  .getFileName()
+                                  .toString()
+                                  .equals(filename)));
         ACSLParser parser =
             new ACSLParser(
                 scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger);
