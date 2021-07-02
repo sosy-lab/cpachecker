@@ -26,6 +26,48 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public final class TaintAnalysisState implements AbstractState, Graphable, AbstractQueryableState {
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (isTarget ? 1231 : 1237);
+    result = prime * result + ((pointerMap == null) ? 0 : pointerMap.hashCode());
+    result = prime * result + ((taintedMap == null) ? 0 : taintedMap.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    TaintAnalysisState other = (TaintAnalysisState) obj;
+    if (isTarget != other.isTarget) {
+      return false;
+    }
+    if (pointerMap == null) {
+      if (other.pointerMap != null) {
+        return false;
+      }
+    } else if (!pointerMap.equals(other.pointerMap)) {
+      return false;
+    }
+    if (taintedMap == null) {
+      if (other.taintedMap != null) {
+        return false;
+      }
+    } else if (!taintedMap.equals(other.taintedMap)) {
+      return false;
+    }
+    return true;
+  }
+
   private final boolean isTarget;
 
   private Map<MemoryLocation, Boolean> taintedMap = new HashMap<>();

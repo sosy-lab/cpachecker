@@ -37,8 +37,10 @@ public enum TaintDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
-    if (pState1 == pState2) {
+    if (pState1.equals(pState2)) {
       return true;
-    } else return false;
+    } else {
+      return false;
+    }
   }
 }
