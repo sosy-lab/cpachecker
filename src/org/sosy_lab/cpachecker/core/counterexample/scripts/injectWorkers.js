@@ -8,7 +8,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const zlib = require('zlib');
+const pako = require('pako');
 
 const rawWorkerPath = path.join(__dirname, "../worker");
 const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js");
@@ -38,7 +38,7 @@ workerFiles.forEach((worker) => {
   // Convert content to utf8 and strip comments
   content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1')
   // Compress content and encode as base64
-  content = zlib.deflateSync(content).toString("base64");
+  content = Buffer.from(pako.deflate(content)).toString("base64");
 
   output += `\n const ${workerName} = "${content}";\n`;
 });
