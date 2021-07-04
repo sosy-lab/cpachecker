@@ -160,7 +160,7 @@ public class TestVector {
 
   @Override
   public String toString() {
-    return inputFunctionValues.toString() + inputVariableValues.toString();
+    return inputFunctionValues.toString() + inputVariableValues;
   }
 
   public static TestVector newTestVector() {

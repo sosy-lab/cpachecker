@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 /**
  * Class for creation of fully qualified names of object fields.
@@ -30,8 +31,7 @@ public class NameProvider {
     return SINGLETON;
   }
 
-  public String getObjectScope(RTTState rttState, String methodName,
-      JIdExpression notScopedField) {
+  public String getObjectScope(RTTState rttState, String methodName, JIdExpression notScopedField) {
 
     // Could not resolve var
     if (notScopedField.getDeclaration() == null) {
@@ -39,7 +39,17 @@ public class NameProvider {
     }
 
     if (notScopedField instanceof JFieldAccess) {
-      String scopedFieldName = getScopedFieldName((JFieldAccess) notScopedField, methodName, rttState);
+      if (((JFieldAccess) notScopedField).getDeclaration().isStatic()
+          && ((JFieldAccess) notScopedField)
+              .getDeclaration()
+              .getVisibility()
+              .equals(VisibilityModifier.PUBLIC)
+          && ((JFieldAccess) notScopedField).getReferencedVariable().getDeclaration() == null) {
+        return null;
+      }
+
+      String scopedFieldName =
+          getScopedFieldName((JFieldAccess) notScopedField, methodName, rttState);
 
       if (rttState.contains(scopedFieldName)) {
         return rttState.getUniqueObjectFor(scopedFieldName);

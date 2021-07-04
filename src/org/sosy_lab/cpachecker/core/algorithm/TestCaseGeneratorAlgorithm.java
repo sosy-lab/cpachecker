@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -126,8 +125,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet pReached)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(final ReachedSet pReached) throws CPAException, InterruptedException {
     int uncoveredGoalsAtStart = testTargets.size();
     progress = 0;
     // clean up ARG
@@ -186,11 +184,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           // may be thrown only be counterexample check, if not will be thrown again in finally
           // block due to respective shutdown notifier call)
           status = status.withPrecise(false);
-        } catch (Exception e2) {
-          // precaution always set precision to false, thus last target state not handled in case of
-          // exception
-          status = status.withPrecise(false);
-          throw e2;
         } finally {
 
           assert ARGUtils.checkARG(pReached);
@@ -217,7 +210,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   CounterexampleInfo cexInfo = ARGUtils.tryGetOrCreateCounterexampleInformation(argState, cpa, assumptionToEdgeAllocator).orElseThrow();
                   exporter.writeTestCaseFiles(cexInfo, Optional.ofNullable(specProp));
 
-                  logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
+                  logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
 
                   if (shouldReportCoveredErrorCallAsError()) {
@@ -237,14 +230,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   }
                   logger.log(
                       Level.FINE,
-                      "Status was not precise. Current test target is not removed:"
-                          + targetEdge.toString());
+                      "Status was not precise. Current test target is not removed:" + targetEdge);
                 }
               } else {
                 logger.log(
                     Level.FINE,
-                    "Found test target is not in provided set of test targets:"
-                        + targetEdge.toString());
+                    "Found test target is not in provided set of test targets:" + targetEdge);
               }
             } else {
               logger.log(Level.FINE, "Target edge was null.");

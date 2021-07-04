@@ -71,7 +71,7 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
 
   @Override
   public String toString(){
-    return "("+from.toString()+","+to.toString()+")";
+    return "(" + from + "," + to + ")";
   }
 
   protected E getFrom() {

@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,7 +169,7 @@ public class WitnessExporterTest {
       WitnessGenerationConfig pGenerationConfig,
       Map<String, String> pOverrideOptions)
       throws Exception {
-    String fullPath = Paths.get(TEST_DIR_PATH, pFilename).toString();
+    String fullPath = Path.of(TEST_DIR_PATH, pFilename).toString();
 
     TempCompressedFilePath witnessPath = new TempCompressedFilePath("witness", ".graphml");
 
@@ -227,7 +226,7 @@ public class WitnessExporterTest {
   }
 
   private static String getInvGenFile(TempCompressedFilePath pWitnessPath) throws IOException {
-    Path origInvGenConfigFile = Paths.get("test/config/invariantGeneration-witness.properties");
+    Path origInvGenConfigFile = Path.of("test/config/invariantGeneration-witness.properties");
     Path invGenConfigFile =
         origInvGenConfigFile.resolveSibling(
             pWitnessPath.uncompressedFilePath.getFileName() + ".properties");

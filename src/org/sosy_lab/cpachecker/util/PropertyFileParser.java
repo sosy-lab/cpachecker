@@ -31,8 +31,9 @@ import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 
 /**
- * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
- * and maps the proposition to a file from where to read the specification automaton.
+ * A simple class that reads a property, i.e. basically an entry function and a proposition, from a
+ * given property, and maps the proposition to a file from where to read the specification
+ * automaton.
  */
 public class PropertyFileParser {
 
@@ -55,12 +56,19 @@ public class PropertyFileParser {
   private final Set<Property> properties = Sets.newHashSetWithExpectedSize(1);
 
   private static final Pattern PROPERTY_PATTERN =
-      Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
+      Pattern.compile(
+          "CHECK\\( init\\(("
+              + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
+              + "|"
+              + CFACreator.VALID_JAVA_FUNCTION_NAME_PATTERN
+              + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
   private static final Pattern COVERAGE_PATTERN =
       Pattern.compile(
           "COVER\\( init\\(("
               + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
+              + "|"
+              + CFACreator.VALID_JAVA_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), FQL\\((.+)\\) \\)");
 
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =

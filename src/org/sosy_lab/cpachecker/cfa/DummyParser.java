@@ -29,11 +29,6 @@ public class DummyParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     throw new UnsupportedOperationException();
@@ -50,7 +45,7 @@ public class DummyParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames) {
+  public ParseResult parseFiles(List<String> pFilenames) {
     throw new UnsupportedOperationException();
   }
 

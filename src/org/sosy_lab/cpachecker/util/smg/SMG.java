@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.util.smg;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -84,7 +85,7 @@ public class SMG {
     }
 
     PersistentSet<SMGHasValueEdge> edges = hasValueEdges.getOrDefault(source, PersistentSet.of());
-    edges.addAndCopy(edge);
+    edges = edges.addAndCopy(edge);
     return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
   }
 
@@ -102,7 +103,30 @@ public class SMG {
     }
 
     PersistentSet<SMGPointsToEdge> edges = pointsToEdges.getOrDefault(source, PersistentSet.of());
-    edges.addAndCopy(edge);
+    edges = edges.addAndCopy(edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
+  }
+
+  /**
+   * Creates a copy of the SMG an adds the given has value edges.
+   *
+   * @param edges - the edges to be added
+   * @param source - the source object
+   * @return a modified copy of the SMG
+   */
+  public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source) {
+
+    return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
+  }
+
+  /**
+   * Creates a copy of the SMG an adds the given points to edges.
+   *
+   * @param edges - the edges to be added
+   * @param source - the source value
+   * @return a modified copy of the SMG
+   */
+  public SMG copyAndSetPTEdges(PersistentSet<SMGPointsToEdge> edges, SMGValue source) {
     return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
   }
 
@@ -110,24 +134,45 @@ public class SMG {
     return nullObject;
   }
 
-  public Collection<SMGObject> getObjects() {
+  public Set<SMGObject> getObjects() {
     return smgObjects;
   }
 
-  public Collection<SMGValue> getValues() {
+  public Set<SMGValue> getValues() {
     return smgValues;
   }
 
-  public Collection<SMGHasValueEdge> getEdges(SMGObject pRegion) {
+  public Set<SMGHasValueEdge> getEdges(SMGObject pRegion) {
     return hasValueEdges.getOrDefault(pRegion, PersistentSet.of());
   }
 
-  public Collection<SMGPointsToEdge> getEdges(SMGValue pValue) {
+  public Set<SMGPointsToEdge> getEdges(SMGValue pValue) {
     return pointsToEdges.getOrDefault(pValue, PersistentSet.of());
   }
 
-  public Collection<SMGListSegment> getDLLs() {
-    return ImmutableSet.of();
+  public Set<SMGDoublyLinkedListSegment> getDLLs() {
+    return smgObjects.stream()
+        .filter(i -> i instanceof SMGDoublyLinkedListSegment)
+        .map(i -> (SMGDoublyLinkedListSegment) i)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public Set<SMGHasValueEdge> getHVEdges() {
+    return hasValueEdges.values()
+        .stream()
+        .flatMap(Collection::stream)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public Set<SMGPointsToEdge> getPTEdges() {
+    return pointsToEdges.values()
+        .stream()
+        .flatMap(Collection::stream)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public SMG copy() {
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges);
   }
 
 }

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.errorprone.annotations.CheckReturnValue;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Algorithm {
@@ -23,7 +22,7 @@ public interface Algorithm {
    * @throws CPAException may be thrown by implementors
    * @throws InterruptedException may be thrown by implementors
    */
-  AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException;
+  AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException;
 
   /**
    * This class serves as an indication how a result produced by an {@link Algorithm} should be

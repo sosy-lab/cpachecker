@@ -42,9 +42,9 @@ Changes from CPAchecker 1.9.1 to CPAchecker 2.0
   The following fault-localization configurations exist:
 
     * [Coverage-based fault localization](https://ieeexplore.ieee.org/abstract/document/4041886):
-      `-setprop analysis.algorithm.faultlocalization.by_coverage=true`
+      `-setprop analysis.algorithm.faultLocalization.by_coverage=true`
     * [Interpolation-based fault localization](https://link.springer.com/chapter/10.1007/978-3-642-32759-9_17):
-      `-setprop analysis.algorithm.faultlocalization.by_traceformula=true`
+      `-setprop analysis.algorithm.faultLocalization.by_traceformula=true`
     * [Distance metrics](https://dl.acm.org/doi/abs/10.1145/1029894.1029908):
       `-setprop analysis.algorithm.faultlocalization.by_distance=true`
 

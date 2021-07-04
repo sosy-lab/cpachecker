@@ -250,7 +250,7 @@ final class CallGraph<P> {
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + nodes.toString();
+    return getClass().getSimpleName() + nodes;
   }
 
   static final class SuccessorResult<P, N> {

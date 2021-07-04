@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -221,7 +222,7 @@ public class AssumptionToEdgeAllocator {
         return "";
       }
 
-      return returnExp.toASTString() + " = " + value.toString();
+      return returnExp.toASTString() + " = " + value;
     }
 
     return "";
@@ -336,7 +337,7 @@ public class AssumptionToEdgeAllocator {
       Object value = getValueObject(op, pFunctionName, pConcreteState);
 
       if (value != null) {
-        return op.toASTString() + " == " + value.toString();
+        return op.toASTString() + " == " + value;
       } else {
         return "";
       }
@@ -1238,6 +1239,11 @@ public class AssumptionToEdgeAllocator {
         }
 
         return new NumericValue((Number) value);
+      }
+
+      @Override
+      public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
+        return Value.UnknownValue.getInstance();
       }
     }
 
