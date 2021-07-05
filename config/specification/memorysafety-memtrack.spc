@@ -16,6 +16,6 @@ CONTROL AUTOMATON SMGCPAMEMTRACK
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(SMGCPA, "has-leaks") -> ERROR("valid-memtrack");
+  CHECK(SMGCPA, "has-leaks") -> ERROR("valid-memtrack (e.g. CWE-401: Missing Release of Memory after Effective Lifetime or CWE-416: Use After Free)");
 
 END AUTOMATON

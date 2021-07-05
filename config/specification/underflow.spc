@@ -14,6 +14,6 @@ CONTROL AUTOMATON Underflows
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK("underflow") -> ERROR("CWE 191 Integer Underflow: in $location");
+  CHECK("underflow") -> ERROR("no-overflow: integer underflow: in $location (CWE-191 Integer Underflow)");
 
 END AUTOMATON

@@ -15,7 +15,7 @@ CONTROL AUTOMATON SMGCPADEREF
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(SMGCPA, "has-invalid-writes") -> ERROR("valid-deref: invalid pointer dereference in $location");
-  CHECK(SMGCPA, "has-invalid-reads") -> ERROR("valid-deref: invalid pointer dereference in $location");
+  CHECK(SMGCPA, "has-invalid-writes") -> ERROR("valid-deref: invalid pointer dereference in $location (e.g. CWE-119, CWE-125, CWE-787, CWE-843 or CWE-761)");
+  CHECK(SMGCPA, "has-invalid-reads") -> ERROR("valid-deref: invalid pointer dereference in $location (e.g. CWE-119, CWE-125, CWE-787, CWE-843 or CWE-761)");
 
 END AUTOMATON

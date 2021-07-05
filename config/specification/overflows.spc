@@ -14,6 +14,6 @@ CONTROL AUTOMATON Overflows
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK("overflow") -> ERROR("CWE-190 Integer Overflow: in $location");
+  CHECK("overflow") -> ERROR("no-overflow: integer overflow: in $location (CWE-190 Integer Overflow)");
 
 END AUTOMATON
