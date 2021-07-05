@@ -75,15 +75,16 @@ import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumpt
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Generate assumptions related to over/underflow
- * of arithmetic operations
+ * Generate assumptions related to over/underflow of arithmetic operations
  */
-@Options(prefix="overflow")
-public final class ArithmeticOverflowAssumptionBuilder implements
-                                                 GenericAssumptionBuilder {
+@Options(prefix = "overflow")
+public final class ArithmeticOverflowAssumptionBuilder
+    implements GenericAssumptionBuilder {
 
-  @Option(description = "Only check live variables for overflow,"
-      + " as compiler can remove dead variables.", secure=true)
+  @Option(
+    description = "Only check live variables for overflow,"
+        + " as compiler can remove dead variables.",
+    secure = true)
   private boolean useLiveness = true;
 
   @Option(description = "Track overflows in left-shift operations.")
@@ -105,7 +106,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   private boolean simplifyExpressions = true;
 
   private final Map<CType, CLiteralExpression> upperBounds;
-  private final Map<CType, CLiteralExpression> lowerBounds;
   private final Map<CType, CLiteralExpression> width;
   private final OverflowAssumptionManager ofmgr;
   private final ExpressionSimplificationVisitor simplificationVisitor;
@@ -116,8 +116,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   public ArithmeticOverflowAssumptionBuilder(
       CFA cfa,
       LogManager logger,
-      Configuration pConfiguration) throws InvalidConfigurationException {
-    this(cfa.getMachineModel(),cfa.getLiveVariables(),logger, pConfiguration);
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    this(cfa.getMachineModel(), cfa.getLiveVariables(), logger, pConfiguration);
   }
 
   public ArithmeticOverflowAssumptionBuilder(
@@ -137,7 +138,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
 
     upperBounds = new HashMap<>();
-    lowerBounds = new HashMap<>();
     width = new HashMap<>();
 
     // TODO: find out if the bare types even occur, or if they are always converted to the SIGNED
@@ -169,7 +169,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     // the live variables of the successor.
     CFANode node = pEdge.getPredecessor();
     AssumptionsFinder finder = new AssumptionsFinder(result, node);
-
 
     switch (pEdge.getEdgeType()) {
       case BlankEdge:
@@ -218,12 +217,11 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   }
 
   private void trackType(CSimpleType type) {
-    CIntegerLiteralExpression typeMinValue =
-        new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, machineModel.getMinimalIntegerValue(type));
     CIntegerLiteralExpression typeMaxValue =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, type, machineModel.getMaximalIntegerValue(type));
+            FileLocation.DUMMY,
+            type,
+            machineModel.getMaximalIntegerValue(type));
     CIntegerLiteralExpression typeWidth =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY,
@@ -231,7 +229,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
             OverflowAssumptionManager.getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
 
     upperBounds.put(type, typeMaxValue);
-    lowerBounds.put(type, typeMinValue);
     width.put(type, typeWidth);
   }
 
@@ -249,8 +246,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
       Set<ASimpleDeclaration> liveVars = liveVariables.orElseThrow().getLiveVariablesForNode(node);
       if (Sets.intersection(referencedDeclarations, liveVars).isEmpty()) {
-        logger.log(Level.FINE, "No live variables found in expression", exp,
-            "skipping");
+        logger.log(Level.FINE, "No live variables found in expression", exp, "skipping");
         return;
       }
     }
@@ -263,37 +259,25 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
           && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
-        if (lowerBounds.get(calculationType) != null) {
-          result.add(ofmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
-        }
         if (upperBounds.get(calculationType) != null) {
           result.add(ofmgr.getUpperAssumption(op1, op2, binop, upperBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
-        if (lowerBounds.get(calculationType) != null && upperBounds.get(calculationType) != null) {
+        if (upperBounds.get(calculationType) != null) {
           result.addAll(
               ofmgr.addMultiplicationAssumptions(
-                  op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType)));
+                  op1,
+                  op2,
+                  upperBounds.get(calculationType),
+                  upperBounds.get(calculationType)));
         }
-      } else if (trackDivisions
-          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
-        if (lowerBounds.get(calculationType) != null) {
-          ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
-        }
+
       } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
         if (upperBounds.get(calculationType) != null && width.get(calculationType) != null) {
           ofmgr.addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
-    } else if (exp instanceof CUnaryExpression) {
-      CType calculationType = exp.getExpressionType();
-      CUnaryExpression unaryexp = (CUnaryExpression) exp;
-      if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
-          && lowerBounds.get(calculationType) != null) {
 
-        CExpression operand = unaryexp.getOperand();
-        result.add(ofmgr.getNegationAssumption(operand, lowerBounds.get(calculationType)));
-      }
     } else {
       // TODO: check out and implement in case this happens
     }
@@ -319,11 +303,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
   }
 
-
   private class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
       implements CStatementVisitor<Void, UnrecognizedCodeException>,
-          CSimpleDeclarationVisitor<Void, UnrecognizedCodeException>,
-          CInitializerVisitor<Void, UnrecognizedCodeException> {
+      CSimpleDeclarationVisitor<Void, UnrecognizedCodeException>,
+      CInitializerVisitor<Void, UnrecognizedCodeException> {
 
     private final Set<CExpression> assumptions;
     private final CFANode node;
@@ -394,8 +377,8 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     @Override
     public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
         throws UnrecognizedCodeException {
-      for (CExpression arg : pIastFunctionCallAssignmentStatement
-          .getRightHandSide().getParameterExpressions()) {
+      for (CExpression arg : pIastFunctionCallAssignmentStatement.getRightHandSide()
+          .getParameterExpressions()) {
         arg.accept(this);
       }
       return null;
@@ -404,8 +387,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     @Override
     public Void visit(CFunctionCallStatement pIastFunctionCallStatement)
         throws UnrecognizedCodeException {
-      for (CExpression arg : pIastFunctionCallStatement
-          .getFunctionCallExpression()
+      for (CExpression arg : pIastFunctionCallStatement.getFunctionCallExpression()
           .getParameterExpressions()) {
         arg.accept(this);
       }

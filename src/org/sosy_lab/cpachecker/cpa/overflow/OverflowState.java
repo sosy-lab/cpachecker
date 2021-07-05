@@ -109,10 +109,7 @@ public final class OverflowState
 
   @Override
   public String toDOTLabel() {
-    if (hasOverflow()) {
-      return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
-    }
-    if (hasUnderflow()) {
+    if (hasOverflow() || hasUnderflow()) {
       return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
     }
 
@@ -141,12 +138,16 @@ public final class OverflowState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (pProperty.equals(PROPERTY_OVERFLOW)) {
-      return hasOverflow();
+
+    switch (pProperty) {
+      case PROPERTY_OVERFLOW:
+        return hasOverflow();
+
+      case PROPERTY_UNDERFLOW:
+        return hasUnderflow();
+
+      default:
+        throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }
-    if (pProperty.equals(PROPERTY_UNDERFLOW)) {
-      return hasUnderflow();
-    }
-    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 }

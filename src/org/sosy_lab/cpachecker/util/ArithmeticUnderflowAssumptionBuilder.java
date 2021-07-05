@@ -87,9 +87,6 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
   @Option(description = "Track underflows in left-shift operations.")
   private boolean trackLeftShifts = true;
 
-  @Option(description = "Track underflows in right-shift operations.")
-  private boolean trackRightShifts = true;
-
   @Option(description = "Track underflows in additive(+/-) operations.")
   private boolean trackAdditiveOperations = true;
 
