@@ -25,6 +25,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
@@ -75,6 +76,9 @@ public class ACSLParserTest {
     b.add(task("after_for_loop2.c", 1));
     b.add(task("in_middle.c", 1));
     b.add(task("traps.c", 2));
+    b.add(task("empty.c", 1));
+    b.add(task("no_annotations.c", 0));
+    b.add(task("badBehavior.c", 0));
     return b.build();
   }
 
@@ -86,10 +90,14 @@ public class ACSLParserTest {
   public void annotationParsingProducesExpectedNumberOfAnnotations()
       throws InterruptedException, ParserException, InvalidConfigurationException, IOException {
     List<String> files = ImmutableList.of(Paths.get(TEST_DIR, programName).toString());
-    CFAWithACSLAnnotations cfaWithLocs =
-        (CFAWithACSLAnnotations) cfaCreator.parseFileAndCreateCFA(files);
-    Set<ACSLAnnotation> annotations =
-        ImmutableSet.copyOf(cfaWithLocs.getEdgesToAnnotations().values());
-    assertThat(annotations.size()).isEqualTo(expectedAnnotations);
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+    if (cfa instanceof CFAWithACSLAnnotations) {
+      CFAWithACSLAnnotations cfaWithLocs = (CFAWithACSLAnnotations) cfa;
+      Set<ACSLAnnotation> annotations =
+          ImmutableSet.copyOf(cfaWithLocs.getEdgesToAnnotations().values());
+      assertThat(annotations).hasSize(expectedAnnotations);
+    } else {
+      assertThat(expectedAnnotations).isEqualTo(0);
+    }
   }
 }

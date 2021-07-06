@@ -17,6 +17,14 @@ public class Behavior {
   private final RequiresClause requiresClause;
   private final AssumesClause assumesClause;
 
+  public Behavior(String pName) {
+    this(
+        pName,
+        new EnsuresClause(ACSLPredicate.getTrue()),
+        new RequiresClause(ACSLPredicate.getTrue()),
+        new AssumesClause(ACSLPredicate.getTrue()));
+  }
+
   public Behavior(String pName, EnsuresClause ens, RequiresClause req, AssumesClause ass) {
     name = pName;
     ensuresClause = new EnsuresClause(ens.getPredicate().simplify());
@@ -35,14 +43,16 @@ public class Behavior {
   public ACSLPredicate getPreStatePredicate() {
     ACSLPredicate requiresPredicate = requiresClause.getPredicate();
     ACSLPredicate negatedAssumesPredicate = assumesClause.getPredicate().negate();
-    return new ACSLLogicalPredicate(requiresPredicate, negatedAssumesPredicate, ACSLBinaryOperator.OR);
+    return new ACSLLogicalPredicate(
+        requiresPredicate, negatedAssumesPredicate, ACSLBinaryOperator.OR);
   }
 
   public ACSLPredicate getPostStatePredicate() {
     ACSLPredicate ensuresPredicate = ensuresClause.getPredicate();
     ACSLPredicate negatedAssumesPredicate =
         new PredicateAt(assumesClause.getPredicate(), ACSLDefaultLabel.OLD).negate();
-    return new ACSLLogicalPredicate(ensuresPredicate, negatedAssumesPredicate, ACSLBinaryOperator.OR);
+    return new ACSLLogicalPredicate(
+        ensuresPredicate, negatedAssumesPredicate, ACSLBinaryOperator.OR);
   }
 
   @Override

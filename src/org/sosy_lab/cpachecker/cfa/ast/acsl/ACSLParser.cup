@@ -332,13 +332,13 @@ parser code {:
       }
       // Now check whether all referenced behaviors are still in scope
       for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
+        CFAEdge edge = entry.getKey();
         ACSLAnnotation annotation = entry.getValue();
         for (Behavior behavior : annotation.getReferencedBehaviors()) {
-          assert behaviorDeclarations.containsKey(behavior.getName())
-              : "Unknown behavior: " + behavior.getName();
-          assert inSameScope(
-                  behaviorDeclarations.get(behavior.getName()), entry.getKey(), blockStructure)
-              : "Annotation\n" + annotation + "\nis not in scope of " + behavior.getName();
+          if (!behaviorDeclarations.containsKey(behavior.getName())
+              || !inSameScope(behaviorDeclarations.get(behavior.getName()), edge, blockStructure)) {
+            edgesToAnnotations.remove(edge, annotation);
+          }
         }
       }
     }
@@ -376,7 +376,7 @@ parser code {:
           return behavior;
         }
       }
-      throw new AssertionError("Unknown behavior identifier: " + behaviorName);
+      return new Behavior(behaviorName);
     }
 
     private static boolean inSameScope(
