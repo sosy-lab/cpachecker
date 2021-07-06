@@ -3394,9 +3394,10 @@ faultLocalization.by_distance.stopAfter = 40
 # disable flow-sensitive trace formula (may increase runtime)
 faultLocalization.by_traceformula.errorInvariants.disableFSTF = false
 
-# Do not show faults that contain a certain variable. This is especially
-# useful to filter specific faults if the first run results in many
-# candidates.
+# Do not show faults that contain a certain variable. Use, e.g., 'main::x' to
+# ban variable 'x' in the main function. Use, e.g., '::x' to ban all
+# variables named 'x'. This is especially useful to filter specific faults if
+# the first run results in many candidates. To add variables
 faultLocalization.by_traceformula.maxsat.ban = []
 
 # which algorithm to use
@@ -4289,8 +4290,11 @@ testcase.xml = no default value
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
 
-# Add initial variable assignments to the pre-condition instead of just using
-# failing variable assignments for nondet variables.
+# By default, the precondition only contains the failing variable assignment
+# of all nondet variables. Enable this option if initial variable assignments
+# of the form '<datatype> <variable-name> = <value>' should also be added to
+# the precondition. See the description for the option traceformula.ignore
+# for further options.
 traceformula.altpre = false
 
 # Usually every statement that is not part of the precondition gets a
