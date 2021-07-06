@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -39,6 +41,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.CastingClassForAbstrExprTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -85,6 +91,12 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
     private boolean splitIntoAtoms = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Break the decision tree into its atoms before transforming it to SMT formulae. (May be benefitial to avoid simplifications like:  '(x >0)&& (x<0) --> true'")
+    public boolean splittBeforeTransformation = true;
 
     public boolean applyFunctionWide() {
       return applyFunctionWide;
@@ -214,8 +226,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
         List<AbstractionPredicate> predicates = new ArrayList<>();
         // get atom predicates from invariant
         if (options.splitIntoAtoms) {
-          BooleanFormula formula =
-              invariant.getFormula(formulaManagerView, pathFormulaManager, null);
+          final Set<ExpressionTreeLocationInvariant> splittTree = splittTree(invariant, options.splittBeforeTransformation);
+          for (ExpressionTreeLocationInvariant splittedExpr : splittTree) {
+
+            BooleanFormula formula =
+                splittedExpr.getFormula(formulaManagerView, pathFormulaManager, null);
           ImmutableSet<AbstractionPredicate> predicatesForAtomsOf =
               predicateAbstractionManager.getPredicatesForAtomsOf(formula);
           if (predicatesPresent && !predicatesForAtomsOf.isEmpty()) {
@@ -223,7 +238,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           }
 
           predicates.addAll(predicatesForAtomsOf);
-
+          }
         }
         // get predicate from invariant
         else {
@@ -263,6 +278,46 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
     }
     return result;
+  }
+
+  private Set<ExpressionTreeLocationInvariant> splittTree(
+      ExpressionTreeLocationInvariant pInvariant, boolean pSplittBeforeTransformation) {
+    if (!pSplittBeforeTransformation) {
+      return Sets.newHashSet(pInvariant);
+    }
+    CastingClassForAbstrExprTree<AExpression> castClass = new CastingClassForAbstrExprTree<>();
+    Set<ExpressionTreeLocationInvariant> atoms = Sets.newHashSet();
+    // we now that this is a  ExpressionTree<AExpression>
+    ExpressionTree<AExpression> tree = castClass.cast(pInvariant.asExpressionTree());
+    if (tree instanceof And) {
+      ((And<AExpression>) tree).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+    } else if (tree instanceof Or) {
+      ((Or<AExpression>) tree).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+    } else {
+      atoms.add(pInvariant);
+    }
+
+    return atoms;
+  }
+
+  private Collection<ExpressionTreeLocationInvariant> splitt(
+      ExpressionTree<AExpression> pExpr, ExpressionTreeLocationInvariant pInvariant) {
+    Set<ExpressionTreeLocationInvariant> atoms = Sets.newHashSet();
+    if (pExpr instanceof And) {
+      ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+    } else if (pExpr instanceof Or) {
+      ((Or<AExpression>) pExpr).forEach(conj -> atoms.addAll(splitt(conj, pInvariant)));
+    } else {
+      atoms.add(
+          new ExpressionTreeLocationInvariant(
+              pInvariant.getGroupId(),
+              pInvariant.getLocation(),
+              pExpr,
+              pInvariant.getVisitorCache()));
+    }
+
+
+    return atoms;
   }
 
   /** Read the (initial) precision (predicates to track) from a file. */

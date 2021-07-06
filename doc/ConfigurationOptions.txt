@@ -2016,6 +2016,11 @@ cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
+# Break the decision tree into its atoms before transforming it to SMT
+# formulae. (May be benefitial to avoid simplifications like:  '(x >0)&&
+# (x<0) --> true'
+cpa.predicate.abstraction.initialPredicates.splittBeforeTransformation = true
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
