@@ -104,8 +104,10 @@ public class FaultLocalizationWithTraceFormula
   private boolean disableFSTF = false;
 
   @Option(secure=true, name="maxsat.ban",
-      description="Do not show faults that contain a certain variable. This is especially useful "
-          + "to filter specific faults if the first run results in many candidates.")
+      description="Do not show faults that contain a certain variable. Use, e.g., 'main::x' to ban "
+          + "variable 'x' in the main function. Use, e.g., '::x' to ban all variables named 'x'. "
+          + "This is especially useful to filter specific faults if the first run results "
+          + "in many candidates. To add variables")
   private List<String> ban = ImmutableList.of();
 
   public FaultLocalizationWithTraceFormula(
@@ -182,19 +184,19 @@ public class FaultLocalizationWithTraceFormula
     if (!options.getDisable().isEmpty()) {
       if (options.getDisable().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
         throw new InvalidConfigurationException("The option 'traceformula.disable' needs scoped variables."
-            + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function:variable.");
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function::variable.");
       }
     }
     if (!options.getIgnore().isEmpty()) {
       if (options.getIgnore().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
         throw new InvalidConfigurationException("The option 'traceformula.ignore' needs scoped variables."
-            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function:variable.");
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
       }
     }
     if (!ban.isEmpty()) {
       if (ban.stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
         throw new InvalidConfigurationException("The option 'faultlocalization.by_traceformula.ban' needs scoped variables."
-            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function:variable.");
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
       }
     }
   }
@@ -348,16 +350,10 @@ public class FaultLocalizationWithTraceFormula
       for (FaultContribution faultContribution : errorIndicator) {
         BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
         for (String banned: ban) {
-          if (banned.contains("::")){
-            if (curr.toString().contains(banned + "@")){
-              pErrorIndicators.remove(errorIndicator);
-              break;
-            }
-          } else {
-            if (curr.toString().contains("::"+banned +"@")){
-              pErrorIndicators.remove(errorIndicator);
-              break;
-            }
+          assert banned.contains("::");
+          if (curr.toString().contains(banned + "@")) {
+            pErrorIndicators.remove(errorIndicator);
+            break;
           }
         }
       }

@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -86,8 +86,9 @@ public abstract class TraceFormula {
         secure = true,
         name = "altpre",
         description =
-            "Add initial variable assignments to the pre-condition instead of just using failing"
-                + " variable assignments for nondet variables.")
+            "By default, the precondition only contains the failing variable assignment of all nondet variables. "
+                + "Enable this option if initial variable assignments of the form '<datatype> <variable-name> = <value>' should also be added to the precondition. "
+                + "See the description for the option traceformula.ignore for further options.")
     private boolean forcePre = false;
 
     @Option(
@@ -184,7 +185,7 @@ public abstract class TraceFormula {
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-        if (formula.toString().contains("__VERIFIER_nondet")) {
+        if (!Pattern.matches(".+::.+@[0-9]+", modelAssignment.getKey().toString())) {
           precond = bmgr.and(precond, formula);
         }
       }
@@ -284,10 +285,12 @@ public abstract class TraceFormula {
       BooleanFormula prev = current.getFormula();
       current = manager.makeAnd(current, e);
       List<BooleanFormula> formulaList =
-          new ArrayList<>(bmgr.toConjunctionArgs(current.getFormula(), false));
+          ImmutableList.copyOf(bmgr.toConjunctionArgs(current.getFormula(), false));
       BooleanFormula currentAtom = formulaList.get(0);
       if (formulaList.size() == 2) {
-        if (formulaList.get(0).equals(prev)) {
+        if (i == 0) {
+          currentAtom = bmgr.and(currentAtom, formulaList.get(1));
+        } else if (formulaList.get(0).equals(prev)) {
           currentAtom = formulaList.get(1);
         }
       }
