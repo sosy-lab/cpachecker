@@ -12,7 +12,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public interface ACSLBlock {
+public interface SyntacticBlock {
 
   boolean isFunction();
 
@@ -36,7 +36,7 @@ public interface ACSLBlock {
 
   Set<CFANode> getContainedNodes();
 
-  default boolean contains(ACSLBlock other) {
+  default boolean contains(SyntacticBlock other) {
     return getStartOffset() < other.getStartOffset() && getEndOffset() > other.getEndOffset();
   }
 }

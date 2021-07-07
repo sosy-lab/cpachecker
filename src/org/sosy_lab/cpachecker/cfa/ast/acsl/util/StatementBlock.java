@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class StatementBlock implements ACSLBlock {
+public class StatementBlock implements SyntacticBlock {
 
   private final int startOffset;
   private final int endOffset;

@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructureBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlockStructureBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -289,7 +289,7 @@ public class CFACreator {
 
   // data structures for parsing ACSL annotations
   private final List<FileLocation> commentPositions = new ArrayList<>();
-  private final List<ACSLBlock> blocks = new ArrayList<>();
+  private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final LogManager logger;
   private final Parser parser;
@@ -467,7 +467,7 @@ public class CFACreator {
       CFA cfa = createCFA(c, mainFunction);
 
       if (!commentPositions.isEmpty()) {
-        BlockStructureBuilder blockStructureBuilder = new BlockStructureBuilder(cfa);
+        SyntacticBlockStructureBuilder blockStructureBuilder = new SyntacticBlockStructureBuilder(cfa);
         blockStructureBuilder.addAll(blocks);
         cfa =
             ACSLParser.parseACSLAnnotations(

@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
-public class FunctionBlock implements ACSLBlock {
+public class FunctionBlock implements SyntacticBlock {
 
   private final FunctionEntryNode function;
 

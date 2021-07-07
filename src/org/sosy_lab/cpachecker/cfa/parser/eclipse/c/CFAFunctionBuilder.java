@@ -73,7 +73,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.FunctionBlock;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.StatementBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -166,7 +166,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final List<Pair<ADeclaration, String>> globalDeclarations = new ArrayList<>();
 
   // Data structures to collect blocks as defined by ACSL
-  private final List<ACSLBlock> blocks = new ArrayList<>();
+  private final List<SyntacticBlock> blocks = new ArrayList<>();
   private final Deque<CFANode> blockStarts = new ArrayDeque<>();
 
   private final FunctionScope scope;
@@ -236,7 +236,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     return globalDeclarations;
   }
 
-  List<ACSLBlock> getBlocks() {
+  List<SyntacticBlock> getBlocks() {
     return blocks;
   }
 

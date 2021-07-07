@@ -33,8 +33,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.ACSLBlock;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.util.BlockStructure;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlockStructure;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -77,7 +77,7 @@ parser code {:
         CFA pCfa,
         LogManager logger,
         List<FileLocation> commentPositions,
-        BlockStructure blockStructure)
+        SyntacticBlockStructure blockStructure)
         throws CParserException, IOException {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
       EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
@@ -145,13 +145,13 @@ parser code {:
      * @param initialEdges The initial assignment of ACSL annotations to CFA edges.
      * @param cfaWithLocs A CFA holding the location information about the annotations.
      * @param currentFile Name of the file the annotations of which should be handled.
-     * @param blockStructure The {@link BlockStructure} of the current file.
+     * @param blockStructure The {@link SyntacticBlockStructure} of the current file.
      */
   private static void adjustAnnotationLocations(
       Map<ACSLAnnotation, CFAEdge> initialEdges,
       CFAWithACSLAnnotations cfaWithLocs,
       String currentFile,
-      BlockStructure blockStructure,
+      SyntacticBlockStructure blockStructure,
       Map<ACSLAnnotation, FileLocation> annotationLocations) {
     for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
       ACSLAnnotation annotation = entry.getKey();
@@ -213,9 +213,9 @@ parser code {:
       CFAWithACSLAnnotations cfaWithLocs,
       CFAEdge edge,
       StatementContract annotation,
-      BlockStructure blockStructure,
+      SyntacticBlockStructure blockStructure,
       FileLocation annotationLocation) {
-    ACSLBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getFileLocation());
+    SyntacticBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getFileLocation());
     assert innermostBlock != null : "Not inside a block";
     if (annotationLocation.getNodeOffset() < innermostBlock.getStartOffset()) {
       // this is a statement contract for a block statement, e.g. a while-loop
@@ -271,14 +271,14 @@ parser code {:
      * @param cfaWithLocs A CFA holding location information about the annotation.
      * @param loc The location at which the annotation was originally placed.
      * @param annotation The annotation to be handled.
-     * @param blockStructure The {@link BlockStructure} of the program.
+     * @param blockStructure The {@link SyntacticBlockStructure} of the program.
      */
     private static void handleAssertion(
         CFAWithACSLAnnotations cfaWithLocs,
         FileLocation loc,
         ACSLAssertion annotation,
-        BlockStructure blockStructure) {
-      ACSLBlock block = blockStructure.getInnermostBlockOf(loc);
+        SyntacticBlockStructure blockStructure) {
+      SyntacticBlock block = blockStructure.getInnermostBlockOf(loc);
       CFAEdge next = blockStructure.getNextEdge(block, loc);
       if (next == null) {
         // assertion is at very end of block (after every leaving edge)
@@ -300,7 +300,7 @@ parser code {:
     }
 
     /** Make sure that all behaviors are actually in scope when they are referenced. */
-    private static void checkBehaviors(CFAWithACSLAnnotations cfa, BlockStructure blockStructure) {
+    private static void checkBehaviors(CFAWithACSLAnnotations cfa, SyntacticBlockStructure blockStructure) {
       Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations = cfa.getEdgesToAnnotations();
       Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
       // First, collect all behaviors where they are introduced
@@ -380,7 +380,7 @@ parser code {:
     }
 
     private static boolean inSameScope(
-        CFAEdge declarationEdge, CFAEdge referenceEdge, BlockStructure blockStructure) {
+        CFAEdge declarationEdge, CFAEdge referenceEdge, SyntacticBlockStructure blockStructure) {
       return blockStructure
           .getInnermostBlockOf(declarationEdge.getFileLocation())
           .contains(blockStructure.getInnermostBlockOf(referenceEdge.getFileLocation()));

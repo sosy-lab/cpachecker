@@ -14,26 +14,26 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 
-public class BlockStructureBuilder {
+public class SyntacticBlockStructureBuilder {
 
   private final CFA cfa;
-  private final Set<ACSLBlock> blocks = new HashSet<>();
+  private final Set<SyntacticBlock> blocks = new HashSet<>();
 
-  public BlockStructureBuilder(CFA pCFA) {
+  public SyntacticBlockStructureBuilder(CFA pCFA) {
     cfa = pCFA;
   }
 
-  public BlockStructure build() {
+  public SyntacticBlockStructure build() {
     computeSetsForStatementBlocks();
-    return new BlockStructure(blocks);
+    return new SyntacticBlockStructure(blocks);
   }
 
-  public void addAll(Collection<ACSLBlock> pBlocks) {
+  public void addAll(Collection<SyntacticBlock> pBlocks) {
     blocks.addAll(pBlocks);
   }
 
   private void computeSetsForStatementBlocks() {
-    Set<ACSLBlock> toRemove = new HashSet<>();
+    Set<SyntacticBlock> toRemove = new HashSet<>();
     for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
       if (!block.computeSets(cfa.getAllNodes())) {
         toRemove.add(block);

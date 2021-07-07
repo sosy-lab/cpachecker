@@ -21,16 +21,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class BlockStructure {
-  private final ImmutableSet<ACSLBlock> blocks;
+public class SyntacticBlockStructure {
+  private final ImmutableSet<SyntacticBlock> blocks;
 
-  BlockStructure(Collection<ACSLBlock> pBlocks) {
+  SyntacticBlockStructure(Collection<SyntacticBlock> pBlocks) {
     blocks = ImmutableSet.copyOf(pBlocks);
   }
 
-  public ACSLBlock getInnermostBlockOf(FileLocation location) {
-    ACSLBlock innermostBlock = null;
-    for (ACSLBlock block : blocks) {
+  public SyntacticBlock getInnermostBlockOf(FileLocation location) {
+    SyntacticBlock innermostBlock = null;
+    for (SyntacticBlock block : blocks) {
       if (block.getStartOffset() <= location.getNodeOffset()
           && location.getNodeOffset() < block.getEndOffset()
           && (innermostBlock == null || innermostBlock.contains(block))) {
@@ -49,7 +49,7 @@ public class BlockStructure {
     return false;
   }
 
-  public Set<CFAEdge> getPrevEdges(ACSLBlock pBlock, FileLocation location) {
+  public Set<CFAEdge> getPrevEdges(SyntacticBlock pBlock, FileLocation location) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : pBlock.getContainedNodes()) {
       CFAUtils.enteringEdges(node).copyInto(edges);
@@ -72,15 +72,15 @@ public class BlockStructure {
       return ImmutableSet.of();
     }
 
-    ACSLBlock innermostBlockOfPrevEdge = getInnermostBlockOf(prev.getFileLocation());
+    SyntacticBlock innermostBlockOfPrevEdge = getInnermostBlockOf(prev.getFileLocation());
     if (innermostBlockOfPrevEdge.equals(pBlock)) {
       return CFAUtils.enteringEdges(prev.getSuccessor()).toSet();
     }
 
     // There is at least one block end directly before the specified location, so return all leaving
     // edges of the last of these blocks
-    ACSLBlock lastBlock = null;
-    for (ACSLBlock block : blocks) {
+    SyntacticBlock lastBlock = null;
+    for (SyntacticBlock block : blocks) {
       if (!block.getContainedNodes().contains(prev.getPredecessor())
           || block.getEndOffset() >= location.getNodeOffset()) {
         continue;
@@ -94,7 +94,7 @@ public class BlockStructure {
     return lastBlock.getLeavingEdges();
   }
 
-  public CFAEdge getNextEdge(ACSLBlock block, FileLocation location) {
+  public CFAEdge getNextEdge(SyntacticBlock block, FileLocation location) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : block.getContainedNodes()) {
       CFAUtils.enteringEdges(node).copyInto(edges);
