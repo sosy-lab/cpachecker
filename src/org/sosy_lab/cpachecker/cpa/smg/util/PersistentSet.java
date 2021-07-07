@@ -37,6 +37,14 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K> {
     return new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
   }
 
+  public static <K extends Comparable<? super K>> PersistentSet<K> copyOf(Set<K> entries) {
+    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
+    for (K e : entries) {
+      retSet = retSet.addAndCopy(e);
+    }
+    return retSet;
+  }
+
   @SuppressFBWarnings
   public PersistentSet<K> addAndCopy(K key) {
     return new PersistentSet<>(delegate.putAndCopy(key, null));

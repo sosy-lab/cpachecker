@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.smg;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /**
@@ -44,9 +45,10 @@ public final class SMGConsistencyChecker {
    * @param smg - the SMG to be checked
    */
   private static void checkValidDLLConsistency(SMG smg) {
-    Optional<SMGListSegment> invalidDLL = smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
+    Optional<SMGDoublyLinkedListSegment> invalidDLL =
+        smg.getDLLs().stream().filter(l -> !l.isValid()).findAny();
     if (invalidDLL.isPresent()) {
-        throw new SMGInconsistencyException(
+      throw new SMGInconsistencyException(
           "Inconsistent smg: " + smg + "\n Invalid DLL found: " + invalidDLL);
     }
   }
@@ -69,4 +71,26 @@ public final class SMGConsistencyChecker {
     }
   }
 
+  /**
+   * Checks field consistency of a given SMG.
+   *
+   * @param smg - the SMG to be checked
+   * @throws SMGInconsistencyException - if the given SMG is inconsistent.
+   */
+  public static void checkFieldConsistency(SMG smg)
+      throws SMGInconsistencyException {
+    smg.getHVEdges().forEach(e -> checkFieldConsistency(smg, e));
+  }
+
+  private static void
+      checkFieldConsistency(SMG smg, SMGHasValueEdge edge) {
+    if (edge.getSizeInBits().compareTo(edge.getOffset()) <= 0) {
+      throw new SMGInconsistencyException(
+          "Inconsistent smg: "
+              + smg
+              + "\n Edge "
+              + edge
+              + " points outside of it's field.");
+    }
+  }
 }

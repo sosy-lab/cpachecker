@@ -249,7 +249,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     }
   }
 
-  private Object writeReplace() {
+  protected Object writeReplace() {
     return new SerializationProxy(this);
   }
 
