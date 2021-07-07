@@ -18,10 +18,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 @Options(prefix = "cpa.loopsummary")
@@ -46,7 +47,7 @@ class LoopSummaryCPAStatistics implements Statistics {
     pConfig.inject(this);
     logger = pLogger;
     cpa = pCpa;
-    for (StrategyInterface s : pCpa.getStrategies()) {
+    for (StrategyInterface s : SummaryInformation.getSummaryInformation().getStrategies()) {
       strategiesUsed.put(s.getName(), new StatCounter(s.getName()));
     }
   }

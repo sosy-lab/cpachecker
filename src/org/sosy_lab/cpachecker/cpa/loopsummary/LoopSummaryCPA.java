@@ -14,7 +14,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -23,7 +22,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 
 @Options(prefix = "cpa.loopsummary")
 public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
@@ -35,39 +33,21 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
   private final LoopSummaryTransferRelation transfer;
 
   @Option(
-      name = "lookaheadamntnodes",
       secure = true,
-      description =
-          "Lookahead a certain amount of nodes in order to see if one can summarize some nodes inside to summarize the current node"
-              + "This must be done in order to summarize loops inside loops")
-  private int lookaheadamntnodes = 10;
-
-  @Option(
-      name = "lookaheaditerations",
-      secure = true,
-      description =
-          "The amount of iterations one wants to summarize the ahead lookep CFA nodes in order to summarize loops inside loops")
-  private int lookaheaditerations = 10;
+      name = "maxAmntFirstRefinements",
+      description = "Max amount of first refinements.")
+  public int maxAmntFirstRefinements = 100;
 
   private LoopSummaryCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration config,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification,
-      CFA pCfa)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pCpa, config, pLogger, pShutdownNotifier);
     config.inject(this);
 
-    transfer =
-        new LoopSummaryTransferRelation(
-            this,
-            pShutdownNotifier,
-            super.getStrategies(),
-            lookaheadamntnodes,
-            lookaheaditerations,
-            pCfa);
+    transfer = new LoopSummaryTransferRelation(this, pShutdownNotifier);
   }
 
   @Override

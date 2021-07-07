@@ -21,6 +21,7 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -36,6 +37,7 @@ public class MutableCFA implements CFA {
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.empty();
   private Optional<LiveVariables> liveVariables = Optional.empty();
+  private Optional<SummaryInformation> summaryInformation = Optional.empty();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -151,6 +153,7 @@ public class MutableCFA implements CFA {
         loopStructure,
         pVarClassification,
         liveVariables,
+        summaryInformation,
         fileNames,
         language);
   }
@@ -177,5 +180,13 @@ public class MutableCFA implements CFA {
   @Override
   public List<Path> getFileNames() {
     return fileNames;
+  }
+
+  public Optional<SummaryInformation> getSummaryInformation() {
+    return summaryInformation;
+  }
+
+  public void initSummaryInformations() {
+    summaryInformation = Optional.of(SummaryInformation.getSummaryInformation());
   }
 }

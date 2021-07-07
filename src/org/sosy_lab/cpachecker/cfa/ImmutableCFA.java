@@ -30,6 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
@@ -50,7 +51,9 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
+  private final @Nullable SummaryInformation summaryInformation;
   private final Language language;
+
 
   /* fileNames are final, except for serialization. */
   private transient ImmutableList<Path> fileNames;
@@ -63,6 +66,7 @@ class ImmutableCFA implements CFA, Serializable {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
+      Optional<SummaryInformation> pSummaryInformation,
       List<Path> pFileNames,
       Language pLanguage) {
 
@@ -73,8 +77,10 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = pLoopStructure.orElse(null);
     varClassification = pVarClassification.orElse(null);
     liveVariables = pLiveVariables.orElse(null);
+    summaryInformation = pSummaryInformation.orElse(null);
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
+
 
     checkArgument(mainFunction.equals(functions.get(mainFunction.getFunctionName())));
   }
@@ -87,6 +93,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = null;
     varClassification = null;
     liveVariables = null;
+    summaryInformation = null;
     fileNames = ImmutableList.of();
     language = pLanguage;
   }
@@ -143,6 +150,11 @@ class ImmutableCFA implements CFA, Serializable {
   @Override
   public Optional<LoopStructure> getLoopStructure() {
     return Optional.ofNullable(loopStructure);
+  }
+
+
+  public Optional<SummaryInformation> geSummaryInformation() {
+    return Optional.ofNullable(summaryInformation);
   }
 
   @Override

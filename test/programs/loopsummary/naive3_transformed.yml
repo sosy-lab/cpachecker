@@ -8,7 +8,7 @@
 
 format_version: '2.0'
 
-input_files: 'naive7.c'
+input_files: 'naive3_transformed.c'
 
 properties:
   - property_file: ../../config/properties/unreach-call.prp

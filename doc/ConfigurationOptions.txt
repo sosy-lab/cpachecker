@@ -817,6 +817,31 @@ cfa.simplifyConstExpressions = true
 # rightHandSide
 cfa.simplifyPointerExpressions = false
 
+# Postprocess CFA using Strategies.
+cfa.summaries = false
+
+# Dependencies between the Different Strategies
+cfa.summaries.dependencies = new LoopStrategyDependency()
+
+# Max amount fo Iterations for adapting the CFA
+cfa.summaries.maxIterations = 10
+
+# Max amount fo Unrollings for the Unrolling Strategy
+cfa.summaries.maxUnrollingsStrategy = 100
+
+# Strategies to be used in the generation of the CFA, to summarize some parts
+# of it.
+cfa.summaries.strategies = new HashSet<>(
+          Arrays.asList(
+              StrategiesEnum.LoopConstantExtrapolation,
+              StrategiesEnum.LoopLinearExtrapolation,
+              StrategiesEnum
+                  .NonDetBoundConstantExtrapolation,
+
+# Use a Compilr for the execution of the C Code, if this option is set to
+# false an Interpreter in java is used.
+cfa.summaries.useCompiler = false
+
 # A name of thread_create function
 cfa.threads.threadCreate = "pthread_create"
 
@@ -1838,33 +1863,11 @@ cpa.loopbound.startAtBound = 0
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
 
-# Lookahead a certain amount of nodes in order to see if one can summarize
-# some nodes inside to summarize the current nodeThis must be done in order
-# to summarize loops inside loops
-cpa.loopsummary.lookaheadamntnodes = 10
-
-# The amount of iterations one wants to summarize the ahead lookep CFA nodes
-# in order to summarize loops inside loops
-cpa.loopsummary.lookaheaditerations = 10
-
 # Should Loopsummary Statistics be recorded
 cpa.loopsummary.loopsummarystats = true
 
-# Maximal amount of refinements the first refiner can make before going to
-# the second refiner
+# Max amount of first refinements.
 cpa.loopsummary.maxAmntFirstRefinements = 100
-
-# Maximal amount of unrollings the loop Unrolling strategy can make.
-cpa.loopsummary.maxUnrollings = 10
-
-# Strategies to be used in the Summary. The order of the strategies marks in
-# which order they are tried
-cpa.loopsummary.strategies = new ArrayList<>(
-          Arrays.asList(
-              StrategiesEnum.CONSTANTEXTRAPOLATION,
-              StrategiesEnum.LINEAREXTRAPOLATION,
-              StrategiesEnum.POLYNOMIALEXTRAPOLATION,
-              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD

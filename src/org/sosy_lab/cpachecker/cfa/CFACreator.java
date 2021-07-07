@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -73,6 +74,10 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransform
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.LoopStrategyDependency;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -211,6 +216,52 @@ public class CFACreator {
     description = "export CFA as .ser file (dump Java objects)"
   )
   private boolean serializeCfa = false;
+
+  @Option(secure = true, name = "cfa.summaries", description = "Postprocess CFA using Strategies.")
+  private boolean useSummaries = false;
+
+  @Option(
+      secure = false,
+      name = "cfa.summaries.useCompiler",
+      description =
+          "Use a Compilr for the execution of the C Code, if this option is set to false an Interpreter in java is used.")
+  private boolean useCompilerForSummary = false;
+
+  @Option(
+      name = "cfa.summaries.strategies",
+      secure = true,
+      description =
+          "Strategies to be used in the generation of the CFA, to summarize some parts of it.")
+  private Set<StrategiesEnum> strategies =
+      new HashSet<>(
+          Arrays.asList(
+              StrategiesEnum.LoopConstantExtrapolation,
+              StrategiesEnum.LoopLinearExtrapolation,
+              StrategiesEnum
+                  .NonDetBoundConstantExtrapolation, // See TODO in NondetBound File, may be solved
+              // by assuming the negation of the loop
+              // Condition
+              StrategiesEnum.NaiveLoopAcceleration,
+              StrategiesEnum.LoopAcceleration, // TODO Not yet implemented
+              StrategiesEnum.LoopUnrolling));
+
+  @Option(
+      secure = true,
+      name = "cfa.summaries.maxUnrollingsStrategy",
+      description = "Max amount fo Unrollings for the Unrolling Strategy")
+  private int maxUnrollingsStrategy = 100;
+
+  @Option(
+      secure = true,
+      name = "cfa.summaries.maxIterations",
+      description = "Max amount fo Iterations for adapting the CFA")
+  private int maxIterationsSummaries = 10;
+
+  @Option(
+      secure = true,
+      name = "cfa.summaries.dependencies",
+      description = "Dependencies between the Different Strategies")
+  private StrategyDependencyInterface strategyDependencies = new LoopStrategyDependency();
 
   @Option(
     secure = true,
@@ -716,7 +767,20 @@ public class CFACreator {
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
 
-    return cfa;
+    if (useSummaries) {
+      SummaryPostProcessor summaryPostProcessor =
+          new SummaryPostProcessor(
+              logger,
+              shutdownNotifier,
+              cfa,
+              strategies,
+              useCompilerForSummary,
+              maxUnrollingsStrategy,
+              maxIterationsSummaries,
+              strategyDependencies);
+      cfa = summaryPostProcessor.process(cfa);
+    }
+      return cfa;
   }
 
   /** check, whether the program contains function calls to crate a new thread. */

@@ -11,7 +11,10 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyInterface;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
@@ -20,26 +23,28 @@ class LoopSummaryPrecision implements AdjustablePrecision, WrapperPrecision {
 
   private final Precision precision;
 
-  private int strategyCounter = 0;
+  private Set<StrategyInterface> usedStrategies = new HashSet<>();
 
   private boolean loopHead = false;
+
+  public LoopSummaryPrecision(Precision precision, Set<StrategyInterface> usedStrategies) {
+    this.usedStrategies = usedStrategies;
+    this.precision = precision;
+  }
 
   public LoopSummaryPrecision(Precision precision) {
     this.precision = precision;
   }
 
-  public LoopSummaryPrecision(Precision precision, int strategyCounter) {
-    this.precision = precision;
-    this.strategyCounter = strategyCounter;
-  }
-
   @Override
   public String toString() {
-    return "Loopsummary precision { precission: "
+    String name = "Loopsummary precision { precission: "
         + precision.toString()
-        + ", strategy:  "
-        + strategyCounter
-        + " }";
+        + ", used strategies:  ";
+    for (StrategyInterface s : usedStrategies) {
+      name += s.getName() + " ,";
+    }
+    return name + " }";
   }
 
   public void setLoopHead(boolean isLoopHead) {
@@ -54,24 +59,24 @@ class LoopSummaryPrecision implements AdjustablePrecision, WrapperPrecision {
     return precision;
   }
 
-  public int getStrategyCounter() {
-    return strategyCounter;
+  public Set<StrategyInterface> getUsedStrategies() {
+    return usedStrategies;
   }
 
-  public void updateStrategy() {
-    strategyCounter += 1;
+  public void updateUsedStrategies(StrategyInterface pStrategy) {
+    usedStrategies.add(pStrategy);
   }
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
     return new LoopSummaryPrecision(
-        ((AdjustablePrecision) this.precision).add(pOtherPrecision), this.strategyCounter);
+        ((AdjustablePrecision) this.precision).add(pOtherPrecision), this.usedStrategies);
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     return new LoopSummaryPrecision(
-        ((AdjustablePrecision) this.precision).subtract(pOtherPrecision), this.strategyCounter);
+        ((AdjustablePrecision) this.precision).subtract(pOtherPrecision), this.usedStrategies);
   }
 
   @Override
@@ -90,11 +95,11 @@ class LoopSummaryPrecision implements AdjustablePrecision, WrapperPrecision {
     if (precision instanceof WrapperPrecision) {
       return new LoopSummaryPrecision(
           ((WrapperPrecision) precision).replaceWrappedPrecision(pNewPrecision, pReplaceType),
-          this.strategyCounter);
+          this.usedStrategies);
     } else {
       assert pNewPrecision.getClass().isAssignableFrom(precision.getClass());
 
-      return new LoopSummaryPrecision(pNewPrecision, this.strategyCounter);
+      return new LoopSummaryPrecision(pNewPrecision, this.usedStrategies);
     }
   }
 

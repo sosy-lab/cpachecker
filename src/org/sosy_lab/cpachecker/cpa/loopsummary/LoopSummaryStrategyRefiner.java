@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.loopsummary.strategies.StrategyInterface;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public class LoopSummaryStrategyRefiner implements Refiner {
@@ -32,13 +32,12 @@ public class LoopSummaryStrategyRefiner implements Refiner {
   private final LogManager logger;
   private int refinementNumber;
   protected final ARGCPA argCpa;
-  private List<StrategyInterface> strategies;
+  private SummaryInformation summaryInformation = SummaryInformation.getSummaryInformation();
 
   public LoopSummaryStrategyRefiner(LogManager pLogger, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
-    strategies = CPAs.retrieveCPAOrFail(pCpa, LoopSummaryCPA.class, Refiner.class).getStrategies();
   }
 
   @SuppressWarnings("unused")
@@ -61,15 +60,12 @@ public class LoopSummaryStrategyRefiner implements Refiner {
       Collection<ARGState> newWaitlist = new ArrayList<>();
       while (iter.hasNext()) {
         ARGState currentElement = iter.next();
-        /*logger.log(
-        Level.INFO,
-        "State: " + currentElement + "\nPrecision: " + pReached.getPrecision(currentElement));*/
-        if (!strategies
-                .get(
-                    ((LoopSummaryPrecision) pReached.getPrecision(currentElement))
-                        .getStrategyCounter())
-                .isPrecise()
-            && ((LoopSummaryPrecision) pReached.getPrecision(currentElement)).isLoopHead()) {
+        if (summaryInformation
+            .getFactory()
+            .buildStrategy(
+                summaryInformation.getStrategyForNode(
+                    AbstractStates.extractLocation(currentElement)))
+            .isPrecise()) {
           optionalRefinementState = Optional.of(currentElement);
           waitlist.clear();
           newWaitlist.clear();
@@ -87,17 +83,13 @@ public class LoopSummaryStrategyRefiner implements Refiner {
     if (optionalRefinementState.isEmpty()) {
       return false;
     } else {
+
+      // TODO Improve for current refinement format, it should remove all the children of the node
+      // and update the parent state to not be allowed to use the Strategy
       ARGState refinementState = optionalRefinementState.orElseThrow();
       LoopSummaryPrecision newPrecision =
           (LoopSummaryPrecision) pReached.getPrecision(refinementState);
-      newPrecision.updateStrategy();
-      newPrecision.setLoopHead(false);
 
-      /*
-       * This is called instead of the following, since the precision update is lost (Assumption)
-       * if this is not done
-       * reached.removeSubtree(
-      refinementState, newPrecision, pPrecision -> pPrecision instanceof LoopSummaryPrecision);*/
       while (!refinementState.getChildren().isEmpty()) {
         reached.removeSubtree(refinementState.getChildren().iterator().next());
       }
