@@ -66,8 +66,7 @@ parser code {:
       scanner = pScanner;
       cfa = pCfa;
       logger = pLogger;
-      identifierCheckingVisitor =
-          new IdentifierCheckingVisitor(new ACSLTermToCExpressionVisitor(cfa, logger));
+      identifierCheckingVisitor = new IdentifierCheckingVisitor(cfa, logger);
       orderedLocs = pOrderedLocs;
       orderedCFALocs = pOrderedCFALocs;
     }
@@ -391,24 +390,20 @@ parser code {:
       return scanner;
     }
 
-    private boolean shouldSkip(ACSLAnnotation annotation, FileLocation annotationLocation) {
-      try {
-        boolean allIdentifiersInScope =
-            annotation.getPredicateRepresentation().accept(identifierCheckingVisitor);
-        if (allIdentifiersInScope) {
-          if (!(annotation instanceof ACSLAssertion)) {
-            // Only assertions may be placed at the end of a file,
-            // so there should be another edge after the annotation for it to be valid
-            CFAEdge lastEdge = orderedCFALocs.get(orderedCFALocs.size() - 1);
-            return lastEdge.getFileLocation().getNodeOffset() < annotationLocation.getNodeOffset();
-          }
-          return false;
-        }
-        return true;
-      } catch (UnrecognizedCodeException e) {
-        return true;
+  private boolean shouldSkip(ACSLAnnotation annotation, FileLocation annotationLocation) {
+    boolean allIdentifiersInScope =
+        annotation.getPredicateRepresentation().accept(identifierCheckingVisitor);
+    if (allIdentifiersInScope) {
+      if (!(annotation instanceof ACSLAssertion)) {
+        // Only assertions may be placed at the end of a file,
+        // so there should be another edge after the annotation for it to be valid
+        CFAEdge lastEdge = orderedCFALocs.get(orderedCFALocs.size() - 1);
+        return lastEdge.getFileLocation().getNodeOffset() < annotationLocation.getNodeOffset();
       }
+      return false;
     }
+    return true;
+  }
 :}
 
 scan with {: return scanner.getNext(); :}
