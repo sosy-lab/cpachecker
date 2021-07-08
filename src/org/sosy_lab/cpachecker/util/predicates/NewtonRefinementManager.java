@@ -705,9 +705,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     public String toString() {
       return (lastEdge != null
               ? lastEdge.toString()
-              : ("First State: " + state.orElseThrow().toDOTLabel()))
-          + ", PathFormula: "
-          + pathFormula.toString();
+              : ("First State: " + state.orElseThrow().toDOTLabel())) + ", PathFormula: " + pathFormula;
     }
   }
 

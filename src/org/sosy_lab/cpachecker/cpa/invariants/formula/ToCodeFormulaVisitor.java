@@ -161,7 +161,7 @@ public class ToCodeFormulaVisitor
       // that is a unary negation of a value exceeding the range of the type;
       // instead write e.g. (-9223372036854775807LL - 1)
       if (bitVectorInfo.isSigned() && value.equals(upperExclusive.negate())) {
-        return "(" + value.add(BigInteger.ONE).toString() + typeSuffix + " - 1)";
+        return "(" + value.add(BigInteger.ONE) + typeSuffix + " - 1)";
       }
       return value.toString() + typeSuffix;
     }

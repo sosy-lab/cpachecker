@@ -51,7 +51,7 @@ SPDX-License-Identifier: Apache-2.0
     <module name="TypeName"/>
     <module name="IllegalImport"/>
     <module name="IllegalImport">
-      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\.(?!assertThrows).*)?|com\.google\.common\.base\.Objects(\..*)?|javax\.annotation\.(Nonnull|Nullable|CheckReturnValue|concurrent\.GuardedBy|concurrent\.Immutable)|edu\.umd\.cs\.findbugs\.annotations\.(NonNull|Nullable)"/>
+      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\.(?!assertThrows).*)?|com\.google\.common\.base\.Objects(\..*)?|java\.nio\.file\.Paths(\..*)?|javax\.annotation\.(Nonnull|Nullable|CheckReturnValue|concurrent\.GuardedBy|concurrent\.Immutable)|edu\.umd\.cs\.findbugs\.annotations\.(NonNull|Nullable)"/>
       <property name="regexp" value="true"/>
     </module>
     <module name="ImportOrder">

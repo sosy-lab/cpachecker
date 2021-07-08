@@ -120,6 +120,12 @@ with considerably less effort -->
         <!--shown iff property analysis.algorithm.FaultLocalization=true-->
         <div id="fault-localization-info" ng-hide="hideFaults" class="horizontal-div">
           <button id="fault-button" class="btn btn-success" ng-click="faultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
+          <div class="help_button" data-toggle="tooltip" data-placement="top" title="Get help!">
+            <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="bottom" data-trigger="focus"
+               data-content="{{help_fault_localization}}" class="btn btn-outline-info btn-lg help_button">
+              <i class="fas fa-question-circle"></i>
+            </a>
+          </div>
         </div>
         <div id="matches">
           <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
@@ -232,7 +238,7 @@ with considerably less effort -->
       </ul>
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
-        <nav class="navbar navbar-light bg-light">slid
+        <nav class="navbar navbar-light bg-light">
           <div class="nav-item">
             <label>
               <strong>Displayed CFA</strong>
@@ -313,7 +319,7 @@ with considerably less effort -->
                 <a ng-click="setSourceFile($index)">{{file}}</a>
               </li>
             </ul>
-          </div>slid
+          </div>
           <label>
             <strong>{{sourceFiles[selectedSourceFile]}}</strong>
           </label>

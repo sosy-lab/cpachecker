@@ -13,7 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -89,7 +89,7 @@ public class ACSLParserTest {
   @Test
   public void annotationParsingProducesExpectedNumberOfAnnotations()
       throws InterruptedException, ParserException, InvalidConfigurationException, IOException {
-    List<String> files = ImmutableList.of(Paths.get(TEST_DIR, programName).toString());
+    List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
     if (cfa instanceof CFAWithACSLAnnotations) {
       CFAWithACSLAnnotations cfaWithLocs = (CFAWithACSLAnnotations) cfa;

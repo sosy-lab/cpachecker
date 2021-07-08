@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 
 /**
  * Description of a simple Java structure's type.
@@ -37,7 +36,6 @@ public class JSimpleType implements JType {
   private final static JSimpleType SINGLETON_LONG = new JSimpleType(JBasicType.LONG);
   private final static JSimpleType SINGLETON_FLOAT = new JSimpleType(JBasicType.FLOAT);
   private final static JSimpleType SINGLETON_DOUBLE = new JSimpleType(JBasicType.DOUBLE);
-  private final static JSimpleType SINGLETON_NULL = new JSimpleType(JBasicType.NULL);
   private final static JSimpleType SINGLETON_UNSPECIFIED = new JSimpleType(JBasicType.UNSPECIFIED);
   private final static JSimpleType SINGLETON_VOID = new JSimpleType(JBasicType.VOID);
 
@@ -71,10 +69,6 @@ public class JSimpleType implements JType {
 
   public static JSimpleType getDouble() {
     return SINGLETON_DOUBLE;
-  }
-
-  public static JSimpleType getNull() {
-    return SINGLETON_NULL;
   }
 
   public static JSimpleType getUnspecified() {

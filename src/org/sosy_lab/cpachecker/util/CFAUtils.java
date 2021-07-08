@@ -24,7 +24,6 @@ import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -85,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
@@ -462,27 +462,23 @@ public class CFAUtils {
     return blankPaths;
   }
 
-  /**
-   * Get all {@link FileLocation} objects that are attached to an edge or its AST nodes.
-   * The result has non-deterministic order.
-   */
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
-    Set<FileLocation> result =
+  /** Get all {@link FileLocation} objects that are attached to an edge or its AST nodes. */
+  public static ImmutableSet<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+    ImmutableSet<FileLocation> result =
         from(getAstNodesFromCfaEdge(pEdge))
             .transformAndConcat(node -> traverseRecursively(node))
             .transform(AAstNode::getFileLocation)
-            .copyInto(new HashSet<>());
-
-    result.add(pEdge.getFileLocation());
-    result.remove(FileLocation.DUMMY);
+            .append(pEdge.getFileLocation())
+            .filter(FileLocation::isRealLocation)
+            .toSet();
 
     if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
       FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
-      if (!functionEntryNode.getFileLocation().equals(FileLocation.DUMMY)) {
-        return Collections.singleton(functionEntryNode.getFileLocation());
+      if (functionEntryNode.getFileLocation().isRealLocation()) {
+        return ImmutableSet.of(functionEntryNode.getFileLocation());
       }
     }
-    return Collections.unmodifiableSet(result);
+    return result;
   }
 
   public static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
@@ -824,6 +820,12 @@ public class CFAUtils {
 
     @Override
     public Iterable<AAstNode> visit(JThisExpression pExp) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(JClassLiteralExpression pJClassLiteralExpression)
+        throws NoException {
       return ImmutableList.of();
     }
   }

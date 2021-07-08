@@ -550,8 +550,8 @@ class WitnessFactory implements EdgeAppender {
 
     if (witnessOptions.exportLineNumbers() && min != null) {
       if (witnessOptions.exportSourceFileName()
-          || !min.getFileName().equals(defaultSourcefileName)) {
-        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
+          || !min.getFileName().toString().equals(defaultSourcefileName)) {
+        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName().toString());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
     }
@@ -561,8 +561,8 @@ class WitnessFactory implements EdgeAppender {
 
     if (witnessOptions.exportOffset() && min != null && min.isOffsetRelatedToOrigin()) {
       if (witnessOptions.exportSourceFileName()
-          || !min.getFileName().equals(defaultSourcefileName)) {
-        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
+          || !min.getFileName().toString().equals(defaultSourcefileName)) {
+        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName().toString());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
     }

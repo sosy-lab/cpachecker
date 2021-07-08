@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -241,7 +240,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         faults.add(singleton);
       } else if (errorInvariant instanceof Interval) {
         Interval curr = (Interval) errorInvariant;
-        curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
+        // curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         Selector next;
         if (i + 1 < abstractTrace.size()) {
           next = (Selector) abstractTrace.get(i + 1);
@@ -406,7 +405,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     @Override
     public String toString() {
-      return "Interval [" + start + ";" + end + "]: " + BooleanFormulaParser.parse(invariant);
+      return "Interval [" + start + ";" + end + "]: " + invariant;
     }
 
     @Override

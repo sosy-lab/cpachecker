@@ -8,15 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-/**
- * A basic Java type. This includes mostly primitive types, but also types like <code>null</code>
- * or even a special unspecified type.
- */
+/** A basic Java type. This includes mostly primitive types, but also a special unspecified type. */
 public enum JBasicType {
-
-
   UNSPECIFIED(""),
-  NULL("null"),
   VOID("void"),
   BYTE("byte"),
   SHORT("short"),

@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 
@@ -93,13 +92,7 @@ parser code {:
           ImmutableList.sortedCopyOf(
               Comparator.comparingInt(FileLocation::getNodeOffset),
               FluentIterable.from(commentPositions)
-                  .filter(
-                      x ->
-                          x.getFileName().equals(filename)
-                              || Path.of(x.getFileName())
-                                  .getFileName()
-                                  .toString()
-                                  .equals(filename)));
+                  .filter(x -> x.getFileName().toString().equals(filename)));
         ACSLParser parser =
             new ACSLParser(
                 scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger);
@@ -155,7 +148,7 @@ parser code {:
     for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
       ACSLAnnotation annotation = entry.getKey();
       CFAEdge edge = entry.getValue();
-      if (edge.getFileLocation().getFileName().equals(currentFile)) {
+      if (edge.getFileLocation().getFileName().toString().equals(currentFile)) {
         if (annotation instanceof FunctionContract) {
           FileLocation annotationLocation = annotationLocations.get(annotation);
           if (blockStructure.getInnermostBlockOf(annotationLocation) == null) {

@@ -26,7 +26,8 @@ public final class JMethodInvocationStatement extends AFunctionCallStatement
 
   private static final long serialVersionUID = 8432702267615877780L;
 
-  public JMethodInvocationStatement(FileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {
+  public JMethodInvocationStatement(
+      FileLocation pFileLocation, JMethodInvocationExpression pFunctionCall) {
     super(pFileLocation, pFunctionCall);
   }
 

@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
 public final class JVariableRunTimeType extends AbstractExpression
     implements JRunTimeTypeExpression {
 

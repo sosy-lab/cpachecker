@@ -1152,10 +1152,7 @@ public class AutomatonGraphmlParser {
           Collections3.transformedImmutableSetCopy(loopHeadFlags, Boolean::parseBoolean);
       if (loopHeadFlagValues.size() > 1) {
         throw new WitnessParseException(
-            "Conflicting values for the flag "
-                + KeyDef.ENTERLOOPHEAD
-                + ": "
-                + loopHeadFlags.toString());
+            "Conflicting values for the flag " + KeyDef.ENTERLOOPHEAD + ": " + loopHeadFlags);
       }
       if (loopHeadFlagValues.iterator().next()) {
         return true;
@@ -2222,7 +2219,7 @@ public class AutomatonGraphmlParser {
   private static String getMessage(Throwable pException) {
     String message = pException.getMessage();
     if (message == null) {
-      message = "Exception occurred, but details are unknown: " + pException.toString();
+      message = "Exception occurred, but details are unknown: " + pException;
     }
     if (pException instanceof IOException) {
       return String.format("Error while accessing witness file: %s!", message);

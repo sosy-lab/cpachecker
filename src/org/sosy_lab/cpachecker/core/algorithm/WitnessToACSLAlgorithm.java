@@ -17,7 +17,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -67,7 +66,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       secure = true,
       description = "The directory where generated, ACSL annotated programs are stored.")
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
-  private Path outDir = Paths.get("annotated");
+  private Path outDir = Path.of("annotated");
 
   @Option(
       secure = true,
@@ -99,7 +98,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
-    Set<String> files = new HashSet<>();
+    Set<Path> files = new HashSet<>();
     Set<ExpressionTreeLocationInvariant> invariants;
     try {
       WitnessInvariantsExtractor invariantsExtractor =
@@ -111,13 +110,13 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     }
 
     for (ExpressionTreeLocationInvariant c : invariants) {
-      String filename = c.getLocation().getFunction().getFileLocation().getFileName();
-      if (Files.isRegularFile(Path.of(filename))) {
-        files.add(filename);
+      Path file = c.getLocation().getFunction().getFileLocation().getFileName();
+      if (Files.isRegularFile(file)) {
+        files.add(file);
       }
     }
 
-    for (String file : files) {
+    for (Path file : files) {
       // Sort invariants by location
       Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants =
           LinkedHashMultimap.create();
@@ -142,7 +141,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
       String fileContent;
       try {
-        fileContent = Files.readString(Path.of(file));
+        fileContent = Files.readString(file);
       } catch (IOException pE) {
         logger.logfUserException(Level.WARNING, pE, "Could not read file %s", file);
         continue;
@@ -213,9 +212,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void writeToFile(String pathToOriginalFile, List<String> newContent) throws IOException {
-    Path path = Path.of(pathToOriginalFile);
-    String newFileName = makeNameForAnnotatedFile(path.getFileName().toString());
+  private void writeToFile(Path pathToOriginalFile, List<String> newContent) throws IOException {
+    String newFileName = makeNameForAnnotatedFile(pathToOriginalFile.getFileName().toString());
     Path outFile = outDir.resolve(newFileName);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       writer.write(String.join("\n", newContent).concat("\n"));

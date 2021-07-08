@@ -14,7 +14,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
@@ -39,11 +38,11 @@ final class BDDStatistics implements Statistics {
 
   @Option(secure = true, name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
+  Path dumpfile = Path.of("BDDCPA_tracked_variables.log");
 
   @Option(secure = true, name = "variablesFile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path variablesFile = Paths.get("BDDCPA_ordered_variables.txt");
+  private Path variablesFile = Path.of("BDDCPA_ordered_variables.txt");
 
   private final NamedRegionManager manager;
   private final PredicateManager predmgr;
