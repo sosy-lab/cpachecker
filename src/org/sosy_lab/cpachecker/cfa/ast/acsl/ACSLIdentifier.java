@@ -12,7 +12,6 @@ public class ACSLIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;
-  // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
 
   public ACSLIdentifier(String pName, String pFunctionName) {
     name = pName;
