@@ -43,7 +43,7 @@ public class ComponentAnalysis implements Algorithm {
 
     try {
       BlockTree tree = new BlockOperatorCutter(configuration).cut(cfa);
-      Runner.analyzeTree(tree, parentAlgorithm);
+      Runner.analyzeTree(tree, parentAlgorithm, logger);
     } catch (InvalidConfigurationException pE) {
       logger.log(Level.SEVERE, pE);
     }
