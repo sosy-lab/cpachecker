@@ -169,7 +169,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
 
     return null;
   }
-
+  @SuppressWarnings("unused")
   protected Pair<Boolean, Boolean>
       runAlgorithm(Algorithm algorithm, ReachedSet pReachedSet)
           throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {

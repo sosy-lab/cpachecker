@@ -77,7 +77,7 @@ public class SMGRegionsWithValuesTest {
             HashBiMap.create());
 
     final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
+    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtrInBits();
 
     final int hfo = 0;
     final int nfo = 0;

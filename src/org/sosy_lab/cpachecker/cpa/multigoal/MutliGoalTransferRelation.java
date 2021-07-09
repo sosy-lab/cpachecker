@@ -171,7 +171,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-
+  @SuppressWarnings("ModifyCollectionInEnhancedForLoop") 
   private Collection<MultiGoalState>
       processEdge(
           MultiGoalState predState,
@@ -184,7 +184,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
 
     boolean needsWeaving = false;
     for (CFAEdgesGoal goal : goals) {
-      needsWeaving = processGoal(goal, succGoals, pCfaEdge, predState.getNegatedPathsPerGoal());
+      needsWeaving = processGoal(goal, succGoals, pCfaEdge);
       if (pCfaEdge instanceof AssumeEdge) {
         if (negatedPaths.containsKey(goal)) {
           Map<PartialPath, PathState> pathStates = negatedPaths.get(goal);
@@ -310,8 +310,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       processGoal(
           CFAEdgesGoal goal,
           Map<CFAEdgesGoal, Integer> pSuccGoals,
-          CFAEdge pCfaEdge,
-          ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> pNegatedPredPathStates) {
+          CFAEdge pCfaEdge) {
     int index = 0;
     if (pSuccGoals.containsKey(goal)) {
       index = pSuccGoals.get(goal);

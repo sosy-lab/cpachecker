@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -41,7 +40,7 @@ public class ProofGenerator {
       name = "pcc.proofFile",
       description = "file in which proof representation will be stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  protected Path file = Paths.get("arg.obj");
+  protected Path file = Path.of("arg.obj");
 
   private final PCCStrategy checkingStrategy;
 

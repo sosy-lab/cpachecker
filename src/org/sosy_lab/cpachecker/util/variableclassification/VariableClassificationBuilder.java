@@ -27,7 +27,6 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -93,11 +92,11 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   @Option(secure=true, name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpfile = Paths.get("VariableClassification.log");
+  private Path dumpfile = Path.of("VariableClassification.log");
 
   @Option(secure=true, description = "Dump variable type mapping to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
+  private Path typeMapFile = Path.of("VariableTypeMapping.txt");
 
   @Option(secure=true, description = "Dump domain type statistics to a CSV file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)

@@ -26,7 +26,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -473,7 +472,7 @@ public class CPAchecker {
         "Exactly one code file has to be given.");
     }
 
-    Path file = Paths.get(fileDenotation.get(0));
+    Path file = Path.of(fileDenotation.get(0));
 
     try {
       IO.checkReadableFile(file);

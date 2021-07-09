@@ -164,7 +164,6 @@ public class ControlAutomatonCPA
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-      String absolutePath = inputFile.toAbsolutePath().toString();
       this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
 

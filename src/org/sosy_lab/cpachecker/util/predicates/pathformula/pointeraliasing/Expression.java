@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.InlineMe;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
@@ -46,12 +47,14 @@ abstract class Expression {
         return Kind.ALIASED_LOCATION;
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       AliasedLocation asAliased() {
         return this;
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       AliasedLocation asAliasedLocation() {
@@ -118,12 +121,14 @@ abstract class Expression {
         throw new IllegalStateException();
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       UnaliasedLocation asUnaliased() {
         return this;
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       UnaliasedLocation asUnaliasedLocation() {
@@ -144,6 +149,7 @@ abstract class Expression {
       return this instanceof AliasedLocation;
     }
 
+    @InlineMe(replacement = "this")
     @Override
     @Deprecated
     final Location asLocation() {
@@ -231,6 +237,7 @@ abstract class Expression {
       throw new IllegalStateException();
     }
 
+    @InlineMe(replacement = "this")
     @Override
     @Deprecated
     final Value asValue() {

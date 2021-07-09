@@ -17,7 +17,9 @@ with considerably less effort */
 			html: true
 		});
 		// initialize all tooltips
-		$("[data-toggle=tooltip]").tooltip();
+		$("[data-toggle=tooltip]").tooltip({
+			trigger: 'hover'
+		});
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
@@ -157,6 +159,24 @@ with considerably less effort */
 				"<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
 				"<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
 				"<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p></div>";
+			$scope.help_fault_localization = "<div class=\"container \" style=\"font-family: Arial\"> <b>Change view</b> Toggle between two different views: The default counter example and the information provided by the selected fault localization algorithm. " +
+				"In the second view, every entry consists of a header with three elements and a bigger section with more details." +
+				"<ul><li>The <span style=\"color: #28a745\"><b>first element</b></span> of the header shows the rank.</li>" +
+				"<li>The <span style=\"color: #ffc107\"><b>second element</b></span> shows the score, which is computed by several heuristics.</li></ul>" +
+				"<p>Usually, faults with a higher score have a higher rank, too. " +
+				"The Error-Invariants-Algorithm does not sort the faults by score, but by hierarchical order.</p>" +
+				"<p>Every fault localization technique provides information shown in the details section. " +
+				"In the details section, variables are displayed as follows function::variable-name@ssa-index. " +
+				"In some cases, a program contains calls to <code>__VERIFIER_nondet_X()</code> where <code>X</code> " +
+				"stands for all supported data types. CPAchecker creates temporary variables for every call to <code>__VERIFIER_nondet_X()</code>. " +
+				"Starting with <code>!2</code> CPAchecker sequentially increments the counter for every new call to <code>__VERIFIER_nondet_X()</code>.</p>" +
+				"<p><b>Example:</b><br> A possible formula for the given program<br>" +
+				"<code>int x = __VERIFIER_nondet_int();</code><br>" +
+				"<code>int y = __VERIFIER_nondet_int();</code><br>" +
+				"<code>if (x == 1 && y == 2) goto ERROR;</code><br>" +
+				"may look like this:<br>" +
+				"<code>__VERIFIER_nondet_int!2@ = 1 && __VERIFIER_nondet_int!3@ = 2</code></p>" +
+				"</div>";
 			$scope.help_errorpath = "<div style=\"font-family: Arial\"><p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>" +
 				"<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>" +
 				"<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>" +
@@ -183,7 +203,7 @@ with considerably less effort */
 						d3.select("#cfa-toolbar").style("width", "95%");
 					}
 				});
-			}
+			};
 
 			//Full screen mode function to view the report in full screen
 			$('#full_screen_mode').click(function () {
@@ -341,9 +361,9 @@ with considerably less effort */
 					var newValues = getValues(errPathElem.val, previousValueDictionary);
 					errPathElem["newValDict"] = newValues;
 					if (!$.isEmptyObject(newValues)) {
-						$.extend(errPathElem.valDict, newValues)
+						$.extend(errPathElem.valDict, newValues);
 					}
-					for (key in errPathElem.valDict) {
+					for (var key in errPathElem.valDict) {
 						errPathElem.valString += key + ":  " + errPathElem.valDict[key] + "\n";
 					}
 					// add indentation
@@ -399,6 +419,8 @@ with considerably less effort */
 
 		// make faults visible to angular
 		$rootScope.faults = [];
+		$rootScope.precondition = cfaJson.precondition === undefined ? "" : cfaJson.precondition["fl-precondition"];
+		$rootScope.hasPrecondition = $rootScope.precondition !== "";
 		if (cfaJson.faults !== undefined) {
 			for (var i = 0; i < cfaJson.faults.length; i++) {
 				var fault = cfaJson.faults[i];
@@ -944,7 +966,7 @@ with considerably less effort */
 				if (input % 1 !== 0) return false;
 				if (input < 500 || input > 900) return false;
 				return true;
-			}
+			};
 		}
 	]);
 
@@ -1097,7 +1119,7 @@ function init() {
 		// Prepare Error Path array to be used in edge class decider
 		function prepareCfaErrorPath() {
 			var returnedEdges = {};
-			for (key in functionCallEdges) {
+			for (var key in functionCallEdges) {
 				returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
 			}
 			json.errorPath.forEach(function (errPathElem) {
@@ -1281,7 +1303,7 @@ function init() {
 						class: edgeClassDecider(edge, "" + source + target + sourceGraph, source),
 						arrowhead: "undirected",
 						style: "stroke-dasharray: 5, 5;"
-					})
+					});
 					graphMap[targetGraph].setNode("" + target + source + targetGraph, {
 						label: "",
 						class: "dummy",
@@ -1512,7 +1534,7 @@ function init() {
 					json = JSON.parse(m.data.json);
 					nodes = json.nodes;
 					edges = json.edges;
-					buildGraphsAndPrepareResults(nodes, edges, "default")
+					buildGraphsAndPrepareResults(nodes, edges, "default");
 					if(json.relevantedges !== undefined && json.relevantnodes !== undefined){
 					        relevantEdges = json.relevantedges;
 					        relevantNodes = json.relevantnodes;
@@ -1752,7 +1774,7 @@ function init() {
 								arrowhead: "undirected",
 								style: "stroke-dasharray: 5, 5;",
 								class: edgeClassDecider(edge)
-							})
+							});
 							errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
 								label: "",
 								class: "dummy"
@@ -1804,7 +1826,7 @@ function init() {
 								arrowhead: "undirected",
 								style: "stroke-dasharray: 5, 5;",
 								class: edgeClassDecider(edge)
-							})
+							});
 							graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {
 								label: "",
 								class: "dummy"
@@ -2004,7 +2026,7 @@ function init() {
 				d3.selectAll(".arg-node tspan").each(function (d, i) {
 					var transformation = d3.select(this.parentNode.parentNode).attr("transform")
 					d3.select(this).attr("dx", Math.abs(getTransformation(transformation).translateX));
-				})
+				});
 				if (m.data.errorGraph !== undefined) {
 					addEventsToArg();
 					$("#renderStateModal").hide();
@@ -2173,7 +2195,7 @@ function init() {
 					edge = findCfaEdge({
 						v: thisEdgeData.split("-")[0],
 						w: thisEdgeData.split("-")[1]
-					})
+					});
 				}
 				$("#set-tab-3").click();
 				var line = edge.line;

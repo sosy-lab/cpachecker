@@ -14,7 +14,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -124,7 +123,7 @@ class CFABuilder extends ASTVisitor {
     shutdownNotifier.shutdownIfNecessary();
 
     if (!isNullOrEmpty(ast.getFilePath())) {
-      parsedFiles.add(Paths.get(ast.getFilePath()));
+      parsedFiles.add(Path.of(ast.getFilePath()));
     }
     sideAssignmentStack = new Sideassignments();
     artificialScope = pFallbackScope;
@@ -199,11 +198,6 @@ class CFABuilder extends ASTVisitor {
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTProblemDeclaration) {
-      // CDT parser struggles on GCC's __attribute__((something)) constructs
-      // because we use C99 as default.
-      // Either insert the following macro before compiling with CIL:
-      // #define  __attribute__(x)  /*NOTHING*/
-      // or insert "parser.dialect = GNUC" into properties file
       visit(((IASTProblemDeclaration)declaration).getProblem());
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;

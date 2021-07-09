@@ -29,7 +29,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -266,14 +266,14 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     List<TestCase> testcases = coveringTestCases.get(goal);
 
     if (testcases == null) {
-      testcases = new LinkedList<>();
+      testcases = new ArrayList<>();
       coveringTestCases.put(goal, testcases);
     }
 
     boolean testcaseExisted = true;
 
     if (goals == null) {
-      goals = new LinkedList<>();
+      goals = new ArrayList<>();
       mapping.put(testcase, goals);
       testcaseExisted = false;
     }
@@ -303,7 +303,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     List<TestCase> testcases = coveringTestCases.get(goal);
 
     if (testcases == null) {
-      testcases = new LinkedList<>();
+      testcases = new ArrayList<>();
       coveringTestCases.put(goal, testcases);
       mapping.put(testcase, goals);
     }
@@ -456,7 +456,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     return remainingPresenceConditions.get(pGoal);
   }
 
-  public boolean areGoalsCoveredOrInfeasible(LinkedList<T> pGoalsToCover) {
+  public boolean areGoalsCoveredOrInfeasible(List<T> pGoalsToCover) {
     for (T goal : pGoalsToCover) {
       if (!isGoalCovered(goal) || isInfeasible(goal)) {
         return false;

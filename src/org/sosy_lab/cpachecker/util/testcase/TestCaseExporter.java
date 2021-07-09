@@ -13,6 +13,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -31,7 +32,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -310,9 +310,7 @@ public class TestCaseExporter {
     if (parent != null) {
       Files.createDirectories(parent);
     }
-    String uriString = "jar:" + testCaseZip.toUri().toString();
-    return
-    FileSystems.newFileSystem(URI.create(uriString), env, null);
+    return FileSystems.newFileSystem(URI.create("jar:" + testCaseZip.toUri()), env, null);
   }
 
   private String unpack(final AAstNode pInputValue) {
@@ -341,11 +339,10 @@ public class TestCaseExporter {
       final TestVector vector = maybeTestVector.orElseThrow().getVector();
 
       List<String> inputs =
-          vector.getTestInputsInOrder()
-              .stream()
-              .filter(v -> excludeInitialization && (v instanceof ExpressionTestValue))
+          vector.getTestInputsInOrder().stream()
+              .filter(v -> !excludeInitialization || (v instanceof ExpressionTestValue))
               .map(v -> unpack(v.getValue()))
-              .collect(Collectors.toList());
+              .collect(ImmutableList.toImmutableList());
 
       return Optional.of(formatter.convertToOutput(inputs));
     } else {

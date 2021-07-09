@@ -15,7 +15,6 @@ import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.sosy_lab.common.log.LogManager;
 
-
 /**
  * This Visitor simply extracts the AST of the JDT Parser for debug Purposes.
  */
@@ -30,7 +29,7 @@ class AstDebugg extends ASTVisitor {
   @Override
   public void preVisit(ASTNode node) {
     if (isProblematicNode(node)) {
-      logger.log(Level.WARNING, "Error in node " + node.toString());
+      logger.log(Level.WARNING, "Error in node " + node);
     }
   }
 

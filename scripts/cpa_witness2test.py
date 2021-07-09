@@ -108,36 +108,6 @@ class ValidationError(Exception):
         return self._msg
 
 
-class ExecutionResult(object):
-    """Results of a subprocess execution."""
-
-    def __init__(self, returncode, stdout, stderr):
-        """Create a new ExecutionResult with the given information about
-        the execution.
-
-        :param int returncode: Return code of the execution.
-        :param Optional[str] stdout: Output that the execution wrote to stdout,
-                if any.
-        :param Optionl[str] stderr: Output that the execution wrote to stderr,
-                if any.
-        """
-        self._returncode = returncode
-        self._stdout = stdout
-        self._stderr = stderr
-
-    @property
-    def returncode(self):
-        return self._returncode
-
-    @property
-    def stdout(self):
-        return self._stdout
-
-    @property
-    def stderr(self):
-        return self._stderr
-
-
 def get_cpachecker_version():
     """Return the CPAchecker version used."""
 
@@ -376,23 +346,19 @@ def execute(command, quiet=False):
 
     :param List[str] command: list of words that describe the command line.
     :param Bool quiet: whether to log the executed command line as INFO.
-    :return ExecutionResult: result object with information about the execution.
+    :return subprocess.CompletedProcess: information about the execution.
     """
     if not quiet:
         logging.info(" ".join(command))
-    p = subprocess.Popen(
+    return subprocess.run(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
     )
-    returncode = p.wait()
-    output = p.stdout.read()
-    err_output = p.stderr.read()
-    return ExecutionResult(returncode, output, err_output)
 
 
 def analyze_result(test_result, harness, specification):
     """Analyze the given test result and return its verdict.
 
-    :param ExecutionResult test_result: result of test execution
+    :param CompletedProcess test_result: result of test execution
     :param str harness: path to harness file
     :param Specification specification: specification to check result against
     :return: tuple of the verdict of the test execution and the violated property, if any.
@@ -679,7 +645,7 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 if __name__ == "__main__":
     try:
-        sys.exit(run())
+        run()
     except ValidationError as e:
         logging.error(e.msg)
         print("Verification result: ERROR.")

@@ -96,7 +96,7 @@ public class InputOutputValues {
   private Set<String> outputVariables;
   LogManager logger;
 
-
+  @SuppressWarnings("StringSplitter")
   public InputOutputValues(String inputInterface, String outputInterface, LogManager logger) {
     inputVariables = new TreeSet<>();
     this.logger = logger;
@@ -115,7 +115,7 @@ public class InputOutputValues {
     }
 
   }
-
+  @SuppressWarnings("StringSplitter")
   private BigInteger getValueFromComment(CFAEdgeWithAssumptions edge) {
     String comment = edge.getComment().replaceAll("\\s+", "");
     String[] resArray = comment.split("=");
@@ -152,7 +152,7 @@ public class InputOutputValues {
 
   public List<TestCaseVariable> extractOutputValues(CounterexampleInfo cex) {
     if (outputVariables == null || outputVariables.isEmpty()) {
-      return Collections.emptyList();
+      return new ArrayList<TestCaseVariable>();
     }
     Set<String> tmpOutputVariables = new LinkedHashSet<>(outputVariables);
     List<TestCaseVariable> variableToValueAssignments = new ArrayList<>();
@@ -190,7 +190,7 @@ public class InputOutputValues {
     return variableToValueAssignments;
   }
 
-
+  @SuppressWarnings("StringSplitter")
   public void tryGetInputValueFromFunctionCallEdge(
       CFunctionCallEdge fEdge,
       Set<String> tempInputs,
@@ -229,7 +229,7 @@ public class InputOutputValues {
         }
       }
   }
-
+  @SuppressWarnings("StringSplitter")
   public void tryGetInputValueFromStatementEdge(
       CStatementEdge statementEdge,
       Set<String> tempInputs,

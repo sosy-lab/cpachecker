@@ -35,7 +35,9 @@ interface AutomatonExpression<T> {
       // replace $location
       str = str.replaceAll("\\$[Ll]ocation", pArgs.getCfaEdge().getFileLocation().toString());
       // replace $file
-      str = str.replaceAll("\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName());
+      str =
+          str.replaceAll(
+              "\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName().toString());
       // replace $states
       str = str.replaceAll("\\$[Ss]tates", pArgs.getAbstractStates().toString());
       // replace Transition Variables and AutomatonVariables

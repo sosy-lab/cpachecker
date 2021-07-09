@@ -49,7 +49,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -58,6 +57,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1149,13 +1149,10 @@ public class AutomatonGraphmlParser {
         GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENTERLOOPHEAD);
     if (!loopHeadFlags.isEmpty()) {
       Set<Boolean> loopHeadFlagValues =
-          loopHeadFlags.stream().map(Boolean::parseBoolean).collect(Collectors.toSet());
+          Collections3.transformedImmutableSetCopy(loopHeadFlags, Boolean::parseBoolean);
       if (loopHeadFlagValues.size() > 1) {
         throw new WitnessParseException(
-            "Conflicting values for the flag "
-                + KeyDef.ENTERLOOPHEAD
-                + ": "
-                + loopHeadFlags.toString());
+            "Conflicting values for the flag " + KeyDef.ENTERLOOPHEAD + ": " + loopHeadFlags);
       }
       if (loopHeadFlagValues.iterator().next()) {
         return true;
@@ -2222,7 +2219,7 @@ public class AutomatonGraphmlParser {
   private static String getMessage(Throwable pException) {
     String message = pException.getMessage();
     if (message == null) {
-      message = "Exception occurred, but details are unknown: " + pException.toString();
+      message = "Exception occurred, but details are unknown: " + pException;
     }
     if (pException instanceof IOException) {
       return String.format("Error while accessing witness file: %s!", message);

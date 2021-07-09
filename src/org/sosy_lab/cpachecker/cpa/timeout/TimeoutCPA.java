@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
-@Options(prefix = "timeout")
 public class TimeoutCPA extends AbstractCPA {
 
   // @Option(secure = true, name = "walltime", description = "Set the timeout length in seconds")

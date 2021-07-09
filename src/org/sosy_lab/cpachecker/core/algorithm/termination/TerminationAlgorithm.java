@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -91,7 +90,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -214,8 +212,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     statistics.algorithmStarted();
     try {
@@ -226,8 +223,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
   }
 
-  private AlgorithmStatus run0(ReachedSet pReachedSet)
-      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
+  private AlgorithmStatus run0(ReachedSet pReachedSet) throws InterruptedException, CPAException {
     logger.log(Level.INFO, "Starting termination algorithm.");
 
     if (cfa.getLanguage() != Language.C) {
@@ -283,7 +279,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private Result proveLoopTermination(ReachedSet pReachedSet, Loop pLoop, CFANode initialLocation)
-      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
 
     logger.logf(Level.FINE, "Prooving (non)-termination of %s", pLoop);
     Set<RankingRelation> rankingRelations = new HashSet<>();
@@ -548,7 +544,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private AlgorithmStatus checkRecursion(CFANode initialLocation)
-      throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     statistics.analysisOfRecursionStarted();
 
@@ -611,10 +607,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
 
       Collection<ARGState> parentLoopStates =
-          next.getParents()
-              .stream()
+          next.getParents().stream()
               .filter(p -> extractStateByType(p, TerminationState.class).isPartOfLoop())
-              .collect(Collectors.toList());
+              .collect(ImmutableList.toImmutableList());
 
       if (parentLoopStates.isEmpty()) {
         firstLoopStates.add(next);

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -177,7 +176,7 @@ public class SMGCPA
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
     } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+      throw new AssertionError(exc);
     }
 
     if (pNode instanceof CFunctionEntryNode) {
@@ -186,7 +185,7 @@ public class SMGCPA
         initState.addStackFrame(functionNode.getFunctionDefinition());
         initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
       } catch (SMGInconsistentException exc) {
-        logger.log(Level.SEVERE, exc.getMessage());
+        throw new AssertionError(exc);
       }
     }
 

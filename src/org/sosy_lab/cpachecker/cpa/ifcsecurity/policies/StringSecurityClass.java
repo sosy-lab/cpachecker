@@ -29,7 +29,7 @@ public class StringSecurityClass extends SecurityClasses{
 
   @Override
   public String toString(){
-    return this.sc.toString();
+    return this.sc;
   }
 
   @Override

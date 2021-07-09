@@ -235,7 +235,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      if(!options.useMemoryRegions()) {
+      if (!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
@@ -532,8 +532,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           //TODO someone has to check if length must be fixed to string size here if yes replace with stringExp.tranformTypeToArrayType
           lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
-          throw new UnrecognizedCodeException(
-              "Assigning string literal to " + lhsType.toString(), assignment);
+          throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
 
         List<CCharLiteralExpression> chars = ((CStringLiteralExpression) rhs).expandStringLiteral(lhsArrayType);

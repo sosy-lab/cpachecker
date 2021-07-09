@@ -70,3 +70,4 @@
 	<classpathentry kind="lib" path="lib/jackson-all-1.9.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
+

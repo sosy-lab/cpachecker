@@ -135,7 +135,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
   private void createDefaultTestCases() {
     if (tigerConfig.getNumberOfDefaultTestCases() > 0) {
-      int lastValue = 1;
       for (int i = 0; i < tigerConfig.getNumberOfDefaultTestCases(); i++) {
 
         List<TestCaseVariable> inputs = new ArrayList<>();
@@ -146,12 +145,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         }
         TestCase tc = new TestCase(inputs, Collections.emptyList(), null, null, null);
         testsuite.addTestCase(tc, null);
-
-        if (i % 2 == 0) {
-          lastValue *= -1;
-        } else {
-          lastValue *= 100;
-        }
       }
 
     }
@@ -191,7 +184,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
   }
-
+  @SuppressWarnings("FormatStringAnnotation")
   private boolean testGeneration(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     boolean wasSound = true;
     // run reachability analsysis for each partition

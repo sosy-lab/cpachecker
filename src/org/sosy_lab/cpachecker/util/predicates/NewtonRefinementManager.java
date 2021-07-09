@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -26,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -215,10 +216,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // Create the list of path
     List<BooleanFormula> pathFormulas =
-        pathLocations
-            .stream()
-            .map(l -> l.getPathFormula().getFormula())
-            .collect(Collectors.toList());
+        transformedImmutableListCopy(pathLocations, l -> l.getPathFormula().getFormula());
 
     assert isFeasible(pFormulas.getFormulas(), pPath) == isFeasible(pathFormulas, pPath);
 
@@ -254,12 +252,10 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // Filter pathlocations to only abstractionstate locations
     Iterator<PathLocation> abstractionLocations =
-        pPathLocations
-            .stream()
+        pPathLocations.stream()
             .filter(l -> l.hasAbstractionState())
-            .collect(Collectors.toList())
+            .collect(ImmutableList.toImmutableList())
             .iterator();
-
 
     BooleanFormula pred = bfmgr.makeTrue();
     for (BooleanFormula pathFormula : pFormulas.getFormulas()) {
@@ -620,7 +616,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
               : Optional.empty();
       // Build PathFormula
       try {
-        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), lastEdge);
+        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContextFrom(pathFormula), lastEdge);
       } catch (CPATransferException e) {
         // Failed to compute the Pathformula
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
@@ -709,9 +705,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     public String toString() {
       return (lastEdge != null
               ? lastEdge.toString()
-              : ("First State: " + state.orElseThrow().toDOTLabel()))
-          + ", PathFormula: "
-          + pathFormula.toString();
+              : ("First State: " + state.orElseThrow().toDOTLabel())) + ", PathFormula: " + pathFormula;
     }
   }
 

@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -82,6 +83,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The Constructor of BDDVectorTransferRelation sets the NamedRegionManager and the
    * BitVectorManager. Both are used to build and manipulate BDDs, that represent the regions.
    */
+  @SuppressWarnings("StaticAssignmentInConstructor") 
   public BDDTransferRelation(
       NamedRegionManager manager,
       BitvectorManager pBvmgr,
@@ -160,7 +162,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (lhs instanceof CIdExpression) {
       varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
     } else {
-      varName = functionName + "::" + lhs.toString();
+      varName = functionName + "::" + lhs;
     }
 
     final CType targetType = lhs.getExpressionType();
@@ -255,10 +257,14 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
        * example: "scanf("%d", &input);" */
-      if (param instanceof CUnaryExpression &&
-              UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator() &&
-              ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
-        final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
+      CExpression unpackedParam = param;
+      while (unpackedParam instanceof CCastExpression) {
+        unpackedParam = ((CCastExpression) param).getOperand();
+      }
+      if (unpackedParam instanceof CUnaryExpression
+          && UnaryOperator.AMPER == ((CUnaryExpression) unpackedParam).getOperator()
+          && ((CUnaryExpression) unpackedParam).getOperand() instanceof CIdExpression) {
+        final CIdExpression id = (CIdExpression) ((CUnaryExpression) unpackedParam).getOperand();
         final Region[] var = predmgr.createPredicate(scopeVar(id), id.getExpressionType(), successor, bitsize, precision); // is default bitsize enough?
         currentState = currentState.forget(var);
 
@@ -267,7 +273,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         // TODO: can we do something here?
       }
     }
-    return state;
+    return currentState;
   }
 
   /** This function handles declarations like "int a = 0;" and "int b = !a;".

@@ -112,7 +112,7 @@ public class AutomatonGraphmlCommon {
     private final String name;
 
     AssumeCase(String pName) {
-      this.name = pName;
+      name = pName;
     }
 
     public String getName() {
@@ -165,8 +165,11 @@ public class AutomatonGraphmlCommon {
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
     WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
     INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string"),
+
+    // KeyDefs for extended witness format:
     NOTE("note", ElementType.EDGE, "note", "string"),
-    WARNING("warning", ElementType.EDGE, "warning", "string");
+    WARNING("warning", ElementType.EDGE, "warning", "string"),
+    DECL("declaration", ElementType.EDGE, "declaration", "boolean", false);
 
     public final String id;
     public final ElementType keyFor;
@@ -176,23 +179,23 @@ public class AutomatonGraphmlCommon {
     /** The defaultValue is non-null, iff existent. */
     @Nullable public final String defaultValue;
 
-    KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
-      this(id, pKeyFor, attrName, attrType, null);
+    KeyDef(String pId, ElementType pKeyFor, String pAttrName, String pAttrType) {
+      this(pId, pKeyFor, pAttrName, pAttrType, null);
     }
 
     // because of https://github.com/spotbugs/spotbugs/issues/616
     @SuppressFBWarnings("NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
     KeyDef(
-        String id,
+        String pId,
         ElementType pKeyFor,
-        String attrName,
-        String attrType,
-        @Nullable Object defaultValue) {
-      this.id = Preconditions.checkNotNull(id);
-      this.keyFor = Preconditions.checkNotNull(pKeyFor);
-      this.attrName = Preconditions.checkNotNull(attrName);
-      this.attrType = Preconditions.checkNotNull(attrType);
-      this.defaultValue = defaultValue == null ? null : defaultValue.toString();
+        String pAttrName,
+        String pAttrType,
+        @Nullable Object pDefaultValue) {
+      id = Preconditions.checkNotNull(pId);
+      keyFor = Preconditions.checkNotNull(pKeyFor);
+      attrName = Preconditions.checkNotNull(pAttrName);
+      attrType = Preconditions.checkNotNull(pAttrType);
+      defaultValue = pDefaultValue == null ? null : pDefaultValue.toString();
     }
 
     @Override
@@ -225,8 +228,8 @@ public class AutomatonGraphmlCommon {
 
     public final KeyDef key;
 
-    NodeFlag(KeyDef key) {
-      this.key = key;
+    NodeFlag(KeyDef pKey) {
+      key = pKey;
     }
 
     private static final Map<String, NodeFlag> stringToFlagMap = new HashMap<>();
@@ -249,8 +252,8 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    WitnessType(String text) {
-      this.text = text;
+    WitnessType(String pText) {
+      text = pText;
     }
 
     @Override
@@ -283,8 +286,8 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    NodeType(String text) {
-      this.text = text;
+    NodeType(String pText) {
+      text = pText;
     }
 
     @Override
@@ -309,8 +312,8 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    GraphMLTag(String text) {
-      this.text = text;
+    GraphMLTag(String pText) {
+      text = pText;
     }
 
     @Override
@@ -346,7 +349,7 @@ public class AutomatonGraphmlCommon {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
-      this.doc = docBuilder.newDocument();
+      doc = docBuilder.newDocument();
       Element root = doc.createElement("graphml");
       doc.appendChild(root);
       root.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
@@ -672,7 +675,7 @@ public class AutomatonGraphmlCommon {
     if (isMainFunctionEntry(pEdge)
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
-      if (!FileLocation.DUMMY.equals(location)) {
+      if (location.isRealLocation()) {
         location =
             new FileLocation(
                 location.getFileName(),
@@ -694,7 +697,7 @@ public class AutomatonGraphmlCommon {
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
       FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
-      if (!FileLocation.DUMMY.equals(statementLocation)) {
+      if (statementLocation.isRealLocation()) {
         return Collections.singleton(statementLocation);
       }
     }
@@ -706,7 +709,7 @@ public class AutomatonGraphmlCommon {
         if (call instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement statement = (AFunctionCallAssignmentStatement) call;
           FileLocation callLocation = statement.getRightHandSide().getFileLocation();
-          if (!FileLocation.DUMMY.equals(callLocation)) {
+          if (callLocation.isRealLocation()) {
             return Collections.singleton(callLocation);
           }
         }
@@ -718,7 +721,7 @@ public class AutomatonGraphmlCommon {
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
         FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
-        if (!FileLocation.DUMMY.equals(switchLocation)) {
+        if (switchLocation.isRealLocation()) {
           location = switchLocation;
         } else {
           SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
@@ -730,7 +733,7 @@ public class AutomatonGraphmlCommon {
         }
 
       }
-      if (!FileLocation.DUMMY.equals(location)) {
+      if (location.isRealLocation()) {
         return Collections.singleton(location);
       }
     }
@@ -819,8 +822,9 @@ public class AutomatonGraphmlCommon {
         BlankEdge edge = (BlankEdge) pEdge;
         String switchPrefix = "switch (";
         if (edge.getDescription().equals(switchPrefix + switchOperand + ")")
-            && !FileLocation.DUMMY.equals(edge.getFileLocation())
-            && assumeExpression.getFileLocation().getNodeOffset() == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
+            && edge.getFileLocation().isRealLocation()
+            && assumeExpression.getFileLocation().getNodeOffset()
+                == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
           switchNode = edge.getSuccessor();
           return TraversalProcess.ABORT;
         }

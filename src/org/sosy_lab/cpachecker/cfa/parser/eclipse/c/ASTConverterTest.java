@@ -173,6 +173,11 @@ public class ASTConverterTest {
     check("18446744073709551615", "0xFFFFFFFFFFFFFFFFu");
     check("18446711088360718336", "0xffffe20000000000U");
     check("18446604435732824064", "0xffff810000000000U");
+
+    check("0", "0b0");
+    check("0", "0B0");
+    check("255", "0b11111111");
+    check("255", "0B11111111");
   }
 
   private void check(String expected, String input) {

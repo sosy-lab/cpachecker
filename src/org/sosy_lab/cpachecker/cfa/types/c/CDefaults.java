@@ -42,11 +42,13 @@ public final class CDefaults {
         return initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
 
       case DOUBLE:
+      case FLOAT128:
       case FLOAT:
         return initializerFor(new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
 
       case UNSPECIFIED:
       case BOOL:
+      case INT128:
       case INT:
         return initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
 

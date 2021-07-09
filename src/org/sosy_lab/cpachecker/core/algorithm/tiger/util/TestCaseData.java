@@ -115,7 +115,7 @@ public class TestCaseData {
 
   @Override
   public String toString() {
-    StringBuffer str = new StringBuffer();
+    StringBuilder str = new StringBuilder();
 
     str.append("TestCase ").append(id);
     if (presenceCondition != null && !presenceCondition.isEmpty()) {

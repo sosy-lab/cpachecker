@@ -120,6 +120,12 @@ with considerably less effort -->
         <!--shown iff property analysis.algorithm.FaultLocalization=true-->
         <div id="fault-localization-info" ng-hide="hideFaults" class="horizontal-div">
           <button id="fault-button" class="btn btn-success" ng-click="faultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
+          <div class="help_button" data-toggle="tooltip" data-placement="top" title="Get help!">
+            <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="bottom" data-trigger="focus"
+               data-content="{{help_fault_localization}}" class="btn btn-outline-info btn-lg help_button">
+              <i class="fas fa-question-circle"></i>
+            </a>
+          </div>
         </div>
         <div id="matches">
           <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
@@ -130,17 +136,33 @@ with considerably less effort -->
         <table id="err-table" ng-hide="hideErrorTable">
           <tr id="errpath-header" ng-hide="hideFaults"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
           <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
-            <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
+            <td ng-if="line.valString" ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
             </td>
-	          <td ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="right" data-content="{{line.bestreason}}">
+            <td ng-if="!line.valString">
+            </td>
+	          <td ng-if="line.bestrank" ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="right" data-content="{{line.bestreason}}">
               <pre>{{line.bestrank}}</pre>
+            </td>
+	          <td ng-if="!line.bestrank" ng-hide="hideFaults"class="rank" tabindex="0">
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
               <pre class="make-pretty">{{line.desc}}</pre>
             </td>
           </tr>
         </table>
+          <table class="fault-table" ng-show="hideErrorTable && hasPrecondition">
+            <tr>
+              <td class="fault-precond-header">
+                Precondition (initial variable assignment):
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p class="precondition">{{precondition}}</p>
+              </td>
+            </tr>
+          </table>
           <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
             <tr>
               <td class="fault-rank" data-toggle="tooltip" data-placement="bottom" title="Rank">
@@ -163,7 +185,7 @@ with considerably less effort -->
                     <strong>Current values:</strong>
                   </summary>
                   <table id="fault-values" class="value-table">
-                    <th><td>Name</td><td>Value</td></th>
+                    <tr><th>Name</th><th>Value</th></tr>
                     <tr ng-repeat="(variable,value) in fault.valDict">
                       <td ng-bind-html="htmlTrusted(variable)"></td>
                       <td ng-bind-html="htmlTrusted(value)"></td>
@@ -220,7 +242,7 @@ with considerably less effort -->
       </ul>
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
-        <nav class="navbar navbar-light bg-light">slid
+        <nav class="navbar navbar-light bg-light">
           <div class="nav-item">
             <label>
               <strong>Displayed CFA</strong>
@@ -301,7 +323,7 @@ with considerably less effort -->
                 <a ng-click="setSourceFile($index)">{{file}}</a>
               </li>
             </ul>
-          </div>slid
+          </div>
           <label>
             <strong>{{sourceFiles[selectedSourceFile]}}</strong>
           </label>

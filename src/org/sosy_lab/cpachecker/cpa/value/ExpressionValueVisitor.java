@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -256,6 +258,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
+  @Override
+  public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
+    return UnknownValue.getInstance();
+  }
+
   protected static class MemoryLocationEvaluator
       extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCodeException> {
 
@@ -266,7 +273,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     @Override
-    protected MemoryLocation visitDefault(CExpression pExp) throws UnrecognizedCodeException {
+    protected MemoryLocation visitDefault(CExpression pExp) {
       return null;
     }
 

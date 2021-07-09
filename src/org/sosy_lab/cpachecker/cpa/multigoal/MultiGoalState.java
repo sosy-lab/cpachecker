@@ -128,7 +128,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable, Wea
     negatedPathStates =
         pNegatedPathStates == null
             ? ImmutableMap.copyOf(Collections.emptySet())
-            : ImmutableMap.copyOf((pNegatedPathStates));
+            : ImmutableMap.copyOf(pNegatedPathStates);
 
     weavedEdges = pWeavedEdges == null ? Collections.emptySet() : new HashSet<>(pWeavedEdges);
     variablesToWeave =
@@ -266,17 +266,17 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable, Wea
     }
     MultiGoalState other = (MultiGoalState)pObj;
 
-    if (other.goalStates == null && this.goalStates == null
+    if ((other.goalStates == null && this.goalStates == null)
         || !other.goalStates.entrySet().equals(this.goalStates.entrySet())) {
       return false;
     }
 
-    if (other.negatedPathStates == null && this.negatedPathStates == null
+    if ((other.negatedPathStates == null && this.negatedPathStates == null)
         || !other.negatedPathStates.entrySet().equals(this.negatedPathStates.entrySet())) {
       return false;
     }
 
-    if (other.getCoveredGoal() == null && this.getCoveredGoal() == null
+    if ((other.getCoveredGoal() == null && this.getCoveredGoal() == null)
         || !other.getCoveredGoal().equals(this.getCoveredGoal())) {
       return false;
     }

@@ -80,7 +80,7 @@ public class TestSuiteData {
 
   @Override
   public String toString() {
-    StringBuffer str = new StringBuffer();
+    StringBuilder str = new StringBuilder();
 
     str.append("Number of Testcases: ").append(numberOfTestCases).append("\n\n");
 

@@ -316,7 +316,7 @@ public class TigerTest {
       assertTrue(exp.checkProperties(testSuite));
     }
   }
-
+@Test
   public void testPredicateEmailSimulatorForTimeout() throws Exception {
     Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
@@ -554,52 +554,6 @@ public class TigerTest {
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
     for (ExpectedGoalProperties exp : exampleGoalProperties) {
       assertTrue(exp.checkProperties(testSuite));
-    }
-  }
-
-  @Test
-  public void testValueExampleAllCoveredGoals() throws Exception {
-    Map<String, String> prop = TigerTestUtil.getConfigurationFromPropertiesFile(
-        new File("config/tiger-variants-value.properties"));
-    prop.put("tiger.inputInterface", "x,y,z");
-    prop.put("tiger.outputInterface", "tmp");
-    prop.put("tiger.coverageCheck", "All");
-    prop.put("tiger.fqlQuery", "Goals: G1, G2, G3");
-
-    TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
-    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
-
-    assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite<? extends Goal> testSuite = (TestSuite<?>) result;
-
-    assertTrue(testSuite.getNumberOfTestCases() == 2);
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 3);
-
-    Iterator<TestCase> iter = testSuite.getTestCases().iterator();
-    TestCase tc1 = iter.next();
-    TestCase tc2 = iter.next();
-    assertTrue(
-        (testSuite.getTestGoalsForTestcase(tc1).size() == 2
-            && testSuite.getTestGoalsForTestcase(tc2).size() == 2));
-
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
-    for (ExpectedGoalProperties exp : exampleGoalProperties) {
-      assertTrue(exp.checkProperties(testSuite));
-    }
-    List<String> goalsToBeCovered = Lists.newLinkedList();
-    goalsToBeCovered.add("G1");
-    goalsToBeCovered.add("G2");
-    for(TestCase t : testSuite.getMapping().keySet()){
-      Set<? extends Goal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
-      List<String> goalLabels = Lists.newLinkedList();
-      for (Goal g : coveredGoals) {
-        goalLabels.add(g.getName());
-      }
-      assertThat(goalsToBeCovered.size()==goalLabels.size());
-      for(String goal : goalsToBeCovered) {
-        assertThat(goalLabels.contains(goal));
-      }
     }
   }
 

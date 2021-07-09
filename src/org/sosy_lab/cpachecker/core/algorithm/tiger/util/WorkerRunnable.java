@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import javax.management.JMException;
 import org.sosy_lab.common.ShutdownManager;
@@ -55,7 +55,7 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
     algorithm = pAlgorithm;
     localReachedSet = pReachedSet;
     timeoutCPA = pTimeoutCPA;
-    List<ResourceLimit> limits = new LinkedList<>();
+    List<ResourceLimit> limits = new ArrayList<>();
     ProcessCpuTimeLimit limit;
     try {
       limit =

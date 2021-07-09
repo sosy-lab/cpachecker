@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
-import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -32,7 +32,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -59,6 +58,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -105,7 +105,7 @@ public class ReportGenerator {
     name = "report.file",
     description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reportFile = Paths.get("Report.html");
+  private Path reportFile = Path.of("Report.html");
 
   @Option(
     secure = true,
@@ -170,20 +170,25 @@ public class ReportGenerator {
       return;
     }
 
+    ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
+
     extractWitness(pResult, pCfa, pReached);
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
       buildArgGraphData(pReached);
-      buildRelevantArgGraphData(pReached);
-      buildReducedArgGraphData();
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        // makes no sense to create other data structures that we will not show anyway
+        buildRelevantArgGraphData(pReached);
+        buildReducedArgGraphData();
+      }
     }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
-        fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        fillOutTemplate(null, reportFile, pCfa, allInputFiles, dotBuilder, pStatistics);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
@@ -193,6 +198,7 @@ public class ReportGenerator {
             counterExample,
             counterExampleFiles.getPath(counterExample.getUniqueId()),
             pCfa,
+            allInputFiles,
             dotBuilder,
             pStatistics);
       }
@@ -216,7 +222,7 @@ public class ReportGenerator {
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
       if (rootStates.size() != 1) {
-        logger.log(Level.INFO, "Could not determine ARG root for witness view");
+        logger.log(Level.FINER, "Could not determine ARG root for witness view");
         return;
       }
       ARGState rootState = rootStates.iterator().next();
@@ -240,6 +246,7 @@ public class ReportGenerator {
       @Nullable CounterexampleInfo counterExample,
       Path reportPath,
       CFA cfa,
+      Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       String statistics) {
 
@@ -256,11 +263,11 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertJs(writer, cfa, dotBuilder, counterExample);
+          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(writer);
+          insertSources(writer, allInputFiles);
         } else if (line.contains("LOG")) {
           insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
@@ -285,6 +292,7 @@ public class ReportGenerator {
   private void insertJs(
       Writer writer,
       CFA cfa,
+      Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
@@ -298,7 +306,7 @@ public class ReportGenerator {
         } else if (line.contains("ARG_JSON_INPUT")) {
           insertArgJson(writer);
         } else if (line.contains("SOURCE_FILES")) {
-          insertSourceFileNames(writer);
+          insertSourceFileNames(writer, allInputFiles);
         } else {
           writer.write(line);
           writer.write('\n');
@@ -341,6 +349,8 @@ public class ReportGenerator {
         counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
+        writer.write(",\n\"precondition\":");
+        flInfo.writePrecondition(writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -462,17 +472,17 @@ public class ReportGenerator {
     writer.write(exitTableLine);
   }
 
-  private void insertSources(Writer report) throws IOException {
+  private void insertSources(Writer report, Iterable<Path> allSources) throws IOException {
     int index = 0;
-    for (String sourceFile : sourceFiles) {
-      insertSource(Paths.get(sourceFile), report, index);
+    for (Path sourceFile : allSources) {
+      insertSource(sourceFile, report, index);
       index++;
     }
   }
 
   private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
       throws IOException {
-    if (isReadable(sourcePath)) {
+    if (Files.isReadable(sourcePath) && !Files.isDirectory(sourcePath)) {
       int lineNumber = 1;
       try (BufferedReader source =
           new BufferedReader(
@@ -587,10 +597,35 @@ public class ReportGenerator {
     }
   }
 
-  private void insertSourceFileNames(Writer writer) throws IOException {
+  private void insertSourceFileNames(Writer writer, Iterable<Path> allSourceFiles)
+      throws IOException {
     writer.write("var sourceFiles = ");
-    JSON.writeJSONString(sourceFiles, writer);
+    JSON.writeJSONString(allSourceFiles, writer);
     writer.write(";\n");
+  }
+
+  /** Returns ordered set of input files that were relevant for this verification run. */
+  private ImmutableSet<Path> getAllInputFiles(CFA cfa) {
+    // Typically, input files are given on the command line (and appear in sourceFiles).
+    // However, this list can also include directories, and it can miss files that are #included.
+    // So we augment it with files from the file locations in the CFA.
+    // Selecting file locations from all function definitions does not find all files,
+    // it misses included header that do not happen to define functions, just other definitions and
+    // macros. But this actually seems like a good thing to not add lots of useless system headers.
+
+    Set<FileLocation> allLocations =
+        FluentIterable.of(cfa.getMainFunction()) // We want this as first element
+            .append(cfa.getAllFunctionHeads())
+            .transform(FunctionEntryNode::getFileLocation)
+            .filter(FileLocation::isRealLocation)
+            .toSet();
+
+    return FluentIterable.concat(
+            Collections2.transform(sourceFiles, Path::of),
+            Collections2.transform(allLocations, FileLocation::getFileName))
+        .filter(path -> Files.isReadable(path))
+        .filter(path -> !Files.isDirectory(path))
+        .toSet();
   }
 
   /** Build ARG data for all ARG states in the reached set. */

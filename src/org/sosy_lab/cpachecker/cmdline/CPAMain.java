@@ -10,12 +10,10 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -32,7 +30,6 @@ import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -257,7 +254,7 @@ public class CPAMain {
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
+    private Path configurationOutputFile = Path.of("UsedConfiguration.properties");
 
     @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
@@ -265,7 +262,7 @@ public class CPAMain {
     @Option(secure=true, name="statistics.file",
         description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path exportStatisticsFile = Paths.get("Statistics.txt");
+    private Path exportStatisticsFile = Path.of("Statistics.txt");
 
     @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
@@ -364,7 +361,7 @@ public class CPAMain {
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
-    String filename = Paths.get(configFilename).getFileName().toString();
+    String filename = Path.of(configFilename).getFileName().toString();
     // remove the extension (most likely ".properties")
     return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
   }
@@ -446,7 +443,7 @@ public class CPAMain {
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
       ImmutableMap.<Property, TestTargetType>builder()
-          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.TEST_COMP_ASSUME)
           .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
           .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
           .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
@@ -559,6 +556,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
+          .put(CommonPropertyType.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
@@ -571,7 +569,7 @@ public class CPAMain {
             .splitToList(cmdLineOptions.getOrDefault(SPECIFICATION_OPTION, ""));
 
     List<String> propertyFiles =
-        specificationFiles.stream().filter(file -> file.endsWith(".prp")).collect(toList());
+        from(specificationFiles).filter(file -> file.endsWith(".prp")).toList();
     if (propertyFiles.isEmpty()) {
       return ImmutableSet.of();
     }
@@ -581,7 +579,7 @@ public class CPAMain {
     String propertyFile = propertyFiles.get(0);
 
     // Parse property files
-    PropertyFileParser parser = new PropertyFileParser(Paths.get(propertyFile));
+    PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
@@ -651,6 +649,12 @@ public class CPAMain {
     )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path correctnessWitnessValidationConfig = null;
+
+    @Option(
+        secure = true,
+        name = "witness.validation.correctness.isa",
+        description = "Use correctness witness as invariants specification automaton (ISA).")
+    private boolean validateInvariantsSpecificationAutomaton = false;
   }
 
   private static Configuration handleWitnessOptions(
@@ -667,15 +671,16 @@ public class CPAMain {
     switch (witnessType) {
       case VIOLATION_WITNESS:
         validationConfigFile = options.violationWitnessValidationConfig;
-        String specs = overrideOptions.get(SPECIFICATION_OPTION);
-        String witnessSpec = options.witness.toString();
-        specs = specs == null ? witnessSpec : Joiner.on(',').join(specs, witnessSpec);
-        overrideOptions.put(SPECIFICATION_OPTION, specs);
+        appendWitnessToSpecificationOption(options, overrideOptions);
         break;
       case CORRECTNESS_WITNESS:
         validationConfigFile = options.correctnessWitnessValidationConfig;
+        if (options.validateInvariantsSpecificationAutomaton) {
+          appendWitnessToSpecificationOption(options, overrideOptions);
+        } else {
         overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
+        }
         break;
       default:
         throw new InvalidConfigurationException(
@@ -701,7 +706,15 @@ public class CPAMain {
     return configBuilder.build();
   }
 
-  @SuppressWarnings("resource")
+  private static void appendWitnessToSpecificationOption(
+      WitnessOptions pOptions, Map<String, String> pOverrideOptions) {
+    String specs = pOverrideOptions.get(SPECIFICATION_OPTION);
+    String witnessSpec = pOptions.witness.toString();
+    specs = specs == null ? witnessSpec : (specs + "," + witnessSpec);
+    pOverrideOptions.put(SPECIFICATION_OPTION, specs);
+  }
+
+  @SuppressWarnings("deprecation")
   private static void printResultAndStatistics(
       CPAcheckerResult mResult,
       String outputDirectory,

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -105,7 +105,7 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
       throw e2;
     }
 
-    SMGSymbolicValue value = symbolicValueAndState.getObject();
+    SMGValue value = symbolicValueAndState.getObject();
     setState(symbolicValueAndState.getSmgState());
 
     if (value.isUnknown()) {

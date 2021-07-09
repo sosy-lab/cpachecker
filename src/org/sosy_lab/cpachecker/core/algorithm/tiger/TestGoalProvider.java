@@ -66,13 +66,13 @@ public class TestGoalProvider {
     logger = pLogger;
     this.reduceGoals = reduceGoals;
   }
-
+  @SuppressWarnings("UnnecessaryLambda")
   private Predicate<CFAEdge> getStatementCriterion() {
     return edge -> edge.getEdgeType() == CFAEdgeType.DeclarationEdge
         || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
         || edge.getEdgeType() == CFAEdgeType.StatementEdge;
   }
-
+  @SuppressWarnings("UnnecessaryLambda")
   private Predicate<CFAEdge> getErrorCriterion() {
     return edge -> edge instanceof CStatementEdge
         && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
@@ -81,7 +81,7 @@ public class TestGoalProvider {
             .toASTString()
             .equals("__VERIFIER_error");
   }
-
+  @SuppressWarnings("UnnecessaryLambda")
   private Predicate<CFAEdge> getAssumeEdgeCriterion() {
     return edge -> edge instanceof AssumeEdge;
   }
@@ -170,7 +170,7 @@ public class TestGoalProvider {
     return newGoals;
   }
 
-
+  @SuppressWarnings("StringSplitter")
   private Set<CFAGoal> extractGoalsFromList(String fqlQuery, CFA cfa) {
     String query = fqlQuery.substring(goalPrefix.length());
     String[] goals = query.split(",");

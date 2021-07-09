@@ -45,7 +45,7 @@ public class ControlDependencyTrackerState
 
     sb.append("{");
     sb.append("\\n");
-    sb.append("[Guards]="+guards.toString());
+    sb.append("[Guards]=" + guards);
     sb.append("\\n");
     sb.append("}");
     sb.append("\\n");

@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -198,7 +199,7 @@ public class TestSuiteWriter {
     builder.append("</architecture>\n");
 
     builder.append("\t<creationtime>");
-    builder.append(ZonedDateTime.now().withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+    builder.append(ZonedDateTime.now(ZoneId.systemDefault()).withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
     builder.append("</creationtime>\n");
 
     builder.append("</test-metadata>");

@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TigerTestUtil {
-
+  @SuppressWarnings("StringSplitter")
   public static Map<String, String> getConfigurationFromPropertiesFile(
       File propertiesFile) {
     Map<String, String> configuration = new HashMap<>();
@@ -73,7 +73,6 @@ public class TigerTestUtil {
 
         configuration.put(pair[0], pair[1]);
       }
-      reader.close();
     } catch (IOException e) {
       return null;
     }

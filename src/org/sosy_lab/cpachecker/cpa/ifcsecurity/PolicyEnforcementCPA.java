@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
@@ -84,11 +83,11 @@ public class PolicyEnforcementCPA implements ConfigurableProgramAnalysis {
 
   @Option(secure=true, name="scMappingFile", toUppercase=false, description="which betamapfile to use for PolicyEnforcementCPA")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path scMappingFile=Paths.get("betamap.conf");
+  private Path scMappingFile=Path.of("betamap.conf");
 
   @Option(secure=true, name="immediatechecksfile", toUppercase=false, description="which immediatechecksfile to use for PolicyEnforcementCPA")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path immediatechecksfile=Paths.get("immediatechecks.conf");
+  private Path immediatechecksfile=Path.of("immediatechecks.conf");
 
   @Option(secure=true, name="defaultsc", toUppercase=true, description="which default SecurityClass to use for PolicyEnforcementCPA")
   private String defaultSC="LOW";

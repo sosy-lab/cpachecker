@@ -79,7 +79,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
       for (CFAEdge edge : prefix) {
         pf = pfmgr.makeAnd(pf, edge);
         formulas.add(pf.getFormula());
-        pf = pfmgr.makeEmptyPathFormula(pf);
+        pf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf);
       }
       pf = pfmgr.makeAnd(pf, CFAUtils.getComplimentaryAssumeEdge(lastAssumeEdge));
       formulas.add(pf.getFormula());

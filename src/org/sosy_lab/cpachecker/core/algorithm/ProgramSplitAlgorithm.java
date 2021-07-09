@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.splitter.SplitInfoState;
 import org.sosy_lab.cpachecker.cpa.splitter.SplitterCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -94,7 +93,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
 
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException {
     Preconditions.checkArgument(
         pReachedSet.getFirstState() instanceof ARGState,
         "ProgramSplitAlgorithm requires ARG state as top level state.");

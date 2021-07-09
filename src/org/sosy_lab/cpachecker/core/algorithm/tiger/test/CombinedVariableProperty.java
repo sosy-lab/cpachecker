@@ -55,7 +55,7 @@ public abstract class CombinedVariableProperty extends VariableProperty {
       BigInteger value =
           new BigInteger(
               listToCheck.stream()
-                  .filter(v -> v.getName().equals((var)))
+                  .filter(v -> v.getName().equals(var))
                   .findFirst()
                   .get()
                   .getValue());
