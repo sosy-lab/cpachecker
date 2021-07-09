@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorith
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.components.ComponentAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
@@ -318,7 +319,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.faultLocalization.by_traceformula",
-      description = "for found property violation, perform fault localization with trace formulas")
+      description = "for found property violation, perform fault lCoreCocalization with trace formulas")
   boolean useFaultLocalizationWithTraceFormulas = false;
 
   @Option(
@@ -326,6 +327,12 @@ public class CoreComponentsFactory {
       name = "algorithm.faultLocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.configurableComponents",
+      description = "Use fault localization with distance metrics")
+  private boolean useConfigurableComponents = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -631,6 +638,10 @@ public class CoreComponentsFactory {
 
       if (useMPV) {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
+      }
+
+      if (useConfigurableComponents) {
+        algorithm = new ComponentAnalysis(algorithm, config, logger, cfa, shutdownNotifier);
       }
 
       if (useFaultLocalizationWithCoverage) {
