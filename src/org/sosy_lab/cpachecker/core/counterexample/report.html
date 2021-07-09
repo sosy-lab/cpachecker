@@ -136,11 +136,15 @@ with considerably less effort -->
         <table id="err-table" ng-hide="hideErrorTable">
           <tr id="errpath-header" ng-hide="hideFaults"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
           <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
-            <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
+            <td ng-if="line.valString" ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
             </td>
-	          <td ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="right" data-content="{{line.bestreason}}">
+            <td ng-if="!line.valString">
+            </td>
+	          <td ng-if="line.bestrank" ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="right" data-content="{{line.bestreason}}">
               <pre>{{line.bestrank}}</pre>
+            </td>
+	          <td ng-if="!line.bestrank" ng-hide="hideFaults"class="rank" tabindex="0">
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
               <pre class="make-pretty">{{line.desc}}</pre>
