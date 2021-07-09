@@ -20,7 +20,6 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
@@ -65,8 +64,7 @@ public abstract class PredicateAbstractState
    */
   private static class AbstractionState extends PredicateAbstractState
       implements Graphable,
-          FormulaReportingState,
-          ExpressionTreeReportingState {
+      FormulaReportingState {
 
     private static final long serialVersionUID = 8341054099315063986L;
 
@@ -130,7 +128,7 @@ public abstract class PredicateAbstractState
       return super.abstractionFormula.asFormulaFromOtherSolver(pManager);
     }
 
-    @Override
+    // @Override
     public ExpressionTree<Object> getFormulaApproximation(
         FunctionEntryNode pFunctionScope, CFANode pLocation) {
       FormulaManagerView fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();

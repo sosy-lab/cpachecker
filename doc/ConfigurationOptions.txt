@@ -155,6 +155,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -861,6 +862,14 @@ cinvariants.simplify = false
 # in each cycle the time limits per configuration are newly calculated based
 # on the progress
 compositionAlgorithm.circular.adaptTimeLimits = false
+
+# Blocks that should be run in a cycle. value is the last algorithm that
+# belongs to the block;
+compositionAlgorithm.circularBlocks.cycleBlocksIndices = []
+
+# Blocks that should be run in a cycle. value is the cpu time for the full
+# block
+compositionAlgorithm.circularBlocks.cycleBlocksTimeouts = []
 
 # where to store initial condition, when generated
 compositionAlgorithm.condition.file = "AssumptionAutomaton.txt"

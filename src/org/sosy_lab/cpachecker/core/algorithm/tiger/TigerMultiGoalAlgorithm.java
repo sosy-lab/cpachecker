@@ -199,6 +199,11 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     List<Set<CFAGoal>> partitions = partitionProvider.createPartition(goalsToCover, cfa);
     for (int i = 0; i < partitions.size(); i++) {
       Set<CFAGoal> partition = partitions.get(i);
+
+      if (partition.size() == 1) {
+        logger.logf(Level.WARNING, "Goal " + partition.toString());
+      }
+
       // remove covered goals from previous runs
       ReachabilityAnalysisResult result =
           runReachabilityAnalysis(partition, pReachedSet, partitions.size(), partitions);

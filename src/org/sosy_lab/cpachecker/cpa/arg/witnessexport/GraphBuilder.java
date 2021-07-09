@@ -233,6 +233,13 @@ enum GraphBuilder {
       return Joiner.on(",").join(AbstractStates.extractLocations(pState));
     }
 
+    private String getId(ARGState pState, String pIdentPostfix) {
+      return String.format("A%d%s", pState.getStateId(), pIdentPostfix);
+    }
+
+    private String getId(ARGState pState, int pSubStateNo, int pSubStateCount) {
+      return getId(pState, String.format("_%d_%d", pSubStateNo, pSubStateCount));
+    }
     @Override
     public void buildGraph(
         ARGState pRootState,
@@ -242,68 +249,111 @@ enum GraphBuilder {
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
+      int multiEdgeCount = 0;
+      for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
+        ARGState s = argEdges.getFirst();
+        if (!s.equals(pRootState)
+            && s.getParents().stream().noneMatch(p -> pIsRelevantEdge.test(p, s))) {
+          continue;
+        }
+        String sourceStateNodeId = getId(s);
 
-      // normally there is only one node per state, thus we assume that there is only one root-node
-      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
+        // Process child states
+        for (ARGState child : argEdges.getSecond()) {
 
-      // Get all successor nodes of edges
-      final Set<CFANode> subProgramNodes = new HashSet<>();
-      final Multimap<CFANode, ARGState> states = HashMultimap.create();
+          String childStateId = getId(child);
+          List<CFAEdge> allEdgeToNextState = s.getEdgesToChild(child);
+          String prevStateId = sourceStateNodeId;
+          CFAEdge edgeToNextState;
 
-      subProgramNodes.add(rootNode);
-      for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
-        for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is relevant
-          if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
-            for (CFANode location : AbstractStates.extractLocations(target)) {
-              subProgramNodes.add(location);
-              states.put(location, target);
+          if (allEdgeToNextState.isEmpty()) {
+            edgeToNextState = null; // TODO no next state, what to do?
+
+          } else if (allEdgeToNextState.size() == 1) {
+            edgeToNextState = Iterables.getOnlyElement(allEdgeToNextState);
+
+            // this is a dynamic multi edge
+          } else {
+            // The successor state might have several incoming MultiEdges.
+            // In this case the state names like ARG<successor>_0 would occur
+            // several times.
+            // So we add this counter to the state names to make them unique.
+            multiEdgeCount++;
+
+            // inner part (without last edge)
+            for (int i = 0; i < allEdgeToNextState.size() - 1; i++) {
+              CFAEdge innerEdge = allEdgeToNextState.get(i);
+              String pseudoStateId = getId(child, i, multiEdgeCount);
+
+              assert (!(innerEdge instanceof AssumeEdge));
+
+              boolean isAssumptionAvailableForEdge =
+                  Iterables.any(pValueMap.get(s), a -> a.getCFAEdge().equals(innerEdge));
+              Optional<Collection<ARGState>> absentStates =
+                  isAssumptionAvailableForEdge
+                      ? Optional.of(Collections.singleton(s))
+                      : Optional.empty();
+              pEdgeAppender.appendNewEdge(
+                  prevStateId,
+                  pseudoStateId,
+                  innerEdge,
+                  absentStates,
+                  pValueMap,
+                  CFAEdgeWithAdditionalInfo.of(innerEdge));
+              prevStateId = pseudoStateId;
             }
-          }
-        }
-      }
 
-      Queue<CFANode> waitlist = new ArrayDeque<>();
-      Set<CFANode> visited = new HashSet<>();
-      waitlist.offer(rootNode);
-      visited.add(rootNode);
-      Set<CFAEdge> appended = new HashSet<>();
-      while (!waitlist.isEmpty()) {
-        CFANode current = waitlist.poll();
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-          CFANode successor = leavingEdge.getSuccessor();
-          final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(successor)) {
-            locationStates = Optional.of(states.get(successor));
+            // last edge connecting it with the real successor
+            edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
+          }
+
+          Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));
+
+          // Only proceed with this state if the path states contain the child
+          if (pIsRelevantState.apply(child) && pIsRelevantEdge.test(s, child)) {
+            // Child belongs to the path!
+            pEdgeAppender.appendNewEdge(
+                prevStateId,
+                childStateId,
+                edgeToNextState,
+                state,
+                pValueMap,
+                pAdditionalInfo.get(s));
+            // For branchings, it is important to have both branches explicitly in the witness
+            if (edgeToNextState instanceof AssumeEdge) {
+              AssumeEdge assumeEdge = (AssumeEdge) edgeToNextState;
+              AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
+              boolean addArtificialSinkEdge = true;
+              for (ARGState sibling : s.getChildren()) {
+                if (!Objects.equals(sibling, child)
+                    && siblingEdge.equals(s.getEdgeToChild(sibling))
+                    && pIsRelevantEdge.test(s, sibling)) {
+                  addArtificialSinkEdge = false;
+                  break;
+                }
+              }
+              if (addArtificialSinkEdge) {
+                // Child does not belong to the path --> add a branch to the SINK node!
+                pEdgeAppender.appendNewEdgeToSink(
+                    prevStateId,
+                    siblingEdge,
+                    state,
+                    pValueMap,
+                    pAdditionalInfo.get(s));
+              }
+            }
           } else {
-            locationStates = Optional.empty();
-          }
-          if (visited.add(successor)) {
-            waitlist.offer(successor);
-          }
-          if (appended.add(leavingEdge)) {
-            appendEdge(pEdgeAppender, leavingEdge, locationStates, pValueMap);
-          }
-        }
-        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          CFANode successor = enteringEdge.getSuccessor();
-          final Optional<Collection<ARGState>> locationStates;
-          if (subProgramNodes.contains(successor)) {
-            locationStates = Optional.of(states.get(successor));
-          } else {
-            locationStates = Optional.empty();
-          }
-          if (visited.add(predecessor)) {
-            waitlist.offer(predecessor);
-          }
-          if (appended.add(enteringEdge)) {
-            appendEdge(pEdgeAppender, enteringEdge, locationStates, pValueMap);
+            // Child does not belong to the path --> add a branch to the SINK node!
+            pEdgeAppender.appendNewEdgeToSink(
+                prevStateId,
+                edgeToNextState,
+                state,
+                pValueMap,
+                pAdditionalInfo.get(s));
           }
         }
       }
     }
-
   };
 
   private static boolean appendEdge(

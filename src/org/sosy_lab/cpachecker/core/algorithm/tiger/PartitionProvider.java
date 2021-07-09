@@ -54,6 +54,7 @@ public class PartitionProvider {
     name = "partitionSizeDistribution",
     description = "Selects the partition distribution style")
   private PartitionSizeDistribution partitionSizeDistribution = PartitionSizeDistribution.RELATIVE;
+
   @Option(secure = true, name = "partitionSize", description = "Selects the size of partitions")
   private int partitionSize = 25;
 
