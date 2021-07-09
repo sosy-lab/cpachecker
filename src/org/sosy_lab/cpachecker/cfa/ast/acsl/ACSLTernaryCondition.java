@@ -39,7 +39,7 @@ public class ACSLTernaryCondition extends ACSLPredicate {
 
   @Override
   public String toString() {
-    return condition.toString() + " ? " + then.toString() + " : " + otherwise;
+    return condition.toString() + " ? " + then + " : " + otherwise;
   }
 
   @Override

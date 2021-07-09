@@ -28,7 +28,7 @@ public class TermAt implements ACSLBuiltin, ACSLTerm {
 
   @Override
   public String toString() {
-    return "\\at(" + inner.toString() + ", " + label + ")";
+    return "\\at(" + inner + ", " + label + ")";
   }
 
   @Override

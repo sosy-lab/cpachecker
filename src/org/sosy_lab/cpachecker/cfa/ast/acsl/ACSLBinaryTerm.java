@@ -58,7 +58,7 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   @Override
   public String toString() {
-    return left.toString() + operator.toString() + right;
+    return left.toString() + operator + right;
   }
 
   @Override
