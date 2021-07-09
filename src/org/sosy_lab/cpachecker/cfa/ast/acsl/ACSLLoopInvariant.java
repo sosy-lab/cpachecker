@@ -26,6 +26,6 @@ public class ACSLLoopInvariant {
 
   @Override
   public String toString() {
-    return "loop invariant " + predicate.toString() + ';';
+    return "loop invariant " + predicate + ';';
   }
 }

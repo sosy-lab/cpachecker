@@ -21,9 +21,9 @@ public class ACSLUnaryTerm implements ACSLTerm {
   @Override
   public String toString() {
     if (operator.equals(ACSLUnaryOperator.SIZEOF)) {
-      return operator.toString() + "(" + term.toString() + ")";
+      return operator.toString() + "(" + term + ")";
     }
-    return operator.toString() + term.toString();
+    return operator.toString() + term;
   }
 
   @Override

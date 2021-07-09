@@ -68,7 +68,7 @@ public class CompletenessClause {
       Joiner.on(", ").appendTo(builder, behaviors.stream().map(x -> x.getName()).iterator());
     }
     builder.append(';');
-    return kind.toString() + builder.toString();
+    return kind.toString() + builder;
   }
 
   @Override

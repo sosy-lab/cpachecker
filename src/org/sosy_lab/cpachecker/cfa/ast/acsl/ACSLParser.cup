@@ -175,8 +175,7 @@ parser code {:
         } else if (annotation instanceof ACSLAssertion) {
           // already handled
         } else {
-          throw new AssertionError(
-              "Unknown annotation type for annotation\n" + annotation.toString());
+          throw new AssertionError("Unknown annotation type for annotation\n" + annotation);
         }
       }
     }

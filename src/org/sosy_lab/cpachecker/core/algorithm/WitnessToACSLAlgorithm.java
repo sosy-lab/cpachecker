@@ -175,7 +175,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
               }
               String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
               String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
-              output.add(indentation.concat(annotation));
+              output.add(indentation + annotation);
             }
           }
           currentLocation = sortedLocations.poll();
@@ -184,7 +184,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
           ExpressionTree<Object> conjunctedInvariants = And.of(collectedLoopInvariants);
           String annotation = makeACSLAnnotation(conjunctedInvariants, true);
           String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
-          output.add(indentation.concat(annotation));
+          output.add(indentation + annotation);
           collectedLoopInvariants.clear();
         }
         output.add(splitContent.get(i));
@@ -216,7 +216,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String newFileName = makeNameForAnnotatedFile(pathToOriginalFile.getFileName().toString());
     Path outFile = outDir.resolve(newFileName);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      writer.write(String.join("\n", newContent).concat("\n"));
+      writer.write(String.join("\n", newContent) + "\n");
     }
   }
 
@@ -241,7 +241,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String timestamp =
         LocalDateTime.now(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"));
-    return "annotated_".concat(nameWithoutExtension).concat(timestamp).concat(extension);
+    return "annotated_".concat(nameWithoutExtension).concat(timestamp) + extension;
   }
 
   /**

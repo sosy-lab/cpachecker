@@ -55,7 +55,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     String positiveTemplate = "(%s)";
     String negativeTemplate = "!(%s)";
     String template = isNegated() ? negativeTemplate : positiveTemplate;
-    return String.format(template, left.toString() + operator.toString() + right.toString());
+    return String.format(template, left.toString() + operator.toString() + right);
   }
 
   @Override

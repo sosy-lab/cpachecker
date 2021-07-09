@@ -57,14 +57,7 @@ public class Behavior {
 
   @Override
   public String toString() {
-    return "behavior "
-        + name
-        + ":\n"
-        + assumesClause.toString()
-        + '\n'
-        + requiresClause.toString()
-        + '\n'
-        + ensuresClause.toString();
+    return "behavior " + name + ":\n" + assumesClause.toString() + '\n' + requiresClause.toString() + '\n' + ensuresClause;
   }
 
   @Override

@@ -33,7 +33,7 @@ public class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
 
   @Override
   public String toString() {
-    return "\\at(" + inner.toString() + ", " + label.toString() + ")";
+    return "\\at(" + inner.toString() + ", " + label + ")";
   }
 
   @Override

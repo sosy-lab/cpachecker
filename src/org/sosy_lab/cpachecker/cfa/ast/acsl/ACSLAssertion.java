@@ -61,7 +61,7 @@ public class ACSLAssertion implements ACSLAnnotation {
           .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
       builder.append(": ");
     }
-    return builder.toString() + kind.toString() + ' ' + predicate.toString() + ';';
+    return builder.toString() + kind.toString() + ' ' + predicate + ';';
   }
 
   public enum AssertionKind {

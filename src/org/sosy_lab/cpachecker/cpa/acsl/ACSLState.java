@@ -97,7 +97,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
 
   @Override
   public String toString() {
-    return "ACSLState " + annotations.toString();
+    return "ACSLState " + annotations;
   }
 
   @Override

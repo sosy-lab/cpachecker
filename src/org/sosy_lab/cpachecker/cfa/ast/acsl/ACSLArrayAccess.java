@@ -34,7 +34,7 @@ public class ACSLArrayAccess implements ACSLTerm {
 
   @Override
   public String toString() {
-    return array.toString() + "[" + index.toString() + "]";
+    return array.toString() + "[" + index + "]";
   }
 
   public ACSLTerm getArray() {

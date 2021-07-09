@@ -25,6 +25,6 @@ public class AssumesClause {
 
   @Override
   public String toString() {
-    return "assumes " + predicate.toString() + ';';
+    return "assumes " + predicate + ';';
   }
 }

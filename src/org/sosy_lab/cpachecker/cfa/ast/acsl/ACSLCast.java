@@ -34,7 +34,7 @@ public class ACSLCast implements ACSLTerm {
 
   @Override
   public String toString() {
-    return "(" + type.toString() + ") " + term.toString();
+    return "(" + type.toString() + ") " + term;
   }
 
   public ACSLType getType() {

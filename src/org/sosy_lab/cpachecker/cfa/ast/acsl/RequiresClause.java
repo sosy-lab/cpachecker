@@ -28,7 +28,7 @@ public class RequiresClause {
 
   @Override
   public String toString() {
-    return "requires " + predicate.toString() + ';';
+    return "requires " + predicate + ';';
   }
 
   @Override

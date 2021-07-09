@@ -28,7 +28,7 @@ public class EnsuresClause {
 
   @Override
   public String toString() {
-    return "ensures " + predicate.toString() + ';';
+    return "ensures " + predicate + ';';
   }
 
   @Override
