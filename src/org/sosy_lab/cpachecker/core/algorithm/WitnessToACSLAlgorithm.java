@@ -241,7 +241,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String timestamp =
         LocalDateTime.now(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"));
-    return "annotated_".concat(nameWithoutExtension) + timestamp + extension;
+    return "annotated_" + nameWithoutExtension + timestamp + extension;
   }
 
   /**
