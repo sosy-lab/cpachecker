@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.taint;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
@@ -86,10 +88,24 @@ public class TaintAnalysisTransferRelation
     private boolean useCriticalSourceFunctions = true;
 
     @Option(
+        secure = false,
+        name = "criticalSourceFunctions",
+        description =
+            "List of critical functions that should be used as taint sources.")
+    private String criticalSourceFunctions;
+
+    @Option(
         secure = true,
         name = "useCriticalSinkFunctions",
         description = "Determines if predefined critical functions should be used as taint sinks.")
     private boolean useCriticalSinkFunctions = true;
+
+    @Option(
+        secure = false,
+        name = "criticalSinkFunctions",
+        description =
+            "List of critical functions that should be used as taint sinks.")
+    private String criticalSinkFunctions;
 
     public TaintTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -99,8 +115,24 @@ public class TaintAnalysisTransferRelation
       return useCriticalSourceFunctions;
     }
 
+    Supplier<Stream<String>> sourceFunctionSupplier() {
+      Supplier<Stream<String>> streamSupplier = () -> Stream.of();
+      if(criticalSourceFunctions != null && criticalSourceFunctions.length() > 0) {
+        streamSupplier = () -> Arrays.stream(criticalSourceFunctions.split(","));
+      }
+      return streamSupplier;
+    }
+
     boolean isUseCriticalSinkFunctions() {
       return useCriticalSinkFunctions;
+    }
+
+    Supplier<Stream<String>> sinkFunctionSupplier() {
+      Supplier<Stream<String>> streamSupplier = () -> Stream.of();
+      if(criticalSinkFunctions != null && criticalSinkFunctions.length() > 0) {
+        streamSupplier = () -> Arrays.stream(criticalSinkFunctions.split(","));
+      }
+      return streamSupplier;
     }
   }
 
@@ -278,50 +310,35 @@ public class TaintAnalysisTransferRelation
       CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
       CExpression fn = functionCallExp.getFunctionNameExpression();
 
-      msg =
-          msg
-              + "functionCall: "
-              + functionCall
-              + " | functionCallExp: "
-              + functionCallExp
-              + " | fn: "
-              + fn;
+      msg = msg + "functionCall: " + functionCall + " | functionCallExp: " + functionCallExp + " | fn: " + fn;
 
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression) fn).getName();
         msg = msg + " | func: " + func;
+
         if (expression instanceof CFunctionCallAssignmentStatement) {
           msg = msg + " | CFunctionCallAssignmentStatement";
-          CFunctionCallAssignmentStatement pFunctionCallAssignment =
-              (CFunctionCallAssignmentStatement) expression;
-          final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
-          msg = msg + " | leftSide: " + leftSide;
+          CFunctionCallAssignmentStatement pFunctionCallAssignment = (CFunctionCallAssignmentStatement) expression;
+          
           if (options.isUseCriticalSourceFunctions()) {
-            msg = msg + " | useCriticalSourceFunctions: True";
-            Stream<String> sourceFunctions = Stream.of("getchar", "scanf", "gets", "fgets", "fopen");
-            if(sourceFunctions.anyMatch(str -> func.equals(str))) {
-              AFunctionCallExpression exp = pFunctionCallAssignment.getRightHandSide();
-              if(!exp.getParameterExpressions().isEmpty() && exp.getParameterExpressions().get(0) != null) {
-                AExpression param = exp.getParameterExpressions().get(0);
-                String param_ = param.toString();
-                param_ = param_.replace("&", "");
-                MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, param_);
-                newElement.change(memoryLocation1, true);
-              } else {
-                MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, leftSide.toString());
-                newElement.change(memoryLocation1, true);
-              }
+            MemoryLocation memoryLocation1 = TaintSourceFunctions(pFunctionCallAssignment, func);
+            if(memoryLocation1 != null) {
+              newElement.change(memoryLocation1, true);
             }
-          } else {
-            msg = msg + " | useCriticalSourceFunctions: False";
           }
-        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
+        }
+        
+        else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
             throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
           }
-        } else if (expression instanceof CFunctionCallAssignmentStatement) {
+        }
+        
+        else if (expression instanceof CFunctionCallAssignmentStatement) {
           msg = msg + " | CFunctionCallAssignmentStatement";
-        } else if (expression instanceof CFunctionCallStatement) {
+        }
+        
+        else if (expression instanceof CFunctionCallStatement) {
           msg = msg + " | CFunctionCallStatement";
           AFunctionCallStatement stm = (AFunctionCallStatement) expression;
           AFunctionCallExpression exp = stm.getFunctionCallExpression();
@@ -334,15 +351,11 @@ public class TaintAnalysisTransferRelation
             newElement.change(memoryLocation, false);
           } else if (func.equals("__VERIFIER_assert_untainted")) {
             if (state.getStatus(memoryLocation)) {
-              newElement =
-                  TaintAnalysisState.copyOf(
-                      state, true, "Assumed variable '" + memoryLocation + "' was untainted");
+              newElement = TaintAnalysisState.copyOf(state, true, "Assumed variable '" + memoryLocation + "' was untainted");
             }
           } else if (func.equals("__VERIFIER_assert_tainted")) {
             if (!state.getStatus(memoryLocation)) {
-              newElement =
-                  TaintAnalysisState.copyOf(
-                      state, true, "Assumed variable '" + memoryLocation + "' was tainted");
+              newElement = TaintAnalysisState.copyOf(state, true, "Assumed variable '" + memoryLocation + "' was tainted");
             }
           } else if(func.equals("strncpy")) {
             AExpression param0 = exp.getParameterExpressions().get(0);
@@ -356,23 +369,26 @@ public class TaintAnalysisTransferRelation
               msg = msg + " | "+memoryLocation0.toString() + " got tainted!";
             }
           }
-          if (options.isUseCriticalSourceFunctions()) { // Critical Source Functions
-            Stream<String> sourceFunctions = Stream.of("getchar", "scanf", "gets", "fgets", "fopen");
-            if(sourceFunctions.anyMatch(str -> func.equals(str))) {
+          if (options.isUseCriticalSourceFunctions()) {
+            // Critical Source Functions
+            Supplier<Stream<String>> sourceSupplier = options.sourceFunctionSupplier();
+            if(sourceSupplier.get().anyMatch(str -> func.equals(str.strip()))) {
                 param = exp.getParameterExpressions().get(1);
                 String param_ = param.toString();
                 param_ = param_.replace("&", "");
                 MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, param_);
                 newElement.change(memoryLocation1, true);
             }
-          } if (options.isUseCriticalSinkFunctions()) { // Critical Sink Functions
-            Stream<String> sinkFunctions = Stream.of("strcmp", "fputs", "fputc", "fwrite", "strcpy", "strcat");
+          } if (options.isUseCriticalSinkFunctions()) {
+            // Critical Sink Functions
+            Supplier<Stream<String>> sinkSupplier = options.sinkFunctionSupplier();
             MemoryLocation memoryLocation1;
             if(exp.getParameterExpressions().size() == 1) {
               memoryLocation1 = MemoryLocation.valueOf(functionName, exp.getParameterExpressions().get(0).toString());
             }
-            else
+            else {
               memoryLocation1 = MemoryLocation.valueOf(functionName, exp.getParameterExpressions().get(1).toString());
+            }
             if (func.equals("printf") || func.equals("snprintf") || func.equals("syslog")) {
               Boolean tainted = false;
               List<? extends AExpression> params = exp.getParameterExpressions();
@@ -390,16 +406,12 @@ public class TaintAnalysisTransferRelation
                 newElement = TaintAnalysisState.copyOf(state, true, "Critical function '" + func + "' was called with a tainted parameter");
               }
             }
-            else if(sinkFunctions.anyMatch(str -> func.equals(str))) {
+            else if(sinkSupplier.get().anyMatch(str -> func.equals(str.strip()))) {
               msg = msg + " | MemLoc:" + memoryLocation1+": "+state.getStatus(memoryLocation1);
               Boolean consoleParam = memoryLocation1.getIdentifier().contains("argv") || memoryLocation1.getIdentifier().contains("argc");
               Boolean mainFunction = memoryLocation1.getFunctionName().equals("main");
               if((mainFunction && consoleParam) || (state.getStatus(memoryLocation1) != null && state.getStatus(memoryLocation1))) {
-              newElement =
-                  TaintAnalysisState.copyOf(
-                      state,
-                      true,
-                      "Critical function '" + func + "' was called with a tainted parameter");
+                newElement = TaintAnalysisState.copyOf(state, true, "Critical function '" + func + "' was called with a tainted parameter");
               }
             }
           }
@@ -427,6 +439,27 @@ public class TaintAnalysisTransferRelation
     }
     logger.log(Level.INFO, msg);
     return newElement;
+  }
+
+  private MemoryLocation TaintSourceFunctions(CFunctionCallAssignmentStatement pFunctionCallAssignment, String func) {
+    Supplier<Stream<String>> streamSupplier = options.sourceFunctionSupplier();
+    if(streamSupplier.get().anyMatch(str -> func.equals(str.strip()))) {
+      AFunctionCallExpression exp = pFunctionCallAssignment.getRightHandSide();
+      CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
+      if(!exp.getParameterExpressions().isEmpty() && exp.getParameterExpressions().get(0) != null) {
+        AExpression param = exp.getParameterExpressions().get(0);
+        String param_ = param.toString();
+        param_ = param_.replace("&", "");
+        MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, param_);
+        return memoryLocation1;
+      } else {
+        MemoryLocation memoryLocation1 = MemoryLocation.valueOf(functionName, leftSide.toString());
+        return memoryLocation1;
+      }
+    }
+    else {
+      return null;
+    }
   }
 
   private TaintAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
@@ -479,7 +512,7 @@ public class TaintAnalysisTransferRelation
         msg = msg + " | getSubscriptExpression: " + arraySubsExp.getSubscriptExpression();
         msg = msg + " | getArrayExpression: " + arraySubsExp.getArrayExpression();
         Boolean result = false;
-        if(arraySubsExp.getArrayExpression().toString() != "argv") {
+        if(!arraySubsExp.getArrayExpression().toString().equals("argv")) {
           MemoryLocation arr = MemoryLocation.valueOf(functionName, arraySubsExp.getArrayExpression().toString());
           result = state.getStatus(arr);
         } else {

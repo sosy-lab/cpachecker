@@ -8,16 +8,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-
 import requests
 import os
 import re
 from bs4 import BeautifulSoup
 
+
 def remove_comments(lines):
     lines = list(lines)
     entries = []
-    for i, entry in enumerate(lines):
+    for entry in lines:
         if "//" not in entry and entry != "":
             entries.append(entry)
     return entries
@@ -37,15 +37,16 @@ with open(os.path.dirname(os.path.realpath(__file__)) + '/NIST_template.yml') as
     template = f.read()
 
 with open(os.path.dirname(os.path.realpath(__file__)) + '/NIST_license.c') as f:
-    license = f.read()
+    license_template = f.read()
+
 
 def download(tests, test_suite):
     for i, test in enumerate(tests):
 
-        print(str(i + 1)+"/"+str(len(tests)))
+        print(str(i + 1) + "/" + str(len(tests)))
         source = ""
         if(test_suite == 100 and len(tests_good) < len(tests_bad)):
-            r = requests.get('https://samate.nist.gov/SARD/view_testcase.php?tID='+test)
+            r = requests.get('https://samate.nist.gov/SARD/view_testcase.php?tID=' + test)
             source = r.text
             soup = BeautifulSoup(r.text, 'html.parser')
             text = soup.get_text()
@@ -55,9 +56,11 @@ def download(tests, test_suite):
                 tests_good.append(testcase_good)
             else:
                 print("Not found")
-        if(os.path.exists(os.path.dirname(os.path.realpath(__file__)) + "/nist/"+str(test_suite)+"/NIST_"+test+".c")):
+
+        folder = os.path.dirname(os.path.realpath(__file__))
+        c_file = folder + "/nist/" + str(test_suite) + "/NIST_" + test + ".c"
+        if(os.path.exists(c_file)):
             continue
-            # print(text)
         if(source == ""):
             r = requests.get('https://samate.nist.gov/SARD/view_testcase.php?tID=' + test)
             source = r.text
@@ -65,25 +68,27 @@ def download(tests, test_suite):
         source = r.text
         match = re.search(r'getFile\(\'(.*?)\'', source)
         if match and match.group(1):
-            r = requests.get('https://samate.nist.gov/SARD/'+match.group(1))
+            r = requests.get('https://samate.nist.gov/SARD/' + match.group(1))
             source = r.text
             yml = template.replace('***', "NIST_" + test + ".c")
             if(test_suite == 100):
                 yml = yml.replace('true', 'false')
-            # print(source)
             linenr = 0
             source = source.splitlines()
             for i, line in enumerate(source):
                 if "#include" in line:
                     linenr = i - 1
-            source = source[0:linenr] + [license] + source[linenr:]
-            source = "\n".join(map(str,source))
+            source = source[0:linenr] + [license_template] + source[linenr:]
+            source = "\n".join(map(str, source))
 
-            f = open(os.path.dirname(os.path.realpath(__file__)) + "/nist/"+str(test_suite)+"/NIST_" + test + ".c", "w")
+            folder = os.path.dirname(os.path.realpath(__file__))
+            c_file = folder + "/nist/" + str(test_suite) + "/NIST_" + test + ".c"
+            f = open(c_file, "w")
             f.write(source)
             f.close()
 
-            f = open(os.path.dirname(os.path.realpath(__file__)) + "/nist/"+str(test_suite)+"/NIST_" + test + ".yml", "w")
+            yml_file = folder + "/nist/" + str(test_suite) + "/NIST_" + test + ".yml"
+            f = open(yml_file, "w")
             f.write(yml)
             f.close()
 
@@ -91,5 +96,5 @@ def download(tests, test_suite):
 download(tests_bad, 100)
 with open(os.path.dirname(os.path.realpath(__file__)) + '/tests_good.txt', "w") as f:
     for t in tests_good:
-        f.write(str(t) +"\n")
+        f.write(str(t) + "\n")
 download(tests_good, 101)
