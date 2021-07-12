@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.taint;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
@@ -73,7 +73,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Abstr
   private Map<MemoryLocation, Boolean> taintedMap = new HashMap<>();
   private Map<MemoryLocation, MemoryLocation> pointerMap = new HashMap<>();
 
-  private final Set<Property> violations;
+  private final ImmutableSet<Property> violations;
 
   private final LogManager logger;
 
@@ -82,7 +82,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Abstr
     taintedMap = new HashMap<>();
     pointerMap = new HashMap<>();
     isTarget = false;
-    violations = Collections.emptySet();
+    violations = ImmutableSet.of();
   }
 
   private TaintAnalysisState(TaintAnalysisState state, LogManager plogger) {
@@ -90,7 +90,7 @@ public final class TaintAnalysisState implements AbstractState, Graphable, Abstr
     taintedMap = new HashMap<>(state.taintedMap);
     pointerMap = new HashMap<>(state.pointerMap);
     isTarget = false;
-    violations = Collections.emptySet();
+    violations = ImmutableSet.of();
   }
 
   private TaintAnalysisState(

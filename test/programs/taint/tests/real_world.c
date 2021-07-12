@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 extern int getchar();
 extern int scanf();
 extern int gets();
@@ -8,7 +16,6 @@ extern void strcmp(int);
 extern void fputs(int);
 extern void fputc(int);
 extern void fwrite(int);
-
 
 extern void __VERIFIER_mark_tainted(int);
 extern void __VERIFIER_mark_untainted(int);
