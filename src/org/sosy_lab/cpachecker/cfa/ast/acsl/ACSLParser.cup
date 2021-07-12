@@ -15,7 +15,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -48,9 +47,7 @@ parser code {:
 
     private ACSLScanner scanner;
     private IdentifierCheckingVisitor identifierCheckingVisitor;
-    private final Set<Behavior> behaviors = new HashSet();
-    private CFAWithACSLAnnotations cfa;
-    private LogManager logger;
+    private final Set<Behavior> behaviors = new HashSet<>();
     private List<FileLocation> orderedLocs;
     private List<CFAEdge> orderedCFALocs;
 
@@ -63,9 +60,7 @@ parser code {:
         LogManager pLogger) {
       super(pScanner, sf);
       scanner = pScanner;
-      cfa = pCfa;
-      logger = pLogger;
-      identifierCheckingVisitor = new IdentifierCheckingVisitor(cfa, logger);
+      identifierCheckingVisitor = new IdentifierCheckingVisitor(pCfa, pLogger);
       orderedLocs = pOrderedLocs;
       orderedCFALocs = pOrderedCFALocs;
     }
