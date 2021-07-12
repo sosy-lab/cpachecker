@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisito
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
@@ -76,7 +75,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Generate assumptions related to over/underflow of arithmetic operations */
 @Options(prefix = "underflow")
-public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssumptionBuilder {
+public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssumptionBuilder
+    implements GenericAssumptionBuilder {
+
 
   @Option(
     description = "Only check live variables for underflow,"
@@ -84,32 +85,7 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
     secure = true)
   private boolean useLiveness = true;
 
-  @Option(description = "Track underflows in left-shift operations.")
-  private boolean trackLeftShifts = true;
-
-  @Option(description = "Track underflows in additive(+/-) operations.")
-  private boolean trackAdditiveOperations = true;
-
-  @Option(description = "Track underflows in multiplication operations.")
-  private boolean trackMultiplications = true;
-
-  @Option(description = "Track underflows in division(/ or %) operations.")
-  private boolean trackDivisions = true;
-
-  @Option(description = "Track underflows in binary expressions involving pointers.")
-  private boolean trackPointers = false;
-
-  @Option(description = "Simplify underflow assumptions.")
-  private boolean simplifyExpressions = true;
-
-  private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
-  private final Map<CType, CLiteralExpression> width;
-  private final OverflowAssumptionManager ufmgr;
-  private final ExpressionSimplificationVisitor simplificationVisitor;
-  private final MachineModel machineModel;
-  private final Optional<LiveVariables> liveVariables;
-  private final LogManager logger;
 
   public ArithmeticUnderflowAssumptionBuilder(
       CFA cfa,
@@ -135,7 +111,6 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
           "Liveness information is required for underflow analysis.");
     }
 
-    upperBounds = new HashMap<>();
     lowerBounds = new HashMap<>();
     width = new HashMap<>();
 
@@ -149,7 +124,7 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
     trackType(CNumericTypes.LONG_LONG_INT);
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
 
-    ufmgr = new OverflowAssumptionManager(machineModel, logger);
+    ofmgr = new OverflowAssumptionManager(machineModel, logger);
     simplificationVisitor =
         new ExpressionSimplificationVisitor(machineModel, new LogManagerWithoutDuplicates(logger));
   }
@@ -221,29 +196,22 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
             FileLocation.DUMMY,
             type,
             machineModel.getMinimalIntegerValue(type));
-    CIntegerLiteralExpression typeMaxValue =
-        new CIntegerLiteralExpression(
-            FileLocation.DUMMY,
-            type,
-            machineModel.getMaximalIntegerValue(type));
     CIntegerLiteralExpression typeWidth =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY,
             type,
             OverflowAssumptionManager.getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
 
-    upperBounds.put(type, typeMaxValue);
     lowerBounds.put(type, typeMinValue);
     width.put(type, typeWidth);
-
-
   }
 
   /**
-   * Compute assumptions whose conjunction states that the expression does not underflow the allowed
+   * Compute assumptions whose conjunction states that the expression does not overflow the allowed
    * bound of its type.
    */
-  private void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
+
+  public void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
       throws UnrecognizedCodeException {
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
@@ -267,33 +235,23 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
       if (trackAdditiveOperations
           && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
         if (lowerBounds.get(calculationType) != null) {
-          result.add(ufmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
+          result.add(ofmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
         }
-        // if (upperBounds.get(calculationType) != null) {
-        // result.add(ofmgr.getUpperAssumption(op1, op2, binop,
-        // upperBounds.get(calculationType)));
-        // }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
         if (lowerBounds.get(calculationType) != null) {
           result.addAll(
-              ufmgr.addMultiplicationAssumptions(
+              ofmgr.addMultiplicationAssumptions(
                   op1,
                   op2,
                   lowerBounds.get(calculationType),
                   lowerBounds.get(calculationType)));
         }
+
       } else if (trackDivisions
           && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
         if (lowerBounds.get(calculationType) != null) {
-          ufmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
+          ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
-
-        // else if (trackRightShifts && binop.equals(BinaryOperator.SHIFT_RIGHT)) {
-        // if (lowerBounds.get(calculationType) != null && width.get(calculationType) !=
-        // null) {
-        // ufmgr.addRightShiftAssumptions(op1, op2, lowerBounds.get(calculationType),
-        // result);
-        // }
       }
     } else if (exp instanceof CUnaryExpression) {
       CType calculationType = exp.getExpressionType();
@@ -302,7 +260,7 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
           && lowerBounds.get(calculationType) != null) {
 
         CExpression operand = unaryexp.getOperand();
-        result.add(ufmgr.getNegationAssumption(operand, lowerBounds.get(calculationType)));
+        result.add(ofmgr.getNegationAssumption(operand, lowerBounds.get(calculationType)));
       }
     } else {
       // TODO: check out and implement in case this happens
@@ -310,36 +268,22 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
 
   }
 
-  private boolean isBinaryExpressionThatMayOverflow(CExpression pExp) {
-    if (pExp instanceof CBinaryExpression) {
-      CBinaryExpression binexp = (CBinaryExpression) pExp;
-      CExpression op1 = binexp.getOperand1();
-      CExpression op2 = binexp.getOperand2();
-      if (op1.getExpressionType() instanceof CPointerType
-          || op2.getExpressionType() instanceof CPointerType) {
-        // There are no classical arithmetic overflows in binary operations involving pointers,
-        // since pointer types are not necessarily signed integer types as far as ISO/IEC 9899:2018
-        // (C17) is concerned. So we do not track this by default, but make it configurable:
-        return trackPointers;
-      } else {
-        return true;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  private class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
+  public class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
       implements CStatementVisitor<Void, UnrecognizedCodeException>,
       CSimpleDeclarationVisitor<Void, UnrecognizedCodeException>,
       CInitializerVisitor<Void, UnrecognizedCodeException> {
 
-    private final Set<CExpression> assumptions;
-    private final CFANode node;
+    public final Set<CExpression> assumptions;
+    public final CFANode node;
 
     private AssumptionsFinder(Set<CExpression> pAssumptions, CFANode node) {
       assumptions = pAssumptions;
       this.node = node;
+    }
+
+    @Override
+    protected Void visitDefault(CExpression exp) throws UnrecognizedCodeException {
+      return null;
     }
 
     @Override
@@ -353,8 +297,11 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
     }
 
     @Override
-    protected Void visitDefault(CExpression exp) throws UnrecognizedCodeException {
-      return null;
+    public Void visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
+      if (resultCanOverflow(pIastUnaryExpression)) {
+        addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
+      }
+      return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
@@ -372,14 +319,6 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
     public Void visit(CComplexCastExpression complexCastExpression)
         throws UnrecognizedCodeException {
       return complexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
-      if (resultCanOverflow(pIastUnaryExpression)) {
-        addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
-      }
-      return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
@@ -485,37 +424,4 @@ public final class ArithmeticUnderflowAssumptionBuilder implements GenericAssump
     }
   }
 
-  /** Whether the given operator can create new expression. */
-  private boolean resultCanOverflow(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      switch (((CBinaryExpression) expr).getOperator()) {
-        case MULTIPLY:
-        case DIVIDE:
-        case PLUS:
-        case MINUS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
-          return true;
-        case LESS_THAN:
-        case GREATER_THAN:
-        case LESS_EQUAL:
-        case GREATER_EQUAL:
-        case BINARY_AND:
-        case BINARY_XOR:
-        case BINARY_OR:
-        case EQUALS:
-        case NOT_EQUALS:
-        default:
-          return false;
-      }
-    } else if (expr instanceof CUnaryExpression) {
-      switch (((CUnaryExpression) expr).getOperator()) {
-        case MINUS:
-          return true;
-        default:
-          return false;
-      }
-    }
-    return false;
-  }
 }

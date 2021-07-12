@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisito
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
@@ -78,7 +77,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * Generate assumptions related to over/underflow of arithmetic operations
  */
 @Options(prefix = "overflow")
-public final class ArithmeticOverflowAssumptionBuilder
+public final class ArithmeticOverflowAssumptionBuilder extends ArithmeticAssumptionBuilder
     implements GenericAssumptionBuilder {
 
   @Option(
@@ -87,31 +86,7 @@ public final class ArithmeticOverflowAssumptionBuilder
     secure = true)
   private boolean useLiveness = true;
 
-  @Option(description = "Track overflows in left-shift operations.")
-  private boolean trackLeftShifts = true;
-
-  @Option(description = "Track overflows in additive(+/-) operations.")
-  private boolean trackAdditiveOperations = true;
-
-  @Option(description = "Track overflows in multiplication operations.")
-  private boolean trackMultiplications = true;
-
-  @Option(description = "Track overflows in division(/ or %) operations.")
-  private boolean trackDivisions = true;
-
-  @Option(description = "Track overflows in binary expressions involving pointers.")
-  private boolean trackPointers = false;
-
-  @Option(description = "Simplify overflow assumptions.")
-  private boolean simplifyExpressions = true;
-
   private final Map<CType, CLiteralExpression> upperBounds;
-  private final Map<CType, CLiteralExpression> width;
-  private final OverflowAssumptionManager ofmgr;
-  private final ExpressionSimplificationVisitor simplificationVisitor;
-  private final MachineModel machineModel;
-  private final Optional<LiveVariables> liveVariables;
-  private final LogManager logger;
 
   public ArithmeticOverflowAssumptionBuilder(
       CFA cfa,
@@ -236,7 +211,7 @@ public final class ArithmeticOverflowAssumptionBuilder
    * Compute assumptions whose conjunction states that the expression does not overflow the allowed
    * bound of its type.
    */
-  private void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
+  public void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
       throws UnrecognizedCodeException {
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
@@ -284,36 +259,22 @@ public final class ArithmeticOverflowAssumptionBuilder
 
   }
 
-  private boolean isBinaryExpressionThatMayOverflow(CExpression pExp) {
-    if (pExp instanceof CBinaryExpression) {
-      CBinaryExpression binexp = (CBinaryExpression) pExp;
-      CExpression op1 = binexp.getOperand1();
-      CExpression op2 = binexp.getOperand2();
-      if (op1.getExpressionType() instanceof CPointerType
-          || op2.getExpressionType() instanceof CPointerType) {
-        // There are no classical arithmetic overflows in binary operations involving pointers,
-        // since pointer types are not necessarily signed integer types as far as ISO/IEC 9899:2018
-        // (C17) is concerned. So we do not track this by default, but make it configurable:
-        return trackPointers;
-      } else {
-        return true;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  private class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
+  public class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
       implements CStatementVisitor<Void, UnrecognizedCodeException>,
       CSimpleDeclarationVisitor<Void, UnrecognizedCodeException>,
       CInitializerVisitor<Void, UnrecognizedCodeException> {
 
-    private final Set<CExpression> assumptions;
-    private final CFANode node;
+    public final Set<CExpression> assumptions;
+    public final CFANode node;
 
     private AssumptionsFinder(Set<CExpression> pAssumptions, CFANode node) {
       assumptions = pAssumptions;
       this.node = node;
+    }
+
+    @Override
+    protected Void visitDefault(CExpression exp) throws UnrecognizedCodeException {
+      return null;
     }
 
     @Override
@@ -327,8 +288,11 @@ public final class ArithmeticOverflowAssumptionBuilder
     }
 
     @Override
-    protected Void visitDefault(CExpression exp) throws UnrecognizedCodeException {
-      return null;
+    public Void visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
+      if (resultCanOverflow(pIastUnaryExpression)) {
+        addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
+      }
+      return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
@@ -346,14 +310,6 @@ public final class ArithmeticOverflowAssumptionBuilder
     public Void visit(CComplexCastExpression complexCastExpression)
         throws UnrecognizedCodeException {
       return complexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
-      if (resultCanOverflow(pIastUnaryExpression)) {
-        addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
-      }
-      return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
@@ -459,40 +415,5 @@ public final class ArithmeticOverflowAssumptionBuilder
     }
   }
 
-  /**
-   * Whether the given operator can create new expression.
-   */
-  private boolean resultCanOverflow(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      switch (((CBinaryExpression) expr).getOperator()) {
-        case MULTIPLY:
-        case DIVIDE:
-        case PLUS:
-        case MINUS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
-          return true;
-        case LESS_THAN:
-        case GREATER_THAN:
-        case LESS_EQUAL:
-        case GREATER_EQUAL:
-        case BINARY_AND:
-        case BINARY_XOR:
-        case BINARY_OR:
-        case EQUALS:
-        case NOT_EQUALS:
-        default:
-          return false;
-      }
-    } else if (expr instanceof CUnaryExpression) {
-      switch (((CUnaryExpression) expr).getOperator()) {
-        case MINUS:
-          return true;
-        default:
-          return false;
-      }
-    }
-    return false;
-  }
 
 }
