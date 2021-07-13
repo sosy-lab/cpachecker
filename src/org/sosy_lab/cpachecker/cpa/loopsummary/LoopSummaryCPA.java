@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -23,7 +21,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
-@Options(prefix = "cpa.loopsummary")
 public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
 
   public static CPAFactory factory() {
@@ -31,12 +28,6 @@ public class LoopSummaryCPA extends AbstractLoopSummaryCPA {
   }
 
   private final LoopSummaryTransferRelation transfer;
-
-  @Option(
-      secure = true,
-      name = "maxAmntFirstRefinements",
-      description = "Max amount of first refinements.")
-  public int maxAmntFirstRefinements = 100;
 
   private LoopSummaryCPA(
       ConfigurableProgramAnalysis pCpa,

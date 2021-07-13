@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.cpa.loopsummary;
 
 import java.util.Collection;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -21,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
+@Options(prefix = "cpa.loopsummary")
 public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
@@ -29,7 +33,11 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
   private final Refiner secondRefiner;
   protected final ARGCPA argCpa;
 
-  private final int maxAmntFirstRefinements;
+  @Option(
+      secure = true,
+      name = "maxAmntFirstRefinements",
+      description = "Max amount of first refinements.")
+  public int maxAmntFirstRefinements = 100;
 
   private int amntFirstRefinements = 0;
 
@@ -37,14 +45,14 @@ public class LoopSummaryBasedRefiner implements Refiner, StatisticsProvider {
       Refiner pFirstRefiner,
       Refiner pSecondRefiner,
       LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa)
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig)
       throws InvalidConfigurationException {
     firstRefiner = pFirstRefiner;
     secondRefiner = pSecondRefiner;
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
-    maxAmntFirstRefinements =
-        CPAs.retrieveCPAOrFail(pCpa, LoopSummaryCPA.class, Refiner.class).maxAmntFirstRefinements;
+    pConfig.inject(this);
   }
 
   @Override

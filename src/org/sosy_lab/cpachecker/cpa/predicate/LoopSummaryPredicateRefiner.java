@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryCPA;
 import org.sosy_lab.cpachecker.cpa.loopsummary.LoopSummaryStrategyRefiner;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 public abstract class LoopSummaryPredicateRefiner implements Refiner {
 
@@ -27,11 +28,13 @@ public abstract class LoopSummaryPredicateRefiner implements Refiner {
     } else {
       logger = null;
     }
+    PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, LoopSummaryPredicateRefiner.class);
     return new LoopSummaryBasedRefiner(
         AbstractARGBasedRefiner.forARGBasedRefiner(PredicateRefiner.create0(pCpa), pCpa),
         new LoopSummaryStrategyRefiner(logger, pCpa),
         logger,
-        pCpa);
+        pCpa,
+        predicateCPA.getConfiguration());
   }
 
 }
