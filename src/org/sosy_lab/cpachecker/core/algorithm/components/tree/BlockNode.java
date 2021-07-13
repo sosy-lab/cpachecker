@@ -82,6 +82,14 @@ public class BlockNode {
     return successors;
   }
 
+  public CFANode getStartNode() {
+    return startNode;
+  }
+
+  public CFANode getLastNode() {
+    return lastNode;
+  }
+
   @Override
   public boolean equals(Object pO) {
     if (pO instanceof  BlockNode) {

@@ -50,9 +50,15 @@ public class BlockOperatorCutter implements CFACutter {
 
     // map a CFANode (that is the last node of a BlockNode) to its BlockNode
     // we use multimap since one CFANode can have multiple successors
-    ArrayListMultimap<CFANode, BlockNode> nodeMap = ArrayListMultimap.create();
+    ArrayListMultimap<CFANode, BlockNode> lastNodeMap = ArrayListMultimap.create();
     // the first entry node maps to the root node of the BlockTree
-    nodeMap.put(startNode, root);
+    lastNodeMap.put(startNode, root);
+
+    // map a CFANode (that is the start node of a BlockNode) to its BlockNode
+    // we use multimap since one CFANode can have multiple successors
+    ArrayListMultimap<CFANode, BlockNode> startNodeMap = ArrayListMultimap.create();
+    // the first entry node maps to the root node of the BlockTree
+    startNodeMap.put(startNode, root);
 
 
     Set<CFANode> coveredBlockEnds = new HashSet<>();
@@ -93,10 +99,18 @@ public class BlockOperatorCutter implements CFACutter {
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
-          nodeMap.get(lastCFANode).forEach(contained -> contained.linkSuccessor(childBlockNode));
+          lastNodeMap.get(lastCFANode).forEach(contained -> contained.linkSuccessor(childBlockNode));
+          // every previous block that starts with the current end node is now linked to the new BlockNode
+          startNodeMap.get(successorOfCurrNode).forEach(contained -> childBlockNode.linkSuccessor(contained));
+
+          // current BlockNode is stored nowhere -> link to self if start and end are equal.
+          if (childBlockNode.getStartNode().equals(childBlockNode.getLastNode())) {
+            childBlockNode.linkSuccessor(childBlockNode);
+          }
           // successorOfCurrNode is the lastNode of childBlockNode
           // note that other BlockNodes can have successorOfCurrNode as their last nodes.
-          nodeMap.put(successorOfCurrNode, childBlockNode);
+          lastNodeMap.put(successorOfCurrNode, childBlockNode);
+          startNodeMap.put(lastCFANode, childBlockNode);
         } else {
           // if successorOfCurrNode is not a block end, all successors must be added to the block
           for (CFANode successor : CFAUtils.successorsOf(successorOfCurrNode)) {
