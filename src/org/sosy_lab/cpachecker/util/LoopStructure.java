@@ -124,6 +124,7 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> innerLoopEdges;
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
+    private ImmutableSet<String> loopIncDecVariables;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
@@ -158,6 +159,8 @@ public final class LoopStructure implements Serializable {
 
       this.incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
       this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
+
+      loopIncDecVariables = collectLoopIncDecVariables();
     }
 
     private void addNodes(Loop l) {
@@ -178,6 +181,17 @@ public final class LoopStructure implements Serializable {
 
     private boolean intersectsWith(Loop l) {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
+    }
+
+    private ImmutableSet<String> collectLoopIncDecVariables() {
+      ImmutableSet.Builder<String> result = ImmutableSet.builder();
+      for (CFAEdge e : getInnerLoopEdges()) {
+        String var = obtainIncDecVariable(e);
+        if (var != null) {
+          result.add(var);
+        }
+      }
+      return result.build();
     }
 
     /**
@@ -260,6 +274,17 @@ public final class LoopStructure implements Serializable {
     public ImmutableSet<CFAEdge> getOutgoingEdges() {
       computeSets();
       return outgoingEdges;
+    }
+
+    /**
+     * Return all variables that are incremented or decremented by a fixed constant inside this
+     * loop. The variable names are scoped in the same way as {@link VariableClassification} does.
+     */
+    public Set<String> getLoopIncDecVariables() {
+      if (loopIncDecVariables == null) {
+        loopIncDecVariables = collectLoopIncDecVariables();
+      }
+      return loopIncDecVariables;
     }
 
     @Override
@@ -383,16 +408,13 @@ public final class LoopStructure implements Serializable {
   private ImmutableSet<String> collectLoopIncDecVariables() {
     ImmutableSet.Builder<String> result = ImmutableSet.builder();
     for (Loop l : loops.values()) {
-     // Get all variables that are incremented or decrement by literal values
-      for (CFAEdge e : l.getInnerLoopEdges()) {
-        String var = obtainIncDecVariable(e);
-        if (var != null) {
-          result.add(var);
-        }
-      }
+      // Get all variables that are incremented or decrement by literal values
+      result.addAll(l.collectLoopIncDecVariables());
     }
     return result.build();
   }
+
+
 
   /**
    * This method obtains a variable referenced in this edge that are incremented or decremented by a constant
