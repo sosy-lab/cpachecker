@@ -9,8 +9,7 @@
 // SPDX-FileCopyrightText: 2013 University of Freiburg
 // SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 //
-// SPDX-License-Identifier: Apache-2.0
-// SPDX-License-Identifier: BSD-2-Clause
+// SPDX-License-Identifier: Apache-2.0 AND BSD-2-Clause
 
 typedef enum {false, true} bool;
 
