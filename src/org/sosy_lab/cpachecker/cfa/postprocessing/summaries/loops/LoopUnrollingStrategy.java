@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 
 public class LoopUnrollingStrategy extends AbstractLoopStrategy {
@@ -53,7 +54,12 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
     currentNode.addLeavingEdge(blankOutgoingEdge);
     endNodeGhostCFA.addEnteringEdge(blankOutgoingEdge);
     return Optional.of(
-        new GhostCFA(startNodeGhostCFA, endNodeGhostCFA, pLoopStartNode, pLoopStartNode));
+        new GhostCFA(
+            startNodeGhostCFA,
+            endNodeGhostCFA,
+            pLoopStartNode,
+            pLoopStartNode,
+            StrategiesEnum.LoopUnrolling));
   }
 
   @Override

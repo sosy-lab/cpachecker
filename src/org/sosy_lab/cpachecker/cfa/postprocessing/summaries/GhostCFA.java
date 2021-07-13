@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class GhostCFA {
+  private final StrategiesEnum strategy;
   private final CFANode startGhostCfaNode;
   private final CFANode stopGhostCfaNode;
   private final CFANode startOriginalCfaNode;
@@ -26,7 +27,8 @@ public class GhostCFA {
       CFANode pStartGhostCfaNode,
       CFANode pStopGhostCfaNode,
       CFANode pStartOriginalCfaNode,
-      CFANode pStopOriginalCfaNode) {
+      CFANode pStopOriginalCfaNode,
+      StrategiesEnum pStrategy) {
 
     this.setStartNodesConnection(Optional.empty());
     this.setEndNodesConnection(Optional.empty());
@@ -34,6 +36,7 @@ public class GhostCFA {
     this.stopGhostCfaNode = pStopGhostCfaNode;
     this.startOriginalCfaNode = pStartOriginalCfaNode;
     this.stopOriginalCfaNode = pStopOriginalCfaNode;
+    this.strategy = pStrategy;
   }
 
   public void connectOriginalAndGhostCFA() {
@@ -82,6 +85,10 @@ public class GhostCFA {
 
   public Optional<CFAEdge> getStartNodesConnection() {
     return startNodesConnection;
+  }
+
+  public StrategiesEnum getStrategy() {
+    return strategy;
   }
 
   private void setStartNodesConnection(Optional<CFAEdge> pStartNodesConnection) {

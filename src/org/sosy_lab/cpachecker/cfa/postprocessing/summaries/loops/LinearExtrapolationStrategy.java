@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -467,7 +468,12 @@ public class LinearExtrapolationStrategy extends AbstractLoopExtrapolationStrate
     CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
 
     return Optional.of(
-        new GhostCFA(startNodeGhostCFA, endNodeGhostCFA, loopStartNode, afterLoopNode));
+        new GhostCFA(
+            startNodeGhostCFA,
+            endNodeGhostCFA,
+            loopStartNode,
+            afterLoopNode,
+            StrategiesEnum.LoopLinearExtrapolation));
   }
 
   private List<List<Integer>> getMatrixRepresentation(

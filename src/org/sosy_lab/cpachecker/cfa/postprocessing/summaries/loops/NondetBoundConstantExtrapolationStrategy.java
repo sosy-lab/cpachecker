@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -134,7 +135,12 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
     CFANode afterLoopNode = loopStartNode.getLeavingEdge(1 - loopBranchIndex).getSuccessor();
 
     return Optional.of(
-        new GhostCFA(startNode, superGhostCFA.getStopGhostCfaNode(), loopStartNode, afterLoopNode));
+        new GhostCFA(
+            startNode,
+            superGhostCFA.getStopGhostCfaNode(),
+            loopStartNode,
+            afterLoopNode,
+            StrategiesEnum.NonDetBoundConstantExtrapolation));
   }
 
   @Override
