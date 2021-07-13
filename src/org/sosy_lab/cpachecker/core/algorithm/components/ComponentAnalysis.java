@@ -26,7 +26,7 @@ public class ComponentAnalysis implements Algorithm {
   private final Configuration configuration;
   private final LogManager logger;
   private final CFA cfa;
-  private final ShutdownNotifier notifier;
+  private final ShutdownNotifier shutdownNotifier;
 
   public ComponentAnalysis(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -34,7 +34,7 @@ public class ComponentAnalysis implements Algorithm {
     configuration = pConfig;
     logger = pLogger;
     cfa = pCfa;
-    notifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -42,12 +42,11 @@ public class ComponentAnalysis implements Algorithm {
       throws CPAException, InterruptedException {
 
     try {
-      BlockTree tree = new BlockOperatorCutter(configuration).cut(cfa);
+      BlockTree tree = new BlockOperatorCutter(configuration, logger, shutdownNotifier).cut(cfa);
       Runner.analyzeTree(tree, parentAlgorithm, logger);
     } catch (InvalidConfigurationException pE) {
       logger.log(Level.SEVERE, pE);
     }
-
 
     return parentAlgorithm.run(reachedSet);
   }

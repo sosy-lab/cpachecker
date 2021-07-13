@@ -16,22 +16,28 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class BlockOperatorCutter implements CFACutter {
 
   private final BlockOperator operator;
+  private final BooleanFormulaManagerView bmgr;
 
-  public BlockOperatorCutter(Configuration pConfiguration) throws InvalidConfigurationException {
+  public BlockOperatorCutter(Configuration pConfiguration, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     operator = new BlockOperator();
     pConfiguration.inject(operator);
+    bmgr = Solver.create(pConfiguration, pLogger, pShutdownNotifier).getFormulaManager().getBooleanFormulaManager();
   }
 
   @Override
@@ -41,7 +47,7 @@ public class BlockOperatorCutter implements CFACutter {
     CFANode startNode = cfa.getMainFunction();
 
     // create the root node of the tree consisting of the entry node only
-    BlockNode root = new BlockNode(startNode, startNode, new LinkedHashSet<>());
+    BlockNode root = new BlockNode(startNode, startNode, new LinkedHashSet<>(), bmgr);
 
     // the stack stores all block ends (i.e., operator.isBlockEnd(node) == true)
     ArrayDeque<CFANode> blockEnds = new ArrayDeque<>();
@@ -95,7 +101,7 @@ public class BlockOperatorCutter implements CFACutter {
           // block.
           blockEnds.push(successorOfCurrNode);
           BlockNode childBlockNode =
-              new BlockNode(lastCFANode, successorOfCurrNode, nodeEntry.getSeen());
+              new BlockNode(lastCFANode, successorOfCurrNode, nodeEntry.getSeen(), bmgr);
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
