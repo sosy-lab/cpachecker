@@ -62,7 +62,7 @@ public class BlockGuard implements Cloneable, Serializable{
       CFANode node = value.first.first;
       CFANode node2 = value.first.second;
       CExpression expr = value.second.first.first;
-      boolean truth = value.second.first.second.booleanValue();
+      boolean truth = value.second.first.second;
       NavigableSet<Variable> scs = value.second.second;
       NavigableSet<Variable> secsec = new TreeSet<>();
       secsec.addAll(scs);
