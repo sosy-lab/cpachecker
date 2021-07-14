@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 
 public abstract class PathTranslator {
 
-  protected final static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
+  protected static CFunctionEntryNode extractFunctionCallLocation(ARGState state) {
     // We assume, that each node has one location.
     // TODO: the location is invalid for all concurrent programs,
     //       because interleaving threads are not handled.
