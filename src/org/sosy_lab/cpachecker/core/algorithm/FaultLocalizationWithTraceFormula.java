@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -103,8 +104,11 @@ public class FaultLocalizationWithTraceFormula
   private boolean disableFSTF = false;
 
   @Option(secure=true, name="maxsat.ban",
-      description="ban faults with certain variables")
-  private String ban = "";
+      description="Do not show faults that contain a certain variable. Use, e.g., 'main::x' to ban "
+          + "variable 'x' in the main function. Use, e.g., '::x' to ban all variables named 'x'. "
+          + "This is especially useful to filter specific faults if the first run results "
+          + "in many candidates. To add variables")
+  private List<String> ban = ImmutableList.of();
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
@@ -161,21 +165,39 @@ public class FaultLocalizationWithTraceFormula
   public void checkOptions () throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && disableFSTF) {
       throw new InvalidConfigurationException(
-          "The option flow-sensitive trace formula will be ignored since the error invariants"
-              + " algorithm is not selected");
+          "The option 'disableFSTF' (flow-sensitive trace formula) requires the error invariants"
+              + " algorithm");
     }
-    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
+    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(
-          "The option ban will be ignored since the error invariants algorithm is not selected");
+          "The option 'ban' cannot be used together with the error invariants algorithm. Use MAX-SAT instead.");
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
-          "The option reduceselectors requires the MAXSAT algorithm");
+          "The option 'reduceselectors' requires the MAX-SAT algorithm");
     }
-    if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
+    if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
-          "The option ban will be ignored because it is not applicable on the error invariants"
+          "The option 'ban' is not applicable for the error invariants"
               + " algorithm");
+    }
+    if (!options.getDisable().isEmpty()) {
+      if (options.getDisable().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.disable' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function::variable.");
+      }
+    }
+    if (!options.getIgnore().isEmpty()) {
+      if (options.getIgnore().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.ignore' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
+      }
+    }
+    if (!ban.isEmpty()) {
+      if (ban.stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'faultlocalization.by_traceformula.ban' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
+      }
     }
   }
 
@@ -283,14 +305,16 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
 
-      FaultLocalizationInfo info = new FaultLocalizationInfo(
-          errorIndicators,
-          scoring,
-          tf.getPrecondition(),
-          pInfo);
+      FaultLocalizationInfo info =
+          new FaultLocalizationInfo(
+              errorIndicators,
+              scoring,
+              tf.getPrecondition(),
+              context.getSolver().getFormulaManager(),
+              pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        info.replaceHtmlWriter(new IntervalReportWriter());
+        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
         info.setSortIntended(true);
       }
 
@@ -321,22 +345,15 @@ public class FaultLocalizationWithTraceFormula
    * @param pErrorIndicators result set
    */
   private void ban(Set<Fault> pErrorIndicators) {
-    List<String> banned = Splitter.on(",").splitToList(ban);
     Set<Fault> copy = new HashSet<>(pErrorIndicators);
     for (Fault errorIndicator : copy) {
       for (FaultContribution faultContribution : errorIndicator) {
         BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
-        for (String b: banned) {
-          if (b.contains("::")){
-            if (curr.toString().contains(b + "@")){
-              pErrorIndicators.remove(errorIndicator);
-              break;
-            }
-          } else {
-            if (curr.toString().contains("::"+b +"@")){
-              pErrorIndicators.remove(errorIndicator);
-              break;
-            }
+        for (String banned: ban) {
+          assert banned.contains("::");
+          if (curr.toString().contains(banned + "@")) {
+            pErrorIndicators.remove(errorIndicator);
+            break;
           }
         }
       }

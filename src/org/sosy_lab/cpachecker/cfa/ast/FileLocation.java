@@ -78,7 +78,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   public static final FileLocation DUMMY =
-      new FileLocation(Path.of("<none>"), 0, 0, 0, 0) {
+      new FileLocation(Path.of("#none#"), 0, 0, 0, 0) {
         private static final long serialVersionUID = -3012034075570811723L;
 
         @Override
@@ -93,7 +93,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       };
 
   public static final FileLocation MULTIPLE_FILES =
-      new FileLocation(Path.of("<multiple files>"), 0, 0, 0, 0) {
+      new FileLocation(Path.of("#multiple files#"), 0, 0, 0, 0) {
         private static final long serialVersionUID = -1725179775900132985L;
 
         @Override

@@ -28,19 +28,25 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
+  /* Please always prefer getRankedList() over rankedList to access the list because of important side effects */
   private boolean sortIntended;
   private final ImmutableList<Fault> rankedList;
+
   private FaultReportWriter htmlWriter;
 
   /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
+
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
   private final Optional<BooleanFormula> precondition;
+  private final Optional<FormulaManagerView> formulaManager;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
@@ -58,7 +64,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * state by this or simply call {@link #apply()} on an instance of this class.
    *
    * @param pFaults Ranked list of faults obtained by a fault localization algorithm. The list will
-   *                be stored immutable internally.
+   *     be stored immutable internally.
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(List<Fault> pFaults, CounterexampleInfo pParent) {
@@ -70,6 +76,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         CFAPathWithAdditionalInfo.empty());
     rankedList = ImmutableList.copyOf(pFaults);
     precondition = Optional.empty();
+    formulaManager = Optional.empty();
     htmlWriter = new FaultReportWriter();
   }
 
@@ -102,6 +109,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     precondition = Optional.empty();
+    formulaManager = Optional.empty();
     htmlWriter = new FaultReportWriter();
   }
 
@@ -123,12 +131,14 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pFaults set of faults obtained by a fault localization algorithm
    * @param pScoring how to calculate the scores of each fault
    * @param pPrecondition the precondition of a trace formula
+   * @param pFormulaManager formula manager used to handle BooleanFormulas in pFaults
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(
       Set<Fault> pFaults,
       FaultScoring pScoring,
       BooleanFormula pPrecondition,
+      FormulaManagerView pFormulaManager,
       CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),
@@ -138,20 +148,22 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pScoring, pFaults);
     precondition = Optional.of(pPrecondition);
+    formulaManager = Optional.of(pFormulaManager);
     htmlWriter = new FaultReportWriter();
   }
 
   /**
-   * Fills {@link FaultLocalizationInfo#mapEdgeToFaultContribution} and {@link FaultLocalizationInfo#mapEdgeToRankedFaultIndex}
-   * to ensure correct calls to {@link FaultLocalizationInfo#addAdditionalInfo(Map, CFAEdge)}.
-   * {@link org.sosy_lab.cpachecker.core.counterexample.ReportGenerator} calls this method when needed.
+   * Fills {@link FaultLocalizationInfo#mapEdgeToFaultContribution} and {@link
+   * FaultLocalizationInfo#mapEdgeToRankedFaultIndex} to ensure correct calls to {@link
+   * FaultLocalizationInfo#addAdditionalInfo(Map, CFAEdge)}. {@link
+   * org.sosy_lab.cpachecker.core.counterexample.ReportGenerator} calls this method when needed.
    * After accessing this method {@link FaultLocalizationInfo#rankedList} must not be changed.
    */
-  public final void prepare(){
+  public final void prepare() {
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
-    for(int i = 0; i < rankedList.size(); i++){
-      for (FaultContribution faultContribution : rankedList.get(i)) {
+    for (int i = 0; i < getRankedList().size(); i++) {
+      for (FaultContribution faultContribution : getRankedList().get(i)) {
         mapEdgeToRankedFaultIndex.put(faultContribution.correspondingEdge(), i);
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
@@ -165,8 +177,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   @Override
   public String toString() {
     StringBuilder toString = new StringBuilder();
-    if(!rankedList.isEmpty()){
-      toString.append(rankedList.stream().map(Fault::toString).collect(Collectors.joining("\n\n")));
+    List<Fault> faults = getRankedList();
+    if (!faults.isEmpty()) {
+      toString.append(faults.stream().map(Fault::toString).collect(Collectors.joining("\n\n")));
     }
     return toString.toString();
   }
@@ -193,17 +206,18 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     for (int i = 0; i < ranked.size(); i++) {
       Fault fault = ranked.get(i);
       Map<String, Object> faultMap = new HashMap<>();
-      faultMap.put("rank", (i+1));
+      faultMap.put("rank", (i + 1));
       faultMap.put("score", (int) (100 * fault.getScore()));
       faultMap.put("reason", htmlWriter.toHtml(fault));
       faults.add(faultMap);
     }
 
-    JSON.writeJSONString(faults ,pWriter);
+    JSON.writeJSONString(faults, pWriter);
   }
 
   /**
    * Append additional information to the CounterexampleInfo output
+   *
    * @param elem maps a property of an edge to an object
    * @param edge the edge that is currently transformed into JSON format.
    */
@@ -211,15 +225,15 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
     elem.put("additional", "");
     FaultContribution fc = mapEdgeToFaultContribution.get(edge);
-    if(fc != null){
-      if(fc.hasReasons()){
+    if (fc != null) {
+      if (fc.hasReasons()) {
         elem.put(
             "additional",
             "<br><br><strong>Additional information provided:</strong><br>"
                 + htmlWriter.toHtml(fc));
       }
     }
-    if(mapEdgeToRankedFaultIndex.containsKey(edge)){
+    if (mapEdgeToRankedFaultIndex.containsKey(edge)) {
       elem.put("faults", mapEdgeToRankedFaultIndex.get(edge));
     }
     if (!elem.containsKey("faults")) {
@@ -228,13 +242,15 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   * Return the ranked list of faults. If sort intended label is set, return a sorted copy sorted
-   * by {@link Fault#getIntendedIndex()}. The index has to be set manually in advance.
+   * Return the ranked list of faults. If sort intended label is set, return a sorted copy sorted by
+   * {@link Fault#getIntendedIndex()}. The index has to be set manually in advance.
+   *
    * @return an immutable list of faults sorted by intended index or score
    */
   public ImmutableList<Fault> getRankedList() {
     if (sortIntended) {
-      return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), rankedList);
+      return ImmutableList.sortedCopyOf(
+          Comparator.comparingInt(Fault::getIntendedIndex), rankedList);
     }
     return ImmutableList.copyOf(rankedList);
   }
@@ -243,25 +259,30 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     return htmlWriter;
   }
 
-  public void replaceHtmlWriter(FaultReportWriter pFaultToHtml){
+  public void replaceHtmlWriter(FaultReportWriter pFaultToHtml) {
     htmlWriter = pFaultToHtml;
   }
 
   /**
-   * Replace default CounterexampleInfo with this extended version.
-   * Activates the visual representation of fault localization.
+   * Replace default CounterexampleInfo with this extended version. Activates the visual
+   * representation of fault localization.
    */
-  public void apply(){
+  public void apply() {
     super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
 
   public void writePrecondition(Writer writer) throws IOException {
-    JSON.writeJSONString(
-        Collections.singletonMap(
-            "fl-precondition",
-            precondition.isPresent()
-                ? precondition.orElseThrow().toString()
-                : ""),
-        writer);
+    String preconditionString = "";
+    if (precondition.isPresent()) {
+      if (formulaManager.isPresent()) {
+        FormulaManagerView manager = formulaManager.orElseThrow();
+        FormulaToCVisitor visitor = new FormulaToCVisitor(manager);
+        manager.visit(precondition.orElseThrow(), visitor);
+        preconditionString = visitor.getString();
+      } else {
+        preconditionString = precondition.orElseThrow().toString();
+      }
+    }
+      JSON.writeJSONString(Collections.singletonMap("fl-precondition", preconditionString), writer);
   }
 }

@@ -33,8 +33,8 @@ public class InformationProvider {
   public static void searchForAdditionalInformation(Collection<Fault> faults, List<CFAEdge> edges) {
     // matches eg "x = x + 1", "test = test4    - 3" but not "test = 3 + test4"
     final Pattern matchIteration = Pattern.compile(".+=.+[+\\-/*][ 1-9]+[0-9]+");
-    // matches eg "x = 4 + arr[c + 3]
-    final Pattern matchArrayOperation = Pattern.compile(".*\\[.*[+\\-/*]+.*].*");
+    // matches eg "x = 4 + arr[c + 3] does not match "[.*]"
+    final Pattern matchArrayOperation = Pattern.compile(".+\\[.*[+\\-/*]+.*].*");
 
     // Find iteration variables
     Map<Object, Long> counts =

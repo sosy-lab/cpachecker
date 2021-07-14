@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,52 +57,63 @@ public abstract class TraceFormula {
     @Option(
         secure = true,
         name = "filter",
-        description = "filter the alternative precondition by scopes")
-    private String filter = "main";
+        description = "The alternative precondition consists of all initial variable assignments "
+            + " and a failing variable assignment for all nondet variables. By default only "
+            + " variables in the main function are part of the precondition. "
+            + "Overwrite the default by adding functions to this option, e.g., \"main,doStuff\"")
+    private List<String> filter = ImmutableList.of("main");
 
     // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
     // pre-condition
     @Option(
         secure = true,
         name = "ignore",
-        description = "do not add variables to alternative precondition (separate by commas)")
-    private String ignore = "";
+        description = "The alternative precondition consists of all initial variable assignments. "
+            + "If a variable assignment seems suspicious, it might be useful to exclude it from "
+            + "the precondition. To do this, add these variables to this option, e.g., main::x,doStuff::y. "
+            + "Make sure to add the function in which the variable is used as prefix, separated by two ':'")
+    private List<String> ignore = ImmutableList.of();
 
-    // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
-    // pre-condition
     @Option(
         secure = true,
         name = "disable",
-        description = "do not create selectors for this variables (separate by commas)")
-    private String disable = "";
+        description = "Usually every statement that is not part of the precondition gets a selector. "
+            + "If a certain variable is known to not cause the error, add it to this option, e.g., "
+            + "main::x,doStuff::y")
+    private List<String> disable = ImmutableList.of();
 
     @Option(
         secure = true,
         name = "altpre",
         description =
-            "add initial variable assignments to the pre-condition instead of just using failing"
-                + " variable assignments for nondet variables")
+            "By default, the precondition only contains the failing variable assignment of all nondet variables. "
+                + "Enable this option if initial variable assignments of the form '<datatype> <variable-name> = <value>' should also be added to the precondition. "
+                + "See the description for the option traceformula.ignore for further options.")
     private boolean forcePre = false;
 
     @Option(
         secure = true,
         name = "uniqueselectors",
-        description = "equal statements on the same line get the same selector")
+        description = "By default, every executed statement gets its own selector. "
+            + "If a loop is part of the program to analyze, the number of selectors can increase which"
+            + " also increases the run time of max-sat drastically. To use the same selector for equal"
+            + " statements (on the same line), set this option to true. Note that enabling this option "
+            + " also decreases the quality of results.")
     private boolean reduceSelectors = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
       pConfiguration.inject(this);
     }
 
-    public String getFilter() {
+    public List<String> getFilter() {
       return filter;
     }
 
-    public String getDisable() {
+    public List<String> getDisable() {
       return disable;
     }
 
-    public String getIgnore() {
+    public List<String> getIgnore() {
       return ignore;
     }
 
@@ -174,7 +185,7 @@ public abstract class TraceFormula {
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-        if (formula.toString().contains("__VERIFIER_nondet")) {
+        if (!Pattern.matches(".+::.+@[0-9]+", modelAssignment.getKey().toString())) {
           precond = bmgr.and(precond, formula);
         }
       }
@@ -274,10 +285,12 @@ public abstract class TraceFormula {
       BooleanFormula prev = current.getFormula();
       current = manager.makeAnd(current, e);
       List<BooleanFormula> formulaList =
-          new ArrayList<>(bmgr.toConjunctionArgs(current.getFormula(), false));
+          ImmutableList.copyOf(bmgr.toConjunctionArgs(current.getFormula(), false));
       BooleanFormula currentAtom = formulaList.get(0);
       if (formulaList.size() == 2) {
-        if (formulaList.get(0).equals(prev)) {
+        if (i == 0) {
+          currentAtom = bmgr.and(currentAtom, formulaList.get(1));
+        } else if (formulaList.get(0).equals(prev)) {
           currentAtom = formulaList.get(1);
         }
       }
@@ -299,19 +312,12 @@ public abstract class TraceFormula {
 
     // disable selectors
     if (!options.disable.isEmpty()) {
-      List<String> disabled = Splitter.on(",").splitToList(options.disable);
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.toAtomList().get(i).toString();
         Selector selector = entries.toSelectorList().get(i);
-        for (String disable : disabled) {
-          if (disable.contains("::")) {
-            if (formulaString.contains(disable)) {
-              selector.disable();
-            }
-          } else {
-            if (formulaString.contains("::" + disable)) {
-              selector.disable();
-            }
+        for (String disable : options.disable) {
+          if (formulaString.contains(disable)) {
+            selector.disable();
           }
         }
       }
