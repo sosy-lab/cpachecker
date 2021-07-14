@@ -131,6 +131,7 @@ python-unit-tests:jdk-16:
 javascript-build:
   stage: checks
   dependencies: []
+  needs: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -147,6 +148,7 @@ javascript-build:
 javascript-unit-tests:
   stage: checks
   dependencies: []
+  needs: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -166,6 +168,7 @@ javascript-unit-tests:
 javascript-eslint:
   stage: checks
   dependencies: []
+  needs: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
