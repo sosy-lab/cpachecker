@@ -361,6 +361,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     // Remove predicates from the collection of interesting predicates that are already covered by the set of interesting variables
+    // TODO potential bug or just unreachable code: interestingPredicates is always empty here??
     Iterator<NumeralFormula<CompoundInterval>> interestingPredicateIterator = interestingPredicates.iterator();
     while (interestingPredicateIterator.hasNext()) {
       NumeralFormula<CompoundInterval> interestingPredicate = interestingPredicateIterator.next();
