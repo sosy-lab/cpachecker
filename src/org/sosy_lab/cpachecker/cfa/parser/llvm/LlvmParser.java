@@ -103,7 +103,8 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode) {
+  public ParseResult parseString(final String pFilename, final String pCode)
+      throws ParserException, InterruptedException {
     // TODO
     throw new UnsupportedOperationException();
   }

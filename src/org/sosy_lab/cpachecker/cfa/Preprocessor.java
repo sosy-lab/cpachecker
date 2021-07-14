@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -114,7 +115,8 @@ public abstract class Preprocessor {
   protected Path getAndWriteDumpFile(String programCode, Path file, Path pDumpDirectory) {
     if (dumpResults() && pDumpDirectory != null) {
       final Path dumpFile = pDumpDirectory.resolve(getDumpFileOfFile(file.toString())).normalize();
-      if (dumpFile.startsWith(pDumpDirectory)) {
+      final Path tmpDir = Path.of(StandardSystemProperty.JAVA_IO_TMPDIR.value());
+      if (dumpFile.startsWith(pDumpDirectory) || dumpFile.startsWith(tmpDir)) {
         try {
           IO.writeFile(dumpFile, Charset.defaultCharset(), programCode);
         } catch (IOException e) {

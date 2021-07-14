@@ -10,9 +10,11 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseDir;
 import org.sosy_lab.common.log.LogManager;
@@ -48,27 +50,42 @@ public class LlvmParserWithClang extends LlvmParser {
     }
     Path filename = Path.of(pFilenames.get(0));
 
+    return parseSingleFile(filename);
+  }
+
+  private ParseResult parseSingleFile(final Path pFilename)
+      throws ParserException, InterruptedException {
+
     if (preprocessor.getDumpDirectory() != null) {
       // Writing to the output directory is possible.
-      return parse0(filename, preprocessor.getDumpDirectory());
+      return parse0(pFilename, preprocessor.getDumpDirectory());
     }
 
     try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("clang-results")) {
-      return parse0(filename, tempDir.toPath());
+      return parse0(pFilename, tempDir.toPath());
     } catch (IOException e) {
       throw new CParserException("Could not write clang output to file " + e.getMessage(), e);
     }
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode) {
-    // TODO
-    throw new UnsupportedOperationException();
+  public ParseResult parseString(final String pFilename, final String pCode)
+      throws ParserException, InterruptedException {
+    // The input is written to a file in a temporary directory so that clang can preprocess it.
+    // This temp dir will be automatically deleted when the try block terminates.
+    try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("input-for-llvm-with-clang")) {
+      // TODO handle filenames without (known) suffixes and empty Strings
+      Path tempFile = tempDir.toPath().resolve(pFilename).normalize();
+      IO.writeFile(tempFile, Charset.defaultCharset(), pCode);
+      return parseSingleFile(tempFile);
+    } catch (IOException e) {
+      throw new CParserException("Could not write clang input to file " + e.getMessage(), e);
+    }
   }
 
-  private ParseResult parse0(final Path pFileName, final Path pDumpDirectory)
+  private ParseResult parse0(final Path pFilename, final Path pDumpDirectory)
       throws ParserException, InterruptedException {
-    Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFileName, pDumpDirectory);
+    Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename, pDumpDirectory);
     return super.parseFile(dumpedFile.toString());
   }
 
