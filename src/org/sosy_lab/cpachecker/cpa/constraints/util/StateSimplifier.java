@@ -97,15 +97,7 @@ public class StateSimplifier {
   public void removeTrivialConstraints(final ConstraintsState pState) {
     int sizeBefore = pState.size();
 
-    Iterator<Constraint> it = pState.iterator();
-
-    while (it.hasNext()) {
-      Constraint currConstraint = it.next();
-
-      if (isTrivial(currConstraint)) {
-        it.remove();
-      }
-    }
+    pState.removeIf(this::isTrivial);
 
     stats.removedTrivial.setNextValue(sizeBefore - pState.size());
   }

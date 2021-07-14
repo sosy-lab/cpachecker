@@ -355,16 +355,9 @@ class CFAMethodBuilder extends ASTVisitor {
     Set<CFANode> reachableNodes =
         CFATraversal.dfs().collectNodesReachableFrom(cfa);
 
-    Iterator<CFANode> it = cfaNodes.iterator();
-
-    while (it.hasNext()) {
-      CFANode n = it.next();
-
-      if (!reachableNodes.contains(n)) {
-        // node was created but isn't part of CFA (e.g. because of dead code)
-        it.remove(); // remove n from currentCFANodes
-      }
-    }
+    // if node was created but isn't part of CFA (e.g. because of dead code),
+    // then remove node from current CFANodes
+    cfaNodes.removeIf(n -> !reachableNodes.contains(n));
 
     scope.leaveMethod();
   }

@@ -154,12 +154,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
    * @param partitions the partitioning to be cleaned up.
    */
   private void removeEmptyPartitions(List<Set<Integer>> partitions) {
-    for (Iterator<Set<Integer>> iter = partitions.listIterator(); iter.hasNext();) {
-      Set<Integer> partition = iter.next();
-      if (partition != null && partition.isEmpty()) {
-        iter.remove();
-      }
-    }
+    partitions.removeIf(partition -> partition != null && partition.isEmpty());
   }
 
 
