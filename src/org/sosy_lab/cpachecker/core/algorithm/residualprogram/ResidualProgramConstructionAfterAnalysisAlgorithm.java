@@ -74,7 +74,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   private final Collection<Statistics> stats = new ArrayList<>();
 
-  private static final boolean isStop(AbstractState e) {
+  private static boolean isStop(AbstractState e) {
     AssumptionStorageState ass = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
     return ass != null && ass.isStop();
   }

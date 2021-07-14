@@ -266,12 +266,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   /**
    * Get the predicates out of an interpolant.
+   *
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  private final Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant, PathFormula blockFormula)
-      throws InterruptedException {
+  private Collection<AbstractionPredicate> convertInterpolant(
+      final BooleanFormula pInterpolant, PathFormula blockFormula) throws InterruptedException {
 
     BooleanFormula interpolant = pInterpolant;
 
@@ -371,8 +371,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     argUpdate.stop();
   }
 
-  private final Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
-      List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
+  private Pair<PredicatePrecision, ARGState> computeNewPrecision(
+      ARGState pUnreachableState,
+      List<ARGState> pAffectedStates,
+      ARGReachedSet pReached,
+      boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location
