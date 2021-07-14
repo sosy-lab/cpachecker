@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
