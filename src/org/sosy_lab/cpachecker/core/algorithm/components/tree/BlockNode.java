@@ -13,17 +13,13 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class BlockNode {
 
-  private final String id;
+  private final BlockNodeId id;
 
   private final CFANode startNode;
   private final CFANode lastNode;
@@ -32,14 +28,30 @@ public class BlockNode {
   private final Set<BlockNode> predecessors;
   private final Set<BlockNode> successors;
 
-  private final BooleanFormulaManagerView bmgr;
-  private BooleanFormula precondition;
-  private BooleanFormula postcondition;
-
-  private final ConcurrentMap<String, BooleanFormula> preconditionUpdates;
-  private final ConcurrentMap<String, BooleanFormula> postconditionUpdates;
-
-  public BlockNode(@NonNull CFANode pStartNode, @NonNull CFANode pLastNode, @NonNull Set<CFANode> pNodesInBlock, BooleanFormulaManagerView pBmgr) {
+  /**
+   * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
+   * pLastNode</code>.
+   *
+   * @param pStartNode the root node of the block
+   * @param pLastNode the final node of the block
+   * @param pNodesInBlock all nodes that are part of the sub graph including the root node and the
+   *     last node.
+   */
+  public BlockNode(
+      @NonNull CFANode pStartNode,
+      @NonNull CFANode pLastNode,
+      @NonNull Set<CFANode> pNodesInBlock) {
+    // pNodesInBlock is a set allowing to represent branches.
+    if (!pNodesInBlock.contains(pStartNode) || !pNodesInBlock.contains(pLastNode)) {
+      throw new AssertionError(
+          "pNodesInBlock ("
+              + pNodesInBlock
+              + ") must list all nodes but misses either the root node ("
+              + pStartNode
+              + ") or the last node ("
+              + pLastNode
+              + ").");
+    }
     startNode = pStartNode;
     lastNode = pLastNode;
 
@@ -47,42 +59,9 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
-    bmgr = pBmgr;
 
+    id = BlockNodeId.of(this);
     // make sure that no node is missing, set removes duplicates automatically
-    nodesInBlock.add(pStartNode);
-    nodesInBlock.add(pLastNode);
-
-    precondition = bmgr.makeTrue();
-    postcondition = bmgr.makeTrue();
-
-    id = nodesInBlock.stream().map(CFANode::toString).collect(Collectors.joining(","));
-    preconditionUpdates = new ConcurrentHashMap<>();
-    postconditionUpdates = new ConcurrentHashMap<>();
-  }
-
-  public void sendPostconditionToSuccessors() {
-    successors.forEach(node -> node.receivePrecondition(id, postcondition));
-  }
-
-  public void sendPreconditionToPredecessors() {
-    predecessors.forEach(node -> node.receivePostcondition(id, precondition));
-  }
-
-  private void receivePrecondition(String from, BooleanFormula precond) {
-    preconditionUpdates.put(from, precond);
-  }
-
-  private void receivePostcondition(String from, BooleanFormula postcond) {
-    postconditionUpdates.put(from, postcond);
-  }
-
-  public void setPrecondition(BooleanFormula precond) {
-    precondition = precond;
-  }
-
-  public void setPostcondition(BooleanFormula postcond) {
-    postcondition = postcond;
   }
 
   public void linkSuccessor(BlockNode node) {
@@ -114,15 +93,7 @@ public class BlockNode {
     return lastNode;
   }
 
-  public ConcurrentMap<String, BooleanFormula> getPostconditionUpdates() {
-    return postconditionUpdates;
-  }
-
-  public ConcurrentMap<String, BooleanFormula> getPreconditionUpdates() {
-    return preconditionUpdates;
-  }
-
-  public String getId() {
+  public BlockNodeId getId() {
     return id;
   }
 
@@ -130,15 +101,12 @@ public class BlockNode {
     return nodesInBlock;
   }
 
-  public BooleanFormulaManagerView getBmgr() {
-    return bmgr;
-  }
-
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof  BlockNode) {
+    if (pO instanceof BlockNode) {
       BlockNode blockNode = (BlockNode) pO;
-      return startNode.equals(blockNode.startNode) && lastNode.equals(blockNode.lastNode)
+      return startNode.equals(blockNode.startNode)
+          && lastNode.equals(blockNode.lastNode)
           && nodesInBlock.equals(blockNode.nodesInBlock);
     }
     return false;
@@ -151,10 +119,44 @@ public class BlockNode {
 
   @Override
   public String toString() {
-    return "BlockNode{" +
-        "startNode=" + startNode +
-        ", lastNode=" + lastNode +
-        ", nodesInBlock=" + nodesInBlock +
-        '}';
+    return "BlockNode{"
+        + "startNode="
+        + startNode
+        + ", lastNode="
+        + lastNode
+        + ", nodesInBlock="
+        + nodesInBlock
+        + '}';
+  }
+
+  /**
+   * Immutable id generator for BlockNodes. Guarantees to generate unique ids for BlockNodes. Always
+   * returns same id for equal BlockNodes
+   */
+  public static class BlockNodeId {
+
+    private final String id;
+
+    private BlockNodeId(BlockNode pNode) {
+      id = pNode.nodesInBlock.stream().map(CFANode::toString).collect(Collectors.joining(""));
+    }
+
+    static BlockNodeId of(BlockNode pNode) {
+      return new BlockNodeId(pNode);
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (!(pO instanceof BlockNodeId)) {
+        return false;
+      }
+      BlockNodeId that = (BlockNodeId) pO;
+      return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id);
+    }
   }
 }

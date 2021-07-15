@@ -32,7 +32,7 @@ public class BlockTree {
     Set<BlockNode> nodes = new HashSet<>();
     ArrayDeque<BlockNode> waiting = new ArrayDeque<>();
     waiting.add(root);
-    while(!waiting.isEmpty()) {
+    while (!waiting.isEmpty()) {
       BlockNode top = waiting.pop();
       if (!nodes.contains(top)) {
         nodes.add(top);
@@ -41,5 +41,4 @@ public class BlockTree {
     }
     return nodes;
   }
-
 }
