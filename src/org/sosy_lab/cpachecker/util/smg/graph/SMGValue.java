@@ -17,4 +17,8 @@ public interface SMGValue extends SMGNode, Comparable<SMGValue> {
   @Override
   boolean equals(Object other);
 
+  default boolean isZero() {
+    return equals(SMGExplicitValue.nullInstance());
+  }
+
 }
