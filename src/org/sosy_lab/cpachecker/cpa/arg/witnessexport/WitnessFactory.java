@@ -32,6 +32,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,6 +62,7 @@ import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -122,6 +127,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -1117,6 +1123,45 @@ class WitnessFactory implements EdgeAppender {
     };
   }
 
+  private void writeMemoryLocations(Writer writer, Iterable<MemoryLocation> pMemLocs)
+      throws IOException {
+    List<String> globals = new ArrayList<>();
+    String previousScope = null;
+
+    for (MemoryLocation variable : pMemLocs) {
+      if (variable.isOnFunctionStack()) {
+        String functionName = variable.getFunctionName();
+        if (!functionName.equals(previousScope)) {
+          writer.write("\n" + functionName + ":\n");
+        }
+        writer.write(variable.serialize() + "\n");
+
+        previousScope = functionName;
+      } else {
+        globals.add(variable.serialize());
+      }
+    }
+
+    if (previousScope != null) {
+      writer.write("\n");
+    }
+
+    writer.write("*:\n" + Joiner.on("\n").join(globals));
+  }
+
+  private void writeInvariantVariables() throws IOException {
+    var memLocsBuilder = ImmutableSet.<MemoryLocation>builder();
+    for (var inv : stateInvariants.values()) {
+      memLocsBuilder.addAll(ExpressionTrees.memoryLocations(inv, cfa.getMachineModel()));
+    }
+
+    ImmutableSet<MemoryLocation> memLocs = memLocsBuilder.build();
+    try (Writer fWriter = IO.openOutputFile(Path.of("output", "invariantPrecision.txt"),
+        StandardCharsets.UTF_8)) {
+      writeMemoryLocations(fWriter, memLocs);
+    }
+  }
+
   /** Creates a {@link Witness} using the supplied parameters */
   public Witness produceWitness(
       final ARGState pRootState,
@@ -1191,6 +1236,12 @@ class WitnessFactory implements EdgeAppender {
 
     // remove unnecessary edges leading to sink
     removeUnnecessarySinkEdges();
+
+    try {
+      writeInvariantVariables();
+    } catch (IOException e) {
+      logger.logException(Level.WARNING, e, "could not write invariant memory locations to file");
+    }
 
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();

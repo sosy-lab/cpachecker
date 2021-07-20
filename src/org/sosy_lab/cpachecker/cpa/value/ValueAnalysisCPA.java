@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,27 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -95,8 +74,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -104,11 +83,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -316,7 +290,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       var precIncrement = ImmutableSetMultimap.<CFANode, MemoryLocation>builder();
       for (var inv : invariants) {
-        ImmutableList<MemoryLocation> memLocs = memoryLocsInExpressionTree(inv.asExpressionTree());
+        ImmutableList<MemoryLocation> memLocs =
+            ExpressionTrees.memoryLocations(inv.asExpressionTree(), cfa.getMachineModel());
         precIncrement.putAll(inv.getLocation(), memLocs);
       }
 
@@ -374,213 +349,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
 
     return trackedVariables;
-  }
-
-  private ImmutableList<MemoryLocation> memoryLocsInExpressionTree(ExpressionTree<Object> expTree) {
-    var memLocs = new ImmutableList.Builder<MemoryLocation>();
-
-    expTree.accept(new ExpressionTreeVisitor<Object, Void, NoException>() {
-      @Override
-      public Void visit(And<Object> pAnd) throws NoException {
-        for (var child : pAnd) {
-          child.accept(this);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visit(Or<Object> pOr) throws NoException {
-        for (var child : pOr) {
-          child.accept(this);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visit(LeafExpression<Object> pLeafExpression) throws NoException {
-        if (pLeafExpression.getExpression() instanceof CExpression) {
-          // We only handle CExpressions for now
-          var exp = (CExpression)pLeafExpression.getExpression();
-          memLocs.addAll(memoryLocationsInExpression(exp));
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitTrue() throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visitFalse() throws NoException {
-        // nothing to do
-        return null;
-      }
-    });
-
-    return memLocs.build();
-  }
-
-  private ImmutableList<MemoryLocation> memoryLocationsInExpression(CExpression exp) {
-    var memLocs = new ImmutableList.Builder<MemoryLocation>();
-
-    exp.accept(new CExpressionVisitor<Void, NoException>() {
-      @Override
-      public Void visit(CBinaryExpression pIastBinaryExpression) throws NoException {
-        pIastBinaryExpression.getOperand1().accept(this);
-        pIastBinaryExpression.getOperand2().accept(this);
-        return null;
-      }
-
-      @Override
-      public Void visit(CCastExpression pIastCastExpression) throws NoException {
-        pIastCastExpression.getOperand().accept(this);
-        return null;
-      }
-
-      @Override
-      public Void visit(CCharLiteralExpression pIastCharLiteralExpression) throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-          throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CStringLiteralExpression pIastStringLiteralExpression) throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CUnaryExpression pIastUnaryExpression) throws NoException {
-        pIastUnaryExpression.getOperand().accept(this);
-        return null;
-      }
-
-      @Override
-      public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) throws NoException {
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws NoException {
-        // CAddressOfLabelExpression is not ISO C, but a GCC extensions
-        // nothing to do
-        return null;
-      }
-
-      @Override
-      public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-          throws NoException {
-        if (pIastArraySubscriptExpression.getArrayExpression() instanceof CIdExpression &&
-            pIastArraySubscriptExpression.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
-          // the case where directly know the referenced memory location (including the offset)
-          // possible future improvement: also handle cases where the subscript expression can be
-          // evaluated statically to an integer
-          var arrayExp = (CIdExpression)pIastArraySubscriptExpression.getArrayExpression();
-          String arrayName = arrayExp.getDeclaration() != null ?
-                             arrayExp.getDeclaration().getQualifiedName() :
-                             arrayExp.getName();
-          var indexExp = (CIntegerLiteralExpression)pIastArraySubscriptExpression.getSubscriptExpression();
-          var machineModel = cfa.getMachineModel();
-
-          try {
-            var arrayType = (CArrayType)arrayExp.getExpressionType();
-            CType arrayElemType = arrayType.getType();
-            BigInteger arrayElemSize = machineModel.getSizeof(arrayElemType);
-            long arrayOffset = arrayElemSize.longValueExact() * indexExp.asLong();
-            memLocs.add(MemoryLocation.valueOf(arrayName, arrayOffset));
-          } catch (ArithmeticException e) {
-            logger.logException(Level.WARNING, e, "unreasonable large field offset");
-          }
-        } else {
-          pIastArraySubscriptExpression.getArrayExpression().accept(this);
-          pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
-        }
-
-        return null;
-      }
-
-      @Override
-      public Void visit(CFieldReference pIastFieldReference) throws NoException {
-        if (pIastFieldReference.getFieldOwner() instanceof CIdExpression) {
-          var fieldOwner = (CIdExpression)pIastFieldReference.getFieldOwner();
-          CType fieldOwnerType = fieldOwner.getExpressionType().getCanonicalType();
-          String fieldOwnerVarName = fieldOwner.getDeclaration() != null ?
-                                     fieldOwner.getDeclaration().getQualifiedName() :
-                                     fieldOwner.getName();
-
-          if (fieldOwnerType instanceof CCompositeType) {
-            var structType = (CCompositeType)fieldOwnerType;
-            var machineModel = cfa.getMachineModel();
-            BigInteger fieldOffset = machineModel.getFieldOffsetInBits(structType, pIastFieldReference.getFieldName());
-            try {
-              long fOffset = fieldOffset.longValueExact();
-              memLocs.add(MemoryLocation.valueOf(fieldOwnerVarName, fOffset));
-            } catch (ArithmeticException e) {
-              logger.logException(Level.WARNING, e, "unreasonable large field offset");
-            }
-          } else {
-            // Field owner is of pointer type or has unknown type.
-            // We only know that value analysis should track the variable fieldOwner refers to
-            // directly.
-            memLocs.add(MemoryLocation.valueOf(fieldOwnerVarName));
-          }
-        } else {
-          // We do not really know which struct is accessed.
-          // At least track all variables which are needed to resolve this access.
-          pIastFieldReference.getFieldOwner().accept(this);
-        }
-
-        return null;
-      }
-
-      @Override
-      public Void visit(CIdExpression pIastIdExpression) throws NoException {
-        // The easy case, just directly track the referenced variable.
-        // As it is only one simple variable, there is no offset to consider.
-        String varName = pIastIdExpression.getDeclaration() != null ?
-                         pIastIdExpression.getDeclaration().getQualifiedName() :
-                         pIastIdExpression.getName();
-        memLocs.add(MemoryLocation.valueOf(varName));
-
-        return null;
-      }
-
-      @Override
-      public Void visit(CPointerExpression pointerExpression) throws NoException {
-        pointerExpression.getOperand().accept(this);
-        return null;
-      }
-
-      @Override
-      public Void visit(CComplexCastExpression complexCastExpression) throws NoException {
-        complexCastExpression.getOperand().accept(this);
-        return null;
-      }
-    });
-
-    return memLocs.build();
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
