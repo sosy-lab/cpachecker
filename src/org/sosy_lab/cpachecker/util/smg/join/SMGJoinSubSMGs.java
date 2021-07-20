@@ -20,15 +20,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.2)
  */
-public class SMGJoinSubSMGs {
+public class SMGJoinSubSMGs extends SMGAbstractJoinValues {
 
-  private SMGJoinStatus status;
-  private SMG inputSMG1;
-  private SMG inputSMG2;
-  private SMG destSMG;
-  private SMGValue value;
-  private NodeMapping mapping1;
-  private NodeMapping mapping2;
 
 
   public SMGJoinSubSMGs(
@@ -42,12 +35,7 @@ public class SMGJoinSubSMGs {
       SMGObject pObj2,
       SMGObject pNewObject,
       int pLDiff) {
-    inputSMG1 = pSMG1;
-    inputSMG2 = pSMG2;
-    destSMG = pDestSMG;
-    mapping1 = pMapping1;
-    mapping2 = pMapping2;
-    status = initialStatus;
+    super(initialStatus, pSMG1, pSMG2, pDestSMG, pMapping1, pMapping2);
     joinFields(pObj1, pObj2);
     joinValues(pObj1, pObj2, pNewObject, pLDiff);
   }
@@ -169,32 +157,6 @@ public class SMGJoinSubSMGs {
     return false;
   }
 
-  public SMGJoinStatus getStatus() {
-    return status;
-  }
 
-  public SMG getInputSMG1() {
-    return inputSMG1;
-  }
-
-  public SMG getInputSMG2() {
-    return inputSMG2;
-  }
-
-  public SMG getDestSMG() {
-    return destSMG;
-  }
-
-  public SMGValue getValue() {
-    return value;
-  }
-
-  public NodeMapping getMapping1() {
-    return mapping1;
-  }
-
-  public NodeMapping getMapping2() {
-    return mapping2;
-  }
 
 }

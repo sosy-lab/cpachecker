@@ -48,6 +48,18 @@ public class SMGAbstractJoinValues {
     mapping2 = pMapping2;
   }
 
+  protected void copyJoinState(SMGAbstractJoinValues other) {
+    status = other.getStatus();
+    inputSMG1 = other.getInputSMG1();
+    inputSMG2 = other.getInputSMG2();
+    destSMG = other.getDestinationSMG();
+    value = other.getValue();
+    mapping1 = other.getMapping1();
+    mapping2 = other.getMapping2();
+    isRecoverable = other.isRecoverable;
+    isDefined = other.isDefined;
+  }
+
   public NodeMapping getMapping1() {
     return mapping1;
   }

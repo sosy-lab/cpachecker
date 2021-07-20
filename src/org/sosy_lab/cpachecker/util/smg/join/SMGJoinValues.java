@@ -154,17 +154,7 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
      }
   }
 
-  private void copyJoinState(SMGAbstractJoinValues other) {
-    status = other.getStatus();
-    inputSMG1 = other.getInputSMG1();
-    inputSMG2 = other.getInputSMG2();
-    destSMG = other.getDestinationSMG();
-    value = other.getValue();
-    mapping1 = other.getMapping1();
-    mapping2 = other.getMapping2();
-    isRecoverable = other.isRecoverable;
-    isDefined = other.isDefined;
-  }
+
 
   /**
    * Join two values that are no address values, implementation of Algorithm 5 Step 3.

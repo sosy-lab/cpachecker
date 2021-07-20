@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.smg;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -120,7 +121,7 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds the given points to edge.
+   * Creates a copy of the SMG and adds the given points to edge.
    *
    * @param edge - the edge to be added
    * @param source - the source value
@@ -128,6 +129,35 @@ public class SMG {
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
     return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edge));
+  }
+
+  /**
+   * Creates a copy of the SMG and replaces given object by a given new.
+   *
+   * @param pOldObject - the object to be replaced
+   * @param pNewObject - the replacement
+   * @return a modified copy
+   */
+  public SMG copyAndReplaceObject(SMGObject pOldObject, SMGObject pNewObject) {
+    PersistentSet<SMGHasValueEdge> edges = hasValueEdges.get(pOldObject);
+    // replace has value edges
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
+        hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, edges);
+    // replace points to edges
+    PersistentMap<SMGValue, SMGPointsToEdge> newPointsToEdges = pointsToEdges;
+
+    for (Map.Entry<SMGValue, SMGPointsToEdge> oldEntry : pointsToEdges.entrySet()) {
+      if (pOldObject.equals(oldEntry.getValue().pointsTo())) {
+        SMGPointsToEdge newEdge =
+            new SMGPointsToEdge(pNewObject, oldEntry.getValue().getOffset(), oldEntry.getValue().targetSpecifier());
+        newPointsToEdges = pointsToEdges.putAndCopy(oldEntry.getKey(), newEdge);
+      }
+    }
+
+    //replace object
+    PersistentSet<SMGObject> newObjects = smgObjects.removeAndCopy(pOldObject).addAndCopy(pNewObject);
+
+    return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges);
   }
 
   public SMGObject getNullObject() {
@@ -176,5 +206,7 @@ public class SMG {
   public SMGPointsToEdge getPTEdge(SMGValue pValue1) {
     return pointsToEdges.get(pValue1);
   }
+
+
 
 }

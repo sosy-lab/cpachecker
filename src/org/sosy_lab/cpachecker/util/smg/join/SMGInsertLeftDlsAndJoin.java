@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoinValues {
 
 
-
+  @SuppressWarnings("unused")
   public SMGInsertLeftDlsAndJoin(
       SMGJoinStatus pStatus,
       SMG pInputSMG1,

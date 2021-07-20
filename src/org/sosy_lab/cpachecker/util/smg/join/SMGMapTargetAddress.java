@@ -15,12 +15,11 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.3)
  */
-public class SMGInsertRightDlsAndJoin extends SMGAbstractJoinValues {
-
+public class SMGMapTargetAddress extends SMGAbstractJoinValues {
 
 
   @SuppressWarnings("unused")
-  public SMGInsertRightDlsAndJoin(
+  public SMGMapTargetAddress(
       SMGJoinStatus pStatus,
       SMG pInputSMG1,
       SMG pInputSMG2,
