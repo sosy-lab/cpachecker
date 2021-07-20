@@ -31,7 +31,7 @@ public class SMG {
   private final PersistentSet<SMGObject> smgObjects;
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
-  private final PersistentMap<SMGValue, PersistentSet<SMGPointsToEdge>> pointsToEdges;
+  private final PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdges;
 
   private final SMGObject nullObject = SMGObject.nullInstance();
 
@@ -46,7 +46,7 @@ public class SMG {
       PersistentSet<SMGObject> pSmgObjects,
       PersistentSet<SMGValue> pSmgValues,
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
-      PersistentMap<SMGValue, PersistentSet<SMGPointsToEdge>> pPointsToEdges) {
+      PersistentMap<SMGValue, SMGPointsToEdge> pPointsToEdges) {
     smgObjects = pSmgObjects;
     smgValues = pSmgValues;
     hasValueEdges = pHasValueEdges;
@@ -100,13 +100,11 @@ public class SMG {
    */
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
 
-    if (pointsToEdges.containsKey(source) && pointsToEdges.get(source).contains(edge)) {
+    if (pointsToEdges.containsKey(source) && pointsToEdges.get(source).equals(edge)) {
       return this;
     }
 
-    PersistentSet<SMGPointsToEdge> edges = pointsToEdges.getOrDefault(source, PersistentSet.of());
-    edges = edges.addAndCopy(edge);
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edge));
   }
 
   /**
@@ -122,14 +120,14 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds the given points to edges.
+   * Creates a copy of the SMG an adds the given points to edge.
    *
-   * @param edges - the edges to be added
+   * @param edge - the edge to be added
    * @param source - the source value
    * @return a modified copy of the SMG
    */
-  public SMG copyAndSetPTEdges(PersistentSet<SMGPointsToEdge> edges, SMGValue source) {
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edges));
+  public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edge));
   }
 
   public SMGObject getNullObject() {
@@ -152,9 +150,6 @@ public class SMG {
     return hasValueEdges.get(object).stream().filter(o -> o.getOffset().equals(offset)).findAny();
   }
 
-  public Set<SMGPointsToEdge> getEdges(SMGValue pValue) {
-    return pointsToEdges.getOrDefault(pValue, PersistentSet.of());
-  }
 
   public Set<SMGDoublyLinkedListSegment> getDLLs() {
     return smgObjects.stream()
@@ -170,15 +165,16 @@ public class SMG {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  public Set<SMGPointsToEdge> getPTEdges() {
-    return pointsToEdges.values()
-        .stream()
-        .flatMap(Collection::stream)
-        .collect(ImmutableSet.toImmutableSet());
+  public Collection<SMGPointsToEdge> getPTEdges() {
+    return pointsToEdges.values();
   }
 
   public SMG copy() {
     return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges);
+  }
+
+  public SMGPointsToEdge getPTEdge(SMGValue pValue1) {
+    return pointsToEdges.get(pValue1);
   }
 
 }
