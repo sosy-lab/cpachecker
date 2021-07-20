@@ -49,6 +49,7 @@ public class ExpressionCollector extends ForwardingCFAVisitor {
 
   public static Set<CExpression> collectExpressions(CFA cfa) {
     final ExpressionCollector expressionCollector = new ExpressionCollector();
+
     CFATraversal.dfs()
         .ignoreSummaryEdges()
         .traverseOnce(cfa.getMainFunction(), expressionCollector);

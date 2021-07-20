@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Automatic program repair
- * TODO: elaborate
- */
+/** Automatic program repair TODO: elaborate */
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;

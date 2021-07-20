@@ -12,7 +12,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -31,12 +30,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.CFAMutator;
+import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutation;
+import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -69,6 +69,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   private final CFA cfa;
   private final Specification specification;
   private final ShutdownNotifier shutdownNotifier;
+  private final LiveVariables liveVariables; // TODO: either use or throw out
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
   private boolean fixFound = false;
@@ -92,29 +93,33 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
               + pStoreAlgorithm.getClass());
     }
 
+    if (pCfa.getLanguage() != Language.C) {
+      throw new InvalidConfigurationException(
+          "Automatic program repair is only supported for C code.");
+    }
+
     config = pConfig;
     algorithm = (FaultLocalizationWithTraceFormula) pStoreAlgorithm;
     cfa = pCfa;
     logger = pLogger;
     specification = pSpecification;
     shutdownNotifier = pShutdownNotifier;
-
+    liveVariables = pCfa.getLiveVariables().orElseThrow();
     config.inject(this);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     totalTime.start();
-    AlgorithmStatus status = algorithm.getAlgorithm().run(reachedSet);
 
     try {
-      logger.log(Level.INFO, "Starting bug repair...");
+      logger.log(Level.INFO, "Starting program repair...");
 
       for (FaultLocalizationInfo faultLocalizationInfo : localizeFaults(reachedSet)) {
         runAlgorithm(faultLocalizationInfo);
       }
 
-      logger.log(Level.INFO, "Stopping bug repair...");
+      logger.log(Level.INFO, "Stopping program repair...");
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
     } catch (SolverException e) {
@@ -123,31 +128,28 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       totalTime.stop();
     }
 
-    status = algorithm.getAlgorithm().run(reachedSet);
-
-    return status;
+    return algorithm.getAlgorithm().run(reachedSet);
   }
 
   private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo)
       throws CPAException, InterruptedException {
-
     for (Fault fault : faultLocalizationInfo.getRankedList()) {
       CFAEdge edge = fault.iterator().next().correspondingEdge();
+      Mutator mutator = new Mutator(cfa, edge);
 
-      for (CFAEdge newEdge : CFAMutator.calcPossibleMutations(cfa, edge)) {
-        final MutableCFA mutatedCFA = CFAMutator.exchangeEdge(cloneCFA(), edge, newEdge);
+      for (Mutation mutation : mutator.calcPossibleMutations()) {
 
         try {
-          final ReachedSet newReachedSet = rerun(mutatedCFA);
+          final ReachedSet newReachedSet = rerun(mutation.getCFA());
 
           if (!newReachedSet.hasViolatedProperties()) {
             logger.log(Level.INFO, "Successfully patched fault");
             logger.log(
                 Level.INFO,
                 "Replaced "
-                    + edge.getRawStatement()
+                    + mutation.getSuspiciousEdge()
                     + " with "
-                    + newEdge.getRawStatement()
+                    + mutation.getNewEdge()
                     + " on line "
                     + edge.getLineNumber());
 
@@ -167,7 +169,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     logger.log(Level.INFO, "No fix found for " + faultLocalizationInfo.toString());
   }
 
-  private ReachedSet rerun(MutableCFA mutatedCFA)
+  private ReachedSet rerun(CFA mutatedCFA)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     Configuration internalAnalysisConfig = buildSubConfig(internalAnalysisConfigFile.value());
 
@@ -223,29 +225,6 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     return reached;
   }
 
-  private MutableCFA cloneCFA() {
-    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
-
-    for (final String function : cfa.getAllFunctionNames()) {
-      nodes.putAll(
-          function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
-    }
-
-    MutableCFA clonedCFA =
-        new MutableCFA(
-            cfa.getMachineModel(),
-            cfa.getAllFunctions(),
-            nodes,
-            cfa.getMainFunction(),
-            cfa.getFileNames(),
-            cfa.getLanguage());
-
-    cfa.getLoopStructure().ifPresent(clonedCFA::setLoopStructure);
-    cfa.getLiveVariables().ifPresent(clonedCFA::setLiveVariables);
-
-    return clonedCFA;
-  }
-
   private ArrayList<FaultLocalizationInfo> localizeFaults(ReachedSet reachedSet)
       throws InterruptedException, InvalidConfigurationException, SolverException, CPAException {
     algorithm.checkOptions();
@@ -293,10 +272,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   }
 
   @Override
-  public @Nullable
-  String getName() {
+  public @Nullable String getName() {
     return getClass().getSimpleName();
   }
-
-
 }
