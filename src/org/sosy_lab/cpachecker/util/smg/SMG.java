@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -144,6 +146,10 @@ public class SMG {
 
   public Set<SMGHasValueEdge> getEdges(SMGObject pRegion) {
     return hasValueEdges.getOrDefault(pRegion, PersistentSet.of());
+  }
+
+  public Optional<SMGHasValueEdge> getHasValueEdgeByOffset(SMGObject object, BigInteger offset) {
+    return hasValueEdges.get(object).stream().filter(o -> o.getOffset().equals(offset)).findAny();
   }
 
   public Set<SMGPointsToEdge> getEdges(SMGValue pValue) {
