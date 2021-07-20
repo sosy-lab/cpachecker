@@ -17,4 +17,20 @@ public class NodeMapping {
 
   private final Map<SMGObject, SMGObject> objectMap = new HashMap<>();
   private final Map<SMGValue, SMGValue> valueMap = new HashMap<>();
+
+  public SMGValue getMappedValue(SMGValue value) {
+    return valueMap.get(value);
+  }
+
+  public SMGObject getMappedObject(SMGObject object) {
+    return objectMap.get(object);
+  }
+
+  public void addMapping(SMGValue v1, SMGValue v2) {
+    valueMap.put(v1, v2);
+  }
+
+  public void addMapping(SMGObject o1, SMGObject o2) {
+    objectMap.put(o1, o2);
+  }
 }
