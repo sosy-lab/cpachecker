@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Unit tests for {@link LlvmParserWithClang}. */
 @RunWith(Parameterized.class)
@@ -47,14 +48,7 @@ public class LlvmParserWithClangTest {
 
   @Before
   public void createParsers() throws InvalidConfigurationException {
-    // TODO
-    Configuration config =
-        Configuration.builder()
-            .setOption("parser.preprocessor.dumpDirectory", "output/preprocessed")
-            .build();
-    // Configuration config =
-    //     Configuration.builder().setOption("parser.clang.dumpResults", "false").build();
-    // Configuration config = Configuration.defaultConfiguration();
+    Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ClangPreprocessor clangPreprocessor = new ClangPreprocessor(config, logger);
     stringParser =
