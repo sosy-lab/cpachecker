@@ -25,7 +25,9 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
  * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
- * modified copy but do not modify a certain instance.
+ * modified copy but do not modify a certain instance. Consists of (SMG-)objects, values, edges from
+ * the objects to the values (has-value edges), edges from the values to objects (points-to edges)
+ * and labelling functions (to get the kind, nesting level, size etc. of objects etc.)
  */
 public class SMG {
   // TODO I don't like using utility implementations of the old SMG analysis
@@ -36,6 +38,7 @@ public class SMG {
 
   private final SMGObject nullObject = SMGObject.nullInstance();
 
+  /** Creates a new, empty SMG */
   public SMG() {
     pointsToEdges = PathCopyingPersistentTreeMap.of();
     hasValueEdges = PathCopyingPersistentTreeMap.of();
