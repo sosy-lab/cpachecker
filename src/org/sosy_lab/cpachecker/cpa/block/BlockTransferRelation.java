@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -25,23 +26,25 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockTransferRelation extends LocationTransferRelation {
 
-  private final ImmutableSet<CFAEdge> edges;
-  private final ImmutableSet<CFANode> nodes;
+  private ImmutableSet<CFAEdge> edges;
+  private ImmutableSet<CFANode> nodes;
 
   /**
    * This transfer relation produces successors iff an edge between two nodes exists in the CFA
    * and it is part of the block
    * @param pFactory factory for location states
-   * @param pBlockNode a sub graph of the CFA
    */
-  public BlockTransferRelation(LocationStateFactory pFactory, BlockNode pBlockNode) {
+  public BlockTransferRelation(LocationStateFactory pFactory) {
     super(pFactory);
+  }
+
+  public void init(BlockNode pBlockNode) {
     edges = validEdgesIn(pBlockNode);
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
   }
 
   private ImmutableSet<CFAEdge> validEdgesIn(BlockNode pBlockNode) {
-    Builder<CFAEdge> setBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<CFAEdge> setBuilder = ImmutableSet.builder();
     for(CFANode node: pBlockNode.getNodesInBlock()) {
       for(CFAEdge edge: CFAUtils.allLeavingEdges(node)) {
         if (pBlockNode.getNodesInBlock().contains(edge.getSuccessor())) {
@@ -55,11 +58,13 @@ public class BlockTransferRelation extends LocationTransferRelation {
   @Override
   public Collection<LocationState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
+    checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
     return Sets.intersection(ImmutableSet.copyOf(super.getAbstractSuccessorsForEdge(element, prec, cfaEdge)), edges);
   }
 
   @Override
   public Collection<LocationState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
+    checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
     return Sets.intersection(ImmutableSet.copyOf(super.getAbstractSuccessors(element, prec)), nodes);
   }
 
