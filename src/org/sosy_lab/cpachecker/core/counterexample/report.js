@@ -12,6 +12,7 @@ with considerably less effort */
 import "./report.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "datatables.net-dt/css/jquery.dataTables.min.css";
+import "jquery-ui-dist/jquery-ui.min.css";
 
 import "@fortawesome/fontawesome-free/js/all.min";
 import $ from "jquery";
@@ -20,7 +21,7 @@ import "angular-sanitize";
 import "bootstrap";
 import "datatables.net";
 import "code-prettify";
-import "jquery-resizable-dom";
+import "jquery-ui-dist/jquery-ui.min";
 import { enqueue } from "./worker/workerDirector";
 import {
   argWorkerCallback,
