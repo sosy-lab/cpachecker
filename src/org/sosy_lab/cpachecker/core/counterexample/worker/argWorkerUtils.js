@@ -199,6 +199,19 @@ function getTransformation(transform) {
   };
 }
 
+// Retrieve the node in which this node was merged - used for the node events
+// FIXME: this is a duplicate function already contained in error path controller, currently no better way to call it
+function getMergingNode(index) {
+  let result = "";
+  Object.keys(cfaJson.combinedNodes).some(function (key) {
+    if (cfaJson.combinedNodes[key].includes(index)) {
+      result = key;
+      return result;
+    }
+  });
+  return result;
+}
+
 const argWorkerCallback = (result) => {
   if (result.graph !== undefined) {
     let id = "arg-graph" + result.id;

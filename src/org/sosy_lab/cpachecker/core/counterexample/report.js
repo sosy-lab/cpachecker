@@ -1376,40 +1376,4 @@ window.init = () => {
       (error) => argWorkerErrorCallback(error)
     );
   }
-
-  // Retrieve the node in which this node was merged - used for the node events
-  // FIXME: this is a duplicate function already contained in error path controller, currently no better way to call it
-  function getMergingNode(index) {
-    let result = "";
-    Object.keys(cfaJson.combinedNodes).some(function (key) {
-      if (cfaJson.combinedNodes[key].includes(index)) {
-        result = key;
-        return result;
-      }
-    });
-    return result;
-  }
-
-  // Find and return the actual edge element from cfaJson.edges array by considering funcCallEdges and combinedNodes
-  function findCfaEdge(eventElement) {
-    let source = parseInt(eventElement.v);
-    let target = parseInt(eventElement.w);
-    if (source > 100000) {
-      source = Object.keys(cfaJson.functionCallEdges).find(function (key) {
-        if (cfaJson.functionCallEdges[key].includes(source)) {
-          return key;
-        }
-      });
-    }
-    if (target > 100000) {
-      target = cfaJson.functionCallEdges[eventElement.v][1];
-    }
-    if (source in cfaJson.combinedNodes) {
-      source =
-        cfaJson.combinedNodes[source][cfaJson.combinedNodes[source].length - 1];
-    }
-    return cfaJson.edges.find(function (e) {
-      return e.source === parseInt(source) && e.target === target;
-    });
-  }
 };
