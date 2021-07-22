@@ -47,7 +47,7 @@ function addEventsToArg() {
       hideToolTipBox();
     })
     .on("dblclick", function () {
-      $("#set-tab-1").click();
+      document.querySelector("#set-tab-1").click();
       if (!d3.select(".marked-cfa-node").empty()) {
         d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
       }

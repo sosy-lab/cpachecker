@@ -107,7 +107,7 @@ function addEventsToCfa() {
           w: thisEdgeData.split("-")[1],
         });
       }
-      $("#set-tab-3").click();
+      document.querySelector("#set-tab-3").click();
       let line = edge.line;
       if (line === 0) {
         line = 1;
