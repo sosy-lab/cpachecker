@@ -1022,8 +1022,8 @@ let argTabDisabled = false;
           d3.selectAll(".cfa-svg").each(/* @this HTMLElement */function (i) {
             const svg = d3.select(this);
             const svgGroup = d3.select(this.firstChild);
-            const zoom = d3.zoom().on("zoom", function (d) {
-              svgGroup.attr("transform", d.transform);
+            const zoom = d3.zoom().on("zoom", function (event, d) {
+              svgGroup.attr("transform", d3.event.transform);
             });
             svg.call(zoom);
             svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
@@ -1198,7 +1198,7 @@ let argTabDisabled = false;
             const svg = d3.select(this);
             const svgGroup = d3.select(this.firstChild);
             const zoom = d3.zoom().on("zoom", function (d) {
-              svgGroup.attr("transform", d.transform);
+              svgGroup.attr("transform", d3.event.transform);
             });
             svg.call(zoom);
             svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
