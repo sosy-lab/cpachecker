@@ -406,8 +406,8 @@ public class ReportGenerator {
   }
 
   private void insertCss(Writer writer) throws IOException {
-    insertCssFile(writer, VENDOR_CSS_TEMPLATE);
     insertCssFile(writer, CSS_TEMPLATE);
+    insertCssFile(writer, VENDOR_CSS_TEMPLATE);
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
