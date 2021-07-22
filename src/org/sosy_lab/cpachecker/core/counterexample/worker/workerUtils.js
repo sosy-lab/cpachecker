@@ -11,11 +11,11 @@ const dagreD3 = require("dagre-d3");
 
 // Use D3 zoom behavior to add pan event
 function addPanEvent(itemsToSelect) {
-  d3.selectAll(itemsToSelect).each(function (d, i) {
+  d3.selectAll(itemsToSelect).each(function (d) {
     const svg = d3.select(this);
     const svgGroup = d3.select(this.firstChild);
-    const zoom = d3.zoom().on("zoom", function (d, i) {
-      svgGroup.attr("transform", d.transform);
+    const zoom = d3.zoom().on("zoom", function (d) {
+      svgGroup.attr("transform", d3.event.transform);
     });
     svg.call(zoom);
     svg
