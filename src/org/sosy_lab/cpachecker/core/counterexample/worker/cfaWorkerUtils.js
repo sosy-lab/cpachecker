@@ -25,23 +25,23 @@ const render = new dagreD3.render();
 function addEventsToCfa() {
   addPanEvent(".cfa-svg");
   d3.selectAll(".cfa-node")
-    .on("mouseover", function (d, i) {
+    .on("mouseover", function (d) {
       let message;
-      if (parseInt(i) > 100000) {
+      if (parseInt(d) > 100000) {
         message =
           '<span class=" bold ">type</span>: function call node <br>' +
           '<span class=" bold ">dblclick</span>: Select function';
       } else {
         const node = cfaJson.nodes.find(function (n) {
-          return n.index === parseInt(i);
+          return n.index === parseInt(d);
         });
         message = '<span class=" bold ">function</span>: ' + node.func;
-        if (i in cfaJson.combinedNodes) {
+        if (d in cfaJson.combinedNodes) {
           message +=
             '<br><span class=" bold ">combines nodes</span> : ' +
-            Math.min.apply(null, cfaJson.combinedNodes[i]) +
+            Math.min.apply(null, cfaJson.combinedNodes[d]) +
             "-" +
-            Math.max.apply(null, cfaJson.combinedNodes[i]);
+            Math.max.apply(null, cfaJson.combinedNodes[d]);
         }
         message +=
           '<br> <span class=" bold ">reverse postorder Id</span>: ' + node.rpid;
