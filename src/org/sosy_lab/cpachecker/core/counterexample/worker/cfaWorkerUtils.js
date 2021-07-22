@@ -98,7 +98,7 @@ function addEventsToCfa() {
       hideToolTipBox();
     })
     .on("dblclick", function (d, i) {
-      const edge = findCfaEdge(i);
+      let edge = findCfaEdge(i);
       if (edge === undefined) {
         // this occurs for edges between graphs - splitting edges
         const thisEdgeData = d3.select(this).attr("id").split("_")[1];
@@ -108,7 +108,7 @@ function addEventsToCfa() {
         });
       }
       $("#set-tab-3").click();
-      const line = edge.line;
+      let line = edge.line;
       if (line === 0) {
         line = 1;
       }
