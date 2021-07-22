@@ -46,7 +46,7 @@ function addEventsToCfa() {
         message +=
           '<br> <span class=" bold ">reverse postorder Id</span>: ' + node.rpid;
       }
-      showToolTipBox(d, message);
+      showToolTipBox(d3.event, message);
     })
     .on("mouseout", function () {
       hideToolTipBox();
@@ -60,7 +60,7 @@ function addEventsToCfa() {
   d3.selectAll(".cfa-dummy")
     .on("mouseover", function (d) {
       showToolTipBox(
-        d,
+        d3.event,
         '<span class=" bold ">type</span>: placeholder <br> <span class=" bold ">dblclick</span>: jump to Target node'
       );
     })
@@ -89,7 +89,7 @@ function addEventsToCfa() {
     .on("mouseover", function (d) {
       d3.select(this).select("path").style("stroke-width", "3px");
       showToolTipBox(
-        d,
+        d3.event,
         '<span class=" bold ">dblclick</span>: jump to Source line'
       );
     })
@@ -127,7 +127,7 @@ function addEventsToCfa() {
     .on("mouseover", function (d) {
       d3.select(this).select("path").style("stroke-width", "3px");
       showToolTipBox(
-        d,
+        d3.event,
         '<span class=" bold ">type</span>: place holder <br> <span class=" bold ">dblclick</span>: jump to Original edge'
       );
     })

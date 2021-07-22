@@ -70,7 +70,7 @@ function addEventsToArg() {
   d3.selectAll(".arg-dummy")
     .on("mouseover", function (d) {
       showToolTipBox(
-        d,
+        d3.event,
         '<span class=" bold ">type</span>: placeholder <br> <span class=" bold ">dblclick</span>: jump to Target node'
       );
     })
@@ -116,10 +116,10 @@ function addEventsToArg() {
         }
       });
       if (edge) {
-        showToolTipBox(d, message);
+        showToolTipBox(d3.event, message);
       } else {
         showToolTipBox(
-          d,
+          d3.event,
           '<span class=" bold ">type</span>: graph connecting edge'
         );
       }
@@ -132,7 +132,7 @@ function addEventsToArg() {
     .on("mouseover", function (d) {
       d3.select(this).select("path").style("stroke-width", "3px");
       showToolTipBox(
-        d,
+        d3.event,
         '<span class=" bold ">type</span>: place holder <br> <span class=" bold ">dblclick</span>: jump to Original edge'
       );
     })
