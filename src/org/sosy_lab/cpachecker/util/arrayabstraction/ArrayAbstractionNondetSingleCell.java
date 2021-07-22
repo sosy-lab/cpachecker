@@ -261,6 +261,12 @@ public class ArrayAbstractionNondetSingleCell {
     ArrayOperationReplacementMap arrayOperationReplacementMap = new ArrayOperationReplacementMap();
 
     for (TransformableLoop transformableLoop : transformableLoops) {
+      if (!transformableLoop.areLoopIterationsIndependent()) {
+        return pCfa;
+      }
+    }
+
+    for (TransformableLoop transformableLoop : transformableLoops) {
       ImmutableSet<CIdExpression> loopDefs = getLoopDefs(transformableLoop);
 
       String functionName = transformableLoop.getLoopCfaNode().getFunctionName();

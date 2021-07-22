@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents a loop in a program that can be transformed/abstracted. */
@@ -131,6 +132,49 @@ public final class TransformableLoop {
 
   public ImmutableSet<CFAEdge> getLoopEdges() {
     return loopEdges;
+  }
+
+  public boolean areLoopIterationsIndependent() {
+
+    EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
+    MemoryLocation indexMemoryLocation =
+        ArrayAbstractionUtils.getMemoryLocation(loopIndexExpression);
+
+    for (CFAEdge edge : loopEdges) {
+      if (!edge.equals(updateLoopIndexCfaEdge)) {
+
+        EdgeDefUseData edgeDefUseData = defUseDataExtractor.extract(edge);
+        Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
+
+        for (TransformableArray.ArrayOperation arrayOperation :
+            TransformableArray.getArrayOperations(edge)) {
+
+          CExpression operationIndexExpression = arrayOperation.getIndexExpression();
+
+          if (!(operationIndexExpression instanceof CIdExpression)
+              || !ArrayAbstractionUtils.getMemoryLocation((CIdExpression) operationIndexExpression)
+                  .equals(indexMemoryLocation)) {
+            return false;
+          }
+
+          arrayMemoryLocations.add(arrayOperation.getArrayMemoryLocation());
+        }
+
+        Set<MemoryLocation> defs = new HashSet<>(edgeDefUseData.getDefs());
+        defs.removeAll(arrayMemoryLocations);
+
+        Set<MemoryLocation> uses = new HashSet<>(edgeDefUseData.getUses());
+        uses.removeAll(arrayMemoryLocations);
+
+        if (!defs.isEmpty() || !edgeDefUseData.getPointeeDefs().isEmpty()) {
+          if (!uses.isEmpty() || !edgeDefUseData.getPointeeUses().isEmpty()) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
   }
 
   private static final class Builder {
