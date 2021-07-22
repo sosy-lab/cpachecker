@@ -96,7 +96,7 @@ function addEventsToArg() {
         );
     });
   d3.selectAll(".arg-edge")
-    .on("mouseover", function (d, i) {
+    .on("mouseover", function (d) {
       d3.select(this).select("path").style("stroke-width", "3px");
       const edgeArray = Array.prototype.concat(
         argJson.edges,
@@ -106,7 +106,7 @@ function addEventsToArg() {
         typeof argJson.reducededges === "undefined" ? [] : argJson.reducededges
       );
       const edge = edgeArray.find(function (it) {
-        return it.source === parseInt(i.v) && it.target === parseInt(i.w);
+        return it.source === parseInt(d.v) && it.target === parseInt(d.w);
       });
       let message = "";
       Object.keys(edge).forEach(function (key, index) {
