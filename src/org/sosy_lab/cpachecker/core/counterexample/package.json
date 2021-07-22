@@ -8,7 +8,7 @@
 	"scripts": {
 		"build": "node scripts/startBuild.js && webpack",
 		"start": "npm run build & webpack serve --mode=development",
-		"test": "karma start karma.conf.js",
+		"test": "node scripts/startBuild.js && karma start karma.conf.js",
 		"e2e-test": "protractor e2e-conf.js",
 		"lint:fix": "eslint --fix --ignore-path .lintignores $(pwd)'/**/*.js' && prettier --ignore-path .lintignores --write $(pwd)'/**/*.+(css|json)'",
 		"lint": "eslint --max-warnings 0 --ignore-path .lintignores . && prettier --ignore-path .lintignores --check $(pwd)'/**/*.+(css|json)'"
