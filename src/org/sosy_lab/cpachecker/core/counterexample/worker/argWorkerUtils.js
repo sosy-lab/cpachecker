@@ -24,7 +24,7 @@ const render = new dagreD3.render();
 function addEventsToArg() {
   addPanEvent(".arg-svg");
   d3.selectAll(".arg-node")
-    .on("mouseover", function (d, i) {
+    .on("mouseover", function (d) {
       const nodesArray = Array.prototype.concat(
         argJson.nodes,
         typeof argJson.relevantnodes === "undefined"
@@ -33,7 +33,7 @@ function addEventsToArg() {
         typeof argJson.reducednodes === "undefined" ? [] : argJson.reducednodes
       );
       const node = nodesArray.find(function (it) {
-        return it.index === parseInt(i);
+        return it.index === parseInt(d);
       });
       let message =
         '<span class=" bold ">function</span>: ' + node.func + "<br>";
@@ -41,7 +41,7 @@ function addEventsToArg() {
         message += '<span class=" bold ">type</span>: ' + node.type + "<br>";
       }
       message += '<span class=" bold ">dblclick</span>: jump to CFA node';
-      showToolTipBox(d, message);
+      showToolTipBox(d3.event, message);
     })
     .on("mouseout", function () {
       hideToolTipBox();
