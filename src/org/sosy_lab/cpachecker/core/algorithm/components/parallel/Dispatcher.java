@@ -8,42 +8,41 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
-import java.util.concurrent.ConcurrentHashMap;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode.BlockNodeId;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class Dispatcher {
 
-  private final ConcurrentHashMap<BlockNodeId, Runner> registeredRunners;
+  // TODO: priority queue?
+  private final ConcurrentLinkedQueue<Message> inputStream;
+
+  private final ConcurrentLinkedQueue<ConcurrentLinkedQueue<Message>> outputStreams;
 
   public Dispatcher() {
-    registeredRunners = new ConcurrentHashMap<>();
+    inputStream = new ConcurrentLinkedQueue<>();
+    outputStreams = new ConcurrentLinkedQueue<>();
   }
 
-  public synchronized Runner register(BlockNode pNode, Algorithm pAlgorithm) {
-    Runner runner = new Runner(pNode, pAlgorithm, this, null);
-    registeredRunners.put(pNode.getId(), runner);
-    return runner;
+  public synchronized Worker registerNodeAndGetWorker(BlockNode pNode, LogManager pLogger) {
+    ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
+    outputStreams.add(queue);
+    return new Worker(pNode, queue, inputStream, pLogger);
   }
 
-  public synchronized void sendPreConditionTo(BlockNodeId id, BooleanFormula message) {
-    runnerFor(id).updatePostCondition(id, message);
-  }
-
-  public synchronized void sendPostConditionTo(BlockNodeId id, BooleanFormula message) {
-    runnerFor(id).updatePreCondition(id, message);
-  }
-
-  public void start() {
-    registeredRunners.values().forEach(Runner::analyzeBlock);
-  }
-
-  private synchronized Runner runnerFor(BlockNodeId id) {
-    if (!registeredRunners.containsKey(id)) {
-      throw new AssertionError("Runner for id " + id + " does not exist");
+  public synchronized void start() throws InterruptedException {
+    Iterator<Message> iterator = inputStream.iterator();
+    while (iterator.hasNext()) {
+      final Message message = iterator.next();
+      inputStream.remove(message);
+      outputStreams.forEach(queue -> queue.add(message));
+      if (message.getType() == MessageType.FINISHED) {
+        inputStream.notifyAll();
+        return;
+      }
     }
-    return registeredRunners.get(id);
+    start();
   }
 }

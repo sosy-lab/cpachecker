@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.components.cut;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -62,7 +61,6 @@ public class BlockOperatorCutter implements CFACutter {
     // the first entry node maps to the root node of the BlockTree
     startNodeMap.put(startNode, root);
 
-
     Set<CFANode> coveredBlockEnds = new HashSet<>();
     // stores the currently popped node (blockEnds.pop())
     CFANode lastCFANode;
@@ -82,8 +80,9 @@ public class BlockOperatorCutter implements CFACutter {
       final CFANode currentRootNode = lastCFANode;
       toSearch.addAll(
           CFAUtils.successorsOf(lastCFANode).stream()
-              .map(succ -> new Entry(succ, Sets.newLinkedHashSet(
-                  ImmutableList.of(currentRootNode, succ))))
+              .map(
+                  succ ->
+                      new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ))))
               .collect(Collectors.toList()));
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
@@ -103,9 +102,14 @@ public class BlockOperatorCutter implements CFACutter {
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
-          lastNodeMap.get(lastCFANode).forEach(contained -> contained.linkSuccessor(childBlockNode));
-          // every previous block that starts with the current end node is now linked to the new BlockNode
-          startNodeMap.get(successorOfCurrNode).forEach(contained -> childBlockNode.linkSuccessor(contained));
+          lastNodeMap
+              .get(lastCFANode)
+              .forEach(contained -> contained.linkSuccessor(childBlockNode));
+          // every previous block that starts with the current end node is now linked to the new
+          // BlockNode
+          startNodeMap
+              .get(successorOfCurrNode)
+              .forEach(contained -> childBlockNode.linkSuccessor(contained));
 
           // current BlockNode is stored nowhere -> link to self if start and end are equal.
           if (childBlockNode.getStartNode().equals(childBlockNode.getLastNode())) {

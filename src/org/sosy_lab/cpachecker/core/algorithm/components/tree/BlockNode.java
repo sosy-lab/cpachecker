@@ -13,13 +13,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class BlockNode {
-
-  private final BlockNodeId id;
 
   private final CFANode startNode;
   private final CFANode lastNode;
@@ -59,9 +56,6 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
-
-    id = BlockNodeId.of(this);
-    // make sure that no node is missing, set removes duplicates automatically
   }
 
   public void linkSuccessor(BlockNode node) {
@@ -91,10 +85,6 @@ public class BlockNode {
 
   public CFANode getLastNode() {
     return lastNode;
-  }
-
-  public BlockNodeId getId() {
-    return id;
   }
 
   public Set<CFANode> getNodesInBlock() {
@@ -127,36 +117,5 @@ public class BlockNode {
         + ", nodesInBlock="
         + nodesInBlock
         + '}';
-  }
-
-  /**
-   * Immutable id generator for BlockNodes. Guarantees to generate unique ids for BlockNodes. Always
-   * returns same id for equal BlockNodes
-   */
-  public static class BlockNodeId {
-
-    private final String id;
-
-    private BlockNodeId(BlockNode pNode) {
-      id = pNode.nodesInBlock.stream().map(CFANode::toString).collect(Collectors.joining(""));
-    }
-
-    static BlockNodeId of(BlockNode pNode) {
-      return new BlockNodeId(pNode);
-    }
-
-    @Override
-    public boolean equals(Object pO) {
-      if (!(pO instanceof BlockNodeId)) {
-        return false;
-      }
-      BlockNodeId that = (BlockNodeId) pO;
-      return Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(id);
-    }
   }
 }

@@ -34,8 +34,7 @@ public class BlockTree {
     waiting.add(root);
     while (!waiting.isEmpty()) {
       BlockNode top = waiting.pop();
-      if (!nodes.contains(top)) {
-        nodes.add(top);
+      if (nodes.add(top)) {
         waiting.addAll(top.getSuccessors());
       }
     }

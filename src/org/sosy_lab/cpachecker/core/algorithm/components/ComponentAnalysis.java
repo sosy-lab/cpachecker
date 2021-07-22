@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,16 +45,15 @@ public class ComponentAnalysis implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-
+    logger.log(Level.INFO, "Starting block analysis...");
     try {
       BlockTree tree = new BlockOperatorCutter(configuration).cut(cfa);
       Dispatcher dispatcher = new Dispatcher();
-      tree.getDistinctNodes().forEach(node -> dispatcher.register(node, parentAlgorithm));
+      tree.getDistinctNodes().stream().map(node -> dispatcher.registerNodeAndGetWorker(node, logger)).forEach(runner -> new Thread(runner).start());
       dispatcher.start();
     } catch (InvalidConfigurationException pE) {
       throw new CPAException("Invalid configuration", pE);
     }
-
     return parentAlgorithm.run(reachedSet);
   }
 }
