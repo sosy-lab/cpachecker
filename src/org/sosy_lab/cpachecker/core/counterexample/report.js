@@ -120,6 +120,7 @@ let argTabDisabled = false;
       });
     });
 
+
     // Initialize Google pretiffy code
     $(document).ready(function () {
       PR.prettyPrint();

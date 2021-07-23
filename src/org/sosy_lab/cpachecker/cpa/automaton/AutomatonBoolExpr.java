@@ -1086,7 +1086,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
-                if (((Boolean) result).booleanValue()) {
+                if ((Boolean) result) {
                   pArgs
                       .getLogger()
                       .log(
@@ -1161,7 +1161,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {
-                if (((Boolean) result).booleanValue()) {
+                if ((Boolean) result) {
                   if (logger.wouldBeLogged(Level.FINER)) {
                     String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
                     modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +

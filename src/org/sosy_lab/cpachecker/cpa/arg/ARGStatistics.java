@@ -307,8 +307,11 @@ public class ARGStatistics implements Statistics {
     }
 
     if (translateARG) {
-      try (Writer writer = IO.openOutputFile(argCFile, Charset.defaultCharset())) {
-        writer.write(argToCExporter.translateARG((ARGState) pReached.getFirstState(), true));
+      try {
+        final String argAsC = argToCExporter.translateARG((ARGState) pReached.getFirstState(), true);
+        try (Writer writer = IO.openOutputFile(argCFile, Charset.defaultCharset())) {
+          writer.write(argAsC);
+        }
       } catch (IOException | CPAException e) {
         logger.logUserException(Level.WARNING, e, "Could not write C translation of ARG to file");
       }

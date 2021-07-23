@@ -41,7 +41,7 @@ public final class DOTBuilder {
   // After this many characters the node shape changes to box.
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
-  private static final String formatNode(CFANode node) {
+  private static String formatNode(CFANode node) {
     return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
   }
 

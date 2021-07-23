@@ -514,6 +514,12 @@ class EclipseCParser implements CParser {
       // Our version of CDT does not recognize _Float128 yet:
       // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/471
       macrosBuilder.put("_Float128", "__float128");
+      // https://gcc.gnu.org/onlinedocs/gcc/Floating-Types.html
+      // https://code.woboq.org/userspace/glibc/bits/floatn-common.h.html
+      macrosBuilder.put("_Float32", "float");
+      macrosBuilder.put("_Float32x", "double");
+      macrosBuilder.put("_Float64", "double");
+      macrosBuilder.put("_Float64x", "long double");
 
       MACROS = macrosBuilder.build();
     }

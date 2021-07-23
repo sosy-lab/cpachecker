@@ -937,9 +937,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         sb.append(" of ");
 
         if (pNode.getType() == NodeType.ENTRY) {
-          sb.append(String.valueOf(pNode.getProcedure().orElse(null)));
+          sb.append(pNode.getProcedure().orElse(null));
         } else {
-          sb.append(String.valueOf(pNode.getVariable().orElse(null)));
+          sb.append(pNode.getVariable().orElse(null));
         }
 
         sb.append("\\n");

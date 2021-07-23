@@ -250,7 +250,11 @@ input:checked+.slider:before {
 	background: linear-gradient(#83d480, #71afff) !important;
 }
 
-#err-table td {
+/*
+ if a table column in the error-path display has data-content or is clickable,
+ show this with a pointy cursor.
+*/
+#err-table td[data-content], #err-table td[ng-click] {
 	cursor: pointer;
 }
 

@@ -39,17 +39,17 @@ public class SlicingAbstractionsTest {
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";
 
-  private static final boolean isConfig(File pPathname) {
+  private static boolean isConfig(File pPathname) {
           return ((pPathname.getName().contains("Kojak")
                   || pPathname.getName().contains("SlicingAbstractions"))
               && !pPathname.getName().contains("overflow"));
   }
 
-  private static final boolean isSlabConfig(File pPathname) {
+  private static boolean isSlabConfig(File pPathname) {
       return pPathname.getName().contains("Slab");
   }
 
-  private static final boolean isOverflowConfig(File pPathname) {
+  private static boolean isOverflowConfig(File pPathname) {
           return ((pPathname.getName().contains("Kojak")
                   || pPathname.getName().contains("SlicingAbstractions"))
               && pPathname.getName().contains("overflow"));

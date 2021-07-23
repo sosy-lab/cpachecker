@@ -562,7 +562,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     final CInitializer initializer = vdecl.getInitializer();
 
-    if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
+    if (!(initializer instanceof CInitializerExpression)) { return; }
 
     CExpression exp = ((CInitializerExpression) initializer).getExpression();
     if (exp == null) { return; }
