@@ -13,7 +13,7 @@ import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -200,6 +200,6 @@ public class TestDataTools {
    *  temporary folder. If the described file does not exist, it will <b>not</b> be created.
    */
   private static File getTempFile(TemporaryFolder pTempFolder, String pFileName) {
-    return Paths.get(pTempFolder.getRoot().toString(), pFileName).toFile();
+    return Path.of(pTempFolder.getRoot().toString(), pFileName).toFile();
   }
 }

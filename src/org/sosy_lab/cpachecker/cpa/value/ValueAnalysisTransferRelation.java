@@ -905,7 +905,7 @@ public class ValueAnalysisTransferRelation
 
   private ValueAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
-    AExpression op1    = assignExpression.getLeftHandSide();
+    AExpression op1 = assignExpression.getLeftHandSide();
     ARightHandSide op2 = assignExpression.getRightHandSide();
 
     if (!isTrackedType(op1.getExpressionType())) {
@@ -918,14 +918,14 @@ public class ValueAnalysisTransferRelation
        *  a = ...
        */
 
-        if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
-          missingScopedFieldName = true;
-          notScopedField = (JIdExpression) op1;
-        }
+      if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
+        missingScopedFieldName = true;
+        notScopedField = (JIdExpression) op1;
+      }
 
-        MemoryLocation memloc = getMemoryLocation((AIdExpression) op1);
+      MemoryLocation memloc = getMemoryLocation((AIdExpression) op1);
 
-        return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
+      return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
       // *a = ...
 
@@ -975,9 +975,17 @@ public class ValueAnalysisTransferRelation
         } else {
           long concreteIndex = ((NumericValue) maybeIndex).longValue();
 
-          if (concreteIndex < 0 || concreteIndex >= arrayToChange.getArraySize()) {
-            throw new UnrecognizedCodeException("Invalid index " + concreteIndex + " for array "
-                + arrayToChange, cfaEdge);
+          final int arraySize = arrayToChange.getArraySize();
+          if (concreteIndex < 0 || concreteIndex >= arraySize) {
+            final JArrayType arrayType = arrayToChange.getArrayType();
+            throw new UnrecognizedCodeException(
+                "Invalid index "
+                    + concreteIndex
+                    + " for array type "
+                    + arrayType
+                    + "with array size "
+                    + arraySize,
+                cfaEdge);
           }
 
           // changes array value in old state

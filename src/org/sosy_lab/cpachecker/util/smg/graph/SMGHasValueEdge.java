@@ -9,29 +9,40 @@
 package org.sosy_lab.cpachecker.util.smg.graph;
 
 import java.math.BigInteger;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+/**
+ * Edge from (SMG-)object to (SMG-)value. May have a offset and a type. We do not use the type
+ * itself, but simply the size of the type used in bits. In essence, the object has the value of the
+ * specified type at the position specified by the offset.
+ */
 public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   private final SMGValue value;
-  private final CType type;
+  // Do not use type but type size
+  private final BigInteger sizeInBits;
   private final BigInteger offset;
 
-  public SMGHasValueEdge(
-      SMGValue pValue,
-      CType pType,
-      BigInteger pOffset) {
+  /**
+   * Constructs a new has-value edge with the given parameters, pointing to a value at the position
+   * of the offset with the given type(size).
+   *
+   * @param pValue - The value this edge points to.
+   * @param pSizeInBits - The size of the type used in bits.
+   * @param pOffset - The offset of the value. May not be negative!
+   */
+  public SMGHasValueEdge(SMGValue pValue, BigInteger pSizeInBits, BigInteger pOffset) {
     value = pValue;
-    type = pType;
+    sizeInBits = pSizeInBits;
     offset = pOffset;
   }
 
+  /** @return the SMGValue this edge points to. */
   public SMGValue hasValue() {
     return value;
   }
 
-  public CType getType() {
-    return type;
+  public BigInteger getSizeInBits() {
+    return sizeInBits;
   }
 
   @Override
@@ -52,7 +63,7 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     SMGHasValueEdge otherEdge = (SMGHasValueEdge) other;
     if (otherEdge.offset.equals(offset)
         && otherEdge.value.equals(value)
-        && type.equals(otherEdge.type)) {
+        && sizeInBits.equals(otherEdge.sizeInBits)) {
       return true;
     }
 
@@ -64,5 +75,3 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     return super.hashCode();
   }
 }
-
-

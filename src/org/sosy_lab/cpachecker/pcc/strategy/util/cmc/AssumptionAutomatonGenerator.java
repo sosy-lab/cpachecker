@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -41,7 +40,7 @@ public class AssumptionAutomatonGenerator {
 
   @Option(secure = true, name = "file", description = "write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Paths.get("AssumptionAutomaton.txt");
+  private Path assumptionsFile = Path.of("AssumptionAutomaton.txt");
 
   public AssumptionAutomatonGenerator(final Configuration config, final LogManager pLogger)
       throws InvalidConfigurationException {

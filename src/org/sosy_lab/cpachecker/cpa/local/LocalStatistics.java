@@ -9,14 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.local;
 
 import com.google.common.io.MoreFiles;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -37,7 +35,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class LocalStatistics implements Statistics {
   @Option(description = "A path to a precision output", name = "path", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFileName = Paths.get("localsave");
+  private Path outputFileName = Path.of("localsave");
 
   private final LogManager logger;
 
@@ -75,13 +73,8 @@ public class LocalStatistics implements Statistics {
           writer.append(entry.getValue().toLog() + "\n");
         }
       }
-    } catch (FileNotFoundException e) {
-      logger.log(
-          Level.SEVERE,
-          "Cannot open file " + outputFileName + " for output result of shared analysis");
-      return;
     } catch (IOException e) {
-      logger.log(Level.SEVERE, e.getMessage());
+      logger.logUserException(Level.WARNING, e, "Could not write LOCALCPA precision");
       return;
     }
   }

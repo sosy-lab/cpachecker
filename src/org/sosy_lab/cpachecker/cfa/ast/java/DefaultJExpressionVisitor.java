@@ -103,4 +103,9 @@ public abstract class DefaultJExpressionVisitor<R, X extends Exception> implemen
     return visitDefault(e);
   }
 
+  @Override
+  public R visit(JClassLiteralExpression e) throws X {
+    return visitDefault(e);
+  }
+
 }

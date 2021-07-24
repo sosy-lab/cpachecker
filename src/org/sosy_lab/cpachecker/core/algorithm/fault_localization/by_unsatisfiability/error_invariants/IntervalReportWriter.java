@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm.Interval;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -22,8 +23,18 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultReason;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 
 public class IntervalReportWriter extends FaultReportWriter {
+
+  private final FormulaManagerView formulaManager;
+  private final FormulaToCVisitor visitor;
+
+  public IntervalReportWriter(FormulaManagerView pFormulaManager) {
+    formulaManager = pFormulaManager;
+    visitor = new FormulaToCVisitor(formulaManager);
+  }
 
   @Override
   public String toHtml(Fault pFault) {
@@ -65,23 +76,26 @@ public class IntervalReportWriter extends FaultReportWriter {
     // intervals)
     int index = interval.getIntendedIndex() / 2;
 
+    formulaManager.visit(interval.getInvariant(), visitor);
+
+    Map<Integer, String> distinctRelevantStatements = getDistinctStatements(correspondingEdges);
     String header = "Interpolant <strong>" + index + "</strong>:<br>"
         + " <textarea readonly class=\"interval-scrollbox\">"
-        + interval.getInvariant()
+        + visitor.getString()
         + "</textarea><br>";
     StringBuilder html = new StringBuilder();
 
-    if (!correspondingEdges.isEmpty()) {
+    if (!distinctRelevantStatements.isEmpty()) {
       html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
-      correspondingEdges.stream()
-          .sorted(Comparator.comparingInt(e -> e.getFileLocation().getStartingLineInOrigin()))
+      distinctRelevantStatements.entrySet().stream()
+          .sorted(Comparator.comparingInt(e -> e.getKey()))
           .forEach(
               e ->
                   html.append("<li>" + "<span class=\"line-number\">")
-                      .append(e.getFileLocation().getStartingLineInOrigin())
+                      .append(e.getKey())
                       .append("</span>")
                       .append("<span class=\"line-content\">")
-                      .append(e.getDescription())
+                      .append(e.getValue())
                       .append("</span>")
                       .append("</li>"));
       html.append("</ul>\n");

@@ -18,7 +18,7 @@ public class SMGDoublyLinkedListSegment extends SMGListSegment {
   private final BigInteger prevOffset;
 
 
-  protected SMGDoublyLinkedListSegment(
+  public SMGDoublyLinkedListSegment(
       int pNestingLevel,
       BigInteger pSize,
       BigInteger pOffset,

@@ -277,8 +277,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         }
       break;
     default:
-      throw new AssertionError(
-          "Binary Relation with non-relational operator: " + pOp.toString());
+        throw new AssertionError("Binary Relation with non-relational operator: " + pOp);
     }
 
     BinaryRelationResult relationResult = new BinaryRelationResult(isTrue, isFalse, impliesEqWhenFalse, impliesNeqWhenFalse, impliesEqWhenTrue, impliesNeqWhenTrue, pV1, pV2);

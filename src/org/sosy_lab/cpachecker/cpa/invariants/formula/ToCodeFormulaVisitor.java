@@ -161,7 +161,7 @@ public class ToCodeFormulaVisitor
       // that is a unary negation of a value exceeding the range of the type;
       // instead write e.g. (-9223372036854775807LL - 1)
       if (bitVectorInfo.isSigned() && value.equals(upperExclusive.negate())) {
-        return "(" + value.add(BigInteger.ONE).toString() + typeSuffix + " - 1)";
+        return "(" + value.add(BigInteger.ONE) + typeSuffix + " - 1)";
       }
       return value.toString() + typeSuffix;
     }
@@ -457,27 +457,27 @@ public class ToCodeFormulaVisitor
     return lessThan(operand1, operand2);
   }
 
-  private static final ExpressionTree<String> lessThan(String pLess, String pMore) {
+  private static ExpressionTree<String> lessThan(String pLess, String pMore) {
     return LeafExpression.of(String.format("(%s < %s)", pLess, pMore));
   }
 
-  private static final ExpressionTree<String> lessEqual(String pLess, String pMore) {
+  private static ExpressionTree<String> lessEqual(String pLess, String pMore) {
     return LeafExpression.of(String.format("(%s <= %s)", pLess, pMore));
   }
 
-  private static final ExpressionTree<String> greaterThan(String pMore, String pLess) {
+  private static ExpressionTree<String> greaterThan(String pMore, String pLess) {
     return LeafExpression.of(String.format("(%s > %s)", pMore, pLess));
   }
 
-  private static final ExpressionTree<String> greaterEqual(String pMore, String pLess) {
+  private static ExpressionTree<String> greaterEqual(String pMore, String pLess) {
     return LeafExpression.of(String.format("(%s >= %s)", pMore, pLess));
   }
 
-  private static final ExpressionTree<String> equal(String pLess, String pMore) {
+  private static ExpressionTree<String> equal(String pLess, String pMore) {
     return LeafExpression.of(String.format("(%s == %s)", pLess, pMore));
   }
 
-  private static final ExpressionTree<String> not(ExpressionTree<String> pOp) {
+  private static ExpressionTree<String> not(ExpressionTree<String> pOp) {
     if (pOp.equals(ExpressionTrees.getFalse())) {
       return ExpressionTrees.getTrue();
     }

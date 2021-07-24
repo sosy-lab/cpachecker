@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,9 +108,9 @@ import org.sosy_lab.cpachecker.util.Pair;
  */
 class CFAMethodBuilder extends ASTVisitor {
 
-  private static final boolean VISIT_CHILDS = true;
+  private static final boolean VISIT_CHILDREN = true;
 
-  private static final boolean SKIP_CHILDS = false;
+  private static final boolean SKIP_CHILDREN = false;
 
   private static final int ONLY_EDGE = 0;
 
@@ -120,8 +119,9 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structures for handling loops & else conditions
   private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
-  private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
-  private final Deque<CFANode> elseStack      = new ArrayDeque<>();
+  private final Deque<CFANode> loopNextStack = new ArrayDeque<>();
+  // For the node following the current if / while block
+  private final Deque<CFANode> elseStack = new ArrayDeque<>();
 
   // Data structure for handling switch-statements
   private final Deque<JExpression> switchExprStack = new ArrayDeque<>();
@@ -129,7 +129,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
-  private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues = new HashMap<>();
+  private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues =
+      new HashMap<>();
 
   // Data structures for handling method declarations
   private JMethodEntryNode cfa = null;
@@ -203,7 +204,7 @@ class CFAMethodBuilder extends ASTVisitor {
       mDeclaration.getBody().accept(this);
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -211,7 +212,8 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JClassOrInterfaceType currentClassType = scope.getCurrentClassType();
 
-    Map<String, JFieldDeclaration> fieldDecl = scope.getNonStaticFieldDeclarationOfClass(currentClassType);
+    Map<String, JFieldDeclaration> fieldDecl =
+        scope.getNonStaticFieldDeclarationOfClass(currentClassType);
 
     Collection<JFieldDeclaration> classFieldDeclaration = fieldDecl.values();
 
@@ -274,7 +276,7 @@ class CFAMethodBuilder extends ASTVisitor {
     assert nextNode != null;
     locStack.push(nextNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -290,7 +292,7 @@ class CFAMethodBuilder extends ASTVisitor {
     assert nextNode != null;
     locStack.push(nextNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -352,16 +354,9 @@ class CFAMethodBuilder extends ASTVisitor {
     Set<CFANode> reachableNodes =
         CFATraversal.dfs().collectNodesReachableFrom(cfa);
 
-    Iterator<CFANode> it = cfaNodes.iterator();
-
-    while (it.hasNext()) {
-      CFANode n = it.next();
-
-      if (!reachableNodes.contains(n)) {
-        // node was created but isn't part of CFA (e.g. because of dead code)
-        it.remove(); // remove n from currentCFANodes
-      }
-    }
+    // if node was created but isn't part of CFA (e.g. because of dead code),
+    // then remove node from current CFANodes
+    cfaNodes.removeIf(n -> !reachableNodes.contains(n));
 
     scope.leaveMethod();
   }
@@ -655,7 +650,7 @@ class CFAMethodBuilder extends ASTVisitor {
     handleElseCondition(bl);
     scope.enterBlock();
 
-    return VISIT_CHILDS;
+    return VISIT_CHILDREN;
   }
 
   @Override
@@ -675,7 +670,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
-    //Create CFA Node for end of assert Location and push to local Stack
+    // Create CFA Node for end of assert Location and push to local Stack
     CFANode postAssertNode = new CFANode(methodName);
     cfaNodes.add(postAssertNode);
     locStack.push(postAssertNode);
@@ -688,36 +683,30 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode unsuccessfulNode = new CFANode(methodName);
     cfaNodes.add(unsuccessfulNode);
 
-    CFANode endNode = new CFATerminationNode(methodName);
-    cfaNodes.add(endNode);
-
     CONDITION kind = getConditionKind(condition);
 
-    createConditionEdges(condition, fileloc, prevNode,
-        successfulNode, unsuccessfulNode);
+    createConditionEdges(condition, fileloc, prevNode, successfulNode, unsuccessfulNode);
 
     boolean createUnsuccessfulEdge = true;
     boolean createSuccessfulEdge = true;
 
     switch (kind) {
-    case ALWAYS_TRUE:
-      createUnsuccessfulEdge = false;
-      break;
-    case ALWAYS_FALSE:
-      createSuccessfulEdge = false;
-      break;
-    default:
-      break;
+      case ALWAYS_TRUE:
+        createUnsuccessfulEdge = false;
+        break;
+      case ALWAYS_FALSE:
+        createSuccessfulEdge = false;
+        break;
+      default:
+        break;
     }
-
 
     BlankEdge blankEdge;
 
-    //Blank Edge from successful assert to  postAssert location
+    // Blank Edge from successful assert to  postAssert location
     if (createSuccessfulEdge) {
       blankEdge =
-          new BlankEdge(rawSignature, fileloc,
-              successfulNode, postAssertNode, "assert success");
+          new BlankEdge(rawSignature, fileloc, successfulNode, postAssertNode, "assert success");
       addToCFA(blankEdge);
     }
 
@@ -726,26 +715,20 @@ class CFAMethodBuilder extends ASTVisitor {
 
       boolean hasMessage = assertStatement.getMessage() != null;
 
-      if (!hasMessage) {
-        blankEdge = new BlankEdge(rawSignature,
-            fileloc,
-            unsuccessfulNode, endNode, "assert fail");
-        addToCFA(blankEdge);
-
-      } else {
+      if (hasMessage) {
 
         astCreator.convertExpressionWithoutSideEffects(assertStatement.getMessage());
 
-        unsuccessfulNode =
-            handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
+        unsuccessfulNode = handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
+      }
 
-        blankEdge = new BlankEdge(rawSignature, fileloc,
-            unsuccessfulNode, endNode, "assert fail");
+        CFANode endNode = new CFATerminationNode(methodName);
+        cfaNodes.add(endNode);
+        blankEdge = new BlankEdge(rawSignature, fileloc, unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
       }
-    }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   /**
@@ -847,7 +830,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
 
     locStack.push(lastNode);
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -875,7 +858,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(lastNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -1321,7 +1304,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     createConditionEdges(condition, fileloc, prevNode, thenNode, elseNode);
 
-    return VISIT_CHILDS;
+    return VISIT_CHILDREN;
   }
 
   @Override
@@ -1346,16 +1329,13 @@ private void handleTernaryExpression(ConditionalExpression condExp,
           prevNode.removeEnteringEdge(prevEdge);
           prevPrevNode.removeLeavingEdge(prevEdge);
 
-          BlankEdge blankEdge = new BlankEdge("", prevEdge.getFileLocation(),
-              prevPrevNode, nextNode, "");
+          BlankEdge blankEdge =
+              new BlankEdge("", prevEdge.getFileLocation(), prevPrevNode, nextNode, "");
           addToCFA(blankEdge);
         }
-
       }
-
       if (prevNode.getNumEnteringEdges() > 0) {
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY,
-            prevNode, nextNode, "");
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
         addToCFA(blankEdge);
       }
     }
@@ -1604,7 +1584,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     //  Skip to Body
     labelStatement.getBody().accept(this);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   @Override
@@ -1721,10 +1701,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     addToCFA(blankEdge2);
 
     // skip visiting children of switch, because switchBody was handled before
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
-
-
 
   @Override
   public boolean visit(SwitchCase switchCase) {
@@ -1733,7 +1711,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     } else {
       handleCase(switchCase, astCreator.getFileLocation(switchCase));
     }
-    return VISIT_CHILDS;
+    return VISIT_CHILDREN;
   }
 
 
@@ -1848,7 +1826,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     //Visit Body, Expression already handled.
     whileStatement.getBody().accept(this);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   @Override
@@ -1888,7 +1866,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     // Visit Body not Children
     doStatement.getBody().accept(this);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -1989,7 +1967,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   private void assignFormalParameterForLoop(SingleVariableDeclaration parameter, FileLocation fileLocation) {
@@ -2102,7 +2080,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -2278,7 +2256,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       handleLabeledBreakStatement(breakStatement);
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -2329,7 +2307,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       registerLabledContinueStatement(continueStatement);
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   private void handleLabledContinueStatement(ContinueStatement continueStatement, CFANode prevNode, CFANode startLoopNode) {
@@ -2380,19 +2358,16 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     locStack.push(nextNode);
   }
 
-
-
-
   @Override
   public boolean visit(ReturnStatement returnStatement) {
 
+    handleElseCondition(returnStatement);
     FileLocation fileloc = astCreator.getFileLocation(returnStatement);
 
     CFANode prevNode = locStack.pop();
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
-
 
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
@@ -2406,13 +2381,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       astCreator.resetConditionalExpression();
     }
 
-    JReturnStatementEdge edge = new JReturnStatementEdge(returnStatement.toString(),
-        cfJReturnStatement, fileloc, prevNode, functionExitNode);
+    JReturnStatementEdge edge =
+          new JReturnStatementEdge(
+              returnStatement.toString(), cfJReturnStatement, fileloc, prevNode, functionExitNode);
     addToCFA(edge);
 
     locStack.push(nextNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   /**
@@ -2580,8 +2556,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
                                         constructorNameExp,
                                         pParametersToCallWith,
                                         pConstructorToInvoke);
-    JStatement superInvocationStatement = new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation);
-
+    JStatement superInvocationStatement =
+        new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation);
 
     CFANode prevNode = locStack.pop();
     CFANode nextNode = new CFANode(cfa.getFunction());

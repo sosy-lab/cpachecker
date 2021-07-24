@@ -203,7 +203,7 @@ public class BuechiConverterUtils {
             new ImmutableList.Builder<>();
 
         StoredState initBuchiState =
-            storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList).intValue());
+            storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList));
         String initBuechiStateName = getStateName(initBuchiState);
 
         String initStateName = null;
@@ -220,7 +220,7 @@ public class BuechiConverterUtils {
           List<AutomatonTransition> transitionList = new ArrayList<>();
 
           for (StoredEdgeWithLabel edge : storedAutomaton.getEdgesWithLabel(i)) {
-            int successorStateId = Iterables.getOnlyElement(edge.getConjSuccessors()).intValue();
+            int successorStateId = Iterables.getOnlyElement(edge.getConjSuccessors());
             String successorName = getStateName(storedAutomaton.getStoredState(successorStateId));
 
             transitionList.addAll(getTransitions(edge.getLabelExpr(), successorName));

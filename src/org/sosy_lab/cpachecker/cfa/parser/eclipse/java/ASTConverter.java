@@ -12,11 +12,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -25,6 +30,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -48,6 +55,7 @@ import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -70,10 +78,12 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -87,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
@@ -129,6 +140,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
+import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
@@ -153,6 +165,20 @@ class ASTConverter {
 
   // Temporary stores forLoopIterator
   private JIdExpression enhancedForLoopIterator;
+
+  /** Map for unboxing of JClassTypes */
+  private static final ImmutableMap<String, JBasicType> unboxingMap =
+      ImmutableMap.<String, JBasicType>builder()
+          .put("java.lang.Boolean", JBasicType.BOOLEAN)
+          .put("java.lang.Byte", JBasicType.BYTE)
+          .put("java.lang.Character", JBasicType.CHAR)
+          .put("java.lang.Float", JBasicType.FLOAT)
+          .put("java.lang.Integer", JBasicType.INT)
+          .put("java.lang.Long", JBasicType.LONG)
+          .put("java.lang.Short", JBasicType.SHORT)
+          .put("java.lang.Double", JBasicType.DOUBLE)
+          .put("java.lang.Void", JBasicType.VOID)
+          .build();
 
   /**
    * Create a new AST Converter, which can be used to convert
@@ -366,8 +392,7 @@ class ASTConverter {
     if (l == null) {
       return FileLocation.DUMMY;
     } else if (l.getRoot().getNodeType() != ASTNode.COMPILATION_UNIT) {
-      logger.log(Level.WARNING, "Can't find Placement Information for :"
-          + l.toString());
+      logger.log(Level.WARNING, "Can't find Placement Information for :" + l);
       return FileLocation.DUMMY;
     }
 
@@ -464,14 +489,12 @@ class ASTConverter {
     }
   }
 
-
-/**
- * Converts JDT VariableDeclarationStatement into an AST.
- *
- *
- * @param vds JDT VariableDeclarationStatement to be transformed
- * @return AST representing given Parameter
- */
+  /**
+   * Converts JDT VariableDeclarationStatement into an AST.
+   *
+   * @param vds JDT VariableDeclarationStatement to be transformed
+   * @return AST representing given Parameter
+   */
   public List<JDeclaration> convert(VariableDeclarationStatement vds) {
 
     List<JDeclaration> variableDeclarations = new ArrayList<>();
@@ -482,13 +505,13 @@ class ASTConverter {
     FileLocation fileLoc = getFileLocation(vds);
     Type type = vds.getType();
 
-
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(vds.modifiers());
 
     assert (!mB.isAbstract()) : "Local Variable has abstract modifier?";
     assert (!mB.isNative()) : "Local Variable has native modifier?";
-    assert (mB.getVisibility() == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
+    assert (mB.getVisibility() == VisibilityModifier.NONE)
+        : "Local Variable has Visibility modifier?";
     assert (!mB.isStatic()) : "Local Variable has static modifier?";
     assert (!mB.isStrictFp()) : "Local Variable has strictFp modifier?";
     assert (!mB.isSynchronized()) : "Local Variable has synchronized modifier?";
@@ -497,12 +520,17 @@ class ASTConverter {
 
       NameAndInitializer nameAndInitializer = getNamesAndInitializer(vdf);
 
-      JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
-          convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(),
-          getQualifiedName(nameAndInitializer.getName()),
-          nameAndInitializer.getInitializer(),
-          mB.isFinal());
+      String name = nameAndInitializer.getName();
+      name = addCounterToName(name);
+      JVariableDeclaration newD =
+          new JVariableDeclaration(
+              fileLoc,
+              convert(type),
+              name,
+              nameAndInitializer.getName(),
+              getQualifiedName(name),
+              nameAndInitializer.getInitializer(),
+              mB.isFinal());
 
       variableDeclarations.add(newD);
     }
@@ -510,16 +538,13 @@ class ASTConverter {
     return variableDeclarations;
   }
 
-
   /**
    * Converts JDT SingleVariableDeclaration into an AST.
-   *
    *
    * @param d JDT SingleVariableDeclaration to be transformed
    * @return AST representing given Parameter
    */
   public JDeclaration convert(SingleVariableDeclaration d) {
-
 
     Type type = d.getType();
 
@@ -538,18 +563,23 @@ class ASTConverter {
     // If there is no Initializer, CStorageClass expects null to be given.
     if (d.getInitializer() != null) {
 
-      JExpression iniExpr =
-          (JExpression) convertExpressionWithSideEffects(d.getInitializer());
+      JExpression iniExpr = (JExpression) convertExpressionWithSideEffects(d.getInitializer());
 
-      initializerExpression =
-          new JInitializerExpression(getFileLocation(d), iniExpr);
+      initializerExpression = new JInitializerExpression(getFileLocation(d), iniExpr);
     }
 
-    return new JVariableDeclaration(getFileLocation(d),
-        convert(type), d.getName().getFullyQualifiedName(),
+    String name = d.getName().getFullyQualifiedName();
+
+    name = addCounterToName(name);
+
+    return new JVariableDeclaration(
+        getFileLocation(d),
+        convert(type),
+        name,
         d.getName().getFullyQualifiedName(),
-        getQualifiedName(d.getName().getFullyQualifiedName()),
-        initializerExpression, mB.isFinal());
+        getQualifiedName(name),
+        initializerExpression,
+        mB.isFinal());
   }
 
 /**
@@ -628,29 +658,33 @@ class ASTConverter {
     return tmp;
   }
 
-
   private JIdExpression createTemporaryVariable(Expression e) {
-
     String name = "__CPAchecker_TMP_";
+    return createTemporaryVariableWithName(e, name);
+  }
+
+  private JIdExpression createTemporaryVariableWithName(Expression e, String name) {
+
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
       i++;
     }
-    name += i;
+    name += + i;
 
-    JVariableDeclaration decl = new JVariableDeclaration(getFileLocation(e),
-        convert(e.resolveTypeBinding()),
-        name,
-        name,
-        getQualifiedName(name),
-        null, NOT_FINAL);
+    JVariableDeclaration decl =
+        new JVariableDeclaration(
+            getFileLocation(e),
+            convert(e.resolveTypeBinding()),
+            name,
+            name,
+            getQualifiedName(name),
+            null,
+            NOT_FINAL);
 
     scope.registerDeclarationOfThisClass(decl);
     preSideAssignments.add(decl);
-    JIdExpression tmp = new JIdExpression(decl.getFileLocation(),
-        convert(e.resolveTypeBinding()),
-        name,
-        decl);
+    JIdExpression tmp =
+        new JIdExpression(decl.getFileLocation(), convert(e.resolveTypeBinding()), name, decl);
     return tmp;
   }
 
@@ -753,8 +787,14 @@ class ASTConverter {
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
     }
 
-    return new JMethodInvocationStatement(getFileLocation(sCI), new JSuperConstructorInvocation(getFileLocation(sCI),
-        (JClassType) getDeclaringClassType(binding), functionName, params, declaration));
+    return new JMethodInvocationStatement(
+        getFileLocation(sCI),
+        new JSuperConstructorInvocation(
+            getFileLocation(sCI),
+            (JClassType) getDeclaringClassType(binding),
+            functionName,
+            params,
+            declaration));
   }
 
   private JConstructorType convertConstructorType(IMethodBinding pBinding) {
@@ -772,6 +812,15 @@ class ASTConverter {
     }
 
     return new JConstructorType(declaringClass, paramTypes, pBinding.isVarargs());
+  }
+
+  private JConstructorType convertConstructorType(IMethodBinding pBinding, List<?> arguments) {
+    Preconditions.checkArgument(pBinding.isConstructor());
+
+    // Constructors can't be declared by Interfaces
+    JClassType declaringClass = (JClassType) getDeclaringClassType(pBinding);
+
+    return new JConstructorType(declaringClass, getJTypesOfParameters(arguments), pBinding.isVarargs());
   }
 
   private JMethodType convertMethodType(IMethodBinding pBinding) {
@@ -859,7 +908,7 @@ class ASTConverter {
     case ASTNode.SUPER_FIELD_ACCESS :
       return convert(((SuperFieldAccess) e));
     case ASTNode.TYPE_LITERAL :
-      return convert();
+      return convert((TypeLiteral) e);
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
     default:
@@ -944,12 +993,11 @@ class ASTConverter {
       return miv;
   }
 
-  private JAstNode convert() {
-    throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
-      +  "Cannot use Type Literals which would return a class Object.");
+  private JAstNode convert(TypeLiteral pTypeLiteral) {
+    final ITypeBinding iTypeBinding = pTypeLiteral.resolveTypeBinding();
+    JType jType = typeConverter.convert(iTypeBinding);
+    return new JClassLiteralExpression(getFileLocation(pTypeLiteral), jType);
   }
-
-
 
   private JAstNode convert(SuperFieldAccess e) {
     // Only used, when there is no field Access.
@@ -984,8 +1032,7 @@ class ASTConverter {
     List<JDeclaration> variableDeclarations = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
-    List<VariableDeclarationFragment> variableDeclarationFragments =
-        vde.fragments();
+    List<VariableDeclarationFragment> variableDeclarationFragments = vde.fragments();
 
     FileLocation fileLoc = getFileLocation(vde);
     Type type = vde.getType();
@@ -995,7 +1042,8 @@ class ASTConverter {
 
     assert (!mB.isAbstract()) : "Local Variable has abstract modifier?";
     assert (!mB.isNative()) : "Local Variable has native modifier?";
-    assert (mB.getVisibility() == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
+    assert (mB.getVisibility() == VisibilityModifier.NONE)
+        : "Local Variable has Visibility modifier?";
     assert (!mB.isStatic()) : "Local Variable has static modifier?";
     assert (!mB.isStrictFp()) : "Local Variable has strictFp modifier?";
     assert (!mB.isSynchronized()) : "Local Variable has synchronized modifier?";
@@ -1004,12 +1052,18 @@ class ASTConverter {
 
       NameAndInitializer nameAndInitializer = getNamesAndInitializer(vdf);
 
-      JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
-          convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(),
-          getQualifiedName(nameAndInitializer.getName()),
-          nameAndInitializer.getInitializer(),
-          mB.isFinal());
+      String name = nameAndInitializer.getName();
+      name = addCounterToName(name);
+
+      JVariableDeclaration newD =
+          new JVariableDeclaration(
+              fileLoc,
+              convert(type),
+              name,
+              nameAndInitializer.getName(),
+              getQualifiedName(name),
+              nameAndInitializer.getInitializer(),
+              mB.isFinal());
 
       variableDeclarations.add(newD);
     }
@@ -1019,46 +1073,76 @@ class ASTConverter {
     return null;
   }
 
+  private String addCounterToName(String pName) {
+    if (!scope.variableNameInUse(pName, pName)) {
+      return pName;
+    }
+    int i = 0;
+    String sep = "__";
+    while (scope.variableNameInUse(pName + sep + i, pName)) {
+      i++;
+    }
+    pName = pName + sep + i;
+    return pName;
+  }
+
   private JExpression convert(InstanceofExpression e) {
-
     FileLocation fileloc = getFileLocation(e);
-    JExpression leftOperand = convertExpressionWithoutSideEffects(e.getLeftOperand());
-    JType type = convert(e.getRightOperand().resolveBinding());
-    assert leftOperand instanceof JIdExpression : "There are other expressions for instanceOf?";
-    assert type instanceof JClassOrInterfaceType : "There are other types for this expression?";
+    JExpression leftOperand;
+    final Expression leftOperandOfExpression = e.getLeftOperand();
 
-    JIdExpression referenceVariable = (JIdExpression) leftOperand;
+    leftOperand = convertExpressionWithoutSideEffects(leftOperandOfExpression);
+    if (leftOperand instanceof ALiteralExpression
+        || leftOperand instanceof JArraySubscriptExpression) {
+      leftOperand =
+          createTemporaryVariableWithName(
+              leftOperandOfExpression, leftOperandOfExpression.toString() + "_");
+    }
+    JType typeOfRightOperand = convert(e.getRightOperand().resolveBinding());
+    assert leftOperand instanceof JIdExpression : "There are other expressions for instanceOf?";
+    assert (typeOfRightOperand instanceof JReferenceType)
+        : "There are other types for this expression?";
+    JIdExpression referenceVariableLeftOperand = (JIdExpression) leftOperand;
     JType instanceOfType = convert(e.resolveTypeBinding());
 
-    assert instanceOfType instanceof JSimpleType
-        && ((JSimpleType) instanceOfType).getType() == JBasicType.BOOLEAN
-        : "InstanceofExpression is not always of type boolean!";
+    assert instanceOfType instanceof JSimpleType;
+    if (((JSimpleType) instanceOfType).getType() != JBasicType.UNSPECIFIED) {
+      assert ((JSimpleType) instanceOfType).getType() == JBasicType.BOOLEAN
+          : "InstanceofExpression is not always of type boolean!";
+    }
 
-    return createInstanceOfExpression(referenceVariable, (JClassOrInterfaceType) type, fileloc);
+    return createInstanceOfExpression(
+        referenceVariableLeftOperand, (JReferenceType) typeOfRightOperand, fileloc);
   }
 
   /**
    * Creates an <code>instanceof</code> expression from the given parameters.
    *
-   * <p>This creates an expression representing a statement of the following format:<br />
-   * <code>pLeftOperand instanceof pClassOrInterfaceType</code>.</p>
+   * <p>This creates an expression representing a statement of the following format:<br>
+   * <code>pLeftOperand instanceof pRightOperand</code>.
    *
    * @param pLeftOperand the left operand of the <code>instanceof</code> statement
-   * @param pClassOrInterfaceType the right operand of the <code>instanceof</code> statement. this
-   *    has to be a specific class or interface. The resulting expression will be evaluated to
-   *    <code>true</code> if the the left operand's type is equal to this type or a subtype of this
-   *    type
+   * @param pRightOperand the right operand of the <code>instanceof</code> statement. The
+   *     resulting expression will be evaluated to <code>true
+   *     </code> if the the left operand's type is equal to this type or a subtype of this type
    * @param pLocation the file location of the expression
-   *
    * @return a {@link JExpression} representing an <code>instanceof</code> expression with the given
-   *    parameters
+   *     parameters
    */
-  private JExpression createInstanceOfExpression(JIdExpression pLeftOperand,
-      JClassOrInterfaceType pClassOrInterfaceType, FileLocation pLocation) {
+  JExpression createInstanceOfExpression(
+      JExpression pLeftOperand, JReferenceType pRightOperand, FileLocation pLocation) {
+    List<JType> allPossibleClasses;
+    boolean isRightOperandArray;
+    if ((pRightOperand instanceof JArrayType)) {
+      isRightOperandArray = true;
+      final JType elementType = ((JArrayType) pRightOperand).getElementType();
+      allPossibleClasses = getSubClasses(elementType);
 
-    List<JClassType> allPossibleClasses = getSubClasses(pClassOrInterfaceType);
-
-    if (pClassOrInterfaceType instanceof JInterfaceType) {
+    } else {
+      isRightOperandArray = false;
+      allPossibleClasses = getSubClasses(pRightOperand);
+    }
+    if (pRightOperand instanceof JInterfaceType) {
       // if the given interface has no implementing classes there's no way the expression will be
       // true
       if (allPossibleClasses.isEmpty()) {
@@ -1066,23 +1150,30 @@ class ASTConverter {
       }
     }
 
-    return createInstanceOfDisjunction(pLeftOperand, allPossibleClasses,
-        JSimpleType.getBoolean(), pLocation);
+    return createInstanceOfDisjunction(
+        pLeftOperand, allPossibleClasses, JSimpleType.getBoolean(), pLocation, isRightOperandArray);
   }
 
   /**
-   * Returns all sub classes/implementing classes of the given class or interface.
-   * This includes the given type itself, if it is a {@link JClassType}.
+   * Returns all sub classes/implementing classes of the given class or interface. This includes the
+   * given type itself, if it is a {@link JClassType}.
    *
-   * @param pType the class or interface type to get all subclasses of
+   * @param pType the type to get all subclasses of
    * @return all sub classes/implementing classes of the given class or interface.
    */
-  private List<JClassType> getSubClasses(JClassOrInterfaceType pType) {
-    Set<JClassType> subClassTypeSet;
+  private List<JType> getSubClasses(JType pType) {
+
+    // Do not return immutable list!
+    if (pType instanceof JSimpleType) {
+      List<JType> result = new ArrayList<>(1);
+      result.add(pType);
+      return result;
+    }
 
     assert pType instanceof JInterfaceType || pType instanceof JClassType
         : "Unhandled type " + pType;
 
+    Set<JClassType> subClassTypeSet;
     if (pType instanceof JInterfaceType) {
       subClassTypeSet = ((JInterfaceType) pType).getAllKnownImplementingClassesOfInterface();
 
@@ -1096,20 +1187,64 @@ class ASTConverter {
     return new ArrayList<>(subClassTypeSet);
   }
 
-  private JExpression createInstanceOfDisjunction(JIdExpression pLeftOperand,
-      List<JClassType> pConcreteClassTypes,
+  private JExpression createInstanceOfDisjunction(
+      JExpression pLeftOperand,
+      List<JType> pConcreteTypes,
       JType pExpressionType,
-      FileLocation pLocation) {
+      FileLocation pLocation,
+      boolean isRightOperandArray) {
 
-    JExpression currentCondition = convertClassRunTimeCompileTimeAccord(pLocation,
-        pLeftOperand, pConcreteClassTypes.remove(FIRST));
+    final JType firstElement = pConcreteTypes.remove(FIRST);
+    if (!(firstElement instanceof JClassType)) {
+      if (isRightOperandArray) {
+        return firstElement.equals(pLeftOperand.getExpressionType())
+            ? new JBooleanLiteralExpression(pLocation, true)
+            : new JBooleanLiteralExpression(pLocation, false);
+      } else {
+        throw new CFAGenerationRuntimeException(
+            "Arguments for instance of must be reference type or null type");
+      }
+    }
+    JExpression currentCondition;
+    if (pLeftOperand instanceof JIdExpression) {
+      currentCondition =
+          convertClassRunTimeCompileTimeAccord(
+              pLocation, (JIdExpression) pLeftOperand, (JClassType) firstElement);
+    }
+   else if (pLeftOperand instanceof JRunTimeTypeExpression) {
+    currentCondition =
+        new JRunTimeTypeEqualsType(
+            pLeftOperand.getFileLocation(),
+            (JRunTimeTypeExpression) pLeftOperand,
+            (JClassType) firstElement);
+  } else {
+    throw new CFAGenerationRuntimeException(
+        "Can only create instance of disjunction with JIdExpression or JRunTimeTypeExpression");
+  }
 
     JRunTimeTypeEqualsType newCondition;
 
-    for (JClassType currentSubType : pConcreteClassTypes) {
-      newCondition = convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, currentSubType);
+    for (JType currentSubType : pConcreteTypes) {
+      if (pLeftOperand instanceof JIdExpression) {
+        newCondition =
+            convertClassRunTimeCompileTimeAccord(
+                pLocation, (JIdExpression) pLeftOperand, (JClassType) currentSubType);
+      } else if (pLeftOperand instanceof JRunTimeTypeExpression) {
+        newCondition =
+            new JRunTimeTypeEqualsType(
+                pLeftOperand.getFileLocation(),
+                (JRunTimeTypeExpression) pLeftOperand,
+                (JClassType) currentSubType);
+      } else {
+        throw new CFAGenerationRuntimeException(
+            "Can only create instance of disjunction with JIdExpression or JRunTimeTypeExpression");
+      }
       currentCondition =
-          new JBinaryExpression(pLocation, pExpressionType, currentCondition, newCondition,
+          new JBinaryExpression(
+              pLocation,
+              pExpressionType,
+              currentCondition,
+              newCondition,
               BinaryOperator.CONDITIONAL_OR);
     }
 
@@ -1117,11 +1252,11 @@ class ASTConverter {
   }
 
   private JRunTimeTypeEqualsType convertClassRunTimeCompileTimeAccord(
-      FileLocation pFileloc, JIdExpression pDeclaration, JClassOrInterfaceType pClassType) {
+      FileLocation pFileloc, JIdExpression pDeclaration, JReferenceType pJReferenceType) {
 
     JRunTimeTypeExpression runTimeTyp = new JVariableRunTimeType(pFileloc, pDeclaration);
 
-    return new JRunTimeTypeEqualsType(pFileloc, runTimeTyp, pClassType);
+    return new JRunTimeTypeEqualsType(pFileloc, runTimeTyp, pJReferenceType);
   }
 
 
@@ -1223,7 +1358,10 @@ class ASTConverter {
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
     }*/
 
-    assert declaration.getParameters().size() == params.size();
+    if (declaration.getParameters().size() != params.size()) {
+      throw new AssertionError(
+          "Error in converting ClassInstanceCreation to JClassInstanceCreation. Amount of parameters does not match.");
+    }
     return new JClassInstanceCreation(getFileLocation(cIC),
                                       declaration.getType().getReturnType(),
                                       functionName,
@@ -1258,27 +1396,463 @@ class ASTConverter {
     if (constructorBinding != null) {
       final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
 
+      final JConstructorType jConstructorType = convertConstructorType(constructorBinding, pCIC.arguments());
+
+      List<JParameterDeclaration> parameterDeclarations= new ArrayList<>();
+      for (JType parameter : jConstructorType.getParameters()) {
+        parameterDeclarations.add(
+            new JParameterDeclaration(
+                getFileLocation(pCIC),
+                parameter,
+                // TODO Naming for simple types
+                parameter instanceof JClassOrInterfaceType ? ((JClassOrInterfaceType) parameter).getSimpleName() : ((JSimpleType) parameter).toString(),
+                parameter instanceof JClassOrInterfaceType ? ((JClassOrInterfaceType) parameter).getName() : ((JSimpleType) parameter).toString(),
+                parameter instanceof JClassType && ((JClassType) parameter).isFinal()));
+      }
+
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
-          convertConstructorType(constructorBinding),
+          jConstructorType,
           fullName,
           simpleName,
-          ImmutableList.of(),
+          ImmutableList.copyOf(parameterDeclarations),
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
+    }
 
-    } else {
+    logger.logf(
+        Level.FINEST,
+        "No matching class for class instance creation \"%s\" in scope, trying to resolve by imports",
+        fullName);
+    Set<ImportDeclaration> importDeclarations = getImportDeclarations(pCIC);
+
+    Optional<Constructor<?>> constructorOptional;
+
+    constructorOptional =
+        matchConstructor(pCIC.getType().toString(), pCIC.arguments(), importDeclarations);
+
+    if (constructorOptional.isPresent()) {
+      JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
+      final JClassType jTypeFromConstructor =
+          createOrFindJClassTypeFromConstructor(constructorOptional.get());
+      JConstructorType constructorType =
+          new JConstructorType(
+              jTypeFromConstructor,
+              getJTypesOfParameters(pCIC.arguments()),
+              constructorOptional.get().isVarArgs());
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
-          JConstructorType.createUnresolvableConstructorType(),
+          constructorType,
           fullName,
           simpleName,
-          ImmutableList.of(),
-          VisibilityModifier.NONE,
-          false,
-          JClassType.createUnresolvableType());
+          createJParameterDeclarationsForArguments(pCIC.arguments()),
+          getVisibilityModifierForConstructor(constructorOptional.get()),
+          jTypeFromConstructor.isStrictFp(),
+          declaringClass);
     }
+
+    // If nothing found
+    return new JConstructorDeclaration(
+        getFileLocation(pCIC),
+        JConstructorType.createUnresolvableConstructorType(),
+        fullName,
+        simpleName,
+        createJParameterDeclarationsForArguments(pCIC.arguments()),
+        VisibilityModifier.NONE,
+        false,
+        JClassType.createUnresolvableType());
+  }
+
+  private JClassType createOrFindJClassTypeFromConstructor(final Constructor<?> pConstructor) {
+
+    final VisibilityModifier visibilityModifierForConstructor =
+        getVisibilityModifierForConstructor(pConstructor);
+
+    Class<?> pClazz = pConstructor.getDeclaringClass();
+
+    final TypeHierarchy typeHierarchy = scope.getTypeHierarchy();
+
+    final JClassType jClassTypeFromClass =
+        createJClassTypeFromClass(pClazz, visibilityModifierForConstructor,
+            typeHierarchy);
+
+    typeHierarchy.updateTypeHierarchy(jClassTypeFromClass);
+
+    return jClassTypeFromClass;
+
+  }
+
+  public static JClassType createJClassTypeFromClass(
+      final Class<?> pClazz,
+      VisibilityModifier pVisibilityModifier,
+      final TypeHierarchy pTypeHierarchy) {
+    final String name = pClazz.getName();
+    if (pTypeHierarchy.containsClassType(name)) {
+      return pTypeHierarchy.getClassType(name);
+    }
+
+    final String simpleName = pClazz.getSimpleName();
+    final Class<?> superclass = pClazz.getSuperclass();
+
+    JClassType jTypeOfSuperClass;
+    final JClassType typeOfObject = JClassType.getTypeOfObject();
+    if ("java.lang.Object".equals(superclass.getName())) {
+      jTypeOfSuperClass = typeOfObject;
+    } else {
+      final Set<JClassType> directSubClassesOfTypeObject = typeOfObject.getDirectSubClasses();
+      final java.util.Optional<JClassType> superClassInTypeOfObject = directSubClassesOfTypeObject.stream()
+          .filter(v -> v.getName().equals(superclass.getName())).findFirst();
+      if (superClassInTypeOfObject.isPresent()) {
+        return superClassInTypeOfObject.orElseThrow();
+      } else {
+        jTypeOfSuperClass =
+            createJClassTypeFromClass(superclass, VisibilityModifier.PUBLIC, pTypeHierarchy);
+      }
+    }
+
+    final ModifierBean modifiers = ModifierBean.getModifiers(pClazz.getModifiers());
+    return JClassType.valueOf(
+        name,
+        simpleName,
+        pVisibilityModifier,
+        modifiers.isFinal,
+        modifiers.isAbstract,
+        modifiers.isStrictFp,
+        jTypeOfSuperClass,
+        ImmutableSet.of());
+  }
+
+  private static Set<ImportDeclaration> getImportDeclarations(ASTNode astNode) {
+    // Find CompilationUnit of class calling the constructor
+    ASTNode compilationUnit = astNode.getParent();
+    while (!(compilationUnit instanceof CompilationUnit)) {
+      compilationUnit = compilationUnit.getParent();
+    }
+    // Make set of importDeclarations
+    return FluentIterable.from((List<?>) ((CompilationUnit) compilationUnit).imports())
+        .filter(ImportDeclaration.class)
+        .toSet();
+  }
+
+  private VisibilityModifier getVisibilityModifierForConstructor(Constructor<?> pConstructor) {
+    VisibilityModifier visibilityModifier;
+    int i = pConstructor.toGenericString().indexOf(' ');
+    String visibilityModifierString = pConstructor.toGenericString().substring(0, i);
+
+    try {
+      visibilityModifier = VisibilityModifier.valueOf(visibilityModifierString.toUpperCase());
+    } catch (IllegalArgumentException ignored) {
+      visibilityModifier = VisibilityModifier.NONE;
+    }
+    return visibilityModifier;
+  }
+
+  private static Optional<ImportDeclaration> getMatchingImportDeclaration(
+      String pTypeAsString, Set<ImportDeclaration> pImportDeclarations) {
+    for (ImportDeclaration importDeclaration : pImportDeclarations) {
+      // case non wild card import declaration
+      Pattern pattern = Pattern.compile("\\.[A-Z].*;$");
+      Matcher matcher = pattern.matcher(importDeclaration.toString());
+      String importedClass = "";
+      while (matcher.find()) {
+        importedClass =
+            importDeclaration
+                .toString()
+                .substring(matcher.start(), matcher.end())
+                .replace(".", "")
+                .replace(";", "");
+      }
+      if (importedClass.equals(pTypeAsString)) {
+        return Optional.of(importDeclaration);
+      }
+    }
+    return Optional.absent();
+  }
+
+  private Optional<Constructor<?>> matchConstructor(
+      String pClassName, List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
+    Optional<ImportDeclaration> matchingImportDeclaration =
+        getMatchingImportDeclaration(pClassName, pImportDeclarations);
+    Class<?> cls;
+    if (!matchingImportDeclaration.isPresent()) {
+      try {
+        cls = Class.forName("java.lang." + pClassName);
+      } catch (ClassNotFoundException pE) {
+        return Optional.absent();
+      }
+    } else {
+      try {
+        cls = Class.forName(matchingImportDeclaration.get().getName().getFullyQualifiedName());
+      } catch (ClassNotFoundException pE) {
+        return Optional.absent();
+      }
+    }
+    java.util.Optional<List<Class<?>>> argumentsAsClassArray =
+        convertArgumentListToClassList(pArguments, pImportDeclarations);
+    if(argumentsAsClassArray.isEmpty()){
+      return Optional.absent();
+    }
+    for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
+      boolean match = true;
+      Class<?>[] parameterTypes = constructor.getParameterTypes();
+      if (parameterTypes.length != argumentsAsClassArray.orElseThrow().size()) {
+        continue;
+      }
+      for (int i = 0; i < parameterTypes.length; i++) {
+        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.orElseThrow().get(i))) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return Optional.of(constructor);
+      }
+    }
+    return Optional.absent();
+  }
+
+  private java.util.Optional<List<Class<?>>> convertArgumentListToClassList(
+      List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
+    List<Class<?>> result = new ArrayList<>(pArguments.size());
+    for (Object argument : pArguments) {
+      Optional<JSimpleDeclaration> optionalOfSimpleDeclaration =
+          getJSimpleDeclarationOfArgument(argument);
+      if (optionalOfSimpleDeclaration.isPresent()) {
+        final JType simpleDeclarationType;
+        if (argument instanceof ArrayAccess) {
+          simpleDeclarationType =
+              ((JArrayType) optionalOfSimpleDeclaration.get().getType()).getElementType();
+        } else {
+          simpleDeclarationType = optionalOfSimpleDeclaration.get().getType();
+        }
+        final Optional<Class<?>> classOfJType =
+            getClassOfJType(simpleDeclarationType, pImportDeclarations);
+        result.add(classOfJType.get());
+      } else if (argument instanceof Expression && !(argument instanceof InfixExpression)) {
+        ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+        if (binding != null) {
+          final JType jType = typeConverter.convert(binding);
+          result.add(getClassOfJType(jType, pImportDeclarations).get());
+        } else {
+          // TODO Need better solution for Method Invocations
+          return java.util.Optional.empty();
+        }
+      }
+      else if (argument instanceof InfixExpression){
+        JBinaryExpression expression = (JBinaryExpression) convert((InfixExpression) argument);
+        result.add(getClassOfJType(expression.getExpressionType(), pImportDeclarations).get());
+      }
+      else {
+        throw new AssertionError("Cannot find class of " + argument);
+      }
+    }
+    if (pArguments.size() != result.size()) {
+      throw new AssertionError("Error while converting arguments into array of classes.");
+    }
+    return java.util.Optional.of(ImmutableList.copyOf(result));
+  }
+
+  private Optional<JSimpleDeclaration> getJSimpleDeclarationOfArgument(final Object pArgument) {
+    String argumentName;
+    if (pArgument instanceof ArrayAccess) {
+      argumentName = ((ArrayAccess) pArgument).getArray().toString();
+    }
+    else if (pArgument instanceof InfixExpression){
+      JExpression jExpression = convert((InfixExpression) pArgument);
+      argumentName = jExpression.getExpressionType().toString();
+    }
+    else {
+      argumentName = pArgument.toString();
+    }
+    JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argumentName);
+    if (simpleDeclaration != null) {
+      return Optional.of(simpleDeclaration);
+    }
+    return Optional.absent();
+  }
+
+  @VisibleForTesting
+  static Optional<Class<?>> getClassOfJType(
+      JType pJType, Set<ImportDeclaration> pImportDeclarations) {
+    if (pJType instanceof JSimpleType) {
+      return Optional.of(getClassOfPrimitiveType((JSimpleType) pJType));
+    }
+    if (pJType instanceof JClassOrInterfaceType) {
+      final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
+      Optional<ImportDeclaration> matchingImportDeclaration =
+          getMatchingImportDeclaration(jTypeName, pImportDeclarations);
+      Optional<Class<?>> cls = Optional.absent();
+      if (matchingImportDeclaration.isPresent()) {
+        try {
+          cls =
+              Optional.of(
+                  Class.forName(matchingImportDeclaration.get().getName().getFullyQualifiedName()));
+        } catch (ClassNotFoundException pE) {
+          cls = Optional.absent();
+        }
+      }
+      if (!cls.isPresent()) {
+        try {
+          cls = Optional.of(Class.forName(jTypeName));
+
+        } catch (ClassNotFoundException pE) {
+          cls = Optional.absent();
+        }
+      }
+      if (!cls.isPresent()) {
+        try {
+          final String className = "java.lang." + jTypeName;
+          cls = Optional.of(Class.forName(className));
+
+        } catch (ClassNotFoundException pE) {
+
+          cls = Optional.absent();
+        }
+      }
+
+      if (!cls.isPresent()) {
+        return cls;
+      }
+      return cls;
+    }
+    if (pJType instanceof JArrayType) {
+      final JType elementTypeOfJArrayType = ((JArrayType) pJType).getElementType();
+      Optional<Class<?>> typeOfArray =
+          getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
+      int dimensionsOfArray = ((JArrayType) pJType).getDimensions();
+      Class<?> array = Array.newInstance(typeOfArray.get(), 0).getClass();
+      for (int i = 1; i < dimensionsOfArray; i++) {
+        array = Array.newInstance(array, 0).getClass();
+      }
+      return Optional.of(array);
+    }
+
+    return Optional.absent();
+  }
+
+  @VisibleForTesting
+  static Class<?> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
+    Class<?> cls;
+    switch (pJSimpleType.getType()) {
+      case BOOLEAN:
+        cls = boolean.class;
+        break;
+      case CHAR:
+        cls = char.class;
+        break;
+      case DOUBLE:
+        cls = double.class;
+        break;
+      case FLOAT:
+        cls = float.class;
+        break;
+      case INT:
+        cls = int.class;
+        break;
+      case VOID:
+        cls = void.class;
+        break;
+      case LONG:
+        cls = long.class;
+        break;
+      case SHORT:
+        cls = short.class;
+        break;
+      case BYTE:
+        cls = byte.class;
+        break;
+      default:
+        throw new AssertionError("Unknown primitive type " + pJSimpleType);
+    }
+    return cls;
+  }
+
+  private List<JType> getJTypesOfParameters(List<?> arguments) {
+    List<JType> parameterList = new ArrayList<>();
+    for (Object argument : arguments) {
+      final JSimpleDeclaration jSimpleDeclaration = scope.lookupVariable(argument.toString());
+      if (jSimpleDeclaration != null) {
+        parameterList.add(jSimpleDeclaration.getType());
+      } else if (argument instanceof Expression) {
+        if (argument instanceof InfixExpression) {
+          parameterList.add(convert((InfixExpression) argument).getExpressionType());
+        } else {
+          parameterList.add(typeConverter.convert((Expression) argument));
+        }
+
+      } else {
+        throw new CFAGenerationRuntimeException("Could not process argument: " + argument + " .");
+      }
+    }
+    return ImmutableList.copyOf(parameterList);
+  }
+
+  private List<JParameterDeclaration> createJParameterDeclarationsForArguments(List<?> arguments) {
+    List<JParameterDeclaration> parameterList = new ArrayList<>();
+    for (Object argument : arguments) {
+      Optional<JSimpleDeclaration> simpleDeclarationOptional =
+          getJSimpleDeclarationOfArgument(argument);
+      if (simpleDeclarationOptional.isPresent()) {
+        parameterList.add(
+            convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.get()).get());
+      } else if (argument instanceof Expression) {
+        final String name;
+        final String qualifiedName;
+        JType jType;
+        if (argument instanceof InfixExpression) {
+          jType = convert((InfixExpression) argument).getExpressionType();
+          if(jType instanceof JSimpleType){
+            name = ((JSimpleType) jType).toString();
+            qualifiedName = ((JSimpleType) jType).toString();
+          } else {
+            name = ((JClassType) jType).getSimpleName();
+            qualifiedName = ((JClassType) jType).getName();
+          }
+        } else if (argument instanceof StringLiteral) {
+          jType = convert((StringLiteral) argument).getExpressionType();
+          name = ((JClassType) jType).getSimpleName();
+          qualifiedName = ((JClassType) jType).getName();
+        } else {
+          ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+          jType = typeConverter.convert(binding);
+          if (binding != null) {
+            name = binding.getName();
+            qualifiedName = binding.getQualifiedName();
+          } else {
+            name = jType.toString();
+            qualifiedName = jType.toString();
+          }
+        }
+        parameterList.add(
+            new JParameterDeclaration(
+                getFileLocation((ASTNode) argument),
+                jType,
+                name,
+                qualifiedName,
+                jType instanceof JClassType && ((JClassType) jType).isFinal()));
+      } else {
+        throw new CFAGenerationRuntimeException("Could not process argument: " + argument + " .");
+      }
+    }
+    return ImmutableList.copyOf(parameterList);
+  }
+
+  private Optional<JParameterDeclaration> convertSimpleDeclarationToParameterDeclaration(
+      JSimpleDeclaration js) {
+    if (js instanceof JVariableDeclaration) {
+      return Optional.of(
+          new JParameterDeclaration(
+              js.getFileLocation(),
+              js.getType(),
+              js.getName(),
+              js.getQualifiedName(),
+              ((JVariableDeclaration) js).isFinal()));
+    } else if (js instanceof JParameterDeclaration) {
+      return Optional.of((JParameterDeclaration) js);
+    }
+    throw new CFAGenerationRuntimeException(
+        "Could not convert " + js.getName() + " to ParameterDeclaration");
   }
 
   private JConstructorDeclaration getConstructorOfAnonymousClass(
@@ -1545,7 +2119,9 @@ class ASTConverter {
 
       // check that no binding exists (special case for main argument array) and that
       // the given qualifier is an array and a parameter
-      return lengthBinding == null && isArrayType(qualifierDecl.getType()) && qualifierDecl instanceof JParameterDeclaration;
+      return lengthBinding == null
+          && qualifierDecl instanceof JParameterDeclaration
+          && isArrayType(qualifierDecl.getType());
 
     } else {
       return false;
@@ -1760,12 +2336,11 @@ class ASTConverter {
       declaration = createVariableDeclarationFromBinding(e, vb);
     }
 
-    assert name.equals(declaration.getName()) :
-      "Created a false declaration for " + e.toString();
+    assert name.equals(declaration.getOrigName()) : "Created a false declaration for " + e;
 
     JType type = convert(e.resolveTypeBinding());
 
-    return new JIdExpression(getFileLocation(e), type, name, declaration);
+    return new JIdExpression(getFileLocation(e), type, declaration.getName(), declaration);
   }
 
   private JSimpleDeclaration createVariableDeclarationFromBinding
@@ -2029,6 +2604,17 @@ class ASTConverter {
     final JType rightHandType = rightHandSide.getExpressionType();
     BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
+    if (type.equals(JSimpleType.getUnspecified())) {
+      if (op == BinaryOperator.STRING_CONCATENATION) {
+        if (scope.containsClassType("java.lang.String")) {
+          type = scope.getClassType("java.lang.String");
+        }
+        // TODO Create java.lang.String JType
+        // TODO Replace with switch when adding more cases
+      }
+
+    }
+
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
     // a x b x c x d is being translated to (((a x b) x c) x d)
@@ -2060,6 +2646,19 @@ class ASTConverter {
       basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
     }
 
+    JBasicType jBasicType;
+    if (pOp1Type instanceof JClassType && basicTypeOp2 != null) {
+      jBasicType = unboxJClassType((JClassType) pOp1Type).orNull();
+      if (jBasicType == basicTypeOp2) {
+        basicTypeOp1 = jBasicType;
+      }
+    } else if (pOp2Type instanceof JClassType && basicTypeOp1 != null) {
+      jBasicType = unboxJClassType((JClassType) pOp2Type).orNull();
+      if (jBasicType == basicTypeOp1) {
+        basicTypeOp2 = jBasicType;
+      }
+    }
+
     if (basicTypeOp1 == null || basicTypeOp2 == null) {
       if (op.equals(InfixExpression.Operator.EQUALS)) {
         return BinaryOperator.EQUALS;
@@ -2078,6 +2677,11 @@ class ASTConverter {
     } else {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
+  }
+
+  @VisibleForTesting
+  public static Optional<JBasicType> unboxJClassType(JClassType pJClassType) {
+    return Optional.fromNullable(unboxingMap.getOrDefault(pJClassType.getName(), null));
   }
 
   private boolean isNumericCompatible(JBasicType pType) {
@@ -2125,14 +2729,17 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
     } else if (op.equals(InfixExpression.Operator.AND)) {
-        return BinaryOperator.BINARY_AND;
+      return BinaryOperator.BINARY_AND;
     } else if (op.equals(InfixExpression.Operator.OR)) {
-        return BinaryOperator.BINARY_OR;
+      return BinaryOperator.BINARY_OR;
     } else if (op.equals(InfixExpression.Operator.XOR)) {
-        return BinaryOperator.BINARY_XOR;
+      return BinaryOperator.BINARY_XOR;
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
+      return BinaryOperator.CONDITIONAL_OR;
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
+      return BinaryOperator.CONDITIONAL_AND;
     } else {
-      throw new CFAGenerationRuntimeException(
-        "Could not proccess Operator: " + op.toString());
+      throw new CFAGenerationRuntimeException("Could not process Operator: " + op);
     }
   }
 
@@ -2152,11 +2759,9 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.XOR)) {
       return BinaryOperator.LOGICAL_XOR;
     } else {
-      throw new CFAGenerationRuntimeException(
-          "Could not proccess Operator: " + op.toString());
+      throw new CFAGenerationRuntimeException("Could not proccess Operator: " + op);
     }
   }
-
 
   private JExpression convert(NumberLiteral e) {
     FileLocation fileLoc = getFileLocation(e);
@@ -2166,16 +2771,24 @@ class ASTConverter {
     JBasicType t = ((JSimpleType) type).getType();
 
     switch (t) {
-    case INT:
-      return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
-    case FLOAT:
-      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-
-    case DOUBLE:
-      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-
-    default:
-      return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
+      case INT:
+        return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
+      case FLOAT:
+        return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
+      case DOUBLE:
+        return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
+      default:
+        if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
+          valueStr = valueStr.substring(0, valueStr.length() - 1);
+        }
+        if (valueStr.startsWith("0x")) {
+          valueStr = valueStr.substring(2);
+          return new JIntegerLiteralExpression(
+              getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr, 16)));
+        } else {
+          return new JIntegerLiteralExpression(
+              getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr)));
+        }
     }
   }
 
@@ -2319,8 +2932,7 @@ class ASTConverter {
 
     if (param == null) {
       throw new CFAGenerationRuntimeException(
-        "Formal Parameter " + formalParameter.toString()
-            + " could not be proccessed", formalParameter);
+          "Formal Parameter " + formalParameter + " could not be proccessed", formalParameter);
       }
 
     JIdExpression paramIdExpr = new JIdExpression(

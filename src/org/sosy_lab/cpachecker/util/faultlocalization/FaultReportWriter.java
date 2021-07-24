@@ -186,7 +186,7 @@ public class FaultReportWriter {
     return out.toString();
   }
 
-  private Map<Integer, String> getDistinctStatements(List<CFAEdge> pEdges) {
+  protected Map<Integer, String> getDistinctStatements(List<CFAEdge> pEdges) {
     Map<Integer, String> statements = new HashMap<>();
     for (CFAEdge e : pEdges) {
       int codeLineNumber = e.getFileLocation().getStartingLineInOrigin();

@@ -1922,7 +1922,7 @@ public abstract class AbstractExpressionValueVisitor
         break;
 
       default:
-        throw new AssertionError("Unsupported binary operation " + pBinaryOperator.toString()
+        throw new AssertionError("Unsupported binary operation " + pBinaryOperator
             + " on floating point values");
       }
 
@@ -2091,15 +2091,15 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JArraySubscriptExpression pJArraySubscriptExpression) {
-    NumericValue subscriptValue = (NumericValue) pJArraySubscriptExpression.getSubscriptExpression().accept(this);
+    Value subscriptValue = pJArraySubscriptExpression.getSubscriptExpression().accept(this);
     JExpression arrayExpression = pJArraySubscriptExpression.getArrayExpression();
     Value idValue = arrayExpression.accept(this);
 
-    if (!idValue.isUnknown()) {
+    if (!idValue.isUnknown() && subscriptValue.isNumericValue()) {
       ArrayValue innerMostArray = (ArrayValue) arrayExpression.accept(this);
-
-      assert subscriptValue.longValue() >= 0 && subscriptValue.longValue() <= Integer.MAX_VALUE;
-      return innerMostArray.getValueAt((int) subscriptValue.longValue());
+      assert ((NumericValue) subscriptValue).longValue() >= 0
+          && ((NumericValue) subscriptValue).longValue() <= Integer.MAX_VALUE;
+      return innerMostArray.getValueAt((int) ((NumericValue) subscriptValue).longValue());
 
     } else {
       return Value.UnknownValue.getInstance();

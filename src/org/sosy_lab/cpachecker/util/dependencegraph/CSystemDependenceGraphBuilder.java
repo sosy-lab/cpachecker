@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -90,7 +89,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
           "File to export dependence graph to. If `null`, dependence"
               + " graph will not be exported as dot.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportDot = Paths.get("DependenceGraph.dot");
+  private Path exportDot = Path.of("DependenceGraph.dot");
 
   @Option(
       secure = true,
@@ -938,9 +937,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         sb.append(" of ");
 
         if (pNode.getType() == NodeType.ENTRY) {
-          sb.append(String.valueOf(pNode.getProcedure().orElse(null)));
+          sb.append(pNode.getProcedure().orElse(null));
         } else {
-          sb.append(String.valueOf(pNode.getVariable().orElse(null)));
+          sb.append(pNode.getVariable().orElse(null));
         }
 
         sb.append("\\n");

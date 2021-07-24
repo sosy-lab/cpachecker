@@ -94,4 +94,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return id;
   }
 
+  public boolean isZero() {
+    return equals(NULL_OBJECT);
+  }
+
 }

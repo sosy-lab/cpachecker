@@ -15,6 +15,7 @@
 
 com.google.common.base.Objects @ use java.util.Objects instead
 com.google.common.io.Files#createTempDir() @ Uses inappropriate permissions, cf. JavaDoc
+java.nio.file.Paths @ use Path.of() instead (can be applied automatically with Refaster)
 
 @defaultMessage CPAchecker should be deterministic, use Random with constant seed
 java.lang.Math#random()

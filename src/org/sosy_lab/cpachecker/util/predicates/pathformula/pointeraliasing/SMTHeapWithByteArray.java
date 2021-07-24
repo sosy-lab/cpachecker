@@ -73,7 +73,7 @@ class SMTHeapWithByteArray implements SMTHeap {
           targetName, oldIndex, newIndex, address, addressType, (BitvectorFormula) value);
     } else {
       throw new UnsupportedOperationException(
-          "ByteArray Heap encoding does not support " + pTargetType.toString());
+          "ByteArray Heap encoding does not support " + pTargetType);
     }
   }
 
@@ -101,7 +101,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       return returnVal;
     } else {
       throw new UnsupportedOperationException(
-          "ByteArray Heap encoding does not support " + targetType.toString());
+          "ByteArray Heap encoding does not support " + targetType);
     }
   }
 
@@ -128,7 +128,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       return returnVal;
     } else {
       throw new UnsupportedOperationException(
-          "ByteArray Heap encoding does not support " + targetType.toString());
+          "ByteArray Heap encoding does not support " + targetType);
     }
   }
 

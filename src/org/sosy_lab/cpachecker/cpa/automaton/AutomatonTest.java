@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
 import org.junit.Test;
@@ -39,7 +38,7 @@ public class AutomatonTest {
             "specification", "test/config/automata/tmpSpecification.spc",
             "analysis.stopAfterError", "FALSE");
 
-    Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
+    Path tmpSpc = Path.of("test/config/automata/tmpSpecification.spc");
     String content =
         "#include UninitializedVariablesTestAutomaton.txt \n" + "#include tmpSpecification.spc \n";
     IO.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);

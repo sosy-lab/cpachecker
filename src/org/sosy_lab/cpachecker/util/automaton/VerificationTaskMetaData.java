@@ -109,7 +109,7 @@ public class VerificationTaskMetaData {
     return producerString;
   }
 
-  private final void classifyAutomataFiles() throws IOException {
+  private void classifyAutomataFiles() throws IOException {
     if (nonWitnessAutomatonFiles == null) {
       assert witnessAutomatonFiles == null;
       ImmutableList.Builder<Path> nonWitnessAutomatonFilesBuilder = ImmutableList.builder();
