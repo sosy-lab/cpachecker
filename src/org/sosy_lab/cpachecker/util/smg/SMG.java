@@ -165,22 +165,54 @@ public class SMG {
     return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges);
   }
 
+  /**
+   * Returns the static null object.
+   *
+   * @return The null SMGObject.
+   */
   public SMGObject getNullObject() {
     return nullObject;
   }
 
+  /**
+   * Returns all SMGObjects associated with this SMG in a set.
+   *
+   * @return The set of SMGObjects associated with this SMG.
+   */
   public Set<SMGObject> getObjects() {
     return smgObjects;
   }
 
+  /**
+   * Returns all SMGValues associated with this SMG in a set.
+   *
+   * @return The set of SMGValues associated with this SMG.
+   */
   public Set<SMGValue> getValues() {
     return smgValues;
   }
 
+  /**
+   * Returned the set of SMGHasValueEdges associated with the region that is specified by the
+   * entered SMGObject. The region is an interval [object.offset, object.offset + object.size).
+   *
+   * @param pRegion SMGObject for whos region one wants the SMGHasValueEdges.
+   * @return The set of SMGHasValueEdges associated with the region.
+   */
   public Set<SMGHasValueEdge> getEdges(SMGObject pRegion) {
     return hasValueEdges.getOrDefault(pRegion, PersistentSet.of());
   }
 
+  /**
+   * Returns any SMGHasValueEdge associated with the entered SMGObject at the specified offset in an
+   * Optional, or an empty Optional if no such SMGHasValueEdge exists.
+   *
+   * @param object SMGObject for which the SMGHasValueEdge are searched.
+   * @param offset The offset that the SMGHasValueEdge has to have. May not be negative and must be
+   *     in the region of the object.
+   * @return Either an empty Optional if there is no such SMGHasValueEdge, or an Optional with some
+   *     edge.
+   */
   public Optional<SMGHasValueEdge> getHasValueEdgeByOffset(SMGObject object, BigInteger offset) {
     return hasValueEdges.get(object).stream().filter(o -> o.getOffset().equals(offset)).findAny();
   }
@@ -262,6 +294,11 @@ public class SMG {
                 TreeMap::new));
   }
 
+  /**
+   * Returns a Set of all SMGDoublyLinkedListSegments of this SMG.
+   *
+   * @return The Set of all SMGDoublyLinkedListSegments.
+   */
   public Set<SMGDoublyLinkedListSegment> getDLLs() {
     return smgObjects.stream()
         .filter(i -> i instanceof SMGDoublyLinkedListSegment)
@@ -269,6 +306,11 @@ public class SMG {
         .collect(ImmutableSet.toImmutableSet());
   }
 
+  /**
+   * Returns all SMGHasValueEdges for this SMG in a Set.
+   *
+   * @return Set of all SMGHasValueEdges of this SMG.
+   */
   public Set<SMGHasValueEdge> getHVEdges() {
     return hasValueEdges.values()
         .stream()
@@ -276,16 +318,34 @@ public class SMG {
         .collect(ImmutableSet.toImmutableSet());
   }
 
+  /**
+   * Returns all SMGPointsToEdges for this SMG in a Collection.
+   *
+   * @return Collection of all SMGPointsToEdges of this SMG.
+   */
   public Collection<SMGPointsToEdge> getPTEdges() {
     return pointsToEdges.values();
   }
 
+  /**
+   * Copies this SMG and returns the copy.
+   *
+   * @return A copy of this SMG.
+   */
   public SMG copy() {
     return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges);
   }
 
-  public SMGPointsToEdge getPTEdge(SMGValue pValue1) {
-    return pointsToEdges.get(pValue1);
+  /**
+   * Returns the SMGPointsToEdge associated with the entered SMGValue.
+   *
+   * @param value The SMGValue for which the edge is to be returned.
+   * @return The SMGPointsToEdge for the entered value.
+   */
+  public SMGPointsToEdge getPTEdge(SMGValue value) {
+    // TODO: Is it guaranteed that there exists a edge for each value entered?
+    // If it can be null, use a Optional.
+    return pointsToEdges.get(value);
   }
 
 
