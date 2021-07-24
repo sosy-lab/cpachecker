@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -62,7 +62,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     boolean nextHasUnderflow = prev.nextHasUnderflow();
 
     int leavingEdgesOfNextState = cfaEdge.getSuccessor().getNumLeavingEdges();
-    Set<CExpression> assumptions;
+    Set<CExpression> assumptionsOverflow;
     Set<CExpression> assumptionsUnderflow;
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
@@ -72,17 +72,17 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     }
 
     for (int i = 0; i < leavingEdgesOfNextState; i++) {
-      assumptions =
+      assumptionsOverflow =
           noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
       assumptionsUnderflow =
           noUnderflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
 
-      if (assumptions.isEmpty()) {
+      if (assumptionsOverflow.isEmpty()) {
         outStates
             .add(new OverflowState(ImmutableSet.of(), nextHasOverflow, nextHasUnderflow, prev));
         continue;
       } else {
-        for (CExpression assumption : assumptions) {
+        for (CExpression assumption : assumptionsOverflow) {
           outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, false, prev));
         }
       }
@@ -94,18 +94,12 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
         for (CExpression assumption : assumptionsUnderflow) {
           outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), false, true, prev));
         }
-
       }
-
-      Set<CExpression> mergedSet = assumptions.stream().collect(Collectors.toSet());
-      mergedSet.addAll(assumptionsUnderflow);
-
-
 
       // No overflows <=> all assumptions hold.
       outStates.add(
           new OverflowState(
-              mergedSet,
+              Sets.union(assumptionsOverflow, assumptionsUnderflow),
               nextHasOverflow,
               nextHasUnderflow,
               prev));
