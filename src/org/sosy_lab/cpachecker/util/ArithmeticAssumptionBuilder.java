@@ -96,14 +96,14 @@ public abstract class ArithmeticAssumptionBuilder {
   @Option(description = "Simplify overflow assumptions.")
   boolean simplifyExpressions = true;
 
-  Map<CType, CLiteralExpression> lowerBounds;
-  Map<CType, CLiteralExpression> upperBounds;
-  Map<CType, CLiteralExpression> width;
-  OverflowAssumptionManager ofmgr;
-  ExpressionSimplificationVisitor simplificationVisitor;
-  MachineModel machineModel;
-  Optional<LiveVariables> liveVariables;
-  LogManager logger;
+  final Map<CType, CLiteralExpression> lowerBounds = new HashMap<>();
+  final Map<CType, CLiteralExpression> upperBounds = new HashMap<>();
+  final Map<CType, CLiteralExpression> width = new HashMap<>();
+  final OverflowAssumptionManager ofmgr;
+  final ExpressionSimplificationVisitor simplificationVisitor;
+  final MachineModel machineModel;
+  final Optional<LiveVariables> liveVariables;
+  final LogManager logger;
 
   public ArithmeticAssumptionBuilder(CFA cfa, LogManager logger, Configuration pConfiguration)
       throws InvalidConfigurationException {
@@ -114,22 +114,18 @@ public abstract class ArithmeticAssumptionBuilder {
   public ArithmeticAssumptionBuilder(
       MachineModel pMachineModel,
       Optional<LiveVariables> pLiveVariables,
-      LogManager logger,
+      LogManager pLogger,
       Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    this.logger = logger;
-    this.liveVariables = pLiveVariables;
+    logger = pLogger;
+    liveVariables = pLiveVariables;
     machineModel = pMachineModel;
     if (useLiveness) {
       Preconditions.checkState(
           liveVariables.isPresent(),
           "Liveness information is required for underflow analysis.");
     }
-
-    upperBounds = new HashMap<>();
-    lowerBounds = new HashMap<>();
-    width = new HashMap<>();
 
     // TODO: find out if the bare types even occur, or if they are always converted to the SIGNED
     // variants. In that case we could remove the lines with types without the SIGNED_ prefix
@@ -205,8 +201,6 @@ public abstract class ArithmeticAssumptionBuilder {
     }
     return ImmutableSet.copyOf(result);
   }
-
-
 
   boolean isBinaryExpressionThatMayOverflow(CExpression pExp) {
     if (pExp instanceof CBinaryExpression) {
@@ -384,7 +378,7 @@ public abstract class ArithmeticAssumptionBuilder {
     }
   }
 
-  void trackType(CSimpleType type) {
+  private void trackType(CSimpleType type) {
     CIntegerLiteralExpression typeMaxValue =
         new CIntegerLiteralExpression(
             FileLocation.DUMMY,
@@ -415,7 +409,7 @@ public abstract class ArithmeticAssumptionBuilder {
   /**
    * Whether the given operator can create new expression.
    */
-  boolean resultCanOverflow(CExpression expr) {
+  private boolean resultCanOverflow(CExpression expr) {
     if (expr instanceof CBinaryExpression) {
       switch (((CBinaryExpression) expr).getOperator()) {
         case MULTIPLY:
