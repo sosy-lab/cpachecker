@@ -218,6 +218,27 @@ public class SMG {
   }
 
   /**
+   * Returns any SMGHasValueEdge associated with the entered SMGObject at the specified offset and
+   * size in an Optional, or an empty Optional if no such SMGHasValueEdge exists.
+   *
+   * @param object SMGObject for which the SMGHasValueEdge are searched.
+   * @param offset The offset that the SMGHasValueEdge has to have. May not be negative and must be
+   *     in the region of the object.
+   * @param sizeInBits The size in bits that the SMGHasValueEdge has to have.
+   * @return Either an empty Optional if there is no such SMGHasValueEdge, or an Optional with some
+   *     edge.
+   */
+  public Optional<SMGHasValueEdge> getHasValueEdgeByOffsetAndSize(
+      SMGObject object, BigInteger offset, BigInteger sizeInBits) {
+    // TODO: Can there be more than one?
+    return hasValueEdges
+        .get(object)
+        .stream()
+        .filter(o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits))
+        .findAny();
+  }
+
+  /**
    * TODO: Check this method again once we can test the entire system! Why? Because in my opinion
    * one can interpret the specification of this method in 2 ways: 1. The field to be checked
    * (offset + size) has to be covered by a SINGLE nullObject. 2. The field to be checked has to be
