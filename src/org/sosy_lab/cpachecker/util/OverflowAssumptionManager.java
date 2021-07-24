@@ -106,27 +106,33 @@ public class OverflowAssumptionManager {
    * This helper method generates assumptions for checking overflows in signed integer
    * additions/subtractions. Since the assumptions are {@link CExpression}s as well, they are
    * structured in such a way that they do not suffer* from overflows themselves (this is of
-   * particular importance e.g. if bit vector theory is used for representation!) *The assumptions
+   * particular importance e.g. if bit vector theory is used for representation!). *The assumptions
    * contain overflows because the second part is always evaluated, but their resulting value will
    * then not depend on the outcome of that part of the formula!
    *
-   * <p>For addition (operator = BinaryOperator.PLUS) these assumptions are lower and upper limits:
-   * (operand2 <= 0) | (operand1 <= limit - operand2) // upper limit (operand2 >= 0) | (operand1 >=
-   * limit - operand2) // lower limit
+   * <p>
+   * For addition (operator = BinaryOperator.PLUS) these assumptions are lower and upper limits:
+   * <ul>
+   * <li>(operand2 <= 0) | (operand1 <= limit - operand2) // upper limit
+   * <li>(operand2 >= 0) | (operand1 >= limit - operand2) // lower limit
+   * </ul>
    *
-   * <p>For subtraction (operator = BinaryOperator.MINUS) the assumptions are lower and upper
-   * limits: (operand2 >= 0) | (operand1 <= limit + operand2) // upper limit (operand2 <= 0) |
-   * (operand1 >= limit + operand2) // lower limit
+   * <p>
+   * For subtraction (operator = BinaryOperator.MINUS) the assumptions are lower and upper limits:
+   * <ul>
+   * <li>(operand2 >= 0) | (operand1 <= limit + operand2) // upper limit
+   * <li>(operand2 <= 0) | (operand1 >= limit + operand2) // lower limit
+   * </ul>
    *
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
    * @param operator either BinaryOperator.MINUS or BinaryOperator.PLUS
    * @param limit the {@link CLiteralExpression} representing the overflow bound for the type of the
-   *     expression
+   *        expression
    * @param isUpperLimit whether the limit supplied is the upper bound (otherwise it will be used as
-   *     lower bound)
+   *        lower bound)
    * @return an assumption that has to hold in order for the input addition/subtraction NOT to have
-   *     an overflow
+   *         an overflow
    */
   public CExpression getAdditiveAssumption(
       CExpression operand1,
@@ -180,17 +186,21 @@ public class OverflowAssumptionManager {
    * because the second part is always evaluated, but their resulting value will then not depend on
    * the outcome of that part of the formula!
    *
-   * <p>The necessary assumptions for multiplication to be free from overflows look as follows:
-   * (operand2 <= 0) | (operand1 <= pUpperLimit / operand2) (operand2 <= 0) | (operand1 >=
-   * pLowerLimit / operand2) (operand1 <= 0) | (operand2 >= pLowerLimit / operand1) (operand1 >= 0)
-   * | (operand2 >= pUpperLimit / operand1)
+   * <p>
+   * The necessary assumptions for multiplication to be free from overflows look as follows:
+   * <ul>
+   * <li>(operand2 <= 0) | (operand1 <= pUpperLimit / operand2)
+   * <li>(operand2 >= 0) | (operand1 >= pLowerLimit / operand2)
+   * <li>(operand1 <= 0) | (operand2 >= pLowerLimit / operand1)
+   * <li>(operand1 >= 0) | (operand2 >= pUpperLimit / operand1)
+   * </ul>
    *
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
    * @param pLowerLimit the {@link CLiteralExpression} representing the overflow bound for the type
-   *     of the expression
+   *        of the expression
    * @param pUpperLimit the {@link CLiteralExpression} representing the overflow bound for the type
-   *     of the expression
+   *        of the expression
    */
   public Set<CExpression> addMultiplicationAssumptions(
       CExpression operand1,
