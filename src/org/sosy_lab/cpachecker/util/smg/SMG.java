@@ -14,6 +14,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -183,6 +185,82 @@ public class SMG {
     return hasValueEdges.get(object).stream().filter(o -> o.getOffset().equals(offset)).findAny();
   }
 
+  /**
+   * TODO: Check this method again once we can test the entire system! Why? Because in my opinion
+   * one can interpret the specification of this method in 2 ways: 1. The field to be checked
+   * (offset + size) has to be covered by a SINGLE nullObject. 2. The field to be checked has to be
+   * covered by nullObjects (1 or multiple), such that it is covered entirely. (2. is the current
+   * implementation)
+   *
+   * <p>This Method checks for the entered SMGObject if there exists SMGHasValueEdges such that the
+   * field [offset; offset + size) is covered by nullObjects. Important: One may not take
+   * SMGHasValueEdges into account which lay outside of the SMGObject! Else it would be possible to
+   * read potentially invalid memory!
+   *
+   * @param object The SMGObject in which a field is to be checked for nullified blocks.
+   * @param offset The offset (=start) of the field. Has to be inside of the object.
+   * @param size The size in bits of the field. Has to be larger than the offset but still inside
+   *     the field.
+   * @return True if the field is indeed covered by nullified blocks. False else.
+   */
+  private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
+    TreeMap<BigInteger, BigInteger> nullEdgesRangeMap = getNullEdgesForObject(object);
+    // We start at the beginning of the object itself, as the null edges may be larger than our
+    // field.
+    BigInteger currentMax = nullEdgesRangeMap.firstKey();
+    // The first edge offset can't cover the entire field if it begins after the obj offset!
+    if (currentMax.compareTo(offset) == 1) {
+      return false;
+    }
+    BigInteger offsetPlusSize = offset.add(size);
+    // TreeMaps keySet is ordered!
+    for (BigInteger key : nullEdgesRangeMap.keySet()) {
+      // The max encountered yet has to be bigger or eq to the next key.
+      if (currentMax.compareTo(key) > 0) {
+        return false;
+      }
+      currentMax = currentMax.max(nullEdgesRangeMap.get(key));
+      // If there are no gaps,
+      // the max encountered has to be >= offset + size at some point.
+      if (currentMax.compareTo(offsetPlusSize) >= 0) {
+        return true;
+      }
+    }
+    // The max encountered did not cover the entire field.
+    return false;
+  }
+
+  /**
+   * Returns the TreeMap<offset, max size> of SMGHasValueEdge of NullObjects that cover the entered
+   * SMGObject somewhere. Only edges that do not exceed the boundries of the object are used. It
+   * always defaults to the max size, such that no smaller size for a offset exists. Example: <0,
+   * 16> and <0, 24> would result in <0, 24>.
+   *
+   * @param smgObject The SMGObject one wants to check for covering NullObjects.
+   * @return TreeMap<offset, max size> of covering edges.
+   */
+  private TreeMap<BigInteger, BigInteger> getNullEdgesForObject(SMGObject smgObject) {
+    BigInteger offset = smgObject.getOffset();
+    BigInteger offsetPlusSize = smgObject.getSize().add(offset);
+    // Both inequalities have to hold, else one may read invalid memory outside of the object!
+    // ObjectOffset <= HasValueEdgeOffset
+    // HasValueEdgeOffset + HasValueEdgeSize <= ObjectOffset + ObjectSize
+    return hasValueEdges
+        .get(SMGObject.nullInstance())
+        .stream()
+        .filter(
+            n ->
+                offset.compareTo(n.getOffset()) <= 0
+                    && offsetPlusSize.compareTo(n.getOffset().add(n.getSizeInBits())) >= 0)
+        .collect(
+            Collectors.toMap(
+                SMGHasValueEdge::getOffset,
+                SMGHasValueEdge::getSizeInBits,
+                (x, y) -> {
+                  return x.max(y);
+                },
+                TreeMap::new));
+  }
 
   public Set<SMGDoublyLinkedListSegment> getDLLs() {
     return smgObjects.stream()
