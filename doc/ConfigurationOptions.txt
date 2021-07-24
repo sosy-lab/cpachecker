@@ -152,6 +152,7 @@ solver.z3.requireProofs = false
 solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -3636,7 +3637,7 @@ overflow.trackMultiplications = true
 # Track overflows in binary expressions involving pointers.
 overflow.trackPointers = false
 
-# Only check live variables for overflow, as compiler can remove dead
+# Only check live variables for underflow, as compiler can remove dead
 # variables.
 overflow.useLiveness = true
 
@@ -4269,7 +4270,7 @@ testcase.targets.optimization.strategy = NONE
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
-  enum:     [ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
+  enum:     [ASSUME, TEST_COMP_ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
 
 # export test values to file (line separated)
 testcase.values = no default value
