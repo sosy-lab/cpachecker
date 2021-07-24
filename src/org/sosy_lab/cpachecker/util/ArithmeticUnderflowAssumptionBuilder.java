@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.Sets;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,15 +23,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-
 public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssumptionBuilder
     implements GenericAssumptionBuilder {
-
 
   public ArithmeticUnderflowAssumptionBuilder(
       CFA cfa,
@@ -40,17 +36,7 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
       Configuration pConfiguration)
       throws InvalidConfigurationException {
     super(cfa, logger, pConfiguration);
-
   }
-
-  public ArithmeticUnderflowAssumptionBuilder(
-          MachineModel pMachineModel,
-          Optional<LiveVariables> pLiveVariables,
-          LogManager logger,
-          Configuration pConfiguration)
-          throws InvalidConfigurationException {
-    super(pMachineModel, pLiveVariables, logger, pConfiguration);
-      }
 
   /**
    * Compute assumptions whose conjunction states that the expression does not overflow the allowed
