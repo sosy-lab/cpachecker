@@ -117,7 +117,7 @@ public abstract class ArithmeticAssumptionBuilder {
       LogManager pLogger,
       Configuration pConfiguration)
       throws InvalidConfigurationException {
-    pConfiguration.inject(this);
+    pConfiguration.inject(this, ArithmeticAssumptionBuilder.class);
     logger = pLogger;
     liveVariables = pLiveVariables;
     machineModel = pMachineModel;
