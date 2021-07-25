@@ -16,12 +16,12 @@ import "jquery-ui-dist/jquery-ui.min.css";
 
 import "@fortawesome/fontawesome-free/js/all.min";
 import $ from "jquery";
+import "jquery-ui-dist/jquery-ui.min";
 import "angular";
 import "angular-sanitize";
 import "bootstrap";
 import "datatables.net";
 import "code-prettify";
-import "jquery-ui-dist/jquery-ui.min";
 import { enqueue } from "./worker/workerDirector";
 import {
   argWorkerCallback,
