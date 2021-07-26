@@ -268,12 +268,12 @@ public class SMG {
     }
     BigInteger offsetPlusSize = offset.add(size);
     // TreeMaps keySet is ordered!
-    for (BigInteger key : nullEdgesRangeMap.keySet()) {
+    for (Map.Entry<BigInteger, BigInteger> entry : nullEdgesRangeMap.entrySet()) {
       // The max encountered yet has to be bigger or eq to the next key.
-      if (currentMax.compareTo(key) > 0) {
+      if (currentMax.compareTo(entry.getKey()) > 0) {
         return false;
       }
-      currentMax = currentMax.max(nullEdgesRangeMap.get(key));
+      currentMax = currentMax.max(entry.getValue());
       // If there are no gaps,
       // the max encountered has to be >= offset + size at some point.
       if (currentMax.compareTo(offsetPlusSize) >= 0) {
