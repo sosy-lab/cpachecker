@@ -256,13 +256,14 @@ public class SMG {
    *     the field.
    * @return True if the field is indeed covered by nullified blocks. False else.
    */
+  @SuppressWarnings("unused")
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
     TreeMap<BigInteger, BigInteger> nullEdgesRangeMap = getNullEdgesForObject(object);
     // We start at the beginning of the object itself, as the null edges may be larger than our
     // field.
     BigInteger currentMax = nullEdgesRangeMap.firstKey();
     // The first edge offset can't cover the entire field if it begins after the obj offset!
-    if (currentMax.compareTo(offset) == 1) {
+    if (currentMax.compareTo(offset) > 0) {
       return false;
     }
     BigInteger offsetPlusSize = offset.add(size);
