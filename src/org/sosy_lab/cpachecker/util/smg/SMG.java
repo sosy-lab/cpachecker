@@ -9,13 +9,14 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -258,7 +259,7 @@ public class SMG {
    */
   @SuppressWarnings("unused")
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
-    TreeMap<BigInteger, BigInteger> nullEdgesRangeMap = getNullEdgesForObject(object);
+    NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap = getNullEdgesForObject(object);
     // We start at the beginning of the object itself, as the null edges may be larger than our
     // field.
     BigInteger currentMax = nullEdgesRangeMap.firstKey();
@@ -285,15 +286,15 @@ public class SMG {
   }
 
   /**
-   * Returns the TreeMap<offset, max size> of SMGHasValueEdge of NullObjects that cover the entered
-   * SMGObject somewhere. Only edges that do not exceed the boundries of the object are used. It
-   * always defaults to the max size, such that no smaller size for a offset exists. Example: <0,
-   * 16> and <0, 24> would result in <0, 24>.
+   * Returns the sorted Map<offset, max size> of SMGHasValueEdge of NullObjects that cover the
+   * entered SMGObject somewhere. Only edges that do not exceed the boundries of the object are
+   * used. It always defaults to the max size, such that no smaller size for a offset exists.
+   * Example: <0, 16> and <0, 24> would result in <0, 24>.
    *
    * @param smgObject The SMGObject one wants to check for covering NullObjects.
    * @return TreeMap<offset, max size> of covering edges.
    */
-  private TreeMap<BigInteger, BigInteger> getNullEdgesForObject(SMGObject smgObject) {
+  private ImmutableSortedMap<BigInteger, BigInteger> getNullEdgesForObject(SMGObject smgObject) {
     BigInteger offset = smgObject.getOffset();
     BigInteger offsetPlusSize = smgObject.getSize().add(offset);
     // Both inequalities have to hold, else one may read invalid memory outside of the object!
@@ -307,13 +308,11 @@ public class SMG {
                 offset.compareTo(n.getOffset()) <= 0
                     && offsetPlusSize.compareTo(n.getOffset().add(n.getSizeInBits())) >= 0)
         .collect(
-            Collectors.toMap(
+            ImmutableSortedMap.toImmutableSortedMap(
+                Comparator.naturalOrder(),
                 SMGHasValueEdge::getOffset,
                 SMGHasValueEdge::getSizeInBits,
-                (x, y) -> {
-                  return x.max(y);
-                },
-                TreeMap::new));
+                BigInteger::max));
   }
 
   /**
