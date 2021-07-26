@@ -85,7 +85,7 @@ let argTabDisabled = false;
 
     // hide tooltip after 5 seconds
     let timeout;
-    $(document).on("shown.bs.tooltip", function (e) {
+    $("[data-toggle=tooltip]").on("shown.bs.tooltip", function (e) {
       if (timeout) {
         clearTimeout(timeout);
       }
