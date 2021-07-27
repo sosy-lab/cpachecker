@@ -22,6 +22,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
+/**
+ * Creates InvariantWitnesses. The class serves as a data-interface to the invariant store. As such
+ * it translates from CPAchecker-internal data structures (e.g. CFANodes, ExpressionTrees) to
+ * InvariantWitnesses.
+ */
 public class InvariantWitnessFactory {
   private final LogManager logger;
 
@@ -33,12 +38,21 @@ public class InvariantWitnessFactory {
     cfa = pCfa;
   }
 
-  /* Returns a factory - possibly always the same possibly always a different one. Consider calling this method sparingly, since creation of a factory could be expensive. */
+  /** Returns a new instance of this class. */
   public static InvariantWitnessFactory getFactory(LogManager pLogger, CFA pCFA) {
     // TODO Possibly Cache factory by pCfa
     return new InvariantWitnessFactory(pLogger, pCFA);
   }
 
+  /**
+   * Generates witnesses from a node and an expression tree. The file location is determined from
+   * the node heuristically. The mapping is therefore imprecise and thus this method produces a
+   * collection. Moreover, the collection might be empty, even if the input is valid.
+   *
+   * @param node Node where the invariant holds
+   * @param invariant Invariant formula
+   * @return immutable collection of invariants
+   */
   public Collection<InvariantWitness> fromNodeAndInvariant(
       CFANode node, ExpressionTree<Object> invariant) {
     Set<FileLocation> effectiveLocations = getEffectiveLocations(node);
@@ -57,6 +71,7 @@ public class InvariantWitnessFactory {
     return result.build();
   }
 
+  /** Generates a witness from the given fileLocation, node and expression tree. */
   public InvariantWitness fromLocationAndInvariant(
       FileLocation fileLocation, CFANode node, ExpressionTree<Object> invariant) {
     return new InvariantWitness(invariant, fileLocation, node);

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Table;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -25,6 +24,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -92,7 +92,7 @@ public final class InvariantWitnessProvider {
       description = "The directory where the invariants are stored.")
   private String storeDirectory;
 
-  private final Table<String, Integer, Integer> lineOffsetsByFile;
+  private final Map<String, List<Integer>> lineOffsetsByFile;
   private final LogManager logger;
   private final InvariantWitnessFactory invariantWitnessFactory;
   private final CParser parser;
@@ -138,7 +138,7 @@ public final class InvariantWitnessProvider {
   }
 
   /**
-   * Returns an instance of this class. The instance is configured according to the given config.
+   * Returns a new instance of this class. The instance is configured according to the given config.
    *
    * @param pConfig Configuration with which the instance shall be created
    * @param pCFA CFA representing the program of the invariants that the instance loads
@@ -308,14 +308,16 @@ public final class InvariantWitnessProvider {
 
     // Currently we only do very minimal validation of the witnesses we read.
     // If the witness was produced for another file we can just ignore it.
-    if (!lineOffsetsByFile.containsRow(location.getFileName())) {
+    if (!lineOffsetsByFile.containsKey(location.getFileName())) {
       logger.log(Level.INFO, "Invariant " + file.getName() + " does not apply to any input file");
       return Collections.emptySet();
     }
 
     FileLocation fileLocation = parseFileLocation(location);
 
-    Collection<CFANode> candidateNodes = InvariantStoreUtil.getNodeCandiadates(fileLocation, cfa);
+    // Nodes where the invariant possibly holds
+    Collection<CFANode> candidateNodes =
+        InvariantStoreUtil.getNodesAtFileLocation(fileLocation, cfa);
     CProgramScope functionScope = scope.withFunctionScope(location.getFunction());
 
     ImmutableSet.Builder<InvariantWitness> result = ImmutableSet.builder();
@@ -411,7 +413,8 @@ public final class InvariantWitnessProvider {
   }
 
   private FileLocation parseFileLocation(InvariantStoreEntryLocation entryLocation) {
-    int offetInFile = lineOffsetsByFile.get(entryLocation.getFileName(), entryLocation.getLine());
+    int offetInFile =
+        lineOffsetsByFile.get(entryLocation.getFileName()).get(entryLocation.getLine() - 1);
 
     return new FileLocation(
         entryLocation.getFileName(),

@@ -12,11 +12,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
-import com.google.common.collect.Table;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,9 +34,20 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantSto
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryLoopInvariant;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryMetadata;
 
+/**
+ * Class to export an invariant.
+ *
+ * <p>The class exports invariants by calling {@link #exportInvariantWitness(InvariantWitness)}. The
+ * invariants are exported in the invariant-witness format. The export requires IO. Consider calling
+ * it in a separate thread.
+ *
+ * <p>The current implementation exports to a file. If you want to add other "exporting strategies"
+ * consider to implement them e.g. as enum and configure this class. The class should not be
+ * extended by inheritance!
+ */
 @Options(prefix = "invariantStore.export")
 public final class InvariantWitnessWriter {
-  private final Table<String, Integer, Integer> lineOffsetsByFile;
+  private final Map<String, List<Integer>> lineOffsetsByFile;
   private final LogManager logger;
 
   @Option(
@@ -52,11 +64,30 @@ public final class InvariantWitnessWriter {
     lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames());
   }
 
+  /**
+   * Returns a new instance of this class. The instance is configured according to the given config.
+   *
+   * @param pConfig Configuration with which the instance shall be created
+   * @param pCFA CFA representing the program of the invariants that the instance writes
+   * @param pLogger Logger
+   * @return Instance of this class
+   * @throws InvalidConfigurationException if the configuration is (semantically) invalid
+   */
   public static InvariantWitnessWriter getWriter(
       Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException {
     return new InvariantWitnessWriter(pConfig, pCFA, pLogger);
   }
 
+  /**
+   * Exports the given invariant witness in the invariant-witness format through the configured
+   * channel. The export is (in most cases) an IO operation and thus expensive and might be
+   * blocking.
+   *
+   * @param invariantWitness Witness to export
+   * @throws IOException If writing the witness is not possible
+   * @throws IllegalArgumentException If the invariant witness is (semantically - according to the
+   *     definition of the invariant-witness format) invalid.
+   */
   public void exportInvariantWitness(InvariantWitness invariantWitness) throws IOException {
     UUID uuid = UUID.randomUUID();
     Path outFile = outDir.resolve(uuid + ".invariantwitness.yaml");
@@ -73,7 +104,7 @@ public final class InvariantWitnessWriter {
 
     final String fileName = invariantWitness.getLocation().getFileName();
     final int lineNumber = invariantWitness.getLocation().getStartingLineInOrigin();
-    final int lineOffset = lineOffsetsByFile.get(fileName, lineNumber);
+    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
     final int offsetInLine = invariantWitness.getLocation().getNodeOffset() - lineOffset;
 
     InvariantStoreEntryLocation location =

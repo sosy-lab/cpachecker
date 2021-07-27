@@ -9,15 +9,15 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Table;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -25,32 +25,59 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/**
+ * Collection of utility methods for dealing with importing/exporting from/to the invariant store.
+ */
 public class InvariantStoreUtil {
-  public static Table<String, Integer, Integer> getLineOffsetsByFile(Collection<Path> filenames)
-      throws InvalidConfigurationException {
-    ImmutableTable.Builder<String, Integer, Integer> result = ImmutableTable.builder();
+  /**
+   * Returns a map that contains an entry for each given file, where an entry is a list that maps
+   * each line to its starting offset in the file. The lines are indexed starting with 0. The method
+   * reads the given files from disk. So be aware of IO operations and potential failure when the
+   * files can not be accessed.
+   *
+   * <p>For example, the first line has offset 0. If the length of the first line is 5 symbols, then
+   * the second line has offset 5.
+   *
+   * @param filePaths Paths of the file to process
+   * @return Immutable map
+   * @throws IllegalArgumentException if the files can not be accessed.
+   */
+  public static Map<String, List<Integer>> getLineOffsetsByFile(Collection<Path> filePaths) {
+    ImmutableMap.Builder<String, List<Integer>> result = ImmutableMap.builder();
 
-    for (Path filename : filenames) {
-      if (Files.isRegularFile(filename)) {
+    for (Path filePath : filePaths) {
+      if (Files.isRegularFile(filePath)) {
         String fileContent;
         try {
-          fileContent = Files.readString(filename);
+          fileContent = Files.readString(filePath);
         } catch (IOException pE) {
-          throw new InvalidConfigurationException("Can not read source file", pE);
+          throw new IllegalArgumentException("Can not read source file", pE);
         }
 
-        List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
         int currentOffset = 0;
+        ImmutableList.Builder<Integer> lineOffsetsBuilder = ImmutableList.builder();
+        List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
         for (int lineNumber = 0; lineNumber < sourceLines.size(); lineNumber++) {
-          result.put(filename.toString(), lineNumber + 1, currentOffset);
+          lineOffsetsBuilder.add(currentOffset);
           currentOffset += sourceLines.get(lineNumber).length() + 1;
         }
+
+        result.put(filePath.toString(), lineOffsetsBuilder.build());
       }
     }
     return result.build();
   }
 
-  public static Collection<CFANode> getNodeCandiadates(FileLocation fileLocation, CFA cfa) {
+  /**
+   * Returns all nodes that potentially belong to the given file location. Note that "belongs" means
+   * that properties (i.e. existence of an invariant in this case) at the node also apply at the
+   * file location.
+   *
+   * @param fileLocation FileLocation to match
+   * @param cfa CFA of the program
+   * @return All matching nodes
+   */
+  public static Collection<CFANode> getNodesAtFileLocation(FileLocation fileLocation, CFA cfa) {
 
     ImmutableSet.Builder<CFANode> result = ImmutableSet.builder();
     for (CFANode candidate : cfa.getAllNodes()) {
@@ -67,6 +94,11 @@ public class InvariantStoreUtil {
     return result.build();
   }
 
+  /**
+   * Heuristic for {@link #getNodesAtFileLocation(FileLocation, CFA)}. A node matches a file
+   * location if it has entering edges with statement before (or at) the file location and outgoing
+   * edges after (or at) the file location.
+   */
   private static boolean nodeMatchesFileLocation(CFANode node, FileLocation fileLocation) {
     boolean existsEdgeBefore =
         CFAUtils.enteringEdges(node)
