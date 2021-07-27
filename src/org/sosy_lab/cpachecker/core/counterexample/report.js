@@ -74,6 +74,7 @@ let argTabDisabled = false;
     // initialize all popovers
     $('[data-toggle="popover"]').popover({
       html: true,
+      sanitize: false
     });
     // initialize all tooltips
     $("[data-toggle=tooltip]").tooltip({
