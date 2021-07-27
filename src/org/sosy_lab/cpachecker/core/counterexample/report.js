@@ -234,6 +234,24 @@ let argTabDisabled = false;
         "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
         "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)\n" +
         "- An 'exact matches' search will look for a variable declarator matching exactly the provided text considering both, edge descriptions and value assignments</p></div>";
+			$scope.help_fault_localization = "<div class=\"container \" style=\"font-family: Arial\"> <b>Change view</b> Toggle between two different views: The default counter example and the information provided by the selected fault localization algorithm. " +
+				"In the second view, every entry consists of a header with three elements and a bigger section with more details." +
+				"<ul><li>The <span style=\"color: #28a745\"><b>first element</b></span> of the header shows the rank.</li>" +
+				"<li>The <span style=\"color: #ffc107\"><b>second element</b></span> shows the score, which is computed by several heuristics.</li></ul>" +
+				"<p>Usually, faults with a higher score have a higher rank, too. " +
+				"The Error-Invariants-Algorithm does not sort the faults by score, but by hierarchical order.</p>" +
+				"<p>Every fault localization technique provides information shown in the details section. " +
+				"In the details section, variables are displayed as follows function::variable-name@ssa-index. " +
+				"In some cases, a program contains calls to <code>__VERIFIER_nondet_X()</code> where <code>X</code> " +
+				"stands for all supported data types. CPAchecker creates temporary variables for every call to <code>__VERIFIER_nondet_X()</code>. " +
+				"Starting with <code>!2</code> CPAchecker sequentially increments the counter for every new call to <code>__VERIFIER_nondet_X()</code>.</p>" +
+				"<p><b>Example:</b><br> A possible formula for the given program<br>" +
+				"<code>int x = __VERIFIER_nondet_int();</code><br>" +
+				"<code>int y = __VERIFIER_nondet_int();</code><br>" +
+				"<code>if (x == 1 && y == 2) goto ERROR;</code><br>" +
+				"may look like this:<br>" +
+				"<code>__VERIFIER_nondet_int!2@ = 1 && __VERIFIER_nondet_int!3@ = 2</code></p>" +
+				"</div>";
       $scope.tab = 1;
       $scope.$on("ChangeTab", function (event, tabIndex) {
         $scope.setTab(tabIndex);
