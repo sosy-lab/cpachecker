@@ -202,38 +202,28 @@ let argTabDisabled = false;
     "$scope",
     function ($rootScope, $scope) {
       $scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
-      $scope.help_content =
-        '<div class="container " style="font-family: Arial"><p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>' +
-        "Initially all CFA's are displayed below one another beginning with the CFA for the program entry function.</p>" +
-        "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
-        "<p>&#9675; &nbsp; normal element</p>" +
-        "<p>&#9634; &nbsp; combined normal elements</p>" +
-        "<p>&#9645; &nbsp; function node</p>" +
-        "<p>&#9671; &nbsp; loop head</p>" +
-        "<p>- doubleclick on a function node to select the CFA for this function</p>" +
-        "<p>- doubleclick on edges to jump to the relating line in the Source tab</p>" +
-        "<p>- use the Displayed CFA select box to display only the CFA for the desired function </p>" +
-        "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
-        "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-        "<p><b>ARG</b> (Abstract Reachability Graph) shows the explored abstract state space</p>" +
-        "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
-        '<p><span style="background-color:green;">&#9645;</span> covered state</p>' +
-        '<p><span style="background-color:orange;">&#9645;</span> not yet processed state</p>' +
-        '<p><span style="background-color:cornflowerblue;">&#9645;</span> important state (depending on used analysis)</p>' +
-        '<p><span style="background-color:red;">&#9645;</span> target state</p>' +
-        "<p>- doubleclick on node to jump to relating node in CFA</p>" +
-        "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
-        "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
-        "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-        "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p></div>";
-      $scope.help_errorpath =
-        "<div style=\"font-family: Arial\"><p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>" +
-        "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>" +
-        "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>" +
-        "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>" +
-        "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
-        "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)\n" +
-        "- An 'exact matches' search will look for a variable declarator matching exactly the provided text considering both, edge descriptions and value assignments</p></div>";
+			$scope.help_content = "<div class=\"container \" style=\"font-family: Arial\"><p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" +
+				"Initially all CFA's are displayed below one another beginning with the CFA for the program entry function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
+				"<p>&#9675; &nbsp; normal element</p>" +
+				"<p>&#9634; &nbsp; combined normal elements</p>" +
+				"<p>&#9645; &nbsp; function node</p>" +
+				"<p>&#9671; &nbsp; loop head</p>" +
+				"<p>- doubleclick on a function node to select the CFA for this function</p>" +
+				"<p>- doubleclick on edges to jump to the relating line in the Source tab</p>" +
+				"<p>- use the Displayed CFA select box to display only the CFA for the desired function </p>" +
+				"<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
+				"<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
+				"<p><b>ARG</b> (Abstract Reachability Graph) shows the explored abstract state space</p>" +
+				"<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
+				"<p><span style=\"background-color:green;\">&#9645;</span> covered state</p>" +
+				"<p><span style=\"background-color:orange;\">&#9645;</span> not yet processed state</p>" +
+				"<p><span style=\"background-color:cornflowerblue;\">&#9645;</span> important state (depending on used analysis)</p>" +
+				"<p><span style=\"background-color:red;\">&#9645;</span> target state</p>" +
+				"<p>- doubleclick on node to jump to relating node in CFA</p>" +
+				"<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
+				"<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
+				"<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
+				"<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p></div>";
 			$scope.help_fault_localization = "<div class=\"container \" style=\"font-family: Arial\"> <b>Change view</b> Toggle between two different views: The default counter example and the information provided by the selected fault localization algorithm. " +
 				"In the second view, every entry consists of a header with three elements and a bigger section with more details." +
 				"<ul><li>The <span style=\"color: #28a745\"><b>first element</b></span> of the header shows the rank.</li>" +
@@ -252,6 +242,13 @@ let argTabDisabled = false;
 				"may look like this:<br>" +
 				"<code>__VERIFIER_nondet_int!2@ = 1 && __VERIFIER_nondet_int!3@ = 2</code></p>" +
 				"</div>";
+			$scope.help_errorpath = "<div style=\"font-family: Arial\"><p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>" +
+				"<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>" +
+				"<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>" +
+				"<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>" +
+				"<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
+				"- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)\n" +
+				"- An 'exact matches' search will look for a variable declarator matching exactly the provided text considering both, edge descriptions and value assignments</p></div>";
       $scope.tab = 1;
       $scope.$on("ChangeTab", function (event, tabIndex) {
         $scope.setTab(tabIndex);
