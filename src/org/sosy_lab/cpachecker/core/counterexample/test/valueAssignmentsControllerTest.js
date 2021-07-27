@@ -8,27 +8,27 @@
 // SPDX-License-Identifier: Apache-2.0
 
 describe("ReportController", function () {
-    var $rootScope,
-        $scope,
-        controller;
+  let $rootScope;
+  let $scope;
+  let controller;
 
-    beforeEach(function () {
-        module('report');
+  beforeEach(function () {
+    angular.mock.module("report");
 
-        inject(function ($injector) {
-            $rootScope = $injector.get('$rootScope');
-            $scope = $rootScope.$new();
-            controller = $injector.get('$controller')("ValueAssignmentsController", {
-                $scope: $scope
-            });
-        })
-        jasmine.getFixtures().fixturesPath = 'base/';
-        jasmine.getFixtures().load('testReport.html');
-    })
+    angular.mock.inject(function ($injector) {
+      $rootScope = $injector.get("$rootScope");
+      $scope = $rootScope.$new();
+      controller = $injector.get("$controller")("ValueAssignmentsController", {
+        $scope: $scope,
+      });
+    });
+    jasmine.getFixtures().fixturesPath = "base/";
+    jasmine.getFixtures().load("testReport.html");
+  });
 
-    describe("showValues action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.showValues).not.toBeUndefined();
-        })
-    })
+  describe("showValues action handler", function () {
+    it("Should be defined", function () {
+      expect($scope.showValues).not.toBeUndefined();
+    });
+  });
 });

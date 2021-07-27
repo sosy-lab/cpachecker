@@ -23,6 +23,12 @@ variables:
     paths:
       - ".cache/pip"
 
+.node-cache: &node-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules"
+
 .binary_check: &binary_check
   stage: checks
 
@@ -122,9 +128,27 @@ python-unit-tests:jdk-16:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-16
 
 
+javascript-build:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - npm run build
+    - git diff --stat --exit-code
+  artifacts:
+    paths:
+      -  src/org/sosy_lab/cpachecker/core/counterexample/build
+    when: on_failure
+  <<: *node-cache
+
 javascript-unit-tests:
   stage: checks
   dependencies: []
+  needs: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -138,6 +162,20 @@ javascript-unit-tests:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
     when: always
+  <<: *node-cache
+
+javascript-eslint:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - npm run lint
+  allow_failure: true
+  <<: *node-cache
 
 
 build-docker:test:java-node:

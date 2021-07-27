@@ -88,8 +88,11 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
   private static final String HTML_TEMPLATE = "report.html";
-  private static final String CSS_TEMPLATE = "report.css";
-  private static final String JS_TEMPLATE = "report.js";
+  private static final String CSS_TEMPLATE = "build/bundle.css";
+  private static final String JS_TEMPLATE = "build/bundle.js";
+  private static final String WORKER_DATA_TEMPLATE = "build/workerData.js";
+  private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
+  private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";
 
   private final Configuration config;
   private final LogManager logger;
@@ -289,6 +292,21 @@ public class ReportGenerator {
     }
   }
 
+  private void insertJsFile(
+      Writer writer,
+      String file)
+      throws IOException {
+        try (BufferedReader reader =
+            Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+                .openBufferedStream();) {
+          String line;
+          while (null != (line = reader.readLine())) {
+              writer.write(line);
+              writer.write('\n');
+          }
+        }
+      }
+
   private void insertJs(
       Writer writer,
       CFA cfa,
@@ -296,24 +314,14 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
-    try (BufferedReader reader =
-        Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-            .openBufferedStream();) {
-      String line;
-      while (null != (line = reader.readLine())) {
-        if (line.contains("CFA_JSON_INPUT")) {
-          insertCfaJson(writer, cfa, dotBuilder, counterExample);
-        } else if (line.contains("ARG_JSON_INPUT")) {
-          insertArgJson(writer);
-        } else if (line.contains("SOURCE_FILES")) {
-          insertSourceFileNames(writer, allInputFiles);
-        } else {
-          writer.write(line);
-          writer.write('\n');
-        }
+        insertCfaJson(writer, cfa, dotBuilder, counterExample);
+        insertArgJson(writer);
+        insertSourceFileNames(writer, allInputFiles);
+
+        insertJsFile(writer, WORKER_DATA_TEMPLATE);
+        insertJsFile(writer, VENDOR_JS_TEMPLATE);
+        insertJsFile(writer, JS_TEMPLATE);
       }
-    }
-  }
 
   private void insertCfaJson(
       Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
@@ -360,6 +368,7 @@ public class ReportGenerator {
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
+    writer.write("window.cfaJson = cfaJson;\n");
   }
 
   private void insertArgJson(Writer writer) throws IOException {
@@ -386,13 +395,19 @@ public class ReportGenerator {
       writer.write("\n");
     }
     writer.write("}\n");
+    writer.write("window.argJson = argJson;\n");
+  }
+
+  private void insertCssFile(Writer writer, String file) throws IOException {
+    writer.write("<style>\n");
+    Resources.asCharSource(Resources.getResource(getClass(), file), Charsets.UTF_8)
+        .copyTo(writer);
+    writer.write("</style>");
   }
 
   private void insertCss(Writer writer) throws IOException {
-    writer.write("<style>\n");
-    Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-        .copyTo(writer);
-    writer.write("</style>");
+    insertCssFile(writer, CSS_TEMPLATE);
+    insertCssFile(writer, VENDOR_CSS_TEMPLATE);
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
@@ -602,6 +617,7 @@ public class ReportGenerator {
     writer.write("var sourceFiles = ");
     JSON.writeJSONString(allSourceFiles, writer);
     writer.write(";\n");
+    writer.write("window.sourceFiles = sourceFiles;\n");
   }
 
   /** Returns ordered set of input files that were relevant for this verification run. */
