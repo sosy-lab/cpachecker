@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import com.google.common.collect.Table;
 import java.io.IOException;
 import java.io.Writer;
@@ -90,7 +91,8 @@ public final class InvariantWitnessWriter {
     InvariantStoreEntry entry =
         new InvariantStoreEntry("loop_invariant", metadata, location, invariant);
 
-    ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    ObjectMapper mapper =
+        new ObjectMapper(YAMLFactory.builder().disable(Feature.WRITE_DOC_START_MARKER).build());
     try {
       return mapper.writeValueAsString(entry);
     } catch (JsonProcessingException e) {

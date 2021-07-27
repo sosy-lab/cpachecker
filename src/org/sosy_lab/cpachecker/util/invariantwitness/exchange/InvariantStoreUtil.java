@@ -71,11 +71,13 @@ public class InvariantStoreUtil {
     boolean existsEdgeBefore =
         CFAUtils.enteringEdges(node)
             .filter(edge -> !edge.getFileLocation().equals(FileLocation.DUMMY))
-            .anyMatch(edge -> edge.getFileLocation().compareTo(fileLocation) < 0);
+            .anyMatch(
+                edge -> edge.getFileLocation().getNodeOffset() <= fileLocation.getNodeOffset());
     boolean existsEdgeAfter =
         CFAUtils.leavingEdges(node)
             .filter(edge -> !edge.getFileLocation().equals(FileLocation.DUMMY))
-            .anyMatch(edge -> edge.getFileLocation().compareTo(fileLocation) >= 0);
+            .anyMatch(
+                edge -> edge.getFileLocation().getNodeOffset() >= fileLocation.getNodeOffset());
 
     return existsEdgeBefore && existsEdgeAfter;
   }

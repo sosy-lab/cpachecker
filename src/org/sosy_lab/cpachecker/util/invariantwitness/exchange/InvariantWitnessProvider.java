@@ -194,6 +194,7 @@ public class InvariantWitnessProvider {
   public Collection<InvariantWitness> getCurrentWitnesses() throws InterruptedException {
     ImmutableCollection.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
     try (DirectoryStream<Path> stream =
+      // TODO break of store directory does not exist!
         Files.newDirectoryStream(Path.of(storeDirectory), (p) -> p.toFile().isFile())) {
       for (Path file : stream) {
         if (processedFiles.contains(file)) {
