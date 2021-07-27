@@ -10,14 +10,17 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Table;
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryIteratorException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -85,8 +88,9 @@ public class InvariantWitnessProvider {
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
   private final CFA cfa;
 
-  private final Set<Path> processedFiles;
   private final Set<InvariantWitness> knownWitnesses;
+
+  private final WatchService watchService;
 
   private InvariantWitnessProvider(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
@@ -97,7 +101,6 @@ public class InvariantWitnessProvider {
     lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames());
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
 
-    processedFiles = new HashSet<>();
     knownWitnesses = new HashSet<>();
 
     scope = new CProgramScope(pCFA, pLogger);
@@ -108,6 +111,18 @@ public class InvariantWitnessProvider {
             CParser.Factory.getOptions(pConfig),
             pCFA.getMachineModel(),
             pShutdownNotifier);
+
+    try {
+      // Watch service watches directory for new added files.
+      watchService = FileSystems.getDefault().newWatchService();
+      Paths.get(storeDirectory)
+          .register(
+              watchService,
+              StandardWatchEventKinds.ENTRY_MODIFY,
+              StandardWatchEventKinds.ENTRY_CREATE);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Can not use store directory: " + storeDirectory);
+    }
   }
 
   public static InvariantWitnessProvider getProvider(
@@ -192,27 +207,38 @@ public class InvariantWitnessProvider {
   }
 
   public Collection<InvariantWitness> getCurrentWitnesses() throws InterruptedException {
-    ImmutableCollection.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
-    try (DirectoryStream<Path> stream =
-      // TODO break of store directory does not exist!
-        Files.newDirectoryStream(Path.of(storeDirectory), (p) -> p.toFile().isFile())) {
-      for (Path file : stream) {
-        if (processedFiles.contains(file)) {
-          continue;
-        }
-
-        resultBuilder.addAll(parseStoreFile(file));
-
-        processedFiles.add(file);
-      }
-    } catch (IOException | DirectoryIteratorException x) {
-      // TODO
-      logger.logException(Level.INFO, x, "");
-    }
-
-    knownWitnesses.addAll(resultBuilder.build());
+    Set<InvariantWitness> newWitnesses = parseNewWitnessFiles();
+    knownWitnesses.addAll(newWitnesses);
 
     return Collections.unmodifiableSet(knownWitnesses);
+  }
+
+  private Set<InvariantWitness> parseNewWitnessFiles() throws InterruptedException {
+    WatchKey key = watchService.poll();
+    if (key == null) {
+      // No new files were added.
+      return Set.of();
+    }
+
+    ImmutableSet.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
+    for (WatchEvent<?> event : key.pollEvents()) {
+      if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
+        // An "error" event that we can ignore
+        continue;
+      }
+
+      // At this point we know that context is a path.
+      Path newFilePath = (Path) event.context();
+      File newFile = Paths.get(storeDirectory).resolve(newFilePath).toFile();
+
+      try {
+        resultBuilder.addAll(parseStoreFile(newFile));
+      } catch (IOException e) {
+        logger.log(Level.INFO, e, "Could not parse invariant store file");
+      }
+    }
+
+    return resultBuilder.build();
   }
 
   public Map<CFANode, ExpressionTree<Object>> getCurrentWitnessesByNodes()
@@ -225,13 +251,12 @@ public class InvariantWitnessProvider {
             Collectors.toMap(InvariantWitness::getNode, InvariantWitness::getFormula, factory::or));
   }
 
-  private Collection<InvariantWitness> parseStoreFile(Path file)
+  private Collection<InvariantWitness> parseStoreFile(File file)
       throws IOException, InterruptedException {
-    InvariantStoreEntry entry = mapper.readValue(file.toFile(), InvariantStoreEntry.class);
+    InvariantStoreEntry entry = mapper.readValue(file, InvariantStoreEntry.class);
 
     if (!lineOffsetsByFile.containsRow(entry.getLocation().getFileName())) {
-      logger.log(
-          Level.INFO, "Invariant " + file.toFile().getName() + " does not apply to any input file");
+      logger.log(Level.INFO, "Invariant " + file.getName() + " does not apply to any input file");
       return Collections.emptySet();
     }
 
