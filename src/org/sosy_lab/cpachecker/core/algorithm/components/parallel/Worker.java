@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
-import java.util.Iterator;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
@@ -20,8 +19,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class Worker implements Runnable {
 
   private final BlockNode block;
-  private final ConcurrentLinkedQueue<Message> read;
-  private final ConcurrentLinkedQueue<Message> write;
+  private final BlockingQueue<Message> read;
+  private final BlockingQueue<Message> write;
 
   private final ConcurrentHashMap<BlockNode, BooleanFormula> postConditionUpdates;
   private final ConcurrentHashMap<BlockNode, BooleanFormula> preConditionUpdates;
@@ -32,8 +31,8 @@ public class Worker implements Runnable {
 
   public Worker(
       BlockNode pBlock,
-      ConcurrentLinkedQueue<Message> pOutputStream,
-      ConcurrentLinkedQueue<Message> pInputStream,
+      BlockingQueue<Message> pOutputStream,
+      BlockingQueue<Message> pInputStream,
       LogManager pLogger) {
     block = pBlock;
     read = pOutputStream;
@@ -59,31 +58,34 @@ public class Worker implements Runnable {
   }
 
   public void analyze() throws InterruptedException {
-    while (true) {
-      Iterator<Message> received = read.iterator();
-      while (received.hasNext()) {
-        Message message = received.next();
-        read.remove(message);
-        switch (message.getType()) {
-          case FINISHED:
-            finished = true;
-            return;
-          case PRECONDITION:
-            if (message.getFrom().getSuccessors().contains(block)) {
-              preConditionUpdates.put(message.getFrom(), message.getCondition());
-              synchronizedWrite(forwardAnalysis());
-            }
-            break;
-          case POSTCONDITION:
-            if (message.getFrom().getPredecessors().contains(block)) {
-              postConditionUpdates.put(message.getFrom(), message.getCondition());
-              synchronizedWrite(backwardAnalysis());
-            }
-            break;
-          default:
-            throw new AssertionError("Message type " + message.getType() + " does not exist");
-        }
+    while(true) {
+      Message m = read.take();
+      processMessage(m);
+      if (finished) {
+        return;
       }
+    }
+  }
+
+  private void processMessage(Message message) throws InterruptedException {
+    switch (message.getType()) {
+      case FINISHED:
+        finished = true;
+        return;
+      case PRECONDITION:
+        if (message.getFrom().getSuccessors().contains(block)) {
+          //preConditionUpdates.put(message.getFrom(), message.getCondition());
+          write.add(forwardAnalysis());
+        }
+        break;
+      case POSTCONDITION:
+        if (message.getFrom().getPredecessors().contains(block)) {
+          //postConditionUpdates.put(message.getFrom(), message.getCondition());
+          write.add(backwardAnalysis());
+        }
+        break;
+      default:
+        throw new AssertionError("Message type " + message.getType() + " does not exist");
     }
   }
 
@@ -116,16 +118,9 @@ public class Worker implements Runnable {
     }
   }
 
-  private synchronized void synchronizedWrite(Message pMessage) {
-    synchronized (write) {
-      write.add(pMessage);
-      write.notifyAll();
-    }
-  }
-
   @Override
   public void run() {
-    synchronizedWrite(forwardAnalysis());
+    write.add(forwardAnalysis());
     runContinuousAnalysis();
   }
 

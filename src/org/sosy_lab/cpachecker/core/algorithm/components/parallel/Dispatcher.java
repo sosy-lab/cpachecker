@@ -8,41 +8,39 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
-import java.util.Iterator;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 
 public class Dispatcher {
 
-  // TODO: priority queue?
-  private final ConcurrentLinkedQueue<Message> inputStream;
+  private final BlockingQueue<Message> inputStream;
+  private final ConcurrentLinkedQueue<BlockingQueue<Message>> outputStreams;
 
-  private final ConcurrentLinkedQueue<ConcurrentLinkedQueue<Message>> outputStreams;
 
   public Dispatcher() {
-    inputStream = new ConcurrentLinkedQueue<>();
+    inputStream = new LinkedBlockingQueue<>();
     outputStreams = new ConcurrentLinkedQueue<>();
   }
 
   public synchronized Worker registerNodeAndGetWorker(BlockNode pNode, LogManager pLogger) {
-    ConcurrentLinkedQueue<Message> queue = new ConcurrentLinkedQueue<>();
+    BlockingQueue<Message> queue = new LinkedBlockingQueue<>();
     outputStreams.add(queue);
     return new Worker(pNode, queue, inputStream, pLogger);
   }
 
-  public synchronized void start() throws InterruptedException {
-    Iterator<Message> iterator = inputStream.iterator();
-    while (iterator.hasNext()) {
-      final Message message = iterator.next();
-      inputStream.remove(message);
-      outputStreams.forEach(queue -> queue.add(message));
-      if (message.getType() == MessageType.FINISHED) {
-        inputStream.notifyAll();
+  public void start() throws InterruptedException {
+    while (true) {
+      final Message m = inputStream.take();
+      for (BlockingQueue<Message> outputStream : outputStreams) {
+        outputStream.add(m);
+      }
+      if (m.getType() == MessageType.FINISHED) {
         return;
       }
     }
-    start();
   }
 }

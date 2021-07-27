@@ -53,6 +53,8 @@ public class ComponentAnalysis implements Algorithm {
       dispatcher.start();
     } catch (InvalidConfigurationException pE) {
       throw new CPAException("Invalid configuration", pE);
+    } finally {
+      logger.log(Level.INFO, "Block analysis stopped.");
     }
     return parentAlgorithm.run(reachedSet);
   }

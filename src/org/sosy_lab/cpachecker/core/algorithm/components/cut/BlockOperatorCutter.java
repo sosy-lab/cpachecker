@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.cut;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -51,13 +52,13 @@ public class BlockOperatorCutter implements CFACutter {
 
     // map a CFANode (that is the last node of a BlockNode) to its BlockNode
     // we use multimap since one CFANode can have multiple successors
-    ArrayListMultimap<CFANode, BlockNode> lastNodeMap = ArrayListMultimap.create();
+    Multimap<CFANode, BlockNode> lastNodeMap = ArrayListMultimap.create();
     // the first entry node maps to the root node of the BlockTree
     lastNodeMap.put(startNode, root);
 
     // map a CFANode (that is the start node of a BlockNode) to its BlockNode
     // we use multimap since one CFANode can have multiple successors
-    ArrayListMultimap<CFANode, BlockNode> startNodeMap = ArrayListMultimap.create();
+    Multimap<CFANode, BlockNode> startNodeMap = ArrayListMultimap.create();
     // the first entry node maps to the root node of the BlockTree
     startNodeMap.put(startNode, root);
 
