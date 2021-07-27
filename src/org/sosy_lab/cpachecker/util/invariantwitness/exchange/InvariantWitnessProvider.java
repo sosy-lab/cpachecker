@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -71,8 +72,20 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ * Represents an invariant witness source.
+ *
+ * <p>If you want to get parsed invariants (as they are used throughout CPAchecker), use {@link
+ * #getInvariantGenerator}. Otherwise, if you want {@link InvariantWitness} (used as exchange object
+ * in the invariant store) use {@link #getCurrentWitnesses}.
+ *
+ * <p>A note for future implementations: This class gets invariants from a configured directory. If
+ * you want to add other strategies, consider not inheriting from this class but configuring it.
+ * This could e.g. be done with a InvariantSource enum with a "getInvariants" method that is called
+ * in {@link #getCurrentWitnesses}
+ */
 @Options(prefix = "invariantStore.import")
-public class InvariantWitnessProvider {
+public final class InvariantWitnessProvider {
   @Option(
       secure = true,
       required = true,
@@ -87,9 +100,7 @@ public class InvariantWitnessProvider {
   private final ParserTools parserTools;
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
   private final CFA cfa;
-
   private final Set<InvariantWitness> knownWitnesses;
-
   private final WatchService watchService;
 
   private InvariantWitnessProvider(
@@ -103,6 +114,7 @@ public class InvariantWitnessProvider {
 
     knownWitnesses = new HashSet<>();
 
+    // initialize the parser to convert the string to Expressions (e.g. AExpressionTree).
     scope = new CProgramScope(pCFA, pLogger);
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
     parser =
@@ -112,8 +124,8 @@ public class InvariantWitnessProvider {
             pCFA.getMachineModel(),
             pShutdownNotifier);
 
+    // initialize Watch service. It's an API to watch for new files in a directory.
     try {
-      // Watch service watches directory for new added files.
       watchService = FileSystems.getDefault().newWatchService();
       Paths.get(storeDirectory)
           .register(
@@ -125,12 +137,39 @@ public class InvariantWitnessProvider {
     }
   }
 
+  /**
+   * Returns an instance of this class. The instance is configured according to the given config.
+   *
+   * @param pConfig Configuration with which the instance shall be created
+   * @param pCFA CFA representing the program of the invariants that the instance loads
+   * @param pLogger Logger
+   * @param pShutdownNotifier ShutdownNotifier
+   * @return Instance of this class
+   * @throws InvalidConfigurationException if the configuration is (semantically) invalid
+   */
   public static InvariantWitnessProvider getProvider(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     return new InvariantWitnessProvider(pConfig, pCFA, pLogger, pShutdownNotifier);
   }
 
+  /**
+   * Returns an {@link InvariantGenerator} view of a new InvariantWitnessProdvider instance. The
+   * generator returns unmodifiable suppliers. That is the suppliers only represent a snapshot and
+   * are not updated automatically.
+   *
+   * <p>The generator supports {@link InvariantSupplier}s and {@link ExpressionTreeSupplier}s.
+   *
+   * <p>The generator produces invariants only on-demand (i.e. when a supplier is requested) and in
+   * the calling thread. However, this behvior might change in the future.
+   *
+   * @param pConfig Configuration with which the instance shall be created
+   * @param pCFA CFA representing the program of the invariants that the instance loads
+   * @param pLogger Logger
+   * @param pShutdownNotifier ShutdownNotifier
+   * @return generator that gets invariants from an instance of this class
+   * @throws InvalidConfigurationException if the configuration is (semantically) invalid
+   */
   public static InvariantGenerator getInvariantGenerator(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -206,6 +245,16 @@ public class InvariantWitnessProvider {
     };
   }
 
+  /**
+   * Returns a snapshot of the currently available invariant witnesses. The returned collection will
+   * not update automatically and returns all the invariants that are known (not only new ones since
+   * the last invocation of this method).
+   *
+   * <p>Note that calling this method might trigger the provider to check for and parse new
+   * invariants, which is a potentially longer running operation.
+   *
+   * @return Current witnesses
+   */
   public Collection<InvariantWitness> getCurrentWitnesses() throws InterruptedException {
     Set<InvariantWitness> newWitnesses = parseNewWitnessFiles();
     knownWitnesses.addAll(newWitnesses);
@@ -241,61 +290,46 @@ public class InvariantWitnessProvider {
     return resultBuilder.build();
   }
 
-  public Map<CFANode, ExpressionTree<Object>> getCurrentWitnessesByNodes()
+  private Map<CFANode, ExpressionTree<Object>> getCurrentWitnessesByNodes()
       throws InterruptedException {
-    // TODO Thread-safety: Is the parser thread-safe?
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     Collection<InvariantWitness> witnesses = getCurrentWitnesses();
     return witnesses.stream()
         .collect(
+            // This well-named collector produces a disjunction of all invariant witness formulas
+            // that hold at the same node.
             Collectors.toMap(InvariantWitness::getNode, InvariantWitness::getFormula, factory::or));
   }
 
   private Collection<InvariantWitness> parseStoreFile(File file)
       throws IOException, InterruptedException {
     InvariantStoreEntry entry = mapper.readValue(file, InvariantStoreEntry.class);
+    final InvariantStoreEntryLocation location = entry.getLocation();
 
-    if (!lineOffsetsByFile.containsRow(entry.getLocation().getFileName())) {
+    // Currently we only do very minimal validation of the witnesses we read.
+    // If the witness was produced for another file we can just ignore it.
+    if (!lineOffsetsByFile.containsRow(location.getFileName())) {
       logger.log(Level.INFO, "Invariant " + file.getName() + " does not apply to any input file");
       return Collections.emptySet();
     }
 
-    FileLocation fileLocation = parseFileLocation(entry.getLocation());
-
-    String rawInvariant = entry.getLoopInvariant().getString();
-    String functionName = entry.getLocation().getFunction();
+    FileLocation fileLocation = parseFileLocation(location);
 
     Collection<CFANode> candidateNodes = InvariantStoreUtil.getNodeCandiadates(fileLocation, cfa);
+    CProgramScope functionScope = scope.withFunctionScope(location.getFunction());
 
-    CProgramScope functionScope = scope.withFunctionScope(functionName);
     ImmutableSet.Builder<InvariantWitness> result = ImmutableSet.builder();
     for (CFANode candidateNode : candidateNodes) {
-      Collection<FileLocation> possiblyUsageLocations = tryFindUsageLocations(candidateNode);
+      CProgramScope scopeWithPredicate =
+          functionScope.withLocationDescriptor(getNodeScopeDescriptor(candidateNode));
 
-      if (possiblyUsageLocations.isEmpty()) {
-        continue;
-      }
-
-      int minOffset =
-          possiblyUsageLocations.stream()
-              .map(f -> f.getNodeOffset())
-              .min(Integer::compare)
-              .orElse(0);
-      int maxOffset =
-          possiblyUsageLocations.stream()
-              .map(f -> f.getNodeOffset())
-              .max(Integer::compare)
-              .orElse(0);
-
-      ExpressionTree<Object> invariantFormula =
-          ExpressionTrees.cast(
-              CParserUtils.parseStatementsAsExpressionTree(
-                  Set.of(rawInvariant),
-                  Optional.empty(),
-                  parser,
-                  functionScope.withLocationDescriptor(
-                      f -> minOffset <= f.getNodeOffset() && f.getNodeOffset() <= maxOffset),
-                  parserTools));
+      ExpressionTree<AExpression> invariantFormula =
+          CParserUtils.parseStatementsAsExpressionTree(
+              Set.of(entry.getLoopInvariant().getString()),
+              Optional.empty(),
+              parser,
+              scopeWithPredicate,
+              parserTools);
 
       if (invariantFormula.equals(ExpressionTrees.getTrue())) {
         // These are useless!
@@ -304,19 +338,49 @@ public class InvariantWitnessProvider {
 
       result.add(
           invariantWitnessFactory.fromLocationAndInvariant(
-              fileLocation, candidateNode, invariantFormula));
+              fileLocation, candidateNode, ExpressionTrees.cast(invariantFormula)));
     }
 
     return result.build();
   }
 
-  private Collection<FileLocation> tryFindUsageLocations(CFANode rootNode) {
+  /**
+   * Returns a predicate that filters FileLocations that have (roughly) the same scope as the given
+   * node. This is required for the parser to determine the declaration of a variable: The parser
+   * tries to find a declaration of which the fileLocation satisfies the predicate (c.f. {@link
+   * CProgramScope#lookupVariable(String)}).
+   *
+   * <p>Note that the predicate is imprecise (it might allow FileLocations outside of the scope or
+   * miss some). More invariants might be usable by improving this method.
+   *
+   * @param node Node to find the scope for
+   * @return Predicate that matches (roughly) the fileLocations with the same program-scope as the
+   *     node
+   */
+  private static Predicate<FileLocation> getNodeScopeDescriptor(CFANode node) {
+    Collection<FileLocation> possiblyUsageLocations = tryFindUsageLocations(node);
+
+    int minOffset =
+        possiblyUsageLocations.stream().map(f -> f.getNodeOffset()).min(Integer::compare).orElse(0);
+    int maxOffset =
+        possiblyUsageLocations.stream().map(f -> f.getNodeOffset()).max(Integer::compare).orElse(0);
+    return f -> minOffset <= f.getNodeOffset() && f.getNodeOffset() <= maxOffset;
+  }
+
+  private static Collection<FileLocation> tryFindUsageLocations(CFANode rootNode) {
     ImmutableSet.Builder<FileLocation> result = ImmutableSet.builder();
 
     Queue<CFANode> waitlist = new ArrayDeque<>();
     Set<CFANode> visited = new HashSet<>();
     waitlist.add(rootNode);
 
+    // This is a BFS: Start with the rootNode and get successor-nodes.
+    // The heuristic is that we get all the nodes where variables have the same scope as in the root
+    // node.
+    // We don't go past function boundaries, ignore dummy-edges and don't follow backward edges
+    // (e.g. in loops).
+    // The latter stops us from exiting loop bodies or (in some cases) accidantally jump to nodes
+    // with a declaration that is actually shadowed by another one at the rootNode
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.remove();
       if (visited.contains(current)) {
@@ -337,7 +401,7 @@ public class InvariantWitnessProvider {
         }
 
         if (leavingEdge.getSuccessor().getReversePostorderId() < current.getReversePostorderId()) {
-          // Not a backward edge
+          // Not a backward edge:
           waitlist.add(leavingEdge.getSuccessor());
         }
       }
