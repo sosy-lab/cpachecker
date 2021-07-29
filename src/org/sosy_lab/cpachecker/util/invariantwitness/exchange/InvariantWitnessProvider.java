@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +32,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -263,7 +263,7 @@ public final class InvariantWitnessProvider {
     WatchKey key = watchService.poll();
     if (key == null) {
       // No new files were added.
-      return Set.of();
+      return ImmutableSet.of();
     }
 
     ImmutableSet.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
@@ -291,11 +291,13 @@ public final class InvariantWitnessProvider {
       throws InterruptedException {
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     Collection<InvariantWitness> witnesses = getCurrentWitnesses();
+
     return witnesses.stream()
         .collect(
             // This well-named collector produces a disjunction of all invariant witness formulas
             // that hold at the same node.
-            Collectors.toMap(InvariantWitness::getNode, InvariantWitness::getFormula, factory::or));
+            ImmutableMap.toImmutableMap(
+                InvariantWitness::getNode, InvariantWitness::getFormula, factory::or));
   }
 
   private Collection<InvariantWitness> parseStoreFile(File file)
@@ -307,7 +309,7 @@ public final class InvariantWitnessProvider {
     // If the witness was produced for another file we can just ignore it.
     if (!lineOffsetsByFile.containsKey(location.getFileName())) {
       logger.log(Level.INFO, "Invariant " + file.getName() + " does not apply to any input file");
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     FileLocation fileLocation = parseFileLocation(location);
@@ -324,7 +326,7 @@ public final class InvariantWitnessProvider {
 
       ExpressionTree<AExpression> invariantFormula =
           CParserUtils.parseStatementsAsExpressionTree(
-              Set.of(entry.getLoopInvariant().getString()),
+              ImmutableSet.of(entry.getLoopInvariant().getString()),
               Optional.empty(),
               parser,
               scopeWithPredicate,
