@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public final class SMGIntersectStates {
 
@@ -53,8 +52,8 @@ public final class SMGIntersectStates {
   private final CLangSMG destSMG;
 
   /** the destination values will be build up when calling {@link #intersect}. */
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
-      HashBiMap.create();
+  private PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
+      PersistentBiMap.of();
 
   /** initialize the intersection-process. */
   public SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
@@ -218,7 +217,7 @@ public final class SMGIntersectStates {
 
     SMGKnownSymbolicValue symVal = (SMGKnownSymbolicValue) pValue;
     if (pSmgState.isExplicit(symVal)) {
-      destExplicitValues.put(symVal, pSmgState.getExplicit(symVal));
+      destExplicitValues = destExplicitValues.putAndCopy(symVal, pSmgState.getExplicit(symVal));
     }
 
     if (pSmg.isPointer(pValue)) {
@@ -367,14 +366,14 @@ public final class SMGIntersectStates {
 
     if (!expVal1.isUnknown() && !expVal2.isUnknown()) {
       if (expVal1.equals(expVal2)) {
-        destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
+        destExplicitValues = destExplicitValues.putAndCopy(symDestVal, (SMGKnownExpValue) expVal1);
       } else {
         return false;
       }
     } else if (!expVal1.isUnknown()) {
-      destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
+      destExplicitValues = destExplicitValues.putAndCopy(symDestVal, (SMGKnownExpValue) expVal1);
     } else if (!expVal2.isUnknown()) {
-      destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal2);
+      destExplicitValues = destExplicitValues.putAndCopy(symDestVal, (SMGKnownExpValue) expVal2);
     }
 
     return true;
