@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -50,12 +51,9 @@ public final class InvariantWitnessWriter {
   private final Map<String, List<Integer>> lineOffsetsByFile;
   private final LogManager logger;
 
-  @Option(
-      secure = true,
-      required = true,
-      description = "The directory where the invariants are stored.")
+  @Option(secure = true, description = "The directory where the invariants are stored.")
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
-  private Path outDir;
+  private Path outDir = Paths.get("invariantWitnesses");
 
   private InvariantWitnessWriter(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException {

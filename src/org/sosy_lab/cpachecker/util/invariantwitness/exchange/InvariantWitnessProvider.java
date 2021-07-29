@@ -86,11 +86,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  */
 @Options(prefix = "invariantStore.import")
 public final class InvariantWitnessProvider {
-  @Option(
-      secure = true,
-      required = true,
-      description = "The directory where the invariants are stored.")
-  private String storeDirectory;
+  @Option(secure = true, description = "The directory where the invariants are stored.")
+  private String storeDirectory = "output/invariantWitnesses";
 
   private final Map<String, List<Integer>> lineOffsetsByFile;
   private final LogManager logger;
