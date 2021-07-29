@@ -363,9 +363,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
-      SMGHasValueEdges edge = getHVEdgeFromMemoryLocation(memloc);
+      Iterable<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
 
-      if (!edge.isEmpty()) {
+      if (edge.iterator().hasNext()) {
         result.put(memloc, edge.iterator().next().getValue());
       }
     }
@@ -454,8 +454,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
               .filterAtOffset(edgeHasValue.getOffset())
               .filterHavingValue(edgeHasValue.getValue())
               .filterBySize(edgeHasValue.getSizeInBits());
-      SMGHasValueEdges edges = getHVEdges(filter);
-      return edges.size() != 0;
+      Iterable<SMGEdgeHasValue> edges = getHVEdges(filter);
+      return edges.iterator().hasNext();
     } else if (elem instanceof SMGEdgePointsTo) {
       SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
       SMGEdgePointsToFilter filter =
@@ -506,7 +506,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     markObjectDeletedAndRemoveEdges(pObject);
   }
 
-  private SMGHasValueEdges getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
+  private Iterable<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
     if (objectAtLocation == null) {
       return new SMGHasValueEdgeSet();
@@ -514,7 +514,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
     if (pLocation.isReference()) {
-      filter.filterAtOffset(pLocation.getOffset()).filterWithoutSize();
+      filter = filter.filterAtOffset(pLocation.getOffset()).filterWithoutSize();
     }
 
     // Remember, edges may overlap with different types
@@ -570,9 +570,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     for (int i = 0; i < offsets.length(); i++) {
       final long offset = offsets.get(i);
 
-      SMGHasValueEdges hves =
+      Iterable<SMGEdgeHasValue> hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
-      if (hves.isEmpty()) {
+      if (!hves.iterator().hasNext()) {
         return Optional.empty();
       }
 

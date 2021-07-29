@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
@@ -165,7 +166,7 @@ public class SMG implements UnmodifiableSMG {
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
-    assert hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).isEmpty();
+    assert !hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).iterator().hasNext();
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -256,7 +257,7 @@ public class SMG implements UnmodifiableSMG {
    *
    * @param pEdgesSet Has-Value edges set to add
    */
-  public void addHasValueEdges(SMGHasValueEdges pEdgesSet) {
+  public void addHasValueEdges(Iterable<SMGEdgeHasValue> pEdgesSet) {
     // TODO: add values check
     hv_edges = hv_edges.addEdgesForObject(pEdgesSet);
   }
@@ -392,7 +393,12 @@ public class SMG implements UnmodifiableSMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   @Override
-  public final SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
+  public final Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return pFilter.filter(hv_edges);
+  }
+
+  @Override
+  public final SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilterByObject pFilter) {
     return pFilter.filter(hv_edges);
   }
 
@@ -578,7 +584,7 @@ public class SMG implements UnmodifiableSMG {
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       // Workaround for removed object
       if (pt_edges.containsEdgeWithValue(fresh) && !fresh.isZero()) {
-        assert getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).isEmpty();
+        assert !getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).iterator().hasNext();
         pt_edges = pt_edges.removeEdgeWithValueAndCopy(fresh);
       }
       Preconditions.checkArgument(

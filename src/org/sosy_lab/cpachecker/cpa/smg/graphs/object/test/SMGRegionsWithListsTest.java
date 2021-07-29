@@ -121,7 +121,7 @@ public class SMGRegionsWithListsTest {
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         abstractionResult, nodeSize, LEVEL_ZERO, listKind, sublists.length);
 
-    SMGHasValueEdges dataFieldSet =
+    Iterable<SMGEdgeHasValue> dataFieldSet =
         smg.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(abstractionResult)
                 .filterAtOffset(dfo)

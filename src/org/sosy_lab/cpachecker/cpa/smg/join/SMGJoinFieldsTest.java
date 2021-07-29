@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -121,7 +122,7 @@ public class SMGJoinFieldsTest {
   private void checkFields(
       UnmodifiableSMG pSmg, Map<Long, Pair<SMGValue, Integer>> pFieldMap, SMGObject pObj) {
 
-    SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
+    SMGEdgeHasValueFilterByObject filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     SMGHasValueEdges edges = pSmg.getHVEdges(filterOnSMG);
 
     assertThat(edges).hasSize(pFieldMap.keySet().size());
@@ -295,7 +296,7 @@ public class SMGJoinFieldsTest {
     boolean seenZero = false;
     boolean seenTwo = false;
 
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(object);
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(object);
     for (SMGEdgeHasValue edge : filter.filter(hvSet)) {
       if (edge.getOffset() == 0) {
         seenZero = true;

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.Iterables;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -20,6 +19,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -225,19 +225,20 @@ public class SMGIsLessOrEqual {
         (pSMG1.getObjects().contains(pSMGObject1) && pSMG2.getObjects().contains(pSMGObject2)),
         "SMGJoinFields object arguments need to be included in parameter SMGs");
 
-    SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
-    SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
+    SMGEdgeHasValueFilterByObject filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
+    SMGEdgeHasValueFilterByObject filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
     SMGHasValueEdges HVE2 = pSMG2.getHVEdges(filterForSMG2);
 
     // TODO Merge Zero.
     for (SMGEdgeHasValue edge1 : pSMG1.getHVEdges(filterForSMG1)) {
-      filterForSMG2
-          .filterAtOffset(edge1.getOffset())
-          .filterBySize(edge1.getSizeInBits())
-          .filterHavingValue(edge1.getValue());
-
-      if (!Iterables.any(HVE2, filterForSMG2::holdsFor)) {
+      if (!HVE2.filter(
+              filterForSMG2
+                  .filterAtOffset(edge1.getOffset())
+                  .filterBySize(edge1.getSizeInBits())
+                  .filterHavingValue(edge1.getValue()))
+          .iterator()
+          .hasNext()) {
         return false;
       }
 
