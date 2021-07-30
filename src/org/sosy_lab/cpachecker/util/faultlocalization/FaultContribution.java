@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
  */
 public class FaultContribution {
 
-  protected List<FaultInfo> infos;
-  private CFAEdge correspondingEdge;
+  protected final List<FaultInfo> infos;
+  private final CFAEdge correspondingEdge;
 
   /**
    * The calculation of the score of FaultContribution is not implemented.
@@ -60,16 +60,19 @@ public class FaultContribution {
     return infos;
   }
 
-  public String textRepresentation() {
-    Collections.sort(infos);
+  @Override
+  public String toString() {
+    List<FaultInfo> copy = new ArrayList<>(infos);
+    Collections.sort(copy);
+
     StringBuilder out =
         new StringBuilder(
             "Error suspected on line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
                 + ".\n");
-    List<FaultInfo> copy = new ArrayList<>(infos);
+
     for (FaultInfo faultInfo : copy) {
-      switch(faultInfo.getType()){
+      switch (faultInfo.getType()) {
         case RANK_INFO:
           out.append(" ".repeat(2));
           break;
@@ -84,11 +87,6 @@ public class FaultContribution {
     }
 
     return out.toString();
-  }
-
-  @Override
-  public String toString(){
-    return textRepresentation();
   }
 
   public boolean hasReasons() {
@@ -107,6 +105,7 @@ public class FaultContribution {
         if(casted.getInfos().size() == getInfos().size()){
           List<FaultInfo> copy = new ArrayList<>(infos);
           List<FaultInfo> copy2 = new ArrayList<>(casted.infos);
+
           Collections.sort(copy);
           Collections.sort(copy2);
 
