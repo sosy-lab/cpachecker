@@ -13,11 +13,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
- *  This class represents the return statement AST node type.
+ * This class represents the return statement AST node type.
  *
+ * <pre>
  *  ReturnStatement:
  *   return [ Expression ] ;
- *
+ * </pre>
  */
 public class JReturnStatement extends AbstractReturnStatement implements JAstNode {
 

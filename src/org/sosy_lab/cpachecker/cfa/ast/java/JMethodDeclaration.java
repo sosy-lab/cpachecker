@@ -23,19 +23,17 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *
  * This class represents the method declaration AST node type.
  *
- *  MethodDeclaration:
+ * <pre>{@code
+ * MethodDeclaration:
  *   [ Javadoc ] { ExtendedModifier }
  *                 [ < TypeParameter { , TypeParameter } > ]
  *       ( Type | void ) Identifier (
  *       [ FormalParameter
  *                    { , FormalParameter } ] ) {[ ] }
  *       [ throws TypeName { , TypeName } ] ( Block | ; )
- *
- *
- *
+ * }</pre>
  */
 public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
 

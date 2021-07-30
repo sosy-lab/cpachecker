@@ -15,17 +15,17 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *
- *
  * This class represents the field declaration node type.
  *
+ * <pre>
  * FieldDeclaration:
  *   [Javadoc] { ExtendedModifier } Type Identifier { [] } [ = Expression ]
+ * </pre>
  *
- * The simple name contains the Identifier and can be ambiguous in the cfa.
- * The name also contains the type as qualifier and is unique in the cfa.
+ * The simple name contains the Identifier and can be ambiguous in the cfa. The name also contains
+ * the type as qualifier and is unique in the cfa.
  *
- *  {@link JInitializerExpression} contains the initializer expression.
+ * <p>{@link JInitializerExpression} contains the initializer expression.
  */
 public final class JFieldDeclaration extends JVariableDeclaration {
 

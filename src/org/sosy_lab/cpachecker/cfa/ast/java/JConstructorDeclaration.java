@@ -17,9 +17,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *
  * This class represents the Constructor declaration AST node type.
  *
+ * <pre>{@code
  * ConstructorDeclaration:
  *   [ Javadoc ] { ExtendedModifier }
  *                 [ < TypeParameter { , TypeParameter } > ]
@@ -27,13 +27,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *                 [ FormalParameter
  *                        { , FormalParameter } ] )
  *       [throws TypeName { , TypeName } ] Block
+ * }</pre>
  *
- *  The constructor declaration is a method declaration represented
- *  in {@link JMethodDeclaration}, who's return type is denoted as
- *  the class type it was declared in. Additionally, not all valid
- *  method modifiers are valid for a constructor, e.g. abstract
- *  static, native, synchronized, final.
- *
+ * The constructor declaration is a method declaration represented in {@link JMethodDeclaration},
+ * who's return type is denoted as the class type it was declared in. Additionally, not all valid
+ * method modifiers are valid for a constructor, e.g. abstract static, native, synchronized, final.
  */
 public final class JConstructorDeclaration extends JMethodDeclaration {
 

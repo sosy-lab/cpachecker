@@ -14,22 +14,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 
 /**
- *
  * This class represents the class instance creation expression AST node type.
  *
+ * <pre>{@code
  * ClassInstanceCreation:
  *       [ Expression . ]
  *           new [ < Type { , Type } > ]
  *           Type ( [ Expression { , Expression } ] )
  *           [ AnonymousClassDeclaration ]
+ * }</pre>
  *
- *  The functionname is in most cases a {@link JIdExpression}.
+ * The functionname is in most cases a {@link JIdExpression}.
  *
- *  Not all node arragements will represent legal Java constructs.
- *  In particular, it is nonsense if the functionname does not contain a {@link JIdExpression}.
- *
- *
- *
+ * <p>Not all node arragements will represent legal Java constructs. In particular, it is nonsense
+ * if the functionname does not contain a {@link JIdExpression}.
  */
 public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
 

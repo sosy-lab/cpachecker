@@ -15,11 +15,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 /**
  * This class represents the super constructor invocation statement AST node type.
  *
+ * <pre>{@code
  * SuperConstructorInvocation:
  *    [ Expression . ]
  *        [ < Type { , Type } > ]
  *        super ( [ Expression { , Expression } ] ) ;
- *
+ * }</pre>
  */
 public final class JSuperConstructorInvocation extends JClassInstanceCreation {
 

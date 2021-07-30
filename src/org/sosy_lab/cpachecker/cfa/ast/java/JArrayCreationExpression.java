@@ -16,24 +16,21 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 /**
- *  Array creation expression AST node type.
+ * Array creation expression AST node type.
  *
+ * <pre>{@code
  * ArrayCreation:
  *   new PrimitiveType [ Expression ] { [ Expression ] } { [ ] }
- *   new TypeName [ < Type { , Type } > ]
- *       [ Expression ] { [ Expression ] } { [ ] }
+ *   new TypeName [ < Type { , Type } > ] [ Expression ] { [ Expression ] } { [ ] }
  *   new PrimitiveType [ ] { [ ] } ArrayInitializer
- *   new TypeName [ < Type { , Type } > ]
- *       [ ] { [ ] } ArrayInitializer
+ *   new TypeName [ < Type { , Type } > ] [ ] { [ ] } ArrayInitializer
+ * }</pre>
  *
+ * The mapping from Java language syntax to AST nodes is as follows:
  *
- *   The mapping from Java language syntax to AST nodes is as follows:
- *
- *   the type node is the array type of the creation expression. It contains information
- *   like the dimension and the element type.
- *   The length contains the expression, which determines the length of the array.
- *   There is an expression in the list for each array dimension from left to right.
- *
+ * <p>the type node is the array type of the creation expression. It contains information like the
+ * dimension and the element type. The length contains the expression, which determines the length
+ * of the array. There is an expression in the list for each array dimension from left to right.
  */
 public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
 

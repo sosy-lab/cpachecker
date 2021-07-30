@@ -13,15 +13,15 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *
  * This class represents the prefix expression AST node type.
  *
+ * <pre>
  * PrefixExpression:
  *   PrefixOperator Expression
+ * </pre>
  *
- *  This class does not represent increments or decrements, they are transformed
- *  to {@link JBinaryExpression}.
- *
+ * This class does not represent increments or decrements, they are transformed to {@link
+ * JBinaryExpression}.
  */
 public final class JUnaryExpression extends AUnaryExpression implements JExpression {
 

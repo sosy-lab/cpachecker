@@ -18,12 +18,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class represents the unqualified method invocation expression AST node type.
  *
+ * <pre>{@code
  * Unqualified MethodInvocation:
  *        [ < Type { , Type } > ]
  *        Identifier ( [ Expression { , Expression } ] )
+ * }</pre>
  *
- * Note that in the cfa, all method names are transformed to have unique names.
- * It is therefore unnecessary to have Qualifiers for methods with the same simple name.
+ * Note that in the cfa, all method names are transformed to have unique names. It is therefore
+ * unnecessary to have Qualifiers for methods with the same simple name.
  */
 public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide {
 

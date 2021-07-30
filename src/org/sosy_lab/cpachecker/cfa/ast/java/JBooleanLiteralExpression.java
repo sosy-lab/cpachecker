@@ -17,9 +17,11 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class represents the boolean literal AST node type.
  *
+ * </pre>
  * BooleanLiteral:
  *   true
  *   false
+ * <pre>
  *
  */
 public final class JBooleanLiteralExpression extends ALiteralExpression
