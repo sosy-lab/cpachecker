@@ -894,7 +894,7 @@ class ASTConverter {
       default:
         logger.log(
             Level.WARNING,
-            "Expression of type " + AstDebugg.getTypeName(e.getNodeType()) + " not implemented");
+            "Expression of type " + ASTDebug.getTypeName(e.getNodeType()) + " not implemented");
         return null;
     }
   }

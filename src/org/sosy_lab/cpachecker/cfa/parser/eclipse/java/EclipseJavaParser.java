@@ -327,7 +327,7 @@ class EclipseJavaParser implements Parser {
 
     cfaTimer.start();
 
-    // AstDebugg checker = new AstDebugg(logger);
+    // ASTDebug checker = new ASTDebug(logger);
     // ast.accept(checker);
 
     CFABuilder builder = new CFABuilder(logger, scope);

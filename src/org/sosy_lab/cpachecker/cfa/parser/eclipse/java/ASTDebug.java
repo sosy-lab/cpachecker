@@ -16,11 +16,11 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.sosy_lab.common.log.LogManager;
 
 /** This Visitor simply extracts the AST of the JDT Parser for debug Purposes. */
-class AstDebugg extends ASTVisitor {
+class ASTDebug extends ASTVisitor {
 
   private final LogManager logger;
 
-  public AstDebugg(LogManager logger) {
+  public ASTDebug(LogManager logger) {
     this.logger = logger;
   }
 
