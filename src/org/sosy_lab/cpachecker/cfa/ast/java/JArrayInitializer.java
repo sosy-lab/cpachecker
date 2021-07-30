@@ -31,7 +31,8 @@ public final class JArrayInitializer extends AbstractExpression
   private static final long serialVersionUID = -9034136529891743726L;
   private final List<JExpression> initializerExpressions;
 
-  public JArrayInitializer(FileLocation pFileLocation, List<JExpression> pInitializerExpression, JArrayType pType) {
+  public JArrayInitializer(
+      FileLocation pFileLocation, List<JExpression> pInitializerExpression, JArrayType pType) {
     super(pFileLocation, pType);
 
     initializerExpressions = pInitializerExpression;
@@ -87,8 +88,7 @@ public final class JArrayInitializer extends AbstractExpression
       return true;
     }
 
-    if (!(obj instanceof JArrayInitializer)
-        || super.equals(obj)) {
+    if (!(obj instanceof JArrayInitializer) || super.equals(obj)) {
       return false;
     }
 
@@ -96,5 +96,4 @@ public final class JArrayInitializer extends AbstractExpression
 
     return Objects.equals(other.initializerExpressions, initializerExpressions);
   }
-
 }

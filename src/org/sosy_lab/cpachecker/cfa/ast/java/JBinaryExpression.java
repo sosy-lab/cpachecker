@@ -30,10 +30,13 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
 
   private static final long serialVersionUID = 7830135105992595598L;
 
-  public JBinaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand1, JExpression pOperand2,
+  public JBinaryExpression(
+      FileLocation pFileLocation,
+      JType pType,
+      JExpression pOperand1,
+      JExpression pOperand2,
       BinaryOperator pOperator) {
     super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
-
   }
 
   @Override
@@ -53,7 +56,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
 
   @Override
   public JExpression getOperand2() {
-    return (JExpression)super.getOperand2();
+    return (JExpression) super.getOperand2();
   }
 
   @Override
@@ -62,29 +65,29 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
   }
 
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
-    MULTIPLY      ("*"),
-    DIVIDE        ("/"),
-    MODULO        ("%"),
+    MULTIPLY("*"),
+    DIVIDE("/"),
+    MODULO("%"),
     STRING_CONCATENATION("+"),
-    PLUS          ("+"),
-    MINUS         ("-"),
-    SHIFT_LEFT    ("<<"),
-    SHIFT_RIGHT_SIGNED   (">>"),
-    SHIFT_RIGHT_UNSIGNED (">>>"),
-    LESS_THAN     ("<"),
-    GREATER_THAN  (">"),
-    LESS_EQUAL    ("<="),
-    GREATER_EQUAL (">="),
-    BINARY_AND    ("&"),
-    BINARY_XOR    ("^"),
-    BINARY_OR     ("|"),
-    LOGICAL_AND   ("&"),
-    LOGICAL_OR    ("|"),
-    LOGICAL_XOR   ("^"),
-    CONDITIONAL_AND ("&&"),
-    CONDITIONAL_OR  ("||"),
-    EQUALS        ("=="),
-    NOT_EQUALS    ("!="),
+    PLUS("+"),
+    MINUS("-"),
+    SHIFT_LEFT("<<"),
+    SHIFT_RIGHT_SIGNED(">>"),
+    SHIFT_RIGHT_UNSIGNED(">>>"),
+    LESS_THAN("<"),
+    GREATER_THAN(">"),
+    LESS_EQUAL("<="),
+    GREATER_EQUAL(">="),
+    BINARY_AND("&"),
+    BINARY_XOR("^"),
+    BINARY_OR("|"),
+    LOGICAL_AND("&"),
+    LOGICAL_OR("|"),
+    LOGICAL_XOR("^"),
+    CONDITIONAL_AND("&&"),
+    CONDITIONAL_OR("||"),
+    EQUALS("=="),
+    NOT_EQUALS("!="),
     ;
 
     private final String op;
@@ -93,9 +96,7 @@ public final class JBinaryExpression extends ABinaryExpression implements JExpre
       op = pOp;
     }
 
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
+    /** Returns the string representation of this operator (e.g. "*", "+"). */
     @Override
     public String getOperator() {
       return op;

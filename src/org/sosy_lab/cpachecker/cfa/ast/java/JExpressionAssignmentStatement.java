@@ -29,8 +29,8 @@ public final class JExpressionAssignmentStatement extends AExpressionAssignmentS
 
   private static final long serialVersionUID = 4121782081088537434L;
 
-  public JExpressionAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
-      JExpression pRightHandSide) {
+  public JExpressionAssignmentStatement(
+      FileLocation pFileLocation, JLeftHandSide pLeftHandSide, JExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 

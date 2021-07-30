@@ -33,7 +33,7 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   // TODO refactor to be either abstract or final
 
-  //TODO Type Variables , AnonymousClassDeclaration
+  // TODO Type Variables , AnonymousClassDeclaration
 
   private static final long serialVersionUID = -8480398251628288918L;
 

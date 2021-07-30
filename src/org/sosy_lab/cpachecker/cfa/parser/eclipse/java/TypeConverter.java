@@ -75,7 +75,7 @@ abstract class TypeConverter {
   }
 
   public final JType convert(ITypeBinding t) {
-    //TODO Needs to be completed (Wildcard, Parameterized type etc)
+    // TODO Needs to be completed (Wildcard, Parameterized type etc)
 
     if (t == null) {
       return JSimpleType.getUnspecified();
@@ -159,5 +159,4 @@ abstract class TypeConverter {
   private JArrayType convert(final ArrayType t) {
     return new JArrayType(convert(t.getElementType()), t.getDimensions());
   }
-
 }

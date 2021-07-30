@@ -37,13 +37,16 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   private static final long serialVersionUID = 8794036217601570272L;
   private final List<JExpression> length;
   private final JArrayInitializer initializer;
-  //TODO Type Variables < Type { , Type } >
+  // TODO Type Variables < Type { , Type } >
 
-  public JArrayCreationExpression(FileLocation pFileLocation, JArrayType pType, JArrayInitializer pInitializer, List<JExpression> pLength) {
+  public JArrayCreationExpression(
+      FileLocation pFileLocation,
+      JArrayType pType,
+      JArrayInitializer pInitializer,
+      List<JExpression> pLength) {
     super(pFileLocation, pType);
     length = ImmutableList.copyOf(pLength);
     initializer = pInitializer;
-
   }
 
   @Override
@@ -57,7 +60,8 @@ public final class JArrayCreationExpression extends AbstractExpression implement
       return initializer.toASTString();
     } else {
 
-      StringBuilder astString = new StringBuilder("new "+ getExpressionType().getElementType().toASTString(""));
+      StringBuilder astString =
+          new StringBuilder("new " + getExpressionType().getElementType().toASTString(""));
 
       for (JExpression exp : length) {
         astString.append("[");
@@ -65,7 +69,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
         astString.append("]");
       }
 
-      return  astString.toString();
+      return astString.toString();
     }
   }
 
@@ -79,7 +83,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   }
 
   public JArrayInitializer getInitializer() {
-      return initializer;
+    return initializer;
   }
 
   @Override
@@ -98,15 +102,12 @@ public final class JArrayCreationExpression extends AbstractExpression implement
       return true;
     }
 
-    if (!(obj instanceof JArrayCreationExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JArrayCreationExpression) || !super.equals(obj)) {
       return false;
     }
 
     JArrayCreationExpression other = (JArrayCreationExpression) obj;
 
-    return Objects.equals(other.initializer, initializer)
-            && Objects.equals(other.length, length);
+    return Objects.equals(other.initializer, initializer) && Objects.equals(other.length, length);
   }
-
 }

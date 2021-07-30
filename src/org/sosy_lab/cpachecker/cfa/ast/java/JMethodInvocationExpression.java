@@ -31,15 +31,19 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
 
   // TODO refactor to be either abstract or final
 
-  //TODO Type parameters
+  // TODO Type parameters
 
   private static final long serialVersionUID = 4603127283599981678L;
   // TODO erase these two fields and change the algorithm to find known run time type bindings,
   private boolean hasKnownRunTimeBinding = false;
   private JClassOrInterfaceType runTimeBinding = null;
 
-  public JMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration) {
+  public JMethodInvocationExpression(
+      FileLocation pFileLocation,
+      JType pType,
+      JExpression pFunctionName,
+      List<? extends JExpression> pParameters,
+      JMethodDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
@@ -103,14 +107,13 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JMethodInvocationExpression) || !super.equals(obj)) {
       return false;
     }
 
     JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
 
     return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
-            && Objects.equals(other.runTimeBinding, runTimeBinding);
+        && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
 }

@@ -27,9 +27,9 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
 
   private static final long serialVersionUID = 7677831398229521071L;
 
-  public JUnaryExpression(FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
+  public JUnaryExpression(
+      FileLocation pFileLocation, JType pType, JExpression pOperand, UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
-
   }
 
   @Override
@@ -53,11 +53,10 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
   }
 
   public enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
-    NOT      ("!"),
-    PLUS        ("+"),
-    COMPLEMENT        ("~"),
-    MINUS("-")
-    ;
+    NOT("!"),
+    PLUS("+"),
+    COMPLEMENT("~"),
+    MINUS("-");
 
     private final String op;
 
@@ -65,9 +64,7 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
       op = pOp;
     }
 
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
+    /** Returns the string representation of this operator (e.g. "*", "+"). */
     @Override
     public String getOperator() {
       return op;

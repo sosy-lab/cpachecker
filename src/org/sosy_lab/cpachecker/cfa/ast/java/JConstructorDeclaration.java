@@ -47,13 +47,29 @@ public final class JConstructorDeclaration extends JMethodDeclaration {
           false,
           JClassType.createUnresolvableType());
 
-  public JConstructorDeclaration(FileLocation pFileLocation,
-      JConstructorType pType, String pName, String simpleName,
+  public JConstructorDeclaration(
+      FileLocation pFileLocation,
+      JConstructorType pType,
+      String pName,
+      String simpleName,
       List<JParameterDeclaration> pParameterDeclarations,
-      VisibilityModifier pVisibility, boolean pIsStrictfp, JClassOrInterfaceType declaringClass) {
-    super(pFileLocation, pType, pName, simpleName, pParameterDeclarations, pVisibility,
-        false, false, false, false, false,
-        pIsStrictfp, declaringClass);
+      VisibilityModifier pVisibility,
+      boolean pIsStrictfp,
+      JClassOrInterfaceType declaringClass) {
+    super(
+        pFileLocation,
+        pType,
+        pName,
+        simpleName,
+        pParameterDeclarations,
+        pVisibility,
+        false,
+        false,
+        false,
+        false,
+        false,
+        pIsStrictfp,
+        declaringClass);
   }
 
   @Override
@@ -70,9 +86,13 @@ public final class JConstructorDeclaration extends JMethodDeclaration {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
+    if (this == obj) {
+      return true;
+    }
 
-    if (!(obj instanceof JConstructorDeclaration)) { return false; }
+    if (!(obj instanceof JConstructorDeclaration)) {
+      return false;
+    }
 
     return super.equals(obj);
   }
@@ -83,27 +103,35 @@ public final class JConstructorDeclaration extends JMethodDeclaration {
 
   public static JConstructorDeclaration createExternConstructorDeclaration(
       JConstructorType pConstructorType,
-      String pName, String simpleName,
+      String pName,
+      String simpleName,
       VisibilityModifier pVisibility,
-      boolean pStrictFp, JClassType pDeclaringClassType) {
+      boolean pStrictFp,
+      JClassType pDeclaringClassType) {
 
     List<JType> parameterTypes = pConstructorType.getParameters();
     List<JParameterDeclaration> parameters = new ArrayList<>(parameterTypes.size());
 
     FileLocation externFileLoc = FileLocation.DUMMY;
 
-
     int i = 0;
 
     for (JType parameterType : parameterTypes) {
       final String parameterName = "parameter" + i;
       parameters.add(
-          new JParameterDeclaration(externFileLoc, parameterType, parameterName,
-              pName + "::" + parameterName, false));
+          new JParameterDeclaration(
+              externFileLoc, parameterType, parameterName, pName + "::" + parameterName, false));
       i++;
     }
 
-    return new JConstructorDeclaration(externFileLoc, pConstructorType,
-        pName, simpleName, parameters, pVisibility, pStrictFp, pDeclaringClassType);
+    return new JConstructorDeclaration(
+        externFileLoc,
+        pConstructorType,
+        pName,
+        simpleName,
+        parameters,
+        pVisibility,
+        pStrictFp,
+        pDeclaringClassType);
   }
 }

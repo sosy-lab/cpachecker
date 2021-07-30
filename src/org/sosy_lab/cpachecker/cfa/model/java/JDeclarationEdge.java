@@ -16,15 +16,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JDeclarationEdge extends ADeclarationEdge {
 
-
-
   private static final long serialVersionUID = -3744160417799490039L;
 
-  public JDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
-      final CFANode pPredecessor, final CFANode pSuccessor, final JDeclaration pDeclaration) {
+  public JDeclarationEdge(
+      final String pRawSignature,
+      final FileLocation pFileLocation,
+      final CFANode pPredecessor,
+      final CFANode pSuccessor,
+      final JDeclaration pDeclaration) {
 
     super(pRawSignature, pFileLocation, pPredecessor, pSuccessor, pDeclaration);
-
   }
 
   @Override
@@ -34,6 +35,6 @@ public class JDeclarationEdge extends ADeclarationEdge {
 
   @Override
   public Optional<JDeclaration> getRawAST() {
-    return Optional.of((JDeclaration)declaration);
+    return Optional.of((JDeclaration) declaration);
   }
 }

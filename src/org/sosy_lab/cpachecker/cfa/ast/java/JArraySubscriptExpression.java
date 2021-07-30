@@ -28,7 +28,10 @@ public final class JArraySubscriptExpression extends AArraySubscriptExpression
 
   private static final long serialVersionUID = 5326760755937022733L;
 
-  public JArraySubscriptExpression(FileLocation pFileLocation, JType pType, JExpression pArrayExpression,
+  public JArraySubscriptExpression(
+      FileLocation pFileLocation,
+      JType pType,
+      JExpression pArrayExpression,
       JExpression pSubscriptExpression) {
     super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
   }
