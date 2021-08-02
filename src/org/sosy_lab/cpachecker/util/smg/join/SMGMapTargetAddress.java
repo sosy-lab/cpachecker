@@ -60,7 +60,7 @@ public class SMGMapTargetAddress extends SMGAbstractJoinValues {
                         && entry.getValue().pointsTo().equals(resSmgObject))
             .findAny();
     if (matchingAddressOptional.isPresent()) {
-      value = matchingAddressOptional.get().getKey();
+      value = matchingAddressOptional.orElseThrow().getKey();
     } else {
       // Step 5
       value = SMGSymbolicValue.of(0); // TODO nesting level zero???
