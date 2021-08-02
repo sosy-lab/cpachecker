@@ -110,7 +110,7 @@ public final class OverflowState
   @Override
   public String toDOTLabel() {
     if (hasOverflow() || hasUnderflow()) {
-      return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
+      return "Assumptions:\n" + getReadableAssumptions().replaceAll(", ", "\n");
     }
 
     return "";
@@ -122,12 +122,8 @@ public final class OverflowState
   }
 
   private String getReadableAssumptions() {
-    return getReadableAssumptions(this);
-  }
-
-  private static String getReadableAssumptions(OverflowState s) {
     StringBuilder sb = new StringBuilder();
-    Joiner.on(", ").appendTo(sb, s.assumptions.stream().map(x -> x.toASTString()).iterator());
+    Joiner.on(", ").appendTo(sb, getAssumptions().stream().map(x -> x.toASTString()).iterator());
     return sb.toString();
   }
 
