@@ -1050,7 +1050,7 @@ public class AutomatonGraphmlCommon {
     if (operator.equals(BinaryOperator.NOT_EQUALS)
         || operator.equals(
             org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.NOT_EQUALS)) {
-      return flip ^ !terminationValueAssumption.getTruthAssumption();
+      return flip == terminationValueAssumption.getTruthAssumption();
     }
     if (operator.equals(BinaryOperator.EQUALS)
         || operator.equals(
