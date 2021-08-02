@@ -257,9 +257,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                   }
                 }
 
-              } catch (RejectedExecutionException | ExecutionException e) {
-                errors.add(e);
-              } catch (InterruptedException | TimeoutException e) {
+              } catch (RejectedExecutionException
+                  | ExecutionException
+                  | InterruptedException
+                  | TimeoutException e) {
                 errors.add(e);
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
