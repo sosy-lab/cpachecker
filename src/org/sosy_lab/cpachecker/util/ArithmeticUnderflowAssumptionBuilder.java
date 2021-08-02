@@ -70,13 +70,13 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
           result.add(ofmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
-        if (lowerBounds.get(calculationType) != null) {
+        if (lowerBounds.containsKey(calculationType) && upperBounds.containsKey(calculationType)) {
           result.addAll(
               ofmgr.addMultiplicationAssumptions(
                   op1,
                   op2,
                   lowerBounds.get(calculationType),
-                  lowerBounds.get(calculationType)));
+                  upperBounds.get(calculationType)));
         }
 
       } else if (trackDivisions

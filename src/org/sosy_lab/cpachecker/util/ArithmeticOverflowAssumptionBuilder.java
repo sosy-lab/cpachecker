@@ -73,12 +73,12 @@ public final class ArithmeticOverflowAssumptionBuilder extends ArithmeticAssumpt
               ofmgr.getUpperAssumption(op1, op2, binop, upperBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
-        if (upperBounds.get(calculationType) != null) {
+        if (upperBounds.containsKey(calculationType) && lowerBounds.containsKey(calculationType)) {
           result.addAll(
               ofmgr.addMultiplicationAssumptions(
                   op1,
                   op2,
-                  upperBounds.get(calculationType),
+                  lowerBounds.get(calculationType),
                   upperBounds.get(calculationType)));
         }
 
