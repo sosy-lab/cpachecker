@@ -66,8 +66,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
               mapping1,
               mapping2,
               pValue1,
-              pValue2,
-              pNestingLevelDiff);
+              pValue2);
       copyJoinState(mapTargetAddress);
       return;
     }
@@ -92,8 +91,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
             mapping1,
             mapping2,
             pValue1,
-            pValue2,
-            pNestingLevelDiff);
+            pValue2);
     // step 14
     SMGJoinSubSMGs joinSubSMGs =
         new SMGJoinSubSMGs(
