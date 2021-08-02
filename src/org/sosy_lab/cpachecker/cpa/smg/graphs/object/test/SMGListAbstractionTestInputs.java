@@ -33,9 +33,7 @@ public final class SMGListAbstractionTestInputs {
   private static final SMGValue[] LIST_DIFF_X = new SMGValue[LONG_TEST_LIST_LENGTH];
 
   static {
-    for (int i = 0; i < LIST_EQ_X.length; i++) {
-      LIST_EQ_X[i] = REGION_A;
-    }
+    Arrays.fill(LIST_EQ_X, REGION_A);
     for (int i = 0; i < LIST_DIFF_X.length; i++) {
       LIST_DIFF_X[i] = newVal();
     }
