@@ -147,8 +147,6 @@ public class WitnessToOutputFormatsUtils {
           if (!ExpressionTrees.getFalse().equals(tree)) {
           waitlist.push(edge.getTarget());
           }
-        } else {
-          continue;
         }
       }
     }

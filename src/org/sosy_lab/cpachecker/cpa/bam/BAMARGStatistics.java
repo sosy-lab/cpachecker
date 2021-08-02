@@ -85,9 +85,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     final UnmodifiableReachedSet bamReachedSetView =
         createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
-    if (bamReachedSetView == null) {
-      return;
-    } else {
+    if (bamReachedSetView != null) {
       super.printStatistics(pOut, pResult, bamReachedSetView);
     }
   }
@@ -113,9 +111,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     final UnmodifiableReachedSet bamReachedSetView =
         createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
-    if (bamReachedSetView == null) {
-      return;
-    } else {
+    if (bamReachedSetView != null) {
       super.writeOutputFiles(pResult, bamReachedSetView);
     }
   }
