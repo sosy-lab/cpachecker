@@ -17,7 +17,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   /** The static value 0 */
-  private static final SMGValue ZERO_VALUE = new SMGValue(0);
+  private static final SMGValue ZERO_VALUE = new SMGValue(0, 0);
 
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
@@ -38,6 +38,16 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   protected SMGValue(int pNestingLevel) {
     nestingLevel = pNestingLevel;
     id = U_ID_GENERATOR.getFreshId() + 1;
+  }
+
+  /**
+   * Creates a new, symbolic SMGValue with the entered nesting level.
+   *
+   * @param pNestingLevel The nesting level of this value node.
+   */
+  protected SMGValue(int pNestingLevel, int uniqueId) {
+    nestingLevel = pNestingLevel;
+    id = uniqueId;
   }
 
   public static SMGValue of(int pNestingLevel) {
