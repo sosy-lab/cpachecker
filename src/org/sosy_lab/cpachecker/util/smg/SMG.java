@@ -22,11 +22,9 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGExplicitValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 
@@ -212,10 +210,10 @@ public class SMG {
    * This is a general method to get a single SMGHasValueEdges by object and a filter predicate.
    * Examples:
    *
-   * <p>Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset); Returns a
-   * possible SMGHasValueEdge with the offset entered.
+   * <p>{@code Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset);} Returns
+   * a possible SMGHasValueEdge with the offset entered.
    *
-   * <p>o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits); Returns a
+   * <p>{@code o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits);} Returns a
    * possible SMGHasValueEdge with the offset and size entered.
    *
    * @param object SMGObject for which the SMGHasValueEdge are searched.
@@ -264,10 +262,10 @@ public class SMG {
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
     // let v := 0. Otherwise extend V by a fresh value node v.
     if (this.isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
-      return new SMGandValue(this, SMGExplicitValue.nullInstance());
+      return new SMGandValue(this, SMGValue.zeroValue());
     }
     int nestingLevel = object.getNestingLevel();
-    SMGValue newValue = SMGSymbolicValue.of(nestingLevel);
+    SMGValue newValue = SMGValue.of(nestingLevel);
     SMG newSMG = this.copyAndAddValue(newValue);
     // Extend H by the has-value edge o -> v with the offset and size and return (smg,v) based on
     // the newly obtained SMG.

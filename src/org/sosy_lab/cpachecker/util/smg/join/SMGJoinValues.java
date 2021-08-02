@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
@@ -174,7 +173,7 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
     // compute new level step 3-2
     int newLevel = Integer.max(pValue1.getNestingLevel() , pValue2.getNestingLevel());
     // Step 3-6 return pValue1 - this is considered as typo
-    value = SMGSymbolicValue.of(newLevel);
+    value = SMGValue.of(newLevel);
     // add mappings step 3-3
     mapping1.addMapping(pValue1, value);
     mapping2.addMapping(pValue2, value);

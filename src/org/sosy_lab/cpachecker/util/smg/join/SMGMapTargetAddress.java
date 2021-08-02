@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -63,7 +62,7 @@ public class SMGMapTargetAddress extends SMGAbstractJoinValues {
       value = matchingAddressOptional.orElseThrow().getKey();
     } else {
       // Step 5
-      value = SMGSymbolicValue.of(0); // TODO nesting level zero???
+      value = SMGValue.of(0); // TODO nesting level zero???
       destSMG = destSMG.copyAndAddValue(value);
       SMGPointsToEdge newEdge = new SMGPointsToEdge(resSmgObject, ptoEdge1.getOffset(), tg);
       destSMG = destSMG.copyAndAddPTEdge(newEdge, value);

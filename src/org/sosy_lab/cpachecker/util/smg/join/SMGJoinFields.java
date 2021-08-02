@@ -28,10 +28,9 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.SMG;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGExplicitValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C)
@@ -109,7 +108,8 @@ public class SMGJoinFields {
     PersistentSortedMap<BigInteger, SMGHasValueEdge> obj2OffsetToEdges =
         pSMG2.getEdges(pObject2).stream().collect(mapOffsetToEdgeCollector());
 
-    obj1EdgesWOZero.stream()
+    obj1EdgesWOZero
+        .stream()
         .filter(
             edge -> {
               // filter overlapping edges
@@ -123,7 +123,7 @@ public class SMGJoinFields {
               // in o2
               retSet.add(
                   new SMGHasValueEdge(
-                      SMGSymbolicValue.of(edge.hasValue().getNestingLevel()),
+                      SMGValue.of(edge.hasValue().getNestingLevel()),
                       edge.getSizeInBits(),
                       edge.getOffset()));
             });
@@ -193,19 +193,17 @@ public class SMGJoinFields {
         obj2Edges.stream().filter(createEqNullValuePredicate(false)).collect(ImmutableSet.toImmutableSet());
 
     Set<SMGHasValueEdge> missingNullEdgeSet = new LinkedHashSet<>();
-    obj2EdgesWithoutZero.forEach(edge -> {
-      // find offset wise matching edges
-      BigInteger floor = edge.getOffset();
-      BigInteger celing = edge.getOffset().add(edge.getSizeInBits());
-      Entry<BigInteger, BigInteger> entry = obj1EdgesWithZeroOffsetToSize.floorEntry(floor);
-      if (entry != null && entry.getKey().add(entry.getValue()).compareTo(celing) >= 0) {
-        missingNullEdgeSet.add(
-            new SMGHasValueEdge(
-                SMGExplicitValue.nullInstance(),
-                edge.getSizeInBits(),
-                edge.getOffset()));
-      }
-    });
+    obj2EdgesWithoutZero.forEach(
+        edge -> {
+          // find offset wise matching edges
+          BigInteger floor = edge.getOffset();
+          BigInteger celing = edge.getOffset().add(edge.getSizeInBits());
+          Entry<BigInteger, BigInteger> entry = obj1EdgesWithZeroOffsetToSize.floorEntry(floor);
+          if (entry != null && entry.getKey().add(entry.getValue()).compareTo(celing) >= 0) {
+            missingNullEdgeSet.add(
+                new SMGHasValueEdge(SMGValue.zeroValue(), edge.getSizeInBits(), edge.getOffset()));
+          }
+        });
 
     edgesObj1Without0Address.addAll(commonNullValueEdgeSet);
     edgesObj1Without0Address.addAll(missingNullEdgeSet);
@@ -219,11 +217,12 @@ public class SMGJoinFields {
     return pMap.subMap(pEntry.getKey(), pEntry.getKey().add(pEntry.getValue()))
         .entrySet()
         .stream()
-        .map(next -> {
-          BigInteger resultOffset = pEntry.getKey().max(next.getKey());
-          BigInteger resultSize = pEntry.getValue().max(next.getValue());
-          return new SMGHasValueEdge(SMGExplicitValue.nullInstance(), resultSize, resultOffset);
-        })
+        .map(
+            next -> {
+              BigInteger resultOffset = pEntry.getKey().max(next.getKey());
+              BigInteger resultSize = pEntry.getValue().max(next.getValue());
+              return new SMGHasValueEdge(SMGValue.zeroValue(), resultSize, resultOffset);
+            })
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -237,7 +236,7 @@ public class SMGJoinFields {
   }
 
   private Predicate<SMGHasValueEdge> createEqNullValuePredicate(boolean equals) {
-    return edge -> equals == edge.hasValue().equals(SMGExplicitValue.nullInstance());
+    return edge -> equals == edge.hasValue().isZero();
   }
 
   private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, BigInteger>>

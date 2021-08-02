@@ -8,17 +8,66 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
-import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 
-public interface SMGValue extends SMGNode, Comparable<SMGValue> {
+/**
+ * SMGValues are symbolic, with the exception of 0. They are only compared, so we need to use the
+ * same object for the same symbolic value!
+ */
+public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
-  BigInteger getValue();
+  /** The static value 0 */
+  private static final SMGValue ZERO_VALUE = new SMGValue(0);
 
-  @Override
-  boolean equals(Object other);
+  /**
+   * Values can be nested inside SMGs. Basicly a value in a list is nesting level 0, while a value
+   * in a list that is in a list is level 1 etc.
+   */
+  private final int nestingLevel;
 
-  default boolean isZero() {
-    return equals(SMGExplicitValue.nullInstance());
+  /**
+   * Creates a new, symbolic SMGValue with the entered nesting level.
+   *
+   * @param pNestingLevel The nesting level of this value node.
+   */
+  protected SMGValue(int pNestingLevel) {
+    nestingLevel = pNestingLevel;
   }
 
+  public static SMGValue of(int pNestingLevel) {
+    return new SMGValue(pNestingLevel);
+  }
+
+  @Override
+  public int getNestingLevel() {
+    return nestingLevel;
+  }
+
+  /** @return The static SMGValue = 0. */
+  public static SMGValue zeroValue() {
+    return ZERO_VALUE;
+  }
+
+  /** @return True if this SMGValue is equal to 0. */
+  public boolean isZero() {
+    return this.equals(ZERO_VALUE);
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof SMGSymbolicValue)) {
+      return false;
+    }
+    return this == other;
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public int compareTo(SMGValue pArg0) {
+    return Integer.compare(this.hashCode(), pArg0.hashCode());
+  }
 }

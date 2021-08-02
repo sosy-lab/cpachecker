@@ -37,7 +37,7 @@ public class SMGandValue {
     if (other == null) {
       return false;
     }
-    if (other.getClass() != this.getClass()) {
+    if (!(other instanceof SMGandValue)) {
       return false;
     }
     SMGandValue otherSMGaV = (SMGandValue) other;
