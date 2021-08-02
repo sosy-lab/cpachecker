@@ -32,8 +32,7 @@ public class SMGMapTargetAddress extends SMGAbstractJoinValues {
       NodeMapping pMapping1,
       NodeMapping pMapping2,
       SMGValue pValue1,
-      SMGValue pValue2,
-      int pNestingLevelDiff) {
+      SMGValue pValue2) {
     super(pStatus, pInputSMG1, pInputSMG2, pDestSMG, pMapping1, pMapping2);
     mapTargetAddress(pValue1, pValue2);
   }
