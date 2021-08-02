@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.util.ArithmeticUnderflowAssumptionBuilder;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
@@ -61,26 +62,23 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     boolean nextHasOverflow = prev.nextHasOverflow();
     boolean nextHasUnderflow = prev.nextHasUnderflow();
 
-    int leavingEdgesOfNextState = cfaEdge.getSuccessor().getNumLeavingEdges();
-    Set<CExpression> assumptionsOverflow;
-    Set<CExpression> assumptionsUnderflow;
-    ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
+    if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
+      return ImmutableList.of(
+          new OverflowState(ImmutableSet.of(), nextHasOverflow, nextHasUnderflow, prev));
 
-    if (leavingEdgesOfNextState == 0) {
-      return ImmutableList
-          .of(new OverflowState(ImmutableSet.of(), nextHasOverflow, nextHasUnderflow, prev));
-    }
-
-    for (int i = 0; i < leavingEdgesOfNextState; i++) {
-      assumptionsOverflow =
-          noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
-      assumptionsUnderflow =
-          noUnderflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
+    } else {
+      ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
+      for (CFAEdge edgeToAnalyze : CFAUtils.leavingEdges(cfaEdge.getSuccessor())) {
+        Set<CExpression> assumptionsOverflow =
+            noOverflowAssumptionBuilder.assumptionsForEdge(edgeToAnalyze);
+        Set<CExpression> assumptionsUnderflow =
+            noUnderflowAssumptionBuilder.assumptionsForEdge(edgeToAnalyze);
 
       if (assumptionsOverflow.isEmpty() && assumptionsUnderflow.isEmpty()) {
         outStates
             .add(new OverflowState(ImmutableSet.of(), nextHasOverflow, nextHasUnderflow, prev));
       } else {
+        // for each possible over-/underflow, we build a separate state.
         for (CExpression assumption : assumptionsOverflow) {
           outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, false, prev));
         }
@@ -96,9 +94,9 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
               nextHasUnderflow,
               prev));
       }
+      }
+      return outStates.build();
     }
-
-    return outStates.build();
   }
 
   private CExpression mkNot(CExpression arg) {
