@@ -431,7 +431,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       expression.accept(visitor);
 
       return newState;
-    } else if ((truthAssumption && value) || (!truthAssumption && !value)) {
+    } else if (truthAssumption == value) {
       return state;
     } else {
       return null;
