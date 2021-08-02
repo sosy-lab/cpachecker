@@ -1395,14 +1395,14 @@ public class AssumptionToEdgeAllocator {
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
-        double doubleValue = ((Double)pValue).doubleValue();
+        double doubleValue = ((Double) pValue);
         if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       } else if (pValue instanceof Float) {
-        float floatValue = ((Float)pValue).floatValue();
+        float floatValue = ((Float) pValue);
         if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
