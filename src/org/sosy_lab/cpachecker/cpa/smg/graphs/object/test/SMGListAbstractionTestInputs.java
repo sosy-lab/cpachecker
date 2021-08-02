@@ -39,21 +39,18 @@ public final class SMGListAbstractionTestInputs {
     }
   }
 
-  private static final SMGValue[][] SUBLISTS_A =
-      new SMGValue[][] {{REGION_A, REGION_A}, {REGION_A, REGION_A}};
-  private static final SMGValue[][] SUBLISTS_B =
-      new SMGValue[][] {
-        {newVal(), newVal(), newVal()},
-        {newVal(), newVal()},
-        {newVal(), newVal()},
-        {newVal(), newVal(), newVal()}
-      };
-  private static final SMGValue[][] SUBLISTS_C = new SMGValue[][] {{}, {}};
-  private static final SMGValue[][] SUBLISTS_D = new SMGValue[][] {{newVal()}, {newVal()}};
-  private static final SMGValue[][] SUBLISTS_E = new SMGValue[][] {{newVal()}, {}};
-  private static final SMGValue[][] SUBLISTS_F =
-      new SMGValue[][] {LIST_EQ_2, LIST_DIFF_2, LIST_EQ_3};
-  private static final SMGValue[][] SUBLISTS_G = new SMGValue[][] {LIST_EQ_3, LIST_EQ_3, LIST_EQ_3};
+  private static final SMGValue[][] SUBLISTS_A = {{REGION_A, REGION_A}, {REGION_A, REGION_A}};
+  private static final SMGValue[][] SUBLISTS_B = {
+    {newVal(), newVal(), newVal()},
+    {newVal(), newVal()},
+    {newVal(), newVal()},
+    {newVal(), newVal(), newVal()}
+  };
+  private static final SMGValue[][] SUBLISTS_C = {{}, {}};
+  private static final SMGValue[][] SUBLISTS_D = {{newVal()}, {newVal()}};
+  private static final SMGValue[][] SUBLISTS_E = {{newVal()}, {}};
+  private static final SMGValue[][] SUBLISTS_F = {LIST_EQ_2, LIST_DIFF_2, LIST_EQ_3};
+  private static final SMGValue[][] SUBLISTS_G = {LIST_EQ_3, LIST_EQ_3, LIST_EQ_3};
   private static final SMGValue[][] SUBLISTS_H = new SMGValue[LONG_TEST_LIST_LENGTH][1];
 
   static {
