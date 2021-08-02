@@ -30,7 +30,7 @@ public class SMGAbstractJoinValues {
   protected SMGValue value;
   protected NodeMapping mapping1;
   protected NodeMapping mapping2;
-  protected boolean isRecoverable = true;
+  protected boolean isRecoverableFailure = true;
   protected boolean isDefined = true;
 
   public SMGAbstractJoinValues(
@@ -56,7 +56,7 @@ public class SMGAbstractJoinValues {
     value = other.getValue();
     mapping1 = other.getMapping1();
     mapping2 = other.getMapping2();
-    isRecoverable = other.isRecoverable;
+    isRecoverableFailure = other.isRecoverableFailure;
     isDefined = other.isDefined;
   }
 
@@ -71,7 +71,7 @@ public class SMGAbstractJoinValues {
   protected void setBottomState() {
     status = SMGJoinStatus.INCOMPARABLE;
     isDefined = false;
-    isRecoverable = false;
+    isRecoverableFailure = false;
   }
 
   public SMGJoinStatus getStatus() {
@@ -82,8 +82,8 @@ public class SMGAbstractJoinValues {
     return isDefined;
   }
 
-  public boolean isRecoverable() {
-    return isRecoverable;
+  public boolean isRecoverableFailur() {
+    return isRecoverableFailure;
   }
 
   public SMG getInputSMG1() {

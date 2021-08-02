@@ -98,7 +98,7 @@ public class SMGJoinSubSMGs extends SMGAbstractJoinValues {
        * join fails.
        */
       // Step 3.4
-      if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
+      if (!joinValues.isDefined() && !joinValues.isRecoverableFailur()) {
         status = SMGJoinStatus.INCOMPARABLE;
         return;
       }

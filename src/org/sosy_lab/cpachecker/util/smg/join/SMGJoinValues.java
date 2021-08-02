@@ -101,7 +101,7 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
        setBottomState();
        return;
      }
-     if(!joinTargetObjects.isRecoverable()) {
+     if(!joinTargetObjects.isRecoverableFailur()) {
        copyJoinState(joinTargetObjects);
        return;
      }
@@ -126,7 +126,7 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
              setBottomState();
              return;
            }
-           if (!jDlsAndJoin.isRecoverable()) {
+           if (!jDlsAndJoin.isRecoverableFailur()) {
              copyJoinState(joinTargetObjects);
              return;
            }
@@ -144,10 +144,10 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
                pValue1,
                pValue2,
                pNestingLevelDiff);
-       if (!jDlsAndJoin.isDefined() || jDlsAndJoin.isRecoverable()) {
+       if (!jDlsAndJoin.isDefined() || jDlsAndJoin.isRecoverableFailur()) {
          status = SMGJoinStatus.INCOMPARABLE;
          isDefined = jDlsAndJoin.isDefined;
-         isRecoverable = jDlsAndJoin.isRecoverable;
+         isRecoverableFailure = jDlsAndJoin.isRecoverableFailure;
          return;
        }
        copyJoinState(joinTargetObjects);

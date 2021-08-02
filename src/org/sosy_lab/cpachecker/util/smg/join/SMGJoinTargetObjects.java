@@ -51,7 +51,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
     // step 1
     if (!checkCompatibility(pToEdge1, pToEdge2, pValue1, pValue2, pNestingLevelDiff)) {
       isDefined = false;
-      isRecoverable = true;
+      isRecoverableFailure = true;
       return;
     }
 
@@ -74,7 +74,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
     // step 4-6
     if (checkForRecoverableFailure(pToEdge1, pToEdge2)) {
       isDefined = false;
-      isRecoverable = true;
+      isRecoverableFailure = true;
       return;
     }
     // step 7-11
