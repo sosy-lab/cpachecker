@@ -90,7 +90,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   @Override
   public String toString() {
     return getFileLocation() + ":\t" + getPredecessor() + " -{" +
-        getDescription().replaceAll("\n", " ") +
+        getDescription().replace('\n', ' ') +
         "}-> " + getSuccessor();
   }
 }

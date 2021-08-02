@@ -589,7 +589,7 @@ public class ReportGenerator {
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(1)));
           writer.write("</td><td>");
-          writer.write(htmlEscaper().escape(splitLine.get(2)).replaceAll(":", "<br>"));
+          writer.write(htmlEscaper().escape(splitLine.get(2)).replace(":", "<br>"));
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(3)));
 
@@ -832,9 +832,9 @@ public class ReportGenerator {
   // Similar to the getEdgeText method in DOTBuilder2
   private static String getEdgeText(CFAEdge edge) {
     return edge.getDescription()
-        .replaceAll("\\\"", "\\\\\\\"")
-        .replaceAll("\n", " ")
+        .replace("\"", "\\\"")
+        .replace('\n', ' ')
         .replaceAll("\\s+", " ")
-        .replaceAll(" ;", ";");
+        .replace(" ;", ";");
   }
 }

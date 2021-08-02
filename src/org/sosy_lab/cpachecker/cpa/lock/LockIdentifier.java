@@ -71,8 +71,8 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
 
   private static String getCleanName(String originName) {
     if (originName != null) {
-      String newName = originName.replaceAll("\\(", "");
-      newName = newName.replaceAll("\\)", "");
+      String newName = originName.replace("(", "");
+      newName = newName.replace(")", "");
       newName = newName.replaceAll("___\\d*", "");
       return newName;
     } else {

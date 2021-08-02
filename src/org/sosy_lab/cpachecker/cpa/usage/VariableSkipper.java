@@ -87,8 +87,8 @@ public class VariableSkipper {
         idType = ((CArrayType) idType).getType();
       }
       String typeString = idType.toString();
-      typeString = typeString.replaceAll("\\(", "");
-      typeString = typeString.replaceAll("\\)", "");
+      typeString = typeString.replace("(", "");
+      typeString = typeString.replace(")", "");
       if (byType.contains(typeString)) {
         return true;
       }
