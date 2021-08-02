@@ -1360,20 +1360,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.TRUE)) {
+        if (!resB.canNotEvaluate() && resB.getValue()) {
           return resB;
         } else {
           return resA;
         }
       } else {
-        if (resA.getValue().equals(Boolean.TRUE)) {
+        if (resA.getValue()) {
           return resA;
         } else {
           ResultValue<Boolean> resB = b.eval(pArgs);
           if (resB.canNotEvaluate()) {
             return resB;
           }
-          if (resB.getValue().equals(Boolean.TRUE)) {
+          if (resB.getValue()) {
             return resB;
           } else {
             return resA;
@@ -1401,20 +1401,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.FALSE)) {
+        if (!resB.canNotEvaluate() && !resB.getValue()) {
           return resB;
         } else {
           return resA;
         }
       } else {
-        if (resA.getValue().equals(Boolean.FALSE)) {
+        if (!resA.getValue()) {
           return resA;
         } else {
           ResultValue<Boolean> resB = b.eval(pArgs);
           if (resB.canNotEvaluate()) {
             return resB;
           }
-          if (resB.getValue().equals(Boolean.FALSE)) {
+          if (!resB.getValue()) {
             return resB;
           } else {
             return resA;
@@ -1443,7 +1443,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (resA.canNotEvaluate()) {
         return resA;
       }
-      if (resA.getValue().equals(Boolean.TRUE)) {
+      if (resA.getValue()) {
         return CONST_FALSE;
       } else {
         return CONST_TRUE;
