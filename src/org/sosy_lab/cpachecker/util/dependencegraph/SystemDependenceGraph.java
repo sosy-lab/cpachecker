@@ -1100,7 +1100,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       N node = graphNode.getNode();
 
       if (node.getId() == nodes.size()) {
-        
+
         nodes.add(node);
         graphNodes.add(graphNode);
 

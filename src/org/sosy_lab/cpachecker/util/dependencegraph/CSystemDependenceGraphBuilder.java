@@ -932,7 +932,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       StringBuilder sb = new StringBuilder();
 
       if (pNode.getType() != NodeType.STATEMENT) {
-        
+
         sb.append(pNode.getType());
         sb.append(" of ");
 
