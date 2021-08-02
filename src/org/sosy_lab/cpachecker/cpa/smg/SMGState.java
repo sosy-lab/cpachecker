@@ -1149,7 +1149,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     Matcher result = externalAllocationRecursivePattern.matcher(pLabel);
     if (result.matches()) {
       String in = result.group(2);
-      Integer level = Integer.parseInt(in) + 1;
+      int level = Integer.parseInt(in) + 1;
       return result.replaceFirst("$1" + level + "$3");
     } else {
       return "r_1_" + pLabel;
