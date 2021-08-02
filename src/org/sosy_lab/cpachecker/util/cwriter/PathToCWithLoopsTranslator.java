@@ -576,11 +576,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
    */
   private void handleIfOutLabels(StringBuilder wholeLoopString, CFANode predecessor) {
     if (!ifOutLabelEnd.isEmpty() && ifOutLabelEnd.peek().containsKey(predecessor)) {
-      if (ifThenHandled.contains(predecessor)) {
-          wholeLoopString.append(ifOutLabelEnd.pop().get(predecessor) )
-                         .append(": ;\n");
-      } else {
-        ifThenHandled.add(predecessor);
+      if (!ifThenHandled.add(predecessor)) {
+        wholeLoopString.append(ifOutLabelEnd.pop().get(predecessor)).append(": ;\n");
       }
     }
   }
