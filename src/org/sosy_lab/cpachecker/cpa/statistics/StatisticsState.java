@@ -129,9 +129,6 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
   }
 
   public StatisticsData getStatistics() {
-    if (data == null) {
-      return null;
-    }
     return data;
   }
 

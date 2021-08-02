@@ -292,10 +292,7 @@ public class BlockWaitlist implements Waitlist {
 
     //search block in inactive blocks
     block = inactiveBlocksMap.get(key);
-    if(block != null) {
-      return block;
-    }
-    return null;
+    return block;
   }
 
   @Override

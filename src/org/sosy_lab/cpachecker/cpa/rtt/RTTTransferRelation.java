@@ -661,11 +661,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       String runTimeClass = state.getRunTimeClassOfUniqueObject(uniqueObject);
 
-      if (runTimeClass == null) {
-        return null;
-      } else {
-        return runTimeClass;
-      }
+      return runTimeClass;
     }
 
     @Override
