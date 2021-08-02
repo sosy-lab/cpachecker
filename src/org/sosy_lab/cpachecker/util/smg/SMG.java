@@ -255,7 +255,7 @@ public class SMG {
 
     // if v != undefined then return (smg, v)
     if (maybeValue.isPresent()) {
-      return new SMGandValue(this, maybeValue.get().hasValue());
+      return new SMGandValue(this, maybeValue.orElseThrow().hasValue());
     }
 
     // if the field to be read is covered by nullified blocks, i.e. if
