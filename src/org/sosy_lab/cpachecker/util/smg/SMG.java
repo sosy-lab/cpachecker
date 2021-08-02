@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -205,38 +206,25 @@ public class SMG {
   }
 
   /**
-   * Returns any SMGHasValueEdge associated with the entered SMGObject at the specified offset in an
-   * Optional, or an empty Optional if no such SMGHasValueEdge exists.
+   * This is a general method to get a single SMGHasValueEdges by object and a filter predicate.
+   * Examples:
+   *
+   * <p>Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset); Returns a
+   * possible SMGHasValueEdge with the offset entered.
+   *
+   * <p>o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits); Returns a
+   * possible SMGHasValueEdge with the offset and size entered.
    *
    * @param object SMGObject for which the SMGHasValueEdge are searched.
-   * @param offset The offset that the SMGHasValueEdge has to have. May not be negative and must be
-   *     in the region of the object.
+   * @param filter The filter predicate for SMGHasValueEdges.
    * @return Either an empty Optional if there is no such SMGHasValueEdge, or an Optional with some
-   *     edge.
+   *     edge for the entered filter.
    */
-  public Optional<SMGHasValueEdge> getHasValueEdgeByOffset(SMGObject object, BigInteger offset) {
-    return hasValueEdges.get(object).stream().filter(o -> o.getOffset().equals(offset)).findAny();
-  }
-
-  /**
-   * Returns any SMGHasValueEdge associated with the entered SMGObject at the specified offset and
-   * size in an Optional, or an empty Optional if no such SMGHasValueEdge exists.
-   *
-   * @param object SMGObject for which the SMGHasValueEdge are searched.
-   * @param offset The offset that the SMGHasValueEdge has to have. May not be negative and must be
-   *     in the region of the object.
-   * @param sizeInBits The size in bits that the SMGHasValueEdge has to have.
-   * @return Either an empty Optional if there is no such SMGHasValueEdge, or an Optional with some
-   *     edge.
-   */
-  public Optional<SMGHasValueEdge> getHasValueEdgeByOffsetAndSize(
-      SMGObject object, BigInteger offset, BigInteger sizeInBits) {
-    // TODO: Can there be more than one?
-    return hasValueEdges
-        .get(object)
-        .stream()
-        .filter(o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits))
-        .findAny();
+  public Optional<SMGHasValueEdge> getHasValueEdgeByPredicate(
+      SMGObject object, Predicate<SMGHasValueEdge> filter) {
+    // TODO: Are multiple values possible for the same filter? If yes, create another method to
+    // return all of them.
+    return hasValueEdges.get(object).stream().filter(filter).findAny();
   }
 
   /**
