@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.common.UniqueIdGenerator;
 
 /**
  * SMGValues are symbolic, with the exception of 0. They are only compared, so we need to use the
@@ -18,6 +18,11 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   /** The static value 0 */
   private static final SMGValue ZERO_VALUE = new SMGValue(0);
+
+  private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
+
+  /* Unique id to idendify this value. This is better than hashCodes as it does not clash. */
+  private final int id;
 
   /**
    * Values can be nested inside SMGs. Basicly a value in a list is nesting level 0, while a value
@@ -32,6 +37,7 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
    */
   protected SMGValue(int pNestingLevel) {
     nestingLevel = pNestingLevel;
+    id = U_ID_GENERATOR.getFreshId() + 1;
   }
 
   public static SMGValue of(int pNestingLevel) {
@@ -54,20 +60,24 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   }
 
   @Override
+  public int compareTo(SMGValue pArg0) {
+    return Integer.compare(id, pArg0.id);
+  }
+
+  @Override
   public boolean equals(Object other) {
-    if (!(other instanceof SMGSymbolicValue)) {
+    if (other == null) {
       return false;
     }
-    return this == other;
+    if (!(other instanceof SMGValue)) {
+      return false;
+    }
+    SMGValue otherObj = (SMGValue) other;
+    return id == otherObj.id;
   }
 
   @Override
   public int hashCode() {
-    return super.hashCode();
-  }
-
-  @Override
-  public int compareTo(SMGValue pArg0) {
-    return Integer.compare(this.hashCode(), pArg0.hashCode());
+    return id;
   }
 }
