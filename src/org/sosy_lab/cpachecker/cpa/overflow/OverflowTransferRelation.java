@@ -77,32 +77,25 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       assumptionsUnderflow =
           noUnderflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
 
-      if (assumptionsOverflow.isEmpty()) {
+      if (assumptionsOverflow.isEmpty() && assumptionsUnderflow.isEmpty()) {
         outStates
             .add(new OverflowState(ImmutableSet.of(), nextHasOverflow, nextHasUnderflow, prev));
-        continue;
       } else {
         for (CExpression assumption : assumptionsOverflow) {
           outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, false, prev));
         }
-      }
-      if (assumptionsUnderflow.isEmpty()) {
-        outStates
-            .add(new OverflowState(ImmutableSet.of(), nextHasOverflow, nextHasUnderflow, prev));
-        continue;
-      } else {
         for (CExpression assumption : assumptionsUnderflow) {
           outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), false, true, prev));
         }
-      }
 
-      // No overflows <=> all assumptions hold.
-      outStates.add(
+        // No overflows <=> all assumptions hold.
+        outStates.add(
           new OverflowState(
               Sets.union(assumptionsOverflow, assumptionsUnderflow),
               nextHasOverflow,
               nextHasUnderflow,
               prev));
+      }
     }
 
     return outStates.build();
