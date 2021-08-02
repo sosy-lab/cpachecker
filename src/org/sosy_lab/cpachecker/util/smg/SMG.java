@@ -22,10 +22,13 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGExplicitValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 
 /**
  * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
@@ -225,6 +228,52 @@ public class SMG {
     // TODO: Are multiple values possible for the same filter? If yes, create another method to
     // return all of them.
     return hasValueEdges.get(object).stream().filter(filter).findAny();
+  }
+
+  /**
+   * Read a value of an object in the field specified by offset and size. This returns a read
+   * re-interpretation of the field, which means it returns either the symbolic value that is
+   * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
+   * guaranteed to be completely accurate! TODO: Do we have to check for nullified blocks even if a
+   * value is defined?
+   *
+   * @param object The object from which is to be read.
+   * @param offset The offset from which on the field in the object is to be read.
+   * @param sizeInBits Size in bits, specifying the size to be read from the offset.
+   * @return A updated SMG and the SMTValue that is a read re-interpretation of the field in the
+   *     object. May be 0, a symbolic value or a new unknown symbolic value.
+   */
+  public SMGandValue readValue(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
+    // Check that our field is inside the object: offset + sizeInBits <= size(object)
+    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+
+    // let v := H(o, of, t)
+    // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
+    // Check if multiple edges may exists for the same offset and size!
+    Predicate<SMGHasValueEdge> filterByOffsetAndSize =
+        o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits);
+    Optional<SMGHasValueEdge> maybeValue =
+        this.getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
+
+    // if v != undefined then return (smg, v)
+    if (maybeValue.isPresent()) {
+      return new SMGandValue(this, maybeValue.get().hasValue());
+    }
+
+    // if the field to be read is covered by nullified blocks, i.e. if
+    // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
+    // let v := 0. Otherwise extend V by a fresh value node v.
+    if (this.isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
+      return new SMGandValue(this, SMGExplicitValue.nullInstance());
+    }
+    int nestingLevel = object.getNestingLevel();
+    SMGValue newValue = SMGSymbolicValue.of(nestingLevel);
+    SMG newSMG = this.copyAndAddValue(newValue);
+    // Extend H by the has-value edge o -> v with the offset and size and return (smg,v) based on
+    // the newly obtained SMG.
+    SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, sizeInBits, offset);
+    newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
+    return new SMGandValue(newSMG, newValue);
   }
 
   /**
