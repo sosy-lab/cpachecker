@@ -237,11 +237,9 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState child1 = usedChildren.get(0);
       s2s.putAll(current, s2s.get(child1));
 
-      final Collection<String> iVars = new LinkedHashSet<>();
       // vars from latest important child,
       // we have to copy them, there could be another parent somewhere else
-      iVars.addAll(s2v.get(child1));
-      return iVars;
+      return new LinkedHashSet<>(s2v.get(child1));
 
     } else {
       // there can be several children --> collect their vars and join them
@@ -259,8 +257,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
           newVars = oldVars;
         } else {
           // copy oldVars, they will be used later for a second parent
-          newVars = new LinkedHashSet<>();
-          newVars.addAll(oldVars);
+          newVars = new LinkedHashSet<>(oldVars);
         }
 
         // do the hard work
