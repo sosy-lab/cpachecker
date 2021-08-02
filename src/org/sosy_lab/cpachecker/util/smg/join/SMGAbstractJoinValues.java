@@ -15,6 +15,8 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
@@ -58,6 +60,10 @@ public class SMGAbstractJoinValues {
     mapping2 = other.getMapping2();
     isRecoverableFailure = other.isRecoverableFailure;
     isDefined = other.isDefined;
+  }
+
+  protected boolean isDLLS(SMGObject smgObject) {
+    return smgObject instanceof SMGDoublyLinkedListSegment;
   }
 
   public NodeMapping getMapping1() {

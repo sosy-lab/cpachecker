@@ -187,9 +187,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
         headOffset);
   }
 
-  private boolean isDLLS(SMGObject smgObject) {
-    return smgObject instanceof SMGDoublyLinkedListSegment;
-  }
+
 
   /**
    * Delayed join implementation Algorithm 6 steps 11.
