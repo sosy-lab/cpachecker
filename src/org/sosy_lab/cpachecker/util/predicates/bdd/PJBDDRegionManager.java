@@ -269,6 +269,7 @@ public class PJBDDRegionManager implements RegionManager {
 
       if (cacheSize == 0) {
         cacheSize = initTableSize * (int) cacheRatio;
+        cacheSize = Math.max(cacheSize, 100000);
       }
 
       if(disableThreadSafety){
