@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isSignedIntegerType;
 import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
@@ -1231,10 +1232,8 @@ public class CFABuilder {
       CType constantType = typeConverter.getCType(pItem.typeOf());
       /* get the name of the type and sanitize it
        * to form a correct C identifier */
-      String typeName = constantType.toString().replace(' ', '_');
-      typeName = typeName.replace('(', '_');
-      typeName = typeName.replace(')', '_');
-      typeName = typeName.replace(':', '_');
+      String typeName = constantType.toString();
+      typeName = CharMatcher.anyOf(" ():").replaceFrom(typeName, "_");
       typeName = typeName.replace("*", "_ptr_");
 
       String undefName = "__VERIFIER_undef_" + typeName;

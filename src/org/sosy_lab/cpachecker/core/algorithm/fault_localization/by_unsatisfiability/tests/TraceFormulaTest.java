@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -92,7 +93,7 @@ public class TraceFormulaTest {
                   if (key == LogKeys.TFPRECONDITION) {
                     entries.put(key, value);
                   } else {
-                    value = value.replace("[", "").replace("]", "");
+                    value = CharMatcher.anyOf("[]").removeFrom(value);
                     Splitter.on(", ")
                         .splitToList(value)
                         .forEach(loc -> entries.put(key, Integer.parseInt(loc)));

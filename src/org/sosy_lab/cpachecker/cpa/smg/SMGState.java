@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -2089,7 +2090,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
       functionName.append("_");
-      functionName.append(parameterDcl.toASTString().replace("*", "_").replace(" ", "_"));
+      functionName.append(CharMatcher.anyOf("* ").replaceFrom(parameterDcl.toASTString(), "_"));
     }
 
     return "__" + functionName;

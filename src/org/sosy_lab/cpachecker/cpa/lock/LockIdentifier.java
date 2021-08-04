@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import com.google.common.base.CharMatcher;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -71,8 +72,7 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
 
   private static String getCleanName(String originName) {
     if (originName != null) {
-      String newName = originName.replace("(", "");
-      newName = newName.replace(")", "");
+      String newName = CharMatcher.anyOf("()").removeFrom(originName);
       newName = newName.replaceAll("___\\d*", "");
       return newName;
     } else {
