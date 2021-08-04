@@ -384,19 +384,11 @@ public class SMG {
     return pointsToEdges.values();
   }
 
-  /**
-   * Copies this SMG and returns the copy.
-   *
-   * @return A copy of this SMG.
-   */
+
   public PersistentMap<SMGValue, SMGPointsToEdge> getPTEdgeMapping() {
     return pointsToEdges;
   }
 
-
-  public SMG copy() {
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges);
-  }
 
   /**
    * Returns the SMGPointsToEdge associated with the entered SMGValue.
