@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
 
@@ -409,6 +410,62 @@ public class SMG {
     return pointsToEdges.get(value);
   }
 
+  /**
+   * Checks whether a given value is a pointer address.
+   *
+   * @param pValue to be checked
+   * @return true if pValue is a pointer.
+   */
+  public boolean isPointer(SMGValue pValue) {
+    return pointsToEdges.get(pValue) != null;
+  }
 
+  /**
+   * Checks whether there exists an other edge for a given SMGObject, that overlaps with the
+   * provided edge.
+   *
+   * @param pHValueEdge - the provided edge
+   * @param pObject - the given SMGObject
+   * @return true if there exists an overlapping edge with the provided edge.
+   */
+  public boolean hasOverlappingEdge(SMGHasValueEdge pHValueEdge, SMGObject pObject) {
+    return getEdges(pObject).stream().anyMatch(other -> {
+      BigInteger otherStart = other.getOffset();
+      BigInteger otherEnd = otherStart.add(other.getSizeInBits());
+      BigInteger pStart = pHValueEdge.getOffset();
+      BigInteger pEnd = pStart.add(pHValueEdge.getSizeInBits());
+
+      // pStart greater
+      if (pStart.compareTo(otherStart) > 0) {
+        return pStart.compareTo(otherEnd) < 0;
+      }
+      // pStart less
+      if (pStart.compareTo(otherStart) < 0) {
+        return pEnd.compareTo(otherStart) > 0;
+      }
+
+      return true;
+    });
+  }
+
+  /**
+   * Finds a pointer address to given pointer attributes.
+   *
+   * @param targetObject the wanted pointer
+   * @param pOffset of the wanted pointer
+   * @param pTargetSpecifier of the wanted pointer
+   * @return Optional empty, if there is no such pointer or the address of a matching pointer.
+   */
+  public Optional<SMGValue> findAddressForEdge(
+      SMGObject targetObject,
+      BigInteger pOffset,
+      SMGTargetSpecifier pTargetSpecifier) {
+    return pointsToEdges.entrySet().stream().filter(entry -> {
+      SMGPointsToEdge edge = entry.getValue();
+      return edge.getOffset().equals(pOffset)
+          && edge.targetSpecifier().equals(pTargetSpecifier)
+          && edge.pointsTo().equals(targetObject);
+    }).findAny().map(entry -> entry.getKey());
+  }
 
 }
