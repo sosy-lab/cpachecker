@@ -35,7 +35,7 @@ public class NodeMapping {
   }
 
   public boolean mappingExists(SMGObject pMappedObject) {
-    return objectMap.values().stream().anyMatch(o -> o.equals(pMappedObject));
+    return objectMap.containsValue(pMappedObject);
   }
 
   public boolean hasMapping(SMGValue pValue) {
