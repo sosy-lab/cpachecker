@@ -148,7 +148,7 @@ public class SlicingAbstractionsUtils {
    */
   public static ImmutableMap<ARGState, PersistentList<ARGState>> calculateOutgoingSegments(
       ARGState originState) {
-    checkArgument(isAbstractionState(originState));
+    // checkArgument(isAbstractionState(originState));
 
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
