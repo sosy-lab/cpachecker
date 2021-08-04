@@ -30,7 +30,6 @@ import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -63,7 +62,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-@Options(prefix = "TraceAbstractionRefiner")
 public class TraceAbstractionRefiner implements ARGBasedRefiner {
 
   private final StatTimer totalTime = new StatTimer("Total time for refinement");
@@ -89,7 +87,6 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
 
     // TODO: refactor this into a new 'RefinementStrategy' class.
     //
