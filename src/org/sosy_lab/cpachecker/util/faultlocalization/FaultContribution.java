@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,8 +62,7 @@ public class FaultContribution {
 
   @Override
   public String toString() {
-    List<FaultInfo> copy = new ArrayList<>(infos);
-    Collections.sort(copy);
+    List<FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
 
     StringBuilder out =
         new StringBuilder(
@@ -103,18 +102,7 @@ public class FaultContribution {
       FaultContribution casted = (FaultContribution)q;
       if (correspondingEdge.equals(casted.correspondingEdge())){
         if(casted.getInfos().size() == getInfos().size()){
-          List<FaultInfo> copy = new ArrayList<>(infos);
-          List<FaultInfo> copy2 = new ArrayList<>(casted.infos);
-
-          Collections.sort(copy);
-          Collections.sort(copy2);
-
-          for(int i = 0; i < copy.size(); i++){
-            if(!copy.get(i).equals(copy2.get(i))){
-              return false;
-            }
-          }
-          return true;
+          return ImmutableList.sortedCopyOf(infos).equals(ImmutableList.sortedCopyOf(casted.infos));
         }
       }
     }
