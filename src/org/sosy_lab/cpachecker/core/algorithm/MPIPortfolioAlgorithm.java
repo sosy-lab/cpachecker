@@ -15,6 +15,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.base.Verify.verifyNotNull;
 import static java.util.function.Predicate.not;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -466,7 +467,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "Executed the following command for the successful subanalysis:");
         String formattedCmdline =
             FluentIterable.from(successfulAnalysis.getCmdLine())
-                .transform(x -> x.replaceAll("\\s", ""))
+                .transform(CharMatcher.whitespace()::removeFrom)
                 .join(Joiner.on(" "));
         logger.log(Level.INFO, formattedCmdline);
 
