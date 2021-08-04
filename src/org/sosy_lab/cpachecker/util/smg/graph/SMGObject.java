@@ -98,4 +98,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return equals(NULL_OBJECT);
   }
 
+  public SMGObject copyWithNewLevel(int pNewLevel) {
+    return of(pNewLevel, size, offset, valid);
+  }
+
 }

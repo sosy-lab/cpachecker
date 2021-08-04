@@ -60,4 +60,17 @@ public class SMGDoublyLinkedListSegment extends SMGListSegment {
     return super.hashCode();
   }
 
+  @Override
+  public SMGObject copyWithNewLevel(int newLevel) {
+    return new SMGDoublyLinkedListSegment(
+        newLevel,
+        getSize(),
+        getOffset(),
+        isValid(),
+        prevOffset,
+        nextOffset,
+        minLength,
+        headOffset);
+  }
+
 }
