@@ -367,7 +367,7 @@ public class CtoFormulaConverter {
    * @return the name of the expression
    */
   static String exprToVarName(AAstNode e, String function) {
-    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
+    return (function + "::" + exprToVarNameUnscoped(e)).intern();
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
