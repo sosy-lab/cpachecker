@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
@@ -65,7 +64,10 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoinValues {
     }
     // TODO Is the used size the correct one?
     Optional<SMGHasValueEdge> edgeToNextSmgValue =
-        inputSMG1.getHasValueEdgeByOffsetAndSize(dlls1, nextFieldOffset, dlls1.getSize());
+        inputSMG1.getHasValueEdgeByPredicate(
+            dlls1,
+            edge -> nextFieldOffset.equals(edge.getOffset())
+                && dlls1.getSize().equals(edge.getSizeInBits()));
 
     SMGValue nextValue = edgeToNextSmgValue.orElseThrow().hasValue();
 
@@ -111,7 +113,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoinValues {
         destSMG
             .findAddressForEdge(freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier());
     if(resultOptional.isEmpty()) {
-      value = SMGSymbolicValue.of(pValue1.getNestingLevel() + pNestingLevelDiff);
+      value = SMGValue.of(pValue1.getNestingLevel() + pNestingLevelDiff);
       mapping1.addMapping(pValue1, value);
       destSMG =
           destSMG.copyAndAddValue(value)
@@ -178,7 +180,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoinValues {
         if (!mapping1.hasMapping(subSmgValue)) {
           mappedSubSmgValue = mapping1.getMappedValue(subSmgValue);
         } else {
-            mappedSubSmgValue = SMGSymbolicValue.of(subSmgValue.getNestingLevel());
+          mappedSubSmgValue = SMGValue.of(subSmgValue.getNestingLevel());
             destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
             mapping1.addMapping(subSmgValue, mappedSubSmgValue);
           }
@@ -249,7 +251,7 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoinValues {
     }
     // step 4 - 3
     if (!mapping1.hasMapping(pValue1)) {
-      value = SMGSymbolicValue.of(pValue1.getNestingLevel());
+      value = SMGValue.of(pValue1.getNestingLevel());
       destSMG = destSMG.copyAndAddValue(value);
       SMGPointsToEdge edge = new SMGPointsToEdge(pMappedObject, offset, targetSpecifier);
       destSMG = destSMG.copyAndAddPTEdge(edge, value);

@@ -42,14 +42,12 @@ public class SMG {
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
   private final PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdges;
 
-  private final SMGObject nullObject = SMGObject.nullInstance();
-
   /** Creates a new, empty SMG */
   public SMG() {
     pointsToEdges = PathCopyingPersistentTreeMap.of();
     hasValueEdges = PathCopyingPersistentTreeMap.of();
     smgValues = PersistentSet.of();
-    smgObjects = PersistentSet.<SMGObject>of().addAndCopy(nullObject);
+    smgObjects = PersistentSet.<SMGObject>of();
   }
 
   private SMG(
@@ -175,7 +173,7 @@ public class SMG {
    * @return The null SMGObject.
    */
   public SMGObject getNullObject() {
-    return nullObject;
+    return SMGObject.nullInstance();
   }
 
   /**
