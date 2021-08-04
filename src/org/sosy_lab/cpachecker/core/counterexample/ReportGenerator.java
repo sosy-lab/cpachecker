@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.util.logging.Level.WARNING;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -464,7 +465,8 @@ public class ReportGenerator {
                     + "</td><td>"
                     + htmlEscaper().escape(splitLineAnotherValue.get(0))
                     + "</td><td>"
-                    + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]", ""))
+                    + htmlEscaper()
+                        .escape(CharMatcher.anyOf("()").removeFrom(splitLineAnotherValue.get(1)))
                     + "</td></tr>\n";
             writer.write(line);
           } else {
