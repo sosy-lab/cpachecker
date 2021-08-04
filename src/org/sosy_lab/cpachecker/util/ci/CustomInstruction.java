@@ -95,8 +95,8 @@ public class CustomInstruction {
 
   private final CFANode ciStartNode;
   private final Set<CFANode> ciEndNodes;
-  private final List<String> inputVariables;
-  private final List<String> outputVariables;
+  private final ImmutableList<String> inputVariables;
+  private final ImmutableList<String> outputVariables;
   private final ShutdownNotifier shutdownNotifier;
 
   /**
@@ -112,8 +112,8 @@ public class CustomInstruction {
   public CustomInstruction(
       final CFANode pCIStartNode,
       final Set<CFANode> pCIEndNodes,
-      final List<String> pInputVariables,
-      final List<String> pOutputVariables,
+      final ImmutableList<String> pInputVariables,
+      final ImmutableList<String> pOutputVariables,
       final ShutdownNotifier pShutdownNotifier) {
 
       ciStartNode = pCIStartNode;
