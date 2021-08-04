@@ -133,13 +133,14 @@ public class CustomInstruction {
 
     sb.append("(");
     if (!inputVariables.isEmpty()) {
-      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
+      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils::getSMTName));
     }
 
     sb.append(") -> (");
 
     if (!outputVariables.isEmpty()) {
-      Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
+      Joiner.on(", ")
+          .appendTo(sb, Iterables.transform(outputVariables, CIUtils::getSMTNameWithIndex));
     }
     sb.append(")");
 
