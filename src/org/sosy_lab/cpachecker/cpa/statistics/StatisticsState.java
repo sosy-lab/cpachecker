@@ -37,7 +37,7 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     private StatisticsData analysisData = null;
     private Map<CFAEdge, Boolean> analysisTrack = null;
 
-    public static enum FactoryAnalysisType {
+    public enum FactoryAnalysisType {
       Analysis, MetricsQuery
     }
 

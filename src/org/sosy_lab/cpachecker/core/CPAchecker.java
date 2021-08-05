@@ -85,10 +85,10 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @Options
 public class CPAchecker {
 
-  public static interface CPAcheckerMXBean {
-    public int getReachedSetSize();
+  public interface CPAcheckerMXBean {
+    int getReachedSetSize();
 
-    public void stop();
+    void stop();
   }
 
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
@@ -121,7 +121,7 @@ public class CPAchecker {
   )
   private boolean stopAfterError = true;
 
-  public static enum InitialStatesFor {
+  public enum InitialStatesFor {
     /**
      * Function entry node of the entry function
      */

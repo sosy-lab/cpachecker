@@ -73,7 +73,7 @@ public final class ExpressionSubstitution {
     return applySubstitution(pExpression, substitution, pBinExpBuilder);
   }
 
-  public static interface Substitution {
+  public interface Substitution {
 
     /**
      * Substitutes the given expression by another expression.

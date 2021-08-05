@@ -263,7 +263,7 @@ public class SlicingAbstractionsUtils {
     return getPredicateState(pState).isAbstractionState() || !pState.wasExpanded();
   }
 
-  public static enum AbstractionPosition {
+  public enum AbstractionPosition {
     START,
     END;
 

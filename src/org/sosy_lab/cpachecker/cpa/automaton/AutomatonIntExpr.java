@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
   @Override
-  abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
+  ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
   /** Stores a constant integer. */
   static class Constant implements AutomatonIntExpr {

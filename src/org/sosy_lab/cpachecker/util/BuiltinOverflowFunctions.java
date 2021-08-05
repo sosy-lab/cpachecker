@@ -68,7 +68,7 @@ public class BuiltinOverflowFunctions {
     public final Boolean hasNoSideEffects;
     public final String name;
 
-    private BuiltinOverflowFunction(BinaryOperator pOperator, CSimpleType pType, Boolean pHasNoSideEffect) {
+    BuiltinOverflowFunction(BinaryOperator pOperator, CSimpleType pType, Boolean pHasNoSideEffect) {
       operator = pOperator;
       type = Optional.fromNullable(pType);
       hasNoSideEffects = pHasNoSideEffect;

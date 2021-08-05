@@ -15,7 +15,7 @@ import java.util.Set;
 
 public class LockIdentifier implements Comparable<LockIdentifier> {
 
-  public static enum LockType {
+  public enum LockType {
     MUTEX,
     GLOBAL_LOCK,
     LOCAL_LOCK,

@@ -1583,7 +1583,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * @param pNode the visited node
      * @return a {@link VisitResult} to guide the SDG traversal
      */
-    public VisitResult visitNode(N pNode);
+    VisitResult visitNode(N pNode);
 
     /**
      * Accepts visited edges during system dependence graph traversal.
@@ -1596,7 +1596,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * @param pSuccessor the successor of the visited edge
      * @return a {@link VisitResult} to guide the SDG traversal
      */
-    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor);
+    VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor);
   }
 
   /**

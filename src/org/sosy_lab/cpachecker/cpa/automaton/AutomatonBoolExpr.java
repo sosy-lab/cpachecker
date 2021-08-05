@@ -65,14 +65,13 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
  * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
 interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
-  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
-  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
+  ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
+  ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
 
   @Override
-  abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-      throws CPATransferException;
+  ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-  static enum MatchProgramExit implements AutomatonBoolExpr {
+  enum MatchProgramExit implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -130,7 +129,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static enum MatchProgramEntry implements AutomatonBoolExpr {
+  enum MatchProgramEntry implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -149,7 +148,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static enum MatchLoopStart implements AutomatonBoolExpr {
+  enum MatchLoopStart implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -777,7 +776,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static enum MatchJavaAssert implements AutomatonBoolExpr {
+  enum MatchJavaAssert implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -796,7 +795,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static enum MatchAssumeEdge implements AutomatonBoolExpr {
+  enum MatchAssumeEdge implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -992,7 +991,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static enum MatchSplitDeclaration implements AutomatonBoolExpr {
+  enum MatchSplitDeclaration implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -1218,7 +1217,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static enum CheckAllCpasForTargetState implements AutomatonBoolExpr {
+  enum CheckAllCpasForTargetState implements AutomatonBoolExpr {
     INSTANCE;
 
     @Override
@@ -1243,7 +1242,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Constant for true. */
-  static final AutomatonBoolExpr TRUE =
+  AutomatonBoolExpr TRUE =
       new AutomatonBoolExpr() {
         @Override
         public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -1257,7 +1256,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       };
 
   /** Constant for false. */
-  static final AutomatonBoolExpr FALSE =
+  AutomatonBoolExpr FALSE =
       new AutomatonBoolExpr() {
         @Override
         public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {

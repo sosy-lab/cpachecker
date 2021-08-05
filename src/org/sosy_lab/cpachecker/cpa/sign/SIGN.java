@@ -29,7 +29,7 @@ public enum SIGN implements Serializable{
     VALUE_MAP = builder.build();
   }
 
-  private SIGN(int numVal) {
+  SIGN(int numVal) {
       this.numVal = numVal;
   }
 

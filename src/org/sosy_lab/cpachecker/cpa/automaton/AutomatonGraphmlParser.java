@@ -2227,7 +2227,7 @@ public class AutomatonGraphmlParser {
     return message;
   }
 
-  private static interface InputHandler<T, E extends Throwable> {
+  private interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }
