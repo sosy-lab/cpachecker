@@ -566,6 +566,10 @@ public class CoreComponentsFactory {
         }
       }
 
+      if(concurrentTaskPartitioning){
+        algorithm = ConcurrentAnalysis.create(algorithm, cfa, config, specification, logger, shutdownNotifier);
+      }
+
       algorithm =
           ExceptionHandlingAlgorithm.create(
               config, algorithm, cpa, logger, shutdownNotifier, checkCounterexamples, useCEGAR);
