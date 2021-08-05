@@ -7,45 +7,44 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe("ReportController", function () {
+describe("ReportController", () => {
   let $rootScope;
   let $scope;
-  let controller;
 
-  beforeEach(function () {
+  beforeEach(() => {
     angular.mock.module("report");
 
-    angular.mock.inject(function ($injector) {
+    angular.mock.inject(($injector) => {
       $rootScope = $injector.get("$rootScope");
       $scope = $rootScope.$new();
-      controller = $injector.get("$controller")("SourceController", {
-        $scope: $scope,
+      $injector.get("$controller")("SourceController", {
+        $scope,
       });
     });
     jasmine.getFixtures().fixturesPath = "base/";
     jasmine.getFixtures().load("testReport.html");
   });
 
-  describe("sourceFiles initialization", function () {
-    it("Should be defined", function () {
+  describe("sourceFiles initialization", () => {
+    it("Should be defined", () => {
       expect($scope.sourceFiles).not.toBeUndefined();
     });
   });
 
-  describe("selectedSourceFile initialization", function () {
-    it("Should be defined", function () {
+  describe("selectedSourceFile initialization", () => {
+    it("Should be defined", () => {
       expect($scope.selectedSourceFile).not.toBeUndefined();
     });
   });
 
-  describe("setSourceFile action handler", function () {
-    it("Should be defined", function () {
+  describe("setSourceFile action handler", () => {
+    it("Should be defined", () => {
       expect($scope.setSourceFile).not.toBeUndefined();
     });
   });
 
-  describe("sourceFileIsSet action handler", function () {
-    it("Should be defined", function () {
+  describe("sourceFileIsSet action handler", () => {
+    it("Should be defined", () => {
       expect($scope.sourceFileIsSet).not.toBeUndefined();
     });
   });

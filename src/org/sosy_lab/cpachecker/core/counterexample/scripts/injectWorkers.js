@@ -8,14 +8,16 @@
 
 const fs = require("fs");
 const path = require("path");
-const pako = require('pako');
+const pako = require("pako");
 
 const rawWorkerPath = path.join(__dirname, "../worker");
 const workerDataFile = path.join(__dirname, "../build_tmp/workerData.js");
 const vendorPath = path.join(__dirname, "../vendor");
 
 const workerFiles = ["argWorker.js", "cfaWorker.js"];
-const vendorFiles = fs.readdirSync(vendorPath).filter(file => !file.includes("license"));
+const vendorFiles = fs
+  .readdirSync(vendorPath)
+  .filter((file) => !file.includes("license"));
 
 let output = "";
 const workerNames = [];
@@ -31,12 +33,11 @@ workerFiles.forEach((worker) => {
   workerNames.push(workerName);
   const workerPath = path.join(rawWorkerPath, worker);
   const workerContent = fs.readFileSync(workerPath);
-  let content = Buffer.concat([
-    ...vendorFileContents,
-    workerContent,
-  ]);
+  let content = Buffer.concat([...vendorFileContents, workerContent]);
   // Convert content to utf8 and strip comments
-  content = content.toString("utf8").replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1')
+  content = content
+    .toString("utf8")
+    .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, "$1");
   // Compress content and encode as base64
   content = Buffer.from(pako.deflate(content)).toString("base64");
 

@@ -7,33 +7,32 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe("ReportController", function () {
+describe("ReportController", () => {
   let $rootScope;
   let $scope;
-  let controller;
 
-  beforeEach(function () {
+  beforeEach(() => {
     angular.mock.module("report");
 
-    angular.mock.inject(function ($injector) {
+    angular.mock.inject(($injector) => {
       $rootScope = $injector.get("$rootScope");
       $scope = $rootScope.$new();
-      controller = $injector.get("$controller")("ReportController", {
-        $scope: $scope,
+      $injector.get("$controller")("ReportController", {
+        $scope,
       });
     });
     jasmine.getFixtures().fixturesPath = "base/";
     jasmine.getFixtures().load("testReport.html");
   });
 
-  describe("Logo initialization", function () {
-    it("Should instantiate logo", function () {
+  describe("Logo initialization", () => {
+    it("Should instantiate logo", () => {
       expect($scope.logo).toEqual("https://cpachecker.sosy-lab.org/logo.svg");
     });
   });
 
-  describe(" help_content initialization", function () {
-    it("Should instantiate logo", function () {
+  describe(" help_content initialization", () => {
+    it("Should instantiate logo", () => {
       expect($scope.help_content).toEqual(
         '<div class="container " style="font-family: Arial"><p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>' +
           "Initially all CFA's are displayed below one another beginning with the CFA for the program entry function.</p>" +
@@ -62,8 +61,8 @@ describe("ReportController", function () {
     });
   });
 
-  describe("help_errorpath initialization", function () {
-    it("Should instantiate logo", function () {
+  describe("help_errorpath initialization", () => {
+    it("Should instantiate logo", () => {
       expect($scope.help_errorpath).toEqual(
         "<div style=\"font-family: Arial\"><p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>" +
           "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>" +
@@ -76,52 +75,52 @@ describe("ReportController", function () {
     });
   });
 
-  describe("tab initialization", function () {
-    it("Should instantiate tab to 1", function () {
+  describe("tab initialization", () => {
+    it("Should instantiate tab to 1", () => {
       expect($scope.tab).toEqual(1);
     });
   });
 
-  describe("ChangeTab Watcher", function () {
-    it("Should instantiate tab to 1", function () {
-      const spyEvent = spyOnEvent("#full_screen_mode", "click");
+  describe("ChangeTab Watcher", () => {
+    it("Should instantiate tab to 1", () => {
+      spyOnEvent("#full_screen_mode", "click");
       $("#full_screen_mode").click();
       expect("click").toHaveBeenTriggeredOn("#full_screen_mode");
     });
   });
 
-  describe("makeFullScreen action Handler", function () {
-    it("Should be defined", function () {
+  describe("makeFullScreen action Handler", () => {
+    it("Should be defined", () => {
       expect($scope.makeFullScreen).not.toBeUndefined();
     });
   });
 
-  describe("setTab action Handler", function () {
-    it("Should be defined", function () {
+  describe("setTab action Handler", () => {
+    it("Should be defined", () => {
       expect($scope.setTab).not.toBeUndefined();
     });
   });
 
-  describe("tabIsSet action Handler", function () {
-    it("Should be defined", function () {
+  describe("tabIsSet action Handler", () => {
+    it("Should be defined", () => {
       expect($scope.tabIsSet()).not.toBeUndefined();
     });
 
-    it("Tab must be set to 1 initially", function () {
+    it("Tab must be set to 1 initially", () => {
       expect($scope.tabIsSet(1)).toEqual(true);
     });
   });
 
-  describe("getTabSet action Handler", function () {
-    it("Should be defined", function () {
+  describe("getTabSet action Handler", () => {
+    it("Should be defined", () => {
       expect($scope.getTabSet()).not.toBeUndefined();
     });
 
-    it("Tab must be set to 1 initially", function () {
+    it("Tab must be set to 1 initially", () => {
       expect($scope.getTabSet()).toEqual(1);
     });
 
-    it("Tab set to 3, must return 3", function () {
+    it("Tab set to 3, must return 3", () => {
       $scope.tab = 3;
       expect($scope.getTabSet()).toEqual(3);
     });

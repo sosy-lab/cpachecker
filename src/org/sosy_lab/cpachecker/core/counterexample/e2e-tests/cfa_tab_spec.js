@@ -9,22 +9,15 @@
 
 const EC = protractor.ExpectedConditions;
 
-const hasClass = function (element, cls) {
-  return element.getAttribute("class").then(function (classes) {
-    console.log("");
-    return classes.split(" ").indexOf(cls) !== -1;
-  });
-};
-
-describe("CFA testing", function () {
-  let dirname = __dirname + "/Counterexample.1.html";
+describe("CFA testing", () => {
+  let dirname = `${__dirname}/Counterexample.1.html`;
   dirname = dirname.replace(/\\/g, "/");
   browser.waitForAngularEnabled(false);
   browser.get(dirname);
   browser.driver.sleep(100);
 
-  describe("Display CFA dropdown test", function () {
-    it("Display CFA dropdown test-1", function () {
+  describe("Display CFA dropdown test", () => {
+    it("Display CFA dropdown test-1", () => {
       browser.wait(EC.presenceOf(element(by.id("set-tab-1"))));
       element(by.id("set-tab-1")).click();
       browser.wait(
@@ -47,7 +40,7 @@ describe("CFA testing", function () {
       ).toBeFalsy();
     });
 
-    it("Display CFA dropdown test-2", function () {
+    it("Display CFA dropdown test-2", () => {
       element(by.id("set-tab-1")).click();
       browser
         .actions()
@@ -67,8 +60,8 @@ describe("CFA testing", function () {
     });
   });
 
-  describe("Hover over node", function () {
-    it("Display popover dialoag box", function () {
+  describe("Hover over node", () => {
+    it("Display popover dialoag box", () => {
       browser.wait(EC.presenceOf(element(by.xpath('//*[@id="cfa-node23"]'))));
       browser
         .actions()
@@ -81,9 +74,9 @@ describe("CFA testing", function () {
     });
   });
 
-  describe("Double click on edge", function () {
+  describe("Double click on edge", () => {
     // Double Click not working
-    it("Jump to source code", function () {
+    it("Jump to source code", () => {
       // element(by.id('set-tab-1')).click();
       // browser.actions().mouseMove(element(by.xpath('//*[@id="cfa-node100001"]'))).click();
       // browser.actions().doubleClick(element(by.xpath('//*[@id="cfa-node100001"]'))).click();
@@ -92,9 +85,9 @@ describe("CFA testing", function () {
     });
   });
 
-  describe("Double click on node select function", function () {
+  describe("Double click on node select function", () => {
     // Double Click not working
-    it("Display selected function CFA  graph", function () {
+    it("Display selected function CFA  graph", () => {
       //  element(by.id('set-tab-1')).click();
       // browser.actions().doubleClick(element(by.xpath('//*[@id="cfa-node100001"]'))).click();
       // expect(element(by.xpath('//*[@id="cfa-svg-main0"]')).isDisplayed()).toBeFalsy();
