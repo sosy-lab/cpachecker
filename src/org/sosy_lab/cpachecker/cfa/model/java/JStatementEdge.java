@@ -16,16 +16,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JStatementEdge extends AStatementEdge {
 
-
   private static final long serialVersionUID = -785179844865167134L;
 
-  public JStatementEdge(String pRawStatement, JStatement pStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
+  public JStatementEdge(
+      String pRawStatement,
+      JStatement pStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor) {
 
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
   }
-
-
 
   @Override
   public JStatement getStatement() {
@@ -34,6 +35,6 @@ public class JStatementEdge extends AStatementEdge {
 
   @Override
   public Optional<JStatement> getRawAST() {
-    return Optional.of((JStatement)statement);
+    return Optional.of((JStatement) statement);
   }
 }

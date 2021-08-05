@@ -141,7 +141,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @SuppressWarnings("Finally") // not really better doable without switching to Closer
-  private boolean checkAndReadSequentially() {
+  private boolean checkAndReadSequentially() throws InterruptedException {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
@@ -191,7 +191,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
         return false;
-      } catch (Exception e2) {
+      } catch (CPAException e2) {
         logger.logException(Level.SEVERE, e2, "Failure during proof reading or checking");
         return false;
       } finally {

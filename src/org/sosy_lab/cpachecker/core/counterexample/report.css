@@ -250,7 +250,11 @@ input:checked+.slider:before {
 	background: linear-gradient(#83d480, #71afff) !important;
 }
 
-#err-table td {
+/*
+ if a table column in the error-path display has data-content or is clickable,
+ show this with a pointy cursor.
+*/
+#err-table td[data-content], #err-table td[ng-click] {
 	cursor: pointer;
 }
 
@@ -820,3 +824,23 @@ text {
 	font-weight: bold;
 }
 
+#dependency-details .dependency-container {
+	padding: 1.5rem 0;
+	border-top: 1px solid #bfbfbf;
+}
+
+#dependency-details .dependency-container:first-of-type {
+	margin-top: 1rem;
+}
+
+#dependency-details h4 {
+	font-size: 1.3rem;
+}
+
+#dependency-details p {
+	margin-bottom: 0;
+}
+
+#dependency-details .license-text {
+	padding-top: 1rem;
+}

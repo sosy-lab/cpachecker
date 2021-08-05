@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -71,7 +70,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       name = "proof",
       description = "file in which proof representation needed for proof checking is stored")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  protected Path proofFile = Paths.get("arg.obj");
+  protected Path proofFile = Path.of("arg.obj");
 
   public ProofCheckAlgorithm(
       ConfigurableProgramAnalysis cpa,

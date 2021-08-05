@@ -489,8 +489,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     default:
       throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
-    if ((truthAssumption && result)
-        || (!truthAssumption && !result)) {
+    if (truthAssumption == result) {
       return Collections.singleton(state);
     } else {
       return ImmutableSet.of();

@@ -14,7 +14,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -124,7 +123,7 @@ class CFABuilder extends ASTVisitor {
     shutdownNotifier.shutdownIfNecessary();
 
     if (!isNullOrEmpty(ast.getFilePath())) {
-      parsedFiles.add(Paths.get(ast.getFilePath()));
+      parsedFiles.add(Path.of(ast.getFilePath()));
     }
     sideAssignmentStack = new Sideassignments();
     artificialScope = pFallbackScope;

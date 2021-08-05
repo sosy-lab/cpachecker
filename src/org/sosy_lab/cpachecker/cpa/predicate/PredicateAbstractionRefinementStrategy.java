@@ -90,7 +90,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
-  private static enum PredicateSharing {
+
+  private enum PredicateSharing {
     GLOBAL,            // at all locations
     SCOPE,             // at all locations in the scope of the variable
     FUNCTION,          // at all locations in the respective function
@@ -115,7 +116,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   // advantages. We do not want to use ALL by default because this would disable lazy abstraction.
   private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.SUBGRAPH;
 
-  private static enum PredicateBasisStrategy {ALL, SUBGRAPH, TARGET, CUTPOINT}
+  private enum PredicateBasisStrategy {
+    ALL,
+    SUBGRAPH,
+    TARGET,
+    CUTPOINT
+  }
 
   @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
@@ -266,12 +272,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   /**
    * Get the predicates out of an interpolant.
+   *
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  private final Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant, PathFormula blockFormula)
-      throws InterruptedException {
+  private Collection<AbstractionPredicate> convertInterpolant(
+      final BooleanFormula pInterpolant, PathFormula blockFormula) throws InterruptedException {
 
     BooleanFormula interpolant = pInterpolant;
 
@@ -371,8 +377,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     argUpdate.stop();
   }
 
-  private final Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
-      List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
+  private Pair<PredicatePrecision, ARGState> computeNewPrecision(
+      ARGState pUnreachableState,
+      List<ARGState> pAffectedStates,
+      ARGReachedSet pReached,
+      boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location

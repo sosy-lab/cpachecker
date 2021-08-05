@@ -38,7 +38,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
     throw new NotSerializableException();
   }
 
-  static enum TimeoutState implements AbstractState {
+  enum TimeoutState implements AbstractState {
     INSTANCE;
 
     @Override

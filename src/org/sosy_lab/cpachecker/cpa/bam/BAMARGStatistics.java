@@ -85,9 +85,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     final UnmodifiableReachedSet bamReachedSetView =
         createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
-    if (bamReachedSetView == null) {
-      return;
-    } else {
+    if (bamReachedSetView != null) {
       super.printStatistics(pOut, pResult, bamReachedSetView);
     }
   }
@@ -113,9 +111,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     final UnmodifiableReachedSet bamReachedSetView =
         createReachedSetViewWithoutExceptions(pReached, frontierStates, pResult);
-    if (bamReachedSetView == null) {
-      return;
-    } else {
+    if (bamReachedSetView != null) {
       super.writeOutputFiles(pResult, bamReachedSetView);
     }
   }
@@ -133,15 +129,11 @@ public class BAMARGStatistics extends ARGStatistics {
       return createReachedSetViewWithFallback(pReached, frontierStates, pResult);
 
     } catch (MissingBlockException e) {
-      logger.log(
-          Level.INFO,
-          ERROR_PREFIX,
-          String.format(
-              "(%s)", logger.wouldBeLogged(Level.FINE) ? e.getMessage() : "missing block"));
+      logger.logUserException(Level.WARNING, e, ERROR_PREFIX);
       return null; // invalid ARG, ignore output.
 
     } catch (InterruptedException e) {
-      logger.log(Level.WARNING, "could not compute full reached set graph:", e);
+      logger.logUserException(Level.WARNING, e, "could not compute full reached set graph");
       return null; // invalid ARG, ignore output
     }
   }
@@ -167,7 +159,8 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
         // fallback: if there is a missing block and we have a target state,
         // maybe at least a direct counterexample path can be exported
-        logger.log(Level.INFO, ERROR_PREFIX, "(fallback to counterexample traces)");
+        logger.logUserException(
+            Level.WARNING, e, ERROR_PREFIX + ", falling back to counterexample traces");
         return createReachedSetView(pReached, targetStates);
       }
 

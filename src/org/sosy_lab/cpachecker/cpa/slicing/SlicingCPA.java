@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.slicing.Slice;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
 import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
@@ -53,7 +54,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       secure = true,
       name = "refinableSlice",
       description =
-          "Whether to use a refinable slicing precision that starts with an empty slice, or a statically computed, fixed slicing precision")
+          "Whether to use a refinable slicing precision that starts with an empty slice, or a"
+              + " statically computed, fixed slicing precision")
   private boolean useRefinableSlice = false;
 
   private final LogManager logger;
@@ -85,7 +87,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       final Configuration pConfig,
       final CFA pCfa,
       final Specification pSpec)
-      throws InterruptedException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
 

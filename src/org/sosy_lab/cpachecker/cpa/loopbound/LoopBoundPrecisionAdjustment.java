@@ -101,7 +101,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     return Optional.of(result);
   }
 
-  private static interface MaxLoopIterationAdjuster {
+  private interface MaxLoopIterationAdjuster {
 
     int adjust(int currentValue);
 
@@ -109,14 +109,13 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
   }
 
-  private static interface MaxLoopIterationAdjusterFactory {
+  private interface MaxLoopIterationAdjusterFactory {
 
     MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment);
 
   }
 
-  private static enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
-
+  private enum MaxLoopIterationAdjusters implements MaxLoopIterationAdjusterFactory {
     STATIC {
 
       @Override
@@ -147,8 +146,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
   }
 
-  private static enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
-
+  private enum StaticLoopIterationAdjuster implements MaxLoopIterationAdjuster {
     INSTANCE;
 
     @Override

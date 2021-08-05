@@ -50,7 +50,7 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
   @Override
   public OctagonNumericValue add(OctagonNumericValue pVal) {
-    return pVal.add(value.doubleValue());
+    return pVal.add(value);
   }
 
   @Override

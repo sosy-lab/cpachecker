@@ -21,22 +21,22 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * also be supported.
  */
 public interface Value extends Serializable {
-  public boolean isNumericValue();
+  boolean isNumericValue();
 
   /** True if we have no idea about this value(can not track it), false otherwise. */
-  public boolean isUnknown();
+  boolean isUnknown();
 
   /** True if we deterministically know the actual value, false otherwise. */
-  public boolean isExplicitlyKnown();
+  boolean isExplicitlyKnown();
 
   /**
    * Returns the NumericValue if the stored value can be explicitly represented
    * by a numeric value, null otherwise.
    **/
-  public NumericValue asNumericValue();
+  NumericValue asNumericValue();
 
   /** Return the long value if this is a long value, null otherwise. **/
-  public Long asLong(CType type);
+  Long asLong(CType type);
 
   <T> T accept(ValueVisitor<T> pVisitor);
 

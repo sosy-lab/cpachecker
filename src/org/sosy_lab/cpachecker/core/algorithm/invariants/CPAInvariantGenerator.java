@@ -324,7 +324,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
   }
 
-  private static final boolean hasAssumption(AbstractState state) {
+  private static boolean hasAssumption(AbstractState state) {
     AssumptionStorageState assumption =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();

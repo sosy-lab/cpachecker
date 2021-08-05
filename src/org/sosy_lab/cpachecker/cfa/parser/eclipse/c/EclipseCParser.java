@@ -10,18 +10,19 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.MoreFiles;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -104,29 +105,27 @@ class EclipseCParser implements CParser {
   }
 
   /**
-   * Convert paths like "file.c" to "./file.c",
-   * and return all other patchs unchanged.
-   * The pre-processor of Eclipse CDT needs this to resolve relative includes.
+   * Convert paths like "file.c" to "./file.c", and return all other patchs unchanged. The
+   * pre-processor of Eclipse CDT needs this to resolve relative includes.
    */
-  private static String fixPath(String pPath) {
-    Path path = Paths.get(pPath);
+  private static Path fixPath(Path path) {
     if (!path.toString().isEmpty() && !path.isAbsolute() && path.getParent() == null) {
-      return Paths.get(".").resolve(path).toString();
+      return Path.of(".").resolve(path);
     }
-    return pPath;
+    return path;
   }
 
-  private FileContent wrapCode(String pFileName, String pCode) {
-    return FileContent.create(pFileName, pCode.toCharArray());
+  private FileContent wrapCode(Path pFileName, String pCode) {
+    return FileContent.create(pFileName.toString(), pCode.toCharArray());
   }
 
-  private FileContent wrapFile(String pFileName) throws IOException {
-    String code = MoreFiles.asCharSource(Paths.get(pFileName), Charset.defaultCharset()).read();
+  private FileContent wrapFile(Path pFileName) throws IOException {
+    String code = MoreFiles.asCharSource(pFileName, Charset.defaultCharset()).read();
     return wrapCode(pFileName, code);
   }
 
   private interface FileParseWrapper {
-    FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
+    FileContent wrap(Path pFileName, FileToParse pContent) throws IOException;
   }
 
   private ParseResult parseSomething(
@@ -140,7 +139,7 @@ class EclipseCParser implements CParser {
     Preconditions.checkNotNull(pSourceOriginMapping);
     Preconditions.checkNotNull(pWrapperFunction);
 
-    Map<String, String> fileNameMapping = new HashMap<>();
+    Map<Path, Path> fileNameMapping = new HashMap<>();
     for (FileToParse f : pInput) {
       fileNameMapping.put(fixPath(f.getFileName()), f.getFileName());
     }
@@ -152,7 +151,7 @@ class EclipseCParser implements CParser {
     List<IASTTranslationUnit> astUnits = new ArrayList<>(pInput.size());
 
     for (FileToParse f : pInput) {
-      final String fileName = fixPath(f.getFileName());
+      final Path fileName = fixPath(f.getFileName());
 
       try {
         astUnits.add(parse(pWrapperFunction.wrap(fileName, f), parseContext));
@@ -165,11 +164,11 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
+  public ParseResult parseFiles(List<String> pFilenames)
       throws CParserException, InterruptedException {
 
     return parseSomething(
-        Lists.transform(pFilenames, FileToParse::new),
+        Lists.transform(pFilenames, name -> new FileToParse(Path.of(name))),
         new CSourceOriginMapping(),
         CProgramScope.empty(),
         (pFileName, pContent) -> wrapFile(pFileName));
@@ -191,14 +190,6 @@ class EclipseCParser implements CParser {
 
   }
 
-  /** This method parses a single file where no prefix for static variables is needed. */
-  @Override
-  public ParseResult parseFile(String pFileName)
-      throws CParserException, IOException, InterruptedException {
-
-    return parseFile(ImmutableList.of(pFileName));
-  }
-
   /** This method parses a single string, where no prefix for static variables is needed. */
   @Override
   public ParseResult parseString(
@@ -206,7 +197,7 @@ class EclipseCParser implements CParser {
       throws CParserException, InterruptedException {
 
     return parseSomething(
-        ImmutableList.of(new FileContentToParse(pFileName, pCode)),
+        ImmutableList.of(new FileContentToParse(Path.of(pFileName), pCode)),
         sourceOriginMapping,
         pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
         (fileName, content) -> {
@@ -218,7 +209,7 @@ class EclipseCParser implements CParser {
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode)
       throws CParserException, InterruptedException {
     // parse
-    IASTTranslationUnit ast = parse(wrapCode("", pCode), ParseContext.dummy());
+    IASTTranslationUnit ast = parse(wrapCode(Path.of("fragment"), pCode), ParseContext.dummy());
 
     // strip wrapping function header
     IASTDeclaration[] declarations = ast.getDeclarations();
@@ -349,6 +340,14 @@ class EclipseCParser implements CParser {
     }
   }
 
+  private static final CharMatcher LEGAL_VAR_NAME_CHARACTERS =
+      // Taken from § 6.4.2.1 of C11
+      CharMatcher.is('_')
+          .or(CharMatcher.inRange('A', 'Z'))
+          .or(CharMatcher.inRange('a', 'z'))
+          .or(CharMatcher.inRange('0', '9'))
+          .precomputed();
+
   /**
    * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
    * static variables
@@ -377,10 +376,9 @@ class EclipseCParser implements CParser {
       } else {
         for (IASTTranslationUnit ast : asts) {
           String staticVariablePrefix =
-              parseContext
-                  .mapFileNameToNameForHumans(ast.getFilePath())
-                  .replace("/", "_")
-                  .replaceAll("\\W", "_");
+              LEGAL_VAR_NAME_CHARACTERS
+                  .negate()
+                  .replaceFrom(parseContext.mapFileNameToNameForHumans(ast.getFilePath()), "_");
           builder.analyzeTranslationUnit(ast, staticVariablePrefix, pScope);
         }
       }
@@ -400,8 +398,8 @@ class EclipseCParser implements CParser {
    * string, if for example CPAchecker only uses one file (we expect the user to know its name in
    * this case).
    */
-  private Function<String, String> createNiceFileNameFunction(Collection<String> pFileNames) {
-    Iterator<String> fileNames = pFileNames.iterator();
+  private Function<String, String> createNiceFileNameFunction(Collection<Path> pFileNames) {
+    Iterator<String> fileNames = Iterators.transform(pFileNames.iterator(), Path::toString);
 
     if (pFileNames.size() == 1) {
       final String mainFileName = fileNames.next();
@@ -521,6 +519,16 @@ class EclipseCParser implements CParser {
       macrosBuilder.put("__GNUC__", "4");
       macrosBuilder.put("__GNUC_MINOR__", "7");
 
+      // Our version of CDT does not recognize _Float128 yet:
+      // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/471
+      macrosBuilder.put("_Float128", "__float128");
+      // https://gcc.gnu.org/onlinedocs/gcc/Floating-Types.html
+      // https://code.woboq.org/userspace/glibc/bits/floatn-common.h.html
+      macrosBuilder.put("_Float32", "float");
+      macrosBuilder.put("_Float32x", "double");
+      macrosBuilder.put("_Float64", "double");
+      macrosBuilder.put("_Float64x", "long double");
+
       MACROS = macrosBuilder.build();
     }
 
@@ -557,26 +565,25 @@ class EclipseCParser implements CParser {
   }
 
   /**
-   * Wrapper for {@link CSourceOriginMapping} that does the reverse file-name mapping
-   * of {@link EclipseCParser#fixPath(String)}, otherwise file-name lookup fails
-   * and origin-source mapping does not work for files in the current directory
-   * that are not specified as "./foo.c" but only as "foo.c".
+   * Wrapper for {@link CSourceOriginMapping} that does the reverse file-name mapping of {@link
+   * EclipseCParser#fixPath(Path)}, otherwise file-name lookup fails and origin-source mapping does
+   * not work for files in the current directory that are not specified as "./foo.c" but only as
+   * "foo.c".
    */
   private static class FixedPathSourceOriginMapping extends CSourceOriginMapping {
 
     private final CSourceOriginMapping delegate;
-    private final ImmutableMap<String, String> fileNameMapping;
+    private final ImmutableMap<Path, Path> fileNameMapping;
 
-    FixedPathSourceOriginMapping(
-        CSourceOriginMapping pDelegate, Map<String, String> pFileNameMapping) {
+    FixedPathSourceOriginMapping(CSourceOriginMapping pDelegate, Map<Path, Path> pFileNameMapping) {
       delegate = pDelegate;
       fileNameMapping = ImmutableMap.copyOf(pFileNameMapping);
     }
 
     @Override
     public CodePosition getOriginLineFromAnalysisCodeLine(
-        final String pAnalysisFile, final int pAnalysisCodeLine) {
-      final String analysisFile = fileNameMapping.getOrDefault(pAnalysisFile, pAnalysisFile);
+        final Path pAnalysisFile, final int pAnalysisCodeLine) {
+      final Path analysisFile = fileNameMapping.getOrDefault(pAnalysisFile, pAnalysisFile);
 
       CodePosition result =
           delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);

@@ -80,5 +80,4 @@ public class FormulaContext {
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
-
 }
