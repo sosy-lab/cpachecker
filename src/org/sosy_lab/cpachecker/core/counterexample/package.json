@@ -108,7 +108,6 @@
     "rules": {
       "global-require": 0,
       "prettier/prettier": "error",
-      "require-jsdoc": 0,
       "no-param-reassign": 0,
       "new-cap": 0,
       "no-alert": 0,
