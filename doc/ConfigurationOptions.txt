@@ -900,6 +900,9 @@ compositionAlgorithm.strategy = no default value
 # not only the last one that is executed
 compositionAlgorithm.writeIntermediateOutputFiles = true
 
+# Configuration file for forward analysis during concurrent analysis.
+concurrent.task.forward.configFile = no default value
+
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
 
