@@ -482,7 +482,14 @@ class WebInterface:
     def _request_tool_revision(self, revision):
         path = "tool/version_string?revision=" + revision
         (resolved_svn_revision, _) = self._request("GET", path)
-        return resolved_svn_revision.decode("UTF-8")
+        resolved_svn_revision = resolved_svn_revision.decode("UTF-8")
+        if ":HEAD" not in revision.upper() and revision is not resolved_svn_revision:
+            logging.warning(
+                "Resolved revision %s is different to specified revision %s",
+                resolved_svn_revision,
+                revision,
+            )
+        return resolved_svn_revision
 
     def _request_tool_name(self):
         path = "tool/name"
