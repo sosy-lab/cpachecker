@@ -203,6 +203,9 @@ analysis.algorithm.MPV = false
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
 
+# Perform concurrent analysis with block-based task partitioning
+analysis.algorithm.concurrentTaskPartitioning = false
+
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 

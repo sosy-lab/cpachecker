@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ConcurrentAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -329,6 +330,12 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
+
+  @Option(
+      secure = true,
+      name = "algorithm.concurrentTaskPartitioning",
+      description = "Perform concurrent analysis with block-based task partitioning")
+  private boolean concurrentTaskPartitioning = false;
 
   private final Configuration config;
   private final LogManager logger;
