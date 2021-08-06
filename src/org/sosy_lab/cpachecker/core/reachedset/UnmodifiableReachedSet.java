@@ -118,7 +118,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @return Is any property violated
    */
   default boolean hasViolatedProperties() {
-    return from(asCollection()).anyMatch(AbstractStates::isTargetState);
+    return from(this).anyMatch(AbstractStates::isTargetState);
   }
 
   /**
@@ -128,7 +128,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @return A set of violated properties, may be emtpy if no precise information is available.
    */
   default Collection<Property> getViolatedProperties() {
-    return from(asCollection())
+    return from(this)
         .filter(AbstractStates::isTargetState)
         .filter(Targetable.class)
         .transformAndConcat(Targetable::getViolatedProperties)
