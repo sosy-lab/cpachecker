@@ -10,8 +10,8 @@
     "start": "npm run build & webpack serve --mode=development",
     "test": "node scripts/startBuild.js && karma start karma.conf.js",
     "e2e-test": "protractor e2e-conf.js",
-    "lint:fix": "eslint --fix --ignore-path .lintignores $(pwd)'/**/*.js' && prettier --ignore-path .lintignores --write $(pwd)'/**/*.+(css|json)'",
-    "lint": "eslint --max-warnings 0 --ignore-path .lintignores . && prettier --ignore-path .lintignores --check $(pwd)'/**/*.+(css|json)'"
+    "lint:fix": "node scripts/startBuild.js && eslint --fix --ignore-path .lintignores $(pwd)'/**/*.js' && prettier --ignore-path .lintignores --write $(pwd)'/**/*.+(css|json)'",
+    "lint": "node scripts/startBuild.js && eslint --max-warnings 0 --ignore-path .lintignores . && prettier --ignore-path .lintignores --check $(pwd)'/**/*.+(css|json)'"
   },
   "devDependencies": {
     "@webpack-cli/serve": "^1.3.1",
