@@ -24,14 +24,13 @@ interface AbstractionState {
    * @param pOther the other abstraction state.
    * @return the set of widening targets.
    */
-  public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther);
+  Set<MemoryLocation> determineWideningTargets(AbstractionState pOther);
 
-  public Set<BooleanFormula<CompoundInterval>> getWideningHints();
+  Set<BooleanFormula<CompoundInterval>> getWideningHints();
 
-  public AbstractionState addEnteringEdge(CFAEdge pEdge);
+  AbstractionState addEnteringEdge(CFAEdge pEdge);
 
-  public AbstractionState join(AbstractionState pOther);
+  AbstractionState join(AbstractionState pOther);
 
-  public boolean isLessThanOrEqualTo(AbstractionState pOther);
-
+  boolean isLessThanOrEqualTo(AbstractionState pOther);
 }

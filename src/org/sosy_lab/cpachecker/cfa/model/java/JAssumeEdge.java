@@ -19,8 +19,13 @@ public class JAssumeEdge extends AssumeEdge {
 
   private static final long serialVersionUID = -2456773904604276548L;
 
-  public JAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
-      CFANode pSuccessor, JExpression pExpression, boolean pTruthAssumption) {
+  public JAssumeEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      JExpression pExpression,
+      boolean pTruthAssumption) {
 
     super(
         pRawStatement,
@@ -43,15 +48,13 @@ public class JAssumeEdge extends AssumeEdge {
     return (JExpression) expression;
   }
 
-
   /**
-   * TODO
-   * Warning: for instances with {@link #getTruthAssumption()} == false, the
-   * return value of this method does not represent exactly the return value
-   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+   * TODO Warning: for instances with {@link #getTruthAssumption()} == false, the return value of
+   * this method does not represent exactly the return value of {@link #getRawStatement()} (it
+   * misses the outer negation of the expression).
    */
   @Override
   public Optional<JExpression> getRawAST() {
-    return Optional.of((JExpression)expression);
+    return Optional.of((JExpression) expression);
   }
 }

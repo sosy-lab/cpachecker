@@ -26,7 +26,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -86,10 +85,10 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @Options
 public class CPAchecker {
 
-  public static interface CPAcheckerMXBean {
-    public int getReachedSetSize();
+  public interface CPAcheckerMXBean {
+    int getReachedSetSize();
 
-    public void stop();
+    void stop();
   }
 
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
@@ -122,7 +121,7 @@ public class CPAchecker {
   )
   private boolean stopAfterError = true;
 
-  public static enum InitialStatesFor {
+  public enum InitialStatesFor {
     /**
      * Function entry node of the entry function
      */
@@ -461,7 +460,7 @@ public class CPAchecker {
         "Exactly one code file has to be given.");
     }
 
-    Path file = Paths.get(fileDenotation.get(0));
+    Path file = Path.of(fileDenotation.get(0));
 
     try {
       IO.checkReadableFile(file);

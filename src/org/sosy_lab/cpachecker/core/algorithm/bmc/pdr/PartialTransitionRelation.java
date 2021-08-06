@@ -366,7 +366,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     PathFormula pathFormula = getPathFormula(pState);
     SSAMap ssaMap =
         pathFormula.getSsa().withDefault(pDefaultIndex); // Use index 2 for successor locations
-    pathFormula = pmgr.makeNewPathFormula(pathFormula, ssaMap, pathFormula.getPointerTargetSet());
+    pathFormula = pathFormula.withContext(ssaMap, pathFormula.getPointerTargetSet());
     BooleanFormula uninstantiatedFormula = pCandidateInvariant.getFormula(fmgr, pmgr, pathFormula);
     return fmgr.instantiate(uninstantiatedFormula, ssaMap);
   }

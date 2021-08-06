@@ -43,7 +43,7 @@ SPDX-License-Identifier: Apache-2.0
       <property name="illegalPkgs" value="sun, com.google.common.testing, com.google.common.truth, org.junit, junit"/>
     </module>
     <module name="IllegalImport">
-      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\..*)?|com\.google\.common\.base\.Objects(\..*)?|javax\.annotation\.(Nonnull|Nullable|CheckReturnValue|concurrent\.GuardedBy|concurrent\.Immutable)|edu\.umd\.cs\.findbugs\.annotations\.(NonNull|Nullable)"/>
+      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)|org\.junit\.Assert(\..*)?|com\.google\.common\.base\.Objects(\..*)?|java\.nio\.file\.Paths(\..*)?|javax\.annotation\.(Nonnull|Nullable|CheckReturnValue|concurrent\.GuardedBy|concurrent\.Immutable)|edu\.umd\.cs\.findbugs\.annotations\.(NonNull|Nullable)"/>
       <property name="regexp" value="true"/>
     </module>
     <module name="RedundantImport"/>

@@ -639,12 +639,16 @@ class ASTConverter {
     // TODO: consider always adding a const modifier if there is an initializer
     CType type = (initializer == null) ? CTypes.withoutConst(pType) : pType;
 
-    if (type instanceof CArrayType) {
+    if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
       // Replace with pointer type.
       // This should actually be handled by Eclipse, because the C standard says in §5.4.2.1 (3)
       // that array types of operands are converted to pointer types except in a very few
       // specific cases (for which there will never be a temporary variable).
+      // However, if the initializer is for an array, then of course we need to keep the array type.
       type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+    } else if (type instanceof CFunctionType) {
+      // Happens if function pointers are used in ternary expressions, for example.
+      type = new CPointerType(false, false, type);
     }
 
     CVariableDeclaration decl = new CVariableDeclaration(loc,
@@ -1681,7 +1685,7 @@ class ASTConverter {
       for (IASTDeclarator c : declarators) {
 
         FileLocation declaratorLocation = getLocation(c);
-        if (FileLocation.DUMMY.equals(declaratorLocation)) {
+        if (!declaratorLocation.isRealLocation()) {
           declaratorLocation = fileLoc;
         } else if (c == declarators[0]) {
           declaratorLocation =
@@ -1799,9 +1803,10 @@ class ASTConverter {
         name = name + sep + index;
       }
 
-      CVariableDeclaration declaration = new CVariableDeclaration(fileLoc,
-          isGlobal, cStorageClass, type, name, origName,
-          scope.createScopedNameOf(name), null);
+      final String scopedName = isGlobal ? name : scope.createScopedNameOf(name);
+      CVariableDeclaration declaration =
+          new CVariableDeclaration(
+              fileLoc, isGlobal, cStorageClass, type, name, origName, scopedName, null);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.

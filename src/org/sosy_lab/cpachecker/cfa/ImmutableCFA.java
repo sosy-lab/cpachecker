@@ -21,7 +21,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -213,6 +212,6 @@ class ImmutableCFA implements CFA, Serializable {
       edge.getPredecessor().addLeavingEdge(edge);
     }
 
-    fileNames = ImmutableList.copyOf(Lists.transform((List<String>) s.readObject(), Paths::get));
+    fileNames = ImmutableList.copyOf(Lists.transform((List<String>) s.readObject(), Path::of));
   }
 }

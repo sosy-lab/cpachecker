@@ -124,7 +124,7 @@ public class SMGJoinFieldsTest {
     SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     SMGHasValueEdges edges = pSmg.getHVEdges(filterOnSMG);
 
-    assertThat(edges).hasSize(pFieldMap.keySet().size());
+    assertThat(edges).hasSize(pFieldMap.size());
 
     for (SMGEdgeHasValue edge : edges) {
 

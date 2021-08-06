@@ -94,7 +94,7 @@ public class PredicateMapWriter {
     }
 
     for (Entry<CFANode, Collection<AbstractionPredicate>> e : localPredicates.asMap().entrySet()) {
-      String key = e.getKey().getFunctionName() + " " + e.getKey().toString();
+      String key = e.getKey().getFunctionName() + " " + e.getKey();
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
 

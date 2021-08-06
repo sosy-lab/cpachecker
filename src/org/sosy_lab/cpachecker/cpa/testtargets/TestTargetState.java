@@ -34,7 +34,7 @@ public class TestTargetState
 
     private final boolean isConsideredTarget;
 
-    private Status(final boolean isTarget) {
+    Status(final boolean isTarget) {
       this.isConsideredTarget = isTarget;
     }
   }

@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 public class SimpleIntProviderFactory {
 
-  public static interface Counter<T> {
+  public interface Counter<T> {
     int count(T e);
   }
   /**

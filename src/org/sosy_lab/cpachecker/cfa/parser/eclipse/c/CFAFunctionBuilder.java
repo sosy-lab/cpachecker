@@ -1321,7 +1321,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       loc =
           new FileLocation(
               loc.getFileName(),
-              parseContext.mapFileNameToNameForHumans(loc.getFileName()),
+              loc.getNiceFileName(),
               fileLocation.getNodeOffset(),
               loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
               fileLocation.getStartingLineNumber(),

@@ -156,7 +156,7 @@ public class SLARGState extends ARGState
   @Override
   public String toString() {
     String result = super.toString();
-    return result.replaceAll("ARG State", "SLARG State");
+    return result.replace("ARG State", "SLARG State");
   }
 
   public void addParent(SLARGState pParent, EdgeSet pEdgeSet) {

@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -221,7 +222,7 @@ public class AssumptionToEdgeAllocator {
         return "";
       }
 
-      return returnExp.toASTString() + " = " + value.toString();
+      return returnExp.toASTString() + " = " + value;
     }
 
     return "";
@@ -336,7 +337,7 @@ public class AssumptionToEdgeAllocator {
       Object value = getValueObject(op, pFunctionName, pConcreteState);
 
       if (value != null) {
-        return op.toASTString() + " == " + value.toString();
+        return op.toASTString() + " == " + value;
       } else {
         return "";
       }
@@ -1239,6 +1240,11 @@ public class AssumptionToEdgeAllocator {
 
         return new NumericValue((Number) value);
       }
+
+      @Override
+      public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
+        return Value.UnknownValue.getInstance();
+      }
     }
 
     @Override
@@ -1389,14 +1395,14 @@ public class AssumptionToEdgeAllocator {
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
-        double doubleValue = ((Double)pValue).doubleValue();
+        double doubleValue = ((Double) pValue);
         if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();
         }
         return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
       } else if (pValue instanceof Float) {
-        float floatValue = ((Float)pValue).floatValue();
+        float floatValue = ((Float) pValue);
         if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
           // TODO return correct value
           return UnknownValueLiteral.getInstance();

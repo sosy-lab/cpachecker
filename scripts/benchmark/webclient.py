@@ -429,6 +429,16 @@ class WebInterface:
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
+        if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
+            logging.warning(
+                "Using %s version %s, which is different than the requested version %s!",
+                self._tool_name,
+                self._revision,
+                revision,
+            )
+        else:
+            logging.info("Using %s version %s.", self._tool_name, self._revision)
+
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
         else:
@@ -853,6 +863,8 @@ class WebInterface:
                     elif option == "-cbmc":
                         params.append(("option", "analysis.checkCounterexamples=true"))
                         params.append(("option", "counterexample.checker=CBMC"))
+                    elif option == "-clang":
+                        params.append(("option", "parser.useClang=true"))
                     elif option == "-preprocess":
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":

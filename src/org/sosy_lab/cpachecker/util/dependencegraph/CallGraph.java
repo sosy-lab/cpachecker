@@ -69,8 +69,6 @@ final class CallGraph<P> {
     predecessorCallNode.addSuccessor(successorCallNode);
     successorCallNode.addPredecessor(predecessorCallNode);
   }
-  
-  
 
   static <P, N> CallGraph<P> createCallGraph(
       Function<? super N, ? extends Iterable<? extends SuccessorResult<? extends P, ? extends N>>>
@@ -250,7 +248,7 @@ final class CallGraph<P> {
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + nodes.toString();
+    return getClass().getSimpleName() + nodes;
   }
 
   static final class SuccessorResult<P, N> {

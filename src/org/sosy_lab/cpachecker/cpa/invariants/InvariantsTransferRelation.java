@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -135,13 +134,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
 
     final AtomicBoolean overflowDetected = new AtomicBoolean(false);
-    OverflowEventHandler overflowEventHandler = new OverflowEventHandler() {
-
-      @Override
-      public void signedOverflow() {
-        overflowDetected.set(true);
-      }
-    };
+    OverflowEventHandler overflowEventHandler = () -> overflowDetected.set(true);
 
     if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
       CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
@@ -501,17 +494,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         }
       }
 
-      // Remove all variables that are in the scope of the returning function
-      result = result.clearAll(new Predicate<MemoryLocation>() {
+    // Remove all variables that are in the scope of the returning function
+    result =
+        result.clearAll(
+            pMemoryLocation ->
+                pMemoryLocation.isOnFunctionStack()
+                    && pMemoryLocation.getFunctionName().equals(calledFunctionName));
 
-        @Override
-        public boolean apply(MemoryLocation pMemoryLocation) {
-          return pMemoryLocation.isOnFunctionStack() && pMemoryLocation.getFunctionName().equals(calledFunctionName);
-        }
-
-      });
-
-      return result;
+    return result;
   }
 
   @Override
@@ -601,14 +591,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
             }
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
             final String end = location.getAsSimpleString().substring(lastIndexOfSep + 1);
-            Iterable<? extends MemoryLocation> targets = FluentIterable.from(result.getEnvironment().keySet()).filter(new Predicate<MemoryLocation>() {
-
-              @Override
-              public boolean apply(MemoryLocation pVar) {
-                return pVar != null && (pVar.getIdentifier().endsWith("." + end) || pVar.getIdentifier().endsWith("->" + end));
-              }
-
-            });
+            Iterable<? extends MemoryLocation> targets =
+                FluentIterable.from(result.getEnvironment().keySet())
+                    .filter(
+                        pVar ->
+                            pVar.getIdentifier().endsWith("." + end)
+                                || pVar.getIdentifier().endsWith("->" + end));
             if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
               for (MemoryLocation variableName : targets) {
                 Type type = result.getType(variableName);

@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
@@ -329,9 +330,12 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.faultlocalization.by_distance",
+      name = "algorithm.faultLocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
+
+  @Option(secure = true, description = "Enable converting test goals to conditions.")
+  private boolean testGoalConverter;
 
   private final Configuration config;
   private final LogManager logger;
@@ -342,6 +346,7 @@ public class CoreComponentsFactory {
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
+
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -475,6 +480,11 @@ public class CoreComponentsFactory {
           new ArrayAbstractionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if(testGoalConverter) {
+        algorithm = new TestGoalToConditionConverterAlgorithm(config, logger, shutdownNotifier,
+            cfa, algorithm, cpa);
+      }
 
       if (constructResidualProgram) {
         algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,

@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -37,7 +36,7 @@ public class AutomatonFilesTest {
 
   @Parameters(name = "{0}")
   public static Object[] getAutomata() throws IOException {
-    try (Stream<Path> configFiles = Files.walk(Paths.get("config/specification"))) {
+    try (Stream<Path> configFiles = Files.walk(Path.of("config/specification"))) {
       return configFiles
           .filter(path -> path.getFileName().toString().endsWith(".spc"))
           .sorted()

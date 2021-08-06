@@ -233,6 +233,9 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(secure = true, description = "Use bdd chaining.")
     private boolean useChainedBDD = false;
 
+    @Option(secure = true, description = "Disable thread safe bdd operations.")
+    private boolean disableThreadSafety = false;
+
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -260,13 +263,17 @@ public class PJBDDRegionManager implements RegionManager {
         initTableSize = 100000;
       }
       if (initTableSize == 0) {
-        // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
         double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
         initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
       }
 
       if (cacheSize == 0) {
-        cacheSize = Math.min((int) (initTableSize * cacheRatio), 10000);
+        cacheSize = (int) (initTableSize * cacheRatio);
+        cacheSize = Math.max(cacheSize, 100000);
+      }
+
+      if(disableThreadSafety){
+        pBuilder.disableThreadSafety();
       }
 
       pBuilder.setParallelism(tableParallelism)

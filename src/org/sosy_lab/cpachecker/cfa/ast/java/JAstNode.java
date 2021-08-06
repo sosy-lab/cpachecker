@@ -12,8 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 
 /**
- * Interface for all AST Nodes of the Java AST.
- * All classes representing Java AST Nodes have to implement this interface.
+ * Interface for all AST Nodes of the Java AST. All classes representing Java AST Nodes have to
+ * implement this interface.
  */
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface JAstNode extends AAstNode {

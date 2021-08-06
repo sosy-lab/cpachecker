@@ -29,7 +29,7 @@ public class MachineModelTest {
 
   @Parameters(name="{4}: {0}")
   public static Object[][] machineModels() {
-    Object[][] types = new Object[][] {
+    Object[][] types = {
         // type          // size in bits // min value // max value
         {CNumericTypes.BOOL,          8,           0L,          1L},
         {CNumericTypes.CHAR,          8,        -128L,        127L},
@@ -39,7 +39,7 @@ public class MachineModelTest {
         {CNumericTypes.INT,          32, -2147483648L, 2147483647L},
         {CNumericTypes.SIGNED_INT,   32, -2147483648L, 2147483647L},
         {CNumericTypes.UNSIGNED_INT, 32,           0L, 4294967295L},
-        };
+    };
 
     // Create a copy of types for each MachineModel and append the MachineModel instance in each row
     MachineModel[] machineModels = MachineModel.values();

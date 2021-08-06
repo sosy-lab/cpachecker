@@ -15,6 +15,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.base.Verify.verifyNotNull;
 import static java.util.function.Predicate.not;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -29,7 +30,6 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "mpiAlgorithm")
@@ -290,7 +289,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
         Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
-            .map(Paths::get)
+            .map(Path::of)
             .filter(path -> Files.exists(path.resolve(pRequiredBin)))
             .findFirst();
     if (pathOpt.isEmpty()) {
@@ -308,8 +307,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     List<String> cmdList = new ArrayList<>();
     cmdList.add(binaries.get(MPI_BIN).toString());
@@ -469,7 +467,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "Executed the following command for the successful subanalysis:");
         String formattedCmdline =
             FluentIterable.from(successfulAnalysis.getCmdLine())
-                .transform(x -> x.replaceAll("\\s", ""))
+                .transform(CharMatcher.whitespace()::removeFrom)
                 .join(Joiner.on(" "));
         logger.log(Level.INFO, formattedCmdline);
 

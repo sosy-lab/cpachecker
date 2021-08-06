@@ -174,9 +174,9 @@ public final class EdgeDefUseData {
 
   public interface Extractor {
 
-    public EdgeDefUseData extract(CFAEdge pEdge);
+    EdgeDefUseData extract(CFAEdge pEdge);
 
-    public EdgeDefUseData extract(CAstNode pAstNode);
+    EdgeDefUseData extract(CAstNode pAstNode);
   }
 
   public static final class CachingExtractor implements Extractor {

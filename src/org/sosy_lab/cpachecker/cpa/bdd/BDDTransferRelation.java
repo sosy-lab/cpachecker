@@ -146,7 +146,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (lhs instanceof CIdExpression) {
       varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
     } else {
-      varName = functionName + "::" + lhs.toString();
+      varName = functionName + "::" + lhs;
     }
 
     final CType targetType = lhs.getExpressionType();

@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -252,13 +255,8 @@ public class LlvmTypeConverter {
 
       case FP128:
       case PPC_FP128:
-        if (machineModel.getSizeofLongDouble() * 8 != 128) {
-          throw new AssertionError(
-              "Machine model " + machineModel.name() + " can't handle 128bit float");
-
-        } else {
-          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong = */ true);
-        }
+        checkState(machineModel.getSizeofFloat128() * 8 == 128);
+        return getSimplestCType(CBasicType.FLOAT128, isUnsigned);
 
       case X86_FP80:
         throw new AssertionError(

@@ -7,13 +7,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * A {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser} implementation
- * based on the Eclipse JDT project.
+ * A {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser} implementation based
+ * on the Eclipse JDT project.
  *
- * Important: this package may NOT contain public types,
- * and may not be accessed directly,
- * because we load it in a separate class loader.
- * Use {@link org.sosy_lab.cpachecker.cfa.parser.Parsers}
- * to get an instance.
+ * <p>Important: this package may NOT contain public types, and may not be accessed directly,
+ * because we load it in a separate class loader. Use {@link
+ * org.sosy_lab.cpachecker.cfa.parser.Parsers} to get an instance.
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
