@@ -113,9 +113,7 @@ public class GraphUtils {
   public static List<List<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, ReachedSet pReached) {
     Set<ARGState> filteredStates =
-        pReached
-            .asCollection()
-            .stream()
+        pReached.stream()
             .map(x -> (ARGState) x)
             .filter(x -> !pStates.contains(x))
             .collect(Collectors.toCollection(HashSet::new));

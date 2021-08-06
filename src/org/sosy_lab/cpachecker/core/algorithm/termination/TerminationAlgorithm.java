@@ -306,9 +306,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       boolean targetReached =
           pReachedSet.asCollection().stream().anyMatch(AbstractStates::isTargetState);
       Optional<ARGState> targetStateWithCounterExample =
-          pReachedSet
-              .asCollection()
-              .stream()
+          pReachedSet.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
               .filter(s -> s.getCounterexampleInformation().isPresent())

@@ -16,6 +16,7 @@ import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -93,6 +94,11 @@ public class UnmodifiableReachedSetView
   @Override
   public Iterator<AbstractState> iterator() {
     return Iterators.transform(underlying.iterator(), mapStateFunction);
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return underlying.stream().map(mapStateFunction);
   }
 
   @Override

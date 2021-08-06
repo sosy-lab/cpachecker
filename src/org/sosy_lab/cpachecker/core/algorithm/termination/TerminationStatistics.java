@@ -424,9 +424,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
-          pReached
-              .asCollection()
-              .stream()
+          pReached.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
               .filter(s -> s.getCounterexampleInformation().isPresent())
