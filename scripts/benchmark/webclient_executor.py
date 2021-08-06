@@ -71,7 +71,6 @@ def init(config, benchmark):
 
     benchmark.tool_version = _webclient.tool_revision()
     benchmark.executable = "scripts/cpa.sh"
-    logging.info("Using %s version %s.", benchmark.tool_name, benchmark.tool_version)
 
 
 def get_system_info():
