@@ -533,11 +533,10 @@ public class SlicingRefiner implements Refiner {
 
   private static SlicingPrecision extractSlicingPrecision(
       final ReachedSet pReached, final AbstractState pState) {
-    return (SlicingPrecision)
-        Precisions.asIterable(pReached.getPrecision(pState))
-            .filter(Predicates.instanceOf(SlicingPrecision.class))
-            .first()
-            .orNull();
+    return Precisions.asIterable(pReached.getPrecision(pState))
+        .filter(SlicingPrecision.class)
+        .first()
+        .orNull();
   }
 
   private static final class StateSlicingPrecision {

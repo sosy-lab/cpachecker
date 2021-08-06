@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -808,10 +810,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static <T> Optional<T> find(Iterable<? super T> pIterable, Class<T> pClass) {
-    Object result = Iterables.find(pIterable, Predicates.instanceOf(pClass), null);
-    if (result == null) {
-      return Optional.empty();
-    }
-    return Optional.of(pClass.cast(result));
+    return from(pIterable).filter(pClass).first().toJavaUtil();
   }
 }

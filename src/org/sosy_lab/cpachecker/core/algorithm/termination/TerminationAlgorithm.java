@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -444,8 +443,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       ImmutableSet.Builder<CVariableDeclaration> relVarBuilder = ImmutableSet.builder();
       relVarBuilder.addAll(globalDeclaration);
       for (CFANode entryNode :
-          FluentIterable.from(pLoop.getLoopNodes())
-              .filter(Predicates.instanceOf(FunctionEntryNode.class))) {
+          FluentIterable.from(pLoop.getLoopNodes()).filter(FunctionEntryNode.class)) {
         relVarBuilder.addAll(localDeclarations.get(entryNode.getFunctionName()));
       }
       return relVarBuilder.build();
