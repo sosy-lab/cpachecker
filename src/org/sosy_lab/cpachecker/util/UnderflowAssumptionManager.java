@@ -66,8 +66,7 @@ public class UnderflowAssumptionManager extends AssumptionManager {
     for (boolean operand1isFirstOperand : new boolean[] {false, true}) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
       CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
-      for (boolean usesUpperLimit : new boolean[] {false, true}) {
-        CLiteralExpression limit = usesUpperLimit ? pUpperLimit : pLowerLimit;
+        CLiteralExpression limit = pLowerLimit;
 
         // We construct assumption by writing each of the 4 possible assumptions as:
         // term1 | term3
@@ -75,7 +74,7 @@ public class UnderflowAssumptionManager extends AssumptionManager {
         // where term1 is structured this way:
         // firstOperand term1Operator 0
         BinaryOperator term1Operator =
-            usesUpperLimit && operand1isFirstOperand
+            operand1isFirstOperand
                 ? BinaryOperator.GREATER_EQUAL
                 : BinaryOperator.LESS_EQUAL;
         CExpression term1 =
@@ -90,10 +89,7 @@ public class UnderflowAssumptionManager extends AssumptionManager {
 
         // and term3 is structured this way:
         // secondOperand term3Operator term2
-        BinaryOperator term3Operator =
-            usesUpperLimit && !operand1isFirstOperand
-                ? BinaryOperator.LESS_EQUAL
-                : BinaryOperator.GREATER_EQUAL;
+        BinaryOperator term3Operator = BinaryOperator.GREATER_EQUAL;
         CExpression term3 =
             cBinaryExpressionBuilder.buildBinaryExpression(secondOperand, term2, term3Operator);
 
@@ -104,7 +100,6 @@ public class UnderflowAssumptionManager extends AssumptionManager {
             cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
         result.add(assumption);
       }
-    }
 
     return result.build();
   }
