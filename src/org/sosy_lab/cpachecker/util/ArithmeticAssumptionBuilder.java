@@ -100,6 +100,7 @@ public abstract class ArithmeticAssumptionBuilder {
   final Map<CType, CLiteralExpression> upperBounds = new HashMap<>();
   final Map<CType, CLiteralExpression> width = new HashMap<>();
   final OverflowAssumptionManager ofmgr;
+  final UnderflowAssumptionManager ufmgr;
   final ExpressionSimplificationVisitor simplificationVisitor;
   final MachineModel machineModel;
   final Optional<LiveVariables> liveVariables;
@@ -138,6 +139,7 @@ public abstract class ArithmeticAssumptionBuilder {
     trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
 
     ofmgr = new OverflowAssumptionManager(machineModel, logger);
+    ufmgr = new UnderflowAssumptionManager(machineModel, logger);
     simplificationVisitor =
         new ExpressionSimplificationVisitor(machineModel, new LogManagerWithoutDuplicates(logger));
   }
@@ -393,7 +395,7 @@ public abstract class ArithmeticAssumptionBuilder {
         new CIntegerLiteralExpression(
             FileLocation.DUMMY,
             type,
-            OverflowAssumptionManager.getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
+            AssumptionManager.getWidthForMaxOf(machineModel.getMaximalIntegerValue(type)));
 
     upperBounds.put(type, typeMaxValue);
     lowerBounds.put(type, typeMinValue);

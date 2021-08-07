@@ -67,12 +67,12 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
       if (trackAdditiveOperations
           && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
         if (lowerBounds.get(calculationType) != null) {
-          result.add(ofmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
+          result.add(ufmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
         if (lowerBounds.containsKey(calculationType) && upperBounds.containsKey(calculationType)) {
           result.addAll(
-              ofmgr.addMultiplicationAssumptions(
+              ufmgr.addMultiplicationAssumptions(
                   op1,
                   op2,
                   lowerBounds.get(calculationType),
@@ -82,7 +82,7 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
       } else if (trackDivisions
           && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
         if (lowerBounds.get(calculationType) != null) {
-          ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
+          ufmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
@@ -92,7 +92,7 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
           && lowerBounds.get(calculationType) != null) {
 
         CExpression operand = unaryexp.getOperand();
-        result.add(ofmgr.getNegationAssumption(operand, lowerBounds.get(calculationType)));
+        result.add(ufmgr.getNegationAssumption(operand, lowerBounds.get(calculationType)));
       }
     } else {
       // TODO: check out and implement in case this happens

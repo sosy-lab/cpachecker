@@ -18,10 +18,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class OverflowAssumptionManager extends AssumptionManager {
+public class UnderflowAssumptionManager extends AssumptionManager {
 
 
-  public OverflowAssumptionManager(MachineModel pMachineModel, LogManager pLogger) {
+  public UnderflowAssumptionManager(MachineModel pMachineModel, LogManager pLogger) {
     super(pMachineModel, pLogger);
   }
 
@@ -50,7 +50,9 @@ public class OverflowAssumptionManager extends AssumptionManager {
    *        of the expression
    * @param pUpperLimit the {@link CLiteralExpression} representing the overflow bound for the type
    *        of the expression
+   *
    */
+
 
   @Override
   public Set<CExpression> addMultiplicationAssumptions(
@@ -106,7 +108,4 @@ public class OverflowAssumptionManager extends AssumptionManager {
 
     return result.build();
   }
-
-
-
 }
