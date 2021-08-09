@@ -34,12 +34,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** Tests for {@link FormulaToCExpressionConverter}. */
 @RunWith(Enclosed.class)
@@ -89,6 +91,12 @@ public class FormulaToCExpressionConverterTest {
       assertThat(converter.formulaToCExpression(trueFormula)).isEqualTo("true");
       BooleanFormula falseFormula = bmgrv.makeFalse();
       assertThat(converter.formulaToCExpression(falseFormula)).isEqualTo("false");
+    }
+
+    @Test
+    public void convertNot() throws InterruptedException {
+      BooleanFormula formula = bmgrv.not(bmgrv.makeVariable("x"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!(x)");
     }
 
     @Test
@@ -176,6 +184,16 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           bmgrv.not(imgrv.equal(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("!((x == y))");
+    }
+
+    @Test
+    public void convertEqualsZero() throws InterruptedException {
+      // TODO: How to create formula containing FunctionDeclarationKind.EQ_ZERO
+    }
+
+    @Test
+    public void convertGreaterOrEqualsZero() throws InterruptedException {
+      // TODO: How to create formula containing FunctionDeclarationKind.GTE_ZERO
     }
 
     @Test
@@ -348,6 +366,114 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
+    public void convertBVNot() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(bvmgrv.not(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(~(x) == y)");
+    }
+
+    @Test
+    public void convertBVAnd() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(
+              bvmgrv.and(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x && y) == z)");
+    }
+
+    @Test
+    public void convertBVOr() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(
+              bvmgrv.or(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x\n|| y) == z)");
+    }
+
+    @Test
+    public void convertBVAddition() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(
+              bvmgrv.add(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x + y) == z)");
+    }
+
+    @Test
+    public void convertBVSubtraction() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(
+              bvmgrv.subtract(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x - y) == z)");
+    }
+
+    @Test
+    public void convertBVNeg() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(bvmgrv.negate(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(-(x) == y)");
+    }
+
+    @Test
+    public void convertBVMultiplication() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(
+              bvmgrv.multiply(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x * y) == z)");
+    }
+
+    @Test
+    public void convertBVDivision() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula signed =
+          bvmgrv.equal(
+              bvmgrv.divide(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(signed)).isEqualTo("((x / y) == z)");
+      BooleanFormula unsigned =
+          bvmgrv.equal(
+              bvmgrv.divide(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("((x / y) == z)");
+    }
+
+    @Test
+    public void convertBVModulo() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula signed =
+          bvmgrv.equal(
+              bvmgrv.modulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(signed)).isEqualTo("((x % y) == z)");
+      BooleanFormula unsigned =
+          bvmgrv.equal(
+              bvmgrv.modulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("((x % y) == z)");
+    }
+
+    @Test
     public void convertBVSHL() throws InterruptedException {
       skipTestForSolvers(
           ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4));
@@ -357,6 +483,131 @@ public class FormulaToCExpressionConverterTest {
               bvmgrv.shiftLeft(bvmgrv.makeVariable(8, "x"), bvmgrv.makeBitvector(8, 4)),
               bvmgrv.makeVariable(8, "y"));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x << 4) == y)");
+    }
+
+    @Test
+    public void convertFPEqual() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.equalWithFPSemantics(
+              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x == y)");
+    }
+
+    @Test
+    public void convertFPLessThan() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.lessThan(
+              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x < y)");
+    }
+
+    @Test
+    public void convertFPLessOrEquals() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.lessOrEquals(
+              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x <= y)");
+    }
+
+    @Test
+    public void convertFPGreaterThan() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.greaterThan(
+              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x > y)");
+    }
+
+    @Test
+    public void convertFPGreaterOrEquals() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.greaterOrEquals(
+              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x >= y)");
+    }
+
+    @Test
+    public void convertFPAddition() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.equalWithFPSemantics(
+              fmgrv.add(
+                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x + y) == z)");
+    }
+
+    @Test
+    public void convertFPSubtraction() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.equalWithFPSemantics(
+              fmgrv.subtract(
+                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x - y) == z)");
+    }
+
+    @Test
+    public void convertFPNeg() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS, Solvers.CVC4));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.equalWithFPSemantics(
+              fmgrv.negate(
+                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(-(x) == y)");
+    }
+
+    @Test
+    public void convertFPMultiplication() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.equalWithFPSemantics(
+              fmgrv.multiply(
+                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x * y) == z)");
+    }
+
+    @Test
+    public void convertFPDivision() throws InterruptedException {
+      skipTestForSolvers(
+          ImmutableList.of(Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4));
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.equalWithFPSemantics(
+              fmgrv.divide(
+                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x / y) == z)");
     }
   }
 

@@ -48,18 +48,40 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
   @Override
   public Formula visitFunction(
       Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
-    String op = operatorFromFunctionDeclaration(functionDeclaration);
+    String op;
+    String result;
     switch (functionDeclaration.getKind()) {
       case NOT:
       case UMINUS:
-        String result = op + "(" + cache.get(newArgs.get(0)) + ")";
+      case BV_NEG:
+      case FP_NEG:
+      case BV_NOT:
+        op = operatorFromFunctionDeclaration(functionDeclaration);
+        result = op + "(" + cache.get(newArgs.get(0)) + ")";
         cache.put(f, result);
+        break;
+      case EQ_ZERO:
+      case GTE_ZERO:
+        op = operatorFromFunctionDeclaration(functionDeclaration);
+        result = "(" + cache.get(newArgs.get(0)) + ")" + op;
+        cache.put(f, result);
+        break;
+      case FP_ROUND_EVEN:
+      case FP_ROUND_AWAY:
+      case FP_ROUND_POSITIVE:
+      case FP_ROUND_NEGATIVE:
+      case FP_ROUND_ZERO:
+      case FP_ROUND_TO_INTEGRAL:
+        // Ignore because otherwise rounding mode is treated like an additional operand
         break;
       default:
         List<String> expressions = new ArrayList<>(newArgs.size());
         for (Formula arg : newArgs) {
-          expressions.add(cache.get(arg));
+          if (cache.containsKey(arg)) {
+            expressions.add(cache.get(arg));
+          }
         }
+        op = operatorFromFunctionDeclaration(functionDeclaration);
         cache.put(f, "(" + String.join(op, expressions) + ")");
     }
     return f;
@@ -72,7 +94,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case UMINUS:
       case BV_NEG:
       case FP_NEG:
-        return "- ";
+        return "-";
       case AND:
       case BV_AND:
         return " && ";
@@ -129,11 +151,12 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case GTE_ZERO:
         return " >= 0";
       case BV_NOT:
-        return "~ ";
+        return "~";
       case BV_SHL:
         return " << ";
       default:
-        throw new UnsupportedOperationException("Unexpected operand");
+        throw new UnsupportedOperationException(
+            "Unexpected operand " + pDeclaration.getKind() + "(" + pDeclaration.getName() + ")");
     }
   }
 
