@@ -7,105 +7,105 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe("Init action handler", function () {
-  describe("function init", function () {
-    it("Should be defined", function () {
+describe("Init action handler", () => {
+  describe("function init", () => {
+    it("Should be defined", () => {
       expect(init).not.toBeUndefined();
     });
   });
 
-  describe("argJson variable initialization", function () {
-    it("argJson Should be defined", function () {
+  describe("argJson variable initialization", () => {
+    it("argJson Should be defined", () => {
       expect(window.argJson).not.toBeUndefined();
     });
   });
 
-  describe("sourceFiles variable initialization", function () {
-    it(" sourceFiles Should be defined", function () {
+  describe("sourceFiles variable initialization", () => {
+    it(" sourceFiles Should be defined", () => {
       expect(window.sourceFiles).not.toBeUndefined();
     });
   });
 
-  describe("cfaJson variable initialization", function () {
-    it("cfaJson Should be defined", function () {
+  describe("cfaJson variable initialization", () => {
+    it("cfaJson Should be defined", () => {
       expect(window.cfaJson).not.toBeUndefined();
     });
   });
 
-  describe("functions variable initialization  and declaration", function () {
-    it("functions Should be defined", function () {
+  describe("functions variable initialization  and declaration", () => {
+    it("functions Should be defined", () => {
       expect(functions).toEqual(cfaJson.functionNames);
     });
   });
 
-  describe("functionCallEdges variable initialization and declaration", function () {
-    it("functionCallEdges Should be defined", function () {
+  describe("functionCallEdges variable initialization and declaration", () => {
+    it("functionCallEdges Should be defined", () => {
       expect(functionCallEdges).toEqual(cfaJson.functionCallEdges);
     });
   });
 
-  describe("graphSplitThreshold variable initialization", function () {
-    it("graphSplitThreshold Should be defined", function () {
+  describe("graphSplitThreshold variable initialization", () => {
+    it("graphSplitThreshold Should be defined", () => {
       expect(graphSplitThreshold).not.toBeUndefined();
     });
   });
 
-  describe("graphSplitThreshold variable declaration", function () {
-    it("graphSplitThreshold Should equal 700", function () {
+  describe("graphSplitThreshold variable declaration", () => {
+    it("graphSplitThreshold Should equal 700", () => {
       expect(graphSplitThreshold).toEqual(700);
     });
   });
 
-  describe("zoomEnabled variable declaration", function () {
-    it("zoomEnabled Should defined", function () {
+  describe("zoomEnabled variable declaration", () => {
+    it("zoomEnabled Should defined", () => {
       expect(zoomEnabled).not.toBeUndefined();
     });
   });
 
-  describe("zoomEnabled variable declaration", function () {
-    it("zoomEnabled Should equal false initially", function () {
+  describe("zoomEnabled variable declaration", () => {
+    it("zoomEnabled Should equal false initially", () => {
       expect(zoomEnabled).toEqual(false);
     });
   });
 
-  describe("render variable declaration", function () {
-    it("render Should be defined", function () {
+  describe("render variable declaration", () => {
+    it("render Should be defined", () => {
       expect(render).not.toBeUndefined();
     });
   });
 
-  describe("margin variable declaration", function () {
-    it("margin Should be defined", function () {
+  describe("margin variable declaration", () => {
+    it("margin Should be defined", () => {
       expect(margin).not.toBeUndefined();
     });
   });
 
-  describe("margin variable initialization", function () {
-    it("margin Should be 20", function () {
+  describe("margin variable initialization", () => {
+    it("margin Should be 20", () => {
       expect(margin).toEqual(20);
     });
   });
 
-  describe("cfaSplit variable declaration", function () {
-    it("cfaSplit Should be defined", function () {
+  describe("cfaSplit variable declaration", () => {
+    it("cfaSplit Should be defined", () => {
       expect(cfaSplit).not.toBeUndefined();
     });
   });
 
-  describe("cfaSplit variable initialization", function () {
-    it("cfaSplit Should equal false initially", function () {
+  describe("cfaSplit variable initialization", () => {
+    it("cfaSplit Should equal false initially", () => {
       expect(cfaSplit).toEqual(false);
     });
   });
 
-  describe("argTabDisabled variable declaration", function () {
-    it("argTabDisabled Should be defined", function () {
+  describe("argTabDisabled variable declaration", () => {
+    it("argTabDisabled Should be defined", () => {
       expect(argTabDisabled).not.toBeUndefined();
     });
   });
 
-  describe("argTabDisabled variable declaration", function () {
-    it("argTabDisabled Should equal false initially", function () {
+  describe("argTabDisabled variable declaration", () => {
+    it("argTabDisabled Should equal false initially", () => {
       expect(argTabDisabled).toEqual(false);
     });
   });

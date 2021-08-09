@@ -7,53 +7,52 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe("ReportController", function () {
+describe("ReportController", () => {
   let $rootScope;
   let $scope;
-  let controller;
 
-  beforeEach(function () {
+  beforeEach(() => {
     angular.mock.module("report");
 
-    angular.mock.inject(function ($injector) {
+    angular.mock.inject(($injector) => {
       $rootScope = $injector.get("$rootScope");
       $scope = $rootScope.$new();
-      controller = $injector.get("$controller")("SearchController", {
-        $scope: $scope,
+      $injector.get("$controller")("SearchController", {
+        $scope,
       });
     });
     jasmine.getFixtures().fixturesPath = "base/";
     jasmine.getFixtures().load("testReport.html");
   });
 
-  describe("numOfValueMatches initialization", function () {
-    it("Should be defined", function () {
+  describe("numOfValueMatches initialization", () => {
+    it("Should be defined", () => {
       expect($scope.numOfValueMatches).not.toBeUndefined();
     });
 
-    it("Should instantiate value equal to 0", function () {
+    it("Should instantiate value equal to 0", () => {
       expect($scope.numOfValueMatches).toEqual(0);
     });
   });
 
-  describe("numOfDescriptionMatches initialization", function () {
-    it("Should be defined", function () {
+  describe("numOfDescriptionMatches initialization", () => {
+    it("Should be defined", () => {
       expect($scope.numOfDescriptionMatches).not.toBeUndefined();
     });
 
-    it("Should instantiate value equal to 0", function () {
+    it("Should instantiate value equal to 0", () => {
       expect($scope.numOfDescriptionMatches).toEqual(0);
     });
   });
 
-  describe("checkIfEnter action handler", function () {
-    it("Should be defined", function () {
+  describe("checkIfEnter action handler", () => {
+    it("Should be defined", () => {
       expect($scope.checkIfEnter).not.toBeUndefined();
     });
   });
 
-  describe("searchFor action handler", function () {
-    it("Should be defined", function () {
+  describe("searchFor action handler", () => {
+    it("Should be defined", () => {
       expect($scope.searchFor).not.toBeUndefined();
     });
   });

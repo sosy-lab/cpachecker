@@ -52,21 +52,21 @@ exports.config = {
     defaultTimeoutInterval: 60000,
   },
 
-  beforeLaunch: function () {
-    return new Promise(function (resolve) {
+  beforeLaunch() {
+    return new Promise((resolve) => {
       reporter.beforeLaunch(resolve);
     });
   },
 
   // Assign the test reporter to each running instance
-  onPrepare: function () {
+  onPrepare() {
     jasmine.getEnv().addReporter(reporter);
     browser.manage().window().setSize(1600, 1000);
   },
 
   // Close the report after all tests finish
-  afterLaunch: function (exitCode) {
-    return new Promise(function (resolve) {
+  afterLaunch(exitCode) {
+    return new Promise((resolve) => {
       reporter.afterLaunch(resolve.bind(exitCode));
     });
   },

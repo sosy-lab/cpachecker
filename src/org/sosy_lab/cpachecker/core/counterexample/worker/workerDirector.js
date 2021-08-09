@@ -7,7 +7,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { argWorkerData, cfaWorkerData } from "workerData";
-const zlib = require('zlib');
+
+const zlib = require("zlib");
+
+// Remove worker-instance specific callback functions
+const deleteCallbacks = (worker) => {
+  delete worker.callback;
+  delete worker.onErrorCallback;
+};
 
 const handleWorkerMessage = (msg, worker, callback) => {
   worker.busy = false;
@@ -19,8 +26,12 @@ const handleWorkerMessage = (msg, worker, callback) => {
 
 const base64Header = "data:text/plain;base64,";
 
-const argWorkerDataDecompressed = base64Header + zlib.inflateSync(new Buffer(argWorkerData, "base64")).toString("base64");
-const cfaWorkerDataDecompressed = base64Header + zlib.inflateSync(new Buffer(cfaWorkerData, "base64")).toString("base64");
+const argWorkerDataDecompressed =
+  base64Header +
+  zlib.inflateSync(Buffer.from(argWorkerData, "base64")).toString("base64");
+const cfaWorkerDataDecompressed =
+  base64Header +
+  zlib.inflateSync(Buffer.from(cfaWorkerData, "base64")).toString("base64");
 
 const argWorker = new Worker(argWorkerDataDecompressed);
 argWorker.workerName = "argWorker";
@@ -41,12 +52,6 @@ const workerPool = { argWorker, cfaWorker };
 // FIFO queue for the jobs that will be executed by the workers
 const jobQueue = [];
 
-// Remove worker-instance specific callback functions
-const deleteCallbacks = (worker) => {
-  delete worker.callback;
-  delete worker.onErrorCallback;
-};
-
 // Gets the first idle worker and reserves it for job dispatch in case one is available
 const reserveWorker = (workerName) => {
   const worker = workerPool[workerName];
@@ -54,6 +59,7 @@ const reserveWorker = (workerName) => {
     worker.busy = true;
     return worker;
   }
+  return undefined;
 };
 
 // Executes the first job of the queue
@@ -89,4 +95,4 @@ const enqueue = async (workerName, data) =>
     setTimeout(processQueue, 0);
   });
 
-export { enqueue };
+export default enqueue;

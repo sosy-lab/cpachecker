@@ -174,7 +174,6 @@ javascript-eslint:
     - npm install
   script:
     - npm run lint
-  allow_failure: true
   <<: *node-cache
 
 
