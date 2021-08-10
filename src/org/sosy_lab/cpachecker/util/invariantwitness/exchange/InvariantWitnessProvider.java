@@ -14,7 +14,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
@@ -23,13 +25,13 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -102,14 +104,14 @@ public final class InvariantWitnessProvider {
 
   private InvariantWitnessProvider(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     pConfig.inject(this);
     logger = pLogger;
     cfa = pCFA;
     lineOffsetsByFile = InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames());
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
 
-    knownWitnesses = new HashSet<>();
+    knownWitnesses = ConcurrentHashMap.newKeySet();
 
     // initialize the parser to convert the string to Expressions (e.g. AExpressionTree).
     scope = new CProgramScope(pCFA, pLogger);
@@ -122,16 +124,28 @@ public final class InvariantWitnessProvider {
             pShutdownNotifier);
 
     // initialize Watch service. It's an API to watch for new files in a directory.
+    // This watch service can be used to let this class block until new invariants are available.
+    Path storePath = Paths.get(storeDirectory);
     try {
       watchService = FileSystems.getDefault().newWatchService();
-      Paths.get(storeDirectory)
-          .register(
-              watchService,
-              StandardWatchEventKinds.ENTRY_MODIFY,
-              StandardWatchEventKinds.ENTRY_CREATE);
+      storePath.register(
+          watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
+
     } catch (IOException e) {
       throw new InvalidConfigurationException("Can not use store directory: " + storeDirectory);
     }
+    // Load already present files
+    ImmutableSet.Builder<InvariantWitness> resultBuilder = ImmutableSet.builder();
+    try (DirectoryStream<Path> stream =
+        Files.newDirectoryStream(storePath, (p) -> p.toFile().isFile())) {
+      for (Path file : stream) {
+        resultBuilder.addAll(parseStoreFile(file.toFile()));
+      }
+      knownWitnesses.addAll(resultBuilder.build());
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Can not use store directory: " + storeDirectory);
+    }
+
   }
 
   /**
@@ -146,7 +160,7 @@ public final class InvariantWitnessProvider {
    */
   public static InvariantWitnessProvider getProvider(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     return new InvariantWitnessProvider(pConfig, pCFA, pLogger, pShutdownNotifier);
   }
 
@@ -169,7 +183,7 @@ public final class InvariantWitnessProvider {
    */
   public static InvariantGenerator getInvariantGenerator(
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     InvariantWitnessProvider provider = getProvider(pConfig, pCFA, pLogger, pShutdownNotifier);
     return new AbstractInvariantGenerator() {
 
@@ -252,11 +266,12 @@ public final class InvariantWitnessProvider {
    *
    * @return Current witnesses
    */
-  public Collection<InvariantWitness> getCurrentWitnesses() throws InterruptedException {
+  public synchronized Collection<InvariantWitness> getCurrentWitnesses()
+      throws InterruptedException {
     Set<InvariantWitness> newWitnesses = parseNewWitnessFiles();
     knownWitnesses.addAll(newWitnesses);
 
-    return Collections.unmodifiableSet(knownWitnesses);
+    return ImmutableSet.copyOf(knownWitnesses);
   }
 
   private Set<InvariantWitness> parseNewWitnessFiles() throws InterruptedException {
