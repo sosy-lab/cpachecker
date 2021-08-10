@@ -1824,6 +1824,7 @@ class CFAMethodBuilder extends ASTVisitor {
     final JExpression switchExpr = switchExprStack.peek();
 
     // build condition, right part, "2"
+    @SuppressWarnings("deprecation") // correct way below JLS14
     final JExpression caseExpr =
         astCreator.convertExpressionWithoutSideEffects(statement.getExpression());
 
