@@ -16,4 +16,11 @@ public interface SMGNode {
    * @return The current nesting level of this value.
    */
   int getNestingLevel();
+
+  /**
+   * Increases the nesting level of this node by a given adder.
+   *
+   * @param byX the adder
+   */
+  void increaseLevelBy(int byX);
 }

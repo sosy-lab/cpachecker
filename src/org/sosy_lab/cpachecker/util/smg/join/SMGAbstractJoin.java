@@ -62,8 +62,24 @@ public class SMGAbstractJoin {
     isDefined = other.isDefined;
   }
 
+  /**
+   * Checks whether the result SMG has new cyclic 0+DLS, that are not in on of the inputs.
+   *
+   * @return true if there are new cycles
+   */
+  protected boolean resultDLSHaveNewCycles() {
+    // TODO This check misses description in the paper as well as application in the old
+    // implementation
+    return false;
+  }
+
   protected boolean isDLLS(SMGObject smgObject) {
     return smgObject instanceof SMGDoublyLinkedListSegment;
+  }
+
+  protected boolean isRegion(SMGObject smgObject) {
+    // This is only a valid check as long as there are no other types
+    return !isDLLS(smgObject);
   }
 
   public NodeMapping getMapping1() {

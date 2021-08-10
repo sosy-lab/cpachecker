@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -44,6 +46,14 @@ public class NodeMapping {
 
   public boolean hasMapping(SMGObject pObject) {
     return objectMap.containsKey(pObject);
+  }
+
+  public Collection<SMGObject> getMappedObjects() {
+    return ImmutableSet.copyOf(objectMap.values());
+  }
+
+  public Collection<SMGValue> getMappedValues() {
+    return ImmutableSet.copyOf(valueMap.values());
   }
 
 }

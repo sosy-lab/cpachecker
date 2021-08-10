@@ -139,6 +139,23 @@ public class SMG {
   }
 
   /**
+   * Creates a copy of the SMG and replaces a given edge with an other.
+   *
+   * @param pSmgObject the source
+   * @param pOldEdge to be replaces
+   * @param pNewEdge replacement
+   * @return a copy of the graph with the replaced edge
+   */
+  public SMG copyAndReplaceHVEdge(
+      SMGObject pSmgObject,
+      SMGHasValueEdge pOldEdge,
+      SMGHasValueEdge pNewEdge) {
+    PersistentSet<SMGHasValueEdge> objEdges =
+        hasValueEdges.get(pSmgObject).removeAndCopy(pOldEdge).addAndCopy(pNewEdge);
+    return copyAndSetHVEdges(objEdges, pSmgObject);
+  }
+
+  /**
    * Creates a copy of the SMG and replaces given object by a given new.
    *
    * @param pOldObject - the object to be replaced
@@ -382,6 +399,18 @@ public class SMG {
     return pointsToEdges.values();
   }
 
+  /**
+   * Returns all SMGPointsToEdges that points to a specific SMGObject.
+   *
+   * @param pointingTo the required target
+   * @return Collection of all SMGPointsToEdges with the specified target.
+   */
+  public Collection<SMGPointsToEdge> getPTEdgesByTarget(SMGObject pointingTo) {
+    return  getPTEdges().stream()
+        .filter(ptEdge -> ptEdge.pointsTo().equals(pointingTo))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
 
   public PersistentMap<SMGValue, SMGPointsToEdge> getPTEdgeMapping() {
     return pointsToEdges;
@@ -457,5 +486,7 @@ public class SMG {
           && edge.pointsTo().equals(targetObject);
     }).findAny().map(entry -> entry.getKey());
   }
+
+
 
 }

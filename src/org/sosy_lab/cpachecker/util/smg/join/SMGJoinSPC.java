@@ -71,16 +71,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
             .of(destSMG, PathCopyingPersistentTreeMap.copyOf(resultMapping));
   }
 
-  /**
-   * Checks whether the result SMG has new cyclic 0+DLS, that are not in on of the inputs.
-   *
-   * @return true if there are new cycles
-   */
-  private boolean resultDLSHaveNewCycles() {
-    // TODO This check misses description in the paper as well as application in the old
-    // implementation
-    return false;
-  }
+
 
   /**
    * Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable.

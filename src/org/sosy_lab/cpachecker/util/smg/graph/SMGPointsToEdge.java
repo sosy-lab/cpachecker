@@ -18,7 +18,7 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   private final SMGObject pointsToObject;
   private final BigInteger offset;
-  private final SMGTargetSpecifier targetSpecifier;
+  private SMGTargetSpecifier targetSpecifier;
 
   /**
    * Constructs a new edge that points-to an object that may be a region or a DLS.
@@ -73,6 +73,10 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
   @Override
   public int hashCode() {
     return super.hashCode();
+  }
+
+  public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
+    targetSpecifier = pTargetSpecifier;
   }
 
 }

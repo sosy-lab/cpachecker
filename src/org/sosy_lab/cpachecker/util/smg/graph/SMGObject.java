@@ -17,7 +17,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
       new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO, false, 0);
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
-  private final int nestingLevel;
+  private int nestingLevel;
   private final BigInteger size;
   private final BigInteger offset;
   private boolean valid;
@@ -104,6 +104,11 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   public SMGObject freshCopy() {
     return of(nestingLevel, size, offset, valid);
+  }
+
+  @Override
+  public void increaseLevelBy(int pByX) {
+    nestingLevel += pByX;
   }
 
 }
