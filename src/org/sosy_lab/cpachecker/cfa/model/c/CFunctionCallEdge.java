@@ -13,6 +13,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -41,10 +42,19 @@ public class CFunctionCallEdge extends FunctionCallEdge {
     return (CFunctionSummaryEdge) summaryEdge;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
+  public CFunctionCall getFunctionCall() {
+    return (CFunctionCall) functionCall;
+  }
+
+  @Override
+  public CFunctionCallExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
+
   @Override
   public List<CExpression> getArguments() {
-    return (List<CExpression>) functionCall.getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override

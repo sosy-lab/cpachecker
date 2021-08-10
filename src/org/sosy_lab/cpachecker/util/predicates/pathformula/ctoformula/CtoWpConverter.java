@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
@@ -263,18 +264,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
       final String pFunction)
       throws UnrecognizedCodeException {
 
-
-    final var callStmt = pEdge.getRawAST().orNull();
-    if(callStmt == null){
-      throw new UnrecognizedCodeException("Unknown function call statement", pEdge);
-    }
-
-
-    final var callExpr = callStmt.getFunctionCallExpression();
-    if(callExpr == null){
-      throw new UnrecognizedCodeException("Unknown function call expression", pEdge, callStmt);
-    }
-
+    final CFunctionCallExpression callExpr = pEdge.getFunctionCallExpression();
 
     final var params = callExpr.getDeclaration().getParameters();
     final var paramsExprs = callExpr.getParameterExpressions();

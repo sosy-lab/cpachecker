@@ -10,12 +10,10 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import com.google.common.base.Optional;
 import java.util.List;
-
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-
-
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class FunctionCallEdge extends AbstractCFAEdge {
 
@@ -40,10 +38,16 @@ public class FunctionCallEdge extends AbstractCFAEdge {
     return  summaryEdge;
   }
 
+  public AFunctionCall getFunctionCall() {
+    return functionCall;
+  }
 
+  public AFunctionCallExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
 
   public List<? extends AExpression> getArguments() {
-    return functionCall.getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override

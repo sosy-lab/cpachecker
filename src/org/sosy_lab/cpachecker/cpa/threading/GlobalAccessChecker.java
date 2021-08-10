@@ -81,8 +81,7 @@ public class GlobalAccessChecker {
       return ((CReturnStatementEdge) edge).getExpression().isPresent()
           && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().get());
     case FunctionCallEdge:
-      return ((CFunctionCallEdge) edge).getRawAST().isPresent()
-          && hasGlobalAccess(((CFunctionCallEdge) edge).getRawAST().get());
+        return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
     case FunctionReturnEdge:
       return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
     default:
