@@ -108,7 +108,7 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
      // step 6
      SMGObject obj1 = inputSMG1.getPTEdge(pValue1).pointsTo();
      SMGObject obj2 = inputSMG2.getPTEdge(pValue2).pointsTo();
-     // step 7
+     // step 7 left insert and join
      if (obj1 instanceof SMGDoublyLinkedListSegment) {
        SMGInsertLeftDlsAndJoin jDlsAndJoin =
            new SMGInsertLeftDlsAndJoin(
@@ -130,23 +130,24 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
              return;
            }
      }
-     // step 8
+     // step 8 right insert and join
      if (obj2 instanceof SMGDoublyLinkedListSegment) {
-       SMGInsertRightDlsAndJoin jDlsAndJoin =
-           new SMGInsertRightDlsAndJoin(
+       // THIS NEEDS TO BE DOUBLE CHECKED!! (The paper misses info on RightJoin)
+       SMGInsertLeftDlsAndJoin jrightDlsAndJoin =
+           new SMGInsertLeftDlsAndJoin(
                status,
-               inputSMG1,
                inputSMG2,
+               inputSMG1,
                destSMG,
-               mapping1,
                mapping2,
-               pValue1,
+               mapping1,
                pValue2,
+               pValue1,
                pNestingLevelDiff);
-       if (!jDlsAndJoin.isDefined() || jDlsAndJoin.isRecoverableFailur()) {
+       if (!jrightDlsAndJoin.isDefined() || jrightDlsAndJoin.isRecoverableFailur()) {
          status = SMGJoinStatus.INCOMPARABLE;
-         isDefined = jDlsAndJoin.isDefined;
-         isRecoverableFailure = jDlsAndJoin.isRecoverableFailure;
+         isDefined = jrightDlsAndJoin.isDefined;
+         isRecoverableFailure = jrightDlsAndJoin.isRecoverableFailure;
          return;
        }
        copyJoinState(joinTargetObjects);
