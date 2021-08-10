@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.5)
  */
-public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoinValues {
+public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
 
 
   public SMGInsertLeftDlsAndJoin(

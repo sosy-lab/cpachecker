@@ -102,4 +102,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return of(pNewLevel, size, offset, valid);
   }
 
+  public SMGObject freshCopy() {
+    return of(nestingLevel, size, offset, valid);
+  }
+
 }

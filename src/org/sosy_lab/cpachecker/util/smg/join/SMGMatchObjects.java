@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4) Algorithm 8.
  *
  */
-public class SMGMatchObjects extends SMGAbstractJoinValues {
+public class SMGMatchObjects extends SMGAbstractJoin {
 
 
   @SuppressWarnings("unused")

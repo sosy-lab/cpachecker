@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4)
  */
-public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
+public class SMGJoinTargetObjects extends SMGAbstractJoin {
 
   public SMGJoinTargetObjects(
       SMGJoinStatus pStatus,

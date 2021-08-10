@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C)
  */
-public class SMGAbstractJoinValues {
+public class SMGAbstractJoin {
 
 
   protected SMGJoinStatus status;
@@ -35,7 +35,7 @@ public class SMGAbstractJoinValues {
   protected boolean isRecoverableFailure = true;
   protected boolean isDefined = true;
 
-  public SMGAbstractJoinValues(
+  public SMGAbstractJoin(
       SMGJoinStatus pStatus,
       SMG pInputSMG1,
       SMG pInputSMG2,
@@ -50,7 +50,7 @@ public class SMGAbstractJoinValues {
     mapping2 = pMapping2;
   }
 
-  protected void copyJoinState(SMGAbstractJoinValues other) {
+  protected void copyJoinState(SMGAbstractJoin other) {
     status = other.getStatus();
     inputSMG1 = other.getInputSMG1();
     inputSMG2 = other.getInputSMG2();

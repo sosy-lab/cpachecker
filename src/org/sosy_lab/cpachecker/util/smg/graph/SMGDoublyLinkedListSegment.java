@@ -73,4 +73,17 @@ public class SMGDoublyLinkedListSegment extends SMGListSegment {
         headOffset);
   }
 
+  @Override
+  public SMGObject freshCopy() {
+    return new SMGDoublyLinkedListSegment(
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        isValid(),
+        prevOffset,
+        nextOffset,
+        minLength,
+        headOffset);
+  }
+
 }
