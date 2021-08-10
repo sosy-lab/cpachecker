@@ -1790,7 +1790,7 @@ class ASTConverter {
           getJSimpleDeclarationOfArgument(argument);
       if (simpleDeclarationOptional.isPresent()) {
         parameterList.add(
-            convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.get())
+            convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.orElseThrow())
                 .orElseThrow());
       } else if (argument instanceof Expression) {
         final String name;
