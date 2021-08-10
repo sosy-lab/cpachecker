@@ -231,10 +231,12 @@ public class NullPointerChecks {
             ((CAssumeEdge) edge).isSwapped(),
             ((CAssumeEdge) edge).isArtificialIntermediate());
     case ReturnStatementEdge:
-      return new CReturnStatementEdge(edge.getRawStatement(),
-                                      ((CReturnStatementEdge)edge).getRawAST().get(),
-                                      edge.getFileLocation(), predecessor,
-                                      ((CReturnStatementEdge)edge).getSuccessor());
+        return new CReturnStatementEdge(
+            edge.getRawStatement(),
+            ((CReturnStatementEdge) edge).getReturnStatement(),
+            edge.getFileLocation(),
+            predecessor,
+            ((CReturnStatementEdge) edge).getSuccessor());
     case StatementEdge:
       return new CStatementEdge(edge.getRawStatement(), ((CStatementEdge)edge).getStatement(),
                                 edge.getFileLocation(), predecessor, successor);

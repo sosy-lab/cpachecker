@@ -39,6 +39,12 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
   }
 
   @Override
+  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  public Optional<JAssignment> asAssignment() {
+    return (Optional<JAssignment>) super.asAssignment();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }

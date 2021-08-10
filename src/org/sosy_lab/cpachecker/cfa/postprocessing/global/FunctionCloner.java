@@ -221,8 +221,13 @@ class FunctionCloner implements CFAVisitor {
         assert end instanceof FunctionExitNode
             : "Expected FunctionExitNode: " + end + ", " + end.getClass();
         if (edge instanceof CReturnStatementEdge) {
-          newEdge = new CReturnStatementEdge(rawStatement, cloneAst(((CReturnStatementEdge) edge).getRawAST().get()),
-                  loc, start, (FunctionExitNode) end);
+            newEdge =
+                new CReturnStatementEdge(
+                    rawStatement,
+                    cloneAst(((CReturnStatementEdge) edge).getReturnStatement()),
+                    loc,
+                    start,
+                    (FunctionExitNode) end);
         } else {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }

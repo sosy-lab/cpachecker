@@ -17,13 +17,17 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class AReturnStatementEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = -6181479727890105919L;
-  protected final AReturnStatement rawAST;
+  protected final AReturnStatement returnStatement;
 
-  protected AReturnStatementEdge(String pRawStatement, AReturnStatement pRawAST,
-      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
+  protected AReturnStatementEdge(
+      String pRawStatement,
+      AReturnStatement pReturnStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      FunctionExitNode pSuccessor) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
-    rawAST = pRawAST;
+    returnStatement = pReturnStatement;
   }
 
   @Override
@@ -31,23 +35,27 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return CFAEdgeType.ReturnStatementEdge;
   }
 
+  public AReturnStatement getReturnStatement() {
+    return returnStatement;
+  }
+
   public Optional<? extends AExpression> getExpression() {
-    return rawAST.getReturnValue();
+    return returnStatement.getReturnValue();
   }
 
   /** See {@link AReturnStatement#asAssignment()}. */
   public Optional<? extends AAssignment> asAssignment() {
-    return rawAST.asAssignment();
+    return returnStatement.asAssignment();
   }
 
   @Override
   public Optional<? extends AReturnStatement> getRawAST() {
-    return Optional.of(rawAST);
+    return Optional.of(returnStatement);
   }
 
   @Override
   public String getCode() {
-    return rawAST.toASTString();
+    return returnStatement.toASTString();
   }
 
   @Override

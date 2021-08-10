@@ -166,7 +166,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       RTTState newState = RTTState.copyOf(state);
       // In Case Of Class Instance Creation, return unique Object
       final String value;
-      if (cfaEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
+      if (cfaEdge.getReturnStatement() instanceof JObjectReferenceReturn) {
         value = state.getClassObjectScope();
       } else {
         value = getExpressionValue(state, expression, functionName, cfaEdge);

@@ -421,7 +421,7 @@ final class SliceToCfaConverter {
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
       return new CReturnStatementEdge(
           rawStatement,
-          returnStatementEdge.getRawAST().get(),
+          returnStatementEdge.getReturnStatement(),
           fileLocation,
           pPredecessor,
           (FunctionExitNode) pSuccessor);

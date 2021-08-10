@@ -22,28 +22,34 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
 
   private static final long serialVersionUID = 8753970625917047772L;
 
-  public CReturnStatementEdge(String pRawStatement, CReturnStatement pRawAST,
-      FileLocation pFileLocation, CFANode pPredecessor, FunctionExitNode pSuccessor) {
+  public CReturnStatementEdge(
+      String pRawStatement,
+      CReturnStatement pReturnStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      FunctionExitNode pSuccessor) {
 
-    super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
-
+    super(pRawStatement, pReturnStatement, pFileLocation, pPredecessor, pSuccessor);
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public CReturnStatement getReturnStatement() {
+    return (CReturnStatement) returnStatement;
+  }
+
   @Override
   public Optional<CExpression> getExpression() {
-    return (Optional<CExpression>)rawAST.getReturnValue();
+    return getReturnStatement().getReturnValue();
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public Optional<CAssignment> asAssignment() {
-    return (Optional<CAssignment>)super.asAssignment();
+    return getReturnStatement().asAssignment();
   }
 
   @Override
   public Optional<CReturnStatement> getRawAST() {
-    return Optional.of((CReturnStatement)rawAST);
+    return Optional.of(getReturnStatement());
   }
 
 }

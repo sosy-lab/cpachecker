@@ -31,20 +31,23 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
     super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public Optional<JExpression> getExpression() {
-    return (Optional<JExpression>) rawAST.getReturnValue();
+  public JReturnStatement getReturnStatement() {
+    return (JReturnStatement) returnStatement;
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
+  @Override
+  public Optional<JExpression> getExpression() {
+    return getReturnStatement().getReturnValue();
+  }
+
   @Override
   public Optional<JAssignment> asAssignment() {
-    return (Optional<JAssignment>) super.asAssignment();
+    return getReturnStatement().asAssignment();
   }
 
   @Override
   public Optional<JReturnStatement> getRawAST() {
-    return Optional.of((JReturnStatement) rawAST);
+    return Optional.of(getReturnStatement());
   }
 }
