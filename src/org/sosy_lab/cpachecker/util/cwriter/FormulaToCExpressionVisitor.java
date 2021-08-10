@@ -96,11 +96,15 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case FP_NEG:
         return "-";
       case AND:
-      case BV_AND:
         return " && ";
+      case BV_AND:
+        return " & ";
       case OR:
-      case BV_OR:
         return "\n|| ";
+      case BV_OR:
+        return " | ";
+      case BV_XOR:
+        return " ^ ";
       case SUB:
       case BV_SUB:
       case FP_SUB:

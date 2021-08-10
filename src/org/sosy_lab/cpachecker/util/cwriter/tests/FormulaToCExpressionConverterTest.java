@@ -382,7 +382,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.and(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x && y) == z)");
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x & y) == z)");
     }
 
     @Test
@@ -393,7 +393,18 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.or(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x\n|| y) == z)");
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x | y) == z)");
+    }
+
+    @Test
+    public void convertBVXor() throws InterruptedException {
+      skipTestForSolvers(ImmutableList.of(Solvers.SMTINTERPOL, Solvers.PRINCESS));
+      BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
+      BooleanFormula formula =
+          bvmgrv.equal(
+              bvmgrv.xor(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
+              bvmgrv.makeVariable(5, "z"));
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x ^ y) == z)");
     }
 
     @Test
