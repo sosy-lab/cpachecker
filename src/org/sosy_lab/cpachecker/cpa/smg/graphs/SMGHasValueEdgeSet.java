@@ -373,9 +373,8 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
           if (edgeCandidateEndOffset > startOffset) {
             startOffset = edgeCandidateOffset;
           }
-          candidateSet = pMap.subMap(startOffset, endOffset).values();
         }
-        return candidateSet.iterator();
+        return pMap.subMap(startOffset, endOffset).values().iterator();
       }
 
       return pMap.values().iterator();
