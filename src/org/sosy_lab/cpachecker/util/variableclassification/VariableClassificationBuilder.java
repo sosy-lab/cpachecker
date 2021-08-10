@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -29,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -513,7 +513,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     case FunctionReturnEdge: {
       Optional<CVariableDeclaration> returnVar = ((CFunctionReturnEdge)edge).getFunctionEntry().getReturnVariable();
       if (returnVar.isPresent()) {
-        String scopedVarName = returnVar.get().getQualifiedName();
+        String scopedVarName = returnVar.orElseThrow().getQualifiedName();
         dependencies.addVar(scopedVarName);
         Partition partition = dependencies.getPartitionForVar(scopedVarName);
         partition.addEdge(edge, 0);
@@ -526,7 +526,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
       CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
       if (returnStatement.asAssignment().isPresent()) {
-        handleAssignment(edge, returnStatement.asAssignment().get(), cfa);
+        handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
       }
       break;
     }
@@ -706,7 +706,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     CFunctionCall statement = func.getExpression();
     Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
     if (returnVar.isPresent()) {
-      String scopedRetVal = returnVar.get().getQualifiedName();
+      String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
       if (statement instanceof CFunctionCallAssignmentStatement) {
         // a=f();
         CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;

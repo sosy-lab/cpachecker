@@ -411,9 +411,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return pElement;
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    com.google.common.base.Optional<CAssignment> assignment = pEdge.asAssignment();
+    Optional<CAssignment> assignment = pEdge.asAssignment();
     if (assignment.isPresent()) {
-      CAssignment cAssignment = assignment.get();
+      CAssignment cAssignment = assignment.orElseThrow();
       NumeralFormula<CompoundInterval> returnedState = cAssignment.getRightHandSide().accept(etfv);
       MemoryLocationExtractor variableNameExtractor =
           new MemoryLocationExtractor(
@@ -431,7 +431,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       MemoryLocation varName = variableNameExtractor.getMemoryLocation(leftHandSide);
       return pElement.assign(varName, returnedState);
     }
-    NumeralFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
+    NumeralFormula<CompoundInterval> returnedState =
+        pEdge.getExpression().orElseThrow().accept(etfv);
     MemoryLocation returnValueName = MemoryLocation.valueOf(pEdge.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName());
     return pElement.assign(returnValueName, returnedState);
   }
@@ -444,8 +445,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
       final String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
-    com.google.common.base.Optional<CVariableDeclaration> var =
-        pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
+    Optional<CVariableDeclaration> var = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
       InvariantsState result = pElement;
 
       // expression is an assignment operation, e.g. a = g(b);
@@ -463,7 +463,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                 pElement);
         CExpression idExpression =
             ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
-                new CIdExpression(pFunctionReturnEdge.getFileLocation(), var.get()),
+                new CIdExpression(pFunctionReturnEdge.getFileLocation(), var.orElseThrow()),
                 funcExp.getLeftHandSide().getExpressionType());
         NumeralFormula<CompoundInterval> value = idExpression.accept(expressionToFormulaVisitor);
           result = handleAssignment(pElement, pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
@@ -484,10 +484,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
               String varName = entry.getKey().getAsSimpleString();
               if (varName.startsWith(formalParamPrefixDeref)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
-                result = result.assign(MemoryLocation.valueOf(actualParamName + "->" + formalParamSuffix), entry.getValue());
+                result =
+                    result.assign(
+                        MemoryLocation.valueOf(actualParamName + "->" + formalParamSuffix),
+                        entry.getValue());
               } else if (varName.startsWith(formalParamPrefixAccess)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
-                result = result.assign(MemoryLocation.valueOf(actualParamName + "." + formalParamSuffix), entry.getValue());
+                result =
+                    result.assign(
+                        MemoryLocation.valueOf(actualParamName + "." + formalParamSuffix),
+                        entry.getValue());
               }
             }
           }

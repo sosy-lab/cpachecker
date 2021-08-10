@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;

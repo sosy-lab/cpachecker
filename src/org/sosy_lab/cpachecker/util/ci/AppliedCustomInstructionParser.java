@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -24,6 +23,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -367,7 +367,7 @@ public class AppliedCustomInstructionParser {
     else if (pLeavingEdge instanceof CReturnStatementEdge) {
       Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
       if (edgeExp.isPresent()) {
-        return CFAUtils.getVariableNamesOfExpression(edgeExp.get()).toSet();
+        return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
       }
     }
 
@@ -484,8 +484,9 @@ public class AppliedCustomInstructionParser {
       }
       break;
     case ReturnStatementEdge:
-      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) { return ((CReturnStatementEdge) pLeave)
-          .getExpression().get().accept(visitor); }
+      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
+          return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
+        }
       break;
     case FunctionCallEdge:
       for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {

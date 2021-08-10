@@ -405,7 +405,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private void addReturnValueDependences() {
 
-    Optional<? extends AVariableDeclaration> optRetVar = entryNode.getReturnVariable().toJavaUtil();
+    Optional<? extends AVariableDeclaration> optRetVar = entryNode.getReturnVariable();
 
     if (optRetVar.isPresent()) {
 

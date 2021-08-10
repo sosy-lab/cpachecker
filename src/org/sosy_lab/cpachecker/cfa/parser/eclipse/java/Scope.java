@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -22,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -144,7 +144,7 @@ class Scope {
    */
   public void enterMethod(JMethodDeclaration methodDef) {
     currentMethodName = methodDef.getOrigName();
-    returnVariable = Optional.fromNullable(createFunctionReturnVariable(methodDef));
+    returnVariable = Optional.ofNullable(createFunctionReturnVariable(methodDef));
 
     enterBlock();
   }

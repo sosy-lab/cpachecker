@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -121,8 +121,8 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     }
 
     @Override
-    public Optional<? extends AAstNode> getRawAST() {
-      return Optional.absent();
+    public Optional<AAstNode> getRawAST() {
+      return Optional.empty();
     }
 
     @Override

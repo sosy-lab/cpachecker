@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -24,6 +23,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -114,7 +114,7 @@ class FunctionScope extends AbstractScope {
         localFunctions.keySet());
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
-      returnVariable = Optional.absent();
+      returnVariable = Optional.empty();
     } else {
       @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
       String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;

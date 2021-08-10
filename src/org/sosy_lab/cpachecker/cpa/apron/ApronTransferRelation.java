@@ -569,7 +569,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       possibleStates.add(
           state.declareVariable(
               MemoryLocation.valueOf(
-                  calledFunctionName, functionEntryNode.getReturnVariable().get().getName()),
+                  calledFunctionName,
+                  functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
                   cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
     } else {
@@ -637,7 +638,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
       MemoryLocation returnVarName =
           MemoryLocation.valueOf(
-              calledFunctionName, fnkCall.getFunctionEntry().getReturnVariable().get().getName());
+              calledFunctionName,
+              fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName());
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 
@@ -826,7 +828,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     MemoryLocation tempVarName =
         MemoryLocation.valueOf(
             cfaEdge.getPredecessor().getFunctionName(),
-            ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getName());
+            ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide()).getName());
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
@@ -835,7 +837,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    Set<Texpr0Node> coeffsList = cfaEdge.getExpression().get().accept(new CApronExpressionVisitor());
+    Set<Texpr0Node> coeffsList =
+        cfaEdge.getExpression().orElseThrow().accept(new CApronExpressionVisitor());
 
     if (coeffsList.isEmpty()) {
       return Collections.singleton(state);

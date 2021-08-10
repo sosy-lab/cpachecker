@@ -286,11 +286,12 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!returnVariable.isPresent()) {
       return pState;
     }
-    return handleAssignment(pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().get());
+    return handleAssignment(
+        pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().orElseThrow());
   }
 
   private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {
-    com.google.common.base.Optional<? extends AVariableDeclaration> returnVariable =
+    Optional<? extends AVariableDeclaration> returnVariable =
         pFunctionEntryNode.getReturnVariable();
     if (!returnVariable.isPresent()) {
       return Optional.empty();

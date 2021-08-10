@@ -795,7 +795,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       state =
           state.declareVariable(
               MemoryLocation.valueOf(
-                  calledFunctionName, functionEntryNode.getReturnVariable().get().getName()),
+                  calledFunctionName,
+                  functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
                   cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
     }
@@ -868,7 +869,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
           state.getVariableIndexFor(
               MemoryLocation.valueOf(
                   calledFunctionName,
-                  fnkCall.getFunctionEntry().getReturnVariable().get().getName()));
+                  fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
 
       if (returnVarIndex == -1) {
         state = state.forget(assignedVarName);
@@ -1060,7 +1061,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     MemoryLocation tempVarName =
         MemoryLocation.valueOf(
             cfaEdge.getPredecessor().getFunctionName(),
-            ((CIdExpression) cfaEdge.asAssignment().get().getLeftHandSide()).getName());
+            ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide()).getName());
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here
@@ -1070,7 +1071,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     Set<OctagonState> possibleStates = new HashSet<>();
     COctagonCoefficientVisitor coeffVisitor = new COctagonCoefficientVisitor(state, cfaEdge.getPredecessor().getFunctionName());
-    Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList = cfaEdge.getExpression().get().accept(coeffVisitor);
+    Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList =
+        cfaEdge.getExpression().orElseThrow().accept(coeffVisitor);
 
     for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsList) {
         possibleStates.add(pairs.getSecond().makeAssignment(tempVarName, pairs.getFirst()));

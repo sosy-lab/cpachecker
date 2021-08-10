@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import com.google.common.base.Optional;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -78,8 +78,8 @@ public class GlobalAccessChecker {
     case DeclarationEdge:
       return hasGlobalAccess(((CDeclarationEdge)edge).getDeclaration());
     case ReturnStatementEdge:
-      return ((CReturnStatementEdge) edge).getExpression().isPresent()
-          && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().get());
+        return ((CReturnStatementEdge) edge).getExpression().isPresent()
+            && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
     case FunctionCallEdge:
         return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
     case FunctionReturnEdge:
@@ -186,8 +186,8 @@ public class GlobalAccessChecker {
     } else if (ast instanceof CReturnStatement) {
       Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
       Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
-      return (returnExp.isPresent() && hasGlobalAccess(returnExp.get()))
-          || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.get()));
+      return (returnExp.isPresent() && hasGlobalAccess(returnExp.orElseThrow()))
+          || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
 
     } else if (ast instanceof CDesignator) {
 

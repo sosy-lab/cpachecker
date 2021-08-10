@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -46,10 +46,4 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
   public Optional<CAssignment> asAssignment() {
     return getReturnStatement().asAssignment();
   }
-
-  @Override
-  public Optional<CReturnStatement> getRawAST() {
-    return Optional.of(getReturnStatement());
-  }
-
 }

@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Equivalence;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -133,11 +133,11 @@ final class EdgeDefUseData {
 
       @Override
       public EdgeDefUseData extract(CFAEdge pEdge) {
-        Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
+        Optional<AAstNode> optAstNode = pEdge.getRawAST();
 
         if (optAstNode.isPresent()) {
 
-          AAstNode astNode = optAstNode.get();
+          AAstNode astNode = optAstNode.orElseThrow();
 
           if (astNode instanceof CAstNode) {
 
@@ -585,7 +585,7 @@ final class EdgeDefUseData {
       Optional<CExpression> optExpression = pNode.getReturnValue();
 
       if (optExpression.isPresent()) {
-        return optExpression.get().accept(this);
+        return optExpression.orElseThrow().accept(this);
       } else {
         return null;
       }

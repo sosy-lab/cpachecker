@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -60,11 +59,6 @@ public class CFunctionCallEdge extends FunctionCallEdge {
   @Override
   public String getCode() {
     return functionCall.getFunctionCallExpression().toASTString();
-  }
-
-  @Override
-  public Optional<CFunctionCall> getRawAST() {
-    return Optional.of((CFunctionCall)functionCall);
   }
 
   @Override

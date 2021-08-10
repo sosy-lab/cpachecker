@@ -452,7 +452,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
     Optional<CVariableDeclaration> returnVariable =
-        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable().toJavaUtil();
+        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
 
     if (returnVariable.isPresent()) {
       String variableName = returnVariable.orElseThrow().getQualifiedName();
