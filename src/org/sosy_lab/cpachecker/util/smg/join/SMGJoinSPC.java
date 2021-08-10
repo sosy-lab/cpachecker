@@ -13,7 +13,8 @@
  */
 package org.sosy_lab.cpachecker.util.smg.join;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -122,9 +123,9 @@ public class SMGJoinSPC extends SMGAbstractJoin {
   private void checkVariableRanges() {
     Set<SMGVariable> spc1Variables = inputSPC1.getVariableToSmgObjectMap().keySet();
     Set<SMGVariable> spc2Variables = inputSPC2.getVariableToSmgObjectMap().keySet();
-    Preconditions.checkArgument(
+    checkArgument(
         spc1Variables.containsAll(spc2Variables),
-        "Variable ranges of " + inputSPC1 + " and " + inputSPC2 + " are not equal.");
+        "Variable ranges are not equal.");
   }
 
 
