@@ -15,6 +15,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.LinkedHashSet;
 import java.util.Map.Entry;
@@ -198,11 +199,8 @@ public class SMGJoinFields {
                 edge.getSizeInBits(),
                 edge.getOffset()));
 
-
-    edgesObj1Without0Address.append(commonNullValueEdgeSet);
-    edgesObj1Without0Address.append(obj2EdgesWithoutZero);
-
-    return PersistentSet.copyOf(edgesObj1Without0Address);
+    return PersistentSet.copyOf(
+        Iterables.concat(edgesObj1Without0Address, commonNullValueEdgeSet, obj2EdgesWithoutZero));
   }
 
   private FluentIterable<SMGHasValueEdge> getNullEdgesIntersection(
