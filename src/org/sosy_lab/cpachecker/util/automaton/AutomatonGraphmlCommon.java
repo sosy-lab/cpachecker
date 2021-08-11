@@ -1022,13 +1022,13 @@ public class AutomatonGraphmlCommon {
     if (leavingEdges.size() != 2) {
       return false;
     }
-    com.google.common.base.Optional<CFAEdge> potentialTerminationValueAssumeEdge =
-        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode);
+    Optional<CFAEdge> potentialTerminationValueAssumeEdge =
+        leavingEdges.firstMatch(e -> e.getSuccessor() instanceof CFATerminationNode).toJavaUtil();
     if (!potentialTerminationValueAssumeEdge.isPresent()
-        || !(potentialTerminationValueAssumeEdge.get() instanceof AssumeEdge)) {
+        || !(potentialTerminationValueAssumeEdge.orElseThrow() instanceof AssumeEdge)) {
       return false;
     }
-    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.get();
+    AssumeEdge terminationValueAssumption = (AssumeEdge) potentialTerminationValueAssumeEdge.orElseThrow();
     AExpression terminationValueAssumeExpression = terminationValueAssumption.getExpression();
     if (!(terminationValueAssumeExpression instanceof ABinaryExpression)) {
       return false;

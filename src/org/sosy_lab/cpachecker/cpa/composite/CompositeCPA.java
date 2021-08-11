@@ -11,11 +11,12 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -180,10 +181,11 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     } else {
       if (options.inCPAEnabledAnalysis) {
         if (options.merge.equals("AGREE")) {
-          Optional<PredicateCPA> predicateCPA = from(cpas).filter(PredicateCPA.class).first();
+          Optional<PredicateCPA> predicateCPA =
+              Collections3.filterByClass(cpas.stream(), PredicateCPA.class).findFirst();
           Preconditions.checkState(
               predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
-          PredicateAbstractionManager abmgr = predicateCPA.get().getPredicateManager();
+          PredicateAbstractionManager abmgr = predicateCPA.orElseThrow().getPredicateManager();
           return new CompositeMergeAgreeCPAEnabledAnalysisOperator(
               mergeOperators.build(), getStopOperator().getStopOperators(), abmgr);
         } else {
