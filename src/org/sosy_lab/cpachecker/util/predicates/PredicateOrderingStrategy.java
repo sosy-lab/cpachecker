@@ -13,7 +13,7 @@ package org.sosy_lab.cpachecker.util.predicates;
  * predicates during the predicate analysis.
  */
 public enum PredicateOrderingStrategy {
-  DISABLE(false), // do not execute any reordering.
+  CHRONOLOGICAL(false), // do not execute any reordering, variables are in creation order
   SIMILARITY(false),
   FREQUENCY(false),
   IMPLICATION(false),
@@ -25,8 +25,7 @@ public enum PredicateOrderingStrategy {
   FRAMEWORK_WIN2(true),
   FRAMEWORK_WIN2ITE(true),
   FRAMEWORK_WIN3(true),
-  FRAMEWORK_WIN3ITE(true),
-  CHRONOLOGICAL(true);
+  FRAMEWORK_WIN3ITE(true);
 
   private final boolean isFrameworkStrategy;
 
