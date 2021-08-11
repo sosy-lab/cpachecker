@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGJoinException;
@@ -63,10 +62,8 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
    */
   private void
       joinValues(SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject, int nestingLevelDiff) {
-    Set<SMGHasValueEdge> smg1Edges = inputSMG1.getEdges(pObj1);
 
-    smg1Edges.forEach(
-        edge1 -> {
+    for(SMGHasValueEdge edge1 : inputSMG1.getEdges(pObj1)){
           // find edge in obj2 with same offset. After performing join fields there must exist such
           // edges.
           SMGHasValueEdge edge2 =
@@ -115,7 +112,7 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
               new SMGHasValueEdge(joinValues.getValue(), edge1.getSizeInBits(), edge1.getOffset());
 
           destSMG = destSMG.copyAndAddHVEdge(newHVEdge, pNewObject);
-        });
+        }
   }
 
   /**

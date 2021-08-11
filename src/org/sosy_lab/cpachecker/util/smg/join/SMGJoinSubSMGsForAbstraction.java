@@ -189,6 +189,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     mappedNodes.addAll(mapping1.getMappedValues());
     mappedNodes.addAll(mapping2.getMappedObjects());
     mappedNodes.addAll(mapping2.getMappedValues());
+    // TODO this modifies nodes, maybe it would be better to replace existing with modified copy
     mappedNodes.forEach(node -> node.increaseLevelBy(1));
   }
 
@@ -200,6 +201,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
    */
   private void relabelPTEdges(SMGObject pNewObject) {
     destSMG.getPTEdgesByTarget(pNewObject).forEach(ptEdge -> {
+      // TODO this modifies nodes, maybe it would be better to replace existing with modified copy
       ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER);
         });
   }

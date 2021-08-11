@@ -8,16 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -245,6 +244,27 @@ public class SMG {
   }
 
   /**
+   * This is a general method to get a all SMGHasValueEdges by object and a filter predicate.
+   * Examples:
+   *
+   * <p>
+   * {@code Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset);} Returns
+   * all existing SMGHasValueEdge with the offset entered.
+   *
+   * <p>
+   * {@code o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits);} Returns all
+   * existing SMGHasValueEdge with the offset and size entered.
+   *
+   * @param object SMGObject for which the SMGHasValueEdge are searched.
+   * @param filter The filter predicate for SMGHasValueEdges.
+   * @return A FluentIterable with all edges matching the specified filter
+   */
+  public FluentIterable<SMGHasValueEdge>
+      getHasValueEdgesByPredicate(SMGObject object, Predicate<SMGHasValueEdge> filter) {
+    return FluentIterable.from(hasValueEdges.get(object)).filter(filter);
+  }
+
+  /**
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
@@ -371,11 +391,8 @@ public class SMG {
    *
    * @return The Set of all SMGDoublyLinkedListSegments.
    */
-  public Set<SMGDoublyLinkedListSegment> getDLLs() {
-    return smgObjects.stream()
-        .filter(i -> i instanceof SMGDoublyLinkedListSegment)
-        .map(i -> (SMGDoublyLinkedListSegment) i)
-        .collect(ImmutableSet.toImmutableSet());
+  public FluentIterable<SMGDoublyLinkedListSegment> getDLLs() {
+    return FluentIterable.from(smgObjects).filter(SMGDoublyLinkedListSegment.class);
   }
 
   /**
@@ -383,11 +400,9 @@ public class SMG {
    *
    * @return Set of all SMGHasValueEdges of this SMG.
    */
-  public Set<SMGHasValueEdge> getHVEdges() {
-    return hasValueEdges.values()
-        .stream()
-        .flatMap(Collection::stream)
-        .collect(ImmutableSet.toImmutableSet());
+  public FluentIterable<SMGHasValueEdge> getHVEdges() {
+    return FluentIterable.from(hasValueEdges.values())
+        .transformAndConcat(edges -> FluentIterable.from(edges));
   }
 
   /**
@@ -395,8 +410,8 @@ public class SMG {
    *
    * @return Collection of all SMGPointsToEdges of this SMG.
    */
-  public Collection<SMGPointsToEdge> getPTEdges() {
-    return pointsToEdges.values();
+  public FluentIterable<SMGPointsToEdge> getPTEdges() {
+    return FluentIterable.from(pointsToEdges.values());
   }
 
   /**
@@ -405,10 +420,8 @@ public class SMG {
    * @param pointingTo the required target
    * @return Collection of all SMGPointsToEdges with the specified target.
    */
-  public Collection<SMGPointsToEdge> getPTEdgesByTarget(SMGObject pointingTo) {
-    return  getPTEdges().stream()
-        .filter(ptEdge -> ptEdge.pointsTo().equals(pointingTo))
-        .collect(ImmutableSet.toImmutableSet());
+  public FluentIterable<SMGPointsToEdge> getPTEdgesByTarget(SMGObject pointingTo) {
+    return getPTEdges().filter(ptEdge -> ptEdge.pointsTo().equals(pointingTo));
   }
 
 
