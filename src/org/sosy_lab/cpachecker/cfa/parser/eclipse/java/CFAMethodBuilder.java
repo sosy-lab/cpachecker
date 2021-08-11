@@ -1385,7 +1385,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
         break;
       default:
-        throw new InternalError("Missing switch clause");
+        throw new AssertionError("Missing switch clause");
     }
   }
 
