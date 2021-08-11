@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -233,7 +234,7 @@ public class SymbolicRegionManager implements RegionManager {
   public void setVarOrder(ImmutableIntArray pOrder) {}
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
     throw new UnsupportedOperationException();
   }
 }

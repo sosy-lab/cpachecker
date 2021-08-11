@@ -327,7 +327,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
     return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
   }
 }

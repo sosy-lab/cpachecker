@@ -13,8 +13,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -321,7 +321,7 @@ class JavaBDDRegionManager implements RegionManager {
     return region;
   }
 
-  private BDD unwrap(Region region) {
+  private static BDD unwrap(Region region) {
     return ((JavaBDDRegion) region).getBDD();
   }
 
@@ -499,12 +499,13 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
-    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
+    checkArgument(pOldPredicates.size() == pNewPredicates.size());
     BDDPairing pairing = factory.makePair();
-    for (int i = 0; i < pOldPredicates.length; i++) {
-      pairing.set(unwrap(pOldPredicates[i]).var(), unwrap(pNewPredicates[i]).var());
-    }
+    Streams.forEachPair(
+        pOldPredicates.stream().map(JavaBDDRegionManager::unwrap),
+        pNewPredicates.stream().map(JavaBDDRegionManager::unwrap),
+        (r1, r2) -> pairing.set(r1.var(), r2.var()));
     return wrap(unwrap(pRegion).replace(pairing));
   }
 

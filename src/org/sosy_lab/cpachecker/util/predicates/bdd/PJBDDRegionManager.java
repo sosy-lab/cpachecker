@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.unwrap;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.wrap;
 
-import com.google.common.base.Preconditions;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -173,12 +173,12 @@ public class PJBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
-    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
+    checkArgument(pOldPredicates.size() == pNewPredicates.size());
     DD bdd = unwrap(pRegion);
-    for (int i = 0; i < pOldPredicates.length; i++) {
-      DD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
-      DD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
+    for (int i = 0; i < pOldPredicates.size(); i++) {
+      DD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates.get(i)).getVariable());
+      DD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates.get(i)).getVariable());
       bdd = bddCreator.makeReplace(bdd, oldVar, newVar);
     }
     return wrap(bdd);

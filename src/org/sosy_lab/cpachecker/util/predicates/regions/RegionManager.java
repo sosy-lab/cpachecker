@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
@@ -86,11 +87,12 @@ public interface RegionManager extends RegionCreator {
   /**
    * Replace predicates in the region with a new predicates.
    *
-   * Corresponds to '\exists old : (region && old==new)'.
+   * <p>Corresponds to '\exists old : (region && old==new)'.
    *
-   * We assume that the predicates only consist of plain predicates,
-   * nothing more complex. We will only use the root variable of the predicate.
-   * We also assume identical lengths of the old and new predicates.
+   * <p>We assume that the predicates only consist of plain predicates, nothing more complex. We
+   * will only use the root variable of the predicate.
+   *
+   * @throws IllegalArgumentException if the lists do not have the same length
    */
-  Region replace(Region region, Region[] oldPredicates, Region[] newPredicates);
+  Region replace(Region region, List<Region> oldPredicates, List<Region> newPredicates);
 }

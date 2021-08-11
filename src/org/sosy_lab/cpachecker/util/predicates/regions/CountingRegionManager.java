@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -148,7 +149,7 @@ public class CountingRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
     operationsCtr.setNextValue(1);
     return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
   }
