@@ -96,7 +96,7 @@ public final class AbstractionManager {
     bfmgr = fmgr.getBooleanFormulaManager();
     solver = pSolver;
 
-    if (!this.varOrderMethod.getIsFrameworkStrategy()) {
+    if (varOrderMethod.getFrameworkStrategy() == null) {
       this.partition = createNewPredicatePartition();
     }
 
@@ -161,7 +161,7 @@ public final class AbstractionManager {
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
 
-      if (!this.varOrderMethod.getIsFrameworkStrategy()) {
+      if (varOrderMethod.getFrameworkStrategy() == null) {
         if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
           int randomIndex = random.nextInt(randomListOfVarIDs.size() + 1);
           randomListOfVarIDs.add(randomIndex, numberOfPredicates);
@@ -236,8 +236,8 @@ public final class AbstractionManager {
     if (varOrderMethod == PredicateOrderingStrategy.CHRONOLOGICAL) {
       return; // do nothing
     }
-    if (this.varOrderMethod.getIsFrameworkStrategy()) {
-      rmgr.reorder(this.varOrderMethod);
+    if (varOrderMethod.getFrameworkStrategy() != null) {
+      rmgr.reorder(varOrderMethod.getFrameworkStrategy());
     } else {
       ImmutableIntArray.Builder predicateOrdering = ImmutableIntArray.builder(numberOfPredicates);
       if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {

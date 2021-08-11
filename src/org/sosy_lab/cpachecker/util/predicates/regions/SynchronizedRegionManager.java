@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -152,7 +151,7 @@ public class SynchronizedRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy pStrategy) {
+  public void reorder(VariableOrderingStrategy pStrategy) {
     synchronized (delegate) {
       delegate.reorder(pStrategy);
     }

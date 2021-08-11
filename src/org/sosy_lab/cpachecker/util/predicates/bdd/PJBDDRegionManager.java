@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -115,7 +114,7 @@ public class PJBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void reorder(VariableOrderingStrategy strategy) {
     throw new UnsupportedOperationException(
         "'reorder(PredicateOrderingStrategy)' not yet implemented");
   }

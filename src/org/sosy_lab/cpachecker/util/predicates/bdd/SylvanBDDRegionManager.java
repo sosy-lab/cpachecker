@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -295,7 +294,7 @@ class SylvanBDDRegionManager implements RegionManager {
   public void setVarOrder(ImmutableIntArray pOrder) {}
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void reorder(VariableOrderingStrategy strategy) {
   }
 
   @Override

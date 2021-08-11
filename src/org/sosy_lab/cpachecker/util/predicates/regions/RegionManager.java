@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -23,6 +22,16 @@ import org.sosy_lab.java_smt.api.SolverException;
  * and manipulating {@link Region}s.
  */
 public interface RegionManager extends RegionCreator {
+
+  enum VariableOrderingStrategy {
+    RANDOM,
+    SIFT,
+    SIFTITE,
+    WIN2,
+    WIN2ITE,
+    WIN3,
+    WIN3ITE;
+  }
 
   /**
    * checks whether the data region represented by f1
@@ -82,7 +91,7 @@ public interface RegionManager extends RegionCreator {
    *
    * @param strategy the reorder strategy that should be applied.
    */
-  void reorder(PredicateOrderingStrategy strategy);
+  void reorder(VariableOrderingStrategy strategy);
 
   /**
    * Replace predicates in the region with a new predicates.

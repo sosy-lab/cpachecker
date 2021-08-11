@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -227,7 +226,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void reorder(VariableOrderingStrategy strategy) {
   }
 
   @Override

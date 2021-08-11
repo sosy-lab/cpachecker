@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -470,27 +469,27 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void reorder(VariableOrderingStrategy strategy) {
     switch (strategy) {
-      case FRAMEWORK_RANDOM:
+      case RANDOM:
         factory.reorder(BDDFactory.REORDER_RANDOM);
         break;
-      case FRAMEWORK_SIFT:
+      case SIFT:
         factory.reorder(BDDFactory.REORDER_SIFT);
         break;
-      case FRAMEWORK_SIFTITE:
+      case SIFTITE:
         factory.reorder(BDDFactory.REORDER_SIFTITE);
         break;
-      case FRAMEWORK_WIN2:
+      case WIN2:
         factory.reorder(BDDFactory.REORDER_WIN2);
         break;
-      case FRAMEWORK_WIN2ITE:
+      case WIN2ITE:
         factory.reorder(BDDFactory.REORDER_WIN2ITE);
         break;
-      case FRAMEWORK_WIN3:
+      case WIN3:
         factory.reorder(BDDFactory.REORDER_WIN3);
         break;
-      case FRAMEWORK_WIN3ITE:
+      case WIN3ITE:
         factory.reorder(BDDFactory.REORDER_WIN3ITE);
         break;
       default:
