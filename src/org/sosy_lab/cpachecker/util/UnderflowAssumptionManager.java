@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.util;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class UnderflowAssumptionManager extends AssumptionManager {
@@ -25,32 +27,51 @@ public class UnderflowAssumptionManager extends AssumptionManager {
     super(pMachineModel, pLogger);
   }
 
+  @Override
+  public CLiteralExpression getBound(CSimpleType type) {
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY,
+        type,
+        machineModel.getMinimalIntegerValue(type));
+  }
+
+  /**
+   * see
+   * {@link AssumptionManager#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
+   */
+  @Override
+
+  public CExpression getBoundAssumption(
+      CExpression operand1,
+      CExpression operand2,
+      BinaryOperator operator,
+      CLiteralExpression min)
+      throws UnrecognizedCodeException {
+    return getAdditiveAssumption(operand1, operand2, operator, min, false);
+  }
+
 
 
   /**
-   * This helper method generates assumptions for checking overflows in signed integer
+   * This helper method generates assumptions for checking underflows in signed integer
    * multiplications. Since the assumptions are {@link CExpression}s as well, they are structured in
-   * such a way that they do not suffer* from overflows themselves (this is of particular importance
-   * e.g. if bit vector theory is used for representation!) *The assumptions contain overflows
-   * because the second part is always evaluated, but their resulting value will then not depend on
-   * the outcome of that part of the formula!
+   * such a way that they do not suffer* from underflows themselves (this is of particular
+   * importance e.g. if bit vector theory is used for representation!) *The assumptions contain
+   * underflows because the second part is always evaluated, but their resulting value will then not
+   * depend on the outcome of that part of the formula!
    *
    * <p>
-   * The necessary assumptions for multiplication to be free from overflows look as follows:
+   * The necessary assumptions for multiplication to be free from underflows look as follows:
    * <ul>
-   * <li>(operand2 <= 0) | (operand1 <= pUpperLimit / operand2)
+   *
    * <li>(operand2 >= 0) | (operand1 >= pLowerLimit / operand2)
    * <li>(operand1 <= 0) | (operand2 >= pLowerLimit / operand1)
-   * <li>(operand1 >= 0) | (operand2 >= pUpperLimit / operand1)
    * </ul>
    *
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
-   * @param pLowerLimit the {@link CLiteralExpression} representing the overflow bound for the type
-   *        of the expression
-   * @param pUpperLimit the {@link CLiteralExpression} representing the overflow bound for the type
-   *        of the expression
-   *
+   * @param pLimit the {@link CLiteralExpression} representing the underflow bound for the type of
+   *        the expression
    */
 
 
@@ -58,15 +79,14 @@ public class UnderflowAssumptionManager extends AssumptionManager {
   public Set<CExpression> addMultiplicationAssumptions(
       CExpression operand1,
       CExpression operand2,
-      CLiteralExpression pLowerLimit,
-      CLiteralExpression pUpperLimit)
+      CLiteralExpression pLimit)
       throws UnrecognizedCodeException {
 
     ImmutableSet.Builder<CExpression> result = ImmutableSet.builder();
     for (boolean operand1isFirstOperand : new boolean[] {false, true}) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
       CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
-        CLiteralExpression limit = pLowerLimit;
+      CLiteralExpression limit = pLimit;
 
         // We construct assumption by writing each of the 4 possible assumptions as:
         // term1 | term3

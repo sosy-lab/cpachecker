@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.util;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class OverflowAssumptionManager extends AssumptionManager {
@@ -23,6 +25,29 @@ public class OverflowAssumptionManager extends AssumptionManager {
 
   public OverflowAssumptionManager(MachineModel pMachineModel, LogManager pLogger) {
     super(pMachineModel, pLogger);
+  }
+
+  @Override
+  public CLiteralExpression getBound(CSimpleType type) {
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY,
+        type,
+        machineModel.getMaximalIntegerValue(type));
+  }
+
+  /**
+   * see
+   * {@link AssumptionManager#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
+   */
+
+  @Override
+  public CExpression getBoundAssumption(
+      CExpression operand1,
+      CExpression operand2,
+      BinaryOperator operator,
+      CLiteralExpression max)
+      throws UnrecognizedCodeException {
+    return getAdditiveAssumption(operand1, operand2, operator, max, true);
   }
 
 
@@ -39,32 +64,27 @@ public class OverflowAssumptionManager extends AssumptionManager {
    * The necessary assumptions for multiplication to be free from overflows look as follows:
    * <ul>
    * <li>(operand2 <= 0) | (operand1 <= pUpperLimit / operand2)
-   * <li>(operand2 >= 0) | (operand1 >= pLowerLimit / operand2)
-   * <li>(operand1 <= 0) | (operand2 >= pLowerLimit / operand1)
    * <li>(operand1 >= 0) | (operand2 >= pUpperLimit / operand1)
    * </ul>
    *
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
-   * @param pLowerLimit the {@link CLiteralExpression} representing the overflow bound for the type
-   *        of the expression
-   * @param pUpperLimit the {@link CLiteralExpression} representing the overflow bound for the type
-   *        of the expression
+   * @param pLimit the {@link CLiteralExpression} representing the overflow bound for the type of
+   *        the expression
    */
 
   @Override
   public Set<CExpression> addMultiplicationAssumptions(
       CExpression operand1,
       CExpression operand2,
-      CLiteralExpression pLowerLimit,
-      CLiteralExpression pUpperLimit)
+      CLiteralExpression pLimit)
       throws UnrecognizedCodeException {
 
     ImmutableSet.Builder<CExpression> result = ImmutableSet.builder();
     for (boolean operand1isFirstOperand : new boolean[] {false, true}) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
       CExpression secondOperand = operand1isFirstOperand ? operand2 : operand1;
-        CLiteralExpression limit = pUpperLimit;
+      CLiteralExpression limit = pLimit;
 
         // We construct assumption by writing each of the 4 possible assumptions as:
         // term1 | term3

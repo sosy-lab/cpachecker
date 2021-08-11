@@ -67,7 +67,7 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
       if (trackAdditiveOperations
           && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
         if (lowerBounds.get(calculationType) != null) {
-          result.add(ufmgr.getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
+          result.add(ufmgr.getBoundAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
         if (lowerBounds.containsKey(calculationType) && upperBounds.containsKey(calculationType)) {
@@ -75,8 +75,7 @@ public final class ArithmeticUnderflowAssumptionBuilder extends ArithmeticAssump
               ufmgr.addMultiplicationAssumptions(
                   op1,
                   op2,
-                  lowerBounds.get(calculationType),
-                  upperBounds.get(calculationType)));
+                  lowerBounds.get(calculationType)));
         }
 
       } else if (trackDivisions

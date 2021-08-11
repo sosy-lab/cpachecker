@@ -36,32 +36,6 @@ public abstract class AssumptionManager {
     machineModel = pMachineModel;
   }
 
-  /**
-   * see
-   * {@link AssumptionManager#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
-   */
-  public CExpression getUpperAssumption(
-      CExpression operand1,
-      CExpression operand2,
-      BinaryOperator operator,
-      CLiteralExpression max)
-      throws UnrecognizedCodeException {
-    return getAdditiveAssumption(operand1, operand2, operator, max, true);
-  }
-
-  /**
-   * see
-   * {@link AssumptionManager#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
-   */
-  public CExpression getLowerAssumption(
-      CExpression operand1,
-      CExpression operand2,
-      BinaryOperator operator,
-      CLiteralExpression min)
-      throws UnrecognizedCodeException {
-    return getAdditiveAssumption(operand1, operand2, operator, min, false);
-  }
-
   public CExpression getConjunctionOfAdditiveAssumptions(
       CExpression operand1,
       CExpression operand2,
@@ -71,8 +45,8 @@ public abstract class AssumptionManager {
       throws UnrecognizedCodeException {
     CExpression assumption =
         cBinaryExpressionBuilder.buildBinaryExpression(
-            getLowerAssumption(operand1, operand2, operator, getLowerBound(type)),
-            getUpperAssumption(operand1, operand2, operator, getUpperBound(type)),
+            getBoundAssumption(operand1, operand2, operator, getBound(type)),
+            getBoundAssumption(operand1, operand2, operator, getBound(type)),
             BinaryOperator.BINARY_AND);
     if (negate) {
       assumption =
@@ -84,6 +58,15 @@ public abstract class AssumptionManager {
     return assumption;
   }
 
+  public abstract CLiteralExpression getBound(CSimpleType pType);
+
+  public abstract CExpression getBoundAssumption(
+      CExpression pOperand1,
+      CExpression pOperand2,
+      BinaryOperator pOperator,
+      CLiteralExpression pBound)
+      throws UnrecognizedCodeException;
+
   public CExpression getConjunctionOfMultiplicationAssumptions(
       CExpression operand1,
       CExpression operand2,
@@ -91,7 +74,7 @@ public abstract class AssumptionManager {
       boolean negate)
       throws UnrecognizedCodeException {
     Set<CExpression> assumptions =
-        addMultiplicationAssumptions(operand1, operand2, getLowerBound(type), getUpperBound(type));
+        addMultiplicationAssumptions(operand1, operand2, getBound(type));
     CExpression result = from(assumptions).get(0);
     for (CExpression assumption : from(assumptions).skip(1)) {
       result =
@@ -189,18 +172,17 @@ public abstract class AssumptionManager {
   }
 
   /**
-   * This helper method generates assumptions for checking overflows in signed integer
+   * This helper method generates assumptions for checking over-/underflows in signed integer
    * multiplications. Since the assumptions are {@link CExpression}s as well, they are structured in
    * such a way that they do not suffer* from overflows themselves (this is of particular importance
-   * e.g. if bit vector theory is used for representation!) *The assumptions contain overflows
+   * e.g. if bit vector theory is used for representation!) *The assumptions contain over-/underflows
    * because the second part is always evaluated, but their resulting value will then not depend on
    * the outcome of that part of the formula!
    */
   public abstract Set<CExpression> addMultiplicationAssumptions(
       CExpression pOperand1,
       CExpression pOperand2,
-      CLiteralExpression pLowerLimit,
-      CLiteralExpression pUpperLimit)
+      CLiteralExpression pLimit)
       throws UnrecognizedCodeException;
 
   /**
@@ -293,20 +275,6 @@ public abstract class AssumptionManager {
       throws UnrecognizedCodeException {
     return cBinaryExpressionBuilder
         .buildBinaryExpression(operand, limit, BinaryOperator.NOT_EQUALS);
-  }
-
-  public CLiteralExpression getUpperBound(CSimpleType type) {
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY,
-        type,
-        machineModel.getMaximalIntegerValue(type));
-  }
-
-  public CLiteralExpression getLowerBound(CSimpleType type) {
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY,
-        type,
-        machineModel.getMinimalIntegerValue(type));
   }
 }
 
