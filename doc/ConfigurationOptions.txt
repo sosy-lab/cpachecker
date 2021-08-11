@@ -1922,12 +1922,8 @@ cpa.predicate.abortOnLargeArrays = true
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
-  enum:     [CHRONOLOGICAL, SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION,
-             RANDOMLY, FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE,
+  enum:     [CHRONOLOGICAL, FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE,
              FRAMEWORK_WIN2, FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE]
-
-# Use multiple partitions for predicates
-cpa.predicate.abs.predicateOrdering.partitions = false
 
 # use caching of abstractions
 # use caching of region to formula conversions
