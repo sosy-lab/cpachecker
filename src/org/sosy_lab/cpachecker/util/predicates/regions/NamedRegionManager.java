@@ -235,10 +235,13 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {}
+  public void setVarOrder(ImmutableIntArray pOrder) {
+    delegate.setVarOrder(pOrder);
+  }
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
+    delegate.reorder(strategy);
   }
 
   @Override

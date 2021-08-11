@@ -108,15 +108,13 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public void setVarOrder(ImmutableIntArray pOrder) {
-    throw new UnsupportedOperationException(
-        "'reorder(PredicateOrderingStrategy)' not yet implemented");
+    throw new UnsupportedOperationException("reordering not yet implemented");
     // bddCreator.setVarOrder(pOrder.asList());
   }
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
-    throw new UnsupportedOperationException(
-        "'reorder(PredicateOrderingStrategy)' not yet implemented");
+    throw new UnsupportedOperationException("reordering not yet implemented");
   }
 
   @Override

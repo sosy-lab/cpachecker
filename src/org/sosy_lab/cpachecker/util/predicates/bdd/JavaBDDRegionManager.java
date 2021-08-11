@@ -493,7 +493,7 @@ class JavaBDDRegionManager implements RegionManager {
         factory.reorder(BDDFactory.REORDER_WIN3ITE);
         break;
       default:
-        break;
+        throw new UnsupportedOperationException("Reorder strategy " + strategy + " not supported");
     }
   }
 

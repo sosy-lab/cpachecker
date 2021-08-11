@@ -227,10 +227,13 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
+    // not applicable
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {}
+  public void setVarOrder(ImmutableIntArray pOrder) {
+    // not applicable
+  }
 
   @Override
   public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {

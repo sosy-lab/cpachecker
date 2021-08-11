@@ -291,10 +291,13 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {}
+  public void setVarOrder(ImmutableIntArray pOrder) {
+    throw new UnsupportedOperationException("reordering not yet implemented");
+  }
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
+    throw new UnsupportedOperationException("reordering not yet implemented");
   }
 
   @Override
