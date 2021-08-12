@@ -19,7 +19,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -89,11 +88,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(secure=true, name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Paths.get("assumptions.txt");
+  private Path assumptionsFile = Path.of("assumptions.txt");
 
   @Option(secure=true, name="automatonFile", description="write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionAutomatonFile = Paths.get("AssumptionAutomaton.txt");
+  private Path assumptionAutomatonFile = Path.of("AssumptionAutomaton.txt");
 
   @Option(
       secure = true,
@@ -106,7 +105,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       name = "dotFile",
       description = "write collected assumptions as automaton to dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionAutomatonDotFile = Paths.get("AssumptionAutomaton.dot");
+  private Path assumptionAutomatonDotFile = Path.of("AssumptionAutomaton.dot");
 
   @Option(
     secure = true,

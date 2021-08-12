@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.BufferedReader;
@@ -20,12 +20,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -313,13 +311,8 @@ public class AppliedCustomInstructionParser {
       throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
     }
 
-    List<String> outputVariablesAsList = new ArrayList<>(outputVariables);
-
-    Collections.sort(outputVariablesAsList);
-
-    List<String> inputVariablesAsList = new ArrayList<>(inputVariables);
-
-    Collections.sort(inputVariablesAsList);
+    ImmutableList<String> outputVariablesAsList = ImmutableList.sortedCopyOf(outputVariables);
+    ImmutableList<String> inputVariablesAsList = ImmutableList.sortedCopyOf(inputVariables);
 
     return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
   }
@@ -374,7 +367,7 @@ public class AppliedCustomInstructionParser {
     else if (pLeavingEdge instanceof CReturnStatementEdge) {
       Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
       if (edgeExp.isPresent()) {
-        return CFAUtils.getVariableNamesOfExpression(edgeExp.get()).toSet();
+        return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
       }
     }
 
@@ -491,8 +484,9 @@ public class AppliedCustomInstructionParser {
       }
       break;
     case ReturnStatementEdge:
-      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) { return ((CReturnStatementEdge) pLeave)
-          .getExpression().get().accept(visitor); }
+      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
+          return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
+        }
       break;
     case FunctionCallEdge:
       for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {

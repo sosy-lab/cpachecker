@@ -9,15 +9,15 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 
-/**
- * Generator of new fresh to-be-returned values for {@link SSAMap}.
- **/
-public class FreshValueProvider implements Serializable {
+/** Generator of new fresh to-be-returned values for {@link SSAMap}. */
+@Immutable
+public final class FreshValueProvider implements Serializable {
 
   private static final long serialVersionUID = 12359384095345L;
 
@@ -25,13 +25,13 @@ public class FreshValueProvider implements Serializable {
   @VisibleForTesting
   static final int DEFAULT_INCREMENT = 1;
 
-  private PersistentSortedMap<String, Integer> vars;
+  private final PersistentSortedMap<String, Integer> vars;
 
   public FreshValueProvider() {
     vars = PathCopyingPersistentTreeMap.of();
   }
 
-  private FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
+  public FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
     this.vars = diffVars;
   }
 
@@ -58,10 +58,6 @@ public class FreshValueProvider implements Serializable {
     return new FreshValueProvider(
         PersistentSortedMaps.merge(
             this.vars, other.vars, PersistentSortedMaps.getMaximumMergeConflictHandler()));
-  }
-
-  public void put(String variable, int index) {
-    vars = vars.putAndCopy(variable, index);
   }
 
   @Override

@@ -234,9 +234,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
-      if (!options.useMemoryRegions() && !options.useByteArrayForHeap()) {
+      if (!options.useMemoryRegions()) {
         assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
@@ -256,13 +255,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final int pOldIndex,
       final int pNewIndex) {
 
-    final FormulaType<?> returnFormulaType;
-    if (options.useByteArrayForHeap()) {
-      // 8-bit vector type for byte array heap
-      returnFormulaType = FormulaType.getBitvectorTypeWithSize(8);
-    } else {
-      returnFormulaType = getFormulaTypeFromCType(pReturnType);
-    }
+    final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(pReturnType);
     final ArrayFormula<?, ?> newArray =
         afmgr.makeArray(pFunctionName, pNewIndex, voidPointerFormulaType, returnFormulaType);
     final ArrayFormula<?, ?> oldArray =
@@ -539,8 +532,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           //TODO someone has to check if length must be fixed to string size here if yes replace with stringExp.tranformTypeToArrayType
           lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
-          throw new UnrecognizedCodeException(
-              "Assigning string literal to " + lhsType.toString(), assignment);
+          throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
 
         List<CCharLiteralExpression> chars = ((CStringLiteralExpression) rhs).expandStringLiteral(lhsArrayType);
@@ -721,7 +713,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected BooleanFormula makeReturn(
-      final com.google.common.base.Optional<CAssignment> assignment,
+      final Optional<CAssignment> assignment,
       final CReturnStatementEdge returnEdge,
       final String function,
       final SSAMapBuilder ssa,
@@ -733,7 +725,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
-          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
+          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode())
+              .getReturnVariable()
+              .orElseThrow();
 
       declareSharedBase(
           returnVariableDeclaraton,

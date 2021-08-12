@@ -53,11 +53,11 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
   }
 
   private CFAEdge getEdge(Iterable<AbstractState> pStates) {
-    com.google.common.base.Optional<LocationState> locationState =
-        from(pStates).filter(LocationState.class).first();
+    Optional<LocationState> locationState =
+        from(pStates).filter(LocationState.class).first().toJavaUtil();
     final CFANode successor;
     if (locationState.isPresent()) {
-      LocationState ls = locationState.get();
+      LocationState ls = locationState.orElseThrow();
       successor = ls.getLocationNode();
       if (successor.getNumEnteringEdges() == 1) {
         return successor.getEnteringEdge(0);

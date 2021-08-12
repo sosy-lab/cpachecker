@@ -21,7 +21,7 @@ import time
 from subprocess import check_output
 
 
-class FoundBugException(Exception):
+class FoundBugError(Exception):
     pass
 
 
@@ -518,7 +518,7 @@ class FixPointOnCoveredLines(ComputeCoverage):
                     "Found an assertion violation. Inspect counterexamples "
                     "before collecting a coverage measure."
                 )
-                raise FoundBugException()
+                raise FoundBugError()
             for spec in specs_generated:
                 yield spec
                 # we might be ignoring already produced counterexamples
@@ -621,7 +621,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
                 "Found an assertion violation. Inspect counterexamples "
                 "before collecting a coverage measure."
             )
-            raise FoundBugException()
+            raise FoundBugError()
         return gen_specs_from_dir(self.output_dir)
 
 

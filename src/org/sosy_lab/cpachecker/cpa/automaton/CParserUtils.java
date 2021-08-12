@@ -425,12 +425,12 @@ class CParserUtils {
 
     ParseResult parseResult;
     try {
-      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
+      parseResult = pCParser.parseString("<expr>", testCode, new CSourceOriginMapping(), pScope);
     } catch (CParserException e) {
       assumeCode = tryFixACSL(assumeCode, pResultFunction, pScope);
       testCode = String.format(formatString, assumeCode);
       try {
-        parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
+        parseResult = pCParser.parseString("<expr>", testCode, new CSourceOriginMapping(), pScope);
       } catch (CParserException e2) {
         throw new InvalidAutomatonException(
             "Cannot interpret code as C expression: <" + pAssumeCode + ">", e);
@@ -472,8 +472,7 @@ class CParserUtils {
         // Handle the return statement: Returning 0 means false, 1 means true
         if (leavingEdge instanceof AReturnStatementEdge) {
           AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-          com.google.common.base.Optional<? extends AExpression> optExpression =
-              returnStatementEdge.getExpression();
+          Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
           assert optExpression.isPresent();
           if (!optExpression.isPresent()) { return ExpressionTrees.getTrue(); }
           AExpression expression = optExpression.get();

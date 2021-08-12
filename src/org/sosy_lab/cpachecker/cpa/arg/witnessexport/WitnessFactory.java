@@ -141,7 +141,7 @@ class WitnessFactory implements EdgeAppender {
           KeyDef.ASSUMPTIONRESULTFUNCTION,
           KeyDef.THREADNAME);
 
-  private static final ARGState getCoveringState(ARGState pChild) {
+  private static ARGState getCoveringState(ARGState pChild) {
       ARGState child = pChild;
       // The child might be covered by another state
       // --> switch to the covering state
@@ -549,8 +549,8 @@ class WitnessFactory implements EdgeAppender {
 
     if (witnessOptions.exportLineNumbers() && min != null) {
       if (witnessOptions.exportSourceFileName()
-          || !min.getFileName().equals(defaultSourcefileName)) {
-        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
+          || !min.getFileName().toString().equals(defaultSourcefileName)) {
+        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName().toString());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
     }
@@ -560,8 +560,8 @@ class WitnessFactory implements EdgeAppender {
 
     if (witnessOptions.exportOffset() && min != null && min.isOffsetRelatedToOrigin()) {
       if (witnessOptions.exportSourceFileName()
-          || !min.getFileName().equals(defaultSourcefileName)) {
-        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
+          || !min.getFileName().toString().equals(defaultSourcefileName)) {
+        result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName().toString());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
     }
@@ -966,13 +966,15 @@ class WitnessFactory implements EdgeAppender {
           switch (functionName) {
             case ThreadingTransferRelation.THREAD_START:
               {
-                com.google.common.base.Optional<ARGState> possibleChild =
-                    from(pState.getChildren()).firstMatch(c -> pEdge == pState.getEdgeToChild(c));
+                Optional<ARGState> possibleChild =
+                    pState.getChildren().stream()
+                        .filter(c -> pEdge == pState.getEdgeToChild(c))
+                        .findFirst();
                 if (!possibleChild.isPresent()) {
                   // this can happen e.g. if the ARG was not discovered completely.
                   return Collections.singletonList(pResult);
                 }
-                ARGState child = possibleChild.get();
+                ARGState child = possibleChild.orElseThrow();
                 // search the new created thread-id
                 ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
                 for (String threadId : succThreadingState.getThreadIds()) {
@@ -1405,7 +1407,7 @@ class WitnessFactory implements EdgeAppender {
    * this predicate marks intermediate nodes that do not contain relevant information and can
    * therefore be shortcut.
    */
-  private final boolean isIrrelevantNode(String pNode) {
+  private boolean isIrrelevantNode(String pNode) {
     if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
       return false;
     }
@@ -1427,7 +1429,7 @@ class WitnessFactory implements EdgeAppender {
    * this predicate marks intermediate edges that do not contain relevant information and can
    * therefore be shortcut.
    */
-  private final boolean isEdgeIrrelevant(Edge pEdge) {
+  private boolean isEdgeIrrelevant(Edge pEdge) {
     final String source = pEdge.getSource();
     final String target = pEdge.getTarget();
     final TransitionCondition label = pEdge.getLabel();

@@ -62,8 +62,9 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
 
   @Test public void testSlicingVerySimple() throws Exception {
     SSAMap startingSsa = SSAMap.emptySSAMap().withDefault(0);
+    @SuppressWarnings("deprecation") // just for test
     PathFormula transition =
-        new PathFormula(
+        PathFormula.createManually(
             ifmgr.equal(
                 ifmgr.makeVariable("x", 1),
                 ifmgr.add(ifmgr.makeVariable("x", 0), ifmgr.makeNumber(1))),

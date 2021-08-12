@@ -23,7 +23,7 @@ from concurrent.futures import as_completed
 
 import benchexec
 import benchexec.tooladapter
-from . import util
+from . import vcloudutil
 from .webclient import (
     WebInterface,
     WebClientError,
@@ -71,7 +71,6 @@ def init(config, benchmark):
 
     benchmark.tool_version = _webclient.tool_revision()
     benchmark.executable = "scripts/cpa.sh"
-    logging.info("Using %s version %s.", benchmark.tool_name, benchmark.tool_version)
 
 
 def get_system_info():
@@ -263,7 +262,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         return log_file
 
     def _handle_run_info(values):
-        result_values.update(util.parse_vcloud_run_result(values.items()))
+        result_values.update(vcloudutil.parse_vcloud_run_result(values.items()))
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
@@ -278,7 +277,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             values.pop("os", "-"),
             values.pop("cpuModel", "-"),
             values.pop("cores", "-"),
-            util.parse_frequency_value(values.pop("frequency", None)) or "-",
+            vcloudutil.parse_frequency_value(values.pop("frequency", None)) or "-",
             memory or "-",
             host,
             runSet=run.runSet,

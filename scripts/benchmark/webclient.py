@@ -429,6 +429,16 @@ class WebInterface:
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
+        if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
+            logging.warning(
+                "Using %s version %s, which is different than the requested version %s!",
+                self._tool_name,
+                self._revision,
+                revision,
+            )
+        else:
+            logging.info("Using %s version %s.", self._tool_name, self._revision)
+
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
         else:
@@ -791,6 +801,24 @@ class WebInterface:
                     ("option", "limits.time.cpu=" + str(rlimits["softtimelimit"]) + "s")
                 )
 
+            task_options = getattr(run, "task_options", None)
+            if isinstance(task_options, dict) and task_options.get("language") == "C":
+                data_model = task_options.get("data_model")
+                if data_model:
+                    data_model_option = {"ILP32": "Linux32", "LP64": "Linux64"}.get(
+                        data_model
+                    )
+                    if data_model_option:
+                        params.append(
+                            ("option", "analysis.machineModel=" + data_model_option)
+                        )
+                    else:
+                        raise WebClientError(
+                            "Unsupported data_model '{}' defined for task '{}'".format(
+                                data_model, run.identifier
+                            )
+                        )
+
         if run.options:
             i = iter(run.options)
             disableAssertions = False
@@ -835,6 +863,8 @@ class WebInterface:
                     elif option == "-cbmc":
                         params.append(("option", "analysis.checkCounterexamples=true"))
                         params.append(("option", "counterexample.checker=CBMC"))
+                    elif option == "-clang":
+                        params.append(("option", "parser.useClang=true"))
                     elif option == "-preprocess":
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":

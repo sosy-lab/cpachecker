@@ -32,6 +32,8 @@ public interface Property {
     TAINT_ERROR("G ! taint-error"),
 
     TERMINATION("F end"),
+
+    ASSERT("G assert"),
     ;
 
     private final String representation;

@@ -142,7 +142,7 @@ public class PrefixSelector {
   }
 
   private interface Scorer {
-    static final int DEFAULT_SCORE = Integer.MAX_VALUE;
+    int DEFAULT_SCORE = Integer.MAX_VALUE;
 
     int computeScore(final InfeasiblePrefix pPrefix);
 

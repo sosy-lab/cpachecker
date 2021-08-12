@@ -279,6 +279,6 @@ public class StateToFormulaWriter implements StatisticsProvider {
   }
 
   private static String toKey(CFANode pCfaNode) {
-    return pCfaNode.getFunctionName() + " " + pCfaNode.toString();
+    return pCfaNode.getFunctionName() + " " + pCfaNode;
   }
 }

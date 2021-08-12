@@ -44,7 +44,7 @@ public class StatementWriter implements StatementVisitor<IOException>, Closeable
         sb.append("extern void reach_error();\n");
         break;
       case REACHASMEMSAFETY:
-        sb.append("#include <stdlib.h>");
+        sb.append("#include <stdlib.h>\n");
         break;
       default:
         // no action needed

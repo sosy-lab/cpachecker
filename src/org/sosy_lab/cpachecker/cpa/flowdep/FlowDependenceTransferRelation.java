@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.flowdep;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -134,12 +134,8 @@ class FlowDependenceTransferRelation
       MemoryLocation varName = e.getKey();
       Set<DefinitionPoint> points = e.getValue();
 
-      Collection<ProgramDefinitionPoint> defPoints =
-          points
-              .stream()
-              .filter(x -> x instanceof ProgramDefinitionPoint)
-              .map(p -> (ProgramDefinitionPoint) p)
-              .collect(Collectors.toList());
+      FluentIterable<ProgramDefinitionPoint> defPoints =
+          FluentIterable.from(points).filter(ProgramDefinitionPoint.class);
 
       normalized.putAll(varName, defPoints);
     }
@@ -232,10 +228,10 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState,
       PointerState pPointerState)
       throws CPATransferException {
-    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
 
     if (asAssignment.isPresent()) {
-      CAssignment returnAssignment = asAssignment.get();
+      CAssignment returnAssignment = asAssignment.orElseThrow();
       CRightHandSide rhs = returnAssignment.getRightHandSide();
       Set<MemoryLocation> defs = getDef(returnAssignment.getLeftHandSide(), pPointerState);
 
@@ -511,7 +507,7 @@ class FlowDependenceTransferRelation
       }
     }
 
-    com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
+    Optional<CVariableDeclaration> maybeReturnVar =
         summaryEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
       Set<MemoryLocation> possibleDefs = null;
@@ -526,7 +522,8 @@ class FlowDependenceTransferRelation
               handleOperation(
                   pReturnEdge,
                   Optional.ofNullable(def),
-                  ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
+                  ImmutableSet.of(
+                      MemoryLocation.valueOf(maybeReturnVar.orElseThrow().getQualifiedName())),
                   nextState,
                   pReachDefState);
         }
@@ -535,7 +532,8 @@ class FlowDependenceTransferRelation
             handleOperation(
                 pReturnEdge,
                 Optional.empty(),
-                ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
+                ImmutableSet.of(
+                    MemoryLocation.valueOf(maybeReturnVar.orElseThrow().getQualifiedName())),
                 nextState,
                 pReachDefState);
       }
@@ -814,10 +812,10 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CReturnStatement pNode) throws CPATransferException {
-      com.google.common.base.Optional<CExpression> ret = pNode.getReturnValue();
+      Optional<CExpression> ret = pNode.getReturnValue();
 
       if (ret.isPresent()) {
-        return ret.get().accept(this);
+        return ret.orElseThrow().accept(this);
       } else {
         return ImmutableSet.of();
       }

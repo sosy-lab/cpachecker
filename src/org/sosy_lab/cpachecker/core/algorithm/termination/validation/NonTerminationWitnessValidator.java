@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -26,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
@@ -79,12 +79,12 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -217,8 +217,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     statistics.totalVal.start();
 
     FluentIterable<AutomatonInternalState> cycleHeadCandidates =
@@ -240,13 +239,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         shutdown.shutdownIfNecessary();
 
         if (stemSynState.isPresent()) {
-          CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
+          CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.orElseThrow());
           CFANode afterInvCheck = new CFANode(stemEndLoc.getFunction());
 
           // extract quasi invariant which describes recurrent set, use true as default
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
 
-          for (AbstractState state : AbstractStates.asIterable(stemSynState.get())) {
+          for (AbstractState state : AbstractStates.asIterable(stemSynState.orElseThrow())) {
             if (state instanceof AutomatonState) {
               AutomatonState automatonState = (AutomatonState) state;
               if (automatonState.getOwningAutomaton() == witness) {
@@ -365,8 +364,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           "Search for program location at which infinite path(s) split into stem and looping part");
       algorithm.run(reached);
 
-      Optional<AbstractState> stemState = from(reached).firstMatch(AbstractStates::isTargetState);
-
+      Optional<AbstractState> stemState =
+          reached.stream().filter(AbstractStates::isTargetState).findFirst();
       return stemState;
 
     } catch (IOException | InvalidConfigurationException | CPAException e) {
@@ -374,7 +373,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           Level.FINE,
           e,
           "Exception occurred while trying to find location which is visited infinitely in a nonterminating execution");
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 
@@ -479,7 +478,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 witness.getInitialVariables(),
                 witness.getStates(),
                 pStemEndCycleStart.getName()));
-      } catch (Exception e) {
+      } catch (InvalidAutomatonException e) {
         logger.logException(Level.INFO, e, "Failed to set up specification to check recurrent set");
         return false;
       }
@@ -809,9 +808,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 witness.getStates(),
                 pRecurrentStartInWitness.getName()));
         automata.add(getSpecForStopAtWitnessTerminationBreak(WITNESS_BREAK_CONTROLLER_SPEC_NAME));
-      } catch (Exception e) {
-        logger.log(Level.INFO, "Failed to set up specification to check assumptions.");
-        logger.logException(Level.FINE, e, "Failure during set up of assumptions check");
+      } catch (InvalidAutomatonException | IOException | InvalidConfigurationException e) {
+        logger.logUserException(
+            Level.INFO, e, "Failed to set up specification to check assumptions.");
         return false;
       }
       automata.add(terminationAutomaton);

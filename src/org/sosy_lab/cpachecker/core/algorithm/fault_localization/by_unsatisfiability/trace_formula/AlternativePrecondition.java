@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,14 +42,14 @@ public class AlternativePrecondition {
    * @return conjunct of the alternative precondition with the default precondition
    */
   public static BooleanFormula of(
-      String pFilter,
-      String pIgnore,
+      List<String> pFilter,
+      List<String> pIgnore,
       BooleanFormula pDefaultPrecondition,
       FormulaContext pFormulaContext,
       FormulaEntryList pEntries) {
     AlternativePreconditionHelper altpre =
         new AlternativePreconditionHelper(pFormulaContext, pIgnore, pFilter);
-    pEntries.removeIf(entry -> altpre.add(entry));
+    pEntries.removeIf(altpre::add);
     pEntries.addEntry(0, new FormulaEntryList.PreconditionEntry(altpre.preConditionMap));
     BooleanFormulaManager bmgr =
         pFormulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
@@ -60,34 +58,29 @@ public class AlternativePrecondition {
 
   static class AlternativePreconditionHelper {
 
-    private Map<Formula, Integer> variableToIndexMap;
-    private List<BooleanFormula> preCondition;
-    private List<String> ignore;
-    private List<String> filter;
+    private final Map<Formula, Integer> variableToIndexMap;
+    private final List<BooleanFormula> preCondition;
+    private final List<String> ignore;
+    private final List<String> filter;
     private SSAMap preConditionMap;
-    private FormulaContext context;
+    private final FormulaContext context;
 
-    AlternativePreconditionHelper(FormulaContext pContext, String pIngnore, String pFilter) {
+    private AlternativePreconditionHelper(FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
       context = pContext;
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
       preConditionMap = SSAMap.emptySSAMap();
-      if (pIngnore.isBlank()) {
-        ignore = ImmutableList.of();
-      } else {
-        ignore = Splitter.on(",").splitToList(pIngnore);
-      }
-      if (pFilter.isBlank()) {
-        filter = ImmutableList.of();
-      } else {
-        filter = Splitter.on(",").splitToList(pFilter);
-      }
+      ignore = pIgnore;
+      filter = pFilter;
     }
 
-    boolean add(FormulaEntry entry) {
+    private boolean add(FormulaEntry entry) {
       BooleanFormula formula = entry.getAtom();
       SSAMap currentMap = entry.getMap();
-      CFAEdge edge = entry.getSelector().getEdge();
+      if (entry.getSelector() == null || formula == null) {
+        return false;
+      }
+      CFAEdge edge = entry.getSelector().correspondingEdge();
 
       FormulaManagerView fmgr = context.getSolver().getFormulaManager();
       Map<String, Formula> formulaVariables = fmgr.extractVariables(formula);
@@ -103,7 +96,7 @@ public class AlternativePrecondition {
             toMerge = toMerge.builder().deleteVariable(variable).build();
           }
         }
-        // merge the maps to obtain a SSAMap that represents the inital state (pre-condition)
+        // merge the maps to obtain a SSAMap that represents the initial state (pre-condition)
         preConditionMap =
             SSAMap.merge(
                 preConditionMap,
@@ -115,7 +108,7 @@ public class AlternativePrecondition {
       return false;
     }
 
-    BooleanFormula toFormula() {
+    private BooleanFormula toFormula() {
       return context.getSolver().getFormulaManager().getBooleanFormulaManager().and(preCondition);
     }
 
@@ -136,14 +129,8 @@ public class AlternativePrecondition {
 
       // check if variable is ignored
       for (String ign : ignore) {
-        if (ign.contains("::")) {
-          if (formula.toString().contains(ign + "@")) {
-            return false;
-          }
-        } else {
-          if (formula.toString().contains("::" + ign + "@")) {
-            return false;
-          }
+        if (formula.toString().contains(ign + "@")) {
+          return false;
         }
       }
 

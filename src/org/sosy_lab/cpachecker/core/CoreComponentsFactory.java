@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
@@ -85,10 +86,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
-  @Option(
-      secure = true,
-      description = "Use explainer for fault localization with distance metrics ")
-  private boolean useExplainer = false;
 
   @Option(
       secure = true,
@@ -324,6 +321,15 @@ public class CoreComponentsFactory {
       description = "for found property violation, perform fault localization with trace formulas")
   boolean useFaultLocalizationWithTraceFormulas = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.faultLocalization.by_distance",
+      description = "Use fault localization with distance metrics")
+  private boolean useFaultLocalizationWithDistanceMetrics = false;
+
+  @Option(secure = true, description = "Enable converting test goals to conditions.")
+  private boolean testGoalConverter;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -333,6 +339,7 @@ public class CoreComponentsFactory {
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
+
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -453,7 +460,7 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
-    } else if (useExplainer) {
+    } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new
           Explainer(
           config,
@@ -463,6 +470,11 @@ public class CoreComponentsFactory {
           cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if(testGoalConverter) {
+        algorithm = new TestGoalToConditionConverterAlgorithm(config, logger, shutdownNotifier,
+            cfa, algorithm, cpa);
+      }
 
       if (constructResidualProgram) {
         algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,
@@ -640,7 +652,7 @@ public class CoreComponentsFactory {
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
-        || useExplainer) {
+        || useFaultLocalizationWithDistanceMetrics) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -670,7 +682,7 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useExplainer) {
+        || useFaultLocalizationWithDistanceMetrics) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

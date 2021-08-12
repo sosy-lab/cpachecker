@@ -49,6 +49,7 @@ The following command-line arguments are allowed:
  - `-64`			sets `analysis.machineModel = Linux64`
  - `-skipRecursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
  - `-preprocess`		sets `parser.usePreprocessor = true`
+ - `-clang`			sets `parser.useClang = true`
  - `-java`  			sets `language = JAVA`
  - `-secureMode`		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
  - `-debug` 			enables the JVM debug interface on TCP port 5005 for remote debugging
@@ -108,7 +109,7 @@ to specify the wrapped CPA, depending whether this CPA wraps one or
 several other CPAs (the latter is only used for CompositeCPA). This option
 has to be prefixed with the identifier of the CPA as described above.
 
-A simple example (the first line could be ommitted as it's the default):
+A simple example (the first line could be omitted as it is the default):
 
 ```
 cpa = cpa.composite.CompositeCPA

@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.9.2-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="2.0.1-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -41,6 +41,7 @@ SPDX-License-Identifier: Apache-2.0
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:MissingSummary:OFF
+        -Xep:BanSerializableRead:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -58,6 +59,13 @@ SPDX-License-Identifier: Apache-2.0
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
     <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
+
+    <!-- Set of files to be copied from src to bin -->
+    <patternset id="source.additional">
+        <include name="**/*.properties" />
+        <include name="org/sosy_lab/cpachecker/core/counterexample/build/*" />
+        <include name="org/sosy_lab/cpachecker/core/counterexample/report.html" />
+    </patternset>
 
     <path id="classpath">
         <pathelement location="${class.dir}"/>

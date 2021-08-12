@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -30,10 +29,5 @@ public class CStatementEdge extends AStatementEdge {
   @Override
   public CStatement getStatement() {
     return (CStatement) statement;
-  }
-
-  @Override
-  public Optional<CStatement> getRawAST() {
-    return Optional.of((CStatement)statement);
   }
 }

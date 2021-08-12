@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -509,8 +510,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGHasValueEdges fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
-    SMGObject newObject = new SMGRegion(pOptionalObject.getSize(),
-        "Concrete object of " + pOptionalObject.toString(), pOptionalObject.getLevel());
+    SMGObject newObject =
+        new SMGRegion(
+            pOptionalObject.getSize(),
+            "Concrete object of " + pOptionalObject,
+            pOptionalObject.getLevel());
 
     heap.addHeapObject(newObject);
     heap.setValidity(newObject, heap.isObjectValid(pOptionalObject));
@@ -561,8 +565,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return getPointerFromValue(nextPointer);
     } else {
       throw new AssertionError(
-          "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
-              + " pointing to abstraction " + pListSeg.toString());
+          "Unexpected dereference of pointer "
+              + pPointerToAbstractObject.getValue()
+              + " pointing to abstraction "
+              + pListSeg);
     }
   }
 
@@ -611,8 +617,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return getPointerFromValue(prevPointer);
     } else {
       throw new AssertionError(
-          "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
-              + " pointing to abstraction " + pListSeg.toString());
+          "Unexpected dereference of pointer "
+              + pPointerToAbstractObject.getValue()
+              + " pointing to abstraction "
+              + pListSeg);
     }
   }
 
@@ -622,10 +630,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
 
     if (pPointerToAbstractObject
-        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) { throw new SMGInconsistentException(
-            "Target specifier of pointer " + pPointerToAbstractObject.getValue()
-                + "that leads to a sll has unexpected target specifier "
-                + pPointerToAbstractObject.getTargetSpecifier().toString()); }
+        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
+      throw new SMGInconsistentException(
+          "Target specifier of pointer "
+              + pPointerToAbstractObject.getValue()
+              + "that leads to a sll has unexpected target specifier "
+              + pPointerToAbstractObject.getTargetSpecifier());
+    }
 
     SMGRegion newConcreteRegion =
         new SMGRegion(pListSeg.getSize(), "concrete sll segment ID " + SMGCPA.getNewValue(), 0);
@@ -755,8 +766,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         break;
       default:
         throw new SMGInconsistentException(
-            "Target specifier of pointer " + pPointerToAbstractObject.getValue()
-                + "that leads to a dll has unexpected target specifier " + tg.toString());
+            "Target specifier of pointer "
+                + pPointerToAbstractObject.getValue()
+                + "that leads to a dll has unexpected target specifier "
+                + tg);
     }
 
     long hfo = pListSeg.getHfo();
@@ -1137,7 +1150,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     Matcher result = externalAllocationRecursivePattern.matcher(pLabel);
     if (result.matches()) {
       String in = result.group(2);
-      Integer level = Integer.parseInt(in) + 1;
+      int level = Integer.parseInt(in) + 1;
       return result.replaceFirst("$1" + level + "$3");
     } else {
       return "r_1_" + pLabel;
@@ -1181,7 +1194,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGHasValueEdges matchingEdgesOffsetZero = heap.getHVEdges(filterOffsetZero);
     for (SMGEdgeHasValue object_edge : matchingEdgesOffsetZero) {
       if (pOffset >= object_edge.getOffset()
-          && pOffset + pSizeInBits <= object_edge.getSizeInBits()) {
+          && pOffset + pSizeInBits <= object_edge.getOffset() + object_edge.getSizeInBits()) {
         SMGValue symValue = object_edge.getValue();
         if (symValue instanceof SMGKnownSymbolicValue
             && isExplicit((SMGKnownSymbolicValue) symValue)) {
@@ -1190,7 +1203,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
           // extract the important bits
           // TODO we depend on little or big endian here, query this info from machinemodel?
-          value = value.shiftRight((int) pOffset); // remove the lower part
+
+          // remove the lower part
+          value = value.shiftRight((int) (pOffset - object_edge.getOffset()));
           for (int i = (int) pSizeInBits; i < value.bitLength(); i++) {
             value = value.clearBit(i); // remove the upper part
           }
@@ -1718,7 +1733,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       for (SMGObject obj : unreachable) {
         error.append(obj.getLabel());
       }
-      setMemLeak("Memory leak of " + error.toString() + " is detected", unreachable);
+      setMemLeak("Memory leak of " + error + " is detected", unreachable);
     }
     //TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -1846,7 +1861,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
-    assert !areNonEqual(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
 
@@ -2076,7 +2090,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
       functionName.append("_");
-      functionName.append(parameterDcl.toASTString().replace("*", "_").replace(" ", "_"));
+      functionName.append(CharMatcher.anyOf("* ").replaceFrom(parameterDcl.toASTString(), "_"));
     }
 
     return "__" + functionName;

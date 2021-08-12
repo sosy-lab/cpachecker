@@ -281,7 +281,7 @@ public class CPABuilder {
       throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
-    if ((factoryObj == null) || !(factoryObj instanceof CPAFactory)) {
+    if (!(factoryObj instanceof CPAFactory)) {
       throw new InvalidComponentException(cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 

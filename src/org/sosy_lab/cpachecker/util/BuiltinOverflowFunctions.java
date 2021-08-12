@@ -11,20 +11,20 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -69,9 +69,10 @@ public class BuiltinOverflowFunctions {
     public final Boolean hasNoSideEffects;
     public final String name;
 
-    private BuiltinOverflowFunction(BinaryOperator pOperator, CSimpleType pType, Boolean pHasNoSideEffect) {
+    BuiltinOverflowFunction(
+        BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {
       operator = pOperator;
-      type = Optional.fromNullable(pType);
+      type = Optional.ofNullable(pType);
       hasNoSideEffects = pHasNoSideEffect;
 
       StringBuilder sb = new StringBuilder();
@@ -94,7 +95,7 @@ public class BuiltinOverflowFunctions {
       }
     }
 
-    private static String getDataTypePrefix(CSimpleType pType) {
+    private static String getDataTypePrefix(@Nullable CSimpleType pType) {
       if(pType == null) {
         return "";
       }
@@ -106,7 +107,7 @@ public class BuiltinOverflowFunctions {
       return "u";
     }
 
-    private static String getDataTypeSuffix(CSimpleType pType) {
+    private static String getDataTypeSuffix(@Nullable CSimpleType pType) {
       if (pType == null) {
         return "";
       }
@@ -120,19 +121,19 @@ public class BuiltinOverflowFunctions {
       return "";
     }
   }
-  
-  private static final Map<String, BuiltinOverflowFunction> functions; 
-  static { 
+
+  private static final Map<String, BuiltinOverflowFunction> functions;
+  static {
     functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
   }
 
   /**
    * resolve the type of the built-yin overflow function. This is important since the input
-   * parameters have to be casted in case their type differs 
+   * parameters have to be casted in case their type differs
    */
-  public static CSimpleType getType(String pFunctionName) {
+  public static Optional<CSimpleType> getType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
-    return functions.get(pFunctionName).type.orNull();
+    return functions.get(pFunctionName).type;
   }
 
   public static BinaryOperator getOperator(String pFunctionName) {
@@ -164,7 +165,10 @@ public class BuiltinOverflowFunctions {
     Optional<CSimpleType> type = functions.get(pFunctionName).type;
 
     if (type.isPresent()) {
-      return ImmutableList.of(type.get(), type.get(), new CPointerType(false, false, type.get()));
+      return ImmutableList.of(
+          type.orElseThrow(),
+          type.orElseThrow(),
+          new CPointerType(false, false, type.orElseThrow()));
     } else {
       return ImmutableList.of();
     }
@@ -221,19 +225,16 @@ public class BuiltinOverflowFunctions {
     return ofmgr.getResultOfOperation(castedVar1, castedVar2, operator);
   }
 
-  private static CSimpleType getTargetType(String pFunctionName, AExpression thirdArgument) {
+  private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
     if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
-      return getType(pFunctionName);
+      return getType(pFunctionName).orElseThrow();
     }
 
-    CSimpleType targetType;
-    if (thirdArgument.getExpressionType() instanceof CPointerType) {
-      targetType = (CSimpleType) ((CPointerType) thirdArgument.getExpressionType()).getType();
-    } else {
-      targetType = (CSimpleType) thirdArgument.getExpressionType();
+    CType targetType = thirdArgument.getExpressionType().getCanonicalType();
+    if (targetType instanceof CPointerType) {
+      targetType = ((CPointerType) targetType).getType();
     }
-
-    return targetType;
+    return (CSimpleType) targetType;
   }
 
   /*
@@ -242,25 +243,23 @@ public class BuiltinOverflowFunctions {
    * overflow is determined by casting to the type of the third parameter.
    */
   public static Value evaluateFunctionCall(
-      AFunctionCallExpression functionCallExpression,
+      CFunctionCallExpression functionCallExpression,
       AbstractExpressionValueVisitor evv,
       MachineModel machineModel,
       LogManagerWithoutDuplicates logger)
       throws UnrecognizedCodeException {
-    AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
+    CExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
     if (nameExpressionOfCalledFunc instanceof AIdExpression) {
-      String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+      String nameOfCalledFunc = ((CIdExpression) nameExpressionOfCalledFunc).getName();
       if (isBuiltinOverflowFunction(nameOfCalledFunc)) {
-        List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
-        if (parameters.size() == 3 && parameters.get(2) instanceof CExpression) {
+        List<CExpression> parameters = functionCallExpression.getParameterExpressions();
+        if (parameters.size() == 3) {
           Value firstParameterValue =
-              evv.evaluate(
-                  (CRightHandSide) parameters.get(0),
-                  (CType) parameters.get(0).getExpressionType());
+              evv.evaluate(parameters.get(0), parameters.get(0).getExpressionType());
           Value secondParameterValue =
               evv.evaluate(
-                  (CRightHandSide) parameters.get(1),
-                  (CType) parameters.get(1).getExpressionType());
+                  parameters.get(1),
+                  parameters.get(1).getExpressionType());
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
 
           if (resultType.getType().isIntegerType()

@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -169,6 +170,11 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   @Override
   public Iterator<AbstractState> iterator() {
     return unmodifiableReached.iterator();
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return reached.keySet().stream();
   }
 
   @Override

@@ -8,8 +8,8 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-Changes since CPAchecker 1.9.1
-------------------------------
+Changes from CPAchecker 1.9.1 to CPAchecker 2.0
+-----------------------------------------------
 * Better support for Windows  
   We now bundle binaries of SMT solvers like MathSAT and Z3 for Windows,
   such that most configurations of CPAchecker work on Windows out of the box.
@@ -24,6 +24,29 @@ Changes since CPAchecker 1.9.1
   license texts and copyright notices are fulfilled
   when redistributing CPAchecker.
   More information about the license status can be found in [README.md](README.md).
+
+* Interpolation-based Model Checking (IMC)  
+  A new reachability-safety analysis (config `-bmc-interpolation`),
+  which adopts a state-of-the-art verification algorithm
+  for hardware proposed by McMillan
+  (cf. "Interpolation and SAT-Based Model Checking".
+  K. L. McMillan. In Proc. CAV, Springer, 2003)
+  to software, has been added to CPAchecker.
+
+* Automated Fault Localization  
+  CPAchecker now supports multiple techniques for automatic fault-localization.
+  If fault localization is enabled and CPAchecker finds a counterexample during
+  analysis, CPAchecker will mark likely faults in the program that lead to that counterexample.
+  Fault-localization results are presented in the produced HTML reports
+  (`Counterexample.*.html`).
+  The following fault-localization configurations exist:
+
+    * [Coverage-based fault localization](https://ieeexplore.ieee.org/abstract/document/4041886):
+      `-setprop analysis.algorithm.faultLocalization.by_coverage=true`
+    * [Interpolation-based fault localization](https://link.springer.com/chapter/10.1007/978-3-642-32759-9_17):
+      `-setprop analysis.algorithm.faultLocalization.by_traceformula=true`
+    * [Distance metrics](https://dl.acm.org/doi/abs/10.1145/1029894.1029908):
+      `-setprop analysis.algorithm.faultlocalization.by_distance=true`
 
 
 Changes from CPAchecker 1.9 to CPAchecker 1.9.1

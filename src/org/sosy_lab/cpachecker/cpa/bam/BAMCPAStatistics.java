@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,7 +77,7 @@ class BAMCPAStatistics implements Statistics {
 
   @Option(secure = true, description = "file for exporting detailed statistics about blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path blockStatisticsFile = Paths.get("block_statistics.txt");
+  private Path blockStatisticsFile = Path.of("block_statistics.txt");
 
   private final LogManager logger;
   private final AbstractBAMCPA cpa;

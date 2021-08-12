@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
 public final class JVariableRunTimeType extends AbstractExpression
     implements JRunTimeTypeExpression {
 
@@ -34,7 +33,7 @@ public final class JVariableRunTimeType extends AbstractExpression
 
   @Override
   public JType getExpressionType() {
-    return (JType)super.getExpressionType();
+    return (JType) super.getExpressionType();
   }
 
   @Override
@@ -44,7 +43,7 @@ public final class JVariableRunTimeType extends AbstractExpression
 
   @Override
   public String toASTString(boolean pQualified) {
-    if(pQualified) {
+    if (pQualified) {
       return getReferencedVariable().toASTString(pQualified) + "_getClass()";
     } else {
       return getReferencedVariable().getName() + "_getClass()";
@@ -80,8 +79,7 @@ public final class JVariableRunTimeType extends AbstractExpression
       return true;
     }
 
-    if (!(obj instanceof JVariableRunTimeType)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JVariableRunTimeType) || !super.equals(obj)) {
       return false;
     }
 
@@ -89,5 +87,4 @@ public final class JVariableRunTimeType extends AbstractExpression
 
     return Objects.equals(other.referencedVariable, referencedVariable);
   }
-
 }

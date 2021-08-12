@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -30,6 +31,8 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
   @Override
   Iterator<AbstractState> iterator();
+
+  Stream<AbstractState> stream();
 
   Collection<Precision> getPrecisions();
 
@@ -118,7 +121,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @return Is any property violated
    */
   default boolean hasViolatedProperties() {
-    return from(asCollection()).anyMatch(AbstractStates::isTargetState);
+    return from(this).anyMatch(AbstractStates::isTargetState);
   }
 
   /**
@@ -128,7 +131,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    * @return A set of violated properties, may be emtpy if no precise information is available.
    */
   default Collection<Property> getViolatedProperties() {
-    return from(asCollection())
+    return from(this)
         .filter(AbstractStates::isTargetState)
         .filter(Targetable.class)
         .transformAndConcat(Targetable::getViolatedProperties)

@@ -8,13 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import com.google.common.base.Optional;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isSignedIntegerType;
+import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
+
+import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -156,7 +160,7 @@ public class CFABuilder {
 
   public ParseResult build(final Module pModule, final String pFilename) throws LLVMException {
     visit(pModule, pFilename);
-    List<Path> input_file = ImmutableList.of(Paths.get(pFilename));
+    List<Path> input_file = ImmutableList.of(Path.of(pFilename));
 
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }
@@ -603,7 +607,7 @@ public class CFABuilder {
             curNode = newNode(pFunction);
             addEdge(
                 new CStatementEdge(
-                    expr.toASTString() + i.toString(),
+                    expr.toASTString() + i,
                     (CStatement) expr,
                     exprLocation,
                     prevNode,
@@ -911,8 +915,8 @@ public class CFABuilder {
     Optional<CExpression> maybeExpression;
     Optional<CAssignment> maybeAssignment;
     if (returnVal == null) {
-      maybeExpression = Optional.absent();
-      maybeAssignment = Optional.absent();
+      maybeExpression = Optional.empty();
+      maybeAssignment = Optional.empty();
 
     } else {
       CType expectedType = typeConverter.getCType(returnVal.typeOf());
@@ -1067,6 +1071,7 @@ public class CFABuilder {
   private CExpression createFromArithmeticOp(
       final Value pItem, final OpCode pOpCode, final String pFileName) throws LLVMException {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
+    CType internalExpressionType = expressionType;
 
     // TODO: Currently we only support flat expressions, no nested ones. Make this work
     // in the future.
@@ -1109,8 +1114,37 @@ public class CFABuilder {
         operation = BinaryOperator.SHIFT_LEFT;
         break;
       case LShr: // Logical shift right
-      case AShr: // arithmetic shift right
-        // TODO Differentiate between logical and arithmetic shift somehow
+        // GNU C performs a logical shift for unsigned types
+        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
+        operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
+        // $FALL-THROUGH$
+      case AShr: // Arithmetic shift right
+        if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
+          throw new UnsupportedOperationException(
+              "Right shifts are only supported for integer types, but operands were "
+                  + op1type
+                  + " and "
+                  + op2type);
+        }
+        if (operand2.isConstantInt()) {
+          long op2value = operand2.constIntGetSExtValue();
+          int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
+          if (op2value < 0 || op2value >= bitwidthOp1) {
+            throw new LLVMException("Shift count is negative or >= width of type");
+          }
+        }
+
+        // operand2 should always be treated as an unsigned value
+        op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned = */ true);
+        operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
+
+        // GNU C performs an arithmetic shift for signed types
+        // op1type is signed by default for integer types
+        assert pOpCode != AShr || isSignedIntegerType(op1type)
+            : "First operand of right shift wasn't signed in the case of an arithmetic right shift";
+
+        // calculate the shift with the signedness of op1type
+        internalExpressionType = machineModel.applyIntegerPromotion(op1type);
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
       case And:
@@ -1126,13 +1160,15 @@ public class CFABuilder {
         throw new AssertionError("Unhandled operation " + pOpCode);
     }
 
-    return new CBinaryExpression(
-        getLocation(pItem, pFileName),
-        expressionType,
-        expressionType, // calculation type is expression type in LLVM
-        operand1Exp,
-        operand2Exp,
-        operation);
+    CBinaryExpression expression =
+        new CBinaryExpression(
+            getLocation(pItem, pFileName),
+            internalExpressionType,
+            internalExpressionType, // calculation type is expression type in LLVM
+            operand1Exp,
+            operand2Exp,
+            operation);
+    return castToExpectedType(expression, expressionType, getLocation(pItem, pFileName));
   }
 
   private CExpression getExpression(
@@ -1196,10 +1232,8 @@ public class CFABuilder {
       CType constantType = typeConverter.getCType(pItem.typeOf());
       /* get the name of the type and sanitize it
        * to form a correct C identifier */
-      String typeName = constantType.toString().replace(' ', '_');
-      typeName = typeName.replace('(', '_');
-      typeName = typeName.replace(')', '_');
-      typeName = typeName.replace(':', '_');
+      String typeName = constantType.toString();
+      typeName = CharMatcher.anyOf(" ():").replaceFrom(typeName, "_");
       typeName = typeName.replace("*", "_ptr_");
 
       String undefName = "__VERIFIER_undef_" + typeName;
@@ -1232,7 +1266,8 @@ public class CFABuilder {
         if (!pItem.isExternallyInitialized() || pItem.isGlobalConstant()) {
             return getAssignedIdExpression(pItem, pExpectedType, pFileName);
         } else {
-            throw new UnsupportedOperationException("LLVM parsing does not support this global variable: " + pItem);
+        throw new UnsupportedOperationException(
+            "LLVM parsing does not support this global variable: " + pItem);
         }
     } else {
       throw new UnsupportedOperationException("LLVM parsing does not support constant " + pItem);
@@ -1622,7 +1657,7 @@ public class CFABuilder {
     Optional<CVariableDeclaration> returnVar;
     CType returnType = cFuncType.getReturnType();
     if (returnType.equals(CVoidType.VOID)) {
-      returnVar = Optional.absent();
+      returnVar = Optional.empty();
 
     } else {
       FileLocation returnVarLocation = getLocation(pFuncDef, pFileName);
@@ -1893,6 +1928,6 @@ public class CFABuilder {
 
   private FileLocation getLocation(final Value pItem, final String pFileName) {
     assert pItem != null;
-    return new FileLocation(pFileName, 0, 1, 0, 0);
+    return new FileLocation(Path.of(pFileName), 0, 1, 0, 0);
   }
 }

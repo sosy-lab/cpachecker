@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
@@ -152,7 +153,7 @@ public final class SMGPlotter {
   public SMGPlotter() {} /* utility class */
 
   static public String convertToValidDot(String original) {
-    return original.replaceAll("[:]", "_");
+    return CharMatcher.anyOf("[]:").replaceFrom(original, "_");
   }
 
   public String smgAsDot(
@@ -325,24 +326,19 @@ public final class SMGPlotter {
 
   private static String smgValueAsDot(
       SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String explicitValue = "";
+    String label = "#" + value.asDotId();
     String color = "red";
-    String object = "";
-    if (explicitValues.containsKey(value)) {
-      explicitValue = " : " + explicitValues.get(value).getAsLong();
+    if (value instanceof SMGKnownExpValue) {
+      label = value.toString();
+      color = "green";
+    } else if (explicitValues.containsKey(value)) {
+      label += " : " + explicitValues.get(value).getAsLong();
       color = "black";
-    }
-    if (value instanceof SMGKnownAddressValue) {
-      object = "\\n" + ((SMGKnownAddressValue) value).getObject();
+    } else if (value instanceof SMGKnownAddressValue) {
+      label += "\\n" + ((SMGKnownAddressValue) value).getObject();
       color = "blue";
     }
-    return String.format(
-        "value_%s[color=%s label=\"#%s%s%s\"];",
-        value.asDotId(),
-        color,
-        value.asDotId(),
-        explicitValue,
-        object);
+    return String.format("value_%s[color=%s label=\"%s\"];", value.asDotId(), color, label);
   }
 
   private static String neqRelationAsDot(
@@ -351,8 +347,9 @@ public final class SMGPlotter {
       Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String toNodeStr, toNode;
     if (v2.isZero()) {
-      toNodeStr = newNullLabel();
-      toNode = toNodeStr + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
+      final String newLabel = newNullLabel();
+      toNode = newLabel;
+      toNodeStr = newLabel + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];";
     } else {
       toNodeStr = smgValueAsDot(v2, explicitValues);
       toNode = "value_" + v2.asDotId();

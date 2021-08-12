@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
@@ -30,6 +29,7 @@ import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -193,6 +193,15 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         lConfigBuilder.copyOptionFromIfPresent(config, option);
       }
 
+      if (provideCEXInfoFromCEXCheck) {
+        CFAEdge targetEdge = pErrorState.getParents().iterator().next().getEdgeToChild(pErrorState);
+        lConfigBuilder.setOption(
+            "testcase.targets.edge",
+            targetEdge.getPredecessor().getNodeNumber()
+                + "#"
+                + System.identityHashCode(targetEdge));
+      }
+
       Configuration lConfig = lConfigBuilder.build();
       ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
@@ -217,11 +226,11 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
-        AbstractState target = from(lReached).firstMatch(AbstractStates::isTargetState).orNull();
-        if (target instanceof ARGState) {
-          ARGState argTarget = (ARGState) target;
-          Optional<CounterexampleInfo> counterexampleFromCheck =
-              argTarget.getCounterexampleInformation();
+        Optional<CounterexampleInfo> counterexampleFromCheck =
+            Collections3.filterByClass(lReached.stream(), ARGState.class)
+                .filter(AbstractStates::isTargetState)
+                .findFirst()
+                .flatMap(ARGState::getCounterexampleInformation);
           if (counterexampleFromCheck.isPresent()) {
             if (replaceCexWithCexFromCheck) {
               replaceCounterexampleInformation(
@@ -236,7 +245,6 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
                       .getTargetPath()
                       .asStatesList()));
             }
-          }
         }
       }
 
