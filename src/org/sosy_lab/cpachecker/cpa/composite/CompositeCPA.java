@@ -16,8 +16,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
+import java.util.function.Supplier;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -43,27 +44,32 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CompositeCPA implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+@Options(prefix = "cpa.composite")
+public final class CompositeCPA
+    implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
-  @Options(prefix="cpa.composite")
-  private static class CompositeOptions {
-    @Option(secure=true, toUppercase=true, values={"PLAIN", "AGREE"},
-        description="which composite merge operator to use (plain or agree)\n"
-          + "Both delegate to the component cpas, but agree only allows "
-          + "merging if all cpas agree on this. This is probably what you want.")
-    private String merge = "AGREE";
+  @Option(
+      secure = true,
+      toUppercase = true,
+      values = {"PLAIN", "AGREE"},
+      description =
+          "which composite merge operator to use (plain or agree)\n"
+              + "Both delegate to the component cpas, but agree only allows "
+              + "merging if all cpas agree on this. This is probably what you want.")
+  private String merge = "AGREE";
 
-    @Option(secure=true,
-    description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
-      + "behave differently during merge.")
-    private boolean inCPAEnabledAnalysis = false;
+  @Option(
+      secure = true,
+      description =
+          "inform Composite CPA if it is run in a CPA enabled analysis because then it must "
+              + "behave differently during merge.")
+  private boolean inCPAEnabledAnalysis = false;
 
-    @Option(
+  @Option(
       secure = true,
       description =
           "By enabling this option the CompositeTransferRelation"
@@ -73,10 +79,8 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
               + " chain. Strengthening is still computed after every edge."
               + " The main difference is that while this option is enabled not every ARGState may"
               + " have a single edge connecting to the child/parent ARGState but it may instead"
-              + " be a list."
-    )
-    private boolean aggregateBasicBlocks = false;
-  }
+              + " be a list.")
+  private boolean aggregateBasicBlocks = false;
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
@@ -87,20 +91,7 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
       Preconditions.checkState(cfa != null, "CompositeCPA needs CFA information!");
-
-      CompositeOptions options = new CompositeOptions();
-      getConfiguration().inject(options);
-
-      boolean mergeSep =
-          !from(cpas)
-              .filter(cpa -> cpa.getMergeOperator() != MergeSepOperator.getInstance())
-              .isEmpty();
-      if (!mergeSep && options.inCPAEnabledAnalysis && !options.merge.equals("AGREE")) {
-        throw new InvalidConfigurationException(
-            "Merge PLAIN is currently not supported in predicated analysis");
-      }
-
-      return new CompositeCPA(cfa, cpas, options);
+      return new CompositeCPA(getConfiguration(), cfa, cpas);
     }
 
     @Override
@@ -134,15 +125,15 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   private final CFA cfa;
-  private final CompositeOptions options;
+  private final Supplier<MergeOperator> mergeSupplier;
 
   private CompositeCPA(
-      CFA pCfa,
-      ImmutableList<ConfigurableProgramAnalysis> cpas,
-      CompositeOptions pOptions) {
+      Configuration config, CFA pCfa, ImmutableList<ConfigurableProgramAnalysis> cpas)
+      throws InvalidConfigurationException {
+    config.inject(this);
     this.cfa = pCfa;
     this.cpas = cpas;
-    this.options = pOptions;
+    mergeSupplier = buildMergeOperatorSupplier();
   }
 
   @Override
@@ -156,46 +147,58 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     return new CompositeTransferRelation(
         transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getTransferRelation),
         cfa,
-        options.aggregateBasicBlocks);
+        aggregateBasicBlocks);
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
-    boolean mergeSep = true;
-    for (ConfigurableProgramAnalysis sp : cpas) {
-      MergeOperator merge = sp.getMergeOperator();
-      if (merge != MergeSepOperator.getInstance()) {
-        mergeSep = false;
-      }
-      mergeOperators.add(merge);
+    return mergeSupplier.get();
+  }
+
+  /**
+   * Build a function that lazily instantiates a merge operator with fresh wrapped merge operators
+   * from the CPAs.
+   */
+  private Supplier<MergeOperator> buildMergeOperatorSupplier()
+      throws InvalidConfigurationException {
+    if (cpas.stream()
+        .map(ConfigurableProgramAnalysis::getMergeOperator)
+        .allMatch(mergeOp -> mergeOp == MergeSepOperator.getInstance())) {
+      return () -> MergeSepOperator.getInstance();
     }
 
-    if (mergeSep) {
-      return MergeSepOperator.getInstance();
-    } else {
-      if (options.inCPAEnabledAnalysis) {
-        if (options.merge.equals("AGREE")) {
-          Optional<PredicateCPA> predicateCPA =
-              Collections3.filterByClass(cpas.stream(), PredicateCPA.class).findFirst();
-          Preconditions.checkState(
-              predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
-          PredicateAbstractionManager abmgr = predicateCPA.orElseThrow().getPredicateManager();
-          return new CompositeMergeAgreeCPAEnabledAnalysisOperator(
-              mergeOperators.build(), getStopOperators(), abmgr);
+    switch (merge) {
+      case "AGREE":
+        if (inCPAEnabledAnalysis) {
+          PredicateCPA predicateCPA =
+              Collections3.filterByClass(cpas.stream(), PredicateCPA.class)
+                  .findFirst()
+                  .orElseThrow(
+                      () ->
+                          new InvalidConfigurationException(
+                              "Option 'cpa.composite.inCPAEnabledAnalysis' needs PredicateCPA"));
+          return () ->
+              new CompositeMergeAgreeCPAEnabledAnalysisOperator(
+                  getMergeOperators(), getStopOperators(), predicateCPA.getPredicateManager());
         } else {
-          throw new AssertionError("Merge PLAIN is currently not supported in predicated analysis");
+          return () -> new CompositeMergeAgreeOperator(getMergeOperators(), getStopOperators());
         }
-      } else {
-        if (options.merge.equals("AGREE")) {
-          return new CompositeMergeAgreeOperator(mergeOperators.build(), getStopOperators());
-        } else if (options.merge.equals("PLAIN")) {
-          return new CompositeMergePlainOperator(mergeOperators.build());
+
+      case "PLAIN":
+        if (inCPAEnabledAnalysis) {
+          throw new InvalidConfigurationException(
+              "Merge PLAIN is currently not supported for CompositeCPA in predicated analysis");
         } else {
-          throw new AssertionError();
+          return () -> new CompositeMergePlainOperator(getMergeOperators());
         }
-      }
+
+      default:
+        throw new AssertionError();
     }
+  }
+
+  private ImmutableList<MergeOperator> getMergeOperators() {
+    return transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getMergeOperator);
   }
 
   private ImmutableList<StopOperator> getStopOperators() {
