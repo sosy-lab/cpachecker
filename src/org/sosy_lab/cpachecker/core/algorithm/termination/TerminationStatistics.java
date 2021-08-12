@@ -42,7 +42,6 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -122,7 +121,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + "exported to this file."
   )
   @FileOption(Type.OUTPUT_FILE)
-  private Path resultFile = Paths.get("terminationAnalysisResult.txt");
+  private Path resultFile = Path.of("terminationAnalysisResult.txt");
 
   @Option(
     secure = true,
@@ -130,14 +129,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     description = "Export termination counterexample to file as GraphML automaton "
   )
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitness = Paths.get("nontermination_witness.graphml");
+  private Path violationWitness = Path.of("nontermination_witness.graphml");
 
   @Option(
       secure = true,
       name = "violation.witness.dot",
       description = "Export termination counterexample to file as dot/graphviz automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitnessDot = Paths.get("nontermination_witness.dot");
+  private Path violationWitnessDot = Path.of("nontermination_witness.dot");
 
   @Option(
     secure = true,
@@ -425,9 +424,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
-          pReached
-              .asCollection()
-              .stream()
+          pReached.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
               .filter(s -> s.getCounterexampleInformation().isPresent())

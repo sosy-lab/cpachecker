@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,6 +38,11 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   @Override
   public Iterator<AbstractState> iterator() {
     return Iterators.unmodifiableIterator(delegate.iterator());
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return delegate.stream();
   }
 
   @Override

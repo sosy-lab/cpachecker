@@ -14,7 +14,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -57,7 +56,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   @Option(secure = false, description = "Path to the compiler. Can be absolute or"
                             + " only the name of the program if it is in the PATH")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path pathToCompiler = Paths.get("/usr/bin/gcc");
+  private Path pathToCompiler = Path.of("/usr/bin/gcc");
 
   @Option(secure=true, description = "The file in which the generated C code is saved.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -122,8 +121,11 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
       for (String str : exec.getErrorOutput()) {
         errorOut.append(str);
       }
-      throw new CounterexampleAnalysisFailed("Could not compile the concrete error path. The compiler finished with exitCode "
-                                             + exitCode + "\n The output was: \n" + errorOut.toString());
+      throw new CounterexampleAnalysisFailed(
+          "Could not compile the concrete error path. The compiler finished with exitCode "
+              + exitCode
+              + "\n The output was: \n"
+              + errorOut);
     }
   }
 

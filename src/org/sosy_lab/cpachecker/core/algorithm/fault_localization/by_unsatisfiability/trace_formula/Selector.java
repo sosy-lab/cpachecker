@@ -20,20 +20,12 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class Selector extends FaultContribution implements AbstractTraceElement {
 
-  private static Map<String, Selector> selectors = new HashMap<>();
-  private static int maxIndex = 0;
-
-  private String name;
-  private CFAEdge edge;
+  private final String name;
   private BooleanFormula formula;
   private BooleanFormula selectorFormula;
-  private BooleanFormula edgeFormula;
-  private FormulaContext context;
-  private int index;
-
-  public CFAEdge getEdge() {
-    return edge;
-  }
+  private final BooleanFormula edgeFormula;
+  private final FormulaContext context;
+  private final int index;
 
   public String getName() {
     return name;
@@ -60,7 +52,6 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     selectorFormula = pSelectorFormula;
     edgeFormula = pEdgeFormula;
     context = pContext;
-    edge = pEdge;
   }
 
   /**
@@ -86,37 +77,6 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
    */
   public void free() {
     formula = selectorFormula;
-  }
-
-  /**
-   * Creates an unique Selector for every formula that is passed. If a selector for a formula has
-   * already been created the existent selector is returned
-   *
-   * @param pContext the context of the TraceFormula
-   * @param pFormula the formula that can be selected with the returned selector
-   * @param pEdge the edge which corresponds to the selector
-   * @return unique selector for edge pEdge
-   */
-  public static Selector makeSelector(
-      FormulaContext pContext, BooleanFormula pFormula, CFAEdge pEdge) {
-    Selector s = selectors.get(pFormula.toString());
-    if (s != null) {
-      return s;
-    }
-
-    s =
-        new Selector(
-            maxIndex,
-            pContext
-                .getSolver()
-                .getFormulaManager()
-                .makeVariable(FormulaType.BooleanType, "S" + maxIndex),
-            pFormula,
-            pEdge,
-            pContext);
-    selectors.put(pFormula.toString(), s);
-    maxIndex++;
-    return s;
   }
 
   public int getIndex() {
@@ -146,10 +106,6 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     }
   }
 
-  public static Optional<Selector> of(BooleanFormula formula) {
-    return Optional.ofNullable(selectors.get(formula.toString()));
-  }
-
   @Override
   public String toString() {
     return name;
@@ -167,6 +123,50 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   public int hashCode() {
     // super class changes hashcode on adding reasons but Selectors shouldn't
     // a selector stays a selector for one edge (reasons do not matter)
-    return Objects.hash(31, name.hashCode());
+    return Objects.hash(Selector.class, name.hashCode());
+  }
+
+  public static class Factory {
+    private int maxIndex;
+    private final Map<String, Selector> selectors;
+
+    public Factory() {
+      maxIndex = 0;
+      selectors = new HashMap<>();
+    }
+
+    public Optional<Selector> selectorOf(BooleanFormula formula) {
+      return Optional.ofNullable(selectors.get(formula.toString()));
+    }
+
+    /**
+     * Creates an unique Selector for every formula that is passed. If a selector for a formula has
+     * already been created the existent selector is returned
+     *
+     * @param pContext the context of the TraceFormula
+     * @param pFormula the formula that can be selected with the returned selector
+     * @param pEdge the edge which corresponds to the selector
+     * @return unique selector for edge pEdge
+     */
+    public Selector makeSelector(FormulaContext pContext, BooleanFormula pFormula, CFAEdge pEdge) {
+      Selector selector = selectors.get(pFormula.toString());
+      if (selector != null) {
+        return selector;
+      }
+
+      selector =
+          new Selector(
+              maxIndex,
+              pContext
+                  .getSolver()
+                  .getFormulaManager()
+                  .makeVariable(FormulaType.BooleanType, "S" + maxIndex),
+              pFormula,
+              pEdge,
+              pContext);
+      selectors.put(pFormula.toString(), selector);
+      maxIndex++;
+      return selector;
+    }
   }
 }

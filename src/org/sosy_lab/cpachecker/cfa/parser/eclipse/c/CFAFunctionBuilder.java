@@ -820,7 +820,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
 
     if (returnstmt.getReturnValue().isPresent()) {
-      returnstmt.getReturnValue().get().accept(checkBinding);
+      returnstmt.getReturnValue().orElseThrow().accept(checkBinding);
     }
     CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.getRawSignature(),
     returnstmt, fileloc, prevNode, functionExitNode);
@@ -1321,7 +1321,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       loc =
           new FileLocation(
               loc.getFileName(),
-              parseContext.mapFileNameToNameForHumans(loc.getFileName()),
+              loc.getNiceFileName(),
               fileLocation.getNodeOffset(),
               loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
               fileLocation.getStartingLineNumber(),

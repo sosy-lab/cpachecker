@@ -9,12 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -28,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -38,6 +38,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public abstract class TraceFormula {
 
   protected FormulaContext context;
+  protected final Selector.Factory selectorFactory;
 
   protected BooleanFormulaManager bmgr;
   protected BooleanFormula postcondition;
@@ -56,52 +57,63 @@ public abstract class TraceFormula {
     @Option(
         secure = true,
         name = "filter",
-        description = "filter the alternative precondition by scopes")
-    private String filter = "main";
+        description = "The alternative precondition consists of all initial variable assignments "
+            + " and a failing variable assignment for all nondet variables. By default only "
+            + " variables in the main function are part of the precondition. "
+            + "Overwrite the default by adding functions to this option, e.g., \"main,doStuff\"")
+    private List<String> filter = ImmutableList.of("main");
 
     // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
     // pre-condition
     @Option(
         secure = true,
         name = "ignore",
-        description = "do not add variables to alternative precondition (separate by commas)")
-    private String ignore = "";
+        description = "The alternative precondition consists of all initial variable assignments. "
+            + "If a variable assignment seems suspicious, it might be useful to exclude it from "
+            + "the precondition. To do this, add these variables to this option, e.g., main::x,doStuff::y. "
+            + "Make sure to add the function in which the variable is used as prefix, separated by two ':'")
+    private List<String> ignore = ImmutableList.of();
 
-    // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
-    // pre-condition
     @Option(
         secure = true,
         name = "disable",
-        description = "do not create selectors for this variables (separate by commas)")
-    private String disable = "";
+        description = "Usually every statement that is not part of the precondition gets a selector. "
+            + "If a certain variable is known to not cause the error, add it to this option, e.g., "
+            + "main::x,doStuff::y")
+    private List<String> disable = ImmutableList.of();
 
     @Option(
         secure = true,
         name = "altpre",
         description =
-            "add initial variable assignments to the pre-condition instead of just using failing"
-                + " variable assignments for nondet variables")
+            "By default, the precondition only contains the failing variable assignment of all nondet variables. "
+                + "Enable this option if initial variable assignments of the form '<datatype> <variable-name> = <value>' should also be added to the precondition. "
+                + "See the description for the option traceformula.ignore for further options.")
     private boolean forcePre = false;
 
     @Option(
         secure = true,
         name = "uniqueselectors",
-        description = "equal statements on the same line get the same selector")
+        description = "By default, every executed statement gets its own selector. "
+            + "If a loop is part of the program to analyze, the number of selectors can increase which"
+            + " also increases the run time of max-sat drastically. To use the same selector for equal"
+            + " statements (on the same line), set this option to true. Note that enabling this option "
+            + " also decreases the quality of results.")
     private boolean reduceSelectors = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
       pConfiguration.inject(this);
     }
 
-    public String getFilter() {
+    public List<String> getFilter() {
       return filter;
     }
 
-    public String getDisable() {
+    public List<String> getDisable() {
       return disable;
     }
 
-    public String getIgnore() {
+    public List<String> getIgnore() {
       return ignore;
     }
 
@@ -120,6 +132,7 @@ public abstract class TraceFormula {
   private TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
       throws CPAException, InterruptedException, SolverException {
     entries = new FormulaEntryList();
+    selectorFactory = new Selector.Factory();
     edges = pEdges;
     options = pOptions;
     context = pContext;
@@ -128,6 +141,8 @@ public abstract class TraceFormula {
     precondition = calculatePrecondition();
     postcondition = calculatePostCondition();
     trace = calculateTrace();
+    // logs for unit tests
+    context.getLogger().log(Level.FINEST, "tftrace=" + trace);
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
@@ -168,8 +183,9 @@ public abstract class TraceFormula {
       prover.push(bmgr.and(entries.toAtomList()));
       Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+        context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-        if (formula.toString().contains("__VERIFIER_nondet")) {
+        if (!Pattern.matches(".+::.+@[0-9]+", modelAssignment.getKey().toString())) {
           precond = bmgr.and(precond, formula);
         }
       }
@@ -181,6 +197,10 @@ public abstract class TraceFormula {
       entries.addEntry(0, new FormulaEntryList.PreconditionEntry(SSAMap.emptySSAMap()));
     }
     return precond;
+  }
+
+  public Selector.Factory getSelectorFactory() {
+    return selectorFactory;
   }
 
   /**
@@ -210,6 +230,11 @@ public abstract class TraceFormula {
                   entries.removeExtract(
                       entry -> entry.getAtomId() == currI, FormulaEntryList.FormulaEntry::getAtom));
           postCond = bmgr.and(postCond, formula);
+          context
+              .getLogger()
+              .log(
+                  Level.FINEST,
+                  "tfpostcondition=" + curr.getFileLocation().getStartingLineInOrigin());
           postConditionOffset = i;
         } else {
           // as soon as curr is on another line or the edge type changes, break. Otherwise add to
@@ -224,9 +249,14 @@ public abstract class TraceFormula {
                           if (entry instanceof FormulaEntryList.PreconditionEntry || entry.getSelector() == null) {
                             return false;
                           }
-                          return entry.getSelector().getEdge().equals(curr);
+                          return entry.getSelector().correspondingEdge().equals(curr);
                         },
                         FormulaEntryList.FormulaEntry::getAtom));
+            context
+                .getLogger()
+                .log(
+                    Level.FINEST,
+                    "tfpostcondition=line " + curr.getFileLocation().getStartingLineInOrigin());
             postCond = bmgr.and(postCond, formula);
             postConditionOffset = i;
           }
@@ -255,10 +285,12 @@ public abstract class TraceFormula {
       BooleanFormula prev = current.getFormula();
       current = manager.makeAnd(current, e);
       List<BooleanFormula> formulaList =
-          new ArrayList<>(bmgr.toConjunctionArgs(current.getFormula(), false));
+          ImmutableList.copyOf(bmgr.toConjunctionArgs(current.getFormula(), false));
       BooleanFormula currentAtom = formulaList.get(0);
       if (formulaList.size() == 2) {
-        if (formulaList.get(0).equals(prev)) {
+        if (i == 0) {
+          currentAtom = bmgr.and(currentAtom, formulaList.get(1));
+        } else if (formulaList.get(0).equals(prev)) {
           currentAtom = formulaList.get(1);
         }
       }
@@ -272,7 +304,7 @@ public abstract class TraceFormula {
       if (options.reduceSelectors && foundSelectors.containsKey(selectorIdentifier)) {
         selector = foundSelectors.get(selectorIdentifier);
       } else {
-        selector = Selector.makeSelector(context, currentAtom, e);
+        selector = selectorFactory.makeSelector(context, currentAtom, e);
         foundSelectors.put(selectorIdentifier, selector);
       }
       entries.addEntry(i, current.getSsa(), selector, currentAtom);
@@ -280,24 +312,16 @@ public abstract class TraceFormula {
 
     // disable selectors
     if (!options.disable.isEmpty()) {
-      List<String> disabled = Splitter.on(",").splitToList(options.disable);
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.toAtomList().get(i).toString();
         Selector selector = entries.toSelectorList().get(i);
-        for (String dable : disabled) {
-          if (dable.contains("::")) {
-            if (formulaString.contains(dable)) {
-              selector.disable();
-            }
-          } else {
-            if (formulaString.contains("::" + dable)) {
-              selector.disable();
-            }
+        for (String disable : options.disable) {
+          if (formulaString.contains(disable)) {
+            selector.disable();
           }
         }
       }
     }
-
   }
 
   /**
@@ -327,7 +351,7 @@ public abstract class TraceFormula {
 
   @Override
   public String toString() {
-    return "TraceFormula{" + BooleanFormulaParser.parse(getTraceFormula()) + "}";
+    return "TraceFormula{" + getTraceFormula() + "}";
   }
 
   public static class SelectorTrace extends TraceFormula {

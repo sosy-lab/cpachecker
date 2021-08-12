@@ -15,6 +15,8 @@
 
 com.google.common.base.Objects @ use java.util.Objects instead
 com.google.common.io.Files#createTempDir() @ Uses inappropriate permissions, cf. JavaDoc
+java.lang.InternalError @ This refers to JVM-internal errors, throw AssertionError instead
+java.nio.file.Paths @ use Path.of() instead (can be applied automatically with Refaster)
 
 @defaultMessage CPAchecker should be deterministic, use Random with constant seed
 java.lang.Math#random()
@@ -109,4 +111,3 @@ java.util.stream.Collectors#toList()
 java.util.stream.Collectors#toSet()
 java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function)
 java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)
-java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator, java.util.function.Supplier)

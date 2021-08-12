@@ -286,7 +286,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         } catch (IOException e) {
           String message =
               "Skipping one analysis because the configuration file "
-                  + singleConfigFileName.toString()
+                  + singleConfigFileName
                   + " could not be read";
           if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
             logger.log(Level.WARNING, message);

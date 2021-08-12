@@ -228,10 +228,10 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState,
       PointerState pPointerState)
       throws CPATransferException {
-    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
 
     if (asAssignment.isPresent()) {
-      CAssignment returnAssignment = asAssignment.get();
+      CAssignment returnAssignment = asAssignment.orElseThrow();
       CRightHandSide rhs = returnAssignment.getRightHandSide();
       Set<MemoryLocation> defs = getDef(returnAssignment.getLeftHandSide(), pPointerState);
 
@@ -507,7 +507,7 @@ class FlowDependenceTransferRelation
       }
     }
 
-    com.google.common.base.Optional<CVariableDeclaration> maybeReturnVar =
+    Optional<CVariableDeclaration> maybeReturnVar =
         summaryEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
       Set<MemoryLocation> possibleDefs = null;
@@ -522,7 +522,8 @@ class FlowDependenceTransferRelation
               handleOperation(
                   pReturnEdge,
                   Optional.ofNullable(def),
-                  ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
+                  ImmutableSet.of(
+                      MemoryLocation.valueOf(maybeReturnVar.orElseThrow().getQualifiedName())),
                   nextState,
                   pReachDefState);
         }
@@ -531,7 +532,8 @@ class FlowDependenceTransferRelation
             handleOperation(
                 pReturnEdge,
                 Optional.empty(),
-                ImmutableSet.of(MemoryLocation.valueOf(maybeReturnVar.get().getQualifiedName())),
+                ImmutableSet.of(
+                    MemoryLocation.valueOf(maybeReturnVar.orElseThrow().getQualifiedName())),
                 nextState,
                 pReachDefState);
       }
@@ -810,10 +812,10 @@ class FlowDependenceTransferRelation
 
     @Override
     public Set<MemoryLocation> visit(CReturnStatement pNode) throws CPATransferException {
-      com.google.common.base.Optional<CExpression> ret = pNode.getReturnValue();
+      Optional<CExpression> ret = pNode.getReturnValue();
 
       if (ret.isPresent()) {
-        return ret.get().accept(this);
+        return ret.orElseThrow().accept(this);
       } else {
         return ImmutableSet.of();
       }

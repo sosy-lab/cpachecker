@@ -143,9 +143,9 @@ public class InvariantsState implements AbstractState,
 
   private final boolean overapproximatesUnsupportedFeature;
 
-  private final Set<BooleanFormula<CompoundInterval>> assumptions;
+  private final ImmutableSet<BooleanFormula<CompoundInterval>> assumptions;
 
-  private Set<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
+  private ImmutableSet<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
 
@@ -796,11 +796,11 @@ public class InvariantsState implements AbstractState,
    *
    * @return the environment as a set equations of the variables with their values.
    */
-  public Set<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
+  public ImmutableSet<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     if (this.environmentAsAssumptions == null) {
       environmentAsAssumptions = getEnvironmentAsAssumptions0();
     }
-    return Collections.unmodifiableSet(environmentAsAssumptions);
+    return environmentAsAssumptions;
   }
 
   /**
@@ -852,12 +852,13 @@ public class InvariantsState implements AbstractState,
     return assumptionsIntervals;
   }
 
-  private Set<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
+  private ImmutableSet<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
     CompoundIntervalFormulaManager compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(tools.compoundIntervalManagerFactory);
 
-    Set<BooleanFormula<CompoundInterval>> environmentalAssumptions =
-        new LinkedHashSet<>(assumptions);
+    ImmutableSet.Builder<BooleanFormula<CompoundInterval>> environmentalAssumptions =
+        ImmutableSet.builderWithExpectedSize(assumptions.size());
+    environmentalAssumptions.addAll(assumptions);
 
     List<NumeralFormula<CompoundInterval>> atomic = new ArrayList<>(1);
     Deque<NumeralFormula<CompoundInterval>> toCheck = new ArrayDeque<>(1);
@@ -906,7 +907,7 @@ public class InvariantsState implements AbstractState,
         environmentalAssumptions.add(assumption);
       }
     }
-    return environmentalAssumptions;
+    return environmentalAssumptions.build();
   }
 
   /**
@@ -1055,15 +1056,10 @@ public class InvariantsState implements AbstractState,
       FormulaManagerView pManager) {
     final ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, getFormulaResolver());
-    final Set<org.sosy_lab.java_smt.api.BooleanFormula> approximations = new LinkedHashSet<>();
-    for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
-      org.sosy_lab.java_smt.api.BooleanFormula approximationFormula =
-          approximation.accept(toBooleanFormulaVisitor, getEnvironment());
-      if (approximationFormula != null) {
-        approximations.add(approximationFormula);
-      }
-    }
-    return pManager.getBooleanFormulaManager().and(approximations);
+    return getApproximationFormulas().stream()
+        .map(approximation -> approximation.accept(toBooleanFormulaVisitor, getEnvironment()))
+        .filter(f -> f != null)
+        .collect(pManager.getBooleanFormulaManager().toConjunction());
   }
 
   @Override
@@ -1691,15 +1687,16 @@ public class InvariantsState implements AbstractState,
   }
 
   public Set<MemoryLocation> getVariables() {
-    ImmutableSet.Builder<MemoryLocation> result = ImmutableSet.builder();
-    result.addAll(environment.keySet());
-    result.addAll(
-        from(environment.values()).transformAndConcat(value -> value.accept(COLLECT_VARS_VISITOR)));
-    return result.build();
+    return ImmutableSet.<MemoryLocation>builder()
+        .addAll(environment.keySet())
+        .addAll(
+            from(environment.values())
+                .transformAndConcat(value -> value.accept(COLLECT_VARS_VISITOR)))
+        .build();
   }
 
   private Set<Variable<CompoundInterval>> getVariables(final Predicate<MemoryLocation> pMemoryLocationPredicate) {
-    final Set<Variable<CompoundInterval>> result = new HashSet<>();
+    final Set<Variable<CompoundInterval>> result = new LinkedHashSet<>();
     Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<>() {
 
       @Override

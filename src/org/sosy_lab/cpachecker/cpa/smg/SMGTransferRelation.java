@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -24,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -207,11 +207,11 @@ public class SMGTransferRelation
     SMGObject tmpFieldMemory = smgState.getHeap().getFunctionReturnObject();
     if (tmpFieldMemory != null) {
       // value 0 is the default return value in C
-      CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO);
+      CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
       CType expType = TypeUtils.getRealExpressionType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
       if (returnAssignment.isPresent()) {
-        expType = returnAssignment.get().getLeftHandSide().getExpressionType();
+        expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
       }
       successors = assignFieldToState(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
     } else {
@@ -937,8 +937,7 @@ public class SMGTransferRelation
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
-        java.util.Optional<SMGObject> addedLocalVariable =
-            pState.addLocalVariable(typeSize, varName);
+        Optional<SMGObject> addedLocalVariable = pState.addLocalVariable(typeSize, varName);
         if (!addedLocalVariable.isPresent()) {
           throw new SMGInconsistentException("Cannot add a local variable to an empty stack.");
         }

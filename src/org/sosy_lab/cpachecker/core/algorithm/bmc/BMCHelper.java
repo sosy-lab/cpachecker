@@ -93,17 +93,7 @@ public final class BMCHelper {
       boolean pForce)
       throws CPATransferException, InterruptedException {
     return assertAt(
-        pStates,
-        new FormulaInContext() {
-
-          @Override
-          public BooleanFormula getFormulaInContext(PathFormula pContext)
-              throws CPATransferException, InterruptedException {
-            return pInvariant.getFormula(pFMGR, pPFMGR, pContext);
-          }
-        },
-        pFMGR,
-        pForce);
+        pStates, pContext -> pInvariant.getFormula(pFMGR, pPFMGR, pContext), pFMGR, pForce);
   }
 
   public static BooleanFormula assertAt(

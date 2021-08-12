@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -62,17 +61,5 @@ public class CAssumeEdge extends AssumeEdge {
   @Override
   public CExpression getExpression() {
     return (CExpression) expression;
-  }
-
-
-  /**
-   * TODO
-   * Warning: for instances with {@link #getTruthAssumption()} == false, the
-   * return value of this method does not represent exactly the return value
-   * of {@link #getRawStatement()} (it misses the outer negation of the expression).
-   */
-  @Override
-  public Optional<CExpression> getRawAST() {
-    return Optional.of((CExpression)expression);
   }
 }

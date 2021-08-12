@@ -1233,7 +1233,11 @@ public class ExpressionToFormulaVisitor
         }
         return result;
       }
-      throw new IllegalArgumentException("Popcount implementation does not support non bitvector and non integer type " + paramFormulaType.toString() +" for Edge: " + edge.toString());
+      throw new IllegalArgumentException(
+          "Popcount implementation does not support non bitvector and non integer type "
+              + paramFormulaType
+              + " for Edge: "
+              + edge);
     }
     throw new UnrecognizedCodeException("Function " + pFunctionName + " received " + pParameters.size() + " parameters" + " instead of the expected " + 1, edge, e);
   }

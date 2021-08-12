@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,6 +53,11 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   @Override
   public Iterator<AbstractState> iterator() {
     return delegate.iterator();
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return delegate.stream();
   }
 
   @Override

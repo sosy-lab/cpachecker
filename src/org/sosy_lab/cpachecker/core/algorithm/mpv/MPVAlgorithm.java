@@ -386,7 +386,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
               logger.log(Level.INFO, "Partition has exhausted resource limitations:", e);
               partition.stopAnalysisOnFailure(reached, "Inner time limit");
             }
-          } catch (Exception e) {
+          } catch (CPAException e) {
             partition.stopAnalysisOnFailure(reached, e.getClass().getSimpleName());
             if (ignoreInnerExceptions) {
               logger.log(Level.INFO, "Exception occured during partition checking:", e);

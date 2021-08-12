@@ -128,21 +128,26 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           try {
             writeConfiguration(o);
           } catch (ValidationConfigurationConstructionFailed eIC) {
-            logger.log(Level.WARNING, "Construction of validation configuration failed. Validation configuration is empty.");
+            logger.logUserException(
+                Level.WARNING,
+                eIC,
+                "Construction of validation configuration failed. Validation configuration is empty.");
           }
 
           o.flush();
           zos.closeEntry();
         }
       } catch (NotSerializableException eS) {
-        logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
-            + " does not implement Serializable interface");
+        logger.logUserException(
+            Level.SEVERE,
+            eS,
+            "Proof cannot be written. Class does not implement Serializable interface");
       } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.",
-            e.getMessage());
+        logger.logUserException(
+            Level.SEVERE, e, "Proof cannot be constructed due to conflicting configuration.");
       } catch (InterruptedException e) {
-        logger.log(Level.SEVERE,
-            "Proof cannot be written due to time out during proof construction");
+        logger.logUserException(
+            Level.SEVERE, e, "Proof cannot be written due to time out during proof construction");
       }
     } catch (IOException e) {
       throw new RuntimeException(e);

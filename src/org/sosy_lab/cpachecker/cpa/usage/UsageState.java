@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -113,11 +113,12 @@ public final class UsageState extends AbstractSingleWrapperState
      * If we get **b, having (*b, c), we give *c
      */
     Optional<AbstractIdentifier> linkedId =
-        from(Identifiers.getDereferencedIdentifiers(id))
-            .firstMatch(variableBindingRelation::containsKey);
+        Identifiers.getDereferencedIdentifiers(id).stream()
+            .filter(variableBindingRelation::containsKey)
+            .findFirst();
 
     if (linkedId.isPresent()) {
-      AbstractIdentifier pointsFrom = linkedId.get();
+      AbstractIdentifier pointsFrom = linkedId.orElseThrow();
       int delta = id.getDereference() - pointsFrom.getDereference();
       AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
       AbstractIdentifier pointsTo =

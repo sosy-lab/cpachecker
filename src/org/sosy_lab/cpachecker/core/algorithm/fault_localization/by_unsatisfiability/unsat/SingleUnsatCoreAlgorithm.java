@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
@@ -44,6 +43,7 @@ public class SingleUnsatCoreAlgorithm
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
 
+    Selector.Factory selectorFactory = tf.getSelectorFactory();
     Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     stats.totalTime.start();
@@ -56,7 +56,9 @@ public class SingleUnsatCoreAlgorithm
 
     // calculate an arbitrary UNSAT-core and filter the ones with selectors
     List<Selector> unsatCore =
-        Optionals.presentInstances(solver.unsatCore(toVerify).stream().map(Selector::of))
+        solver.unsatCore(toVerify).stream()
+            .filter(l -> selectorFactory.selectorOf(l).isPresent())
+            .map(l -> selectorFactory.selectorOf(l).orElseThrow())
             .collect(ImmutableList.toImmutableList());
 
     stats.totalTime.stop();

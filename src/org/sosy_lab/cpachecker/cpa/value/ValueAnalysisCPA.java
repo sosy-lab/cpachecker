@@ -11,12 +11,14 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -30,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -50,6 +53,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -60,6 +67,12 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -96,6 +109,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @Option(secure=true, description="get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
+
+  @Option(secure = true, description = "get an initial precision from a predicate precision file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
 
   @Option(
       secure = true,
@@ -164,25 +181,92 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
-
-    if (initialPrecisionFile == null) {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
-
-    } else {
-      // create precision with empty, refinable component precision
-      VariableTrackingPrecision initialPrecision =
-          VariableTrackingPrecision.createRefineablePrecision(
-              pConfig,
-              VariableTrackingPrecision.createStaticPrecision(
-                  pConfig, pCfa.getVarClassification(), getClass()));
-      // refine the refinable component precision with increment from file
-      return initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
+
+    // Initialize precision
+    VariableTrackingPrecision initialPrecision =
+        VariableTrackingPrecision.createRefineablePrecision(
+            pConfig,
+            VariableTrackingPrecision.createStaticPrecision(
+                pConfig, pCfa.getVarClassification(), getClass()));
+
+    if (initialPredicatePrecisionFile != null) {
+
+      // convert the predicate precision to variable tracking precision and
+      // refine precision with increment from the newly gained variable tracking precision
+      // otherwise return empty precision if given predicate precision is empty
+
+      try (Solver solver = Solver.create(pConfig, this.logger, this.shutdownNotifier)) {
+        FormulaManagerView formulaManager = solver.getFormulaManager();
+
+        RegionManager regionManager = new SymbolicRegionManager(solver);
+        AbstractionManager abstractionManager =
+            new AbstractionManager(regionManager, pConfig, logger, solver);
+
+        PredicatePrecision predPrec = parsePredPrecFile(pCfa, formulaManager, abstractionManager);
+
+        if (!predPrec.isEmpty()) {
+          initialPrecision =
+              initialPrecision.withIncrement(
+                  convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
+        }
+      }
+    }
+    if (initialPrecisionFile != null) {
+      // create precision with empty, refinable component precision
+      // refine the refinable component precision with increment from file
+      initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
+    }
+
+    return initialPrecision;
+  }
+
+  private PredicatePrecision parsePredPrecFile(
+      final CFA pCfa, final FormulaManagerView pFMgr, final AbstractionManager abstractionManager) {
+
+    // create managers for the predicate map parser for parsing the predicates from the given
+    // predicate precision file
+
+    PredicateMapParser mapParser =
+        new PredicateMapParser(
+            pCfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+
+    try {
+      return mapParser.parsePredicates(initialPredicatePrecisionFile);
+    } catch (IOException | PredicateParsingFailedException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not read precision from file named " + initialPredicatePrecisionFile);
+      return PredicatePrecision.empty();
+    }
+  }
+
+  private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
+      final PredicatePrecision pPredPrec, final FormulaManagerView pFMgr) {
+    Collection<AbstractionPredicate> predicates = new HashSet<>();
+
+    predicates.addAll(pPredPrec.getLocalPredicates().values());
+    predicates.addAll(pPredPrec.getGlobalPredicates());
+    predicates.addAll(pPredPrec.getFunctionPredicates().values());
+
+    SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
+    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
+
+    // Get the variables from the predicate precision
+    for (AbstractionPredicate pred : predicates) {
+      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
+        trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+      }
+    }
+
+    return trackedVariables;
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-
     List<String> contents = null;
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
@@ -229,7 +313,9 @@ public class ValueAnalysisCPA extends AbstractCPA
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null && !refineablePrecisionSet) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
     }

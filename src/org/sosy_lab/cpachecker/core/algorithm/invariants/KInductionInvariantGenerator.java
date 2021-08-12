@@ -553,7 +553,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 // If no location remains, the invariant has been disproved at all possible
                 // locations
                 if (remainingLocations.isEmpty()) {
-                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate);
                 }
               }
               iterator.remove();
@@ -608,7 +608,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     algorithm.adjustmentRefused(pCpa);
   }
 
-  private static interface CfaCandidateInvariantExtractorFactory {
+  private interface CfaCandidateInvariantExtractorFactory {
 
     Iterable<CandidateInvariant> create(
         CFA pCfa,
@@ -618,9 +618,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         throws InvalidConfigurationException;
   }
 
-  private static enum CfaCandidateInvariantExtractorFactories
+  private enum CfaCandidateInvariantExtractorFactories
       implements CfaCandidateInvariantExtractorFactory {
-
     NONE {
 
       @Override

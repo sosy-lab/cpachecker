@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -302,9 +303,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ReachingDefState handleReturnStatement(
       CReturnStatementEdge pCfaEdge, ReachingDefState pState) {
-    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
     if (asAssignment.isPresent()) {
-      CAssignment assignment = asAssignment.get();
+      CAssignment assignment = asAssignment.orElseThrow();
       return handleStatement(pState, pCfaEdge, assignment);
     } else {
       return pState;

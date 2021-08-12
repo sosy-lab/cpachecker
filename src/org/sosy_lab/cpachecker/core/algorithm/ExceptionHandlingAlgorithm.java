@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -134,8 +133,7 @@ public class ExceptionHandlingAlgorithm
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reached)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     while (reached.hasWaitingState()) {
@@ -299,9 +297,8 @@ public class ExceptionHandlingAlgorithm
   private boolean isTransitiveChildOf(ARGState potentialChild, ARGState potentialParent) {
 
     Set<ARGState> seen = new HashSet<>();
-    Deque<ARGState> waitlist = new ArrayDeque<>(); // use BFS
+    Deque<ARGState> waitlist = new ArrayDeque<>(potentialChild.getParents()); // use BFS
 
-    waitlist.addAll(potentialChild.getParents());
     while (!waitlist.isEmpty()) {
       ARGState current = waitlist.pollFirst();
 

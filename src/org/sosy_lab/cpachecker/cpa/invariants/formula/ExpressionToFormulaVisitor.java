@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -629,6 +630,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   @Override
   public NumeralFormula<CompoundInterval> visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
     return allPossibleValues(pThisExpression);
+  }
+
+  @Override
+  public NumeralFormula<CompoundInterval> visit(JClassLiteralExpression pJClassLiteralExpression)
+      throws UnrecognizedCodeException {
+    return allPossibleValues(pJClassLiteralExpression.getExpressionType());
   }
 
   @Override

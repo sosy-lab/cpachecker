@@ -146,7 +146,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (lhs instanceof CIdExpression) {
       varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
     } else {
-      varName = functionName + "::" + lhs.toString();
+      varName = functionName + "::" + lhs;
     }
 
     final CType targetType = lhs.getExpressionType();
@@ -357,7 +357,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      final String returnVar = fnkCall.getFunctionEntry().getReturnVariable().get().getQualifiedName();
+      final String returnVar =
+          fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = bvComputer.getBitsize(partition, lhs.getExpressionType());
@@ -395,7 +396,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     String returnVar = "";
 
     if (cfaEdge.getExpression().isPresent()) {
-      returnVar = ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getDeclaration().getQualifiedName();
+      returnVar =
+          ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide())
+              .getDeclaration()
+              .getQualifiedName();
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
               .getFunctionDefinition()).getType().getReturnType();
@@ -404,7 +408,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       final Region[] regRHS =
           bvComputer.evaluateVectorExpression(
               partition,
-              cfaEdge.getExpression().get(),
+              cfaEdge.getExpression().orElseThrow(),
               functionReturnType,
               cfaEdge.getSuccessor(),
               precision);

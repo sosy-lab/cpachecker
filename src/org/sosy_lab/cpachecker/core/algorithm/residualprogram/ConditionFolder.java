@@ -55,7 +55,7 @@ public abstract class ConditionFolder {
   }
 
   private interface MergeUpdateFunction {
-    public void updateAfterMerging(ARGState merged, ARGState mergedInto);
+    void updateAfterMerging(ARGState merged, ARGState mergedInto);
   }
 
   private static class LoopInfo {

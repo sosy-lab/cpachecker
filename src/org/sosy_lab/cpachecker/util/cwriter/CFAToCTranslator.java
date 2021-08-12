@@ -214,21 +214,23 @@ public class CFAToCTranslator {
   }
 
   private NodeAndBlock getNextElement(Deque<NodeAndBlock> pWaitlist) {
-
     final NodeAndBlock lastElement = pWaitlist.peekLast();
-    boolean skipElement;
     NodeAndBlock current;
     do {
-      current = pWaitlist.poll();
-
-      CFANode currentNode = current.getNode();
-      skipElement =
-          current != lastElement
-              && getPredecessorNodes(currentNode).stream()
-                  .anyMatch(n -> !createdStatements.containsKey(n));
-    } while (skipElement);
-
-    return current;
+      current = pWaitlist.pollFirst();
+      if (current == lastElement) {
+        return current;
+      }
+      boolean allPredecessorsHandled =
+          getPredecessorNodes(current.getNode()).stream()
+              .anyMatch(n -> !createdStatements.containsKey(n));
+      if (allPredecessorsHandled) {
+        return current;
+      }
+      // if not used, re-schedule node at the end
+      pWaitlist.offer(current);
+    } while (current != lastElement);
+    return current; // if no other fits, use last element
   }
 
   private Statement createGoto(CFANode pCurrentNode, CFANode pTarget) {
@@ -416,6 +418,8 @@ public class CFAToCTranslator {
   }
 
   private void pushToWaitlist(Deque<NodeAndBlock> pWaitlist, NodeAndBlock pNodeAndBlock) {
+    // Make sure that join nodes are always handled soon-ishly by pushing them to the waitlist;
+    // to keep the structure of the generated program as shallow as possible.
     if (hasMoreThanOneElement(getPredecessorNodes(pNodeAndBlock.getNode()))) {
       assert getPredecessorNodes(pNodeAndBlock.getNode()).stream()
           .allMatch(createdStatements::containsKey);

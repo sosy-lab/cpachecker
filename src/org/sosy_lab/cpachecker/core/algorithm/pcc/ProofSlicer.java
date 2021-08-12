@@ -260,7 +260,7 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
 
           if (retStm.getExpression().isPresent()) {
-            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().get())
+            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().orElseThrow())
                 .copyInto(updatedVars);
           }
         } else {
@@ -299,7 +299,8 @@ public class ProofSlicer {
           addAllExceptVar(varName, succVars, updatedVars);
           if (!funRet.getFunctionEntry().getReturnVariable().isPresent()) { throw new AssertionError(
               "No return variable provided for non-void function."); }
-          updatedVars.add(funRet.getFunctionEntry().getReturnVariable().get().getQualifiedName());
+          updatedVars.add(
+              funRet.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName());
         } else {
           updatedVars.addAll(succVars);
         }

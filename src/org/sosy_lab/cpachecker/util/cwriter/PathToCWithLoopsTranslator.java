@@ -212,7 +212,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   }
 
   /** Processes an edge of the CFA and will write code to the output function body. */
-  private final void processEdge0(
+  private void processEdge0(
       ARGState childElement, CFAEdge edge, Deque<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();
 
@@ -576,11 +576,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
    */
   private void handleIfOutLabels(StringBuilder wholeLoopString, CFANode predecessor) {
     if (!ifOutLabelEnd.isEmpty() && ifOutLabelEnd.peek().containsKey(predecessor)) {
-      if (ifThenHandled.contains(predecessor)) {
-          wholeLoopString.append(ifOutLabelEnd.pop().get(predecessor) )
-                         .append(": ;\n");
-      } else {
-        ifThenHandled.add(predecessor);
+      if (!ifThenHandled.add(predecessor)) {
+        wholeLoopString.append(ifOutLabelEnd.pop().get(predecessor)).append(": ;\n");
       }
     }
   }

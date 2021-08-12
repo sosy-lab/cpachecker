@@ -7,12 +7,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-//Sample test case
+// Sample test case
 
-describe("true", function () {
-    var a;
-    it("Should be true", function () {
-        a = true;
-        expect(a).toBe(true);
-    });
+describe("true", () => {
+  let a;
+  it("Should be true", () => {
+    a = true;
+    expect(a).toBe(true);
+  });
 });
