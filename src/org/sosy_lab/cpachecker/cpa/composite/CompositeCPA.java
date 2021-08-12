@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -147,21 +147,16 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
-    for (ConfigurableProgramAnalysis cpa : cpas) {
-      domains.add(cpa.getAbstractDomain());
-    }
-    return new CompositeDomain(domains.build());
+    return new CompositeDomain(
+        transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getAbstractDomain));
   }
 
   @Override
   public CompositeTransferRelation getTransferRelation() {
-    ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
-    for (ConfigurableProgramAnalysis cpa : cpas) {
-      transferRelations.add(cpa.getTransferRelation());
-    }
     return new CompositeTransferRelation(
-        transferRelations.build(), cfa, options.aggregateBasicBlocks);
+        transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getTransferRelation),
+        cfa,
+        options.aggregateBasicBlocks);
   }
 
   @Override
@@ -187,14 +182,13 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
               predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
           PredicateAbstractionManager abmgr = predicateCPA.orElseThrow().getPredicateManager();
           return new CompositeMergeAgreeCPAEnabledAnalysisOperator(
-              mergeOperators.build(), getStopOperator().getStopOperators(), abmgr);
+              mergeOperators.build(), getStopOperators(), abmgr);
         } else {
           throw new AssertionError("Merge PLAIN is currently not supported in predicated analysis");
         }
       } else {
         if (options.merge.equals("AGREE")) {
-          return new CompositeMergeAgreeOperator(
-              mergeOperators.build(), getStopOperator().getStopOperators());
+          return new CompositeMergeAgreeOperator(mergeOperators.build(), getStopOperators());
         } else if (options.merge.equals("PLAIN")) {
           return new CompositeMergePlainOperator(mergeOperators.build());
         } else {
@@ -204,34 +198,30 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
     }
   }
 
+  private ImmutableList<StopOperator> getStopOperators() {
+    return transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getStopOperator);
+  }
+
   @Override
   public CompositeStopOperator getStopOperator() {
-    ImmutableList.Builder<StopOperator> stopOps = ImmutableList.builder();
-    for (ConfigurableProgramAnalysis cpa : cpas) {
-      stopOps.add(cpa.getStopOperator());
-    }
-    return new CompositeStopOperator(stopOps.build());
+    return new CompositeStopOperator(getStopOperators());
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
-    ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments =
-        ImmutableList.builder();
-    boolean simplePrec = true;
-    for (ConfigurableProgramAnalysis sp : cpas) {
-      PrecisionAdjustment prec = sp.getPrecisionAdjustment();
-      if (prec instanceof SimplePrecisionAdjustment) {
-        simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
-      } else {
-        simplePrec = false;
-      }
-      precisionAdjustments.add(prec);
-    }
-    if (simplePrec) {
-      return new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
+    ImmutableList<PrecisionAdjustment> precisionAdjustments =
+        transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getPrecisionAdjustment);
+
+    if (precisionAdjustments.stream().allMatch(prec -> prec instanceof SimplePrecisionAdjustment)) {
+      @SuppressWarnings("unchecked") // cast is safe because we just checked this
+      ImmutableList<SimplePrecisionAdjustment> simplePrecisionAdjustments =
+          (ImmutableList<SimplePrecisionAdjustment>)
+              (ImmutableList<? extends PrecisionAdjustment>) precisionAdjustments;
+      return new CompositeSimplePrecisionAdjustment(
+          simplePrecisionAdjustments);
+
     } else {
-      return new CompositePrecisionAdjustment(precisionAdjustments.build());
+      return new CompositePrecisionAdjustment(precisionAdjustments);
     }
   }
 
@@ -273,11 +263,9 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    for (ConfigurableProgramAnalysis cpa: cpas) {
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
-      }
-    }
+    from(cpas)
+        .filter(StatisticsProvider.class)
+        .forEach(cpa -> cpa.collectStatistics(pStatsCollection));
   }
 
   @Override
