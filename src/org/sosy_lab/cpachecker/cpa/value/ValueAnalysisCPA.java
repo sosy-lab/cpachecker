@@ -214,7 +214,6 @@ public class ValueAnalysisCPA extends AbstractCPA
         }
       }
     }
-
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
@@ -314,7 +313,9 @@ public class ValueAnalysisCPA extends AbstractCPA
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null && !refineablePrecisionSet) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
     }
