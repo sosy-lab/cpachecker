@@ -43,11 +43,14 @@ public class SMG {
 
   /** Creates a new, empty SMG */
   public SMG() {
-    pointsToEdges = PathCopyingPersistentTreeMap.of();
     hasValueEdges = PathCopyingPersistentTreeMap.of();
     smgValues = PersistentSet.of(SMGValue.zeroValue());
     PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentTreeMap.of();
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
+    SMGPointsToEdge nullPointer =
+        new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
+    PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap = PathCopyingPersistentTreeMap.of();
+    pointsToEdges = pointsToEdgesTmpMap.putAndCopy(SMGValue.zeroValue(), nullPointer);
 
   }
 
