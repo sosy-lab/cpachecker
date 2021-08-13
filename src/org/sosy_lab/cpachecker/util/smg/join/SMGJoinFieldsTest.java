@@ -288,6 +288,9 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     SMG smg0_0B_8B =
         smg1.copyAndAddHVEdge(
             new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ONE),
+            object)
+            .copyAndAddHVEdge(
+                new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.valueOf(32)),
             object);
 
     // these test invalid inputs, so they are disabled now
