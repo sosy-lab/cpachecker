@@ -27,11 +27,6 @@ import org.sosy_lab.common.time.Timer;
  * following problems:
  *
  * <ul>
- *   <li>Methods like {@link #getSumTime()} can return arbitrarily old values because there is no
- *       "happens-before" relationship enforced between another thread using one of the returned
- *       timers and the thread reading the aggregate statistics (<a
- *       href="https://gitlab.com/sosy-lab/software/cpachecker/-/commit/1c2b2ed5c4a801d4f03a47344d36433ed3023100#note_647501985">full
- *       explanation</a>).
  *   <li>Methods like {@link #getSumTime()} can read and return invalid (half-updated) values from
  *       timers because they access timer fields with type long without atomicity guarantees.
  *   <li>Methods like {@link #getSumTime()} can return wrong values because there is at least one
@@ -56,9 +51,6 @@ import org.sosy_lab.common.time.Timer;
  *   <li>Each returned {@link Timer} consistently being used in a single-threaded manner.
  *   <li>No intermediate calls to other methods of this class.
  *   <li>All timer-using threads being stopped or otherwise ceasing to use their timer instances.
- *   <li>Other code establishes a "happens-before" relationship between the actions in all
- *       timer-using threads and the current thread (typically by calling {@link Thread#join()} or
- *       some other synchronization mechanism).
  *   <li>Only now may the current thread access the results of this instance.
  * </ol>
  */
@@ -154,9 +146,22 @@ public final class ThreadSafeTimerContainer extends AbstractStatValue {
   private long eval(Function<Timer, Long> f, BiFunction<Long, Long, Long> acc) {
     long currentInterval = 0;
     for (Timer timer : activeTimers.values()) {
-      // FIXME Missing guarantee for memory visibility of timer state.
+      // This method call makes ThreadSafeTimerContainer less racy - DO NOT REMOVE!
+      // Timer is explicitly not thread-safe and this class attempts but fails to use Timer safely
+      // from multiple threads (cf. the following explanation:
+      // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/1c2b2ed5c4a801d4f03a47344d36433ed3023100#note_647501985
+      // In particular, there is no guarantee that f.apply(timer) will correctly see the most recent
+      // values that timer stores internally. However, it happens that the current Timer
+      // implementation uses a volatile field for isRunning(), and that most actions inside Timer
+      // (like start()/stop()) "happen-before" a write to that volatile field. So if we read that
+      // field here, we establish "happens-before" with the Timer actions (as long as Timer does not
+      // change its implementation).
+      @SuppressWarnings("unused")
+      boolean doNotRemove = timer.isRunning();
+
       // FIXME Reads of long values are not atomic.
       // FIXME Here is a race (with timers being started/stopped).
+
       currentInterval = acc.apply(currentInterval, f.apply(timer));
     }
     return currentInterval;
