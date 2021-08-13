@@ -533,10 +533,7 @@ public class SMG {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (obj instanceof SMG) {
+    if (obj == null || !(obj instanceof SMG)) {
       return false;
     }
     SMG other = (SMG) obj;
