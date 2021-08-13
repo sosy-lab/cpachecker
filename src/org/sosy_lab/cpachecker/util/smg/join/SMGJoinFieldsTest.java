@@ -273,30 +273,21 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
     smg1 = smg1.copyAndAddObject(object);
 
-    SMG smg0_0B_4B = smg1;
-    SMG smg0_2B_6B = smg1;
-    SMG smg0_4B_8B = smg1;
-    SMG smg0_0B_8B = smg1;
-
-    smg0_0B_4B =
+    SMG smg0_0B_4B =
         smg1.copyAndAddHVEdge(
             new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ONE),
             object);
-    smg0_2B_6B =
+    SMG smg0_2B_6B =
         smg1.copyAndAddHVEdge(
             new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.valueOf(16)),
             object);
-    smg0_4B_8B =
+    SMG smg0_4B_8B =
         smg1.copyAndAddHVEdge(
             new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.valueOf(32)),
             object);
-    smg0_0B_8B =
+    SMG smg0_0B_8B =
         smg1.copyAndAddHVEdge(
             new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ONE),
-            object);
-    smg0_0B_8B =
-        smg1.copyAndAddHVEdge(
-            new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.valueOf(32)),
             object);
 
     // these test invalid inputs, so they are disabled now
