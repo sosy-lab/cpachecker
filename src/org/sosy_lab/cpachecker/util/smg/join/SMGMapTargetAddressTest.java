@@ -123,7 +123,7 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
     assertThat(destSMG.getValues().contains(mta.getValue())).isFalse();
 
     SMG newDestSmg = mta.getDestinationSMG();
-    SMGPointsToEdge newEdge = newDestSmg.getPTEdge(mta.getValue());
+    SMGPointsToEdge newEdge = newDestSmg.getPTEdge(mta.getValue()).orElseThrow();
 
     assertThat(mta.mapping1.getMappedValue(value1)).isSameInstanceAs(mta.getValue());
     assertThat(mta.mapping2.getMappedValue(value2)).isSameInstanceAs(mta.getValue());

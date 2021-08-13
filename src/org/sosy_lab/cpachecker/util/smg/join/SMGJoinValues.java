@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -57,8 +60,13 @@ public class SMGJoinValues extends SMGAbstractJoin {
       return;
     }
 
-    SMGPointsToEdge edgeV1 = inputSMG1.getPTEdge(pValue1);
-    SMGPointsToEdge edgeV2 = inputSMG2.getPTEdge(pValue2);
+    Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+    Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
+
+    checkArgument(edgeOptionalV1.isPresent() && edgeOptionalV2.isPresent());
+
+    SMGPointsToEdge edgeV1 = edgeOptionalV1.orElseThrow();
+    SMGPointsToEdge edgeV2 = edgeOptionalV2.orElseThrow();
 
     if (isNullPointer(edgeV1) && isNullPointer(edgeV2)) {
       // no value is pointer value Algorithm 5 Step 3
@@ -106,8 +114,13 @@ public class SMGJoinValues extends SMGAbstractJoin {
      }
 
      // step 6
-     SMGObject obj1 = inputSMG1.getPTEdge(pValue1).pointsTo();
-     SMGObject obj2 = inputSMG2.getPTEdge(pValue2).pointsTo();
+     Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+     Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
+
+     checkArgument(edgeOptionalV1.isPresent() && edgeOptionalV2.isPresent());
+
+     SMGObject obj1 = edgeOptionalV1.orElseThrow().pointsTo();
+     SMGObject obj2 = edgeOptionalV2.orElseThrow().pointsTo();
      // step 7 left insert and join
      if (obj1 instanceof SMGDoublyLinkedListSegment) {
        SMGInsertLeftDlsAndJoin jDlsAndJoin =

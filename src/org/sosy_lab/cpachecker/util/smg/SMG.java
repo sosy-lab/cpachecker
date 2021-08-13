@@ -450,10 +450,8 @@ public class SMG {
    * @param value The SMGValue for which the edge is to be returned.
    * @return The SMGPointsToEdge for the entered value.
    */
-  public SMGPointsToEdge getPTEdge(SMGValue value) {
-    // TODO: Is it guaranteed that there exists a edge for each value entered?
-    // If it can be null, use a Optional.
-    return pointsToEdges.get(value);
+  public Optional<SMGPointsToEdge> getPTEdge(SMGValue value) {
+    return Optional.ofNullable(pointsToEdges.get(value));
   }
 
   /**

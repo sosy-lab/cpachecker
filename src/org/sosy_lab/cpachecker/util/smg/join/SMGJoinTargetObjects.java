@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigInteger;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -45,8 +48,13 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
   public void joinTargetObjects(SMGValue pValue1,
       SMGValue pValue2,
       int pNestingLevelDiff) {
-    SMGPointsToEdge pToEdge1 = inputSMG1.getPTEdge(pValue1);
-    SMGPointsToEdge pToEdge2 = inputSMG2.getPTEdge(pValue2);
+    Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+    Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
+
+    checkArgument(edgeOptionalV1.isPresent() && edgeOptionalV2.isPresent());
+
+    SMGPointsToEdge pToEdge1 = edgeOptionalV1.orElseThrow();
+    SMGPointsToEdge pToEdge2 = edgeOptionalV2.orElseThrow();
 
     // step 1
     if (!checkCompatibility(pToEdge1, pToEdge2, pValue1, pValue2, pNestingLevelDiff)) {

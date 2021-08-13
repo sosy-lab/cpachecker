@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -50,7 +51,10 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
    */
   private void insertLeftDlsAndJoin(SMGValue pValue1, SMGValue pValue2, int pNestingLevelDiff) {
     // step 1
-    SMGPointsToEdge pToEdge1 = inputSMG1.getPTEdge(pValue1);
+    Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+    checkArgument(edgeOptionalV1.isPresent());
+
+    SMGPointsToEdge pToEdge1 = edgeOptionalV1.orElseThrow();
     // safe cast, ensured by sanity check
     SMGDoublyLinkedListSegment dlls1 = (SMGDoublyLinkedListSegment) pToEdge1.pointsTo();
     BigInteger nextFieldOffset;
@@ -164,7 +168,8 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
       SMGValue mappedSubSmgValue = subSmgValue;
 
         if (!subSmgValue.isZero() && inputSMG1.isPointer(subSmgValue)) {
-          SMGPointsToEdge subSMGPointerEdge = inputSMG1.getPTEdge(subSmgValue);
+        // Safe because asserted by if condition (isPointer())
+        SMGPointsToEdge subSMGPointerEdge = inputSMG1.getPTEdge(subSmgValue).orElseThrow();
           SMGObject subSmgObject = subSMGPointerEdge.pointsTo();
           // map object
         if (!mapping1.hasMapping(subSmgObject)) {
@@ -280,8 +285,12 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
    * @param pValue - the pointer to be checked.
    */
   private void checkPointsToDLLs(SMGValue pValue) {
-    SMGObject object = inputSMG1.getPTEdge(pValue).pointsTo();
-    Preconditions.checkArgument(isDLLS(object), "Value 1 does not point to dlls.");
+    Optional<SMGPointsToEdge> edgeOptionalV = inputSMG1.getPTEdge(pValue);
+    checkArgument(edgeOptionalV.isPresent());
+
+    SMGPointsToEdge pToEdge = edgeOptionalV.orElseThrow();
+    SMGObject object = pToEdge.pointsTo();
+    checkArgument(isDLLS(object), "Value 1 does not point to dlls.");
   }
 
 
