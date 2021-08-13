@@ -14,21 +14,19 @@ import org.sosy_lab.common.UniqueIdGenerator;
 public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   private static final SMGObject NULL_OBJECT =
-      new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO, false, 0);
+      new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO, 0);
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
   private int nestingLevel;
   private final BigInteger size;
   private final BigInteger offset;
-  private boolean valid;
   // ID needed for comparable implementation.
   private final int id;
 
-  protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, boolean pValid) {
+  protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
-    valid = pValid;
     id = U_ID_GENERATOR.getFreshId() + 1;
   }
 
@@ -36,12 +34,10 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
       int pNestingLevel,
       BigInteger pSize,
       BigInteger pOffset,
-      boolean pValid,
       int pId) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
-    valid = pValid;
     id = pId;
   }
 
@@ -50,8 +46,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   public static SMGObject
-      of(int pNestingLevel, BigInteger pSize, BigInteger pOffset, boolean pValid) {
-    return new SMGObject(pNestingLevel, pSize, pOffset, pValid);
+      of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
+    return new SMGObject(pNestingLevel, pSize, pOffset);
   }
 
   public BigInteger getSize() {
@@ -60,14 +56,6 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
   public BigInteger getOffset() {
     return offset;
-  }
-
-  public boolean isValid() {
-    return valid;
-  }
-
-  public void invalidate() {
-    valid = false;
   }
 
   @Override
@@ -99,11 +87,11 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   public SMGObject copyWithNewLevel(int pNewLevel) {
-    return of(pNewLevel, size, offset, valid);
+    return of(pNewLevel, size, offset);
   }
 
   public SMGObject freshCopy() {
-    return of(nestingLevel, size, offset, valid);
+    return of(nestingLevel, size, offset);
   }
 
   @Override
