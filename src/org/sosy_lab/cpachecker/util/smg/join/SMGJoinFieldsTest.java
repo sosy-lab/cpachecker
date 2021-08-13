@@ -322,13 +322,13 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_4B_8B, object); // OK
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_2B_6B, object); // OK
 
-    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL, smg0_0B_8B, smg0_0B_8B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_0B_4B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_2B_6B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_4B_8B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL, smg0_0B_8B, smg0_0B_8B);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_0B_4B);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_2B_6B);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_4B_8B);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B);
   }
 
   private void checkStatusAfterRelax(SMGJoinStatus expected, SMG a, SMG b, SMGObject object) {
@@ -337,7 +337,7 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     assertThat(js.getStatus()).isEqualTo(expected);
   }
 
-  private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b, SMGObject object) {
+  private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b) {
     SMGJoinFields js = new SMGJoinFields(a, b); // join fields
     assertThat(js.getStatus()).isEqualTo(expected);
   }
