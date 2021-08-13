@@ -54,7 +54,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     private final CFANode location;
     private final int instance;
 
-    LocationInstance(CFANode pLocation, int pInstance) {
+    public LocationInstance(CFANode pLocation, int pInstance) {
       location = checkNotNull(pLocation);
       checkArgument(pInstance >= 0, "Invalid LocationInstance with negative count %s", pInstance);
       instance = pInstance;

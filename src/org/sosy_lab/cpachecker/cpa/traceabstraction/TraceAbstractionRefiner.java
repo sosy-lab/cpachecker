@@ -14,8 +14,6 @@ import static com.google.common.base.Verify.verifyNotNull;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Streams;
 import com.google.common.collect.UnmodifiableIterator;
 import java.util.Collection;
@@ -77,7 +75,7 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
   private final BooleanFormulaManagerView bFMgrView;
   private final PathFormulaManager pfmgr;
   private final PredicateAbstractionManager predAbsManager;
-  private final TraceAbstractionPredicatesStorage predicateStorage;
+  private final InterpolationSequenceStorage itpSequenceStorage;
 
   @SuppressWarnings("resource")
   private TraceAbstractionRefiner(
@@ -95,7 +93,7 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
     // given ARGPath and b) new predicates are stored in a (TraceAbstraction-)state
     // instead of the PredicatePrecision.
 
-    predicateStorage = pTaCpa.getPredicatesStorage();
+    itpSequenceStorage = pTaCpa.getInterpolationSequenceStorage();
 
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -194,8 +192,7 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
     Iterator<BooleanFormula> itpIterator = interpolants.iterator();
 
     ARGState previousState = null;
-    Multimap<String, AbstractionPredicate> functionPredicates =
-        MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
+    InterpolationSequence.Builder itpSequenceBuilder = new InterpolationSequence.Builder();
 
     while (stateIterator.hasNext() && itpIterator.hasNext()) {
       ARGState curState = stateIterator.next();
@@ -211,13 +208,17 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
             predAbsManager.getPredicatesForAtomsOf(curInterpolant);
         String functionName = AbstractStates.extractLocation(previousState).getFunctionName();
 
-        functionPredicates.putAll(functionName, preds);
+        if (preds.size() > 1) {
+          throw new UnsupportedOperationException(
+              "Multiple predicates for one interpolant are not yet supported");
+        }
+        itpSequenceBuilder.addFunctionPredicates(functionName, preds);
       }
 
       previousState = curState;
     }
 
-    predicateStorage.addFunctionPredicates(functionPredicates);
+    itpSequenceStorage.addItpSequence(itpSequenceBuilder.build());
 
     // Search the first ARG state in which the corresponding interpolant is no longer equal to
     // 'true'. This marks the root state that is taken for the refinement.

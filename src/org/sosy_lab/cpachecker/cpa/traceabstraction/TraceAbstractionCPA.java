@@ -26,14 +26,14 @@ public class TraceAbstractionCPA extends AbstractCPA {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final TraceAbstractionPredicatesStorage predicatesStorage;
+  private final InterpolationSequenceStorage itpSequenceStorage;
 
   private TraceAbstractionCPA(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     super("SEP", "SEP", null);
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    predicatesStorage = new TraceAbstractionPredicatesStorage();
+    itpSequenceStorage = new InterpolationSequenceStorage();
   }
 
   @Override
@@ -44,10 +44,10 @@ public class TraceAbstractionCPA extends AbstractCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TraceAbstractionTransferRelation(predicatesStorage, logger, shutdownNotifier);
+    return new TraceAbstractionTransferRelation(itpSequenceStorage, logger, shutdownNotifier);
   }
 
-  TraceAbstractionPredicatesStorage getPredicatesStorage() {
-    return predicatesStorage;
+  InterpolationSequenceStorage getInterpolationSequenceStorage() {
+    return itpSequenceStorage;
   }
 }

@@ -10,64 +10,44 @@ package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
-import java.io.Serializable;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class TraceAbstractionState implements AbstractState, Graphable, Serializable {
+public class TraceAbstractionState implements AbstractState, Graphable {
 
-  private static final long serialVersionUID = -3454798281550882095L;
+  private static final TraceAbstractionState TOP = new TraceAbstractionState(ImmutableMap.of());
 
+  /** Create a new 'TOP'-state with empty predicates. */
   static TraceAbstractionState createInitState() {
-    return new TraceAbstractionState(ImmutableSet.of());
-  }
-
-  /** These are the predicates that hold in this state */
-  private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
-
-  private TraceAbstractionState(Multimap<String, AbstractionPredicate> pFunctionPredicates) {
-    this(pFunctionPredicates.entries());
-  }
-
-  private TraceAbstractionState(
-      Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates) {
-    // TODO: code is duplicated from PredicatePrecision; this needs to be refactored accordingly
-    Multimap<String, AbstractionPredicate> predMap =
-        MultimapBuilder.treeKeys().arrayListValues().build();
-    for (Map.Entry<String, AbstractionPredicate> entry : pFunctionPredicates) {
-      predMap.put(entry.getKey(), entry.getValue());
-    }
-    functionPredicates = ImmutableSetMultimap.copyOf(predMap);
-  }
-
-  ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
-    return functionPredicates;
+    return TOP;
   }
 
   /**
-   * Creates a new TraceAbstractionState that contains the union of predicates that already hold in
-   * this state as well as the newly given predicates.
+   * This map links {@link InterpolationSequence}-objects to predicates that currently hold in this
+   * state. Only entries with non-trivial predicates are contained (i.e., other than true and
+   * false).
    */
-  public TraceAbstractionState unionOf(
-      Iterable<Map.Entry<String, AbstractionPredicate>> newPredicates) {
-    if (Iterables.isEmpty(newPredicates)) {
-      return this;
-    }
-    return new TraceAbstractionState(
-        Iterables.concat(getFunctionPredicates().entries(), newPredicates));
+  private final ImmutableMap<InterpolationSequence, AbstractionPredicate> activePredicates;
+
+  TraceAbstractionState(Map<InterpolationSequence, AbstractionPredicate> pActivePredicates) {
+    activePredicates = ImmutableMap.copyOf(pActivePredicates);
+  }
+
+  boolean containsPredicates() {
+    return !activePredicates.isEmpty();
+  }
+
+  ImmutableMap<InterpolationSequence, AbstractionPredicate> getActivePredicates() {
+    return activePredicates;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functionPredicates);
+    return Objects.hash(activePredicates);
   }
 
   @Override
@@ -79,17 +59,17 @@ public class TraceAbstractionState implements AbstractState, Graphable, Serializ
       return false;
     }
     TraceAbstractionState other = (TraceAbstractionState) obj;
-    return Objects.equals(functionPredicates, other.functionPredicates);
+    return Objects.equals(activePredicates, other.activePredicates);
   }
 
   @Override
   public String toString() {
-    if (functionPredicates.isEmpty()) {
+    if (!containsPredicates()) {
       return "_empty_preds_";
     }
 
-    return FluentIterable.from(functionPredicates.entries())
-        .transform(x -> x.getKey() + "=" + x.getValue())
+    return FluentIterable.from(activePredicates.entrySet())
+        .transform(x -> x.getKey() + ":" + x.getValue())
         .join(Joiner.on("; "));
   }
 
@@ -97,12 +77,12 @@ public class TraceAbstractionState implements AbstractState, Graphable, Serializ
   public String toDOTLabel() {
     // TODO: remove graphable interface eventually
     // (currently used for debugging)
-    if (functionPredicates.isEmpty()) {
-      return "_empty_state_";
+    if (!containsPredicates()) {
+      return "";
     }
 
-    return FluentIterable.from(functionPredicates.entries())
-        .transform(x -> x.getKey() + "=" + x.getValue())
+    return FluentIterable.from(activePredicates.values())
+        .transform(AbstractionPredicate::getSymbolicAtom)
         .join(Joiner.on("; "));
   }
 
