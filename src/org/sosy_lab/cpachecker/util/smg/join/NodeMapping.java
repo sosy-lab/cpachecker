@@ -56,4 +56,12 @@ public class NodeMapping {
     return ImmutableSet.copyOf(valueMap.values());
   }
 
+  public Map<SMGObject, SMGObject> getObjectMap() {
+    return objectMap;
+  }
+
+  public Map<SMGValue, SMGValue> getValueMap() {
+    return valueMap;
+  }
+
 }
