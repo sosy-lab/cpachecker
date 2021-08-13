@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.statistics;
 
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -32,6 +33,7 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    * <p>We use WeakReferences to avoid memory leak when deleting timers. WeakReference allows us to
    * access the wrapped Timer before GC.
    */
+  @GuardedBy("activeTimers")
   private final IdentityHashMap<WeakReference<TimerWrapper>, Timer> activeTimers =
       new IdentityHashMap<>();
 
@@ -44,15 +46,18 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    * The sum of times of all intervals. This field should be accessed through {@link #sumTime()} to
    * account for a currently running interval.
    */
+  @GuardedBy("activeTimers")
   private long sumTime = 0;
 
   /** The maximal time of all intervals. */
+  @GuardedBy("activeTimers")
   private long maxTime = 0;
 
   /**
    * The number of intervals. This field should be accessed through {@link #getNumberOfIntervals()}
    * to account for a currently running interval.
    */
+  @GuardedBy("activeTimers")
   private int numberOfIntervals = 0;
 
   public ThreadSafeTimerContainer(String title) {
@@ -86,6 +91,7 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
   }
 
   /** Stop the given Timer and collect its values. */
+  @GuardedBy("activeTimers")
   private void closeTimer(Timer timer) {
     timer.stopIfRunning();
     sumTime += convert(timer.getSumTime());
@@ -98,6 +104,7 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
     return time.getSaturated(unit);
   }
 
+  @GuardedBy("activeTimers")
   private long eval(Function<Timer, Long> f, BiFunction<Long, Long, Long> acc) {
     long currentInterval = 0;
     for (Timer timer : activeTimers.values()) {
