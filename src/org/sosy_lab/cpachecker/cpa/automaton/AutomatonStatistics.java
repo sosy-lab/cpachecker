@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
+@SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
 class AutomatonStatistics implements Statistics {
 
   private final Automaton automaton;

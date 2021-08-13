@@ -316,6 +316,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
+  @SuppressWarnings("deprecation")
   class ParallelBAMStatistics implements Statistics {
     final StatTimer wallTime = new StatTimer("Time for execution of algorithm");
     final ThreadSafeTimerContainer threadTime =
