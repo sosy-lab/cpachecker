@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -36,9 +37,9 @@ public class SMGMapTargetAddress extends SMGAbstractJoin {
     mapTargetAddress(pValue1, pValue2);
   }
 
-  private void mapTargetAddress(SMGValue v1, SMGValue v2) {
+  private void mapTargetAddress(SMGValue v1, @Nullable SMGValue v2) {
     // Step 1
-    SMGPointsToEdge ptoEdge1 = inputSMG1.getPTEdge(v2);
+    SMGPointsToEdge ptoEdge1 = inputSMG1.getPTEdge(v1);
     SMGPointsToEdge pToEdge2 = inputSMG2.getPTEdge(v2);
     // Step 2
     SMGObject resSmgObject =
@@ -47,7 +48,9 @@ public class SMGMapTargetAddress extends SMGAbstractJoin {
             : mapping1.getMappedObject(ptoEdge1.pointsTo());
     // Step 3
     SMGTargetSpecifier tg =
-        isDLLS(ptoEdge1.pointsTo()) ? ptoEdge1.targetSpecifier() : pToEdge2.targetSpecifier();
+        isDLLS(ptoEdge1.pointsTo()) || pToEdge2 == null
+            ? ptoEdge1.targetSpecifier()
+            : pToEdge2.targetSpecifier();
 
     // Step 4
     Optional<Map.Entry<SMGValue, SMGPointsToEdge>> matchingAddressOptional =
