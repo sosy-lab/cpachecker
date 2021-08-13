@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.math.BigInteger;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -44,7 +44,6 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void mapTargetAddressExistingNull() {
     SMG origDestSMG = destSMG;
     NodeMapping origMapping1 = cloneMapping(mapping1);
@@ -65,7 +64,6 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void mapTargetAddressExisting() {
     SMGPointsToEdge destEdge = createPTRegionEdge(0, destObj);
     smg1 = smg1.copyAndAddValue(value1);
@@ -96,7 +94,6 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void mapTargetAddressNew() {
     smg1 = smg1.copyAndAddValue(value1);
     smg1 = smg1.copyAndAddObject(obj1);
@@ -116,20 +113,22 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
             smg1,
             destSMG,
             mapping1,
-            mapping1,
+            mapping2,
             value1,
-            value1);
+            value2);
     assertThat(mta.getDestinationSMG()).isNotEqualTo(destSMG);
     assertThat(mta.mapping1).isNotEqualTo(origMapping1);
     assertThat(mta.mapping2).isNotEqualTo(origMapping2);
 
     assertThat(destSMG.getValues().contains(mta.getValue())).isFalse();
 
-    SMGPointsToEdge newEdge = destSMG.getPTEdge(mta.getValue());
-    assertThat(newEdge.pointsTo()).isSameInstanceAs(destObj);
-    assertThat(newEdge.getOffset()).isEqualTo(0);
+    SMG newDestSmg = mta.getDestinationSMG();
+    SMGPointsToEdge newEdge = newDestSmg.getPTEdge(mta.getValue());
 
     assertThat(mta.mapping1.getMappedValue(value1)).isSameInstanceAs(mta.getValue());
     assertThat(mta.mapping2.getMappedValue(value2)).isSameInstanceAs(mta.getValue());
+
+    assertThat(newEdge.pointsTo()).isSameInstanceAs(destObj);
+    assertThat(newEdge.getOffset()).isEqualTo(BigInteger.ZERO);
   }
 }
