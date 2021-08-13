@@ -63,15 +63,10 @@ public class SMGJoinValues extends SMGAbstractJoin {
     Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
     Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
 
-    checkArgument(edgeOptionalV1.isPresent() && edgeOptionalV2.isPresent());
-
-    SMGPointsToEdge edgeV1 = edgeOptionalV1.orElseThrow();
-    SMGPointsToEdge edgeV2 = edgeOptionalV2.orElseThrow();
-
-    if (isNullPointer(edgeV1) && isNullPointer(edgeV2)) {
+    if (edgeOptionalV1.isEmpty() && edgeOptionalV2.isEmpty()) {
       // no value is pointer value Algorithm 5 Step 3
       joinNonPointerValues(pValue1, pValue2, pNestingLevelDiff);
-    } else if (isNullPointer(edgeV1) || isNullPointer(edgeV2)) {
+    } else if (edgeOptionalV1.isEmpty() || edgeOptionalV2.isEmpty()) {
       // one value is pointer Algorithm 5 Step 4
       setBottomState();
     } else {

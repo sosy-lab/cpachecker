@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.smg.join;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -19,6 +18,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
+//TODO this class misses a test case for two pointers
 public class SMGJoinValuesTest extends SMGJoinTest0 {
   private SMG smg1;
   private SMG smg2;
@@ -41,25 +41,30 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
     mapping2 = new NodeMapping();
   }
 
-//  Test disabled until Join is not called correctly from isLessOrEqual (see SMGJoinValues)
-//  @Test
-//  public void joinValuesIdenticalTest() throws SMGInconsistentException {
-//    smg1.addValue(value1);
-//    smg2.addValue(value1);
-//
-//    SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, null, null, value1, value1);
-//    Assert.assertTrue(jv.isDefined());
-//    Assert.assertEquals(SMGJoinStatus.EQUAL, jv.getStatus());
-//    Assert.assertSame(smg1, jv.getInputSMG1());
-//    Assert.assertSame(smg2, jv.getInputSMG2());
-//    Assert.assertSame(smgDest, jv.getDestinationSMG());
-//    Assert.assertSame(null, jv.getMapping1());
-//    Assert.assertSame(null, jv.getMapping2());
-//    Assert.assertEquals(value1, jv.getValue());
-//  }
+  @Test
+  public void joinValuesIdenticalTest() {
+    smg1 = smg1.copyAndAddValue(value1);
+    smg2 = smg2.copyAndAddValue(value1);
 
-@Test
-@Ignore
+    SMGJoinValues jv =
+        new SMGJoinValues(
+            SMGJoinStatus.EQUAL,
+            smg1,
+            smg2,
+            smgDest,
+            mapping1,
+            mapping2,
+            value1,
+            value1,
+            0);
+    assertThat(jv.isDefined()).isTrue();
+    assertThat(SMGJoinStatus.EQUAL).isEqualTo(jv.getStatus());
+    assertThat(jv.getMapping1()).isEqualTo(new NodeMapping());
+    assertThat(jv.getMapping2()).isEqualTo(new NodeMapping());
+    assertThat(value1).isEqualTo(jv.getValue());
+  }
+
+  @Test
   public void joinValuesAlreadyJoinedTest() {
     smg1 = smg1.copyAndAddValue(value1);
     smg2 = smg2.copyAndAddValue(value2);
@@ -90,7 +95,6 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void joinValuesNonPointers() {
     smg1 = smg1.copyAndAddValue(value1);
     smg2 = smg2.copyAndAddValue(value2);
@@ -142,7 +146,6 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
     assertThat(jv.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jv.getInputSMG1()).isSameInstanceAs(smg1);
     assertThat(jv.getInputSMG2()).isSameInstanceAs(smg2);
-    assertThat(jv.getDestinationSMG()).isSameInstanceAs(smgDest);
     assertThat(jv.mapping1).isSameInstanceAs(mapping1);
     assertThat(jv.mapping2).isSameInstanceAs(mapping2);
     assertThat(jv.getValue()).isNotEqualTo(value1);
@@ -153,7 +156,6 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void joinValuesSinglePointer() {
     smg1 = smg1.copyAndAddValue(value1);
     smg2 = smg2.copyAndAddValue(value2);
