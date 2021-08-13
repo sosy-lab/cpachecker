@@ -15,6 +15,7 @@ import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -522,4 +523,26 @@ public class SMG {
     return smgObjects.getOrDefault(pObject, false);
   }
 
+  @Override
+  public int hashCode() {
+    return Objects.hash(hasValueEdges, smgObjects, pointsToEdges, smgValues);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (obj instanceof SMG) {
+      return false;
+    }
+    SMG other = (SMG) obj;
+    return Objects.equals(hasValueEdges, other.hasValueEdges)
+        && Objects.equals(smgObjects, other.smgObjects)
+        && Objects.equals(pointsToEdges, other.pointsToEdges)
+        && Objects.equals(smgValues, other.smgValues);
+  }
 }
