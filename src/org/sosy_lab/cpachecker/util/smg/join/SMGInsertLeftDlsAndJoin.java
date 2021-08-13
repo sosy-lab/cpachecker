@@ -98,7 +98,6 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1.getNestingLevel(),
             dlls1.getSize(),
             dlls1.getOffset(),
-            dlls1.isValid(),
             dlls1.getPrevOffset(),
             dlls1.getNextOffset(),
             0,

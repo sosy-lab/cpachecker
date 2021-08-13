@@ -148,7 +148,8 @@ public class SMGMatchObjects extends SMGAbstractJoin {
       return false;
     }
     // step 5
-    if (!pObj1.getSize().equals(pObj2.getSize()) || pObj1.isValid() != pObj2.isValid()) {
+    if (!pObj1.getSize().equals(pObj2.getSize())
+        || inputSMG1.isValid(pObj1) != inputSMG2.isValid(pObj2)) {
       return false;
     }
     // step 6

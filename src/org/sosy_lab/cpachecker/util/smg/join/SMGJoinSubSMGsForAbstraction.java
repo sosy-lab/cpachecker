@@ -286,7 +286,6 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
             pObj1.getNestingLevel(),
             pObj1.getSize(),
             pObj1.getOffset(),
-        true,
         pPrevOffset,
         pNextOffset,
         minLength,

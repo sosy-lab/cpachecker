@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -41,7 +41,6 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void nullObjectTest() {
     SMGMatchObjects mo =
         new SMGMatchObjects(
@@ -69,47 +68,38 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
   }
 
-  // TODO this test cases needs to be redesigned once the implementation is finished. Otherwise
-  // spotbugs fails because the constructor has no side effects.
-  // @Ignore
-  // @SuppressWarnings("unused")
-  // @Test(expected = IllegalArgumentException.class)
-  // public void nonMemberObjectsTestObj1() {
-  // smg2 = smg2.copyAndAddObject(srcObj2);
-  //
-  // assertThrows(
-  // IllegalArgumentException.class,
-  // () -> new SMGMatchObjects(
-  // SMGJoinStatus.EQUAL,
-  // smg1,
-  // smg2,
-  // new SMG(),
-  // mapping1,
-  // mapping2,
-  // srcObj1,
-  // srcObj2));
-  // }
-  //
-  // @Ignore
-  // @SuppressWarnings("unused")
-  // @Test(expected = IllegalArgumentException.class)
-  // public void nonMemberObjectsTestObj2() {
-  // smg1 = smg1.copyAndAddObject(srcObj1);
-  //
-  // assertThrows(
-  // IllegalArgumentException.class,
-  // () -> new SMGMatchObjects(
-  // SMGJoinStatus.EQUAL,
-  // smg1,
-  // smg2,
-  // new SMG(),
-  // mapping1,
-  // mapping2,
-  // srcObj1,
-  // srcObj2));
-  // }
+  @Test
+  public void nonMemberObjectsTestObj1() {
+    smg2 = smg2.copyAndAddObject(srcObj2);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new SMGMatchObjects(
+            SMGJoinStatus.EQUAL,
+            smg1,
+            smg2,
+            new SMG(),
+            mapping1,
+            mapping2,
+            srcObj1,
+            srcObj2));
+  }
 
-  @Ignore
+  @Test
+  public void nonMemberObjectsTestObj2() {
+    smg1 = smg1.copyAndAddObject(srcObj1);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new SMGMatchObjects(
+            SMGJoinStatus.EQUAL,
+            smg1,
+            smg2,
+            new SMG(),
+            mapping1,
+            mapping2,
+            srcObj1,
+            srcObj2));
+  }
+
   @Test
   public void inconsistentMappingTest() {
     mapping1.addMapping(srcObj1, destObj1);
@@ -131,7 +121,6 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
   }
 
-  @Ignore
   @Test
   public void inconsistentMappingViceVersaTest() {
     mapping2.addMapping(srcObj2, destObj2);
@@ -153,7 +142,6 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
   }
 
-  @Ignore
   @Test
   public void inconsistentObjectsTest() {
     SMGObject diffSizeObject = createRegion(128);
@@ -172,6 +160,7 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
 
     smg2 = smg2.copyAndAddObject(srcObj2);
+    smg2 = smg2.copyAndInvalidateObject(srcObj2);
     mo =
         new SMGMatchObjects(
             SMGJoinStatus.EQUAL,
@@ -185,7 +174,6 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
     assertThat(mo.isDefined()).isFalse();
   }
 
-  @Ignore
   @Test
   public void nonMatchingMappingTest() {
     smg1 = smg1.copyAndAddObject(srcObj1);
@@ -210,7 +198,6 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void fieldInconsistencyTest() {
     smg1 = smg1.copyAndAddObject(srcObj1);
     smg2 = smg2.copyAndAddObject(srcObj2);
@@ -287,7 +274,6 @@ public class SMGMatchObjectsTest extends SMGJoinTest0 {
 
 
   @Test
-  @Ignore
   public void noAbstractionTest() {
     SMGObject object = createRegion(128);
     smg1 = smg1.copyAndAddObject(object);

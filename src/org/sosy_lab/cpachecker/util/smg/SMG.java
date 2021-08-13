@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
  */
 public class SMG {
   // TODO I don't like using utility implementations of the old SMG analysis
-  private final PersistentSet<SMGObject> smgObjects;
+  private final PersistentMap<SMGObject, Boolean> smgObjects;
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
   private final PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdges;
@@ -45,12 +45,14 @@ public class SMG {
   public SMG() {
     pointsToEdges = PathCopyingPersistentTreeMap.of();
     hasValueEdges = PathCopyingPersistentTreeMap.of();
-    smgValues = PersistentSet.of();
-    smgObjects = PersistentSet.<SMGObject>of();
+    smgValues = PersistentSet.of(SMGValue.zeroValue());
+    PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentTreeMap.of();
+    smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
+
   }
 
   private SMG(
-      PersistentSet<SMGObject> pSmgObjects,
+      PersistentMap<SMGObject, Boolean> pSmgObjects,
       PersistentSet<SMGValue> pSmgValues,
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
       PersistentMap<SMGValue, SMGPointsToEdge> pPointsToEdges) {
@@ -67,7 +69,7 @@ public class SMG {
    * @return a modified copy of the SMG
    */
   public SMG copyAndAddObject(SMGObject pObject) {
-    return new SMG(smgObjects.addAndCopy(pObject), smgValues, hasValueEdges, pointsToEdges);
+    return new SMG(smgObjects.putAndCopy(pObject, true), smgValues, hasValueEdges, pointsToEdges);
   }
 
   /**
@@ -178,9 +180,18 @@ public class SMG {
     }
 
     //replace object
-    PersistentSet<SMGObject> newObjects = smgObjects.removeAndCopy(pOldObject).addAndCopy(pNewObject);
+    PersistentMap<SMGObject, Boolean> newObjects =
+        smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, true);
 
     return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges);
+  }
+
+
+  public SMG copyAndInvalidateObject(SMGObject pObject) {
+    PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, false);
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
+        hasValueEdges.removeAndCopy(pObject);
+    return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges);
   }
 
   /**
@@ -198,7 +209,7 @@ public class SMG {
    * @return The set of SMGObjects associated with this SMG.
    */
   public Set<SMGObject> getObjects() {
-    return smgObjects;
+    return smgObjects.keySet();
   }
 
   /**
@@ -392,7 +403,7 @@ public class SMG {
    * @return The Set of all SMGDoublyLinkedListSegments.
    */
   public FluentIterable<SMGDoublyLinkedListSegment> getDLLs() {
-    return FluentIterable.from(smgObjects).filter(SMGDoublyLinkedListSegment.class);
+    return FluentIterable.from(smgObjects.keySet()).filter(SMGDoublyLinkedListSegment.class);
   }
 
   /**
@@ -500,6 +511,14 @@ public class SMG {
     }).findAny().map(entry -> entry.getKey());
   }
 
-
+  /**
+   * Checks whether a given SMGObject is valid.
+   *
+   * @param pObject to be checked
+   * @return true if pObject is valid, false if pObject was freed.
+   */
+  public boolean isValid(SMGObject pObject) {
+    return smgObjects.getOrDefault(pObject, false);
+  }
 
 }

@@ -78,6 +78,13 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     }
     // step 7-11
     SMGObject newObject = createNewObject(pToEdge1.pointsTo(), pToEdge2.pointsTo());
+
+    destSMG = destSMG.copyAndAddObject(newObject);
+    if (!inputSMG1.isValid(pToEdge1.pointsTo())
+        && !isDLLS(pToEdge1.pointsTo())
+        && !inputSMG2.isValid(pToEdge2.pointsTo())) {
+      destSMG = destSMG.copyAndInvalidateObject(newObject);
+    }
     // add mappings step 12
     mapping1.addMapping(pToEdge1.pointsTo(), newObject);
     mapping2.addMapping(pToEdge2.pointsTo(), newObject);
@@ -128,7 +135,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     if (isDLLS(obj1) || isDLLS(obj2)) {
       newObject = createDLLSCopyLabeling(obj1, obj2, level);
     } else {
-      newObject = SMGObject.of(level, obj1.getSize(), obj1.getOffset(), true);
+      newObject = SMGObject.of(level, obj1.getSize(), obj1.getOffset());
     }
     destSMG = destSMG.copyAndAddObject(newObject);
     // step 11
@@ -153,7 +160,6 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     BigInteger prevOffset = null;
     BigInteger pSize = null;
     BigInteger pOffset = null;
-    boolean pValid = false;
     if (isDLLS(obj1)) {
       length1 = ((SMGDoublyLinkedListSegment) obj1).getMinLength();
       headOffset = ((SMGDoublyLinkedListSegment) obj1).getHeadOffset();
@@ -161,7 +167,6 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
       prevOffset = ((SMGDoublyLinkedListSegment) obj1).getPrevOffset();
       pSize = obj1.getSize();
       pOffset = obj1.getOffset();
-      pValid = obj1.isValid();
     }
     if (isDLLS(obj2)) {
       length2 = ((SMGDoublyLinkedListSegment) obj2).getMinLength();
@@ -171,14 +176,12 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         prevOffset = ((SMGDoublyLinkedListSegment) obj2).getPrevOffset();
         pSize = obj2.getSize();
         pOffset = obj2.getOffset();
-        pValid = obj2.isValid();
       }
     }
     return new SMGDoublyLinkedListSegment(
         pNestingLevel,
         pSize,
         pOffset,
-        pValid,
         prevOffset,
         nextOffset,
         Integer.min(length1, length2),

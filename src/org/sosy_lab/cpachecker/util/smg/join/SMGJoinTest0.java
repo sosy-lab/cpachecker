@@ -25,7 +25,7 @@ public class SMGJoinTest0 {
 
 
   protected SMGObject createRegion(BigInteger withSize, int withOffset) {
-    return SMGObject.of(0, withSize, BigInteger.valueOf(withOffset), true);
+    return SMGObject.of(0, withSize, BigInteger.valueOf(withOffset));
   }
 
   protected NodeMapping cloneMapping(NodeMapping oldMapping) {
