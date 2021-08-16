@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -20,6 +20,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+@Options(prefix = "cpa.value")
 public class PredicateToValuePrecisionConverter {
 
   private final Configuration config;
@@ -43,15 +46,29 @@ public class PredicateToValuePrecisionConverter {
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {
+        "CONVERT_ONLY",
+        ".."
+      }, // dependencies-backwards, forwards (property), only data or also control-dependencies?
+      description = "which stop operator to use for ValueAnalysisCPA")
+  private String sdf; // TODO anpassen
+
   public PredicateToValuePrecisionConverter(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa) {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
+
+    config.inject(this);
   }
 
   public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
@@ -67,7 +84,7 @@ public class PredicateToValuePrecisionConverter {
           parsePredPrecFile(formulaManager, abstractionManager, pPredPrecFile);
 
       if (!predPrec.isEmpty()) {
-        return ImmutableMultimap.copyOf(
+        return ImmutableListMultimap.copyOf(
             convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
       } else {
         logger.log(
@@ -75,7 +92,7 @@ public class PredicateToValuePrecisionConverter {
             "Provided predicate precision is empty and does not contain predicates.");
       }
     }
-    return ImmutableMultimap.of();
+    return ImmutableListMultimap.of();
   }
 
   private PredicatePrecision parsePredPrecFile(
