@@ -20,7 +20,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -46,7 +45,7 @@ public class PredicateToValuePrecisionConverter {
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
-  @Option(
+  /*@Option(
       secure = true,
       name = "stop",
       toUppercase = true,
@@ -55,7 +54,7 @@ public class PredicateToValuePrecisionConverter {
         ".."
       }, // dependencies-backwards, forwards (property), only data or also control-dependencies?
       description = "which stop operator to use for ValueAnalysisCPA")
-  private String sdf; // TODO anpassen
+  private String sdf; // TODO anpassen*/
 
   public PredicateToValuePrecisionConverter(
       final Configuration pConfig,
