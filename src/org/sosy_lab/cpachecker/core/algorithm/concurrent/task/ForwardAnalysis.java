@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 
+import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -27,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,11 +47,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix="concurrent.task.forward")
 public class ForwardAnalysis implements Task {
@@ -73,8 +76,10 @@ public class ForwardAnalysis implements Task {
   // Todo: Create in factory and reuse across instances
   private WrapperCPA cpa = null;
 
+  private FormulaManagerView formulaManager = null;
+
   public ForwardAnalysis (
-      final Block pBlock, @Nullable final BooleanFormula pPrecondition, final Configuration pConfig,
+      final Block pBlock, @Nullable final ShareableBooleanFormula pPrecondition, final Configuration pConfig,
       final Specification pSpecification, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCFA,
@@ -134,36 +139,46 @@ public class ForwardAnalysis implements Task {
     }
   }
 
-  private CompositeState buildEntryState(final CFANode pNode, @Nullable final BooleanFormula pFormula)
+  private CompositeState buildEntryState(final CFANode pNode, @Nullable final ShareableBooleanFormula pContext)
       throws CPAException {
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
+
     if(predicateCPA == null) {
       throw new CPAException("ForwardAnalysis requires a composite CPA with PredicateCPA");
     }
-    AbstractState state = predicateCPA.getInitialState(pNode, getDefaultPartition());
+    AbstractState initialState = predicateCPA.getInitialState(pNode, getDefaultPartition());
 
-    PredicateAbstractState predicateState
-        = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+    PredicateAbstractState initialPredicateState
+        = AbstractStates.extractStateByType(initialState, PredicateAbstractState.class);
 
     LocationCPA locationCPA = cpa.retrieveWrappedCpa(LocationCPA.class);
     if(locationCPA == null) {
       throw new CPAException("ForwardAnalysis requires a composite CPA with LocationCPA");
     }
-    AbstractState locationState = locationCPA.getInitialState(pNode, getDefaultPartition());
+    AbstractState initialLocationState = locationCPA.getInitialState(pNode, getDefaultPartition());
 
-    BooleanFormula formula;
-    if(pFormula == null) {
-      formula = predicateCPA.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue();
+    assert initialPredicateState != null;
+
+    formulaManager = predicateCPA.getSolver().getFormulaManager();
+
+    // Todo: Make BooleanFormulaManager a class member variable
+    BooleanFormulaManager booleanFormulaManager = formulaManager.getBooleanFormulaManager();
+
+    BooleanFormula contextFormula;
+    if(pContext == null) {
+      contextFormula = booleanFormulaManager.makeTrue();
     } else {
-     formula = pFormula;
+      contextFormula = pContext.getFor(formulaManager);
     }
 
-    PathFormula pathFormula = predicateState.getPathFormula().withFormula(formula);
+    // PathFormula context = pfMgr.makeAnd(initialPredicateState.getPathFormula(), contextFormula);
+    PathFormula context = initialPredicateState.getPathFormula().withFormula(contextFormula);
+    // BooleanFormula context = booleanFormulaManager.and(contextFreeFormula, contextFormula);
 
     PredicateAbstractState predicateEntryState
-        = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pathFormula, predicateState);
+        = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(context, initialPredicateState);
 
-    return new CompositeState(List.of(locationState, predicateEntryState));
+    return new CompositeState(List.of(initialLocationState, predicateEntryState));
   }
 
   @Override public AlgorithmStatus call()
@@ -204,7 +219,9 @@ public class ForwardAnalysis implements Task {
           }
 
           BooleanFormula exitFormula = predicateState.getPathFormula().getFormula();
-          Task next = taskFactory.createForwardAnalysis(exit.getValue(), exitFormula);
+
+          final var shareableFormula = new ShareableBooleanFormula(formulaManager, exitFormula);
+          Task next = taskFactory.createForwardAnalysis(exit.getValue(), shareableFormula);
           taskFactory.getExecutor().requestJob(next);
         }
       }

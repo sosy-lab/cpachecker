@@ -17,9 +17,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.JobExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class TaskFactory {
@@ -76,7 +76,7 @@ public class TaskFactory {
   }
 
   public ForwardAnalysis createForwardAnalysis(
-      final Block pBlock, final BooleanFormula pNewPrecondition)
+      final Block pBlock, final ShareableBooleanFormula pNewPrecondition)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     checkFactoryReadiness();
     return new ForwardAnalysis(
