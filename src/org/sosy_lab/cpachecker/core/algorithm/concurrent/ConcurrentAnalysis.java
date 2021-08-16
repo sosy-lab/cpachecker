@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
-import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,13 +31,13 @@ public class ConcurrentAnalysis implements Algorithm {
 
   private final LogManager logger;
 
-  @SuppressWarnings({"FieldCanBeLocal","UnusedVariable"})
+  @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final CFA cfa;
 
-  @SuppressWarnings({"FieldCanBeLocal","UnusedVariable"})
+  @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final ShutdownNotifier shutdownNotifier;
 
-  @SuppressWarnings({"FieldCanBeLocal","UnusedVariable"})
+  @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final Configuration config;
 
   private final Specification specification;
@@ -66,7 +65,8 @@ public class ConcurrentAnalysis implements Algorithm {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new ConcurrentAnalysis(pAlgorithm, pCFA, pConfig, pSpecification, pLogger, pShutdownNotifier);
+    return new ConcurrentAnalysis(
+        pAlgorithm, pCFA, pConfig, pSpecification, pLogger, pShutdownNotifier);
   }
 
   @Override
@@ -80,31 +80,37 @@ public class ConcurrentAnalysis implements Algorithm {
       config.inject(blk);
       blk.setCFA(cfa);
 
-      BlockGraph graph = BlockGraphBuilder.create(shutdownNotifier).build(cfa.getMainFunction(), blk);
+      BlockGraph graph =
+          BlockGraphBuilder.create(shutdownNotifier).build(cfa.getMainFunction(), blk);
 
-      final Block entry =  graph.getEntry();
+      final Block entry = graph.getEntry();
 
       final int processors = Runtime.getRuntime().availableProcessors();
-      JobExecutor executor = JobExecutor.startJobExecutor(processors, ImmutableList.of(), logger);
+      JobExecutor executor = new JobExecutor(processors, logger);
 
-      TaskFactory taskFactory = new TaskFactory().set(config, Configuration.class)
-          .set(specification, Specification.class).set(logger, LogManager.class)
-          .set(shutdownNotifier, ShutdownNotifier.class).set(cfa, CFA.class)
-          .set(executor, JobExecutor.class);
+      TaskFactory taskFactory =
+          new TaskFactory()
+              .set(config, Configuration.class)
+              .set(specification, Specification.class)
+              .set(logger, LogManager.class)
+              .set(shutdownNotifier, ShutdownNotifier.class)
+              .set(cfa, CFA.class)
+              .set(executor, JobExecutor.class);
 
       // Solver solver = Solver.create(config, logger, shutdownNotifier);
-      // BooleanFormulaManager formulaManager = solver.getFormulaManager().getBooleanFormulaManager();
+      // BooleanFormulaManager formulaManager =
+      // solver.getFormulaManager().getBooleanFormulaManager();
 
       Task task = taskFactory.createForwardAnalysis(entry);
 
       executor.requestJob(task);
       executor.start();
-    } catch(InvalidConfigurationException ignored) {
+      executor.waitForCompletion();
+    } catch (InvalidConfigurationException ignored) {
       logger.log(Level.SEVERE, "Invalid configuration.");
     }
 
-    // TODO: Wait for completion!
-    // logger.log(Level.INFO, "Stopping concurrent analysis (finished) ...");
-    return status;
+    logger.log(Level.INFO, "Stopping concurrent analysis (finished) ...");
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }
