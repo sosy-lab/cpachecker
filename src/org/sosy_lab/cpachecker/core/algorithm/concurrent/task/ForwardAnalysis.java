@@ -12,9 +12,6 @@ import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDef
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -27,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -35,11 +33,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -52,10 +50,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-@Options(prefix="concurrent.task.forward")
+@Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysis implements Task {
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description="Forward Config")
+  @Option(description = "Forward Config")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 
@@ -68,7 +66,7 @@ public class ForwardAnalysis implements Task {
   private final LogManager logManager;
 
   // Todo: Load in factory and reuse across instances
-  private volatile static Configuration forward = null;
+  private static volatile Configuration forward = null;
 
   // Todo: Create in factory and reuse across instances
   private Algorithm algorithm = null;
@@ -78,81 +76,102 @@ public class ForwardAnalysis implements Task {
 
   private FormulaManagerView formulaManager = null;
 
-  public ForwardAnalysis (
-      final Block pBlock, @Nullable final ShareableBooleanFormula pPrecondition, final Configuration pConfig,
-      final Specification pSpecification, final LogManager pLogger,
+  public ForwardAnalysis(
+      final Block pBlock,
+      @Nullable final ShareableBooleanFormula pPrecondition,
+      final Configuration pConfig,
+      final Specification pSpecification,
+      final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCFA,
-      final TaskFactory pTaskFactory
-      ) throws InvalidConfigurationException, CPAException, InterruptedException {
+      final TaskFactory pTaskFactory)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     loadForwardConfig();
 
     block = pBlock;
-    reached = new ReachedSetFactory(forward, pLogger).create();
     taskFactory = pTaskFactory;
     logManager = pLogger;
 
-    cpa = (WrapperCPA) BlockAwareCompositeCPA.factory()
-        .setConfiguration(forward).setLogger(pLogger).setShutdownNotifier(pShutdownNotifier)
-        .set(pCFA, CFA.class).set(block, Block.class).set(pSpecification, Specification.class)
-        .createInstance();
+    CoreComponentsFactory factory =
+        new CoreComponentsFactory(
+            forward, logManager, pShutdownNotifier, new AggregatedReachedSets());
+    reached = factory.createReachedSet();
+    CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, pSpecification);
 
-    algorithm
-        = new CPAAlgorithmFactory((ConfigurableProgramAnalysis) cpa, pLogger, forward, pShutdownNotifier).newInstance();
+    cpa =
+        (WrapperCPA)
+            BlockAwareCompositeCPA.factory()
+                .setConfiguration(forward)
+                .setLogger(pLogger)
+                .setShutdownNotifier(pShutdownNotifier)
+                .set(pCFA, CFA.class)
+                .set(block, Block.class)
+                .set(compositeCpa, CompositeCPA.class)
+                .createInstance();
+
+    algorithm =
+        new CPAAlgorithmFactory(
+                (ConfigurableProgramAnalysis) cpa, pLogger, forward, pShutdownNotifier)
+            .newInstance();
 
     final CFANode blockEntry = block.getEntry();
     // PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    // Precision predicatePrecision = predicateCPA.getInitialPrecision(blockEntry, getDefaultPartition());
+    // Precision predicatePrecision = predicateCPA.getInitialPrecision(blockEntry,
+    // getDefaultPartition());
     // LocationCPA locationCPA = cpa.retrieveWrappedCpa(LocationCPA.class);
-    // Precision locationPrecision = locationCPA.getInitialPrecision(blockEntry, getDefaultPartition());
-    // CompositePrecision precision = new CompositePrecision(List.of(locationPrecision, predicatePrecision));
+    // Precision locationPrecision = locationCPA.getInitialPrecision(blockEntry,
+    // getDefaultPartition());
+    // CompositePrecision precision = new CompositePrecision(List.of(locationPrecision,
+    // predicatePrecision));
 
-    Precision precision
-        = ((ConfigurableProgramAnalysis) cpa).getInitialPrecision(blockEntry, getDefaultPartition());
+    Precision precision =
+        ((ConfigurableProgramAnalysis) cpa).getInitialPrecision(blockEntry, getDefaultPartition());
 
-    CompositeState state = buildEntryState(blockEntry, pPrecondition);
+    AbstractState state = buildEntryState(blockEntry, pPrecondition);
     reached.add(state, precision);
   }
 
   private void loadForwardConfig() throws InvalidConfigurationException {
-    if(forward == null) {  // Todo: no double-checked locking
-      synchronized(ForwardAnalysis.class) {
-        if(forward == null) {
-          if(configFile != null) {
+    if (forward == null) { // Todo: no double-checked locking
+      synchronized (ForwardAnalysis.class) {
+        if (forward == null) {
+          if (configFile != null) {
             try {
               forward = Configuration.builder().loadFromFile(configFile).build();
-            } catch(IOException ignored) {
-              final String message = "Failed to load file " + configFile + ". "
-                                   + "Using default configuration.";
+            } catch (IOException ignored) {
+              final String message =
+                  "Failed to load file " + configFile + ". " + "Using default configuration.";
               logManager.log(Level.SEVERE, message);
             }
           }
 
           if (forward == null) {
-            forward = Configuration.builder()
-                .loadFromResource(ForwardAnalysis.class, "predicateForward.properties")
-                .build();
+            forward =
+                Configuration.builder()
+                    .loadFromResource(ForwardAnalysis.class, "predicateForward.properties")
+                    .build();
           }
         }
       }
     }
   }
 
-  private CompositeState buildEntryState(final CFANode pNode, @Nullable final ShareableBooleanFormula pContext)
-      throws CPAException {
+  private AbstractState buildEntryState(
+      final CFANode pNode, @Nullable final ShareableBooleanFormula pContext) throws CPAException {
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
 
-    if(predicateCPA == null) {
+    if (predicateCPA == null) {
       throw new CPAException("ForwardAnalysis requires a composite CPA with PredicateCPA");
     }
-    AbstractState initialState = predicateCPA.getInitialState(pNode, getDefaultPartition());
+    AbstractState predicateInitialState =
+        predicateCPA.getInitialState(pNode, getDefaultPartition());
 
-    PredicateAbstractState initialPredicateState
-        = AbstractStates.extractStateByType(initialState, PredicateAbstractState.class);
+    PredicateAbstractState initialPredicateState =
+        AbstractStates.extractStateByType(predicateInitialState, PredicateAbstractState.class);
 
     LocationCPA locationCPA = cpa.retrieveWrappedCpa(LocationCPA.class);
-    if(locationCPA == null) {
+    if (locationCPA == null) {
       throw new CPAException("ForwardAnalysis requires a composite CPA with LocationCPA");
     }
     AbstractState initialLocationState = locationCPA.getInitialState(pNode, getDefaultPartition());
@@ -165,7 +184,7 @@ public class ForwardAnalysis implements Task {
     BooleanFormulaManager booleanFormulaManager = formulaManager.getBooleanFormulaManager();
 
     BooleanFormula contextFormula;
-    if(pContext == null) {
+    if (pContext == null) {
       contextFormula = booleanFormulaManager.makeTrue();
     } else {
       contextFormula = pContext.getFor(formulaManager);
@@ -175,64 +194,80 @@ public class ForwardAnalysis implements Task {
     PathFormula context = initialPredicateState.getPathFormula().withFormula(contextFormula);
     // BooleanFormula context = booleanFormulaManager.and(contextFreeFormula, contextFormula);
 
-    PredicateAbstractState predicateEntryState
-        = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(context, initialPredicateState);
+    PredicateAbstractState predicateEntryState =
+        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+            context, initialPredicateState);
 
-    return new CompositeState(List.of(initialLocationState, predicateEntryState));
+    // return new CompositeState(List.of(initialLocationState, predicateEntryState));
+
+    AbstractState initialState = null;
+    try {
+      initialState = ((BlockAwareCompositeCPA) cpa).getInitialState(pNode, getDefaultPartition());
+    } catch (InterruptedException ignored) {
+    }
+
+    return initialState;
   }
 
-  @Override public AlgorithmStatus call()
+  @Override
+  public AlgorithmStatus call()
       throws CPAException, InterruptedException, InvalidConfigurationException {
     logManager.log(Level.INFO, "Starting ForwardAnalysis on ", block);
 
     AlgorithmStatus status = algorithm.run(reached);
 
-    for(final Entry<CFANode, Block> exit : block.getExits().entrySet()) {
-      Collection<AbstractState> states = reached.getReached(exit.getKey());
+    // for(final Entry<CFANode, Block> exit : block.getExits().entrySet()) {
+    // Collection<AbstractState> states = reached.getReached(exit.getKey());
 
-      /*
-       * UnmodifableReachedSet#getReached(CFANode location) returns all abstract states in reached.
-       * Therefore, its required to iterate through them. TODO: Further explanation
-       * If only the actual state belonging to exit would get returned, no iteration would be
-       * required.
-       * With this situation, a different control structure would be beneficial:
-       * The code could loop through all states in the reached set, and only check whether they
-       * belong to an exit location.
-       * However, getReached always requires a CFANode as input, and the interface does not
-       * guarantee it to return all abstract states (as it does for the actual ReachedSet
-       * implementation found here). Therefore, the current iteration with two loops (where the
-       * outer one iterates through block exits, and the inner one through states) remains
-       * mandatory.
-       */
-      for(final AbstractState state : states) {
-        LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
-        if(location == null) {
-          throw new CPAException("ForwardAnalysis requires a composite CPA with LocationCPA");
+    /*
+     * UnmodifableReachedSet#getReached(CFANode location) returns all abstract states in reached.
+     * Therefore, its required to iterate through them. TODO: Further explanation
+     * If only the actual state belonging to exit would get returned, no iteration would be
+     * required.
+     * With this situation, a different control structure would be beneficial:
+     * The code could loop through all states in the reached set, and only check whether they
+     * belong to an exit location.
+     * However, getReached always requires a CFANode as input, and the interface does not
+     * guarantee it to return all abstract states (as it does for the actual ReachedSet
+     * implementation found here). Therefore, the current iteration with two loops (where the
+     * outer one iterates through block exits, and the inner one through states) remains
+     * mandatory.
+     */
+    for (final AbstractState state : reached.asCollection()) {
+      if (AbstractStates.isTargetState(state)) {
+        logManager.log(Level.FINE, "! Target State:", state);
+      }
+
+      LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
+      if (location == null) {
+        throw new CPAException("ForwardAnalysis requires a composite CPA with LocationCPA");
+      }
+
+      if (block.getExits().containsKey(location.getLocationNode())) {
+        PredicateAbstractState predicateState =
+            AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+
+        if (predicateState == null) {
+          throw new CPAException("ForwardAnalysis requires a composite CPA with PredicateCPA");
         }
 
-        if(location.getLocationNode() == exit.getKey()) {
-          PredicateAbstractState predicateState
-              = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+        BooleanFormula exitFormula = predicateState.getPathFormula().getFormula();
 
-          if(predicateState == null) {
-            throw new CPAException("ForwardAnalysis requires a composite CPA with PredicateCPA");
-          }
-
-          BooleanFormula exitFormula = predicateState.getPathFormula().getFormula();
-
-          final var shareableFormula = new ShareableBooleanFormula(formulaManager, exitFormula);
-          Task next = taskFactory.createForwardAnalysis(exit.getValue(), shareableFormula);
-          taskFactory.getExecutor().requestJob(next);
-        }
+        Block exit = block.getExits().get(location.getLocationNode());
+        final var shareableFormula = new ShareableBooleanFormula(formulaManager, exitFormula);
+        Task next = taskFactory.createForwardAnalysis(exit, shareableFormula);
+        taskFactory.getExecutor().requestJob(next);
       }
     }
+    // }
 
     logManager.log(Level.INFO, "Completed ForwardAnalysis on ", block);
     return status;
   }
 
   public static class AlwaysFalse extends BlockOperator {
-    @Override public boolean isBlockEnd(final CFANode loc, final int thresholdValue) {
+    @Override
+    public boolean isBlockEnd(final CFANode loc, final int thresholdValue) {
       return false;
     }
   }
