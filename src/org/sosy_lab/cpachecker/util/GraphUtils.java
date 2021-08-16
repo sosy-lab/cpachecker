@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
@@ -113,10 +113,8 @@ public class GraphUtils {
   public static List<List<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, ReachedSet pReached) {
     Set<ARGState> filteredStates =
-        pReached.stream()
-            .map(x -> (ARGState) x)
-            .filter(x -> !pStates.contains(x))
-            .collect(Collectors.toCollection(HashSet::new));
+        new HashSet<>(Collections2.transform(pReached.asCollection(), s -> (ARGState) s));
+    filteredStates.removeAll(pStates);
     return retrieveSimpleCycles(pStates, filteredStates);
   }
 
