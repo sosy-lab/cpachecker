@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -40,21 +41,21 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 @Options(prefix = "cpa.value")
 public class PredicateToValuePrecisionConverter {
 
+  public enum PredicateConverterStrategy {
+    CONVERT_ONLY
+  } // TODO extend// dependencies-backwards, forwards (property), only data or also
+    // control-dependencies?
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
-  /*@Option(
+  @Option(
       secure = true,
-      name = "stop",
-      toUppercase = true,
-      values = {
-        "CONVERT_ONLY",
-        ".."
-      }, // dependencies-backwards, forwards (property), only data or also control-dependencies?
-      description = "which stop operator to use for ValueAnalysisCPA")
-  private String sdf; // TODO anpassen*/
+      name = "predToValPrecStrategy",
+      description = "which strategy to use to convert predicate to value precision")
+  private PredicateConverterStrategy converterStrategy;
 
   public PredicateToValuePrecisionConverter(
       final Configuration pConfig,
@@ -83,8 +84,17 @@ public class PredicateToValuePrecisionConverter {
           parsePredPrecFile(formulaManager, abstractionManager, pPredPrecFile);
 
       if (!predPrec.isEmpty()) {
-        return ImmutableListMultimap.copyOf(
-            convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
+        Multimap<CFANode, MemoryLocation> result =
+            convertPredPrecToVariableTrackingPrec(predPrec, formulaManager);
+
+        switch (converterStrategy) {
+          case CONVERT_ONLY:
+            break;
+          default:
+            break;
+        }
+
+        return ImmutableListMultimap.copyOf(result);
       } else {
         logger.log(
             Level.WARNING,

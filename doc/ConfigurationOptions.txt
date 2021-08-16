@@ -3114,6 +3114,10 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# which strategy to use to convert predicate to value precision
+cpa.value.predToValPrecStrategy = no default value
+  enum:     [CONVERT_ONLY]
+
 # whether or not to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
 cpa.value.refinement.addAssumptionsToCex = true
