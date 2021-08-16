@@ -8,20 +8,27 @@
 
 package org.sosy_lab.cpachecker.core;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
+import com.google.common.graph.Traverser;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -43,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 
+/** Constructs a tree of CPA instances according to configuration. */
 @Options
 public class CPABuilder {
 
@@ -69,6 +77,12 @@ public class CPABuilder {
     config.inject(this);
   }
 
+  /**
+   * Build (tree of) CPA instances according to config. CPAs for the given specification automata
+   * will be inserted in the appropriate place automatically.
+   *
+   * @return The root/main CPA.
+   */
   public ConfigurableProgramAnalysis buildCPAs(
       final CFA cfa,
       final Specification specification,
@@ -77,25 +91,46 @@ public class CPABuilder {
     return buildCPAs(cfa, specification, ImmutableList.of(), pAggregatedReachedSets);
   }
 
+  /**
+   * Build (tree of) CPA instances according to config. CPAs for the given specification automata
+   * and the additional automata will be inserted in the appropriate place automatically.
+   *
+   * @return The root/main CPA.
+   */
   public ConfigurableProgramAnalysis buildCPAs(
       final CFA cfa,
       final Specification specification,
       final List<Automaton> additionalAutomata,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
-    Set<String> usedAliases = new HashSet<>();
+    final FluentIterable<Automaton> allAutomata =
+        FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
 
-    List<Automaton> specAutomata = specification.getSpecificationAutomata();
-    List<ConfigurableProgramAnalysis> cpas =
-        new ArrayList<>(specAutomata.size() + additionalAutomata.size());
+    // 1. Parse config
+    final CPAConfig rootCpaConfig = collectCPAConfigs(CPA_OPTION_NAME, cpaName);
+    final FluentIterable<CPAConfig> allCpaConfigs =
+        from(Traverser.forTree(CPAConfig::getAllChildren).depthFirstPreOrder(rootCpaConfig));
 
-    for (Automaton automaton : Iterables.concat(specAutomata, additionalAutomata)) {
+    // 2. Sanity checks
+
+    if (rootCpaConfig.cpaClass == CompositeCPA.class
+        && rootCpaConfig.getAllChildren().isEmpty()
+        && allAutomata.isEmpty()) {
+      // By default there is a top-level CompositeCPA, and if it has no children, this means that
+      // the user did not specify any meaningful configuration.
+      throw new InvalidConfigurationException(
+          "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
+              + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
+              + "See README.md for more details.");
+    }
+
+    checkAliasUniqueness(allCpaConfigs, allAutomata);
+
+    // 3. Instantiate CPAs for automata
+
+    List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();
+    for (Automaton automaton : allAutomata) {
       String cpaAlias = automaton.getName();
-
-      if (!usedAliases.add(cpaAlias)) {
-        throw new InvalidConfigurationException(
-            "Name " + cpaAlias + " used twice for an automaton.");
-      }
 
       CPAFactory factory = ControlAutomatonCPA.factory();
       factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
@@ -108,9 +143,10 @@ public class CPABuilder {
       cpas.add(factory.createInstance());
     }
 
+    // 4. Instantiate configured CPAs
+
     ConfigurableProgramAnalysis cpa =
-        buildCPAs(
-        cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa, specification, pAggregatedReachedSets);
+        instantiateCPAandChildren(rootCpaConfig, cpas, cfa, specification, pAggregatedReachedSets);
     if (!cpas.isEmpty()) {
       throw new InvalidConfigurationException(
           "Option specification gave specification automata, but no CompositeCPA was used");
@@ -118,25 +154,107 @@ public class CPABuilder {
     return cpa;
   }
 
-  private ConfigurableProgramAnalysis buildCPAs(
-      String optionValue,
-      String optionName,
-      Set<String> usedAliases,
+  /**
+   * Analyze config and return appropriate {@link CPAConfig} instances that specify what should be
+   * created.
+   *
+   * @param optionName The name of the current config option that is being analyzed (for messages)
+   * @param optionValue The config value that should be analyzed. Must refer to a single CPA
+   *     (possibly with an alias).
+   * @return config for given optionValue
+   */
+  private CPAConfig collectCPAConfigs(final String optionName, final String optionValue)
+      throws InvalidConfigurationException {
+    List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue.trim());
+    String cpaNameFromOption = optionParts.get(0);
+    String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
+    Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
+
+    String childOptionName = cpaAlias + ".cpa";
+    String childrenOptionName = cpaAlias + ".cpas";
+
+    // Here we need to use these deprecated methods because we dynamically create the key.
+    @SuppressWarnings("deprecation")
+    String childCpaName = config.getProperty(childOptionName);
+    @SuppressWarnings("deprecation")
+    String childrenCpaNames = config.getProperty(childrenOptionName);
+
+    CPAConfig child = null;
+    ImmutableList.Builder<CPAConfig> childrenCpas = ImmutableList.builder();
+
+    if (childCpaName != null) {
+      // only one child CPA
+      if (childrenCpaNames != null) {
+        throw new InvalidConfigurationException(
+            "Ambiguous configuration: both "
+                + childOptionName
+                + " and "
+                + childrenOptionName
+                + " are specified!");
+      }
+
+      child = collectCPAConfigs(childOptionName, childCpaName);
+
+      logger.log(Level.FINER, "CPA", cpaAlias, "got child", childCpaName);
+
+    } else if (childrenCpaNames != null) {
+      // several children CPAs
+      for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
+        childrenCpas.add(collectCPAConfigs(childrenOptionName, currentChildCpaName));
+      }
+      logger.log(Level.FINER, "CPA", cpaAlias, "got children", childrenCpaNames);
+    }
+
+    return new CPAConfig(
+        cpaNameFromOption, cpaAlias, cpaClass, child, childrenCpas.build());
+  }
+
+  /** Check that aliases for each CPA and each given automaton are unique. */
+  private void checkAliasUniqueness(
+      final FluentIterable<CPAConfig> cpas, final FluentIterable<Automaton> automata)
+      throws InvalidConfigurationException {
+
+    final ImmutableMultiset<String> automataAliases =
+        automata.transform(Automaton::getName).toMultiset();
+    final ImmutableMultiset<String> cpaAliases = cpas.transform(cpa -> cpa.alias).toMultiset();
+
+    for (Multiset.Entry<String> entry : automataAliases.entrySet()) {
+      if (entry.getCount() > 1) {
+        throw new InvalidConfigurationException(
+            "Alias " + entry.getElement() + " used twice for an automaton.");
+      }
+    }
+
+    for (Multiset.Entry<String> entry : cpaAliases.entrySet()) {
+      if (entry.getCount() > 1) {
+        throw new InvalidConfigurationException(
+            "Alias " + entry.getElement() + " used twice for a CPA.");
+      }
+    }
+
+    final Multiset<String> aliasIntersection = Multisets.intersection(automataAliases, cpaAliases);
+    if (!aliasIntersection.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "The following aliases are used for both automata and CPAs: "
+              + Joiner.on(", ").join(aliasIntersection.elementSet()));
+    }
+  }
+
+  /**
+   * Instantiate CPA(s) according to given config, including any necessary children.
+   *
+   * @param cpas Additional list of CPAs to inject at first possible place. Will be cleared
+   *     afterwards.
+   */
+  private ConfigurableProgramAnalysis instantiateCPAandChildren(
+      final CPAConfig cpaConfig,
       List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
-    Preconditions.checkNotNull(optionValue);
 
-    // parse option (may be of syntax "classname alias"
-    List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue.trim());
-    String cpaNameFromOption = optionParts.get(0);
-    String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
-
-    if (!usedAliases.add(cpaAlias)) {
-      throw new InvalidConfigurationException("Alias " + cpaAlias + " used twice for a CPA.");
-    }
+    String cpaAlias = cpaConfig.alias;
 
     // shortcut for a ControlAutomatonCPA which was already instantiated, but is wrapped in a
     // cpa other than CompositeCPA (such as e.g. an AbstractSingleWrapperCPA)
@@ -152,11 +270,11 @@ public class CPABuilder {
 
     // first get instance of appropriate factory
 
-    Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
+    Class<?> cpaClass = cpaConfig.cpaClass;
 
     logger.log(Level.FINER, "Instantiating CPA " + cpaClass.getName() + " with alias " + cpaAlias);
 
-    CPAFactory factory = getFactoryInstance(cpaNameFromOption, cpaClass);
+    CPAFactory factory = getFactoryInstance(cpaConfig.name, cpaClass);
 
     // now use factory to get an instance of the CPA
 
@@ -172,28 +290,8 @@ public class CPABuilder {
       factory.set(cfa, CFA.class);
     }
 
-    boolean hasChildren =
-        createAndSetChildrenCPAs(
-            cpaNameFromOption,
-            cpaAlias,
-            factory,
-            usedAliases,
-            cpas,
-            cfa,
-            specification,
-            pAggregatedReachedSets);
-
-    if (optionName.equals(CPA_OPTION_NAME)
-        && cpaClass.equals(CompositeCPA.class)
-        && !hasChildren) {
-      // This is the top-level CompositeCPA that is the default,
-      // but without any children. This means that the user did not specify any
-      // meaningful configuration.
-      throw new InvalidConfigurationException(
-          "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
-              + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
-              + "See README.md for more details.");
-    }
+    createAndSetChildrenCPAs(
+        cpaConfig, factory, cpas, cfa, specification, pAggregatedReachedSets);
 
     // finally call createInstance
     ConfigurableProgramAnalysis cpa;
@@ -288,43 +386,29 @@ public class CPABuilder {
     return (CPAFactory)factoryObj;
   }
 
-  private boolean createAndSetChildrenCPAs(
-      String pCpaName,
-      String cpaAlias,
+  private void createAndSetChildrenCPAs(
+      final CPAConfig cpaConfig,
       CPAFactory factory,
-      Set<String> usedAliases,
       List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
-    String childOptionName = cpaAlias + ".cpa";
-    String childrenOptionName = cpaAlias + ".cpas";
 
-    // Here we need to use these deprecated methods because we dynamically create the key.
-    @SuppressWarnings("deprecation")
-    String childCpaName = config.getProperty(childOptionName);
-    @SuppressWarnings("deprecation")
-    String childrenCpaNames = config.getProperty(childrenOptionName);
-
-    if (childrenCpaNames == null && childCpaName == null && cpaAlias.equals("CompositeCPA")
-        && cpas != null && !cpas.isEmpty()) {
+    ImmutableList<CPAConfig> children = cpaConfig.children;
+    if (children.isEmpty()
+        && cpaConfig.child == null
+        && cpaConfig.alias.equals("CompositeCPA")
+        && !cpas.isEmpty()) {
       // if a specification was given, but no CPAs, insert a LocationCPA
-      childrenCpaNames = LocationCPA.class.getCanonicalName();
+      children = ImmutableList.of(CPAConfig.forClass(LocationCPA.class));
     }
 
-    if (childCpaName != null) {
+    if (cpaConfig.child != null) {
       // only one child CPA
-      if (childrenCpaNames != null) {
-        throw new InvalidConfigurationException("Ambiguous configuration: both "
-            + childOptionName + " and " + childrenOptionName + " are specified!");
-      }
-
       ConfigurableProgramAnalysis child =
-          buildCPAs(
-              childCpaName,
-              childOptionName,
-              usedAliases,
+          instantiateCPAandChildren(
+              cpaConfig.child,
               cpas,
               cfa,
               specification,
@@ -333,25 +417,18 @@ public class CPABuilder {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(
-            pCpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!", e);
+            cpaConfig.name + " is no wrapper CPA, but was configured to have a child CPA!",
+            e);
       }
-      logger.log(Level.FINER, "CPA " + cpaAlias + " got child " + childCpaName);
-      return true;
 
-    } else if (childrenCpaNames != null) {
+    } else if (!children.isEmpty()) {
       // several children CPAs
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
 
-      for (String currentChildCpaName : LIST_SPLITTER.split(childrenCpaNames)) {
+      for (CPAConfig currentChildCpaConfig : children) {
         childrenCpas.add(
-            buildCPAs(
-                currentChildCpaName,
-                childrenOptionName,
-                usedAliases,
-                cpas,
-                cfa,
-                specification,
-                pAggregatedReachedSets));
+            instantiateCPAandChildren(
+                currentChildCpaConfig, cpas, cfa, specification, pAggregatedReachedSets));
       }
       if (cpas != null) {
         childrenCpas.addAll(cpas);
@@ -362,12 +439,55 @@ public class CPABuilder {
         factory.setChildren(childrenCpas.build());
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(
-            pCpaName + " is no wrapper CPA, but option " + childrenOptionName + " was specified!",
+            cpaConfig.name
+                + " is no wrapper CPA, but was configured to have children CPAs!",
             e);
       }
-      logger.log(Level.FINER, "CPA " + cpaAlias + " got children " + childrenCpaNames);
-      return true;
     }
-    return false;
+  }
+
+  /** Represents the configuration for one CPA instance. */
+  private static class CPAConfig {
+    /**
+     * The CPA name as given by the user (possibly abbreviated class name, e.g.,
+     * cpa.location.LocationCPA)
+     */
+    final String name;
+    /** The alias for this CPA instance as given by the user or inferred */
+    final String alias;
+    /** The class of this CPA. */
+    final Class<?> cpaClass;
+    /** Config for child CPA if the "alias.cpa" option was given. */
+    final @Nullable CPAConfig child;
+    /** Config for children CPA if the "alias.cpas" option was given. */
+    final ImmutableList<CPAConfig> children;
+
+    CPAConfig(
+        String pName,
+        String pAlias,
+        Class<?> pCpaClass,
+        @Nullable CPAConfig pChild,
+        ImmutableList<CPAConfig> pChildren) {
+      name = checkNotNull(pName);
+      alias = checkNotNull(pAlias);
+      cpaClass = checkNotNull(pCpaClass);
+      child = pChild;
+      children = checkNotNull(pChildren);
+      checkArgument(child == null || pChildren.isEmpty());
+    }
+
+    static CPAConfig forClass(Class<? extends ConfigurableProgramAnalysis> cpaClass) {
+      return new CPAConfig(
+          cpaClass.getCanonicalName(),
+          cpaClass.getSimpleName(),
+          cpaClass,
+          null,
+          ImmutableList.of());
+    }
+
+    /** Return configured children, no matter if "alias.cpa" or "alias.cpas" was given. */
+    ImmutableList<CPAConfig> getAllChildren() {
+      return child != null ? ImmutableList.of(child) : children;
+    }
   }
 }
