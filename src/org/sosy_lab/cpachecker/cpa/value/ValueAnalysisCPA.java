@@ -211,6 +211,10 @@ public class ValueAnalysisCPA extends AbstractCPA
           initialPrecision =
               initialPrecision.withIncrement(
                   convertPredPrecToVariableTrackingPrec(predPrec, formulaManager));
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Provided predicate precision is empty and does not contain predicates.");
         }
       }
     }
