@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
@@ -26,7 +27,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
@@ -49,10 +49,13 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 /** Constructs a tree of CPA instances according to configuration. */
 @Options
 public class CPABuilder {
+
+  private static final CPAConfig SPECIFICATION_PLACEHOLDER = new CPAConfig("$specification");
 
   private static final String CPA_OPTION_NAME = "cpa";
   private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker";
@@ -126,7 +129,47 @@ public class CPABuilder {
 
     checkAliasUniqueness(allCpaConfigs, allAutomata);
 
-    // 3. Instantiate CPAs for automata
+    int placeholderCount = allCpaConfigs.filter(cpa -> cpa.isPlaceholder).size();
+    if (placeholderCount > 1) {
+      throw new InvalidConfigurationException(
+          "Placeholder "
+              + SPECIFICATION_PLACEHOLDER.name
+              + " must occur at most once in CPA configuration!");
+    }
+
+    // 3. Find place to add CPAs for automata and instantiate them upfront
+
+    if (placeholderCount == 0 && !allAutomata.isEmpty()) {
+      // We look for the first CPA with multiple children to append CPAs. If no children were
+      // configured, we cannot know whether the CPA would actually accept multiple children, so we
+      // also check for CompositeCPA.
+      // This second case is mostly intended to catch empty configs where nothing besides the
+      // default "cpa = cpa.composite.CompositeCPA" option exists and could be made stricter,
+      // but is currently implemented as is for backwards compatibility.
+      CPAConfig insertionPoint =
+          allCpaConfigs // has depth-first pre-order!
+              .firstMatch(
+                  cpa ->
+                      !cpa.children.isEmpty()
+                          || (cpa.child == null && cpa.alias.equals("CompositeCPA")))
+              .toJavaUtil()
+              .orElseThrow(
+                  () ->
+                      new InvalidConfigurationException(
+                          "Option specification gave specification automata, but no CompositeCPA"
+                              + " was used"));
+
+      if (insertionPoint.children.isEmpty()) { // implies cpa.cpaClass == CompositeCPA.class
+        // If a specification was given, but no CPAs, insert a LocationCPA.
+        // This allows to run CPAchecker with just "-spec ..." and no other config.
+        insertionPoint.children =
+            ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
+      } else {
+        insertionPoint.children =
+            from(insertionPoint.children).append(SPECIFICATION_PLACEHOLDER).toList();
+      }
+      placeholderCount++;
+    }
 
     List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();
     for (Automaton automaton : allAutomata) {
@@ -147,10 +190,15 @@ public class CPABuilder {
 
     ConfigurableProgramAnalysis cpa =
         instantiateCPAandChildren(rootCpaConfig, cpas, cfa, specification, pAggregatedReachedSets);
-    if (!cpas.isEmpty()) {
-      throw new InvalidConfigurationException(
-          "Option specification gave specification automata, but no CompositeCPA was used");
-    }
+
+    // 5. Final assertions
+
+    ImmutableList<ConfigurableProgramAnalysis> allCpas = CPAs.asIterable(cpa).toList();
+    verify(allCpas.containsAll(cpas), "CPAs for automata missing from final CPA tree");
+    verify(
+        allCpas.size() == allCpaConfigs.size() + cpas.size() - placeholderCount,
+        "Number of CPAs in final CPA tree does not match configured CPAs");
+
     return cpa;
   }
 
@@ -163,9 +211,15 @@ public class CPABuilder {
    *     (possibly with an alias).
    * @return config for given optionValue
    */
-  private CPAConfig collectCPAConfigs(final String optionName, final String optionValue)
+  private CPAConfig collectCPAConfigs(final String optionName, String optionValue)
       throws InvalidConfigurationException {
-    List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue.trim());
+    optionValue = optionValue.trim();
+
+    if (optionValue.equals(SPECIFICATION_PLACEHOLDER.name)) {
+      return SPECIFICATION_PLACEHOLDER;
+    }
+
+    List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue);
     String cpaNameFromOption = optionParts.get(0);
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
     Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
@@ -216,7 +270,8 @@ public class CPABuilder {
 
     final ImmutableMultiset<String> automataAliases =
         automata.transform(Automaton::getName).toMultiset();
-    final ImmutableMultiset<String> cpaAliases = cpas.transform(cpa -> cpa.alias).toMultiset();
+    final ImmutableMultiset<String> cpaAliases =
+        cpas.filter(cpa -> !cpa.isPlaceholder).transform(cpa -> cpa.alias).toMultiset();
 
     for (Multiset.Entry<String> entry : automataAliases.entrySet()) {
       if (entry.getCount() > 1) {
@@ -254,19 +309,23 @@ public class CPABuilder {
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException {
 
-    String cpaAlias = cpaConfig.alias;
-
-    // shortcut for a ControlAutomatonCPA which was already instantiated, but is wrapped in a
-    // cpa other than CompositeCPA (such as e.g. an AbstractSingleWrapperCPA)
-    if (cpaAlias.equals(ControlAutomatonCPA.class.getSimpleName())) {
-      Optional<ConfigurableProgramAnalysis> first =
-          cpas.stream().filter(x -> x instanceof ControlAutomatonCPA).findFirst();
-      if (first.isPresent()) {
-        ConfigurableProgramAnalysis cpa = first.orElseThrow();
-        cpas.remove(cpa);
-        return cpa;
+    if (cpaConfig.isPlaceholder) {
+      if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
+        if (cpas.size() == 1) {
+          return cpas.get(0);
+        } else {
+          String count = cpas.isEmpty() ? "none" : Integer.toString(cpas.size());
+          throw new InvalidConfigurationException(
+              "Configuration requires exactly one specification automaton, but "
+                  + count
+                  + " were given");
+        }
+      } else {
+        throw new AssertionError("unexpected placeholder " + cpaConfig.name);
       }
     }
+
+    String cpaAlias = cpaConfig.alias;
 
     // first get instance of appropriate factory
 
@@ -396,13 +455,6 @@ public class CPABuilder {
       throws InvalidConfigurationException, CPAException {
 
     ImmutableList<CPAConfig> children = cpaConfig.children;
-    if (children.isEmpty()
-        && cpaConfig.child == null
-        && cpaConfig.alias.equals("CompositeCPA")
-        && !cpas.isEmpty()) {
-      // if a specification was given, but no CPAs, insert a LocationCPA
-      children = ImmutableList.of(CPAConfig.forClass(LocationCPA.class));
-    }
 
     if (cpaConfig.child != null) {
       // only one child CPA
@@ -426,13 +478,14 @@ public class CPABuilder {
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
 
       for (CPAConfig currentChildCpaConfig : children) {
-        childrenCpas.add(
-            instantiateCPAandChildren(
-                currentChildCpaConfig, cpas, cfa, specification, pAggregatedReachedSets));
-      }
-      if (cpas != null) {
-        childrenCpas.addAll(cpas);
-        cpas.clear();
+        if (currentChildCpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
+          childrenCpas.addAll(cpas);
+
+        } else {
+          childrenCpas.add(
+              instantiateCPAandChildren(
+                  currentChildCpaConfig, cpas, cfa, specification, pAggregatedReachedSets));
+        }
       }
 
       try {
@@ -448,6 +501,10 @@ public class CPABuilder {
 
   /** Represents the configuration for one CPA instance. */
   private static class CPAConfig {
+
+    /** Whether this instance is a placeholder and does not specify a real CPA instance. */
+    final boolean isPlaceholder;
+
     /**
      * The CPA name as given by the user (possibly abbreviated class name, e.g.,
      * cpa.location.LocationCPA)
@@ -455,25 +512,37 @@ public class CPABuilder {
     final String name;
     /** The alias for this CPA instance as given by the user or inferred */
     final String alias;
-    /** The class of this CPA. */
-    final Class<?> cpaClass;
+    /** The class of this CPA (null if placeholder instance). */
+    final @Nullable Class<?> cpaClass;
     /** Config for child CPA if the "alias.cpa" option was given. */
     final @Nullable CPAConfig child;
     /** Config for children CPA if the "alias.cpas" option was given. */
-    final ImmutableList<CPAConfig> children;
+    ImmutableList<CPAConfig> children;
 
+    /** Create regular instance. */
     CPAConfig(
         String pName,
         String pAlias,
         Class<?> pCpaClass,
         @Nullable CPAConfig pChild,
         ImmutableList<CPAConfig> pChildren) {
+      isPlaceholder = false;
       name = checkNotNull(pName);
       alias = checkNotNull(pAlias);
       cpaClass = checkNotNull(pCpaClass);
       child = pChild;
       children = checkNotNull(pChildren);
       checkArgument(child == null || pChildren.isEmpty());
+    }
+
+    /** Create placeholder instance. */
+    CPAConfig(String pName) {
+      isPlaceholder = true;
+      name = checkNotNull(pName);
+      alias = checkNotNull(pName);
+      cpaClass = null;
+      child = null;
+      children = ImmutableList.of();
     }
 
     static CPAConfig forClass(Class<? extends ConfigurableProgramAnalysis> cpaClass) {
