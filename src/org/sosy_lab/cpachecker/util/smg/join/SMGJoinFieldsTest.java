@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
+//TODO enable this tests once the write value reinterpretation was implemented
 public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
   private SMG smg1;
@@ -49,13 +51,13 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
     SMGObject oth1 = createRegion(mockType16bSize);
     SMGObject oth2 = createRegion(mockType16bSize);
-    SMGValue valueOfLevel1 = createValue(1);
+    SMGValue otherValue = createValue();
 
     SMGHasValueEdge obj1hv1at0 = createHasValueEdgeToZero(BigInteger.valueOf(40));
     SMGHasValueEdge obj1hv2at7 = createHasValueEdgeToZero(mockType2bSize, 56);
     SMGHasValueEdge obj1hv3at9 = createHasValueEdge(56, 72, value1);
 
-    SMGHasValueEdge obj2hv1at0 = createHasValueEdge(mockType4bSize, 0, valueOfLevel1);
+    SMGHasValueEdge obj2hv1at0 = createHasValueEdge(mockType4bSize, otherValue);
     SMGPointsToEdge obj2pt1to0 = createPTRegionEdge(0, obj2);
     SMGHasValueEdge obj2hv2at4 = createHasValueEdgeToZero(24, 32);
     SMGHasValueEdge obj2hv3at8 = createHasValueEdge(64, 64, value2);
@@ -64,7 +66,7 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     SMGHasValueEdge oth1hv2at7 = createHasValueEdgeToZero(16, 56);
     SMGHasValueEdge oth1hv3at9 = createHasValueEdge(56, 72, value1);
 
-    SMGHasValueEdge oth2hv1at0 = createHasValueEdge(32, 0, valueOfLevel1);
+    SMGHasValueEdge oth2hv1at0 = createHasValueEdge(32, 0, otherValue);
     SMGHasValueEdge oth2hv2at4 = createHasValueEdgeToZero(24, 32);
     SMGHasValueEdge oth2hv3at8 = createHasValueEdge(64, 64, value2);
 
@@ -75,7 +77,7 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
     smg1 = smg1.copyAndAddValue(value1);
     smg2 = smg2.copyAndAddValue(value2);
-    smg2 = smg2.copyAndAddValue(valueOfLevel1);
+    smg2 = smg2.copyAndAddValue(otherValue);
 
     smg1 = smg1.copyAndAddHVEdge(obj1hv1at0, obj1);
     smg1 = smg1.copyAndAddHVEdge(obj1hv2at7, obj1);
@@ -85,12 +87,13 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     smg1 = smg1.copyAndAddHVEdge(oth1hv3at9, oth1);
 
     smg2 = smg2.copyAndAddHVEdge(obj2hv1at0, obj2);
-    smg2 = smg2.copyAndAddPTEdge(obj2pt1to0, valueOfLevel1);
     smg2 = smg2.copyAndAddHVEdge(obj2hv2at4, obj2);
     smg2 = smg2.copyAndAddHVEdge(obj2hv3at8, obj2);
     smg2 = smg2.copyAndAddHVEdge(oth2hv1at0, oth2);
     smg2 = smg2.copyAndAddHVEdge(oth2hv2at4, oth2);
     smg2 = smg2.copyAndAddHVEdge(oth2hv3at8, oth2);
+
+    smg2 = smg2.copyAndAddPTEdge(obj2pt1to0, otherValue);
 
     SMGJoinFields join = new SMGJoinFields(smg1, smg2);
     join.joinFields(obj1, obj2);
@@ -103,7 +106,7 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     fieldMap1.put(BigInteger.valueOf(0L), Pair.of(SMGValue.zeroValue(), BigInteger.valueOf(40)));
     fieldMap1.put(BigInteger.valueOf(72L), Pair.of(value1, BigInteger.valueOf(56)));
 
-    fieldMap2.put(BigInteger.valueOf(0L), Pair.of(valueOfLevel1, BigInteger.valueOf(32)));
+    fieldMap2.put(BigInteger.valueOf(0L), Pair.of(otherValue, BigInteger.valueOf(32)));
     fieldMap2.put(BigInteger.valueOf(32L), Pair.of(SMGValue.zeroValue(), BigInteger.valueOf(8)));
     fieldMap2.put(BigInteger.valueOf(64L), Pair.of(value2, BigInteger.valueOf(64)));
 
@@ -188,9 +191,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     assertThat(edgesFluentIterable).hasSize(4);
   }
 
-
-  @Test
   @Ignore
+  @Test
   public void mergeNonNullHVEdgesTest() {
     Set<SMGValue> values = new HashSet<>();
     values.add(value1);
@@ -239,8 +241,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     assertThat(hvSet).hasSize(1);
   }
 
-  @Test
   @Ignore
+  @Test
   public void mergeNonNullAplliedTest() {
     SMGObject obj1 = createRegion(mockType8bSize);
     SMGObject obj2 = createRegion(mockType8bSize);
@@ -266,8 +268,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     assertThat(edges.isEmpty()).isFalse();
   }
 
-  @Test
   @Ignore
+  @Test
   public void joinFieldsRelaxStatusTest() {
     SMGObject object = createRegion(mockType8bSize);
 
@@ -275,7 +277,7 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
     SMG smg0_0B_4B =
         smg1.copyAndAddHVEdge(
-            new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ONE),
+            new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ZERO),
             object);
     SMG smg0_2B_6B =
         smg1.copyAndAddHVEdge(
@@ -287,7 +289,7 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
             object);
     SMG smg0_0B_8B =
         smg1.copyAndAddHVEdge(
-            new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ONE),
+            new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.ZERO),
             object)
             .copyAndAddHVEdge(
                 new SMGHasValueEdge(SMGValue.zeroValue(), mockType4bSize, BigInteger.valueOf(32)),
@@ -316,13 +318,13 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_4B_8B, object); // OK
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_2B_6B, object); // OK
 
-    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL, smg0_0B_8B, smg0_0B_8B);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_0B_4B);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_2B_6B);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_4B_8B);
-    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B);
-    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B);
-    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B);
+    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL, smg0_0B_8B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_0B_4B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_2B_6B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_4B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B, object);
   }
 
   private void checkStatusAfterRelax(SMGJoinStatus expected, SMG a, SMG b, SMGObject object) {
@@ -331,8 +333,9 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     assertThat(js.getStatus()).isEqualTo(expected);
   }
 
-  private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b) {
+  private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b, SMGObject object) {
     SMGJoinFields js = new SMGJoinFields(a, b); // join fields
+    js.joinFields(object, object);
     assertThat(js.getStatus()).isEqualTo(expected);
   }
 
@@ -443,25 +446,32 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
    * smg4.copyAndAddHVEdge(createHasValueEdge(mockType4bSize, value4), obj2); smg4 =
    * smg4.copyAndAddHVEdge(createHasValueEdge(mockType4bSize, value4), obj3);
    * SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2); }
-   *
-   * @SuppressWarnings("unused")
-   *
-   * @Test(expected = IllegalArgumentException.class) public void nonMemberObjectTest1() { SMG smg3
-   * = new SMG(); SMG smg4 = new SMG();
-   *
-   * SMGObject obj1 = createRegion(mockType32bSize); SMGObject obj2 = createRegion(mockType32bSize);
-   * smg4 = smg4.copyAndAddObject(obj2);
-   *
-   * new SMGJoinFields(smg3, smg4, obj1, obj2); }
-   *
-   * @SuppressWarnings("unused")
-   *
-   * @Test(expected = IllegalArgumentException.class) public void nonMemberObjectTest2() { SMG smg3
-   * = new SMG(); SMG smg4 = new SMG();
-   *
-   * SMGObject obj1 = createRegion(mockType32bSize); SMGObject obj2 = createRegion(mockType32bSize);
-   * smg3 = smg3.copyAndAddObject(obj1);
-   *
-   * new SMGJoinFields(smg3, smg4, obj1, obj2); }
    */
+  @Test
+  public void nonMemberObjectTest1() {
+    SMG smg3 = new SMG();
+    SMG smg4 = new SMG();
+
+    SMGObject obj1 = createRegion(mockType32bSize);
+    SMGObject obj2 = createRegion(mockType32bSize);
+    smg4 = smg4.copyAndAddObject(obj2);
+
+    SMGJoinFields jFields = new SMGJoinFields(smg3, smg4);
+    assertThrows(IllegalArgumentException.class, () -> jFields.joinFields(obj1, obj2));
+  }
+
+
+  @Test
+  public void nonMemberObjectTest2() {
+    SMG smg3 = new SMG();
+    SMG smg4 = new SMG();
+
+    SMGObject obj1 = createRegion(mockType32bSize);
+    SMGObject obj2 = createRegion(mockType32bSize);
+    smg3 = smg3.copyAndAddObject(obj1);
+
+    SMGJoinFields jFields = new SMGJoinFields(smg3, smg4);
+    assertThrows(IllegalArgumentException.class, () -> jFields.joinFields(obj1, obj2));
+  }
+
 }
