@@ -28,13 +28,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -69,8 +65,6 @@ public abstract class PredicateAbstractState
           ExpressionTreeReportingState {
 
     private static final long serialVersionUID = 8341054099315063986L;
-
-    private static final String FUNCTION_DELIMITER = "::";
 
     private transient PredicateAbstractState mergedInto = null;
 
@@ -133,37 +127,7 @@ public abstract class PredicateAbstractState
     @Override
     public ExpressionTree<Object> getFormulaApproximation(
         FunctionEntryNode pFunctionScope, CFANode pLocation) {
-      FormulaManagerView fmgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
-      BooleanFormula inv = getFormulaApproximation(fmgr);
-      String invString = null;
-      try {
-        // filter out variables that are not global and
-        // not local in the current function
-        String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-        inv =
-            fmgr.filterLiterals(
-                inv,
-                e -> {
-                  for (String name : fmgr.extractVariableNames(e)) {
-                    if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                      return false;
-                    }
-                  }
-                  return true;
-                });
-
-        FormulaToCVisitor v = new FormulaToCVisitor(fmgr);
-        boolean isValid = fmgr.visit(inv, v);
-        if (isValid) {
-          invString = v.getString();
-        }
-      } catch (InterruptedException e) {
-        throw new AssertionError("Approximation of state was interrupted", e);
-      }
-      if (invString != null) {
-        return LeafExpression.of(invString);
-      }
-      return ExpressionTrees.getTrue(); // no new invariant
+      return super.abstractionFormula.asExpressionTree(pLocation);
     }
 
     @Override
