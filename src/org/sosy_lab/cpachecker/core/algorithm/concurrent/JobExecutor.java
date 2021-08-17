@@ -214,7 +214,7 @@ public final class JobExecutor implements Runnable {
 
         synchronized (this) {
           executorThread.interrupt();
-          while (!jobsPending.get() && executorThread.isAlive()) {
+          do {
             try {
               wait();
             } catch (InterruptedException ignored) {
@@ -222,11 +222,10 @@ public final class JobExecutor implements Runnable {
                * If CompletionWatchdog gets interrupted while waiting for JobExecutor to either
                *  a) add a new job for execution and set jobsPending to 'true' or
                *  b) shut down itself because no new jobs are available,
-               * it manually checks for these conditions (as it also does when getting notified
-               * regularly). If they are not yet fulfilled, it enters waiting state again.
+               * it just enters waiting state again.
                */
             }
-          }
+          } while (Thread.interrupted());
         }
       }
     }
