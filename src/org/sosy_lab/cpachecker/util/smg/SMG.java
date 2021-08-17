@@ -255,7 +255,7 @@ public class SMG {
       SMGObject object, Predicate<SMGHasValueEdge> filter) {
     // TODO: Are multiple values possible for the same filter? If yes, create another method to
     // return all of them.
-    return hasValueEdges.get(object).stream().filter(filter).findAny();
+    return hasValueEdges.getOrDefault(object, PersistentSet.of()).stream().filter(filter).findAny();
   }
 
   /**
@@ -276,7 +276,8 @@ public class SMG {
    */
   public FluentIterable<SMGHasValueEdge>
       getHasValueEdgesByPredicate(SMGObject object, Predicate<SMGHasValueEdge> filter) {
-    return FluentIterable.from(hasValueEdges.get(object)).filter(filter);
+    return FluentIterable.from(hasValueEdges.getOrDefault(object, PersistentSet.of()))
+        .filter(filter);
   }
 
   /**
@@ -462,7 +463,7 @@ public class SMG {
    * @return true if pValue is a pointer.
    */
   public boolean isPointer(SMGValue pValue) {
-    return pointsToEdges.get(pValue) != null;
+    return pointsToEdges.containsKey(pValue);
   }
 
   /**
