@@ -224,7 +224,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
 
     // step 4
     if (targetObject1.getClass().equals(targetObject2.getClass())
-        && pEdge1.targetSpecifier().equals(pEdge2.targetSpecifier())) {
+        && !pEdge1.targetSpecifier().equals(pEdge2.targetSpecifier())) {
       return true;
     }
     // step 5
