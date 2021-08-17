@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.smg.join;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -50,31 +49,26 @@ public class SMGJoinSubSMGsTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void testIsDefined() {
     assertThat(jssDefined.isDefined()).isTrue();
   }
 
   @Test
-  @Ignore
   public void testGetStatusOnDefined() {
     assertThat(jssDefined.getStatus()).isNotNull();
   }
 
   @Test
-  @Ignore
   public void testGetSMG1() {
     assertThat(jssDefined.getInputSMG1()).isNotNull();
   }
 
   @Test
-  @Ignore
   public void testGetSMG2() {
     assertThat(jssDefined.getInputSMG2()).isNotNull();
   }
 
   @Test
-  @Ignore
   public void testGetDestSMG() {
     assertThat(jssDefined.getDestinationSMG()).isNotNull();
   }

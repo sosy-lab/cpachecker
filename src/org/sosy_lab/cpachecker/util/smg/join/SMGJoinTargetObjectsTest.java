@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.smg.join;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -48,7 +47,6 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void matchingObjectsWithoutMappingTest() {
     smg1 = smg1.copyAndAddObject(obj1);
     smg1 = smg1.copyAndAddValue(value1);
@@ -73,12 +71,12 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
         .isSameInstanceAs(jto.mapping1.getMappedObject(obj1));
     // TODO investigate why they should not be the same, regions are immutable
     // Assert.assertNotSame(jto.mapping1.get(obj1), obj1);
+    assertThat(jto.mapping1.getMappedObject(obj1)).isNotNull();
     assertThat(obj1.getOffset()).isEqualTo(jto.mapping1.getMappedObject(obj1).getOffset());
     assertThat(obj1.getSize()).isEqualTo(jto.mapping1.getMappedObject(obj1).getSize());
   }
 
   @Test
-  @Ignore
   public void nonMatchingObjectsTest() {
     smg1 = smg1.copyAndAddObject(obj1);
     smg1 = smg1.copyAndAddValue(value1);
@@ -95,22 +93,22 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
             obj1,
             SMGObject.nullInstance());
     assertThat(mo.isDefined()).isFalse();
-    SMGMatchObjects jto =
-        new SMGMatchObjects(
+    SMGJoinTargetObjects jto =
+        new SMGJoinTargetObjects(
             SMGJoinStatus.EQUAL,
             smg1,
             smg2,
             destSMG,
             mapping1,
             mapping2,
-            obj1,
-            SMGObject.nullInstance());
+            value1,
+            SMGValue.zeroValue(),
+            0);
     assertThat(jto.isDefined()).isFalse();
     assertThat(jto.isRecoverableFailur()).isTrue();
   }
 
   @Test
-  @Ignore
   public void joinTargetObjectsDifferentOffsets() {
     SMGPointsToEdge pt1null = createPTRegionEdge(2, SMGObject.nullInstance());
     SMGPointsToEdge pt2null = createPTRegionEdge(1, SMGObject.nullInstance());
@@ -140,7 +138,6 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void joinTargetObjectsAlreadyJoinedNull() {
     SMGPointsToEdge pt1null = createPTRegionEdge(0, SMGObject.nullInstance());
     SMGPointsToEdge pt2null = createPTRegionEdge(0, SMGObject.nullInstance());
@@ -184,7 +181,6 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
   }
 
   @Test
-  @Ignore
   public void joinTargetObjectsAlreadyJoinedNonNull() {
     smg1 = smg1.copyAndAddValue(value1);
     smg2 = smg2.copyAndAddValue(value2);
