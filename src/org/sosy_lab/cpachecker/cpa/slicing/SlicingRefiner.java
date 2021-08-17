@@ -275,7 +275,8 @@ public class SlicingRefiner implements Refiner {
     return CounterexampleInfo.feasibleImprecise(pTargetPath);
   }
 
-  Collection<ARGPath> getTargetPaths(ReachedSet pReached) throws RefinementFailedException {
+  Collection<ARGPath> getTargetPaths(ReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
