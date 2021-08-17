@@ -22,7 +22,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -32,17 +31,15 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation {
@@ -51,20 +48,20 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
   private final ShutdownNotifier shutdownNotifier;
   private final InterpolationSequenceStorage itpSequenceStorage;
 
-  private boolean componentsInitialized = false;
-
-  // Lazy instantiation, as these objects are taken from the PredicateCPA, which itself might not be
-  // available at the instantiation of this class.
-  private PredicateAbstractionManager predicateAbstractionManager;
-  private BooleanFormulaManagerView bFMgrView;
+  private final PredicateAbstractionManager predicateAbstractionManager;
+  private final BooleanFormulaManagerView bFMgrView;
 
   public TraceAbstractionTransferRelation(
+      FormulaManagerView pFormulaManagerView,
+      PredicateAbstractionManager pPredicateAbstractionManager,
       InterpolationSequenceStorage pItpSequenceStorage,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
     itpSequenceStorage = pItpSequenceStorage;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    predicateAbstractionManager = pPredicateAbstractionManager;
+    bFMgrView = pFormulaManagerView.getBooleanFormulaManager();
   }
 
   @Override
@@ -84,11 +81,6 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-
-    if (!componentsInitialized) {
-      initializeComponentsOnce();
-      componentsInitialized = true;
-    }
 
     TraceAbstractionState state = (TraceAbstractionState) pState;
 
@@ -240,23 +232,6 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
     ImmutableMap<InterpolationSequence, AbstractionPredicate> newPreds = newStatePreds.build();
     logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
     return ImmutableSet.of(new TraceAbstractionState(newPreds));
-  }
-
-  @SuppressWarnings("resource")
-  private void initializeComponentsOnce() throws CPATransferException {
-    try {
-      PredicateCPA predCPA =
-          CPAs.retrieveCPAOrFail(
-              GlobalInfo.getInstance().getCPA().orElseThrow(),
-              PredicateCPA.class,
-              TraceAbstractionTransferRelation.class);
-
-      predicateAbstractionManager = predCPA.getPredicateManager();
-      bFMgrView = predCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
-    } catch (InvalidConfigurationException e) {
-      throw new CPATransferException(
-          "Could not retrieve PredicateAbstractionManager: " + e.getMessage(), e);
-    }
   }
 
   private AbstractionFormula buildAbstraction(
