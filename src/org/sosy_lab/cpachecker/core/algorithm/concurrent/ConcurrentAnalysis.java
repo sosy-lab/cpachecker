@@ -97,10 +97,6 @@ public class ConcurrentAnalysis implements Algorithm {
               .set(cfa, CFA.class)
               .set(executor, JobExecutor.class);
 
-      // Solver solver = Solver.create(config, logger, shutdownNotifier);
-      // BooleanFormulaManager formulaManager =
-      // solver.getFormulaManager().getBooleanFormulaManager();
-
       Task task = taskFactory.createForwardAnalysis(entry);
 
       executor.requestJob(task);

@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -124,7 +123,7 @@ public class ForwardAnalysis implements Task {
                 .set(compositeCpa, CompositeCPA.class)
                 .createInstance();
 
-    algorithm = new CPAAlgorithmFactory(cpa, pLogger, forward, pShutdownNotifier).newInstance();
+    algorithm = factory.createAlgorithm(cpa, pCFA, pSpecification);
 
     final CFANode blockEntry = block.getEntry();
 
@@ -141,16 +140,18 @@ public class ForwardAnalysis implements Task {
   }
 
   private void loadForwardConfig() throws InvalidConfigurationException {
-    if (forward == null) { // Todo: no double-checked locking
+    if (forward == null) {
       synchronized (ForwardAnalysis.class) {
         if (forward == null) {
           if (configFile != null) {
             try {
               forward = Configuration.builder().loadFromFile(configFile).build();
             } catch (IOException ignored) {
-              final String message =
-                  "Failed to load file " + configFile + ". " + "Using default configuration.";
-              logManager.log(Level.SEVERE, message);
+              logManager.log(
+                  Level.SEVERE,
+                  "Failed to load file ",
+                  configFile,
+                  ". Using default configuration.");
             }
           }
 
@@ -173,8 +174,8 @@ public class ForwardAnalysis implements Task {
         rawInitialState = cpa.getInitialState(pNode, getDefaultPartition());
       } catch (InterruptedException ignored) {
         /*
-         * If the thread gets interrupted while waiting to obtain the initial state,
-         * 'rawInterruptedState' remains 'null' and the operation is tried again.
+         * If the task gets interrupted while waiting to obtain the initial state,
+         * 'rawInterruptedState' remains 'null' and it tries the operation again.
          * TODO: Check for shutdown request.
          */
       }
@@ -209,8 +210,9 @@ public class ForwardAnalysis implements Task {
             componentState = componentCPA.getInitialState(pNode, getDefaultPartition());
           } catch (InterruptedException ignored) {
             /*
-             * If the task gets interrupted while waiting for the initial state, 'componentState'
-             * remains 'null' and the task tries to obtain the initial state again.
+             * If the task gets interrupted while waiting to obtain the initial state,
+             * 'componentState' remains 'null' and it tries the operation again.
+             * TODO: Check for shutdown request.
              */
           }
         }
@@ -228,26 +230,9 @@ public class ForwardAnalysis implements Task {
 
     AlgorithmStatus status = algorithm.run(reached);
 
-    // for(final Entry<CFANode, Block> exit : block.getExits().entrySet()) {
-    // Collection<AbstractState> states = reached.getReached(exit.getKey());
-
-    /*
-     * UnmodifableReachedSet#getReached(CFANode location) returns all abstract states in reached.
-     * Therefore, its required to iterate through them. TODO: Further explanation
-     * If only the actual state belonging to exit would get returned, no iteration would be
-     * required.
-     * With this situation, a different control structure would be beneficial:
-     * The code could loop through all states in the reached set, and only check whether they
-     * belong to an exit location.
-     * However, getReached always requires a CFANode as input, and the interface does not
-     * guarantee it to return all abstract states (as it does for the actual ReachedSet
-     * implementation found here). Therefore, the current iteration with two loops (where the
-     * outer one iterates through block exits, and the inner one through states) remains
-     * mandatory.
-     */
     for (final AbstractState state : reached.asCollection()) {
       if (AbstractStates.isTargetState(state)) {
-        logManager.log(Level.FINE, "! Target State:", state);
+        logManager.log(Level.FINE, "Target State:", state);
       }
 
       LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
@@ -261,21 +246,15 @@ public class ForwardAnalysis implements Task {
         BooleanFormula exitFormula = predicateState.getPathFormula().getFormula();
 
         Block exit = block.getExits().get(location.getLocationNode());
-        final var shareableFormula = new ShareableBooleanFormula(formulaManager, exitFormula);
+        final ShareableBooleanFormula shareableFormula =
+            new ShareableBooleanFormula(formulaManager, exitFormula);
+
         Task next = taskFactory.createForwardAnalysis(exit, shareableFormula);
         taskFactory.getExecutor().requestJob(next);
       }
     }
-    // }
 
     logManager.log(Level.INFO, "Completed ForwardAnalysis on ", block);
     return status;
-  }
-
-  public static class AlwaysFalse extends BlockOperator {
-    @Override
-    public boolean isBlockEnd(final CFANode loc, final int thresholdValue) {
-      return false;
-    }
   }
 }
