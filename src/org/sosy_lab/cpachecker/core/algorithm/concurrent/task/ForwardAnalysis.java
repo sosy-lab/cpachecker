@@ -12,6 +12,8 @@ import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDef
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -27,17 +29,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -165,29 +166,24 @@ public class ForwardAnalysis implements Task {
   }
 
   private AbstractState buildEntryState(
-      final CFANode pNode, @Nullable final ShareableBooleanFormula pContext) throws CPAException {
-    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-
-    if (predicateCPA == null) {
-      throw new CPAException("ForwardAnalysis requires a composite CPA with PredicateCPA");
+      final CFANode pNode, @Nullable final ShareableBooleanFormula pContext) {
+    AbstractState rawInitialState = null;
+    while (rawInitialState == null) {
+      try {
+        rawInitialState = cpa.getInitialState(pNode, getDefaultPartition());
+      } catch (InterruptedException ignored) {
+        /*
+         * If the thread gets interrupted while waiting to obtain the initial state,
+         * 'rawInterruptedState' remains 'null' and the operation is tried again.
+         * TODO: Check for shutdown request.
+         */
+      }
     }
-    AbstractState predicateInitialState =
-        predicateCPA.getInitialState(pNode, getDefaultPartition());
 
-    PredicateAbstractState initialPredicateState =
-        AbstractStates.extractStateByType(predicateInitialState, PredicateAbstractState.class);
+    PredicateAbstractState rawPredicateState =
+        AbstractStates.extractStateByType(rawInitialState, PredicateAbstractState.class);
+    assert rawPredicateState != null;
 
-    LocationCPA locationCPA = cpa.retrieveWrappedCpa(LocationCPA.class);
-    if (locationCPA == null) {
-      throw new CPAException("ForwardAnalysis requires a composite CPA with LocationCPA");
-    }
-    AbstractState initialLocationState = locationCPA.getInitialState(pNode, getDefaultPartition());
-
-    assert initialPredicateState != null;
-
-    formulaManager = predicateCPA.getSolver().getFormulaManager();
-
-    // Todo: Make BooleanFormulaManager a class member variable
     BooleanFormulaManager booleanFormulaManager = formulaManager.getBooleanFormulaManager();
 
     BooleanFormula contextFormula;
@@ -197,23 +193,32 @@ public class ForwardAnalysis implements Task {
       contextFormula = pContext.getFor(formulaManager);
     }
 
-    // PathFormula context = pfMgr.makeAnd(initialPredicateState.getPathFormula(), contextFormula);
-    PathFormula context = initialPredicateState.getPathFormula().withFormula(contextFormula);
-    // BooleanFormula context = booleanFormulaManager.and(contextFreeFormula, contextFormula);
+    PathFormula context = rawPredicateState.getPathFormula().withFormula(contextFormula);
 
-    PredicateAbstractState predicateEntryState =
-        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-            context, initialPredicateState);
+    PredicateAbstractState predicateState =
+        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(context, rawPredicateState);
 
-    // return new CompositeState(List.of(initialLocationState, predicateEntryState));
-
-    AbstractState initialState = null;
-    try {
-      initialState = ((BlockAwareCompositeCPA) cpa).getInitialState(pNode, getDefaultPartition());
-    } catch (InterruptedException ignored) {
+    List<AbstractState> componentStates = new ArrayList<>();
+    for (ConfigurableProgramAnalysis componentCPA : cpa.getWrappedCPAs()) {
+      AbstractState componentState = null;
+      if (componentCPA instanceof PredicateCPA) {
+        componentState = predicateState;
+      } else {
+        while (componentState == null) {
+          try {
+            componentState = componentCPA.getInitialState(pNode, getDefaultPartition());
+          } catch (InterruptedException ignored) {
+            /*
+             * If the task gets interrupted while waiting for the initial state, 'componentState'
+             * remains 'null' and the task tries to obtain the initial state again.
+             */
+          }
+        }
+      }
+      componentStates.add(componentState);
     }
 
-    return initialState;
+    return new CompositeState(componentStates);
   }
 
   @Override
