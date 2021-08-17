@@ -143,11 +143,10 @@ public class SMGJoinFields {
             .stream()
             .anyMatch(
                 entry -> {
-                  // find entry with equal offset
-                  BigInteger newSize = newEdgesWithZeroOffsetToSize.get(entry.getKey());
                   // if newSize == null the offset was shortened
                   // if !newSize.equals(entry.getValue()) the length was shortened
-                  return newSize == null || !newSize.equals(entry.getValue());
+                  return !newEdgesWithZeroOffsetToSize.containsKey(entry.getKey())
+                      || !newEdgesWithZeroOffsetToSize.get(entry.getKey()).equals(entry.getValue());
                 });
     if (applyUpdate) {
       status = status.updateWith(pNewStatus);
@@ -183,7 +182,7 @@ public class SMGJoinFields {
     // 2c)
     FluentIterable<SMGHasValueEdge> obj2EdgesWithoutZero =
         pSmg2.getHasValueEdgesByPredicate(
-            obj1,
+            obj2,
             edge -> {
               if (edge.hasValue().isZero()) {
                 return false;
@@ -209,11 +208,14 @@ public class SMGJoinFields {
       Entry<BigInteger, BigInteger> pEntry,
       PersistentSortedMap<BigInteger, BigInteger> pMap) {
     return FluentIterable
-        .from(pMap.subMap(pEntry.getKey(), pEntry.getKey().add(pEntry.getValue())).entrySet())
+        .from(
+            pMap.subMap(pEntry.getKey(), true, pEntry.getKey().add(pEntry.getValue()), false)
+                .entrySet())
         .transform(
             next -> {
               BigInteger resultOffset = pEntry.getKey().max(next.getKey());
-              BigInteger resultSize = pEntry.getValue().max(next.getValue());
+              BigInteger resultSize =
+                  pEntry.getKey().add(pEntry.getValue()).min(next.getKey().add(next.getValue()));
               return new SMGHasValueEdge(SMGValue.zeroValue(), resultSize, resultOffset);
             });
   }
