@@ -46,14 +46,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysis implements Task {
-  // Todo: Load in factory and reuse across instances
   private static volatile Configuration forward = null;
 
   private final Block block;
@@ -66,17 +64,13 @@ public class ForwardAnalysis implements Task {
 
   private final FormulaManagerView formulaManager;
 
-  private final PathFormulaManager pathFormulaManager;
-
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Forward Config")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 
-  // Todo: Create in factory and reuse across instances
   private Algorithm algorithm = null;
 
-  // Todo: Create in factory and reuse across instances
   private BlockAwareCompositeCPA cpa = null;
 
   public ForwardAnalysis(
@@ -130,7 +124,6 @@ public class ForwardAnalysis implements Task {
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
     formulaManager = predicateCPA.getSolver().getFormulaManager();
-    pathFormulaManager = predicateCPA.getPathFormulaManager();
 
     Precision precision =
         ((ConfigurableProgramAnalysis) cpa).getInitialPrecision(blockEntry, getDefaultPartition());
