@@ -178,7 +178,7 @@ public abstract class ErrorTracePrinter {
     String concat;
     if (type instanceof CCompositeType) {
       // It includes declarations of all fields
-      concat = ((CCompositeType) type).getQualifiedName() + "_" + id.toString();
+      concat = ((CCompositeType) type).getQualifiedName() + " " + id.toString();
     } else if (type instanceof CElaboratedType) {
       String typeName = ((CElaboratedType) type).getQualifiedName();
       if (typeName.contains("anonstruct") || typeName.contains("anonunion")) {
@@ -186,15 +186,15 @@ public abstract class ErrorTracePrinter {
         // if it have different declaration, thus, remove the number
         typeName = typeName.replaceAll("_(\\d)*$", "");
       }
-      concat = typeName + "_" + id.toString();
+      concat = typeName + " " + id.toString();
     } else {
-      concat = id.getType().toASTString("_" + id.toString());
+      concat = id.getType().toASTString(id.toString());
     }
     if (concat.contains("cif_")) {
       // CIF also adds numbers of instrumented functions randomly, and Klever cannot match them
       concat = concat.replaceAll("\\d", "");
     }
-    return concat;// .replace(" ", "_");
+    return concat;
   }
 
   public void printErrorTraces(UsageReachedSet uReached) {

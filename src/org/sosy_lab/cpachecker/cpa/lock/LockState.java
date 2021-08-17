@@ -113,6 +113,23 @@ public final class LockState extends AbstractLockState {
     public boolean addAll(LockTreeNode pNode) {
       return locks.addAll(pNode.locks);
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(locks);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || !(obj instanceof LockTreeNode)) {
+        return false;
+      }
+      LockTreeNode other = (LockTreeNode) obj;
+      return Objects.equals(locks, other.locks);
+    }
   }
 
   public class LockStateBuilder extends AbstractLockStateBuilder {
