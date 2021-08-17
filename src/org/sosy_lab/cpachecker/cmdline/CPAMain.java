@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @SuppressForbidden("System.out in this class is ok")
@@ -119,7 +118,6 @@ public class CPAMain {
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
-    GlobalInfo.getInstance().storeLogManager(logManager);
 
     // create everything
     final ShutdownManager shutdownManager = ShutdownManager.create();

@@ -124,7 +124,8 @@ public class PredicateCPARefinerFactory {
 
     PrefixProvider prefixProvider =
         new PredicateBasedPrefixProvider(config, logger, solver, shutdownNotifier);
-    PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
+    PrefixSelector prefixSelector =
+        new PrefixSelector(variableClassification, loopStructure, logger);
 
     InterpolationManager interpolationManager =
         new InterpolationManager(
