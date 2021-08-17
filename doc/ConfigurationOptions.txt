@@ -179,9 +179,6 @@ algorithm.parallelBam.runningRSESeriesFile = "RSESeries.csv"
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false
 
-# use CBMC as an external tool from CPAchecker
-analysis.algorithm.CBMC = false
-
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
@@ -690,22 +687,8 @@ bmc.usePropertyDirection = false
 # pre-processor on the file.
 cbmc.dumpCBMCfile = no default value
 
-# specify the name of the error label
-cbmc.options.errorLabel = "ERROR"
-
-# set width of int (16, 32 or 64)
-cbmc.options.intWidth = 32
-
-# disable unwinding assertions violation error
-cbmc.options.nuaf = false
-
-# specify the limit for unwindings (0 is infinite)
-cbmc.options.unwindings = 0
-
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-cbmc.timelimit = 0
 cbmc.timelimit = 0ms
 
 # continue analysis after a failed refinement (e.g. due to interpolation)

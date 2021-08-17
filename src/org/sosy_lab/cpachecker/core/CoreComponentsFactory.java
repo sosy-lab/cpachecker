@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
@@ -305,12 +304,6 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.CBMC",
-      description = "use CBMC as an external tool from CPAchecker")
-  boolean runCBMCasExternalTool = false;
-
-  @Option(
-      secure = true,
       name = "algorithm.faultLocalization.by_coverage",
       description = "for found property violation, perform fault localization with coverage")
   private boolean useFaultLocalizationWithCoverage = false;
@@ -387,7 +380,6 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && !runCBMCasExternalTool
         && (useBMC || useIMC);
   }
 
@@ -439,13 +431,6 @@ public class CoreComponentsFactory {
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
-
-    } else if (runCBMCasExternalTool) {
-      if (cfa.getFileNames().size() > 1) {
-        throw new InvalidConfigurationException(
-            "Cannot use CBMC as analysis with more than one input file");
-      }
-      algorithm = new ExternalCBMCAlgorithm(cfa.getFileNames().get(0), config, logger);
 
     } else if (useParallelAlgorithm) {
       algorithm =
