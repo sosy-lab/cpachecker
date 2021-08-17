@@ -100,7 +100,17 @@ public class ForwardAnalysis implements Task {
         new CoreComponentsFactory(
             forward, logManager, pShutdownNotifier, new AggregatedReachedSets());
     reached = factory.createReachedSet();
+
     CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, pSpecification);
+
+    if (compositeCpa.retrieveWrappedCpa(PredicateCPA.class) == null) {
+      throw new InvalidConfigurationException(
+          "Forward analysis requires a composite CPA with predicateCPA as component CPA.");
+    }
+    if (compositeCpa.retrieveWrappedCpa(LocationCPA.class) == null) {
+      throw new InvalidConfigurationException(
+          "Forward analysis requires a composite CPA with locationCPA as component CPA.");
+    }
 
     cpa =
         (BlockAwareCompositeCPA)
@@ -236,17 +246,12 @@ public class ForwardAnalysis implements Task {
       }
 
       LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
-      if (location == null) {
-        throw new CPAException("ForwardAnalysis requires a composite CPA with LocationCPA");
-      }
+      assert location != null;
 
       if (block.getExits().containsKey(location.getLocationNode())) {
         PredicateAbstractState predicateState =
             AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-
-        if (predicateState == null) {
-          throw new CPAException("ForwardAnalysis requires a composite CPA with PredicateCPA");
-        }
+        assert predicateState != null;
 
         BooleanFormula exitFormula = predicateState.getPathFormula().getFormula();
 
