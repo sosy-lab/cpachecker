@@ -46,16 +46,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysis implements Task {
-  @SuppressWarnings("FieldMayBeFinal")
-  @Option(description = "Forward Config")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path configFile = null;
+  // Todo: Load in factory and reuse across instances
+  private static volatile Configuration forward = null;
 
   private final Block block;
 
@@ -65,16 +64,20 @@ public class ForwardAnalysis implements Task {
 
   private final LogManager logManager;
 
-  // Todo: Load in factory and reuse across instances
-  private static volatile Configuration forward = null;
+  private final FormulaManagerView formulaManager;
+
+  private final PathFormulaManager pathFormulaManager;
+
+  @SuppressWarnings("FieldMayBeFinal")
+  @Option(description = "Forward Config")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path configFile = null;
 
   // Todo: Create in factory and reuse across instances
   private Algorithm algorithm = null;
 
   // Todo: Create in factory and reuse across instances
-  private WrapperCPA cpa = null;
-
-  private FormulaManagerView formulaManager = null;
+  private BlockAwareCompositeCPA cpa = null;
 
   public ForwardAnalysis(
       final Block pBlock,
@@ -100,7 +103,7 @@ public class ForwardAnalysis implements Task {
     CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, pSpecification);
 
     cpa =
-        (WrapperCPA)
+        (BlockAwareCompositeCPA)
             BlockAwareCompositeCPA.factory()
                 .setConfiguration(forward)
                 .setLogger(pLogger)
@@ -110,20 +113,14 @@ public class ForwardAnalysis implements Task {
                 .set(compositeCpa, CompositeCPA.class)
                 .createInstance();
 
-    algorithm =
-        new CPAAlgorithmFactory(
-                (ConfigurableProgramAnalysis) cpa, pLogger, forward, pShutdownNotifier)
-            .newInstance();
+    algorithm = new CPAAlgorithmFactory(cpa, pLogger, forward, pShutdownNotifier).newInstance();
 
     final CFANode blockEntry = block.getEntry();
-    // PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    // Precision predicatePrecision = predicateCPA.getInitialPrecision(blockEntry,
-    // getDefaultPartition());
-    // LocationCPA locationCPA = cpa.retrieveWrappedCpa(LocationCPA.class);
-    // Precision locationPrecision = locationCPA.getInitialPrecision(blockEntry,
-    // getDefaultPartition());
-    // CompositePrecision precision = new CompositePrecision(List.of(locationPrecision,
-    // predicatePrecision));
+
+    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
+    assert predicateCPA != null;
+    formulaManager = predicateCPA.getSolver().getFormulaManager();
+    pathFormulaManager = predicateCPA.getPathFormulaManager();
 
     Precision precision =
         ((ConfigurableProgramAnalysis) cpa).getInitialPrecision(blockEntry, getDefaultPartition());
