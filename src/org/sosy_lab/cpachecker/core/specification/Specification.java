@@ -68,32 +68,21 @@ public final class Specification {
       if (pProperties.size() == 1) {
         SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
         if (specProp.getProperty() instanceof LabelledFormula) {
-          try {
-            LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
-            Scope scope =
-                cfa.getLanguage() == Language.C
-                    ? new CProgramScope(cfa, logger)
-                    : DummyScope.getInstance();
-            Automaton automaton =
-                Ltl2BuechiConverter.convertFormula(
-                    formula,
-                    specProp.getEntryFunction(),
-                    config,
-                    logger,
-                    cfa.getMachineModel(),
-                    scope,
-                    pShutdownNotifier);
-            return new Specification(
-                pProperties,
-                ImmutableListMultimap.of(Path.of(""), automaton));
-          } catch (InterruptedException e) {
-            throw new InvalidConfigurationException(
-                String.format(
-                    "Error when executing the external tool '%s': %s",
-                    Ltl2BuechiConverter.getNameOfExecutable(),
-                    e.getMessage()),
-                e);
-          }
+          LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
+          Scope scope =
+              cfa.getLanguage() == Language.C
+                  ? new CProgramScope(cfa, logger)
+                  : DummyScope.getInstance();
+          Automaton automaton =
+              Ltl2BuechiConverter.convertFormula(
+                  formula,
+                  specProp.getEntryFunction(),
+                  config,
+                  logger,
+                  cfa.getMachineModel(),
+                  scope,
+                  pShutdownNotifier);
+          return new Specification(pProperties, ImmutableListMultimap.of(Path.of(""), automaton));
         }
       }
       return new Specification(pProperties, ImmutableListMultimap.of());
