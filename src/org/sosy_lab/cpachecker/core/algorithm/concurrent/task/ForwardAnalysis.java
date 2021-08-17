@@ -248,6 +248,6 @@ public class ForwardAnalysis implements Task {
     }
 
     logManager.log(Level.INFO, "Completed ForwardAnalysis on ", block);
-    return status;
+    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
   }
 }
