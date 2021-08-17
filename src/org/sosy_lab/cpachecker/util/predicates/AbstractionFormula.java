@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
  * Instances of this class should hold a state formula (the result of an
@@ -61,7 +60,6 @@ public class AbstractionFormula implements Serializable {
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final transient int id = idGenerator.getFreshId();
-  private final transient BooleanFormulaManager mgr;
   private final transient FormulaManagerView fMgr;
   private final transient ImmutableSet<Integer> idsOfStoredAbstractionReused;
 
@@ -71,7 +69,6 @@ public class AbstractionFormula implements Serializable {
       BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula,
       Set<Integer> pIdOfStoredAbstractionReused) {
     this.fMgr = checkNotNull(mgr);
-    this.mgr = checkNotNull(mgr.getBooleanFormulaManager());
     this.region = checkNotNull(pRegion);
     this.formula = checkNotNull(pFormula);
     this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
@@ -95,11 +92,11 @@ public class AbstractionFormula implements Serializable {
   }
 
   public boolean isTrue() {
-    return mgr.isTrue(formula);
+    return fMgr.getBooleanFormulaManager().isTrue(formula);
   }
 
   public boolean isFalse() {
-    return mgr.isFalse(formula);
+    return fMgr.getBooleanFormulaManager().isFalse(formula);
   }
 
   public @Nullable Region asRegion() {
