@@ -112,7 +112,7 @@ public class CPABuilder {
     // 1. Parse config
     final CPAConfig rootCpaConfig = collectCPAConfigs(CPA_OPTION_NAME, cpaName);
     final FluentIterable<CPAConfig> allCpaConfigs =
-        from(Traverser.forTree(CPAConfig::getAllChildren).depthFirstPreOrder(rootCpaConfig));
+        from(Traverser.forTree(CPAConfig::getAllChildren).depthFirstPostOrder(rootCpaConfig));
 
     // 2. Sanity checks
 
@@ -147,7 +147,7 @@ public class CPABuilder {
       // default "cpa = cpa.composite.CompositeCPA" option exists and could be made stricter,
       // but is currently implemented as is for backwards compatibility.
       CPAConfig insertionPoint =
-          allCpaConfigs // has depth-first pre-order!
+          allCpaConfigs // has depth-first post-order!
               .firstMatch(
                   cpa ->
                       !cpa.children.isEmpty()
