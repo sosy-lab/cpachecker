@@ -18,6 +18,7 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -361,7 +362,35 @@ public class SMG {
     return new SMGandValue(newSMG, newValue);
   }
 
+  /**
+   * Remove one or more SMGHasValueEdges and return the new SMG. All edges from the specified object
+   * that overlapp the given field (offset and size) that are non-zero are removed.
+   *
+   * @param object The SMGObject for which overlapping non-zero hasValueEdges should be removed from
+   *     this SMG.
+   * @param offset The offset (beginning) of the interval in which covering edges are removed.
+   * @param sizeInBits The size (offset + size = ending) for which covering edges are removed.
+   * @return A SMG with the overlapping non-zero SMGHasValueEdges removed.
+   */
+  @SuppressWarnings("unused")
+  private SMG removeNonZeroOverlappingHasValueEdges(
+      SMGObject object, BigInteger offset, BigInteger sizeInBits) {
+    final BigInteger offsetPlusSize = offset.add(sizeInBits);
+    PersistentSet<SMGHasValueEdge> edges = hasValueEdges.get(object);
+    // TODO: Is there a better way of deleting the edges?
+    final PersistentSet<SMGHasValueEdge> nonOverlappingHVEdges =
+        edges
+            .stream()
+            .dropWhile(
+                v ->
+                    v.getOffset().add(v.getSizeInBits()).compareTo(offset) <= 0
+                        || offsetPlusSize.compareTo(v.getOffset()) <= 0)
+            .collect(Collectors.toCollection(PersistentSet::new));
 
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> nonOverlappingMap =
+        hasValueEdges.removeAndCopy(object).putAndCopy(object, nonOverlappingHVEdges);
+    return new SMG(smgObjects, smgValues, nonOverlappingMap, pointsToEdges, sizeOfPointer);
+  }
 
   /**
    * TODO: Check this method again once we can test the entire system! Why? Because in my opinion
