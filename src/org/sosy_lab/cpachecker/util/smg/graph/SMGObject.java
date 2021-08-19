@@ -13,8 +13,8 @@ import org.sosy_lab.common.UniqueIdGenerator;
 
 public class SMGObject implements SMGNode, Comparable<SMGObject> {
 
-  private static final SMGObject NULL_OBJECT = new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO);
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
+  private static final SMGObject NULL_OBJECT = new SMGObject(0, BigInteger.ZERO, BigInteger.ZERO);
 
   private int nestingLevel;
   private final BigInteger size;
