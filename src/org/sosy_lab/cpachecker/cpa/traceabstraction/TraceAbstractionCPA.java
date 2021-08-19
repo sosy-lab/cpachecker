@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -36,10 +36,18 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   @SuppressWarnings("resource")
   private TraceAbstractionCPA(
-      ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     super(pCpa);
-    Preconditions.checkArgument(
-        pCpa instanceof PredicateCPA, "Child-CPA is required to be an instance of PredicateCPA");
+    if (!(pCpa instanceof PredicateCPA)) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "%s\n%s",
+              "TraceAbstractionCPA is a wrapper CPA that requires the contained CPA to be an "
+                  + "instance of PredicateCPA. This can be achieved by putting the following option "
+                  + "in your configuration file: ",
+              "TraceAbstractionCPA.cpa = cpa.predicate.PredicateCPA"));
+    }
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
