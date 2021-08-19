@@ -399,6 +399,109 @@ public class SMG {
     return new SMGandValue(newSMG, newValue);
   }
 
+  /**
+   * Returns a SMG with a write reinterpretation of the current SMG. Essentially just writes a value
+   * to the given object and field. The reinterpretation removes other values from the field. This
+   * is done by either removing a HasValueEdge completely, or reintroducing a new one, covering only
+   * the parts outside of the field.
+   *
+   * @param object The object in which the field lies.
+   * @param offset The offset (beginning of the field).
+   * @param sizeInBits Size in bits of the field.
+   * @param value The value to be written into the field.
+   * @return A SMG with the value at the specified position.
+   */
+  public SMG writeValue(
+      SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
+    // Check that our field is inside the object: offset + sizeInBits <= size(object)
+    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+    BigInteger offsetPlusSize = offset.add(sizeInBits);
+
+    // If there exists a hasValueEdge in the specified object, with the specified field that equals
+    // the specified value, simply return the original SMG
+    Optional<SMGHasValueEdge> hvEdge =
+        this.getHasValueEdgeByPredicate(
+            object,
+            o ->
+                o.getOffset().compareTo(offset) == 0
+                    && o.getSizeInBits().compareTo(sizeInBits) == 0);
+    if (hvEdge.isPresent() && hvEdge.orElseThrow().hasValue().equals(value)) {
+      return this;
+    }
+    // Add the value to the Values present in this SMG
+    SMG newSMG = this.copyAndAddValue(value);
+    // Remove all HasValueEdges from the object with non-zero values overlapping with the given
+    // field.
+    Set<SMGHasValueEdge> nonZeroOverlappingEdges =
+        newSMG.getAllHasValueEdgesByPredicate(
+            object,
+            n ->
+                !(n.getOffset().add(n.getSizeInBits()).compareTo(offset) <= 0
+                    || offsetPlusSize.compareTo(n.getOffset()) <= 0));
+    newSMG = newSMG.copyAndRemoveHVEdges(nonZeroOverlappingEdges, object);
+    if (!value.isZero()) {
+      // If the value is non-zero, then for each hasValueEdge with a zero value, remove the edge,
+      // and reintroduce new edges not overlapping with the field.
+      newSMG = newSMG.cutZeroValueEdgesToField(object, offset, sizeInBits);
+    }
+    // Add the SMGHasValueEdge leading from the object to the field given with the value given to
+    // the new SMG and return it.
+    SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
+    return newSMG.copyAndAddHVEdge(newHVEdge, object);
+  }
+
+  /**
+   * Removes all zero value HasValueEdges overlapping with the given field [offset; offset + size)
+   * and reintroduces new zero value edges for removed edges that exceeded the boundries of the
+   * field, but only outside the field. A new SMG is returned with the changes.
+   *
+   * @param object The object in which the field is located.
+   * @param offset Offset in bits.
+   * @param sizeInBits Size in bits.
+   * @return A new SMG with the overlapping zero edges removed.
+   */
+  private SMG cutZeroValueEdgesToField(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
+    final BigInteger offsetPlusSize = offset.add(sizeInBits);
+    PersistentSet<SMGHasValueEdge> toRemoveEdgesSet = PersistentSet.of();
+    PersistentSet<SMGHasValueEdge> toAddEdgesSet = PersistentSet.of();
+
+    for (SMGHasValueEdge hvEdge : hasValueEdges.get(object)) {
+      final BigInteger hvEdgeOffsetPlusSize = hvEdge.getOffset().add(hvEdge.getSizeInBits());
+      // Overlapping zero value edges
+      if (hvEdge.hasValue().equals(SMGValue.zeroValue())
+          && hvEdge.getOffset().compareTo(offsetPlusSize) < 0
+          && hvEdgeOffsetPlusSize.compareTo(offset) > 0) {
+        toRemoveEdgesSet = toRemoveEdgesSet.addAndCopy(hvEdge);
+
+        if (hvEdge.getOffset().compareTo(offset) < 0) {
+          final BigInteger newSize = calculateBytePreciseSize(offset, hvEdge.getOffset());
+          SMGHasValueEdge newLowerEdge =
+              new SMGHasValueEdge(SMGValue.zeroValue(), newSize, hvEdge.getOffset());
+          toAddEdgesSet = toAddEdgesSet.addAndCopy(newLowerEdge);
+        }
+
+        if (offsetPlusSize.compareTo(hvEdgeOffsetPlusSize) < 0) {
+          final BigInteger newSize = calculateBytePreciseSize(hvEdgeOffsetPlusSize, offsetPlusSize);
+          SMGHasValueEdge newUpperEdge =
+              new SMGHasValueEdge(SMGValue.zeroValue(), newSize, offsetPlusSize);
+          toAddEdgesSet = toAddEdgesSet.addAndCopy(newUpperEdge);
+        }
+      }
+    }
+
+    return copyAndRemoveHVEdges(toRemoveEdgesSet, object).copyAndSetHVEdges(toAddEdgesSet, object);
+  }
+
+  /**
+   * Calculates Byte precise the size of new SMGHasValueEdges.
+   * This is needed as sizes used by us are bit precise and we need it only byte precise.
+   * It works by subtracting the second from the first and then rounding it up to match byte sizes.
+   * This works under the assumption that the beginning and ends of each field are byte precise!
+   *
+   * @param first The precision in bits that will be subtracted upon.
+   * @param second The precision that will be subtracted from first.
+   * @return (first - second) rounded up to byte precision.
+   */
   private BigInteger calculateBytePreciseSize(BigInteger first, BigInteger second) {
     BigInteger subtracted = first.subtract(second);
     BigInteger modulo = subtracted.mod(BigInteger.valueOf(8));
