@@ -336,7 +336,7 @@ public class SMG {
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
     // Check if multiple edges may exists for the same offset and size!
     Predicate<SMGHasValueEdge> filterByOffsetAndSize =
-        o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits);
+        o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
     Optional<SMGHasValueEdge> maybeValue =
         this.getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
 
@@ -361,6 +361,8 @@ public class SMG {
     return new SMGandValue(newSMG, newValue);
   }
 
+
+
   /**
    * TODO: Check this method again once we can test the entire system! Why? Because in my opinion
    * one can interpret the specification of this method in 2 ways: 1. The field to be checked
@@ -381,25 +383,29 @@ public class SMG {
    */
   @SuppressWarnings("unused")
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
-    NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap = getNullEdgesForObject(object);
-    // We start at the beginning of the object itself, as the null edges may be larger than our
-    // field.
+    NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap =
+        getZeroValueEdgesForObject(object, offset, size);
+    // We start at the first value equalling zero in the object itself. To not read potentially
+    // invalid memory, the first SMGHasValueEdge has to equal the offset, while only a single offset
+    // + size in the map(=HasValueEdges) has to equal the offset + size of the field to be read.
     BigInteger currentMax = nullEdgesRangeMap.firstKey();
     // The first edge offset can't cover the entire field if it begins after the obj offset!
     if (currentMax.compareTo(offset) > 0) {
       return false;
     }
     BigInteger offsetPlusSize = offset.add(size);
+    currentMax = nullEdgesRangeMap.get(currentMax);
     // TreeMaps keySet is ordered!
     for (Map.Entry<BigInteger, BigInteger> entry : nullEdgesRangeMap.entrySet()) {
-      // The max encountered yet has to be bigger or eq to the next key.
+      // The max encountered yet has to be bigger to the next key.
+      // ( > because the size begins with the offset and does not include the offset + size bit!)
       if (currentMax.compareTo(entry.getKey()) > 0) {
         return false;
       }
       currentMax = currentMax.max(entry.getValue());
       // If there are no gaps,
-      // the max encountered has to be >= offset + size at some point.
-      if (currentMax.compareTo(offsetPlusSize) >= 0) {
+      // the max encountered has to be == offset + size at some point.
+      if (currentMax.compareTo(offsetPlusSize) == 0) {
         return true;
       }
     }
@@ -408,26 +414,27 @@ public class SMG {
   }
 
   /**
-   * Returns the sorted Map<offset, max size> of SMGHasValueEdge of NullObjects that cover the
-   * entered SMGObject somewhere. Only edges that do not exceed the boundries of the object are
-   * used. It always defaults to the max size, such that no smaller size for a offset exists.
-   * Example: <0, 16> and <0, 24> would result in <0, 24>.
+   * Returns the sorted Map<offset, max size> of SMGHasValueEdge of values equaling zero that cover
+   * the entered SMGObject somewhere. Only edges that do not exceed the boundries of the range
+   * offset to offset + size are used. It always defaults to the max size, such that no smaller size
+   * for a offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
    *
    * @param smgObject The SMGObject one wants to check for covering NullObjects.
    * @return TreeMap<offset, max size> of covering edges.
    */
-  private ImmutableSortedMap<BigInteger, BigInteger> getNullEdgesForObject(SMGObject smgObject) {
-    BigInteger offset = smgObject.getOffset();
-    BigInteger offsetPlusSize = smgObject.getSize().add(offset);
+  private ImmutableSortedMap<BigInteger, BigInteger> getZeroValueEdgesForObject(
+      SMGObject smgObject, BigInteger offset, BigInteger sizeInBits) {
+    BigInteger offsetPlusSize = offset.add(sizeInBits);
     // Both inequalities have to hold, else one may read invalid memory outside of the object!
     // ObjectOffset <= HasValueEdgeOffset
     // HasValueEdgeOffset + HasValueEdgeSize <= ObjectOffset + ObjectSize
     return hasValueEdges
-        .get(SMGObject.nullInstance())
+        .get(smgObject)
         .stream()
         .filter(
             n ->
-                offset.compareTo(n.getOffset()) <= 0
+                n.hasValue().isZero()
+                    && offset.compareTo(n.getOffset()) <= 0
                     && offsetPlusSize.compareTo(n.getOffset().add(n.getSizeInBits())) >= 0)
         .collect(
             ImmutableSortedMap.toImmutableSortedMap(
