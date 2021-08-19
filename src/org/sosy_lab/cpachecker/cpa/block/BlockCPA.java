@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
@@ -27,7 +28,7 @@ public class BlockCPA extends AbstractCPA {
   private CFANode startNode;
 
   public BlockCPA(LocationStateFactory pStateFactory) {
-    super("sep", "sep", new BlockTransferRelation(pStateFactory));
+    super("join", "sep", new BlockTransferRelation(pStateFactory));
     factory = pStateFactory;
   }
 
@@ -36,6 +37,10 @@ public class BlockCPA extends AbstractCPA {
     TransferRelation relation = getTransferRelation();
     checkArgument(relation instanceof BlockTransferRelation, "Expected BlockTransferRelation but got " + relation.getClass());
     ((BlockTransferRelation)relation).init(pBlockNode);
+  }
+
+  public static CPAFactory factory() {
+    return new BlockCPAFactory();
   }
 
   @Override
