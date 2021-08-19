@@ -42,7 +42,9 @@ public class SMGProveNequality {
   public boolean proveInequality(SMGValue value1, SMGValue value2) {
     checkArgument(
         value1.getNestingLevel() == 0 && value2.getNestingLevel() == 0,
-        value1 + " or " + value2 + " is not on level 0");
+        "%s or %s is not on level 0",
+        value1,
+        value2);
     if (value1.equals(value2)) {
       return false;
     }
@@ -132,8 +134,8 @@ public class SMGProveNequality {
       } else {
         checkArgument(
             pointerEdge.targetSpecifier().equals(SMGTargetSpecifier.IS_LAST_POINTER),
-            "Inconsisntent SMG found: DLLS pointer with SMGTargetSpecifier: "
-                + pointerEdge.targetSpecifier().name());
+            "Inconsisntent SMG found: DLLS pointer with SMGTargetSpecifier: %s",
+            pointerEdge.targetSpecifier().name());
         retValue = findHVETargetValue(dlls, dlls.getPrevOffset(), smg.getSizeOfPointer());
       }
       ptoOptional = smg.getPTEdge(retValue);
@@ -157,13 +159,10 @@ public class SMGProveNequality {
             edge -> edge.getOffset().equals(pOffset) && edge.getSizeInBits().equals(pSize));
     checkArgument(
         hveOptional.isPresent(),
-        "No pointer for DLLS "
-            + dlls
-            + " with offset "
-            + pOffset
-            + " and Size "
-            + pSize
-            + " found.");
+        "No pointer for DLLS %s with offset %s and Size %s found.",
+        dlls,
+        pOffset,
+        pSize);
     return hveOptional.orElseThrow().hasValue();
   }
 
