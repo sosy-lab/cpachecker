@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.smg;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -18,7 +19,6 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -38,6 +38,10 @@ import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
  */
 public class SMG {
   // TODO I don't like using utility implementations of the old SMG analysis
+  // Some ideas: Implement a PathCopying Map with multiple nested Maps that uses object, offset and
+  // size as keys?
+  // Save the SMGHasValueEdges with a zero value and null-objects separately.
+
   private final PersistentMap<SMGObject, Boolean> smgObjects;
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
@@ -159,6 +163,26 @@ public class SMG {
         smgObjects,
         smgValues,
         hasValueEdges.putAndCopy(source, edges),
+        pointsToEdges,
+        sizeOfPointer);
+  }
+
+  /**
+   * Creates a copy of the SMG an removes the given has value edges.
+   *
+   * @param edges - the edges to be removed
+   * @param source - the source object
+   * @return a modified copy of the SMG
+   */
+  public SMG copyAndRemoveHVEdges(Set<SMGHasValueEdge> edges, SMGObject source) {
+    PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
+    for (SMGHasValueEdge edgeToRemove : edges) {
+      smgEdges = smgEdges.removeAndCopy(edgeToRemove);
+    }
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges.removeAndCopy(source).putAndCopy(source, smgEdges),
         pointsToEdges,
         sizeOfPointer);
   }
@@ -317,6 +341,19 @@ public class SMG {
   }
 
   /**
+   * This is a general method to get all SMGHasValueEdges by object and a filter predicate.
+   * Examples:
+   *
+   * @param object SMGObject for which the SMGHasValueEdges are searched.
+   * @param filter The filter predicate for SMGHasValueEdges.
+   * @return A potentially empty set of SMGHasValueEdges matching the predicate.
+   */
+  public Set<SMGHasValueEdge> getAllHasValueEdgesByPredicate(
+      SMGObject object, Predicate<SMGHasValueEdge> filter) {
+    return hasValueEdges.get(object).stream().filter(filter).collect(ImmutableSet.toImmutableSet());
+  }
+
+  /**
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
@@ -362,34 +399,13 @@ public class SMG {
     return new SMGandValue(newSMG, newValue);
   }
 
-  /**
-   * Remove one or more SMGHasValueEdges and return the new SMG. All edges from the specified object
-   * that overlapp the given field (offset and size) that are non-zero are removed.
-   *
-   * @param object The SMGObject for which overlapping non-zero hasValueEdges should be removed from
-   *     this SMG.
-   * @param offset The offset (beginning) of the interval in which covering edges are removed.
-   * @param sizeInBits The size (offset + size = ending) for which covering edges are removed.
-   * @return A SMG with the overlapping non-zero SMGHasValueEdges removed.
-   */
-  @SuppressWarnings("unused")
-  private SMG removeNonZeroOverlappingHasValueEdges(
-      SMGObject object, BigInteger offset, BigInteger sizeInBits) {
-    final BigInteger offsetPlusSize = offset.add(sizeInBits);
-    PersistentSet<SMGHasValueEdge> edges = hasValueEdges.get(object);
-    // TODO: Is there a better way of deleting the edges?
-    final PersistentSet<SMGHasValueEdge> nonOverlappingHVEdges =
-        edges
-            .stream()
-            .dropWhile(
-                v ->
-                    v.getOffset().add(v.getSizeInBits()).compareTo(offset) <= 0
-                        || offsetPlusSize.compareTo(v.getOffset()) <= 0)
-            .collect(Collectors.toCollection(PersistentSet::new));
-
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> nonOverlappingMap =
-        hasValueEdges.removeAndCopy(object).putAndCopy(object, nonOverlappingHVEdges);
-    return new SMG(smgObjects, smgValues, nonOverlappingMap, pointsToEdges, sizeOfPointer);
+  private BigInteger calculateBytePreciseSize(BigInteger first, BigInteger second) {
+    BigInteger subtracted = first.subtract(second);
+    BigInteger modulo = subtracted.mod(BigInteger.valueOf(8));
+    if (modulo.compareTo(BigInteger.ZERO) != 0) {
+      subtracted = subtracted.add(BigInteger.valueOf(8).subtract(modulo));
+    }
+    return subtracted;
   }
 
   /**
@@ -410,7 +426,6 @@ public class SMG {
    *     the field.
    * @return True if the field is indeed covered by nullified blocks. False else.
    */
-  @SuppressWarnings("unused")
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
     NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap =
         getZeroValueEdgesForObject(object, offset, size);
@@ -454,7 +469,10 @@ public class SMG {
   private ImmutableSortedMap<BigInteger, BigInteger> getZeroValueEdgesForObject(
       SMGObject smgObject, BigInteger offset, BigInteger sizeInBits) {
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    // Both inequalities have to hold, else one may read invalid memory outside of the object!
+    // TODO: Re-evaluate if edges exceeding the boundries of the field have to be used!
+    // FIT-TR-2013-4 appendix B states that they have to be used as well!
+    // Old idea: Both inequalities have to hold, else one may read invalid memory outside of the
+    // object!
     // ObjectOffset <= HasValueEdgeOffset
     // HasValueEdgeOffset + HasValueEdgeSize <= ObjectOffset + ObjectSize
     return hasValueEdges
