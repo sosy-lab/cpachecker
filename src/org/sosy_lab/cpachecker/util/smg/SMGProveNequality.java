@@ -43,6 +43,10 @@ public class SMGProveNequality {
     checkArgument(
         value1.getNestingLevel() == 0 && value2.getNestingLevel() == 0,
         value1 + " or " + value2 + " is not on level 0");
+    if (value1.equals(value2)) {
+      return false;
+    }
+
     ValueAndObjectSet targetValueAndReachedSet1 = lookThrough(value1);
     ValueAndObjectSet targetValueAndReachedSet2 = lookThrough(value2);
     // check if values are equal
