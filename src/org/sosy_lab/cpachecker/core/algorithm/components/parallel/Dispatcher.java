@@ -8,12 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class Dispatcher {
 
@@ -26,10 +33,11 @@ public class Dispatcher {
     outputStreams = new ConcurrentLinkedQueue<>();
   }
 
-  public synchronized Worker registerNodeAndGetWorker(BlockNode pNode, LogManager pLogger) {
+  public synchronized Worker registerNodeAndGetWorker(BlockNode pNode, LogManager pLogger, CFA pCFA, Specification pSpecification, Configuration pConfiguration, ShutdownManager pShutdownManager)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     BlockingQueue<Message> queue = new LinkedBlockingQueue<>();
     outputStreams.add(queue);
-    return new Worker(pNode, queue, inputStream, pLogger);
+    return new Worker(pNode, queue, inputStream, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager);
   }
 
   public void start() throws InterruptedException {
