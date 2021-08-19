@@ -73,13 +73,11 @@ public class SMG {
     sizeOfPointer = pSizeOfPointer;
   }
 
-
-
   /**
    * Creates a copy of the SMG an adds the given object.
    *
-   * @param pObject - the object to be added
-   * @return a modified copy of the SMG
+   * @param pObject - The object to be added.
+   * @return A modified copy of the SMG.
    */
   public SMG copyAndAddObject(SMGObject pObject) {
     return new SMG(
@@ -93,8 +91,8 @@ public class SMG {
   /**
    * Creates a copy of the SMG an adds the given value.
    *
-   * @param pValue - the object to be added
-   * @return a modified copy of the SMG
+   * @param pValue - The object to be added.
+   * @return A modified copy of the SMG.
    */
   public SMG copyAndAddValue(SMGValue pValue) {
     return new SMG(
@@ -108,9 +106,9 @@ public class SMG {
   /**
    * Creates a copy of the SMG an adds the given has value edge.
    *
-   * @param edge - the edge to be added
-   * @param source - the source object
-   * @return a modified copy of the SMG
+   * @param edge - The edge to be added.
+   * @param source - The source object.
+   * @return A modified copy of the SMG.
    */
   public SMG copyAndAddHVEdge(SMGHasValueEdge edge, SMGObject source) {
 
@@ -129,11 +127,11 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds the given points to edge.
+   * Creates a copy of the SMG an adds/replaces the given points to edge.
    *
-   * @param edge - the edge to be added
-   * @param source - the source value
-   * @return a modified copy of the SMG
+   * @param edge - The edge to be added/replaced.
+   * @param source - The source value.
+   * @return A modified copy of the SMG.
    */
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
 
@@ -150,9 +148,9 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an replaces the old edges with the given has value edges.
+   * Creates a copy of the SMG an adds/replaces the old edges with the given has value edges.
    *
-   * @param edges - the edges to be added.
+   * @param edges - the edges to be added/replaced.
    * @param source - the source object.
    * @return a modified copy of the SMG.
    */
@@ -183,9 +181,9 @@ public class SMG {
   /**
    * Creates a copy of the SMG an removes the given has value edges.
    *
-   * @param edges - the edges to be removed
-   * @param source - the source object
-   * @return a modified copy of the SMG
+   * @param edges - The edges to be removed.
+   * @param source - The source object.
+   * @return A modified copy of the SMG.
    */
   public SMG copyAndRemoveHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
     PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
@@ -201,11 +199,11 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG and adds the given points to edge.
+   * Creates a copy of the SMG and adds/replaces the given points to edge.
    *
-   * @param edge - the edge to be added
-   * @param source - the source value
-   * @return a modified copy of the SMG
+   * @param edge - The edge to be added/replaced.
+   * @param source - The source value.
+   * @return A modified copy of the SMG.
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
     return new SMG(
@@ -217,17 +215,15 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG and replaces a given edge with an other.
+   * Creates a copy of the SMG and replaces a given edge with another.
    *
-   * @param pSmgObject the source
-   * @param pOldEdge to be replaces
-   * @param pNewEdge replacement
-   * @return a copy of the graph with the replaced edge
+   * @param pSmgObject The source SMGObject.
+   * @param pOldEdge Edge to be replaced.
+   * @param pNewEdge Replacement edge.
+   * @return A copy of the graph with the replaced edge.
    */
   public SMG copyAndReplaceHVEdge(
-      SMGObject pSmgObject,
-      SMGHasValueEdge pOldEdge,
-      SMGHasValueEdge pNewEdge) {
+      SMGObject pSmgObject, SMGHasValueEdge pOldEdge, SMGHasValueEdge pNewEdge) {
     PersistentSet<SMGHasValueEdge> objEdges =
         hasValueEdges.get(pSmgObject).removeAndCopy(pOldEdge).addAndCopy(pNewEdge);
     return copyAndSetHVEdges(objEdges, pSmgObject);
@@ -236,9 +232,9 @@ public class SMG {
   /**
    * Creates a copy of the SMG and replaces given object by a given new.
    *
-   * @param pOldObject - the object to be replaced
-   * @param pNewObject - the replacement
-   * @return a modified copy
+   * @param pOldObject - The object to be replaced.
+   * @param pNewObject - The replacement object.
+   * @return A modified copy.
    */
   public SMG copyAndReplaceObject(SMGObject pOldObject, SMGObject pNewObject) {
     PersistentSet<SMGHasValueEdge> edges = hasValueEdges.get(pOldObject);
