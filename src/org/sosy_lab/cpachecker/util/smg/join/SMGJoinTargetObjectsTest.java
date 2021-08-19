@@ -38,9 +38,9 @@ public class SMGJoinTargetObjectsTest extends SMGJoinTest0 {
 
   @Before
   public void setUp() {
-    smg1 = new SMG();
-    smg2 = new SMG();
-    destSMG = new SMG();
+    smg1 = new SMG(mockType8bSize);
+    smg2 = new SMG(mockType8bSize);
+    destSMG = new SMG(mockType8bSize);
 
     mapping1 = new NodeMapping();
     mapping2 = new NodeMapping();

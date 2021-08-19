@@ -42,7 +42,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
         SMGJoinStatus.EQUAL,
         pSpc1.getSmg(),
         pSpc2.getSmg(),
-        new SMG(),
+        new SMG(pSpc1.getSmg().getSizeOfPointer()),
         new NodeMapping(),
         new NodeMapping());
     inputSPC1 = pSpc1;

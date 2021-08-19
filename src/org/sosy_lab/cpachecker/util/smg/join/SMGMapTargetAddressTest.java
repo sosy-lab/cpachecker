@@ -37,8 +37,8 @@ public class SMGMapTargetAddressTest extends SMGJoinTest0 {
 
   @Before
   public void setUp() {
-    smg1 = new SMG();
-    destSMG = new SMG();
+    smg1 = new SMG(mockType8bSize);
+    destSMG = new SMG(mockType8bSize);
     mapping1 = new NodeMapping();
     mapping2 = new NodeMapping();
   }

@@ -41,9 +41,10 @@ public class SMG {
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
   private final PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdges;
+  private final BigInteger sizeOfPointer;
 
   /** Creates a new, empty SMG */
-  public SMG() {
+  public SMG(BigInteger pSizeOfPointer) {
     hasValueEdges = PathCopyingPersistentTreeMap.of();
     smgValues = PersistentSet.of(SMGValue.zeroValue());
     PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentTreeMap.of();
@@ -52,19 +53,23 @@ public class SMG {
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
     PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap = PathCopyingPersistentTreeMap.of();
     pointsToEdges = pointsToEdgesTmpMap.putAndCopy(SMGValue.zeroValue(), nullPointer);
-
+    sizeOfPointer = pSizeOfPointer;
   }
 
   private SMG(
       PersistentMap<SMGObject, Boolean> pSmgObjects,
       PersistentSet<SMGValue> pSmgValues,
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
-      PersistentMap<SMGValue, SMGPointsToEdge> pPointsToEdges) {
+      PersistentMap<SMGValue, SMGPointsToEdge> pPointsToEdges,
+      BigInteger pSizeOfPointer) {
     smgObjects = pSmgObjects;
     smgValues = pSmgValues;
     hasValueEdges = pHasValueEdges;
     pointsToEdges = pPointsToEdges;
+    sizeOfPointer = pSizeOfPointer;
   }
+
+
 
   /**
    * Creates a copy of the SMG an adds the given object.
@@ -73,7 +78,12 @@ public class SMG {
    * @return a modified copy of the SMG
    */
   public SMG copyAndAddObject(SMGObject pObject) {
-    return new SMG(smgObjects.putAndCopy(pObject, true), smgValues, hasValueEdges, pointsToEdges);
+    return new SMG(
+        smgObjects.putAndCopy(pObject, true),
+        smgValues,
+        hasValueEdges,
+        pointsToEdges,
+        sizeOfPointer);
   }
 
   /**
@@ -83,7 +93,12 @@ public class SMG {
    * @return a modified copy of the SMG
    */
   public SMG copyAndAddValue(SMGValue pValue) {
-    return new SMG(smgObjects, smgValues.addAndCopy(pValue), hasValueEdges, pointsToEdges);
+    return new SMG(
+        smgObjects,
+        smgValues.addAndCopy(pValue),
+        hasValueEdges,
+        pointsToEdges,
+        sizeOfPointer);
   }
 
   /**
@@ -101,7 +116,12 @@ public class SMG {
 
     PersistentSet<SMGHasValueEdge> edges = hasValueEdges.getOrDefault(source, PersistentSet.of());
     edges = edges.addAndCopy(edge);
-    return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges.putAndCopy(source, edges),
+        pointsToEdges,
+        sizeOfPointer);
   }
 
   /**
@@ -117,7 +137,12 @@ public class SMG {
       return this;
     }
 
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edge));
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges,
+        pointsToEdges.putAndCopy(source, edge),
+        sizeOfPointer);
   }
 
   /**
@@ -129,7 +154,12 @@ public class SMG {
    */
   public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source) {
 
-    return new SMG(smgObjects, smgValues, hasValueEdges.putAndCopy(source, edges), pointsToEdges);
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges.putAndCopy(source, edges),
+        pointsToEdges,
+        sizeOfPointer);
   }
 
   /**
@@ -140,7 +170,12 @@ public class SMG {
    * @return a modified copy of the SMG
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdges.putAndCopy(source, edge));
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges,
+        pointsToEdges.putAndCopy(source, edge),
+        sizeOfPointer);
   }
 
   /**
@@ -187,7 +222,7 @@ public class SMG {
     PersistentMap<SMGObject, Boolean> newObjects =
         smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, true);
 
-    return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges);
+    return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges, sizeOfPointer);
   }
 
 
@@ -195,7 +230,7 @@ public class SMG {
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, false);
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pObject);
-    return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges);
+    return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges, sizeOfPointer);
   }
 
   /**
@@ -543,4 +578,10 @@ public class SMG {
         && Objects.equals(pointsToEdges, other.pointsToEdges)
         && Objects.equals(smgValues, other.smgValues);
   }
+
+  public BigInteger getSizeOfPointer() {
+    return sizeOfPointer;
+  }
+
+
 }

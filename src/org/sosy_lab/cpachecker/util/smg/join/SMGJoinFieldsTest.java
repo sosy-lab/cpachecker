@@ -39,8 +39,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
   @Before
   public void setUp() {
-    smg1 = new SMG();
-    smg2 = new SMG();
+    smg1 = new SMG(mockType16bSize);
+    smg2 = new SMG(mockType16bSize);
   }
 
   @Test
@@ -449,8 +449,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
    */
   @Test
   public void nonMemberObjectTest1() {
-    SMG smg3 = new SMG();
-    SMG smg4 = new SMG();
+    SMG smg3 = new SMG(mockType32bSize);
+    SMG smg4 = new SMG(mockType32bSize);
 
     SMGObject obj1 = createRegion(mockType32bSize);
     SMGObject obj2 = createRegion(mockType32bSize);
@@ -463,8 +463,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
   @Test
   public void nonMemberObjectTest2() {
-    SMG smg3 = new SMG();
-    SMG smg4 = new SMG();
+    SMG smg3 = new SMG(mockType32bSize);
+    SMG smg4 = new SMG(mockType32bSize);
 
     SMGObject obj1 = createRegion(mockType32bSize);
     SMGObject obj2 = createRegion(mockType32bSize);

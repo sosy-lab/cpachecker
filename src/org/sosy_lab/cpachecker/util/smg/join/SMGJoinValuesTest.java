@@ -33,9 +33,9 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
   @Before
   public void setUp() {
-    smg1 = new SMG();
-    smg2 = new SMG();
-    smgDest = new SMG();
+    smg1 = new SMG(mockType8bSize);
+    smg2 = new SMG(mockType8bSize);
+    smgDest = new SMG(mockType8bSize);
 
     mapping1 = new NodeMapping();
     mapping2 = new NodeMapping();

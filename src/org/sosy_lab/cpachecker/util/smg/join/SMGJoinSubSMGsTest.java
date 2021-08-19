@@ -27,9 +27,9 @@ public class SMGJoinSubSMGsTest extends SMGJoinTest0 {
     SMGObject obj1 = createRegion(64);
     SMGObject obj2 = createRegion(64);
 
-    SMG smg1 = new SMG().copyAndAddObject(obj1);
-    SMG smg2 = new SMG().copyAndAddObject(obj2);
-    SMG destSmg = new SMG();
+    SMG smg1 = new SMG(mockType4bSize).copyAndAddObject(obj1);
+    SMG smg2 = new SMG(mockType4bSize).copyAndAddObject(obj2);
+    SMG destSmg = new SMG(mockType4bSize);
 
     NodeMapping mapping1 = new NodeMapping();
     NodeMapping mapping2 = new NodeMapping();
