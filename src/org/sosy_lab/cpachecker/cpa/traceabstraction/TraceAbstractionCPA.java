@@ -8,116 +8,69 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.SingleWrapperPrecision;
+import org.sosy_lab.cpachecker.core.defaults.SingleWrappingStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeCPAEnabledAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
-public class TraceAbstractionCPA extends AbstractCPA {
+public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TraceAbstractionCPA.class);
   }
 
-  private final FormulaManagerView formulaManagerView;
-  private final PredicateAbstractionManager predicateAbstractionManager;
-
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final InterpolationSequenceStorage itpSequenceStorage;
 
+  private final PredicateAbstractionManager predicateManager;
+
   @SuppressWarnings("resource")
   private TraceAbstractionCPA(
-      Configuration pConfig, CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-    super("SEP", "SEP", null);
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+    super(pCpa);
+    Preconditions.checkArgument(
+        pCpa instanceof PredicateCPA, "Child-CPA is required to be an instance of PredicateCPA");
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     itpSequenceStorage = new InterpolationSequenceStorage();
 
-    Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
-    formulaManagerView = solver.getFormulaManager();
-
-    RegionManager regionManager = new BDDManagerFactory(pConfig, pLogger).createRegionManager();
-    AbstractionManager abstractionManager =
-        new AbstractionManager(regionManager, pConfig, pLogger, solver);
-
-    PathFormulaManager pathFormulaManager =
-        new PathFormulaManagerImpl(
-            formulaManagerView,
-            pConfig,
-            pLogger,
-            pShutdownNotifier,
-            pCfa,
-            AnalysisDirection.FORWARD);
-    // TODO: check if this is beneficial for TraceAbstraction
-    //    if (useCache) {
-    //      pathFormulaManagerImpl = new CachingPathFormulaManager(pathFormulaManagerImpl);
-    //    }
-
-    PredicateAbstractionManagerOptions abstractionOptions =
-        new PredicateAbstractionManagerOptions(pConfig);
-    PredicateAbstractionsStorage abstractionStorage;
-    try {
-      abstractionStorage =
-          new PredicateAbstractionsStorage(
-              abstractionOptions.getReuseAbstractionsFrom(),
-              pLogger,
-              solver.getFormulaManager(),
-              null);
-    } catch (PredicateParsingFailedException e) {
-      throw new InvalidConfigurationException(e.getMessage(), e);
-    }
-
-    predicateAbstractionManager =
-        new PredicateAbstractionManager(
-            abstractionManager,
-            pathFormulaManager,
-            solver,
-            abstractionOptions,
-            new WeakeningOptions(pConfig),
-            abstractionStorage,
-            pLogger,
-            pShutdownNotifier,
-            new PredicateAbstractionStatistics(),
-            TrivialInvariantSupplier.INSTANCE);
+    predicateManager = ((PredicateCPA) pCpa).getPredicateManager();
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return TraceAbstractionState.createInitState();
+    return TraceAbstractionState.createInitState(super.getInitialState(pNode, pPartition));
   }
 
+  @SuppressWarnings("resource")
   @Override
   public TransferRelation getTransferRelation() {
+    PredicateCPA wrappedCpa = (PredicateCPA) getWrappedCpa();
+
     return new TraceAbstractionTransferRelation(
-        formulaManagerView,
-        predicateAbstractionManager,
+        wrappedCpa.getTransferRelation(),
+        wrappedCpa.getSolver().getFormulaManager(),
+        predicateManager,
         itpSequenceStorage,
         logger,
         shutdownNotifier);

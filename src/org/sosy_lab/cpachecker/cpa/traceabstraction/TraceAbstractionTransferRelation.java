@@ -9,12 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import static com.google.common.base.Verify.verifyNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -24,9 +25,10 @@ import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -42,7 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation {
+public class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRelation {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -52,11 +54,14 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
   private final BooleanFormulaManagerView bFMgrView;
 
   public TraceAbstractionTransferRelation(
+      TransferRelation pDelegateTransferRelation,
       FormulaManagerView pFormulaManagerView,
       PredicateAbstractionManager pPredicateAbstractionManager,
       InterpolationSequenceStorage pItpSequenceStorage,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
+    super(pDelegateTransferRelation);
+
     itpSequenceStorage = pItpSequenceStorage;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -68,10 +73,21 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
+    TraceAbstractionState taState = (TraceAbstractionState) pState;
 
-    // We need to wait for more information from other CPA-states before
-    // the correct successor state can computed
-    return ImmutableList.of(pState);
+    Collection<? extends AbstractState> delegateSuccessorStates =
+        Iterables.getOnlyElement(super.getWrappedTransferRelations())
+            .getAbstractSuccessorsForEdge(taState.getWrappedState(), pPrecision, pCfaEdge);
+
+    // The TraceAbstraction needs more information from other CPA-states before
+    // it can compute the correct successor state.
+    // Until then we let the delegate compute its successors and return them with the predicates
+    // from the previous TAState
+    ImmutableSet<TraceAbstractionState> successors =
+        transformedImmutableSetCopy(
+            delegateSuccessorStates,
+            delegate -> new TraceAbstractionState(delegate, taState.getActivePredicates()));
+    return successors;
   }
 
   @Override
@@ -82,12 +98,18 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
-    TraceAbstractionState state = (TraceAbstractionState) pState;
+    TraceAbstractionState taState = (TraceAbstractionState) pState;
 
-    if (itpSequenceStorage.isEmpty() && !state.containsPredicates()) {
+    Collection<? extends AbstractState> delegateStrengthenedStates =
+        Iterables.getOnlyElement(super.getWrappedTransferRelations())
+            .strengthen(taState.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
+
+    if (itpSequenceStorage.isEmpty() && !taState.containsPredicates()) {
       // The predecessor states have not yet been part of a refinement.
       // There are hence no predicates available for further processing.
-      return ImmutableList.of(state);
+      return transformedImmutableSetCopy(
+          delegateStrengthenedStates,
+          delegate -> new TraceAbstractionState(delegate, taState.getActivePredicates()));
     }
 
     Optional<CallstackStateEqualsWrapper> callstackWrapper = Optional.empty();
@@ -133,7 +155,7 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
 
     // TAStates contain only predicates that actually hold in that state
     ImmutableMap<InterpolationSequence, AbstractionPredicate> statePredicates =
-        state.getActivePredicates();
+        taState.getActivePredicates();
 
     // TODO: correctly handle the actual location instance.
     // This can be ignored for now, as currently only function-predicates are considered
@@ -231,7 +253,9 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
 
     ImmutableMap<InterpolationSequence, AbstractionPredicate> newPreds = newStatePreds.build();
     logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
-    return ImmutableSet.of(new TraceAbstractionState(newPreds));
+    return transformedImmutableSetCopy(
+        delegateStrengthenedStates,
+        delegate -> new TraceAbstractionState(delegate, taState.getActivePredicates()));
   }
 
   private AbstractionFormula buildAbstraction(
@@ -276,5 +300,17 @@ public class TraceAbstractionTransferRelation extends SingleEdgeTransferRelation
         prettyPrintPredicateList,
         resultFormula.getBlockFormula(),
         resultFormula.asInstantiatedFormula());
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    throw new UnsupportedOperationException(
+        "The "
+            + this.getClass().getSimpleName()
+            + " expects to be called with a CFA edge supplied"
+            + " and does not support configuration where it needs to"
+            + " return abstract states for any CFA edge.");
   }
 }

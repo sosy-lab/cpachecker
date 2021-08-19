@@ -13,17 +13,19 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class TraceAbstractionState implements AbstractState, Graphable {
+public class TraceAbstractionState extends AbstractSingleWrapperState implements Graphable {
 
-  private static final TraceAbstractionState TOP = new TraceAbstractionState(ImmutableMap.of());
+  private static final long serialVersionUID = 5555787505423005131L;
 
   /** Create a new 'TOP'-state with empty predicates. */
-  static TraceAbstractionState createInitState() {
-    return TOP;
+  static TraceAbstractionState createInitState(AbstractState pAbstractState) {
+    return new TraceAbstractionState(pAbstractState, ImmutableMap.of());
   }
 
   /**
@@ -33,7 +35,10 @@ public class TraceAbstractionState implements AbstractState, Graphable {
    */
   private final ImmutableMap<InterpolationSequence, AbstractionPredicate> activePredicates;
 
-  TraceAbstractionState(Map<InterpolationSequence, AbstractionPredicate> pActivePredicates) {
+  TraceAbstractionState(
+      AbstractState pWrappedState,
+      Map<InterpolationSequence, AbstractionPredicate> pActivePredicates) {
+    super(pWrappedState);
     activePredicates = ImmutableMap.copyOf(pActivePredicates);
   }
 
@@ -65,7 +70,7 @@ public class TraceAbstractionState implements AbstractState, Graphable {
   @Override
   public String toString() {
     if (!containsPredicates()) {
-      return "_empty_preds_";
+      return super.toString() + "\n_empty_preds_";
     }
 
     return FluentIterable.from(activePredicates.entrySet())
@@ -75,19 +80,28 @@ public class TraceAbstractionState implements AbstractState, Graphable {
 
   @Override
   public String toDOTLabel() {
-    // TODO: remove graphable interface eventually
-    // (currently used for debugging)
-    if (!containsPredicates()) {
-      return "";
+    StringBuilder sb = new StringBuilder();
+
+    AbstractState wrappedState = getWrappedState();
+    if (wrappedState instanceof Graphable) {
+      sb.append(((Graphable) wrappedState).toDOTLabel());
+      sb.append("\n");
     }
 
-    return FluentIterable.from(activePredicates.values())
-        .transform(AbstractionPredicate::getSymbolicAtom)
-        .join(Joiner.on("; "));
+    sb.append(
+        activePredicates
+            .values()
+            .stream()
+            .map(pred -> pred.getSymbolicAtom().toString())
+            .collect(Collectors.joining("; ")));
+    return sb.toString();
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    return false;
+    AbstractState wrappedState = getWrappedState();
+    return (wrappedState instanceof Graphable)
+        ? ((Graphable) wrappedState).shouldBeHighlighted()
+        : false;
   }
 }
