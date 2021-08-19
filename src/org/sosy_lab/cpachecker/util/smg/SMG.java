@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.smg;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -151,11 +150,11 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an adds the given has value edges.
+   * Creates a copy of the SMG an replaces the old edges with the given has value edges.
    *
-   * @param edges - the edges to be added
-   * @param source - the source object
-   * @return a modified copy of the SMG
+   * @param edges - the edges to be added.
+   * @param source - the source object.
+   * @return a modified copy of the SMG.
    */
   public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source) {
 
@@ -167,6 +166,20 @@ public class SMG {
         sizeOfPointer);
   }
 
+  public SMG copyAndAddHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
+    PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
+    for (SMGHasValueEdge edgeToAdd : edges) {
+      smgEdges = smgEdges.addAndCopy(edgeToAdd);
+    }
+
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges.putAndCopy(source, smgEdges),
+        pointsToEdges,
+        sizeOfPointer);
+  }
+
   /**
    * Creates a copy of the SMG an removes the given has value edges.
    *
@@ -174,7 +187,7 @@ public class SMG {
    * @param source - the source object
    * @return a modified copy of the SMG
    */
-  public SMG copyAndRemoveHVEdges(Set<SMGHasValueEdge> edges, SMGObject source) {
+  public SMG copyAndRemoveHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
     PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
     for (SMGHasValueEdge edgeToRemove : edges) {
       smgEdges = smgEdges.removeAndCopy(edgeToRemove);
@@ -182,7 +195,7 @@ public class SMG {
     return new SMG(
         smgObjects,
         smgValues,
-        hasValueEdges.removeAndCopy(source).putAndCopy(source, smgEdges),
+        hasValueEdges.putAndCopy(source, smgEdges),
         pointsToEdges,
         sizeOfPointer);
   }
@@ -341,19 +354,6 @@ public class SMG {
   }
 
   /**
-   * This is a general method to get all SMGHasValueEdges by object and a filter predicate.
-   * Examples:
-   *
-   * @param object SMGObject for which the SMGHasValueEdges are searched.
-   * @param filter The filter predicate for SMGHasValueEdges.
-   * @return A potentially empty set of SMGHasValueEdges matching the predicate.
-   */
-  public Set<SMGHasValueEdge> getAllHasValueEdgesByPredicate(
-      SMGObject object, Predicate<SMGHasValueEdge> filter) {
-    return hasValueEdges.get(object).stream().filter(filter).collect(ImmutableSet.toImmutableSet());
-  }
-
-  /**
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
@@ -432,8 +432,8 @@ public class SMG {
     SMG newSMG = this.copyAndAddValue(value);
     // Remove all HasValueEdges from the object with non-zero values overlapping with the given
     // field.
-    Set<SMGHasValueEdge> nonZeroOverlappingEdges =
-        newSMG.getAllHasValueEdgesByPredicate(
+    FluentIterable<SMGHasValueEdge> nonZeroOverlappingEdges =
+        newSMG.getHasValueEdgesByPredicate(
             object,
             n ->
                 !(n.getOffset().add(n.getSizeInBits()).compareTo(offset) <= 0
@@ -489,7 +489,7 @@ public class SMG {
       }
     }
 
-    return copyAndRemoveHVEdges(toRemoveEdgesSet, object).copyAndSetHVEdges(toAddEdgesSet, object);
+    return copyAndRemoveHVEdges(toRemoveEdgesSet, object).copyAndAddHVEdges(toAddEdgesSet, object);
   }
 
   /**
