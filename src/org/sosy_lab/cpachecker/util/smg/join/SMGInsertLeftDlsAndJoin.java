@@ -160,58 +160,64 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
    * @param pNestingLevelDiff - the nesting level difference
    */
   private void recursiveCopyMapAndAddObject(SMGObject objectToBeCopied, int pNestingLevelDiff) {
-    inputSMG1.getEdges(objectToBeCopied).forEach(edge -> {
-      // TODO is this check needed??
-      // if (!isBorderEdge(objectToBeCopied, edge)) {
-      SMGValue subSmgValue = edge.hasValue();
-      SMGObject mappedSubSmgObject = mapping1.getMappedObject(objectToBeCopied);
-      SMGValue mappedSubSmgValue = subSmgValue;
+    inputSMG1
+        .getEdges(objectToBeCopied)
+        .forEach(
+            edge -> {
+              // TODO is this check needed??
+              // if (!isBorderEdge(objectToBeCopied, edge)) {
+              SMGValue subSmgValue = edge.hasValue();
+              SMGObject mappedSubSmgObject = mapping1.getMappedObject(objectToBeCopied);
+              SMGValue mappedSubSmgValue = subSmgValue;
 
-        if (!subSmgValue.isZero() && inputSMG1.isPointer(subSmgValue)) {
-        // Safe because asserted by if condition (isPointer())
-        SMGPointsToEdge subSMGPointerEdge = inputSMG1.getPTEdge(subSmgValue).orElseThrow();
-          SMGObject subSmgObject = subSMGPointerEdge.pointsTo();
-          // map object
-        if (!mapping1.hasMapping(subSmgObject)) {
-            mappedSubSmgObject =
-                subSmgObject.copyWithNewLevel(subSmgObject.getNestingLevel() + pNestingLevelDiff);
-            destSMG = destSMG.copyAndAddObject(mappedSubSmgObject);
-            mapping1.addMapping(subSmgObject, mappedSubSmgObject);
-            // recursive copy all objects
-            recursiveCopyMapAndAddObject(subSmgObject, pNestingLevelDiff);
-          }
-          // map values
-        if (!mapping1.hasMapping(subSmgValue)) {
-          mappedSubSmgValue = mapping1.getMappedValue(subSmgValue);
-        } else {
-          mappedSubSmgValue = SMGValue.of(subSmgValue.getNestingLevel());
-            destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
-            mapping1.addMapping(subSmgValue, mappedSubSmgValue);
-          }
-          // copy and add edges
-          SMGPointsToEdge newEdge =
-              new SMGPointsToEdge(
-                  mappedSubSmgObject,
-                  subSMGPointerEdge.getOffset(),
-                  subSMGPointerEdge.targetSpecifier());
-          destSMG = destSMG.copyAndAddPTEdge(newEdge, mappedSubSmgValue);
-        // }
-      }
-      SMGHasValueEdge hValueEdge =
-          new SMGHasValueEdge(mappedSubSmgValue, edge.getSizeInBits(), edge.getOffset());
-      if (!destSMG.hasOverlappingEdge(hValueEdge, mappedSubSmgObject)) {
-        if (!destSMG.getValues().contains(mappedSubSmgValue)) {
-          // TODO this is the case if subSmgValue == mappedSubSmgValue, does this make sense?
-          destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
-        }
-        if (!mapping1.hasMapping(subSmgValue)) {
-          // TODO this is the case if subSmgValue == mappedSubSmgValue, does this make sense?
-          mapping1.addMapping(subSmgValue, mappedSubSmgValue);
-        }
+              if (!subSmgValue.isZero() && inputSMG1.isPointer(subSmgValue)) {
+                // Safe because asserted by if condition (isPointer())
+                SMGPointsToEdge subSMGPointerEdge = inputSMG1.getPTEdge(subSmgValue).orElseThrow();
+                SMGObject subSmgObject = subSMGPointerEdge.pointsTo();
+                // map object
+                if (!mapping1.hasMapping(subSmgObject)) {
+                  mappedSubSmgObject =
+                      subSmgObject.copyWithNewLevel(
+                          subSmgObject.getNestingLevel() + pNestingLevelDiff);
+                  destSMG = destSMG.copyAndAddObject(mappedSubSmgObject);
+                  mapping1.addMapping(subSmgObject, mappedSubSmgObject);
+                  // recursive copy all objects
+                  recursiveCopyMapAndAddObject(subSmgObject, pNestingLevelDiff);
+                }
+                // map values
+                if (!mapping1.hasMapping(subSmgValue)) {
+                  mappedSubSmgValue = mapping1.getMappedValue(subSmgValue);
+                } else {
+                  mappedSubSmgValue = SMGValue.of(subSmgValue.getNestingLevel());
+                  destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
+                  mapping1.addMapping(subSmgValue, mappedSubSmgValue);
+                }
+                // copy and add edges
+                SMGPointsToEdge newEdge =
+                    new SMGPointsToEdge(
+                        mappedSubSmgObject,
+                        subSMGPointerEdge.getOffset(),
+                        subSMGPointerEdge.targetSpecifier());
+                destSMG = destSMG.copyAndAddPTEdge(newEdge, mappedSubSmgValue);
+                // }
+              }
+              SMGHasValueEdge hValueEdge =
+                  new SMGHasValueEdge(mappedSubSmgValue, edge.getOffset(), edge.getSizeInBits());
+              if (!destSMG.hasOverlappingEdge(hValueEdge, mappedSubSmgObject)) {
+                if (!destSMG.getValues().contains(mappedSubSmgValue)) {
+                  // TODO this is the case if subSmgValue == mappedSubSmgValue, does this make
+                  // sense?
+                  destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
+                }
+                if (!mapping1.hasMapping(subSmgValue)) {
+                  // TODO this is the case if subSmgValue == mappedSubSmgValue, does this make
+                  // sense?
+                  mapping1.addMapping(subSmgValue, mappedSubSmgValue);
+                }
 
-        destSMG = destSMG.copyAndAddHVEdge(hValueEdge, mappedSubSmgObject);
-      }
-    });
+                destSMG = destSMG.copyAndAddHVEdge(hValueEdge, mappedSubSmgObject);
+              }
+            });
   }
 
   /**

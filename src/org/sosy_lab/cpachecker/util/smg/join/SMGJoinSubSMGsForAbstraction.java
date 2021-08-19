@@ -249,7 +249,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     if (edgeOptional.isPresent()) {
       SMGHasValueEdge pOldEdge = edgeOptional.orElseThrow();
       SMGHasValueEdge newEdge =
-          new SMGHasValueEdge(SMGValue.zeroValue(), pOldEdge.getSizeInBits(), pOldEdge.getOffset());
+          new SMGHasValueEdge(SMGValue.zeroValue(), pOldEdge.getOffset(), pOldEdge.getSizeInBits());
       destSMG = destSMG.copyAndReplaceHVEdge(pObj, pOldEdge, newEdge);
       mapping.put(Pair.of(pObj, pOldEdge), newEdge);
     }

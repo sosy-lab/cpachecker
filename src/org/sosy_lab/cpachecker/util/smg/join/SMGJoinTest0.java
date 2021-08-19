@@ -60,7 +60,7 @@ public class SMGJoinTest0 {
   }
 
   protected SMGHasValueEdge createHasValueEdge(BigInteger withSize, int offset, SMGValue andValue) {
-    return new SMGHasValueEdge(andValue, withSize, BigInteger.valueOf(offset));
+    return new SMGHasValueEdge(andValue, BigInteger.valueOf(offset), withSize);
   }
 
   protected SMGHasValueEdge createHasValueEdgeToZero(int withSize) {
@@ -76,7 +76,7 @@ public class SMGJoinTest0 {
   }
 
   protected SMGHasValueEdge createHasValueEdge(int withSize, int offset, SMGValue andValue) {
-    return new SMGHasValueEdge(andValue, BigInteger.valueOf(withSize), BigInteger.valueOf(offset));
+    return new SMGHasValueEdge(andValue, BigInteger.valueOf(offset), BigInteger.valueOf(withSize));
   }
 
 

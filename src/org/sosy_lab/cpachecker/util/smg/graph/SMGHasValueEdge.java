@@ -30,7 +30,7 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
    * @param pSizeInBits - The size of the type used in bits.
    * @param pOffset - The offset of the value. May not be negative!
    */
-  public SMGHasValueEdge(SMGValue pValue, BigInteger pSizeInBits, BigInteger pOffset) {
+  public SMGHasValueEdge(SMGValue pValue, BigInteger pOffset, BigInteger pSizeInBits) {
     value = pValue;
     sizeInBits = pSizeInBits;
     offset = pOffset;

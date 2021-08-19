@@ -390,7 +390,7 @@ public class SMG {
     SMG newSMG = this.copyAndAddValue(newValue);
     // Extend H by the has-value edge o -> v with the offset and size and return (smg,v) based on
     // the newly obtained SMG.
-    SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, sizeInBits, offset);
+    SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
     return new SMGandValue(newSMG, newValue);
   }
@@ -472,14 +472,14 @@ public class SMG {
         if (hvEdge.getOffset().compareTo(offset) < 0) {
           final BigInteger newSize = calculateBytePreciseSize(offset, hvEdge.getOffset());
           SMGHasValueEdge newLowerEdge =
-              new SMGHasValueEdge(SMGValue.zeroValue(), newSize, hvEdge.getOffset());
+              new SMGHasValueEdge(SMGValue.zeroValue(), hvEdge.getOffset(), newSize);
           toAddEdgesSet = toAddEdgesSet.addAndCopy(newLowerEdge);
         }
 
         if (offsetPlusSize.compareTo(hvEdgeOffsetPlusSize) < 0) {
           final BigInteger newSize = calculateBytePreciseSize(hvEdgeOffsetPlusSize, offsetPlusSize);
           SMGHasValueEdge newUpperEdge =
-              new SMGHasValueEdge(SMGValue.zeroValue(), newSize, offsetPlusSize);
+              new SMGHasValueEdge(SMGValue.zeroValue(), offsetPlusSize, newSize);
           toAddEdgesSet = toAddEdgesSet.addAndCopy(newUpperEdge);
         }
       }

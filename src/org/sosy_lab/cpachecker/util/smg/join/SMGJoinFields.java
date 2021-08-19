@@ -103,23 +103,22 @@ public class SMGJoinFields {
         pSMG2.getEdges(pObject2).stream().collect(mapOffsetToEdgeCollector());
 
     return FluentIterable.from(pSMG1.getEdges(pObject1))
-            .filter(
+        .filter(
             edge -> {
               // filter overlapping edges
               return !edge.hasValue().isZero()
                   && !obj2OffsetToEdges
-                  .subMap(edge.getOffset(), edge.getOffset().add(edge.getSizeInBits()))
-                  .isEmpty();
+                      .subMap(edge.getOffset(), edge.getOffset().add(edge.getSizeInBits()))
+                      .isEmpty();
             })
         .transform(
             // add fresh edges for offset and size tuples, which are defined in o1 and undefined
             // in o2
-                edge -> new SMGHasValueEdge(
-                      SMGValue.of(edge.hasValue().getNestingLevel()),
-                      edge.getSizeInBits(),
-                      edge.getOffset()));
-
-
+            edge ->
+                new SMGHasValueEdge(
+                    SMGValue.of(edge.hasValue().getNestingLevel()),
+                    edge.getOffset(),
+                    edge.getSizeInBits()));
   }
 
   /**
@@ -181,23 +180,25 @@ public class SMGJoinFields {
 
     // 2c)
     FluentIterable<SMGHasValueEdge> obj2EdgesWithoutZero =
-        pSmg2.getHasValueEdgesByPredicate(
-            obj2,
-            edge -> {
-              if (edge.hasValue().isZero()) {
-                return false;
-              }
-              // find offset wise matching edges
-              BigInteger floor = edge.getOffset();
-              BigInteger celing = edge.getOffset().add(edge.getSizeInBits());
-              Entry<BigInteger, BigInteger> entry = obj1EdgesWithZeroOffsetToSize.floorEntry(floor);
-              return entry != null && entry.getKey().add(entry.getValue()).compareTo(celing) >= 0;
-            })
+        pSmg2
+            .getHasValueEdgesByPredicate(
+                obj2,
+                edge -> {
+                  if (edge.hasValue().isZero()) {
+                    return false;
+                  }
+                  // find offset wise matching edges
+                  BigInteger floor = edge.getOffset();
+                  BigInteger celing = edge.getOffset().add(edge.getSizeInBits());
+                  Entry<BigInteger, BigInteger> entry =
+                      obj1EdgesWithZeroOffsetToSize.floorEntry(floor);
+                  return entry != null
+                      && entry.getKey().add(entry.getValue()).compareTo(celing) >= 0;
+                })
             .transform(
-            edge -> new SMGHasValueEdge(
-                SMGValue.zeroValue(),
-                edge.getSizeInBits(),
-                edge.getOffset()));
+                edge ->
+                    new SMGHasValueEdge(
+                        SMGValue.zeroValue(), edge.getOffset(), edge.getSizeInBits()));
 
     return PersistentSet.copyOf(
         Iterables.concat(edgesObj1Without0Address, commonNullValueEdgeSet, obj2EdgesWithoutZero));
@@ -207,8 +208,7 @@ public class SMGJoinFields {
   FluentIterable<SMGHasValueEdge> getNullEdgesIntersection(
       Entry<BigInteger, BigInteger> pEntry,
       PersistentSortedMap<BigInteger, BigInteger> pMap) {
-    return FluentIterable
-        .from(
+    return FluentIterable.from(
             pMap.subMap(pEntry.getKey(), true, pEntry.getKey().add(pEntry.getValue()), false)
                 .entrySet())
         .transform(
@@ -216,7 +216,7 @@ public class SMGJoinFields {
               BigInteger resultOffset = pEntry.getKey().max(next.getKey());
               BigInteger resultSize =
                   pEntry.getKey().add(pEntry.getValue()).min(next.getKey().add(next.getValue()));
-              return new SMGHasValueEdge(SMGValue.zeroValue(), resultSize, resultOffset);
+              return new SMGHasValueEdge(SMGValue.zeroValue(), resultOffset, resultSize);
             });
   }
 
