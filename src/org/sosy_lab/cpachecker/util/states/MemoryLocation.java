@@ -92,11 +92,12 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return new MemoryLocation(null, pIdentifier, pOffset);
   }
 
-  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
+  public static MemoryLocation forLocalVariable(String pFunctionName, String pIdentifier) {
     return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, null);
   }
 
-  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
+  public static MemoryLocation forLocalVariable(
+      String pFunctionName, String pIdentifier, long pOffset) {
     return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, pOffset);
   }
 

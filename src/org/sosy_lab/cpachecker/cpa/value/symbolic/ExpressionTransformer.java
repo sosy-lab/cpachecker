@@ -77,7 +77,7 @@ public class ExpressionTransformer {
       return MemoryLocation.parseExtendedQualifiedName(pDeclaration.getName());
 
     } else {
-      return MemoryLocation.valueOf(functionName, pDeclaration.getName());
+      return MemoryLocation.forLocalVariable(functionName, pDeclaration.getName());
     }
   }
 

@@ -96,7 +96,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (varName.getDeclaration() != null) {
       memLoc = MemoryLocation.parseExtendedQualifiedName(varName.getDeclaration().getQualifiedName());
     } else if (!ForwardingTransferRelation.isGlobal(varName)) {
-      memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName());
+      memLoc = MemoryLocation.forLocalVariable(getFunctionName(), varName.getName());
     } else {
       memLoc = MemoryLocation.parseExtendedQualifiedName(varName.getName());
     }
@@ -314,7 +314,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (arrayLoc.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(
+        return MemoryLocation.forLocalVariable(
             arrayLoc.getFunctionName(),
             arrayLoc.getIdentifier(),
             (arrayLoc.isReference() ? arrayLoc.getOffset() : 0) + subscriptOffset);
@@ -363,7 +363,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (pStartLocation.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(
+        return MemoryLocation.forLocalVariable(
             pStartLocation.getFunctionName(),
             pStartLocation.getIdentifier(),
             baseOffset + offset.orElseThrow());
@@ -421,7 +421,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (pArrayStartLocation.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(
+        return MemoryLocation.forLocalVariable(
             pArrayStartLocation.getFunctionName(),
             pArrayStartLocation.getIdentifier(),
             baseOffset + offset);
@@ -442,7 +442,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (isGlobal) {
         return MemoryLocation.parseExtendedQualifiedName(idExp.getName());
       } else {
-        return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName());
+        return MemoryLocation.forLocalVariable(evv.getFunctionName(), idExp.getName());
       }
     }
 

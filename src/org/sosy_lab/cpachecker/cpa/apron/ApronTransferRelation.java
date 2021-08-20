@@ -568,7 +568,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     if (functionEntryNode.getReturnVariable().isPresent()) {
       possibleStates.add(
           state.declareVariable(
-              MemoryLocation.valueOf(
+              MemoryLocation.forLocalVariable(
                   calledFunctionName,
                   functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
@@ -585,7 +585,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       }
 
       MemoryLocation formalParamName =
-          MemoryLocation.valueOf(calledFunctionName, paramNames.get(i));
+          MemoryLocation.forLocalVariable(calledFunctionName, paramNames.get(i));
 
       if (!precision.isTracking(formalParamName, parameters.get(i).getType(), functionEntryNode)) {
         continue;
@@ -637,7 +637,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       }
 
       MemoryLocation returnVarName =
-          MemoryLocation.valueOf(
+          MemoryLocation.forLocalVariable(
               calledFunctionName,
               fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName());
 
@@ -673,7 +673,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (decl.isGlobal()) {
         variableName = MemoryLocation.parseExtendedQualifiedName(decl.getName());
       } else {
-        variableName = MemoryLocation.valueOf(functionName, decl.getName());
+        variableName = MemoryLocation.forLocalVariable(functionName, decl.getName());
       }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
@@ -806,7 +806,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(pFunctionName, variableName);
+      return MemoryLocation.forLocalVariable(pFunctionName, variableName);
     } else {
       return MemoryLocation.parseExtendedQualifiedName(variableName);
     }
@@ -826,7 +826,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     MemoryLocation tempVarName =
-        MemoryLocation.valueOf(
+        MemoryLocation.forLocalVariable(
             cfaEdge.getPredecessor().getFunctionName(),
             ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide()).getName());
 

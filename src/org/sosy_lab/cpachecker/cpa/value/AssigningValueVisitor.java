@@ -244,7 +244,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (declaration != null) {
       assignableState.assignConstant(declaration.getQualifiedName(), pValue);
     } else {
-      MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
+      MemoryLocation memLoc = MemoryLocation.forLocalVariable(getFunctionName(), pIdExpression.getName());
       assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
     }
   }

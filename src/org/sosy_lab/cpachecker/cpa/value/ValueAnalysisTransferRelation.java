@@ -362,7 +362,7 @@ public class ValueAnalysisTransferRelation
       String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName);
+      MemoryLocation formalParamName = MemoryLocation.forLocalVariable(calledFunctionName, paramName);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -736,7 +736,7 @@ public class ValueAnalysisTransferRelation
     if (decl.isGlobal()) {
       memoryLocation = MemoryLocation.parseExtendedQualifiedName(varName);
     } else {
-      memoryLocation = MemoryLocation.valueOf(functionName, varName);
+      memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }
 
     if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
@@ -1013,7 +1013,7 @@ public class ValueAnalysisTransferRelation
     if (isGlobal(pIdExpression)) {
       return MemoryLocation.parseExtendedQualifiedName(varName);
     } else {
-      return MemoryLocation.valueOf(functionName, varName);
+      return MemoryLocation.forLocalVariable(functionName, varName);
     }
   }
 
@@ -1132,7 +1132,7 @@ public class ValueAnalysisTransferRelation
     long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
 
     if (pStruct.isOnFunctionStack()) {
-      return MemoryLocation.valueOf(
+      return MemoryLocation.forLocalVariable(
           pStruct.getFunctionName(), pStruct.getIdentifier(), baseOffset + pOffset);
     } else {
       return MemoryLocation.valueOf(pStruct.getIdentifier(), baseOffset + pOffset);

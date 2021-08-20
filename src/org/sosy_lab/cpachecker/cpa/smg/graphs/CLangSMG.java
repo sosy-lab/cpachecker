@@ -590,7 +590,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
       String functionName = frame.getFunctionDeclaration().getName();
 
-      return MemoryLocation.valueOf(functionName, object.getLabel(), offset);
+      return MemoryLocation.forLocalVariable(functionName, object.getLabel(), offset);
     }
   }
 
