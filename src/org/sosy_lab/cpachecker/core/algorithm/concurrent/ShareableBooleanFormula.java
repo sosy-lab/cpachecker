@@ -30,6 +30,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * FormulaManagerView}. As such, it offers an opportunity to easily exchange a {@link
  * BooleanFormula} across threads whose operations rely on different underlying instances of {@link
  * Solver}.
+ *
+ * <p style="margin-top: 10pt;">Todo</em>: Investigate whether {@link
+ * FormulaManagerView#translateFrom(BooleanFormula, FormulaManagerView)} is thread-safe in its
+ * access of the old {@link FormulaManagerView} ... If not, storing as {@link String} and fresh
+ * parsing with the target {@link FormulaManagerView} might be the only option?
  */
 public class ShareableBooleanFormula {
   private final FormulaManagerView formulaManager;

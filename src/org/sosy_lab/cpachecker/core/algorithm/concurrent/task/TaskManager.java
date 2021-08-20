@@ -51,13 +51,18 @@ public class TaskManager {
   }
 
   public void spawnForwardAnalysis(
-      final Block pBlock, final ShareableBooleanFormula pNewPrecondition)
+      final Block pPredecessor,
+      final int pPredecessorExpectedVersion,
+      final Block pBlock,
+      final ShareableBooleanFormula pNewPrecondition)
       throws InterruptedException, InvalidConfigurationException, CPAException {
 
     ForwardAnalysis task =
         new ForwardAnalysis(
+            pPredecessor,
             pBlock,
             pNewPrecondition,
+            pPredecessorExpectedVersion,
             config,
             specification,
             logManager,
@@ -72,7 +77,7 @@ public class TaskManager {
       throws InterruptedException, InvalidConfigurationException, CPAException {
     ForwardAnalysis task =
         new ForwardAnalysis(
-            pBlock, null, config, specification, logManager, shutdownNotifier, cfa, this);
+            null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa, this);
 
     executor.requestJob(task);
   }

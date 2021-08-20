@@ -83,8 +83,6 @@ public class ConcurrentAnalysis implements Algorithm {
       BlockGraph graph =
           BlockGraphBuilder.create(shutdownNotifier).build(cfa.getMainFunction(), blk);
 
-      final Block entry = graph.getEntry();
-
       final int processors = Runtime.getRuntime().availableProcessors();
       TaskExecutor executor = new TaskExecutor(processors, logger);
 
@@ -98,7 +96,9 @@ public class ConcurrentAnalysis implements Algorithm {
               .set(executor, TaskExecutor.class)
               .createInstance();
 
-      taskManager.spawnForwardAnalysis(entry);
+      for (final Block block : graph.getBlocks()) {
+        taskManager.spawnForwardAnalysis(block);
+      }
 
       executor.start();
       executor.waitForCompletion();

@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -51,6 +53,9 @@ public final class TaskExecutor implements Runnable {
   private final CompletionWatchdog watchdog = new TaskExecutor.CompletionWatchdog();
   private final Thread executorThread = new Thread(this, "Job Executor");
   private final AtomicBoolean jobsPending = new AtomicBoolean(true);
+
+  private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
+  private final Map<Block, Integer> summaryVersion = Maps.newHashMap();
 
   /**
    * Prepare a new {@link TaskExecutor}. Actual execution does not start until {@link #start()} gets
@@ -109,6 +114,12 @@ public final class TaskExecutor implements Runnable {
     while (jobsPending.get() || !requestedJobs.isEmpty()) {
       try {
         Task job = requestedJobs.take();
+        TaskValidity validity = job.preprocess(summaries, summaryVersion);
+
+        if (validity == TaskValidity.INVALID) {
+          continue;
+        }
+
         Future<AlgorithmStatus> future = executor.submit(job);
         watchdog.await(future);
 
