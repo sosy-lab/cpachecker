@@ -96,7 +96,7 @@ class EdgeAnalyzer {
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
         CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-        MemoryLocation declaredVariable = MemoryLocation.parseExtendedQualifiedName(variableDeclaration.getQualifiedName());
+        MemoryLocation declaredVariable = MemoryLocation.forDeclaration(variableDeclaration);
         CType type = variableDeclaration.getType();
         CInitializer initializer = variableDeclaration.getInitializer();
         if (initializer == null) {

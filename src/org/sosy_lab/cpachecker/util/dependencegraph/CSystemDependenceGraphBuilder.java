@@ -586,7 +586,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
       EdgeDefUseData argDefUseData = defUseExtractor.extract(expressions.get(index));
-      MemoryLocation paramMemLoc = MemoryLocation.parseExtendedQualifiedName(params.get(index).getQualifiedName());
+      MemoryLocation paramMemLoc = MemoryLocation.forDeclaration(params.get(index));
       Optional<MemoryLocation> paramVariable = Optional.of(paramMemLoc);
 
       if (argDefUseData.getUses().contains(pCause)) {

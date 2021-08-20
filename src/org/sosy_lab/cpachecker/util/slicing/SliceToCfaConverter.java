@@ -112,7 +112,7 @@ final class SliceToCfaConverter {
       assert iterator.hasNext() : "pInput must have one element for every parameter";
       T element = iterator.next();
 
-      MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(parameter.getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.forDeclaration(parameter);
 
       Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(declarationEdge);
       if (memoryLocations == null || memoryLocations.contains(memoryLocation)) {
@@ -140,7 +140,7 @@ final class SliceToCfaConverter {
         originalFunctionEntryNode.getReturnVariable();
 
     if (optRetVar.isPresent()) {
-      MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(optRetVar.get().getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.forDeclaration(optRetVar.get());
       Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(originalDeclarationEdge);
       if (memoryLocations != null && !memoryLocations.contains(memoryLocation)) {
         relevantReturnType = CVoidType.VOID;

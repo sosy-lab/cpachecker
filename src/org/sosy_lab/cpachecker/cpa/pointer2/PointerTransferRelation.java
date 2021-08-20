@@ -296,7 +296,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!returnVariable.isPresent()) {
       return Optional.empty();
     } else {
-      return Optional.of(MemoryLocation.parseExtendedQualifiedName(returnVariable.get().getQualifiedName()));
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.get()));
     }
   }
 
@@ -595,7 +595,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             } else {
               CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
               if (declaration != null) {
-                location = MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName());
+                location = MemoryLocation.forDeclaration(declaration);
               } else {
                 location = MemoryLocation.parseExtendedQualifiedName(pIastIdExpression.getName());
               }
@@ -705,7 +705,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               return toLocationSet(
                   FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
             }
-            return visit(MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName()));
+            return visit(MemoryLocation.forDeclaration(declaration));
           }
 
           @Override

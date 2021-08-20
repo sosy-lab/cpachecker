@@ -595,9 +595,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     MemoryLocation target = null;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(cfaEdge);
     if (leftHandSide instanceof CIdExpression) {
-      target =
-          MemoryLocation.parseExtendedQualifiedName(
-              ((CIdExpression) leftHandSide).getDeclaration().getQualifiedName());
+      target = MemoryLocation.forDeclaration(((CIdExpression) leftHandSide).getDeclaration());
     } else if (leftHandSide instanceof CPointerExpression) {
       ExplicitLocationSet explicitSet =
           getLocationsForLhs(pPointerInfo, (CPointerExpression) leftHandSide);
@@ -617,7 +615,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
     if (rightHandSide instanceof CIdExpression) {
       CIdExpression idExpr = (CIdExpression) rightHandSide;
-      value = MemoryLocation.parseExtendedQualifiedName(idExpr.getDeclaration().getQualifiedName());
+      value = MemoryLocation.forDeclaration(idExpr.getDeclaration());
       valueType = idExpr.getDeclaration().getType();
     } else if (rightHandSide instanceof CPointerExpression) {
       CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;

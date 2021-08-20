@@ -441,7 +441,7 @@ final class EdgeDefUseData {
       if (declaration instanceof CVariableDeclaration
           || declaration instanceof CParameterDeclaration) {
 
-        MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName());
+        MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
         set.add(memLoc);
       }
@@ -499,7 +499,7 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CVariableDeclaration pDecl) throws EdgeDefUseDataException {
 
-      MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(pDecl.getQualifiedName());
+      MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
       defs.add(memLoc);
 
       CInitializer initializer = pDecl.getInitializer();

@@ -433,7 +433,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
     NumeralFormula<CompoundInterval> returnedState =
         pEdge.getExpression().orElseThrow().accept(etfv);
-    MemoryLocation returnValueName = MemoryLocation.parseExtendedQualifiedName(pEdge.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName());
+    MemoryLocation returnValueName =
+        MemoryLocation.forDeclaration(
+            pEdge.getSuccessor().getEntryNode().getReturnVariable().get());
     return pElement.assign(returnValueName, returnedState);
   }
 

@@ -62,6 +62,12 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return Objects.hash(functionName, identifier, offset);
   }
 
+  /** Create an instance for the given declaration, which usually should be a variable. */
+  public static MemoryLocation forDeclaration(ASimpleDeclaration pDeclaration) {
+    // TODO Could avoid parsing qualified name if we can get the function here.
+    return MemoryLocation.fromQualifiedName(pDeclaration.getQualifiedName());
+  }
+
   /**
    * Create an instance for the given identifier without function name and offset. Typically this
    * should be used for global variables.

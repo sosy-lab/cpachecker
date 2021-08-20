@@ -84,7 +84,7 @@ public class ReachingDefUtils {
 
       Optional<? extends AVariableDeclaration> retVar = currentFunction.getReturnVariable();
       if (retVar.isPresent()) {
-        localVariables.add(MemoryLocation.parseExtendedQualifiedName(retVar.get().getQualifiedName()));
+        localVariables.add(MemoryLocation.forDeclaration(retVar.get()));
       }
 
       while (!currentWaitlist.isEmpty()) {
@@ -127,9 +127,9 @@ public class ReachingDefUtils {
       final List<MemoryLocation> localVariables) {
     if (out.getDeclaration() instanceof CVariableDeclaration) {
       if (out.getDeclaration().isGlobal()) {
-        globalVariables.add(MemoryLocation.parseExtendedQualifiedName(out.getDeclaration().getQualifiedName()));
+        globalVariables.add(MemoryLocation.forDeclaration(out.getDeclaration()));
       } else {
-        localVariables.add(MemoryLocation.parseExtendedQualifiedName(out.getDeclaration().getQualifiedName()));
+        localVariables.add(MemoryLocation.forDeclaration(out.getDeclaration()));
       }
     }
   }
@@ -142,7 +142,7 @@ public class ReachingDefUtils {
 
     } else if (pExp instanceof CIdExpression) {
       return Collections.singleton(
-          MemoryLocation.parseExtendedQualifiedName(((CIdExpression) pExp).getDeclaration().getQualifiedName()));
+          MemoryLocation.forDeclaration(((CIdExpression) pExp).getDeclaration()));
 
     } else if (pExp instanceof CFieldReference) {
       if (((CFieldReference) pExp).isPointerDereference()) {
@@ -245,7 +245,7 @@ public class ReachingDefUtils {
 
     @Override
     public MemoryLocation visit(CIdExpression pIastIdExpression) {
-      return MemoryLocation.parseExtendedQualifiedName(pIastIdExpression.getDeclaration().getQualifiedName());
+      return MemoryLocation.forDeclaration(pIastIdExpression.getDeclaration());
     }
 
     @Override

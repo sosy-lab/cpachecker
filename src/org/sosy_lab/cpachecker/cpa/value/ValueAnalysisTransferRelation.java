@@ -418,7 +418,7 @@ public class ValueAnalysisTransferRelation
     MemoryLocation functionReturnVar = null;
 
     if (optionalReturnVarDeclaration.isPresent()) {
-      functionReturnVar = MemoryLocation.parseExtendedQualifiedName(optionalReturnVarDeclaration.get().getQualifiedName());
+      functionReturnVar = MemoryLocation.forDeclaration(optionalReturnVarDeclaration.get());
     }
 
     if (expression != null && functionReturnVar != null) {
@@ -449,7 +449,7 @@ public class ValueAnalysisTransferRelation
         functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
     if (returnVarName.isPresent()) {
-      functionReturnVar = MemoryLocation.parseExtendedQualifiedName(returnVarName.get().getQualifiedName());
+      functionReturnVar = MemoryLocation.forDeclaration(returnVarName.get());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -1160,7 +1160,7 @@ public class ValueAnalysisTransferRelation
       JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
 
       if (arrayDeclaration != null) {
-        MemoryLocation idName = MemoryLocation.parseExtendedQualifiedName(arrayDeclaration.getQualifiedName());
+        MemoryLocation idName = MemoryLocation.forDeclaration(arrayDeclaration);
 
         if (state.contains(idName)) {
           Value idValue = state.getValueFor(idName);

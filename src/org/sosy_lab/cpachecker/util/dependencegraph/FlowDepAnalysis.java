@@ -104,7 +104,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     defs.addAll(foreignDefUseData.getForeignUses(function));
 
     for (AParameterDeclaration parameter : function.getParameters()) {
-      defs.add(MemoryLocation.parseExtendedQualifiedName(parameter.getQualifiedName()));
+      defs.add(MemoryLocation.forDeclaration(parameter));
     }
 
     return defs;
@@ -249,7 +249,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   protected void insertCombiners(Dominance.DomFrontiers<CFANode> pDomFrontiers) {
 
     for (AParameterDeclaration declaration : entryNode.getFunctionParameters()) {
-      MemoryLocation variable = MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName());
+      MemoryLocation variable = MemoryLocation.forDeclaration(declaration);
       insertCombiner(entryNode, variable);
     }
 
@@ -409,7 +409,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (optRetVar.isPresent()) {
 
-      MemoryLocation returnVar = MemoryLocation.parseExtendedQualifiedName(optRetVar.get().getQualifiedName());
+      MemoryLocation returnVar = MemoryLocation.forDeclaration(optRetVar.get());
 
       for (CFAEdge defEdge : CFAUtils.allEnteringEdges(entryNode.getExitNode())) {
         for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
