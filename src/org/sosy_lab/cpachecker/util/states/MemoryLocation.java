@@ -26,12 +26,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   private static final long serialVersionUID = -8910967707373729034L;
-  private final String functionName;
+  private final @Nullable String functionName;
   private final String identifier;
   private final @Nullable Long offset;
 
-  private MemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
-    checkNotNull(pFunctionName);
+  private MemoryLocation(
+      @Nullable String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pIdentifier);
 
     functionName = pFunctionName;
@@ -77,11 +77,11 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
-    return new MemoryLocation(pFunctionName, pIdentifier, null);
+    return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, null);
   }
 
   public static MemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
-    return new MemoryLocation(pFunctionName, pIdentifier, pOffset);
+    return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, pOffset);
   }
 
   public static MemoryLocation valueOf(String pIdentifier, long pOffset) {
@@ -116,7 +116,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }
-      return new MemoryLocation(varName.replace("/" + offset, ""), offset);
+      return new MemoryLocation(null, varName.replace("/" + offset, ""), offset);
     }
   }
 
@@ -166,11 +166,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   /** Return new instance without offset. */
   public MemoryLocation getReferenceStart() {
     checkState(isReference(), "Memory location is no reference: %s", this);
-    if (functionName != null) {
-      return new MemoryLocation(functionName, identifier, null);
-    } else {
-      return new MemoryLocation(identifier, null);
-    }
+    return new MemoryLocation(functionName, identifier, null);
   }
 
   @Override
