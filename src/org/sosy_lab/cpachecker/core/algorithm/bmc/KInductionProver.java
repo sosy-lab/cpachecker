@@ -19,7 +19,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -43,6 +42,8 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -720,7 +721,7 @@ class KInductionProver implements AutoCloseable {
                   return variableMapper.variableFormulas;
                 });
 
-        ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
+        PersistentMap<String, ModelValue> model = PathCopyingPersistentTreeMap.of();
         final List<BooleanFormula> input = new ArrayList<>();
 
         for (ValueAssignment valueAssignment : pModelAssignments) {
@@ -738,12 +739,11 @@ class KInductionProver implements AutoCloseable {
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
                   fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
-              modelBuilder.put(actualName, new ModelValue(actualName, assignment, fmgr));
+              model = model.putAndCopy(actualName, new ModelValue(actualName, assignment, fmgr));
             }
           }
         }
 
-        Map<String, ModelValue> model = modelBuilder.build();
         if (!model.isEmpty()) {
           CounterexampleToInductivity cti = new CounterexampleToInductivity(loopHead, model);
 

@@ -12,11 +12,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -144,16 +144,19 @@ public class UseDefBasedInterpolator {
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    Map<MemoryLocation, ValueAndType> useDefInterpolant = new HashMap<>();
+    PersistentMap<MemoryLocation, ValueAndType> useDefInterpolant =
+        PathCopyingPersistentTreeMap.of();
 
     for (ASimpleDeclaration use : uses) {
 
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
-        useDefInterpolant.put(memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
+        useDefInterpolant =
+            useDefInterpolant.putAndCopy(
+                memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
       }
     }
 
-    return new ValueAnalysisInterpolant(PathCopyingPersistentTreeMap.copyOf(useDefInterpolant));
+    return new ValueAnalysisInterpolant(useDefInterpolant);
   }
 
   /**
