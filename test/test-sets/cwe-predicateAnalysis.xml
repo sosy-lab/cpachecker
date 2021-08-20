@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!--
+INFO:
+This benchmark verifies the given tasks with the property that matches the corresponding CWE-Id
+for overflows or underflows and we apply predicate analysis for it.
+We expect a small runtime and memory usage per run and define the limits smaller that in SV-COMP.
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="2">
+  <option name="-heap">4500M</option>
+  <option name="-noout"/>
+  <option name="-benchmark"/>
+
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+<!-- check only the property of the CWE -->
+<rundefinition name="PredicateAnalysis-Overflow">
+  <option name="-predicateAnalysis--overflow"/>
+  <tasks name="CWE190_Integer_Overflow">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE190_Integer_Overflow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE191_Integer_Underflow">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE191_Integer_Underflow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-underflow.prp</propertyfile>
+  </tasks>
+</rundefinition>
+  
+</benchmark>
