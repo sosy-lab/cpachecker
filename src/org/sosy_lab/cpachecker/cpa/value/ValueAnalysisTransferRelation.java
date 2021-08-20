@@ -1259,7 +1259,7 @@ public class ValueAnalysisTransferRelation
     @Override
     public Value visit(JIdExpression idExp) {
 
-      MemoryLocation varName = MemoryLocation.parseExtendedQualifiedName(handleIdExpression(idExp));
+      MemoryLocation varName = MemoryLocation.fromQualifiedName(handleIdExpression(idExp));
 
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);

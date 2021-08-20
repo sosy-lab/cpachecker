@@ -289,7 +289,7 @@ public class UseDefBasedInterpolator {
         return memory;
       }
 
-      return Collections.singletonList(MemoryLocation.parseExtendedQualifiedName(qualifiedName));
+      return Collections.singletonList(MemoryLocation.fromQualifiedName(qualifiedName));
     }
 
     private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {

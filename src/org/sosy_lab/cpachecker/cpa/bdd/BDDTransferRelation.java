@@ -152,7 +152,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     final CType targetType = lhs.getExpressionType();
 
     // next line is a shortcut, not necessary
-    if (!precision.isTracking(MemoryLocation.parseExtendedQualifiedName(varName), targetType, successor)) {
+    if (!precision.isTracking(MemoryLocation.fromQualifiedName(varName), targetType, successor)) {
       return state;
     }
 
