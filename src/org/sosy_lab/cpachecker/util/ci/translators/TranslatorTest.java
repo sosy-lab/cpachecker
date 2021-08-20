@@ -58,10 +58,10 @@ public class TranslatorTest {
 
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.parseExtendedQualifiedName("var1"), new ValueAndType(new NumericValue(3), null));
+            MemoryLocation.forIdentifier("var1"), new ValueAndType(new NumericValue(3), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.parseExtendedQualifiedName("var3"), new ValueAndType(NullValue.getInstance(), null));
+            MemoryLocation.forIdentifier("var3"), new ValueAndType(NullValue.getInstance(), null));
     constantsMap =
         constantsMap.putAndCopy(
             MemoryLocation.parseExtendedQualifiedName("fun::var1"), new ValueAndType(new NumericValue(1.5), null));

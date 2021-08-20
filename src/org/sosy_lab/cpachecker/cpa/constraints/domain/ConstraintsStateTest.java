@@ -31,7 +31,7 @@ public class ConstraintsStateTest {
 
   private final Type defType = CNumericTypes.INT;
 
-  private final MemoryLocation memLoc1 = MemoryLocation.parseExtendedQualifiedName("id1");
+  private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicIdentifier id1 = factory.newIdentifier(memLoc1);
   private final SymbolicExpression idExp1 = factory.asConstant(id1, defType);
   private final SymbolicExpression numExp = factory.asConstant(new NumericValue(5), defType);

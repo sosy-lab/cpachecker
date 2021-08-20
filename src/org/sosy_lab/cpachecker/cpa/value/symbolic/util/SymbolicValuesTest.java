@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class SymbolicValuesTest {
 
-  private final MemoryLocation memLoc1 = MemoryLocation.parseExtendedQualifiedName("a");
-  private final MemoryLocation memLoc2 = MemoryLocation.parseExtendedQualifiedName("b");
+  private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("a");
+  private final MemoryLocation memLoc2 = MemoryLocation.forIdentifier("b");
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;

@@ -76,6 +76,22 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return Objects.hash(functionName, identifier, offset);
   }
 
+  /**
+   * Create an instance for the given identifier without function name and offset. Typically this
+   * should be used for global variables.
+   */
+  public static MemoryLocation forIdentifier(String pIdentifier) {
+    return new MemoryLocation(null, pIdentifier, null);
+  }
+
+  /**
+   * Create an instance for the given identifier without function name but with an offset. Typically
+   * this should be used for global variables.
+   */
+  public static MemoryLocation forIdentifier(String pIdentifier, long pOffset) {
+    return new MemoryLocation(null, pIdentifier, pOffset);
+  }
+
   public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
     return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, null);
   }
