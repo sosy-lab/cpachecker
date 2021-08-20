@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.blockgraph.BlockGraph;
 import org.sosy_lab.cpachecker.cfa.blockgraph.builder.BlockGraphBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -86,27 +86,27 @@ public class ConcurrentAnalysis implements Algorithm {
       final Block entry = graph.getEntry();
 
       final int processors = Runtime.getRuntime().availableProcessors();
-      JobExecutor executor = new JobExecutor(processors, logger);
+      TaskExecutor executor = new TaskExecutor(processors, logger);
 
-      TaskFactory taskFactory =
-          new TaskFactory()
+      TaskManager taskManager =
+          TaskManager.factory()
               .set(config, Configuration.class)
               .set(specification, Specification.class)
               .set(logger, LogManager.class)
               .set(shutdownNotifier, ShutdownNotifier.class)
               .set(cfa, CFA.class)
-              .set(executor, JobExecutor.class);
+              .set(executor, TaskExecutor.class)
+              .createInstance();
 
-      Task task = taskFactory.createForwardAnalysis(entry);
+      taskManager.spawnForwardAnalysis(entry);
 
-      executor.requestJob(task);
       executor.start();
       executor.waitForCompletion();
-    } catch (InvalidConfigurationException ignored) {
-      logger.log(Level.SEVERE, "Invalid configuration.");
+    } catch (InvalidConfigurationException exception) {
+      logger.log(Level.SEVERE, "Invalid configuration:", exception);
     }
 
-    logger.log(Level.INFO, "Stopping concurrent analysis (finished) ...");
-    return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    logger.log(Level.INFO, "Stopping concurrent analysis ...");
+    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
   }
 }

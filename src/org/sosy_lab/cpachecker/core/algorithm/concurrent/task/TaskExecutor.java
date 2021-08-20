@@ -6,10 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,54 +23,55 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
 
 /**
  * JobExecutor manages execution of concurrent analysis tasks from {@linkplain
  * org.sosy_lab.cpachecker.core.algorithm.concurrent.task concurrent.task}.
  *
- * <p>After creating the executor using the public constructor {@link #JobExecutor(int,
+ * <p>After creating the executor using the public constructor {@link #TaskExecutor(int,
  * LogManager)}, user can request execution of {@link Task}s with {@link #requestJob(Task)}. In
  * particular, scheduled tasks can use this method to spawn further tasks themselves. Actual
- * execution starts as soon as {@link #start()} gets called. {@link JobExecutor} shuts down as soon
+ * execution starts as soon as {@link #start()} gets called. {@link TaskExecutor} shuts down as soon
  * as all requested jobs (including ones spawned by running jobs themselves) have completed. To wait
  * for this situation, the user can call {@link #waitForCompletion()}, which blocks until all jobs
  * have completed.
  *
- * <p>{@link JobExecutor} can modify requested jobs before actually posting them for execution. It
+ * <p>{@link TaskExecutor} can modify requested jobs before actually posting them for execution. It
  * does so if data with which a new job has been created (e.g. a block summary) has become outdated
  * due to a concurrent task which completed and which calculated an updated version of such data.
  */
-public final class JobExecutor implements Runnable {
+public final class TaskExecutor implements Runnable {
   private final LinkedBlockingQueue<Task> requestedJobs = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
   private final LogManager logManager;
   private final Collection<Thread> waitingOnCompletion = new LinkedList<>();
-  private final CompletionWatchdog watchdog = new JobExecutor.CompletionWatchdog();
+  private final CompletionWatchdog watchdog = new TaskExecutor.CompletionWatchdog();
   private final Thread executorThread = new Thread(this, "Job Executor");
   private final AtomicBoolean jobsPending = new AtomicBoolean(true);
 
   /**
-   * Prepare a new {@link JobExecutor}. Actual execution does not start until {@link #start()} gets
+   * Prepare a new {@link TaskExecutor}. Actual execution does not start until {@link #start()} gets
    * called.
    *
    * @param pThreads Requested number of threads for job execution
    * @param pLogManager {@link LogManager} used for log messages
    */
-  public JobExecutor(final int pThreads, final LogManager pLogManager) {
+  public TaskExecutor(final int pThreads, final LogManager pLogManager) {
     executor = Executors.newFixedThreadPool(pThreads);
     logManager = pLogManager;
   }
 
-  /** Request the {@link JobExecutor} to start executing requested jobs. */
+  /** Request the {@link TaskExecutor} to start executing requested jobs. */
   public void start() {
     executorThread.start();
     new Thread(watchdog, "Completion Watchdog").start();
   }
 
   /**
-   * Suspend the thread which calls this method until {@link JobExecutor} has completed all
+   * Suspend the thread which calls this method until {@link TaskExecutor} has completed all
    * requested jobs.
    */
   public void waitForCompletion() {
@@ -168,7 +171,7 @@ public final class JobExecutor implements Runnable {
    *
    * @param pTask The new job to execute.
    */
-  public void requestJob(final Task pTask) {
+  void requestJob(final Task pTask) {
     checkNotNull(pTask);
 
     boolean success = false;
@@ -185,10 +188,10 @@ public final class JobExecutor implements Runnable {
 
   /**
    * {@link CompletionWatchdog} runs in a separate thread and monitors the status of its
-   * accompanying {@link JobExecutor}. For each {@link Task} requested for execution in the {@link
-   * JobExecutor}, {@link CompletionWatchdog} waits on the corresponding {@link Future}. As soon as
+   * accompanying {@link TaskExecutor}. For each {@link Task} requested for execution in the {@link
+   * TaskExecutor}, {@link CompletionWatchdog} waits on the corresponding {@link Future}. As soon as
    * the {@link Future}s of all jobs have completed and no new ones have been requested, it
-   * interrupts {@link JobExecutor} (which is waiting for new tasks in its {@link
+   * interrupts {@link TaskExecutor} (which is waiting for new tasks in its {@link
    * LinkedBlockingQueue}) such that it can shut down itself.
    */
   private class CompletionWatchdog implements Runnable {
@@ -253,14 +256,14 @@ public final class JobExecutor implements Runnable {
     /**
      * Resume {@linkplain CompletionWatchdog CompletionWatchdog} operations.
      *
-     * <p>After detecting a situation in which {@link JobExecutor} appears to have completed all
+     * <p>After detecting a situation in which {@link TaskExecutor} appears to have completed all
      * work, {@linkplain CompletionWatchdog CompletionWatchdog} requests shutdown of the {@link
-     * JobExecutor} and puts itself into waiting state. {@link JobExecutor} then checks whether the
-     * conditions for shutdown are really fulfilled and takes appropriate action. Afterwards, {@link
-     * JobExecutor} calls {@link #resume()} such that the {@linkplain CompletionWatchdog
+     * TaskExecutor} and puts itself into waiting state. {@link TaskExecutor} then checks whether
+     * the conditions for shutdown are really fulfilled and takes appropriate action. Afterwards,
+     * {@link TaskExecutor} calls {@link #resume()} such that the {@linkplain CompletionWatchdog
      * CompletionWatchdog} can inspect the result: There either has been more work it was not aware
      * of (in this case {@linkplain CompletionWatchdog CompletionWatchdog} resumes normal
-     * operation), or the shutdown request was justified and {@link JobExecutor} shut down (in this
+     * operation), or the shutdown request was justified and {@link TaskExecutor} shut down (in this
      * case {@linkplain CompletionWatchdog CompletionWatchdog} also terminates).
      */
     private synchronized void resume() {
@@ -269,7 +272,7 @@ public final class JobExecutor implements Runnable {
 
     /**
      * Inform {@link CompletionWatchdog} about a new {@link Future} for whose completion it must
-     * wait before asking {@link JobExecutor} to shut down.
+     * wait before asking {@link TaskExecutor} to shut down.
      *
      * @param pFuture The {@link Future} on which to wait.
      */

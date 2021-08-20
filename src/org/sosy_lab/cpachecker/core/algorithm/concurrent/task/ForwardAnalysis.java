@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
+import com.google.common.collect.Table;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ public class ForwardAnalysis implements Task {
 
   private final ReachedSet reached;
 
-  private final TaskFactory taskFactory;
+  private final TaskManager taskManager;
 
   private final LogManager logManager;
 
@@ -83,13 +84,13 @@ public class ForwardAnalysis implements Task {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCFA,
-      final TaskFactory pTaskFactory)
+      final TaskManager pTaskManager)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     loadForwardConfig();
 
     block = pBlock;
-    taskFactory = pTaskFactory;
+    taskManager = pTaskManager;
     logManager = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
@@ -238,8 +239,7 @@ public class ForwardAnalysis implements Task {
         final ShareableBooleanFormula shareableFormula =
             new ShareableBooleanFormula(formulaManager, exitFormula);
 
-        Task next = taskFactory.createForwardAnalysis(exit, shareableFormula);
-        taskFactory.getExecutor().requestJob(next);
+        taskManager.spawnForwardAnalysis(exit, shareableFormula);
       }
     }
 
