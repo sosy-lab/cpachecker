@@ -503,8 +503,8 @@ public class ValueAnalysisTransferRelation
             notScopedField = (JIdExpression)op1;
             notScopedFieldValue = newValue;
           } else {
-            String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
-            memLoc = Optional.of(MemoryLocation.parseExtendedQualifiedName(op1QualifiedName));
+            memLoc =
+                Optional.of(MemoryLocation.forDeclaration(((AIdExpression) op1).getDeclaration()));
           }
 
         } else if (op1 instanceof APointerExpression) {

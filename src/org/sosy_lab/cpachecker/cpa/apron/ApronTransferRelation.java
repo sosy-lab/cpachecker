@@ -669,12 +669,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // make the fullyqualifiedname
 
       // get the variable name in the declarator
-      MemoryLocation variableName;
-      if (decl.isGlobal()) {
-        variableName = MemoryLocation.parseExtendedQualifiedName(decl.getName());
-      } else {
-        variableName = MemoryLocation.forLocalVariable(functionName, decl.getName());
-      }
+      MemoryLocation variableName = MemoryLocation.forDeclaration(decl);
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);

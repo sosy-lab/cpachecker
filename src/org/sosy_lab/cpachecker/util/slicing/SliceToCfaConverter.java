@@ -303,13 +303,12 @@ final class SliceToCfaConverter {
           (CFunctionCallAssignmentStatement) originalFunctionCall;
 
       if (optionalReturnVariable.isPresent()) {
-
-        String returnVariableName = optionalReturnVariable.orElseThrow().getQualifiedName();
         Set<MemoryLocation> memoryLocations =
             relevantMemoryLocations.get(originalFunctionReturnEdge);
 
         if (memoryLocations != null
-            && memoryLocations.contains(MemoryLocation.parseExtendedQualifiedName(returnVariableName))) {
+            && memoryLocations.contains(
+                MemoryLocation.forDeclaration(optionalReturnVariable.orElseThrow()))) {
 
           relevantFunctionCall =
               new CFunctionCallAssignmentStatement(
@@ -551,15 +550,13 @@ final class SliceToCfaConverter {
             originalMemoryLocations.computeIfAbsent(declarationEdge, key -> new HashSet<>());
 
         for (AParameterDeclaration parameter : entryNode.getFunctionParameters()) {
-          String qualifiedName = parameter.getQualifiedName();
-          memoryLocations.add(MemoryLocation.parseExtendedQualifiedName(qualifiedName));
+          memoryLocations.add(MemoryLocation.forDeclaration(parameter));
         }
 
         Optional<? extends AVariableDeclaration> optionalReturnVariable =
             entryNode.getReturnVariable();
         if (optionalReturnVariable.isPresent()) {
-          String qualifiedName = optionalReturnVariable.get().getQualifiedName();
-          memoryLocations.add(MemoryLocation.parseExtendedQualifiedName(qualifiedName));
+          memoryLocations.add(MemoryLocation.forDeclaration(optionalReturnVariable.get()));
         }
       }
     }

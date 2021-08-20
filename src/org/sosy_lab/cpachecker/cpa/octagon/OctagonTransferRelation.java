@@ -898,19 +898,12 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       CVariableDeclaration declaration = (CVariableDeclaration) decl;
 
       // get the variable name in the declarator
-      MemoryLocation variableName;
+      MemoryLocation variableName = MemoryLocation.forDeclaration(declaration);
 
       // TODO check other types of variables later - just handle primitive
       // types for the moment
       // don't add pointeror struct variables to the list since we don't track them
       if (!isHandleAbleType(declaration.getType())) { return Collections.singleton(state); }
-
-      // make the fullyqualifiedname
-      if (!decl.isGlobal()) {
-        variableName = MemoryLocation.forLocalVariable(functionName, declaration.getName());
-      } else {
-        variableName = MemoryLocation.parseExtendedQualifiedName(declaration.getName());
-      }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);

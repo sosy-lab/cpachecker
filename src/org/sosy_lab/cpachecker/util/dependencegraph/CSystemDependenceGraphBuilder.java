@@ -455,8 +455,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
 
     if (returnVariable.isPresent()) {
-      String variableName = returnVariable.orElseThrow().getQualifiedName();
-      return Optional.of(MemoryLocation.parseExtendedQualifiedName(variableName));
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.orElseThrow()));
     } else {
       return Optional.empty();
     }
