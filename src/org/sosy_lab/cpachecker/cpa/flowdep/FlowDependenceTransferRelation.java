@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -669,7 +668,7 @@ class FlowDependenceTransferRelation
     public Set<MemoryLocation> visit(CIdExpression pExp) throws CPATransferException {
       CSimpleDeclaration idDeclaration = pExp.getDeclaration();
       if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
-        return Collections.singleton(MemoryLocation.forDeclaration(idDeclaration));
+        return ImmutableSet.of(MemoryLocation.forDeclaration(idDeclaration));
       } else {
         return ImmutableSet.of();
       }
