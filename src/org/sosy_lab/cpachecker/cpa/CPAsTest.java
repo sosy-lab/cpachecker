@@ -106,7 +106,6 @@ public class CPAsTest {
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
     cpas.remove(SLABCPA.class);
-    cpas.remove(TraceAbstractionCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
