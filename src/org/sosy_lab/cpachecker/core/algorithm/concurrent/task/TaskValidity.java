@@ -17,7 +17,7 @@ import java.util.Map;
  * {@link TaskValidity} represents this verdict, with {@link TaskValidity#VALID} indicating that the
  * task shall still get executed, and {@link TaskValidity#INVALID} requesting its cancellation.
  */
-enum TaskValidity {
+public enum TaskValidity {
   VALID,
   INVALID
 }

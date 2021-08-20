@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
@@ -35,6 +35,11 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskInvalidatedException;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskValidity;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -82,7 +87,7 @@ public class ForwardAnalysis implements Task {
   private Algorithm algorithm = null;
   private BlockAwareCompositeCPA cpa = null;
 
-  protected ForwardAnalysis(
+  public ForwardAnalysis(
       @Nullable final Block pPredecessor,
       final Block pBlock,
       @Nullable final ShareableBooleanFormula pNewSummary,
