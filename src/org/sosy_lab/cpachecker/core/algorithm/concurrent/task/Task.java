@@ -16,17 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
 
 /**
- * {@link Task} preprocessing with {@link Task#preprocess(Table, Map)} can determine that the data
- * with which a task was created has become outdated. In this case, the task is to be discarded.
- * {@link TaskValidity} represents this verdict, with {@link TaskValidity#VALID} indicating that the
- * task shall still get executed, and {@link TaskValidity#INVALID} requesting its cancellation.
- */
-enum TaskValidity {
-  VALID,
-  INVALID
-}
-
-/**
  * {@link Task} provides a common interface for all classes which implement subtasks of concurrent
  * analysis.
  */
@@ -47,6 +36,6 @@ public interface Task extends Callable<AlgorithmStatus> {
    * @param pSummaryVersions Version counter for block summaries
    */
   TaskValidity preprocess(
-      Table<Block, Block, ShareableBooleanFormula> pSummaries,
-      Map<Block, Integer> pSummaryVersions);
+      final Table<Block, Block, ShareableBooleanFormula> pSummaries,
+      final Map<Block, Integer> pSummaryVersions);
 }
