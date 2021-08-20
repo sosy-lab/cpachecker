@@ -51,7 +51,8 @@ public final class TaskExecutor implements Runnable {
   private final LogManager logManager;
   private final Collection<Thread> waitingOnCompletion = new LinkedList<>();
   private final CompletionWatchdog watchdog = new TaskExecutor.CompletionWatchdog();
-  private final Thread executorThread = new Thread(this, "Job Executor");
+  private final Thread executorThread = new Thread(this, TaskExecutor.getThreadName());
+
   private final AtomicBoolean jobsPending = new AtomicBoolean(true);
 
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
@@ -67,6 +68,15 @@ public final class TaskExecutor implements Runnable {
   public TaskExecutor(final int pThreads, final LogManager pLogManager) {
     executor = Executors.newFixedThreadPool(pThreads);
     logManager = pLogManager;
+  }
+
+  /**
+   * Return the name of the thread which executes the {@link TaskExecutor}.
+   *
+   * @return Name of the thread which executes the {@link TaskExecutor}
+   */
+  public static String getThreadName() {
+    return "Job Executor";
   }
 
   /** Request the {@link TaskExecutor} to start executing requested jobs. */

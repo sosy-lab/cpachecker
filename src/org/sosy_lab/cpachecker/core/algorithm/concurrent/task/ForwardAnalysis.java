@@ -62,7 +62,7 @@ public class ForwardAnalysis implements Task {
   private final Block predecessor;
   private final Block block;
 
-  private final int expectedPredecessorVersion;
+  private final int expectedPredVersion;
   private final ShareableBooleanFormula newSummary;
   private final ReachedSet reached;
   private final TaskManager taskManager;
@@ -70,8 +70,8 @@ public class ForwardAnalysis implements Task {
   private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManager bfMgr;
-  private int expectedVersion = 0;
   private ShareableBooleanFormula oldSummary = null;
+  private int expectedVersion = 0;
   private Collection<ShareableBooleanFormula> predecessorSummaries;
 
   @SuppressWarnings("FieldMayBeFinal")
@@ -86,7 +86,7 @@ public class ForwardAnalysis implements Task {
       @Nullable final Block pPredecessor,
       final Block pBlock,
       @Nullable final ShareableBooleanFormula pNewSummary,
-      final int pExpectedPredecessorVersion,
+      final int pExpectedPredVersion,
       final Configuration pConfig,
       final Specification pSpecification,
       final LogManager pLogger,
@@ -101,7 +101,7 @@ public class ForwardAnalysis implements Task {
     taskManager = pTaskManager;
     logManager = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    expectedPredecessorVersion = pExpectedPredecessorVersion;
+    expectedPredVersion = pExpectedPredVersion;
 
     CoreComponentsFactory factory =
         new CoreComponentsFactory(
@@ -143,6 +143,24 @@ public class ForwardAnalysis implements Task {
             : pNewSummary;
   }
 
+  /**
+   * Increment version count of the block summary for {@code pBlock}.<br>
+   * Used by {@link #preprocess(Table, Map)}.
+   *
+   * @param pBlock The block for which to update the summary version
+   * @param pVersions The global map of summary versions
+   * @return The new summary version
+   * @see #preprocess(Table, Map)
+   */
+  private static int incrementVersion(final Block pBlock, final Map<Block, Integer> pVersions) {
+    assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
+        : "Only " + TaskExecutor.getThreadName() + " may call incrementVersion()";
+
+    int currentVersion = pVersions.getOrDefault(pBlock, 0);
+    pVersions.put(pBlock, ++currentVersion);
+    return currentVersion;
+  }
+
   private void loadForwardConfig() throws InvalidConfigurationException {
     if (forward == null) {
       synchronized (ForwardAnalysis.class) {
@@ -173,7 +191,7 @@ public class ForwardAnalysis implements Task {
   @Override
   public AlgorithmStatus call()
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    if (!summaryChanged()) {
+    if (!summaryHasChanged()) {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
@@ -269,7 +287,7 @@ public class ForwardAnalysis implements Task {
     return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
   }
 
-  private boolean summaryChanged() {
+  private boolean summaryHasChanged() {
     if (oldSummary == null || newSummary == null) {
       return true;
     }
@@ -283,25 +301,43 @@ public class ForwardAnalysis implements Task {
 
   /**
    * {@link #preprocess(Table, Map)} executes in the context of the central scheduler thread and
-   * operates with exclusive, thread-safe access on the global maps of block summaries and block
-   * summary versions.
+   * operates with exclusive and thread-safe access on the global map of calculated block summaries
+   * and summary version counters. Each task type overwrites this method to implement global
+   * synchronization using these structures.
    *
-   * <p>For {@link ForwardAnalysis}, it performs the following steps:
+   * <p>For {@link ForwardAnalysis}, this method performs the following steps:
    *
    * <ol>
-   *   <li>Check whether the version of updated summary of the predecessor block which triggered
-   *       this task is still lower than the version stored when the ForwardAnalysis which
-   *       calculated the updated summary was created. Only in this case, the new summary which
-   *       forms the basis for the present task instance remains valid. If the version has been
-   *       increment in the meantime, a newer version of the block summary has been set and must not
-   *       be overwritten by the outdated version stored in this task. In this case, preprocessing
-   *       aborts with {@link TaskValidity#INVALID}.
-   *   <li>Store the old version of the predecessor summary in the task. As soon as the task
-   *       actually executes, it uses the old value to check whether new and old formula actually
-   *       differ. If they do not, it completes early and performs no new analysis.
-   *   <li>Update summary and summary version for the predecessor block in the global maps.
-   *   <li>Increment the summary version of the present block by one and store the new value in the
-   *       task.
+   *   <li>Publish updated block summary of predecessor block, if applicable.<br>
+   *       In most cases, a new ForwardAnalysis <em>t1</em> on a block <em>b1</em> has been
+   *       triggered by a completed ForwardAnalysis <em>t0</em> on a block <em>b0</em>, where
+   *       <em>b0</em> belongs to the set of predecessors of <em>b1</em>. This other analysis
+   *       <em>t0</em> usually identified a new block summary <em>Q0</em> for <em>b0</em>. Because
+   *       the tasks themselves don't gain access to the global synchronization structures, {@link
+   *       #preprocess(Table, Map)} running for <em>t1</em> offers the first opportunity after the
+   *       completion of <em>t0</em> to access the global map of calculated summaries and publish
+   *       <em>Q0</em> to it. Before doing so, {@link #preprocess(Table, Map)} running for
+   *       <em>t1</em> first checks the expected version of the summary for <em>b0</em> against the
+   *       value found in the global map of version counters. At the time the {@link
+   *       ForwardAnalysis} <em>t1</em> got created by <em>t0</em>, <em>t0</em> provided <em>t1</em>
+   *       with the version applicable when <em>t0</em> was scheduled. If {@link #preprocess(Table,
+   *       Map)} for <em>t1</em> still encounters the same version in the global map, the updated
+   *       summary <em>Q0</em> found by <em>t0</em> remains valid and must be published. If the
+   *       version has been increment further in the meantime, the calculation of a newer version
+   *       for the block summary of <em>b0</em> has been scheduled with a {@link ForwardAnalysis}
+   *       <em>t2</em>. Furthermore, <em>t2</em> might even already have completed, and its result
+   *       might have been published to the global map of block summaries. In this case, {@link
+   *       #preprocess(Table, Map)} for <em>t1</em> must not overwrite this value with its now
+   *       outdated version of <em>Q0</em>. Such task <em>t2</em> would also already have created a
+   *       new {@link ForwardAnalysis} on <em>b1</em>, which makes the present task <em>t1</em>
+   *       redundant. In this case, preprocessing therefore aborts with {@link
+   *       TaskValidity#INVALID}.
+   *   <li>Store the old version of the predecessor summary whose update triggered the creation of
+   *       the present task. As soon as the task actually executes, it uses the old value to check
+   *       whether new and old formula actually differ. If they do not, it completes early and
+   *       performs no new analysis.
+   *   <li>Increment the summary version of the block this task operates on by one and store the new
+   *       value in the task.
    *   <li>Retrieve the list of all predecessor summaries of the current block and store it in the
    *       task. As soon as the task executes, it uses these summaries to construct the cumulative
    *       predecessor summary.
@@ -310,33 +346,60 @@ public class ForwardAnalysis implements Task {
    * @param summaries Global map of block summaries
    * @param versions Global map of block summary versions
    * @return {@link TaskValidity#VALID} if the task remains valid, {@link TaskValidity#INVALID} if
-   *     preprocessing has determined the task to be outdated and requests its cancellation
+   *     the method has determined the task to be outdated and requests its cancellation
    */
   @Override
   public TaskValidity preprocess(
-      Table<Block, Block, ShareableBooleanFormula> summaries, Map<Block, Integer> versions) {
-    Map<Block, ShareableBooleanFormula> incomingSummaries = summaries.column(block);
+      final Table<Block, Block, ShareableBooleanFormula> summaries,
+      final Map<Block, Integer> versions) {
+    assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
+        : "Only " + TaskExecutor.getThreadName() + " may call preprocess()";
 
-    if (predecessor != null) {
-      final int currentPredecessorVersion = versions.getOrDefault(predecessor, 0);
-      oldSummary = incomingSummaries.get(predecessor);
+    final Map<Block, ShareableBooleanFormula> incoming = summaries.column(block);
+    oldSummary = incoming.getOrDefault(predecessor, null);
 
-      if (expectedPredecessorVersion < currentPredecessorVersion) {
-        return TaskValidity.INVALID;
-      } else {
-        versions.put(predecessor, expectedPredecessorVersion);
-        incomingSummaries.put(predecessor, newSummary);
-      }
+    try {
+      publishPredSummary(incoming, versions);
+    } catch (final TaskInvalidatedException exception) {
+      return TaskValidity.INVALID;
     }
 
-    int currentVersion = versions.getOrDefault(block, 0);
-    versions.put(block, ++currentVersion);
-    expectedVersion = currentVersion;
-
+    expectedVersion = incrementVersion(block, versions);
     predecessorSummaries =
-        ImmutableList.copyOf(
-            Maps.filterKeys(incomingSummaries, block -> predecessor == block).values());
+        ImmutableList.copyOf(Maps.filterKeys(incoming, block -> predecessor != block).values());
 
     return TaskValidity.VALID;
+  }
+
+  /**
+   * Publish an updated block summary to the global map of block summaries.<br>
+   * Used by {@link #preprocess(Table, Map)}.
+   *
+   * @param predSummaries The global map of block summaries
+   * @param versions The global map of block summary versions
+   * @throws TaskInvalidatedException The task for which {@link #preprocess(Table, Map)} called this
+   *     method has been invalidated (see documentation for {@link #preprocess(Table, Map)}).
+   * @see #preprocess(Table, Map)
+   */
+  private void publishPredSummary(
+      final Map<Block, ShareableBooleanFormula> predSummaries, final Map<Block, Integer> versions)
+      throws TaskInvalidatedException {
+    assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
+        : "Only the central thread "
+            + TaskExecutor.getThreadName()
+            + " may call publishPredSummary()";
+
+    if (predecessor == null) {
+      return;
+    }
+
+    final int predVersion = versions.getOrDefault(predecessor, 0);
+
+    if (expectedPredVersion < predVersion) {
+      throw new TaskInvalidatedException();
+    } else {
+      versions.put(predecessor, expectedPredVersion);
+      predSummaries.put(predecessor, newSummary);
+    }
   }
 }
