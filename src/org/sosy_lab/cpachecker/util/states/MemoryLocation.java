@@ -14,16 +14,16 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
+import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
-* This class describes a location in the memory.
-*/
-public class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
+/** This class describes a location in the memory. */
+@Immutable
+public final class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   private static final long serialVersionUID = -8910967707373729034L;
   private final @Nullable String functionName;
