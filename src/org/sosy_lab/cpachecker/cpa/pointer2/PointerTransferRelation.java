@@ -597,7 +597,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               if (declaration != null) {
                 location = MemoryLocation.forDeclaration(declaration);
               } else {
-                location = MemoryLocation.parseExtendedQualifiedName(pIastIdExpression.getName());
+                location = MemoryLocation.forIdentifier(pIastIdExpression.getName());
               }
             }
             return visit(location);

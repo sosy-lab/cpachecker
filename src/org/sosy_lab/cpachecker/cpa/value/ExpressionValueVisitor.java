@@ -98,7 +98,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     } else if (!ForwardingTransferRelation.isGlobal(varName)) {
       memLoc = MemoryLocation.forLocalVariable(getFunctionName(), varName.getName());
     } else {
-      memLoc = MemoryLocation.parseExtendedQualifiedName(varName.getName());
+      memLoc = MemoryLocation.forIdentifier(varName.getName());
     }
 
     if (readableState.contains(memLoc)) {
@@ -408,7 +408,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if (isGlobal) {
-        return MemoryLocation.parseExtendedQualifiedName(idExp.getName());
+        return MemoryLocation.forIdentifier(idExp.getName());
       } else {
         return MemoryLocation.forLocalVariable(evv.getFunctionName(), idExp.getName());
       }

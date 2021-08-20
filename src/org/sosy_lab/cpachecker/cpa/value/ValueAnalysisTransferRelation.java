@@ -734,7 +734,7 @@ public class ValueAnalysisTransferRelation
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.parseExtendedQualifiedName(varName);
+      memoryLocation = MemoryLocation.forIdentifier(varName);
     } else {
       memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }

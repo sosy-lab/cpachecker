@@ -803,7 +803,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     if (!isGlobal(left)) {
       return MemoryLocation.forLocalVariable(pFunctionName, variableName);
     } else {
-      return MemoryLocation.parseExtendedQualifiedName(variableName);
+      return MemoryLocation.forIdentifier(variableName);
     }
   }
 

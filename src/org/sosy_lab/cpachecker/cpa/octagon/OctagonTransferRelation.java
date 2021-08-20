@@ -1033,7 +1033,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     if (!isGlobal(left)) {
       return MemoryLocation.forLocalVariable(pFunctionName, variableName);
     } else {
-      return MemoryLocation.parseExtendedQualifiedName(variableName);
+      return MemoryLocation.forIdentifier(variableName);
     }
 
   }
