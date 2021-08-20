@@ -41,12 +41,9 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     if (!(pCpa instanceof PredicateCPA)) {
       throw new InvalidConfigurationException(
-          String.format(
-              "%s\n%s",
-              "TraceAbstractionCPA is a wrapper CPA that requires the contained CPA to be an "
-                  + "instance of PredicateCPA. This can be achieved by putting the following option "
-                  + "in your configuration file: ",
-              "TraceAbstractionCPA.cpa = cpa.predicate.PredicateCPA"));
+          "TraceAbstractionCPA is a wrapper CPA that requires the contained CPA to be an "
+              + "instance of PredicateCPA, but configured was a "
+              + pCpa.getClass().getSimpleName());
     }
 
     logger = pLogger;
