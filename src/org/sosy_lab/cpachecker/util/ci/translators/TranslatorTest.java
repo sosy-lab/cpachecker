@@ -64,10 +64,12 @@ public class TranslatorTest {
             MemoryLocation.forIdentifier("var3"), new ValueAndType(NullValue.getInstance(), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.parseExtendedQualifiedName("fun::var1"), new ValueAndType(new NumericValue(1.5), null));
+            MemoryLocation.forLocalVariable("fun", "var1"),
+            new ValueAndType(new NumericValue(1.5), null));
     constantsMap =
         constantsMap.putAndCopy(
-            MemoryLocation.parseExtendedQualifiedName("fun::varC"), new ValueAndType(new NumericValue(-5), null));
+            MemoryLocation.forLocalVariable("fun", "varC"),
+            new ValueAndType(new NumericValue(-5), null));
 
     Truth.assertThat(constantsMap).hasSize(4);
 
