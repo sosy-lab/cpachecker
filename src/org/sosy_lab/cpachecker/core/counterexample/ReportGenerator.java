@@ -242,6 +242,9 @@ public class ReportGenerator {
                     argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      } catch (InterruptedException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not generate witness for witness view due to interruption");
       }
     }
   }

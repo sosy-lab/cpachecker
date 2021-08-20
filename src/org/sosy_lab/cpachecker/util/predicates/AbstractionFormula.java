@@ -117,33 +117,29 @@ public class AbstractionFormula implements Serializable {
     return pMgr.translateFrom(formula, fMgr);
   }
 
-  public ExpressionTree<Object> asExpressionTree(CFANode pLocation) {
+  public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
     BooleanFormula inv = formula;
-    try {
-      // filter out variables that are not global and
-      // not local in the current function
-      String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-      inv =
-          fMgr.filterLiterals(
-              inv,
-              e -> {
-                for (String name : fMgr.extractVariableNames(e)) {
-                  if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                    return false;
-                  }
+    // filter out variables that are not global and
+    // not local in the current function
+    String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
+    inv =
+        fMgr.filterLiterals(
+            inv,
+            e -> {
+              for (String name : fMgr.extractVariableNames(e)) {
+                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
+                  return false;
                 }
-                return true;
-              });
+              }
+              return true;
+            });
 
-      FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
-      boolean isValid = fMgr.visit(inv, v);
-      if (isValid) {
-        return LeafExpression.of(v.getString());
-      }
-      return ExpressionTrees.getTrue(); // no new invariant
-    } catch (InterruptedException e) {
-      throw new AssertionError("Approximation of state was interrupted", e);
+    FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
+    boolean isValid = fMgr.visit(inv, v);
+    if (isValid) {
+      return LeafExpression.of(v.getString());
     }
+    return ExpressionTrees.getTrue(); // no new invariant
   }
 
   /**

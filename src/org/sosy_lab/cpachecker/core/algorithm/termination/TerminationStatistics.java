@@ -492,28 +492,33 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
-    final Witness witness =
-        witnessExporter.generateTerminationErrorWitness(
-            newRoot,
-            relevantStates,
-            BiPredicates.bothSatisfy(relevantStates),
-            state -> Objects.equals(state, loopStartInCEX),
-            provideQuasiInvariant);
+    try {
+      final Witness witness =
+          witnessExporter.generateTerminationErrorWitness(
+              newRoot,
+              relevantStates,
+              BiPredicates.bothSatisfy(relevantStates),
+              state -> Objects.equals(state, loopStartInCEX),
+              provideQuasiInvariant);
 
-    if (violationWitness != null) {
-      WitnessToOutputFormatsUtils.writeWitness(
-          violationWitness,
-          compressWitness,
-          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
-          logger);
-    }
+      if (violationWitness != null) {
+        WitnessToOutputFormatsUtils.writeWitness(
+            violationWitness,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+            logger);
+      }
 
-    if (violationWitnessDot != null) {
-      WitnessToOutputFormatsUtils.writeWitness(
-          violationWitnessDot,
-          compressWitness,
-          pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
-          logger);
+      if (violationWitnessDot != null) {
+        WitnessToOutputFormatsUtils.writeWitness(
+            violationWitnessDot,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+            logger);
+      }
+    } catch (InterruptedException e) {
+      logger.logUserException(
+          WARNING, e, "Could not export termination witness due to interruption");
     }
   }
 

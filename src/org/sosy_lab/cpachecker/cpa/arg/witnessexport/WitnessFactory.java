@@ -334,7 +334,8 @@ class WitnessFactory implements EdgeAppender {
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo)
+      throws InterruptedException {
 
     attemptSwitchToFunctionScope(pEdge);
     if (pFromState.isPresent()) {
@@ -396,7 +397,8 @@ class WitnessFactory implements EdgeAppender {
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+      CFAEdgeWithAdditionalInfo pAdditionalInfo)
+      throws InterruptedException {
     appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap, pAdditionalInfo);
   }
 
@@ -1125,7 +1127,8 @@ class WitnessFactory implements EdgeAppender {
       final Predicate<? super ARGState> pIsCyclehead,
       final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
-      GraphBuilder pGraphBuilder) {
+      GraphBuilder pGraphBuilder)
+      throws InterruptedException {
 
     // reset information in case data structures where filled before:
     leavingEdges.clear();
@@ -1229,7 +1232,7 @@ class WitnessFactory implements EdgeAppender {
    * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
    * irrelevant information.
    */
-  private void mergeRepeatedEdges(final String entryStateNodeId) {
+  private void mergeRepeatedEdges(final String entryStateNodeId) throws InterruptedException {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
@@ -1363,8 +1366,7 @@ class WitnessFactory implements EdgeAppender {
     }
   }
 
-
-  private void setLoopHeadInvariantIfApplicable(String pTarget) {
+  private void setLoopHeadInvariantIfApplicable(String pTarget) throws InterruptedException {
     if (!ExpressionTrees.getTrue().equals(getStateInvariant(pTarget))) {
       return;
     }
