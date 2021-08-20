@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -38,7 +37,7 @@ class InterpolationSequenceStorage {
 
   void addItpSequence(InterpolationSequence pItpSequence) {
     checkNotNull(pItpSequence);
-    verify(itpSequences.add(pItpSequence), "InterpolationSequence is already contained.");
+    itpSequences.add(pItpSequence);
   }
 
   ImmutableSet<InterpolationSequence> difference(Set<InterpolationSequence> pOtherSequences) {
