@@ -62,6 +62,8 @@ public class ForwardAnalysis implements Task {
 
   private final LogManager logManager;
 
+  private final ShutdownNotifier shutdownNotifier;
+
   private final FormulaManagerView formulaManager;
 
   @SuppressWarnings("FieldMayBeFinal")
@@ -89,6 +91,7 @@ public class ForwardAnalysis implements Task {
     block = pBlock;
     taskFactory = pTaskFactory;
     logManager = pLogger;
+    shutdownNotifier = pShutdownNotifier;
 
     CoreComponentsFactory factory =
         new CoreComponentsFactory(
@@ -160,17 +163,14 @@ public class ForwardAnalysis implements Task {
   }
 
   private AbstractState buildEntryState(
-      final CFANode pNode, @Nullable final ShareableBooleanFormula pContext) {
+      final CFANode pNode, @Nullable final ShareableBooleanFormula pContext)
+      throws InterruptedException {
     AbstractState rawInitialState = null;
     while (rawInitialState == null) {
       try {
         rawInitialState = cpa.getInitialState(pNode, getDefaultPartition());
       } catch (InterruptedException ignored) {
-        /*
-         * If the task gets interrupted while waiting to obtain the initial state,
-         * 'rawInterruptedState' remains 'null' and it tries the operation again.
-         * TODO: Check for shutdown request.
-         */
+        shutdownNotifier.shutdownIfNecessary();
       }
     }
 
@@ -202,11 +202,7 @@ public class ForwardAnalysis implements Task {
           try {
             componentState = componentCPA.getInitialState(pNode, getDefaultPartition());
           } catch (InterruptedException ignored) {
-            /*
-             * If the task gets interrupted while waiting to obtain the initial state,
-             * 'componentState' remains 'null' and it tries the operation again.
-             * TODO: Check for shutdown request.
-             */
+            shutdownNotifier.shutdownIfNecessary();
           }
         }
       }
