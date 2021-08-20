@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -22,18 +23,20 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 /**
  * Base class for AbstractStates which wrap the abstract state of exactly one CPA. Note that there
- * also exists {@link AbstractSerializableSingleWrapperState} for states that need to be
+ * also exists {@link AbstractSingleWrapperState} for cases where states do not need to be
  * serializable.
  *
  * <p>When updating one of these classes, please keep the other in sync (they cannot inherit from
  * each other because how badly Java serialization is designed).
  */
-public abstract class AbstractSingleWrapperState
-    implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable {
+public abstract class AbstractSerializableSingleWrapperState
+    implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable {
+
+  private static final long serialVersionUID = 627183978717358384L;
 
   private final @Nullable AbstractState wrappedState;
 
-  protected AbstractSingleWrapperState(@Nullable AbstractState pWrappedState) {
+  protected AbstractSerializableSingleWrapperState(@Nullable AbstractState pWrappedState) {
     // TODO this collides with some CPAs' way of handling dummy states, but it should really be not null here
     // Preconditions.checkNotNull(pWrappedState);
     wrappedState = pWrappedState;
