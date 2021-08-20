@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 public class TraceAbstractionState extends AbstractSingleWrapperState implements Graphable {
 
-  private static final long serialVersionUID = 5555787505423005131L;
-
   /** Create a new 'TOP'-state with empty predicates. */
   static TraceAbstractionState createInitState(AbstractState pAbstractState) {
     return new TraceAbstractionState(pAbstractState, ImmutableMap.of());

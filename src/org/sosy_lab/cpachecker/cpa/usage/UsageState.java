@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import java.io.Serializable;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
 public final class UsageState extends AbstractSingleWrapperState
-    implements LatticeAbstractState<UsageState> {
+    implements LatticeAbstractState<UsageState>, Serializable {
 
   private static final long serialVersionUID = -898577877284268426L;
   private TemporaryUsageStorage recentUsages;

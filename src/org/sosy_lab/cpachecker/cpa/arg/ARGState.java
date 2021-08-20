@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable{
+    implements Comparable<ARGState>, Graphable, Serializable, Splitable {
 
   private static final long serialVersionUID = 2608287648397165040L;
 

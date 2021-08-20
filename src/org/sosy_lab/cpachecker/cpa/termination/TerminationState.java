@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -33,8 +31,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public class TerminationState extends AbstractSingleWrapperState
     implements AbstractStateWithDummyLocation, FormulaReportingState, Graphable {
-
-  private static final long serialVersionUID = 4L;
 
   /**
    * The location where the loop of the lasso was entered
@@ -238,27 +234,5 @@ public class TerminationState extends AbstractSingleWrapperState
     sb.append(getWrappedState());
 
     return sb.toString();
-  }
-
-  /**
-   * Throws {@link UnsupportedOperationException}.
-   *
-   * @param out unused
-   */
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void writeObject(ObjectOutputStream out) {
-    throw new UnsupportedOperationException(
-        TerminationState.class.getSimpleName() + "does not support serialization.");
-  }
-
-  /**
-   * Throws {@link UnsupportedOperationException}.
-   *
-   * @param in unused
-   */
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(ObjectInputStream in) {
-    throw new UnsupportedOperationException(
-        TerminationState.class.getSimpleName() + "does not support serialization.");
   }
 }
