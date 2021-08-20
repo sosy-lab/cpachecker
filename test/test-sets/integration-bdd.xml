@@ -76,5 +76,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+sep-reducer.yml</exclude> <!-- flapping OOM/StackOverflow -->
     <exclude>../programs/benchmarks/loop-invgen/id_build.i.p+sep-reducer.yml</exclude> <!-- flapping timeout/StackOverflow -->
     <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.v+lhb-reducer.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+lhb-reducer.yml</exclude> <!-- flapping OOM/StackOverflow -->
+    <exclude>../programs/benchmarks/loops-crafted-1/theatreSquare.yml</exclude> <!-- flapping OOM/StackOverflow -->
   </tasks>
 </benchmark>
