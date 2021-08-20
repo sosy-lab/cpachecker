@@ -282,7 +282,7 @@ public class UseDefBasedInterpolator {
 
     private List<MemoryLocation> createSingleMemoryLocation(final long pSize) {
       if (withinComplexType) {
-        List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
+        List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.fromQualifiedName(qualifiedName, currentOffset));
 
         currentOffset = currentOffset + pSize;
 

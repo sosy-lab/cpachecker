@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -174,7 +173,7 @@ public class MemoryLocationExtractor {
     if (pOwner != null) {
       varName = getMemoryLocation(pOwner) + (pIsPointerDereference ? "->" : ".") + varName;
     }
-    return MemoryLocation.valueOf(varName, OptionalLong.empty());
+    return MemoryLocation.fromQualifiedName(varName);
   }
 
   private MemoryLocation getArraySubscriptMemoryLocation(AExpression pOwner, AExpression pSubscript) throws UnrecognizedCodeException {

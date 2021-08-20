@@ -18,8 +18,8 @@ import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
-import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 
 /** This class describes a location in the memory. */
 @Immutable
@@ -36,20 +36,6 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
 
     functionName = pFunctionName;
     identifier = pIdentifier;
-    offset = pOffset;
-  }
-
-  protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
-    checkNotNull(pIdentifier);
-
-    int separatorIndex = pIdentifier.indexOf("::");
-    if (separatorIndex >= 0) {
-      functionName = pIdentifier.substring(0, separatorIndex);
-      identifier = pIdentifier.substring(separatorIndex + 2);
-    } else {
-      functionName = null;
-      identifier = pIdentifier;
-    }
     offset = pOffset;
   }
 
@@ -101,12 +87,35 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return new MemoryLocation(checkNotNull(pFunctionName), pIdentifier, pOffset);
   }
 
-  public static MemoryLocation valueOf(String pIdentifier, long pOffset) {
-    return new MemoryLocation(pIdentifier, pOffset);
+  private static MemoryLocation fromQualifiedName(String pIdentifier, @Nullable Long pOffset) {
+    String functionName;
+    String identifier;
+    int separatorIndex = pIdentifier.indexOf("::");
+
+    if (separatorIndex >= 0) {
+      functionName = pIdentifier.substring(0, separatorIndex);
+      identifier = pIdentifier.substring(separatorIndex + 2);
+    } else {
+      functionName = null;
+      identifier = pIdentifier;
+    }
+    return new MemoryLocation(functionName, identifier, pOffset);
   }
 
-  public static MemoryLocation valueOf(String pIdentifier, OptionalLong pOffset) {
-    return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.orElseThrow() : null);
+  /**
+   * Create an instance using a qualified name of a declaration as returned by {@link
+   * ASimpleDeclaration#getQualifiedName()}.
+   */
+  public static MemoryLocation fromQualifiedName(String pIdentifier) {
+    return fromQualifiedName(pIdentifier, null);
+  }
+
+  /**
+   * Create an instance using a qualified name of a declaration as returned by {@link
+   * ASimpleDeclaration#getQualifiedName()}.
+   */
+  public static MemoryLocation fromQualifiedName(String pIdentifier, long pOffset) {
+    return fromQualifiedName(pIdentifier, Long.valueOf(pOffset));
   }
 
   /** Create an instance from a string that was produced by {@link #getExtendedQualifiedName()}. */
