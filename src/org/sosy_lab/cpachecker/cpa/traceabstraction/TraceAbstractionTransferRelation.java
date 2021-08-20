@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import static com.google.common.base.Verify.verify;
 import static com.google.common.base.Verify.verifyNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -76,18 +77,18 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
     TraceAbstractionState taState = (TraceAbstractionState) pState;
 
     Collection<? extends AbstractState> delegateSuccessorStates =
-        Iterables.getOnlyElement(super.getWrappedTransferRelations())
+        getWrappedTR()
             .getAbstractSuccessorsForEdge(taState.getWrappedState(), pPrecision, pCfaEdge);
+
+    verify(delegateSuccessorStates.size() == 1);
 
     // The TraceAbstraction needs more information from other CPA-states before
     // it can compute the correct successor state.
-    // Until then we let the delegate compute its successors and return them with the predicates
-    // from the previous TAState
-    ImmutableSet<TraceAbstractionState> successors =
-        transformedImmutableSetCopy(
-            delegateSuccessorStates,
-            delegate -> new TraceAbstractionState(delegate, taState.getActivePredicates()));
-    return successors;
+    // Until then we let the delegate compute its successor and return it with the predicates
+    // from the previous TAState (the PredicateTR is expected to only return a single successor
+    // state)
+    return ImmutableList.of(
+        taState.withWrappedState(Iterables.getOnlyElement(delegateSuccessorStates)));
   }
 
   @Override
@@ -101,47 +102,33 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
     TraceAbstractionState taState = (TraceAbstractionState) pState;
 
     Collection<? extends AbstractState> delegateStrengthenedStates =
-        Iterables.getOnlyElement(super.getWrappedTransferRelations())
-            .strengthen(taState.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
+        getWrappedTR().strengthen(taState.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
+    verify(delegateStrengthenedStates.size() == 1);
+
+    PredicateAbstractState predSuccessorState =
+        (PredicateAbstractState) Iterables.getOnlyElement(delegateStrengthenedStates);
 
     if (itpSequenceStorage.isEmpty() && !taState.containsPredicates()) {
       // The predecessor states have not yet been part of a refinement.
       // There are hence no predicates available for further processing.
-      return transformedImmutableSetCopy(
-          delegateStrengthenedStates,
-          delegate -> new TraceAbstractionState(delegate, taState.getActivePredicates()));
-    }
-
-    Optional<CallstackStateEqualsWrapper> callstackWrapper = Optional.empty();
-
-    AbstractionFormula abstractionFormula = null;
-    PathFormula pathFormula = null;
-
-    for (AbstractState otherState : pOtherStates) {
-
-      if (otherState instanceof CallstackState) {
-        CallstackState callstack = (CallstackState) otherState;
-        callstackWrapper = Optional.of(new CallstackStateEqualsWrapper(callstack));
-      }
-
-      if (otherState instanceof PredicateAbstractState) {
-        PredicateAbstractState predState = (PredicateAbstractState) otherState;
-        if (predState.getAbstractionFormula().isFalse()) {
-          logger.log(Level.INFO, "Abstraction formula from predState is >false<");
-          // TODO: PredicateTR has already computed the abstraction formula to be false.
-          // In this case we likely don't need to compute an abstraction and can
-          // immediately return bottom (represented by an empty set)
-          //  return ImmutableList.of();
-        }
-
-        abstractionFormula = predState.getAbstractionFormula();
-        pathFormula = predState.getPathFormula();
-      }
+      return ImmutableList.of(taState.withWrappedState(predSuccessorState));
     }
 
     verifyNotNull(pCfaEdge, "cfaEdge may not be null.");
-    verifyNotNull(abstractionFormula, "AbstractionFormula may not be null.");
-    verifyNotNull(pathFormula, "PathFormula may not be null.");
+
+    PathFormula pathFormula = predSuccessorState.getPathFormula();
+    AbstractionFormula abstractionFormula = predSuccessorState.getAbstractionFormula();
+
+    verify(
+        abstractionFormula.isTrue(),
+        "AbstractionFormula is expected to not getting changed in TraceAbstraction refinement");
+
+    Optional<CallstackStateEqualsWrapper> callstackWrapper =
+        FluentIterable.from(pOtherStates)
+            .filter(CallstackState.class)
+            .first()
+            .transform(CallstackStateEqualsWrapper::new)
+            .toJavaUtil();
 
     logger.logf(
         Level.FINER,
@@ -236,8 +223,8 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
 
       if (computedPostCondition.isFalse()) {
         // Abstraction is false, this node is infeasible.
-        // TODO: this needs to be handled accordingly; until then an exception is thrown to make
-        // this visible in the log output
+        // TODO: this needs to be handled accordingly (i.e. return bottom state)
+        // Until then an exception is thrown to make this visible in the log output
         throw new UnsupportedCodeException(
             "Interpolant <false> is following on an interpolant <true>. This is not yet handled",
             pCfaEdge);
@@ -253,9 +240,11 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
 
     ImmutableMap<InterpolationSequence, AbstractionPredicate> newPreds = newStatePreds.build();
     logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
-    return transformedImmutableSetCopy(
-        delegateStrengthenedStates,
-        delegate -> new TraceAbstractionState(delegate, taState.getActivePredicates()));
+    return ImmutableSet.of(new TraceAbstractionState(predSuccessorState, newPreds));
+  }
+
+  private TransferRelation getWrappedTR() {
+    return Iterables.getOnlyElement(super.getWrappedTransferRelations());
   }
 
   private AbstractionFormula buildAbstraction(

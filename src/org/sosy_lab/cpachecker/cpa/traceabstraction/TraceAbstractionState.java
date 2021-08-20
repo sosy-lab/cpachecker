@@ -48,6 +48,13 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     return activePredicates;
   }
 
+  TraceAbstractionState withWrappedState(AbstractState pWrappedState) {
+    if (pWrappedState == getWrappedState()) {
+      return this;
+    }
+    return new TraceAbstractionState(pWrappedState, getActivePredicates());
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(activePredicates);
