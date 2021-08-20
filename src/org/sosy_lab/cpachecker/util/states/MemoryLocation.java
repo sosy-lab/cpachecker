@@ -132,10 +132,6 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return variableName + "/" + offset;
   }
 
-  public String serialize() {
-    return getExtendedQualifiedName();
-  }
-
   public boolean isOnFunctionStack() {
     return functionName != null;
   }

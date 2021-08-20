@@ -68,7 +68,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
       writer.write("\n" + currentLocation + ":\n");
 
       for (MemoryLocation variable : rawPrecision.get(currentLocation)) {
-        writer.write(variable.serialize() + "\n");
+        writer.write(variable.getExtendedQualifiedName() + "\n");
       }
     }
   }

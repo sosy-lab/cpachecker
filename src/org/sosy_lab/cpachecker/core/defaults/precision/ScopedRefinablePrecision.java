@@ -65,11 +65,11 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
         if (!functionName.equals(previousScope)) {
           writer.write("\n" + functionName + ":\n");
         }
-        writer.write(variable.serialize() + "\n");
+        writer.write(variable.getExtendedQualifiedName() + "\n");
 
         previousScope = functionName;
       } else {
-        globals.add(variable.serialize());
+        globals.add(variable.getExtendedQualifiedName());
       }
     }
 
