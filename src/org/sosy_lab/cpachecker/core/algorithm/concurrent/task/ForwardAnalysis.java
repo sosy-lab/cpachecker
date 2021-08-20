@@ -67,7 +67,7 @@ public class ForwardAnalysis implements Task {
   private final FormulaManagerView formulaManager;
 
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(description = "Forward Config")
+  @Option(description = "Configuration file for forward analysis during concurrent analysis.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configFile = null;
 
