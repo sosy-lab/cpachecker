@@ -14,7 +14,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,10 +34,10 @@ class TraceAbstractionStopOperator implements StopOperator, ForcedCoveringStopOp
       final Collection<AbstractState> pOtherStates,
       final Precision pPrecision)
       throws CPAException, InterruptedException {
-    AbstractState wrappedState = ((AbstractSingleWrapperState) pState).getWrappedState();
+    AbstractState wrappedState = ((TraceAbstractionState) pState).getWrappedState();
     ImmutableSet<AbstractState> otherStates =
         Collections3.transformedImmutableSetCopy(
-            pOtherStates, x -> ((AbstractSingleWrapperState) x).getWrappedState());
+            pOtherStates, x -> ((TraceAbstractionState) x).getWrappedState());
     return delegateStopOperator.stop(wrappedState, otherStates, pPrecision);
   }
 
