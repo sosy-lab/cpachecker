@@ -215,11 +215,7 @@ public final class AbstractStates {
     return FluentIterable.from(
         Traverser.forTree(
                 (AbstractState state) -> {
-                  if (state instanceof AbstractSingleWrapperState) {
-                    AbstractState wrapped = ((AbstractSingleWrapperState) state).getWrappedState();
-                    return ImmutableList.of(wrapped);
-
-                  } else if (state instanceof AbstractWrapperState) {
+                  if (state instanceof AbstractWrapperState) {
                     return ((AbstractWrapperState) state).getWrappedStates();
                   }
 
