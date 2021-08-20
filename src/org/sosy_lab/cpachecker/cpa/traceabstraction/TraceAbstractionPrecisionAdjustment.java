@@ -8,33 +8,70 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
-import com.google.common.base.Preconditions;
-import org.sosy_lab.cpachecker.core.defaults.SingleWrapperPrecision;
-import org.sosy_lab.cpachecker.core.defaults.SingleWrappingPrecisionAdjustment;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.base.Function;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class TraceAbstractionPrecisionAdjustment extends SingleWrappingPrecisionAdjustment {
+/**
+ * PrecisionAdjustment of the {@link TraceAbstractionCPA}. It mainly delegates the precision and the
+ * wrapped predicate-state to the {@link PredicatePrecisionAdjustment}.
+ */
+public class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
-  protected TraceAbstractionPrecisionAdjustment(PrecisionAdjustment pWrappedPrecOp) {
-    super(pWrappedPrecOp);
+  private PrecisionAdjustment wrappedPrecAdjustment;
+
+  TraceAbstractionPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+    wrappedPrecAdjustment = pWrappedPrecAdjustment;
   }
 
   @Override
-  protected Precision createWrapperPrecision(
-      Precision pPrecision, Precision pNewDelegatePrecision) {
-    return new SingleWrapperPrecision(pNewDelegatePrecision);
-  }
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pState,
+      Precision pPrecision,
+      UnmodifiableReachedSet pStates,
+      Function<AbstractState, AbstractState> pStateProjection,
+      AbstractState pFullState)
+      throws CPAException, InterruptedException {
 
-  @Override
-  protected AbstractState createWrapperState(
-      AbstractState pState, AbstractState pNewDelegateState) {
-    Preconditions.checkArgument(
-        pState instanceof TraceAbstractionState,
-        "pState is expected to be of type TraceAbstractionState");
+    checkArgument(pState instanceof TraceAbstractionState);
+    checkArgument(pPrecision instanceof PredicatePrecision);
 
     TraceAbstractionState taState = (TraceAbstractionState) pState;
-    return new TraceAbstractionState(pNewDelegateState, taState.getActivePredicates());
+    AbstractState wrappedPredState = taState.getWrappedState();
+
+    Optional<PrecisionAdjustmentResult> wrappedPrecResult =
+        wrappedPrecAdjustment.prec(
+            wrappedPredState, pPrecision, pStates, pStateProjection, pFullState);
+
+    if (wrappedPrecResult.isEmpty()) {
+      return Optional.empty();
+    }
+
+    PrecisionAdjustmentResult precisionAdjustmentResult = wrappedPrecResult.orElseThrow();
+    AbstractState newPredState = precisionAdjustmentResult.abstractState();
+    Precision newPredPrecision = precisionAdjustmentResult.precision();
+
+    PrecisionAdjustmentResult newResult =
+        PrecisionAdjustmentResult.create(pState, pPrecision, precisionAdjustmentResult.action());
+
+    if (newPredState != wrappedPredState) {
+      newResult =
+          newResult.withAbstractState(
+              new TraceAbstractionState(newPredState, taState.getActivePredicates()));
+    }
+    if (newPredPrecision != pPrecision) {
+      newResult = newResult.withPrecision(newPredPrecision);
+    }
+
+    return Optional.of(newResult);
   }
 }

@@ -17,7 +17,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -75,5 +78,10 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   InterpolationSequenceStorage getInterpolationSequenceStorage() {
     return itpSequenceStorage;
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new TraceAbstractionPrecisionAdjustment(super.getPrecisionAdjustment());
   }
 }
