@@ -6,24 +6,27 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.defaults;
+package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class SingleWrappingStopOperator implements StopOperator {
+class TraceAbstractionStopOperator implements StopOperator, ForcedCoveringStopOperator {
 
-  private final StopOperator delegate;
+  private final StopOperator delegateStopOperator;
 
-  public SingleWrappingStopOperator(StopOperator pDelegate) {
-    delegate = checkNotNull(pDelegate);
+  TraceAbstractionStopOperator(StopOperator pDelegate) {
+    delegateStopOperator = checkNotNull(pDelegate);
   }
 
   @Override
@@ -36,8 +39,15 @@ public class SingleWrappingStopOperator implements StopOperator {
     ImmutableSet<AbstractState> otherStates =
         Collections3.transformedImmutableSetCopy(
             pOtherStates, x -> ((AbstractSingleWrapperState) x).getWrappedState());
-    Precision wrappedPrecision =
-        ((SingleWrapperPrecision) pPrecision).getWrappedPrecisions().iterator().next();
-    return delegate.stop(wrappedState, otherStates, wrappedPrecision);
+    return delegateStopOperator.stop(wrappedState, otherStates, pPrecision);
+  }
+
+  @Override
+  public boolean isForcedCoveringPossible(
+      AbstractState pState, AbstractState pReachedState, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    checkArgument(delegateStopOperator instanceof ForcedCoveringStopOperator);
+    return ((ForcedCoveringStopOperator) delegateStopOperator)
+        .isForcedCoveringPossible(pState, pReachedState, pPrecision);
   }
 }

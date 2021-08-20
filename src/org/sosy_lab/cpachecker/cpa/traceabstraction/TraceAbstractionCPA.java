@@ -81,6 +81,16 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
+  public MergeOperator getMergeOperator() {
+    return new TraceAbstractionMergeOperator(super.getMergeOperator());
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return new TraceAbstractionStopOperator(super.getStopOperator());
+  }
+
+  @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return new TraceAbstractionPrecisionAdjustment(super.getPrecisionAdjustment());
   }
