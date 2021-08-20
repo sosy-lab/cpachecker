@@ -46,7 +46,7 @@ public class StateSimplifierTest {
   private final SymbolicExpression number =
       factory.asConstant(new NumericValue(5), defaultNumericType);
 
-  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
+  private final MemoryLocation memLoc1 = MemoryLocation.parseExtendedQualifiedName("id1");
   private final SymbolicExpression group1Id1 =
       factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group1Id2 =
@@ -67,10 +67,10 @@ public class StateSimplifierTest {
       factory.lessThan(group2Id2, group2Id1, defaultNumericType, defaultNumericType);
 
 
-  private final MemoryLocation group1MemLoc1 = MemoryLocation.valueOf("a");
-  private final MemoryLocation group1MemLoc2 = MemoryLocation.valueOf("b");
-  private final MemoryLocation group2MemLoc1 = MemoryLocation.valueOf("c");
-  private final MemoryLocation group2MemLoc2 = MemoryLocation.valueOf("d");
+  private final MemoryLocation group1MemLoc1 = MemoryLocation.parseExtendedQualifiedName("a");
+  private final MemoryLocation group1MemLoc2 = MemoryLocation.parseExtendedQualifiedName("b");
+  private final MemoryLocation group2MemLoc1 = MemoryLocation.parseExtendedQualifiedName("c");
+  private final MemoryLocation group2MemLoc2 = MemoryLocation.parseExtendedQualifiedName("d");
 
   public StateSimplifierTest() throws InvalidConfigurationException {
     Configuration config = Configuration.builder()

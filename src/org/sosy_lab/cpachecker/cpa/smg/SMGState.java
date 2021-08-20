@@ -2194,7 +2194,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
       String variableName = variableEntry.getKey();
       SMGRegion reg = variableEntry.getValue();
-      result.put(MemoryLocation.valueOf(variableName), reg);
+      result.put(MemoryLocation.parseExtendedQualifiedName(variableName), reg);
     }
 
     for (CLangStackFrame frame : heap.getStackFrames()) {
@@ -2215,7 +2215,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     boolean change = false;
 
     for (String variable : heap.getGlobalObjects().keySet()) {
-      MemoryLocation globalVar = MemoryLocation.valueOf(variable);
+      MemoryLocation globalVar = MemoryLocation.parseExtendedQualifiedName(variable);
       if (!pTrackedStackVariables.contains(globalVar)) {
         heap.removeGlobalVariableAndEdges(variable);
         change = true;

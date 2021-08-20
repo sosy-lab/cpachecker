@@ -150,9 +150,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
     if (pVariable.isReference()) {
       MemoryLocation owner = pVariable.getReferenceStart();
-      return isInTrackedVarClass(owner.getAsSimpleString());
+      return isInTrackedVarClass(owner.getExtendedQualifiedName());
     } else {
-      return isInTrackedVarClass(pVariable.getAsSimpleString());
+      return isInTrackedVarClass(pVariable.getExtendedQualifiedName());
     }
   }
 

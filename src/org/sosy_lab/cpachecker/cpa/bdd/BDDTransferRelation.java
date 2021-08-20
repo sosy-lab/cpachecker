@@ -152,7 +152,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     final CType targetType = lhs.getExpressionType();
 
     // next line is a shortcut, not necessary
-    if (!precision.isTracking(MemoryLocation.valueOf(varName), targetType, successor)) {
+    if (!precision.isTracking(MemoryLocation.parseExtendedQualifiedName(varName), targetType, successor)) {
       return state;
     }
 
@@ -596,7 +596,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(cfaEdge);
     if (leftHandSide instanceof CIdExpression) {
       target =
-          MemoryLocation.valueOf(
+          MemoryLocation.parseExtendedQualifiedName(
               ((CIdExpression) leftHandSide).getDeclaration().getQualifiedName());
     } else if (leftHandSide instanceof CPointerExpression) {
       ExplicitLocationSet explicitSet =
@@ -617,7 +617,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
     if (rightHandSide instanceof CIdExpression) {
       CIdExpression idExpr = (CIdExpression) rightHandSide;
-      value = MemoryLocation.valueOf(idExpr.getDeclaration().getQualifiedName());
+      value = MemoryLocation.parseExtendedQualifiedName(idExpr.getDeclaration().getQualifiedName());
       valueType = idExpr.getDeclaration().getType();
     } else if (rightHandSide instanceof CPointerExpression) {
       CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;
@@ -635,11 +635,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     final Region[] rhs =
         predmgr.createPredicate(
-            target.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
+            target.getExtendedQualifiedName(), valueType, cfaEdge.getSuccessor(), size, precision);
 
     final Region[] evaluation =
         predmgr.createPredicate(
-            value.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
+            value.getExtendedQualifiedName(), valueType, cfaEdge.getSuccessor(), size, precision);
     BDDState newState = state.forget(rhs);
     return newState.addAssignment(rhs, evaluation);
   }

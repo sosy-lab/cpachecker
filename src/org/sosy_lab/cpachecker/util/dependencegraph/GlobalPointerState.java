@@ -81,7 +81,7 @@ abstract class GlobalPointerState {
       VariableClassification variableClassification = optVariableClassification.orElseThrow();
 
       for (String variableName : variableClassification.getAddressedVariables()) {
-        addressedVariables.add(MemoryLocation.valueOf(variableName));
+        addressedVariables.add(MemoryLocation.parseExtendedQualifiedName(variableName));
       }
     }
 

@@ -92,7 +92,8 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.orElseThrow() : null);
   }
 
-  public static MemoryLocation valueOf(String pVariableName) {
+  /** Create an instance from a string that was produced by {@link #getExtendedQualifiedName()}. */
+  public static MemoryLocation parseExtendedQualifiedName(String pVariableName) {
 
     List<String> nameParts = Splitter.on("::").splitToList(pVariableName);
     List<String> offsetParts = Splitter.on('/').splitToList(pVariableName);
@@ -119,7 +120,11 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     }
   }
 
-  public String getAsSimpleString() {
+  /**
+   * Return a string that represents the full information of this class. This string should be used
+   * as an opaque identifier and only be passed to {@link #parseExtendedQualifiedName(String)}.
+   */
+  public String getExtendedQualifiedName() {
     String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
     if (offset == null) {
       return variableName;
@@ -128,7 +133,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public String serialize() {
-    return getAsSimpleString();
+    return getExtendedQualifiedName();
   }
 
   public boolean isOnFunctionStack() {
@@ -174,7 +179,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   @Override
   public String toString() {
-    return getAsSimpleString();
+    return getExtendedQualifiedName();
   }
 
   @Override

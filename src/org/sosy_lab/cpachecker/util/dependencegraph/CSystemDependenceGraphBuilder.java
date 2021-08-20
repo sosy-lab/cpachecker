@@ -456,7 +456,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     if (returnVariable.isPresent()) {
       String variableName = returnVariable.orElseThrow().getQualifiedName();
-      return Optional.of(MemoryLocation.valueOf(variableName));
+      return Optional.of(MemoryLocation.parseExtendedQualifiedName(variableName));
     } else {
       return Optional.empty();
     }
@@ -586,7 +586,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
       EdgeDefUseData argDefUseData = defUseExtractor.extract(expressions.get(index));
-      MemoryLocation paramMemLoc = MemoryLocation.valueOf(params.get(index).getQualifiedName());
+      MemoryLocation paramMemLoc = MemoryLocation.parseExtendedQualifiedName(params.get(index).getQualifiedName());
       Optional<MemoryLocation> paramVariable = Optional.of(paramMemLoc);
 
       if (argDefUseData.getUses().contains(pCause)) {

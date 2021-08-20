@@ -284,7 +284,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
           if (!liveVariables
               .orElseThrow()
-              .isVariableLive(variable.getAsSimpleString(), location.getLocationNode())) {
+              .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
             resultState.forget(variable);
           }
         }

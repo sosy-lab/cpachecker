@@ -33,7 +33,7 @@ public class ConstraintsMergeOperatorTest {
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
 
-  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
+  private final MemoryLocation memLoc1 = MemoryLocation.parseExtendedQualifiedName("id1");
   private final SymbolicExpression idExp1 =
       factory.asConstant(factory.newIdentifier(memLoc1), defType);
   private final SymbolicExpression numExp1 = factory.asConstant(new NumericValue(1), defType);

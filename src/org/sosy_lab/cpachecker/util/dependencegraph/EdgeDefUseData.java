@@ -427,7 +427,7 @@ final class EdgeDefUseData {
       if (type instanceof CComplexType) {
         String name = ((CComplexType) type).getQualifiedName();
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
-        set.add(MemoryLocation.valueOf(name));
+        set.add(MemoryLocation.parseExtendedQualifiedName(name));
       }
 
       return null;
@@ -441,7 +441,7 @@ final class EdgeDefUseData {
       if (declaration instanceof CVariableDeclaration
           || declaration instanceof CParameterDeclaration) {
 
-        MemoryLocation memLoc = MemoryLocation.valueOf(declaration.getQualifiedName());
+        MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName());
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
         set.add(memLoc);
       }
@@ -499,7 +499,7 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CVariableDeclaration pDecl) throws EdgeDefUseDataException {
 
-      MemoryLocation memLoc = MemoryLocation.valueOf(pDecl.getQualifiedName());
+      MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(pDecl.getQualifiedName());
       defs.add(memLoc);
 
       CInitializer initializer = pDecl.getInitializer();

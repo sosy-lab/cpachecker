@@ -786,7 +786,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return expressionVarName(varName);
     }
 
-    MemoryLocation memLoc = MemoryLocation.valueOf(varName);
+    MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(varName);
     return memLoc.getIdentifier();
   }
 
@@ -826,7 +826,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       result = result.substring(1, result.length() - 1);
     }
 
-    MemoryLocation memLoc = MemoryLocation.valueOf(result);
+    MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(result);
     return memLoc.getIdentifier();
   }
 

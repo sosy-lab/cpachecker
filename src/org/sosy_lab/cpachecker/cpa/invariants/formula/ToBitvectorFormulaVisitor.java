@@ -203,7 +203,7 @@ public class ToBitvectorFormulaVisitor implements
     TypeInfo typeInfo = pVariable.getTypeInfo();
     if (typeInfo instanceof BitVectorInfo) {
       return this.bvfmgr.makeVariable(
-          ((BitVectorInfo) typeInfo).getSize(), pVariable.getMemoryLocation().getAsSimpleString());
+          ((BitVectorInfo) typeInfo).getSize(), pVariable.getMemoryLocation().getExtendedQualifiedName());
     }
     return null;
   }

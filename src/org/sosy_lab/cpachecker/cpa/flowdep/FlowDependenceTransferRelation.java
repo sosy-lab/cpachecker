@@ -162,7 +162,7 @@ class FlowDependenceTransferRelation
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
-      MemoryLocation def = MemoryLocation.valueOf(pDecl.getQualifiedName());
+      MemoryLocation def = MemoryLocation.parseExtendedQualifiedName(pDecl.getQualifiedName());
       return handleOperation(
           pCfaEdge,
           Optional.of(def),
@@ -278,7 +278,7 @@ class FlowDependenceTransferRelation
       if (pVarClassification.isPresent()) {
         Set<String> addressedVars = pVarClassification.orElseThrow().getAddressedVariables();
         for (String v : addressedVars) {
-          MemoryLocation m = MemoryLocation.valueOf(v);
+          MemoryLocation m = MemoryLocation.parseExtendedQualifiedName(v);
           pointees.add(m);
         }
       } else {
@@ -319,7 +319,7 @@ class FlowDependenceTransferRelation
     for (int i = 0; i < pArguments.size(); i++) {
       MemoryLocation def;
       if (i < params.size()) {
-        def = MemoryLocation.valueOf(params.get(i).getQualifiedName());
+        def = MemoryLocation.parseExtendedQualifiedName(params.get(i).getQualifiedName());
       } else {
         assert pFunctionCallEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
         // TODO support var args
@@ -491,7 +491,7 @@ class FlowDependenceTransferRelation
                 handleOperation(
                     pReturnEdge,
                     Optional.ofNullable(def),
-                    ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
+                    ImmutableSet.of(MemoryLocation.parseExtendedQualifiedName(inParam.getQualifiedName())),
                     nextState,
                     pReachDefState);
           }
@@ -500,7 +500,7 @@ class FlowDependenceTransferRelation
               handleOperation(
                   pReturnEdge,
                   Optional.empty(),
-                  ImmutableSet.of(MemoryLocation.valueOf(inParam.getQualifiedName())),
+                  ImmutableSet.of(MemoryLocation.parseExtendedQualifiedName(inParam.getQualifiedName())),
                   nextState,
                   pReachDefState);
         }
@@ -523,7 +523,7 @@ class FlowDependenceTransferRelation
                   pReturnEdge,
                   Optional.ofNullable(def),
                   ImmutableSet.of(
-                      MemoryLocation.valueOf(maybeReturnVar.orElseThrow().getQualifiedName())),
+                      MemoryLocation.parseExtendedQualifiedName(maybeReturnVar.orElseThrow().getQualifiedName())),
                   nextState,
                   pReachDefState);
         }
@@ -533,7 +533,7 @@ class FlowDependenceTransferRelation
                 pReturnEdge,
                 Optional.empty(),
                 ImmutableSet.of(
-                    MemoryLocation.valueOf(maybeReturnVar.orElseThrow().getQualifiedName())),
+                    MemoryLocation.parseExtendedQualifiedName(maybeReturnVar.orElseThrow().getQualifiedName())),
                 nextState,
                 pReachDefState);
       }
@@ -671,7 +671,7 @@ class FlowDependenceTransferRelation
     public Set<MemoryLocation> visit(CIdExpression pExp) throws CPATransferException {
       CSimpleDeclaration idDeclaration = pExp.getDeclaration();
       if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
-        return Collections.singleton(MemoryLocation.valueOf(idDeclaration.getQualifiedName()));
+        return Collections.singleton(MemoryLocation.parseExtendedQualifiedName(idDeclaration.getQualifiedName()));
       } else {
         return ImmutableSet.of();
       }

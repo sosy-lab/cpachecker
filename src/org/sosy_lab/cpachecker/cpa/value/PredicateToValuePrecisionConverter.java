@@ -139,7 +139,7 @@ public class PredicateToValuePrecisionConverter {
     // Get the variables from the predicate precision
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-        trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+        trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
       }
     }
 

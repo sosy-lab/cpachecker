@@ -112,7 +112,7 @@ final class SliceToCfaConverter {
       assert iterator.hasNext() : "pInput must have one element for every parameter";
       T element = iterator.next();
 
-      MemoryLocation memoryLocation = MemoryLocation.valueOf(parameter.getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(parameter.getQualifiedName());
 
       Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(declarationEdge);
       if (memoryLocations == null || memoryLocations.contains(memoryLocation)) {
@@ -140,7 +140,7 @@ final class SliceToCfaConverter {
         originalFunctionEntryNode.getReturnVariable();
 
     if (optRetVar.isPresent()) {
-      MemoryLocation memoryLocation = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(optRetVar.get().getQualifiedName());
       Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(originalDeclarationEdge);
       if (memoryLocations != null && !memoryLocations.contains(memoryLocation)) {
         relevantReturnType = CVoidType.VOID;
@@ -309,7 +309,7 @@ final class SliceToCfaConverter {
             relevantMemoryLocations.get(originalFunctionReturnEdge);
 
         if (memoryLocations != null
-            && memoryLocations.contains(MemoryLocation.valueOf(returnVariableName))) {
+            && memoryLocations.contains(MemoryLocation.parseExtendedQualifiedName(returnVariableName))) {
 
           relevantFunctionCall =
               new CFunctionCallAssignmentStatement(
@@ -552,14 +552,14 @@ final class SliceToCfaConverter {
 
         for (AParameterDeclaration parameter : entryNode.getFunctionParameters()) {
           String qualifiedName = parameter.getQualifiedName();
-          memoryLocations.add(MemoryLocation.valueOf(qualifiedName));
+          memoryLocations.add(MemoryLocation.parseExtendedQualifiedName(qualifiedName));
         }
 
         Optional<? extends AVariableDeclaration> optionalReturnVariable =
             entryNode.getReturnVariable();
         if (optionalReturnVariable.isPresent()) {
           String qualifiedName = optionalReturnVariable.get().getQualifiedName();
-          memoryLocations.add(MemoryLocation.valueOf(qualifiedName));
+          memoryLocations.add(MemoryLocation.parseExtendedQualifiedName(qualifiedName));
         }
       }
     }

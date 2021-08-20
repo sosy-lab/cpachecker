@@ -671,7 +671,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // get the variable name in the declarator
       MemoryLocation variableName;
       if (decl.isGlobal()) {
-        variableName = MemoryLocation.valueOf(decl.getName());
+        variableName = MemoryLocation.parseExtendedQualifiedName(decl.getName());
       } else {
         variableName = MemoryLocation.valueOf(functionName, decl.getName());
       }
@@ -808,7 +808,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     if (!isGlobal(left)) {
       return MemoryLocation.valueOf(pFunctionName, variableName);
     } else {
-      return MemoryLocation.valueOf(variableName);
+      return MemoryLocation.parseExtendedQualifiedName(variableName);
     }
   }
 

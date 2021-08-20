@@ -296,7 +296,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!returnVariable.isPresent()) {
       return Optional.empty();
     } else {
-      return Optional.of(MemoryLocation.valueOf(returnVariable.get().getQualifiedName()));
+      return Optional.of(MemoryLocation.parseExtendedQualifiedName(returnVariable.get().getQualifiedName()));
     }
   }
 
@@ -345,9 +345,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       type = ((CType) type).getCanonicalType();
     }
     if (isStructOrUnion(type)) {
-      return MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+      return MemoryLocation.parseExtendedQualifiedName(type.toString()); // TODO find a better way to handle this
     }
-    return MemoryLocation.valueOf(name);
+    return MemoryLocation.parseExtendedQualifiedName(name);
   }
 
   private static boolean isStructOrUnion(Type pType) {
@@ -533,7 +533,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
-    return MemoryLocation.valueOf(prefix + infix + suffix);
+    return MemoryLocation.parseExtendedQualifiedName(prefix + infix + suffix);
   }
 
   private static LocationSet asLocations(
@@ -591,13 +591,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               location =
-                  MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+                  MemoryLocation.parseExtendedQualifiedName(type.toString()); // TODO find a better way to handle this
             } else {
               CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
               if (declaration != null) {
-                location = MemoryLocation.valueOf(declaration.getQualifiedName());
+                location = MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName());
               } else {
-                location = MemoryLocation.valueOf(pIastIdExpression.getName());
+                location = MemoryLocation.parseExtendedQualifiedName(pIastIdExpression.getName());
               }
             }
             return visit(location);
@@ -705,7 +705,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               return toLocationSet(
                   FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
             }
-            return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
+            return visit(MemoryLocation.parseExtendedQualifiedName(declaration.getQualifiedName()));
           }
 
           @Override

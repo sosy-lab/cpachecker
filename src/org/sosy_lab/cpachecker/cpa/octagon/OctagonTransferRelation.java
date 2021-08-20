@@ -909,7 +909,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       if (!decl.isGlobal()) {
         variableName = MemoryLocation.valueOf(functionName, declaration.getName());
       } else {
-        variableName = MemoryLocation.valueOf(declaration.getName());
+        variableName = MemoryLocation.parseExtendedQualifiedName(declaration.getName());
       }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
@@ -1040,7 +1040,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     if (!isGlobal(left)) {
       return MemoryLocation.valueOf(pFunctionName, variableName);
     } else {
-      return MemoryLocation.valueOf(variableName);
+      return MemoryLocation.parseExtendedQualifiedName(variableName);
     }
 
   }

@@ -154,7 +154,7 @@ public class SMGTransferRelation
     List<SMGState> successors = new ArrayList<>();
     for (SMGState s : pSuccessors) {
       for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
-        s.forgetStackVariable(MemoryLocation.valueOf(variable.getQualifiedName()));
+        s.forgetStackVariable(MemoryLocation.parseExtendedQualifiedName(variable.getQualifiedName()));
       }
       successors.add(checkAndSetErrorRelation(s));
     }

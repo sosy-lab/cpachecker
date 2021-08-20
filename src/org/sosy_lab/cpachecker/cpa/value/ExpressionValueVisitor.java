@@ -94,11 +94,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     final MemoryLocation memLoc;
 
     if (varName.getDeclaration() != null) {
-      memLoc = MemoryLocation.valueOf(varName.getDeclaration().getQualifiedName());
+      memLoc = MemoryLocation.parseExtendedQualifiedName(varName.getDeclaration().getQualifiedName());
     } else if (!ForwardingTransferRelation.isGlobal(varName)) {
       memLoc = MemoryLocation.valueOf(getFunctionName(), varName.getName());
     } else {
-      memLoc = MemoryLocation.valueOf(varName.getName());
+      memLoc = MemoryLocation.parseExtendedQualifiedName(varName.getName());
     }
 
     if (readableState.contains(memLoc)) {
@@ -434,13 +434,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
       if (idExp.getDeclaration() != null) {
-        return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
+        return MemoryLocation.parseExtendedQualifiedName(idExp.getDeclaration().getQualifiedName());
       }
 
       boolean isGlobal = ForwardingTransferRelation.isGlobal(idExp);
 
       if (isGlobal) {
-        return MemoryLocation.valueOf(idExp.getName());
+        return MemoryLocation.parseExtendedQualifiedName(idExp.getName());
       } else {
         return MemoryLocation.valueOf(evv.getFunctionName(), idExp.getName());
       }

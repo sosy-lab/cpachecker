@@ -227,7 +227,7 @@ public class ValueAnalysisCPA extends AbstractCPA
         }
 
       } else {
-        mapping.put(location, MemoryLocation.valueOf(currentLine));
+        mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }
 
