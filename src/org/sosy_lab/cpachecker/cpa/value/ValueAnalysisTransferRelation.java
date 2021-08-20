@@ -1128,15 +1128,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
-
-    long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
-
-    if (pStruct.isOnFunctionStack()) {
-      return MemoryLocation.forLocalVariable(
-          pStruct.getFunctionName(), pStruct.getIdentifier(), baseOffset + pOffset);
-    } else {
-      return MemoryLocation.valueOf(pStruct.getIdentifier(), baseOffset + pOffset);
-    }
+    return pStruct.withAddedOffset(pOffset);
   }
 
   private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {

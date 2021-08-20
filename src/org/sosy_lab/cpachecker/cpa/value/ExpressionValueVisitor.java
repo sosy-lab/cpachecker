@@ -312,18 +312,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
-      if (arrayLoc.isOnFunctionStack()) {
-
-        return MemoryLocation.forLocalVariable(
-            arrayLoc.getFunctionName(),
-            arrayLoc.getIdentifier(),
-            (arrayLoc.isReference() ? arrayLoc.getOffset() : 0) + subscriptOffset);
-      } else {
-
-        return MemoryLocation.valueOf(
-            arrayLoc.getIdentifier(),
-            (arrayLoc.isReference() ? arrayLoc.getOffset() : 0) + subscriptOffset);
-      }
+      return arrayLoc.withAddedOffset(subscriptOffset);
     }
 
     @Override
@@ -359,19 +348,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long baseOffset = pStartLocation.isReference() ? pStartLocation.getOffset() : 0;
-
-      if (pStartLocation.isOnFunctionStack()) {
-
-        return MemoryLocation.forLocalVariable(
-            pStartLocation.getFunctionName(),
-            pStartLocation.getIdentifier(),
-            baseOffset + offset.orElseThrow());
-      } else {
-
-        return MemoryLocation.valueOf(
-            pStartLocation.getIdentifier(), baseOffset + offset.orElseThrow());
-      }
+      return pStartLocation.withAddedOffset(offset.orElseThrow());
     }
 
     private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
@@ -417,17 +394,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       long typeSize = evv.getMachineModel().getSizeof(pArrayType.getType()).longValueExact();
       long offset = typeSize * pSlotNumber;
-      long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 
-      if (pArrayStartLocation.isOnFunctionStack()) {
-
-        return MemoryLocation.forLocalVariable(
-            pArrayStartLocation.getFunctionName(),
-            pArrayStartLocation.getIdentifier(),
-            baseOffset + offset);
-      } else {
-        return MemoryLocation.valueOf(pArrayStartLocation.getIdentifier(), baseOffset + offset);
-      }
+      return pArrayStartLocation.withAddedOffset(offset);
     }
 
     @Override

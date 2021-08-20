@@ -186,6 +186,20 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return new MemoryLocation(functionName, identifier, null);
   }
 
+  /** Return a new instance with replaced offset. */
+  public MemoryLocation withOffset(long pNewOffset) {
+    return new MemoryLocation(functionName, identifier, pNewOffset);
+  }
+
+  /**
+   * Return a new instance with the given offset added to the existing offset. If the existing
+   * offset is not set, 0 is used as its value.
+   */
+  public MemoryLocation withAddedOffset(long pAddToOffset) {
+    long oldOffset = offset == null ? 0 : offset;
+    return new MemoryLocation(functionName, identifier, oldOffset + pAddToOffset);
+  }
+
   @Override
   public String toString() {
     return getExtendedQualifiedName();
