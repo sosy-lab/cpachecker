@@ -320,8 +320,9 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
             (arrayLoc.isReference() ? arrayLoc.getOffset() : 0) + subscriptOffset);
       } else {
 
-        return MemoryLocation.valueOf(arrayLoc.getIdentifier(),
-            subscriptOffset);
+        return MemoryLocation.valueOf(
+            arrayLoc.getIdentifier(),
+            (arrayLoc.isReference() ? arrayLoc.getOffset() : 0) + subscriptOffset);
       }
     }
 
