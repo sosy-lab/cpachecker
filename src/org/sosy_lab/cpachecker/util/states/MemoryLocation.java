@@ -162,6 +162,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return offset;
   }
 
+  /** Return new instance without offset. */
   public MemoryLocation getReferenceStart() {
     checkState(isReference(), "Memory location is no reference: %s", this);
     if (functionName != null) {
