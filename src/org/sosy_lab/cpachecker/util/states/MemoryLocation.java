@@ -16,12 +16,9 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
 
 /**
 * This class describes a location in the memory.
@@ -177,18 +174,6 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   @Override
   public String toString() {
     return getAsSimpleString();
-  }
-
-  public static PersistentMap<MemoryLocation, Long> transform(
-      PersistentMap<String, Long> pConstantMap) {
-
-    PersistentMap<MemoryLocation, Long> result = PathCopyingPersistentTreeMap.of();
-
-    for (Map.Entry<String, Long> entry : pConstantMap.entrySet()) {
-      result = result.putAndCopy(valueOf(entry.getKey()), checkNotNull(entry.getValue()));
-    }
-
-    return result;
   }
 
   @Override
