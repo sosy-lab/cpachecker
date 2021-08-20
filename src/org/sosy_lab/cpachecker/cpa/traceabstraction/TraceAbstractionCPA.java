@@ -14,6 +14,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -78,6 +79,11 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   InterpolationSequenceStorage getInterpolationSequenceStorage() {
     return itpSequenceStorage;
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new TraceAbstractionAbstractDomain(super.getAbstractDomain());
   }
 
   @Override
