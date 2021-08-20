@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRelation {
+class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRelation {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -53,7 +53,7 @@ public class TraceAbstractionTransferRelation extends AbstractSingleWrapperTrans
   private final PredicateAbstractionManager predicateAbstractionManager;
   private final BooleanFormulaManagerView bFMgrView;
 
-  public TraceAbstractionTransferRelation(
+  TraceAbstractionTransferRelation(
       TransferRelation pDelegateTransferRelation,
       FormulaManagerView pFormulaManagerView,
       PredicateAbstractionManager pPredicateAbstractionManager,

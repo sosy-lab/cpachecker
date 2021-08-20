@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * PrecisionAdjustment of the {@link TraceAbstractionCPA}. It mainly delegates the precision and the
  * wrapped predicate-state to the {@link PredicatePrecisionAdjustment}.
  */
-public class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
+class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
   private PrecisionAdjustment wrappedPrecAdjustment;
 

@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -31,8 +32,8 @@ class TraceAbstractionAbstractDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
-    Preconditions.checkArgument(pState1 instanceof TraceAbstractionState);
-    Preconditions.checkArgument(pState2 instanceof TraceAbstractionState);
+    checkArgument(pState1 instanceof TraceAbstractionState);
+    checkArgument(pState2 instanceof TraceAbstractionState);
 
     return delegateDomain.isLessOrEqual(
         ((TraceAbstractionState) pState1).getWrappedState(),

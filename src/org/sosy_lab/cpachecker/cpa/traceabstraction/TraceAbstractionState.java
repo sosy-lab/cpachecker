@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class TraceAbstractionState extends AbstractSingleWrapperState implements Graphable {
+class TraceAbstractionState extends AbstractSingleWrapperState implements Graphable {
 
   /** Create a new 'TOP'-state with empty predicates. */
   static TraceAbstractionState createInitState(AbstractState pAbstractState) {
