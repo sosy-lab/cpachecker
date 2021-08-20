@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -24,10 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 /** Base class for AbstractStates which wrap the abstract state of exactly one CPA. */
 public abstract class AbstractSingleWrapperState
     implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable {
-
-  public static Function<AbstractState, AbstractState> getUnwrapFunction() {
-    return pArg0 -> ((AbstractSingleWrapperState)pArg0).getWrappedState();
-  }
 
   private final @Nullable AbstractState wrappedState;
 

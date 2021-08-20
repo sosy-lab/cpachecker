@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -341,13 +340,13 @@ public abstract class PathTranslator {
       if (!result.isEmpty()) {
         Set<AbstractState> candidateChildren =
             FluentIterable.from(candidate.getChildren())
-                .transform(AbstractSingleWrapperState.getUnwrapFunction())
+                .transform(ARGState::getWrappedState)
                 .toSet();
         for (ARGState chosen : result) {
           if (parent.getEdgesToChild(chosen).equals(parent.getEdgesToChild(candidate))) {
             Set<AbstractState> chosenChildren =
                 FluentIterable.from(chosen.getChildren())
-                    .transform(AbstractSingleWrapperState.getUnwrapFunction())
+                    .transform(ARGState::getWrappedState)
                     .toSet();
             if (chosenChildren.containsAll(candidateChildren)) {
               valid = false;
