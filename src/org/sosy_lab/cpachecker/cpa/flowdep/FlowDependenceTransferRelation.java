@@ -278,7 +278,7 @@ class FlowDependenceTransferRelation
       if (pVarClassification.isPresent()) {
         Set<String> addressedVars = pVarClassification.orElseThrow().getAddressedVariables();
         for (String v : addressedVars) {
-          MemoryLocation m = MemoryLocation.parseExtendedQualifiedName(v);
+          MemoryLocation m = MemoryLocation.fromQualifiedName(v);
           pointees.add(m);
         }
       } else {

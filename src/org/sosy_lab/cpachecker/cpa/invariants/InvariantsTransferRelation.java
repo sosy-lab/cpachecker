@@ -639,7 +639,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     VariableClassification varClassification = variableClassification.orElseThrow();
     InvariantsState result = pState;
     for (String variable : varClassification.getAddressedVariables()) {
-      MemoryLocation location = MemoryLocation.parseExtendedQualifiedName(variable);
+      MemoryLocation location = MemoryLocation.fromQualifiedName(variable);
       Type type = result.getType(location);
       if (type != null) {
         result = result.assign(location, allPossibleValues(type));
