@@ -62,6 +62,8 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   void clear();
 
+  void clearWaitlist();
+
   AbstractState popFromWaitlist();
 
   default ImmutableMap<String, AbstractStatValue> getStatistics() {

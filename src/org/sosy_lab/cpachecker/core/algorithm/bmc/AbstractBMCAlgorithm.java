@@ -357,9 +357,7 @@ abstract class AbstractBMCAlgorithm
     Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
-        reachedSet.removeOnlyFromWaitlist(state);
-      }
+      reachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 

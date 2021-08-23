@@ -164,6 +164,11 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
+  public void clearWaitlist() {
+    delegate.clearWaitlist();
+  }
+
+  @Override
   public AbstractState popFromWaitlist() {
     return delegate.popFromWaitlist();
   }

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -149,9 +148,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     if (getTargetLocations().isEmpty()) {
-      for (AbstractState state : ImmutableList.copyOf(pReachedSet.getWaitlist())) {
-        pReachedSet.removeOnlyFromWaitlist(state);
-      }
+      pReachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 

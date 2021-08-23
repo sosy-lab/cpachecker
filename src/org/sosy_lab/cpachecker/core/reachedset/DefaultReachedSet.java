@@ -163,6 +163,11 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   }
 
   @Override
+  public void clearWaitlist() {
+    waitlist.clear();
+  }
+
+  @Override
   public Set<AbstractState> asCollection() {
     return unmodifiableReached;
   }

@@ -270,10 +270,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {
     if (testTargets.isEmpty()) {
-      List<AbstractState> waitlist = new ArrayList<>(pReached.getWaitlist());
-      for (AbstractState state : waitlist) {
-        pReached.removeOnlyFromWaitlist(state);
-      }
+      pReached.clearWaitlist();
     }
   }
 
