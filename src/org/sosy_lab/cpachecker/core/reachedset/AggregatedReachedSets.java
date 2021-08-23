@@ -14,9 +14,9 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class AggregatedReachedSets {
@@ -37,9 +37,7 @@ public class AggregatedReachedSets {
   }
 
   public Set<UnmodifiableReachedSet> snapShot() {
-    synchronized (reachedSets) {
-      return ImmutableSet.copyOf(reachedSets);
-    }
+    return ImmutableSet.copyOf(reachedSets);
   }
 
   private static class AggregatedThreadedReachedSets extends AggregatedReachedSets {
@@ -73,7 +71,7 @@ public class AggregatedReachedSets {
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final AggregatedThreadedReachedSets reachedView;
-    private final Set<UnmodifiableReachedSet> reachedSets = ConcurrentHashMap.newKeySet();
+    private final Set<UnmodifiableReachedSet> reachedSets = new LinkedHashSet<>();
 
     public AggregatedReachedSetManager() {
       reachedView = new AggregatedThreadedReachedSets(lock, reachedSets);
@@ -103,7 +101,7 @@ public class AggregatedReachedSets {
       return reachedView;
     }
 
-    public synchronized void addAggregated(AggregatedReachedSets pAggregatedReachedSets) {
+    public void addAggregated(AggregatedReachedSets pAggregatedReachedSets) {
       lock.writeLock().lock();
 
       try {
