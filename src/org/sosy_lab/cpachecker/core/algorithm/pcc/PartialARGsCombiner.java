@@ -67,20 +67,23 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private final Algorithm restartAlgorithm;
   private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdown;
-  private final Configuration config;
   private final AutomatonStateARGCombiningHelper automatonARGBuilderSupport;
 
   private final ARGCombinerStatistics stats = new ARGCombinerStatistics();
+  private final ReachedSetFactory reachedSetFactory;
 
-
-  public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+  public PartialARGsCombiner(
+      Algorithm pAlgorithm,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     restartAlgorithm = pAlgorithm;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;
-    config = pConfig;
 
     automatonARGBuilderSupport = new AutomatonStateARGCombiningHelper();
+    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
   }
 
   @Override
@@ -174,13 +177,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
 
-    try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
-      return false;
-    }
-
+    pReceivedReachedSet.setDelegate(reachedSetFactory.create());
     shutdown.shutdownIfNecessary();
 
     // combined root
