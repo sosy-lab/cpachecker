@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -27,8 +28,9 @@ public class LoopUnrollingStrategy extends AbstractLoopStrategy {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       int pMaxUnrollingsStrategy,
-      StrategyDependencyInterface pStrategyDependencies) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies);
+      StrategyDependencyInterface pStrategyDependencies,
+      CFA pCFA) {
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
   }
 

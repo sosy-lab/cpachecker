@@ -182,6 +182,7 @@ public class MutableCFA implements CFA {
     return fileNames;
   }
 
+  @Override
   public Optional<SummaryInformation> getSummaryInformation() {
     return summaryInformation;
   }

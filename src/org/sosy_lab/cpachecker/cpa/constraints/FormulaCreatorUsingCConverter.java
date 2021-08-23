@@ -149,5 +149,10 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     public String getDescription() {
       return UNKNOWN;
     }
+
+    @Override
+    public CFAEdge copyWith(CFANode pNewNode, CFANode pNewDummyCFANode) {
+      return new DummyEdge(this.getPredecessor().getFunctionName());
+    }
   }
 }

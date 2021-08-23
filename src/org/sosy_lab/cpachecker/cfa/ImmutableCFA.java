@@ -51,7 +51,7 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
-  private final @Nullable SummaryInformation summaryInformation;
+  private final Optional<SummaryInformation> summaryInformation;
   private final Language language;
 
 
@@ -77,7 +77,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = pLoopStructure.orElse(null);
     varClassification = pVarClassification.orElse(null);
     liveVariables = pLiveVariables.orElse(null);
-    summaryInformation = pSummaryInformation.orElse(null);
+    summaryInformation = pSummaryInformation;
     fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
@@ -154,7 +154,7 @@ class ImmutableCFA implements CFA, Serializable {
 
 
   public Optional<SummaryInformation> geSummaryInformation() {
-    return Optional.ofNullable(summaryInformation);
+    return summaryInformation;
   }
 
   @Override
@@ -183,6 +183,11 @@ class ImmutableCFA implements CFA, Serializable {
   @Override
   public List<Path> getFileNames() {
     return fileNames;
+  }
+
+  @Override
+  public Optional<SummaryInformation> getSummaryInformation() {
+    return summaryInformation;
   }
 
   private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -30,11 +31,12 @@ public abstract class AbstractStrategy implements StrategyInterface {
   protected AbstractStrategy(
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface strategyDependencies) {
+      StrategyDependencyInterface strategyDependencies,
+      CFA pCfa) {
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;
     this.strategyDependencies = strategyDependencies;
-    this.summaryInformation = SummaryInformation.getSummaryInformation();
+    this.summaryInformation = pCfa.getSummaryInformation().get();
   }
 
   protected CAssumeEdge overwriteStartEndStateEdge(

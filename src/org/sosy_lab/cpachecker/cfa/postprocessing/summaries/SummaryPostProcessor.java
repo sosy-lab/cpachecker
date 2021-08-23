@@ -11,21 +11,18 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 
 public class SummaryPostProcessor {
 
   private static CFA originalCFA;
-  private Map<StrategiesEnum, Set<CFAEdge>> strategiesToEdges;
   private Set<StrategiesEnum> strategies;
   private boolean useCompilerForSummary;
   private int maxUnrollingsStrategy;
@@ -35,12 +32,17 @@ public class SummaryPostProcessor {
   protected final ShutdownNotifier shutdownNotifier;
   private int maxIterationsSummaries;
   private StrategyDependencyInterface strategyDependencies;
+  private SummaryInformation summaryInformation = SummaryInformation.getSummaryInformation();
 
   public SummaryPostProcessor(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier, MutableCFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
       Set<StrategiesEnum> pStrategies,
       boolean pUseCompilerForSummary,
-      int pMaxUnrollingsStrategy, int pMaxIterationsSummaries, StrategyDependencyInterface pStrategyDependencies) {
+      int pMaxUnrollingsStrategy,
+      int pMaxIterationsSummaries,
+      StrategyDependencyInterface pStrategyDependencies) {
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     maxIterationsSummaries = pMaxIterationsSummaries;
@@ -51,13 +53,18 @@ public class SummaryPostProcessor {
     setOriginalCFA(pCfa);
     strategyFactory =
         new StrategyFactory(
-            pLogger, pShutdownNotifier, maxUnrollingsStrategy, useCompilerForSummary, strategyDependencies);
+            pLogger,
+            pShutdownNotifier,
+            maxUnrollingsStrategy,
+            useCompilerForSummary,
+            strategyDependencies,
+            pCfa);
 
-    SummaryInformation.getSummaryInformation().setFactory(strategyFactory);
+    summaryInformation.setFactory(strategyFactory);
     for (StrategiesEnum s : strategies) {
       StrategyInterface strategyClass = strategyFactory.buildStrategy(s);
       strategiesClasses.add(strategyClass);
-      SummaryInformation.getSummaryInformation().addStrategy(strategyClass);
+      summaryInformation.addStrategy(strategyClass);
     }
   }
 
@@ -95,13 +102,15 @@ public class SummaryPostProcessor {
       if (iterations > maxIterationsSummaries) {
         fixpoint = true;
       }
+
       iterations += 1;
       for (GhostCFA gCFA : ghostCfaToBeAdded) {
         gCFA.connectOriginalAndGhostCFA();
+        summaryInformation.addGhostCFA(gCFA);
       }
     }
 
-    return null;
+    return pCfa;
   }
 
   public static CFA getOriginalCFA() {
@@ -110,14 +119,6 @@ public class SummaryPostProcessor {
 
   public static void setOriginalCFA(CFA pOriginalCFA) {
     originalCFA = pOriginalCFA;
-  }
-
-  public Map<StrategiesEnum, Set<CFAEdge>> getStrategiesToEdges() {
-    return strategiesToEdges;
-  }
-
-  public void setStrategiesToEdges(Map<StrategiesEnum, Set<CFAEdge>> pStrategiesToEdges) {
-    strategiesToEdges = pStrategiesToEdges;
   }
 
   public Set<StrategiesEnum> getStrategies() {

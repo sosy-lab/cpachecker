@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.execution.ConcolicExecutionStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.execution.DeterministicExecutionStrategy;
@@ -28,44 +29,49 @@ public class StrategyFactory {
   protected final int maxUnrollingsStrategy;
   private boolean useCompilerForSummary;
   private StrategyDependencyInterface strategyDependencies;
+  private CFA cfa;
 
   public StrategyFactory(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       int pMaxUnrollingsStrategy,
       boolean pUseCompilerForSummary,
-      StrategyDependencyInterface pStrategyDependencies) {
+      StrategyDependencyInterface pStrategyDependencies,
+      CFA pCFA) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
     useCompilerForSummary = pUseCompilerForSummary;
     strategyDependencies = pStrategyDependencies;
+    cfa = pCFA;
   }
 
   public StrategyInterface buildStrategy(StrategiesEnum strategy) {
     switch (strategy) {
       case LoopAcceleration:
-        return new LoopAccelerationStrategy(logger, shutdownNotifier, strategyDependencies);
+        return new LoopAccelerationStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
       case ConcolicExecution:
-        return new ConcolicExecutionStrategy(logger, shutdownNotifier, strategyDependencies);
+        return new ConcolicExecutionStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
       case LoopConstantExtrapolation:
-        return new ConstantExtrapolationStrategy(logger, shutdownNotifier, strategyDependencies);
+        return new ConstantExtrapolationStrategy(
+            logger, shutdownNotifier, strategyDependencies, cfa);
       case DeterministicExecution:
         return new DeterministicExecutionStrategy(
-            logger, shutdownNotifier, useCompilerForSummary, strategyDependencies);
+            logger, shutdownNotifier, useCompilerForSummary, strategyDependencies, cfa);
       case LoopLinearExtrapolation:
-        return new LinearExtrapolationStrategy(logger, shutdownNotifier, strategyDependencies);
+        return new LinearExtrapolationStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
       case LoopUnrolling:
         return new LoopUnrollingStrategy(
-            logger, shutdownNotifier, maxUnrollingsStrategy, strategyDependencies);
+            logger, shutdownNotifier, maxUnrollingsStrategy, strategyDependencies, cfa);
       case NaiveLoopAcceleration:
-        return new NaiveLoopAccelerationStrategy(logger, shutdownNotifier, strategyDependencies);
+        return new NaiveLoopAccelerationStrategy(
+            logger, shutdownNotifier, strategyDependencies, cfa);
       case NonDetBoundConstantExtrapolation:
         return new NondetBoundConstantExtrapolationStrategy(
-            logger, shutdownNotifier, strategyDependencies);
+            logger, shutdownNotifier, strategyDependencies, cfa);
       case RecursionConstantExtrapolation:
         return new RecursionConstantExtrapolationStrategy(
-            logger, shutdownNotifier, strategyDependencies);
+            logger, shutdownNotifier, strategyDependencies, cfa);
       default:
         return null;
     }

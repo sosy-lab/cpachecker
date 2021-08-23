@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -42,8 +43,9 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
   public NondetBoundConstantExtrapolationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface pStrategyDependencies) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies);
+      StrategyDependencyInterface pStrategyDependencies,
+      CFA pCFA) {
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
 
   // TODO: When this Strategy is used, loop unrolling starts occuring continously, since first the

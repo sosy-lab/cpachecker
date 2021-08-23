@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
@@ -20,8 +21,9 @@ public class LoopAccelerationStrategy extends AbstractLoopStrategy {
   public LoopAccelerationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface pStrategyDependencies) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies);
+      StrategyDependencyInterface pStrategyDependencies,
+      CFA pCFA) {
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
 
   @Override

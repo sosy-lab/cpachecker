@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -42,8 +43,9 @@ public class AbstractLoopStrategy extends AbstractStrategy {
   protected AbstractLoopStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface pStrategyDependencies) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies);
+      StrategyDependencyInterface pStrategyDependencies,
+      CFA pCFA) {
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
 
   protected Optional<Integer> getLoopBranchIndex(CFANode loopStartNode) {

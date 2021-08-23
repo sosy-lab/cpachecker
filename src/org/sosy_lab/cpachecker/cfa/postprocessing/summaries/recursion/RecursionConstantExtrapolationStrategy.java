@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.recursion;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
@@ -21,8 +22,9 @@ public class RecursionConstantExtrapolationStrategy extends AbstractStrategy {
   public RecursionConstantExtrapolationStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      StrategyDependencyInterface pStrategyDependencies) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies);
+      StrategyDependencyInterface pStrategyDependencies,
+      CFA pCFA) {
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
   }
 
   @Override

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -286,6 +287,39 @@ public final class LoopStructure implements Serializable {
       }
       return loopIncDecVariables;
     }
+
+    /**
+     * Unrolls the outer most Loop contained in this Loop. This means it takes a Loop Head, if there
+     * exists one, and makes a CFA composed of copies of the unrolled outermost loop. If this
+     * succeeds it returns a Pair of {@link CFANode}'s where the first is the start node of the
+     * unrolled Loop and the Second is the end node of the CFA. If it does not succed it return an
+     * empty Optional.
+     */
+    public Optional<Pair<CFANode, CFANode>> unrollOutermostLoop() {
+      if (this.getLoopHeads().size() != 1) {
+        return Optional.empty();
+      }
+
+      Pair<CFANode, CFANode> startNodes =
+          Pair.of(
+              CFANode.newDummyCFANode("Loop Unrolling Start"), this.getLoopHeads().asList().get(0));
+      CFANode firstNode = startNodes.getFirst();
+      CFANode lastNode = CFANode.newDummyCFANode("Loop Unrolling End");
+      List<Pair<CFANode, CFANode>> currentNodes = new ArrayList<>();
+      currentNodes.add(startNodes);
+      while (currentNodes.size() != 0) {
+        Pair<CFANode, CFANode> nodePair = currentNodes.remove(0);
+        CFANode newNode = nodePair.getFirst();
+        CFANode originalNode = nodePair.getSecond();
+        for (CFAEdge succ : originalNode.getLeavingEdges()) {
+          CFAEdge pNewLeavingEdge = succ.copyWith(newNode, CFANode.newDummyCFANode("Loop Unrolling Inner"));
+          currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), succ.getSuccessor()));
+        }
+      }
+
+      return Optional.of(Pair.of(firstNode, lastNode));
+    }
+
 
     @Override
     public String toString() {

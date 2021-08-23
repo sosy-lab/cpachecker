@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import com.google.common.base.Optional;
 import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public interface CFAEdge extends Serializable {
 
@@ -26,6 +26,13 @@ public interface CFAEdge extends Serializable {
   int getLineNumber();
 
   FileLocation getFileLocation();
+
+  /**
+   * @param pNewNode Starting node of the copy of the current edge
+   * @param pNewDummyCFANode End node of the copy of the current edge
+   * @return Copy of the current CFAEdge
+   */
+  CFAEdge copyWith(CFANode pNewNode, CFANode pNewDummyCFANode);
 
   /**
    * Returns the part of the original input file from which this edge was
