@@ -73,19 +73,21 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.waitlist.AlwaysEmptyWaitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
@@ -97,6 +99,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -424,17 +428,48 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void addInvariantsToAggregatedReachedSet(
       ARGState loopHeadState, RankingRelation rankingRelation) {
-    ReachedSet dummy = reachedSetFactory.create();
-    AbstractStateWithLocation locationState =
-        extractStateByType(loopHeadState, AbstractStateWithLocation.class);
-    rankingRelation
-        .getSupportingInvariants()
-        .stream()
-        .map(s -> ImmutableList.of(locationState, s))
-        .map(CompositeState::new)
-        .forEach(s -> dummy.add(s, SingletonPrecision.getInstance()));
+    // Create dummy reached set as holder for invariants. We do not use the reached-set factory
+    // from configuration because that could require features that our dummy states do not support.
+    // We use LocationMappedReachedSet because that seems useful to callers.
+    ReachedSet dummy = new LocationMappedReachedSet(AlwaysEmptyWaitlist.factory());
+    CFANode location = AbstractStates.extractLocation(loopHeadState);
+    FormulaManagerView fmgr = rankingRelation.getFormulaManager();
+
+    rankingRelation.getSupportingInvariants().stream()
+        .map(invariant -> new TerminationInvariantSupplierState(location, invariant, fmgr))
+        .forEach(s -> dummy.addNoWaitlist(s, SingletonPrecision.getInstance()));
 
     aggregatedReachedSetManager.addReachedSet(dummy);
+  }
+
+  private static class TerminationInvariantSupplierState
+      implements AbstractStateWithLocation, FormulaReportingState {
+
+    private final CFANode location;
+    private final FormulaManagerView fmgr;
+    private final BooleanFormula invariant;
+
+    public TerminationInvariantSupplierState(
+        CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFmgr) {
+      location = checkNotNull(pLocation);
+      invariant = checkNotNull(pInvariant);
+      fmgr = checkNotNull(pFmgr);
+    }
+
+    @Override
+    public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
+      return pManager.translateFrom(invariant, fmgr);
+    }
+
+    @Override
+    public CFANode getLocationNode() {
+      return location;
+    }
+
+    @Override
+    public String toString() {
+      return TerminationInvariantSupplierState.class.getSimpleName() + "[" + invariant + "]";
+    }
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
