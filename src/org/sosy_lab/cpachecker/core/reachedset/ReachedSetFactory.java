@@ -16,6 +16,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.BlockConfiguration;
@@ -289,6 +292,20 @@ public class ReachedSetFactory {
       reached = new StatisticsReachedSet(reached);
     }
 
+    return reached;
+  }
+
+  /**
+   * Create a new reached set like in {@link #create} and add an initial abstract state from the
+   * CPA.
+   */
+  public ReachedSet createAndInitialize(
+      ConfigurableProgramAnalysis cpa, CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    checkNotNull(node);
+    checkNotNull(partition);
+    ReachedSet reached = create();
+    reached.add(cpa.getInitialState(node, partition), cpa.getInitialPrecision(node, partition));
     return reached;
   }
 }

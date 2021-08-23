@@ -172,7 +172,6 @@ public class WitnessInvariantsExtractor {
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
     Configuration localConfig = generateLocalConfiguration(config);
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
-    reachedSet = reachedSetFactory.create();
     CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
@@ -180,8 +179,7 @@ public class WitnessInvariantsExtractor {
     CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     try {
-      reachedSet.add(
-          cpa.getInitialState(rootNode, partition), cpa.getInitialPrecision(rootNode, partition));
+      reachedSet = reachedSetFactory.createAndInitialize(cpa, rootNode, partition);
       algorithm.run(reachedSet);
     } catch (InterruptedException e) {
       // Candidate collection was interrupted,

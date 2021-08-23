@@ -320,14 +320,9 @@ abstract class GlobalPointerState {
         return null;
       }
 
-      ReachedSet reached = reachedFactory.create();
-
-      AbstractState initialState =
-          cpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      Precision initialPrecision =
-          cpa.getInitialPrecision(
-              pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      reached.add(initialState, initialPrecision);
+      ReachedSet reached =
+          reachedFactory.createAndInitialize(
+              cpa, pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
       algorithm.run(reached);
       assert !reached.hasWaitingState()

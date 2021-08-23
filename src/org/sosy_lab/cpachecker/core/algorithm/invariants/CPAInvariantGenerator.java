@@ -297,9 +297,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     private AggregatedReachedSets runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
-      ReachedSet taskReached = reachedSetFactory.create();
-      taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
-          cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
+      ReachedSet taskReached =
+          reachedSetFactory.createAndInitialize(
+              cpa, pInitialLocation, StateSpacePartition.getDefaultPartition());
 
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {

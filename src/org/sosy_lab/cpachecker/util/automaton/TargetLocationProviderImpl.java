@@ -63,10 +63,9 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       final ConfigurableProgramAnalysis cpa =
           cpaBuilder.buildCPAs(cfa, specification, new AggregatedReachedSets());
 
-      ReachedSet reached = reachedSetFactory.create();
-      reached.add(
-          cpa.getInitialState(pRootNode, StateSpacePartition.getDefaultPartition()),
-          cpa.getInitialPrecision(pRootNode, StateSpacePartition.getDefaultPartition()));
+      ReachedSet reached =
+          reachedSetFactory.createAndInitialize(
+              cpa, pRootNode, StateSpacePartition.getDefaultPartition());
       CPAAlgorithm targetFindingAlgorithm = CPAAlgorithm.create(cpa, logManager, configuration, shutdownNotifier);
       try {
 
