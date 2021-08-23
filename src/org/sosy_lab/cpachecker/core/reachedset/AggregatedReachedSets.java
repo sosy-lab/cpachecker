@@ -41,13 +41,12 @@ public class AggregatedReachedSets {
   }
 
   private static class AggregatedThreadedReachedSets extends AggregatedReachedSets {
-    private final ReentrantReadWriteLock lock;
+
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final List<AggregatedThreadedReachedSets> otherAggregators = new ArrayList<>();
 
-    private AggregatedThreadedReachedSets(
-        final ReentrantReadWriteLock pLock, Set<UnmodifiableReachedSet> pReachedSets) {
-      super(pReachedSets);
-      lock = pLock;
+    private AggregatedThreadedReachedSets() {
+      super(new LinkedHashSet<>());
     }
 
     @Override
@@ -62,22 +61,7 @@ public class AggregatedReachedSets {
       }
     }
 
-    public void concat(AggregatedThreadedReachedSets other) {
-      otherAggregators.add(other);
-    }
-  }
-
-  public static class AggregatedReachedSetManager {
-
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private final AggregatedThreadedReachedSets reachedView;
-    private final Set<UnmodifiableReachedSet> reachedSets = new LinkedHashSet<>();
-
-    public AggregatedReachedSetManager() {
-      reachedView = new AggregatedThreadedReachedSets(lock, reachedSets);
-    }
-
-    public void addReachedSet(UnmodifiableReachedSet reached) {
+    private void addReachedSet(UnmodifiableReachedSet reached) {
       lock.writeLock().lock();
       try {
         reachedSets.add(reached);
@@ -86,7 +70,7 @@ public class AggregatedReachedSets {
       }
     }
 
-    public void updateReachedSet(
+    private void updateReachedSet(
         UnmodifiableReachedSet oldReached, UnmodifiableReachedSet newReached) {
       lock.writeLock().lock();
       try {
@@ -97,16 +81,12 @@ public class AggregatedReachedSets {
       }
     }
 
-    public AggregatedReachedSets asView() {
-      return reachedView;
-    }
-
-    public void addAggregated(AggregatedReachedSets pAggregatedReachedSets) {
+    private void addAggregated(AggregatedReachedSets pAggregatedReachedSets) {
       lock.writeLock().lock();
 
       try {
         if (pAggregatedReachedSets instanceof AggregatedThreadedReachedSets) {
-          reachedView.concat((AggregatedThreadedReachedSets) pAggregatedReachedSets);
+          otherAggregators.add((AggregatedThreadedReachedSets) pAggregatedReachedSets);
 
         } else {
           reachedSets.addAll(pAggregatedReachedSets.reachedSets);
@@ -115,6 +95,28 @@ public class AggregatedReachedSets {
       } finally {
         lock.writeLock().unlock();
       }
+    }
+  }
+
+  public static class AggregatedReachedSetManager {
+
+    private final AggregatedThreadedReachedSets reachedView = new AggregatedThreadedReachedSets();
+
+    public void addReachedSet(UnmodifiableReachedSet reached) {
+      reachedView.addReachedSet(reached);
+    }
+
+    public void updateReachedSet(
+        UnmodifiableReachedSet oldReached, UnmodifiableReachedSet newReached) {
+      reachedView.updateReachedSet(oldReached, newReached);
+    }
+
+    public AggregatedReachedSets asView() {
+      return reachedView;
+    }
+
+    public void addAggregated(AggregatedReachedSets pAggregatedReachedSets) {
+      reachedView.addAggregated(pAggregatedReachedSets);
     }
   }
 }
