@@ -74,7 +74,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ProofSlicer {
+
+  private final ReachedSetFactory reachedSetFactory;
+
   private int numNotCovered;
+
+  public ProofSlicer(LogManager pLogger) throws InvalidConfigurationException {
+    // TODO: Really always a standard reached set instead of user-specified configuration?
+    reachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), pLogger);
+  }
 
   public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
     AbstractState first = pReached.getFirstState();
@@ -437,22 +445,14 @@ public class ProofSlicer {
       }
     }
 
-    ReachedSet returnReached;
-    try {
-      returnReached =
-          new ReachedSetFactory(
-                  Configuration.defaultConfiguration(), LogManager.createNullLogManager())
-              .create();
-      // add root
-      returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
-      // add remaining elements
-      for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-        if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
-          returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
-        }
+    ReachedSet returnReached = reachedSetFactory.create();
+    // add root
+    returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
+    // add remaining elements
+    for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
+      if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
+        returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
       }
-    } catch (InvalidConfigurationException e) {
-      return pReached;
     }
     return returnReached;
   }

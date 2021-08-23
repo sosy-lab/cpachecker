@@ -12,6 +12,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -46,6 +47,8 @@ public class ProofGenerator {
 
   private final LogManager logger;
   private final Timer writingTimer = new Timer();
+
+  private final @Nullable ProofSlicer slicer;
 
   private final Statistics proofGeneratorStats =
       new Statistics() {
@@ -87,6 +90,11 @@ public class ProofGenerator {
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, file, null, null, null);
+    if (slicingEnabled) {
+      slicer = new ProofSlicer(pLogger);
+    } else {
+      slicer = null;
+    }
   }
 
   public void generateProof(CPAcheckerResult pResult) {
@@ -107,9 +115,9 @@ public class ProofGenerator {
   }
 
   private void constructAndWriteProof(UnmodifiableReachedSet pReached) {
-    if(slicingEnabled){
+    if (slicer != null) {
       logger.log(Level.INFO, "Start slicing of proof");
-      pReached = new ProofSlicer().sliceProof(pReached);
+      pReached = slicer.sliceProof(pReached);
     }
 
     // saves the proof
