@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -74,11 +73,6 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   @Override
   public CFANode getLocationNode() {
       return locationNode;
-  }
-
-  @Override
-  public Iterable<CFANode> getLocationNodes() {
-      return Collections.singleton(locationNode);
   }
 
   @Override
