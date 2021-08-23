@@ -472,8 +472,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     loopHead.replaceInARGWith(newTargetState);
 
     // Remove dummy target state from reached set and replace loop head with new target state
-    pReachedSet.add(newTargetState, pReachedSet.getPrecision(loopHead));
-    pReachedSet.removeOnlyFromWaitlist(newTargetState);
+    pReachedSet.addNoWaitlist(newTargetState, pReachedSet.getPrecision(loopHead));
     pReachedSet.remove(pTargetState);
     pReachedSet.remove(loopHead);
 

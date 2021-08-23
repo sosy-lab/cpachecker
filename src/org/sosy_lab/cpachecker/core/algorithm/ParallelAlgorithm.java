@@ -384,8 +384,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                 ReachedSet oldReachedSet = oldReached.get();
                 ReachedSet newReached = coreComponents.createReachedSet();
                 for (AbstractState as : pReachedSet) {
-                  newReached.add(as, pReachedSet.getPrecision(as));
-                  newReached.removeOnlyFromWaitlist(as);
+                  newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
                 }
                 if (oldReachedSet != null) {
                   aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);

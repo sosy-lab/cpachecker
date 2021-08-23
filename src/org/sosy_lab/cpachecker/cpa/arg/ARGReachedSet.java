@@ -526,7 +526,6 @@ public class ARGReachedSet {
    * the state does not represent unreached concrete states, otherwise it will be unsound.
    */
   public void addForkedState(ARGState forkedState, ARGState originalState) {
-    mReached.add(forkedState, mReached.getPrecision(originalState));
-    mReached.removeOnlyFromWaitlist(forkedState);
+    mReached.addNoWaitlist(forkedState, mReached.getPrecision(originalState));
   }
 }

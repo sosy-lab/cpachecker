@@ -53,7 +53,16 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   }
 
   @Override
-  public void add(AbstractState state, Precision precision) throws IllegalArgumentException {
+  public void add(AbstractState state, Precision precision) {
+    add(state, precision, /*updateWaitlist=*/ true);
+  }
+
+  @Override
+  public void addNoWaitlist(AbstractState state, Precision precision) {
+    add(state, precision, /*updateWaitlist=*/ false);
+  }
+
+  private void add(AbstractState state, Precision precision, boolean updateWaitlist) {
     Preconditions.checkNotNull(state);
     Preconditions.checkNotNull(precision);
 
@@ -65,7 +74,9 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
     if (previousPrecision == null) {
       // State wasn't already in the reached set.
-      waitlist.add(state);
+      if (updateWaitlist) {
+        waitlist.add(state);
+      }
       lastState = state;
 
     } else {

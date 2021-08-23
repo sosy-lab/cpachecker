@@ -129,6 +129,12 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
+  public void addNoWaitlist(AbstractState pState, Precision pPrecision)
+      throws IllegalArgumentException {
+    delegate.addNoWaitlist(pState, pPrecision);
+  }
+
+  @Override
   public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
     delegate.addAll(pToAdd);
   }

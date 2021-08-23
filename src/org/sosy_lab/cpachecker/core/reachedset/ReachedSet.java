@@ -41,6 +41,11 @@ public interface ReachedSet extends UnmodifiableReachedSet {
    */
   void add(AbstractState state, Precision precision) throws IllegalArgumentException;
 
+  /**
+   * Like {@link #add(AbstractState, Precision)}, but does not add the state to the waitlist. Use
+   * with caution to avoid unsound behavior.
+   */
+  void addNoWaitlist(AbstractState state, Precision precision) throws IllegalArgumentException;
 
   void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
