@@ -21,7 +21,6 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -241,7 +240,7 @@ class CParserUtils {
         parseStatement(pCode, pResultFunction, pCParser, pScope, pParserTools);
     if (!tree.equals(ExpressionTrees.getTrue())) {
       if (tree.equals(ExpressionTrees.getFalse())) {
-        return Collections.singleton(
+        return ImmutableSet.of(
             new CExpressionStatement(
                 FileLocation.DUMMY,
                 new CIntegerLiteralExpression(
