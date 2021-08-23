@@ -341,7 +341,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
@@ -408,7 +408,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
@@ -562,7 +562,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     Configuration singleConfig = singleConfigBuilder.build();
 
     CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+        new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
     cpa = coreComponents.createCPA(cfa, spec);
 
     Preconditions.checkArgument(
@@ -830,7 +830,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);

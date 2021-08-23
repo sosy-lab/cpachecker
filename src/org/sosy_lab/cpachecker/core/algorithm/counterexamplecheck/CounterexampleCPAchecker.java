@@ -211,7 +211,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
+              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
       ReachedSet lReached = factory.createReachedSet();

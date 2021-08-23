@@ -312,7 +312,7 @@ abstract class GlobalPointerState {
         reachedFactory = new ReachedSetFactory(config, pLogger);
         cpa =
             new CPABuilder(config, pLogger, pShutdownNotifier, reachedFactory)
-                .buildCPAs(pCfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
+                .buildCPAs(pCfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
         algorithm = CPAAlgorithm.create(cpa, pLogger, config, pShutdownNotifier);
 
       } catch (InvalidConfigurationException ex) {

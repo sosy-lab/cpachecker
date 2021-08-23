@@ -253,7 +253,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         pReachedSetFactory,
         pAsync,
         candidateGenerator,
-        new AggregatedReachedSets());
+        AggregatedReachedSets.empty());
   }
 
   private KInductionInvariantGenerator(

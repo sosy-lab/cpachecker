@@ -25,7 +25,6 @@ import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -486,9 +485,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     AggregatedReachedSets aggregateReached;
     if (pProvideReachedForNextAlgorithm && pCurrentReached != null) {
-      aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached));
+      aggregateReached = AggregatedReachedSets.singleton(pCurrentReached);
     } else {
-      aggregateReached = new AggregatedReachedSets();
+      aggregateReached = AggregatedReachedSets.empty();
     }
 
     return super.createAlgorithm(

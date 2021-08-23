@@ -18,7 +18,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
@@ -269,9 +268,9 @@ public class Explainer extends NestingAlgorithm {
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached;
     if (currentReached != null) {
-      aggregateReached = new AggregatedReachedSets(Collections.singleton(currentReached));
+      aggregateReached = AggregatedReachedSets.singleton(currentReached);
     } else {
-      aggregateReached = new AggregatedReachedSets();
+      aggregateReached = AggregatedReachedSets.empty();
     }
     return super.createAlgorithm(
         singleConfigFileName,

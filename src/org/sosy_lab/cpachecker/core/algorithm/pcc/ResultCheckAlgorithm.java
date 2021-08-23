@@ -221,7 +221,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
   private ReachedSet initializeReachedSetForChecking(Configuration pConfig,
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
     CoreComponentsFactory factory =
-        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, new AggregatedReachedSets());
+        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
    ReachedSet reached = factory.createReachedSet();
 
    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
@@ -245,7 +245,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
         ReachedSetFactory factory = new ReachedSetFactory(checkConfig, logger);
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory)
-                .buildCPAs(analyzedProgram, specification, new AggregatedReachedSets());
+                .buildCPAs(analyzedProgram, specification, AggregatedReachedSets.empty());
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");

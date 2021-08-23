@@ -531,7 +531,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     ConfigurableProgramAnalysis cpa = null;
     try {
-      AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+      AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
       CoreComponentsFactory localCoreComponents =
           new CoreComponentsFactory(
               pCurrentContext.getConfig(),

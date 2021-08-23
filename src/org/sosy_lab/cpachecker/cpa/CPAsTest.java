@@ -168,7 +168,7 @@ public class CPAsTest {
     Method factoryMethod = cpaClass.getMethod("factory");
     final CPAFactory factory = (CPAFactory) factoryMethod.invoke(null);
 
-    final AggregatedReachedSets aggregatedReachedSets = new AggregatedReachedSets();
+    final AggregatedReachedSets aggregatedReachedSets = AggregatedReachedSets.empty();
     final ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logManager);
 
     Optional<CPAFactory> childCPA = getChildCpaFactoryIfNecessary(cpaClass);

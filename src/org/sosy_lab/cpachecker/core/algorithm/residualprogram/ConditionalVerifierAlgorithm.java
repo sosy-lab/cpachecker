@@ -136,7 +136,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;
@@ -217,7 +217,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
         ConfigurableProgramAnalysis cpa;

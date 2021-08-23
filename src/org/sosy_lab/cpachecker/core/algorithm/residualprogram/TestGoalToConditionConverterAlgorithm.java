@@ -97,7 +97,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
           Path.of("config/components/goalConverterBackwardsSearch.properties"),
           pCfa.getMainFunction(),
           ShutdownManager.createWithParent(pShutdownNotifier),
-          new AggregatedReachedSets(),
+          AggregatedReachedSets.empty(),
           ImmutableList.of(
               "analysis.testGoalConverter",
               "cpa",

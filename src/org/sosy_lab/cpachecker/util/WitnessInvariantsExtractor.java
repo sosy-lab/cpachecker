@@ -174,7 +174,7 @@ public class WitnessInvariantsExtractor {
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
     CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa =
-        builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
+        builder.buildCPAs(cfa, automatonAsSpec, AggregatedReachedSets.empty());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, localConfig, shutdownNotifier);
     CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();

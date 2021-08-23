@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -191,7 +190,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
-            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, new AggregatedReachedSets());
+            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, AggregatedReachedSets.empty());
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 
@@ -304,7 +303,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
-          return new AggregatedReachedSets();
+          return AggregatedReachedSets.empty();
         }
       }
 
@@ -320,7 +319,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       checkState(!taskReached.hasWaitingState());
       checkState(!taskReached.isEmpty());
-      return new AggregatedReachedSets(Collections.singleton(taskReached));
+      return AggregatedReachedSets.singleton(taskReached);
     }
   }
 

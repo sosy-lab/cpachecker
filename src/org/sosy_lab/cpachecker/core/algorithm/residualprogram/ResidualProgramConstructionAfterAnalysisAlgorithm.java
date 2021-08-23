@@ -319,7 +319,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {

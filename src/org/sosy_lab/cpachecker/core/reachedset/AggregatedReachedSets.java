@@ -22,12 +22,18 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class AggregatedReachedSets {
   protected final Set<UnmodifiableReachedSet> reachedSets;
 
-  public AggregatedReachedSets() {
-    reachedSets = ImmutableSet.of();
+  private AggregatedReachedSets(Set<UnmodifiableReachedSet> pReachedSets) {
+    reachedSets = checkNotNull(pReachedSets);
   }
 
-  public AggregatedReachedSets(Set<UnmodifiableReachedSet> pReachedSets) {
-    reachedSets = checkNotNull(pReachedSets);
+  /** Return an empty immutable instance. */
+  public static AggregatedReachedSets empty() {
+    return new AggregatedReachedSets(ImmutableSet.of());
+  }
+
+  /** Return an immutable instance wrapping the given reached set. */
+  public static AggregatedReachedSets singleton(UnmodifiableReachedSet pReachedSet) {
+    return new AggregatedReachedSets(ImmutableSet.of(pReachedSet));
   }
 
   public Set<UnmodifiableReachedSet> snapShot() {
