@@ -30,14 +30,19 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class ExpressionMutator {
 
+public class ExpressionMutator {
+  /**
+   * Returns a list of possible mutations for a given expression. A mutation consists either in
+   * flipping a binary or unary operator, or a different expression found in the same file that
+   * is of the same CBasicType.
+   */
   public static ArrayList<CExpression> calcMutationsFor(CExpression originalExpression, CFA cfa) {
     ArrayList<CExpression> alternativeExpressions = new ArrayList();
     final Set<CExpression> expressions = ExpressionCollector.collectExpressions(cfa);
-    final Map<CType, Set<CExpression>> expressionsSortedByType = sortExpressionsByType(expressions);
+    final Map<CType, Set<CExpression>> expressionsSortedByType = groupExpressionsByType(expressions);
     final Map<CBasicType, Set<CExpression>> expressionsSortedByBasicType =
-        sortExpressionsByBasicType(expressions);
+        groupExpressionsByBasicType(expressions);
 
     if (originalExpression instanceof CBinaryExpression) {
       alternativeExpressions = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
@@ -205,8 +210,11 @@ public class ExpressionMutator {
         originalFunctionCallExpression.getDeclaration());
   }
 
-  /* SORTING */
-  public static Map<CType, Set<CExpression>> sortExpressionsByType(Set<CExpression> expressions) {
+  /* GROUPING */
+  /**
+   * Groups a list of expressions by their CType into a map.
+   */
+  public static Map<CType, Set<CExpression>> groupExpressionsByType(Set<CExpression> expressions) {
     final Map<CType, Set<CExpression>> expressionsSortedByType = Maps.newHashMap();
 
     for (CExpression expression : expressions) {
@@ -222,7 +230,10 @@ public class ExpressionMutator {
     return expressionsSortedByType;
   }
 
-  public static Map<CBasicType, Set<CExpression>> sortExpressionsByBasicType(
+  /**
+   * Groups a list of expressions by their CBasicType into a map.
+   */
+  public static Map<CBasicType, Set<CExpression>> groupExpressionsByBasicType(
       Set<CExpression> expressions) {
     final Map<CBasicType, Set<CExpression>> expressionsSortedByType = Maps.newHashMap();
 

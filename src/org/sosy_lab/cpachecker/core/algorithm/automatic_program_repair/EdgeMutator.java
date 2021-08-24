@@ -20,8 +20,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
+/**
+ * This class provides functions to alter a given edge by one parameter. The functions return a new
+ * instance of the edge that is equal to the once given except for the replaced parameter.
+ */
 public class EdgeMutator {
 
+  /**
+   * Returns a new assume edge with a different expression.
+   */
   public static CAssumeEdge replaceExpression(
       CAssumeEdge originalAssumeEdge, CExpression newExpression) {
     return new CAssumeEdge(
@@ -33,6 +40,9 @@ public class EdgeMutator {
         originalAssumeEdge.getTruthAssumption());
   }
 
+  /**
+   * Returns a new statement edge with a different expression.
+   */
   public static CStatementEdge replaceExpression(
       CStatementEdge originalStatementEdge, CStatement newStatement) {
     return new CStatementEdge(
@@ -43,6 +53,9 @@ public class EdgeMutator {
         originalStatementEdge.getSuccessor());
   }
 
+  /**
+   * Returns a new function call edge with a different function call.
+   */
   public static CFunctionCallEdge replaceFunctionCall(
       CFunctionCallEdge functionCallEdge,
       CFunctionSummaryEdge summaryEdge,
@@ -56,6 +69,9 @@ public class EdgeMutator {
         summaryEdge);
   }
 
+  /**
+   * Returns a new function summary edge with a different function call.
+   */
   public static CFunctionSummaryEdge replaceFunctionCall(
       CFunctionSummaryEdge summaryEdge, CFunctionCall newFunctionCall) {
     return new CFunctionSummaryEdge(
@@ -67,6 +83,9 @@ public class EdgeMutator {
         summaryEdge.getFunctionEntry());
   }
 
+  /**
+   * Returns a new function return edge with a different function call.
+   */
   public static CFunctionReturnEdge replaceFunctionCall(
       CFunctionReturnEdge functionReturnEdge, CFunctionSummaryEdge functionSummaryEdge) {
     return new CFunctionReturnEdge(
@@ -76,7 +95,10 @@ public class EdgeMutator {
         functionSummaryEdge);
   }
 
-  public static CReturnStatementEdge replaceAssignment(
+  /**
+   * Returns a new return statement edge with a different return expression.
+   */
+  public static CReturnStatementEdge replaceReturnExpression(
       CReturnStatementEdge originalReturnStatementEdge,
       CReturnStatement originalReturnStatement,
       CAssignment assignment) {

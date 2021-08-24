@@ -22,6 +22,10 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CorrespondingEdgeProvider {
+  /**
+   * This function will find the function call edge that corresponds to the given function summary
+   * edge. If this edge is not present an exception is thrown because this state is illegal.
+   */
   public static CFunctionCallEdge findCorrespondingFunctionCallEdge(
       CFunctionSummaryEdge functionSummaryEdge) {
     CFunctionEntryNode functionEntryNode = functionSummaryEdge.getFunctionEntry();
@@ -40,7 +44,10 @@ public class CorrespondingEdgeProvider {
 
     return functionCallEdge;
   }
-
+  /**
+   * This function will find the function return edge that corresponds to the given function summary
+   * edge. If this edge is not present an exception is thrown because this state is illegal.
+   */
   public static CFunctionReturnEdge findCorrespondingFunctionReturnEdge(
       CFunctionSummaryEdge functionSummaryEdge) {
     FunctionExitNode functionExitNode = functionSummaryEdge.getFunctionEntry().getExitNode();
@@ -60,14 +67,20 @@ public class CorrespondingEdgeProvider {
     return returnEdge;
   }
 
-  static CFAEdge findCorrespondingEdge(CFAEdge edge, CFA cfa) {
+  /**
+   * Given a cloned cfa and an edge out of the original cfa, this function will return the cloned
+   * instance of the given edge. Equality of edges is assumed based file location, predecessor, successor,
+   * and the code it represents.
+   */
+  static CFAEdge findCorrespondingEdge(CFAEdge originalEdge, CFA clonedCFA) {
     final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor =
         new CFATraversal.EdgeCollectingCFAVisitor();
-    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), edgeCollectingVisitor);
+    CFATraversal.dfs().traverseOnce(clonedCFA.getMainFunction(), edgeCollectingVisitor);
     FluentIterable<CFAEdge> edges = from(edgeCollectingVisitor.getVisitedEdges());
 
     for (CFAEdge edge1 : edges) {
-      if (edge1.toString().equals(edge.toString())) {
+      /* TODO improve condition (toString uses  file location, predecessor, successor and the code represented.) */
+      if (edge1.toString().equals(originalEdge.toString())) {
         return edge1;
       }
     }

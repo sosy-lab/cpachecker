@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
-import com.google.common.base.Optional;
 import java.util.ArrayList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -22,7 +22,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 
 public class StatementMutator {
-
+  /**
+   * Returns a list of possible mutations for a given statement. The mutation consists in altering
+   * an expression contained in the statement.
+   */
   public static <T extends CStatement> ArrayList<? extends CStatement> calcMutationsFor(
       T statement, CFA cfa) {
     if (statement instanceof CExpressionStatement) {
@@ -35,7 +38,10 @@ public class StatementMutator {
       return new ArrayList<>();
     }
   }
-
+  /**
+   * Returns a list of possible mutations for a given expression statement.
+   * The mutation changing the right-hand side of the assignment.
+   */
   public static ArrayList<CAssignment> calcMutationsFor(CAssignment assignment, CFA cfa) {
     if (assignment instanceof CExpressionAssignmentStatement) {
       return calcMutationsFor((CExpressionAssignmentStatement) assignment, cfa);
@@ -46,6 +52,10 @@ public class StatementMutator {
     }
   }
 
+  /**
+   * Returns a list of possible mutations for a given expression statement.
+   * The mutation consists in changing the expression.
+   */
   private static ArrayList<CStatement> calcMutationsFor(
       CExpressionStatement originalExpressionStatement, CFA cfa) {
     ArrayList<CStatement> alternativeStatements = new ArrayList<>();
@@ -60,6 +70,10 @@ public class StatementMutator {
     return alternativeStatements;
   }
 
+  /**
+   * Returns a list of possible mutations for a given function call statement.
+   * The mutation consists in changing one expression of the parameter list.
+   */
   private static ArrayList<CStatement> calcMutationsFor(
       CFunctionCallStatement originalFunctionCallStatement, CFA cfa) {
     ArrayList<CStatement> alternativeStatements = new ArrayList<>();
@@ -137,7 +151,9 @@ public class StatementMutator {
         expressionAssignmentStatement.getLeftHandSide(),
         expression);
   }
-
+  /**
+   * Returns a copy of the given assignment statement but with the new assignment provided.
+   * */
   public static CReturnStatement replaceAssignment(
       CReturnStatement originalReturnStatement, CAssignment assignment) {
     return new CReturnStatement(

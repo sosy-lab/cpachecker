@@ -17,6 +17,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
+/**
+ * This class represents the mutation of a function call in the CFA. A function call is represented
+ * in three different edges (summary edge, call edge, return edge). In order to mutate a function call
+ * all three edges must be replaced.
+ */
 public class FunctionCallMutation extends Mutation {
   private CFunctionSummaryEdge newSummaryEdge;
   private CFunctionCallEdge newFunctionCallEdge;

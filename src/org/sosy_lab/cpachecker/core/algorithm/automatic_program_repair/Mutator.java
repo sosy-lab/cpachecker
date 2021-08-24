@@ -29,6 +29,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
+/**
+ * This class mutates a given edge in a CFA. It clones the original CFA and then generates new edges
+ * to replace the given edge.
+ */
 public class Mutator {
   private CFA cfa;
   private CFAEdge originalEdge;
@@ -62,6 +66,9 @@ public class Mutator {
     return clonedCFA;
   }
 
+  /**
+   * Returns a set of possible mutations for the given edge based on the edge type.
+   */
   public Set<? extends Mutation> calcPossibleMutations() {
     switch (originalEdge.getEdgeType()) {
       case AssumeEdge:
@@ -166,7 +173,8 @@ public class Mutator {
       CReturnStatementEdge originalReturnStatementEdge) {
     Preconditions.checkNotNull(originalReturnStatementEdge.getRawAST());
 
-    CReturnStatement returnStatement = originalReturnStatementEdge.getRawAST().get();
+    CReturnStatement returnStatement =
+        (CReturnStatement) originalReturnStatementEdge.getRawAST().get();
 
     Preconditions.checkNotNull(returnStatement.getReturnValue());
     Preconditions.checkNotNull(returnStatement.asAssignment());
@@ -179,7 +187,7 @@ public class Mutator {
             assignment ->
                 new SimpleMutation(
                     originalReturnStatementEdge,
-                    EdgeMutator.replaceAssignment(
+                    EdgeMutator.replaceReturnExpression(
                         originalReturnStatementEdge, returnStatement, assignment),
                     cfa))
         .collect(Collectors.toSet());
