@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ENTRY_NODE_ID;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
 import com.google.common.base.Function;
@@ -1157,15 +1158,10 @@ class WitnessFactory implements EdgeAppender {
       }
     }
 
-    final String entryStateNodeId = pGraphBuilder.getId(pRootState);
-
     // Collect node flags in advance
     for (ARGState s : collectReachableNodes(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge)) {
       String sourceStateNodeId = pGraphBuilder.getId(s);
       EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
-      if (sourceStateNodeId.equals(entryStateNodeId)) {
-        sourceNodeFlags.add(NodeFlag.ISENTRY);
-      }
       if (pIsCyclehead.apply(s)) {
         sourceNodeFlags.add(NodeFlag.ISCYCLEHEAD);
         if (cycleHeadToQuasiInvariant.isPresent()) {
@@ -1179,7 +1175,8 @@ class WitnessFactory implements EdgeAppender {
         violatedProperties.putAll(sourceStateNodeId, extractViolatedProperties(s));
       }
     }
-    // Write the sink node
+    // Write the entry and sink nodes
+    nodeFlags.put(ENTRY_NODE_ID, NodeFlag.ISENTRY);
     nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
 
     // Build the actual graph
@@ -1192,12 +1189,15 @@ class WitnessFactory implements EdgeAppender {
         collectReachableEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
+    // add edge from entry to root of graph
+    putEdge(new Edge(ENTRY_NODE_ID, pGraphBuilder.getId(pRootState), TransitionCondition.empty()));
+
     // remove unnecessary edges leading to sink
     removeUnnecessarySinkEdges();
 
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();
-    mergeRepeatedEdges(entryStateNodeId);
+    mergeRepeatedEdges();
     int sizeAfterMerging = edgeToCFAEdges.size();
     logger.logf(
         Level.ALL,
@@ -1213,7 +1213,7 @@ class WitnessFactory implements EdgeAppender {
         defaultSourcefileName,
         cfa,
         verificationTaskMetaData,
-        entryStateNodeId,
+        ENTRY_NODE_ID,
         leavingEdges,
         enteringEdges,
         witnessOptions,
@@ -1232,14 +1232,14 @@ class WitnessFactory implements EdgeAppender {
    * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
    * irrelevant information.
    */
-  private void mergeRepeatedEdges(final String entryStateNodeId) throws InterruptedException {
+  private void mergeRepeatedEdges() throws InterruptedException {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
       if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge));
-        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+        assert leavingEdges.isEmpty() || leavingEdges.containsKey(ENTRY_NODE_ID);
       }
       setLoopHeadInvariantIfApplicable(edge.getTarget());
     }
@@ -1518,34 +1518,62 @@ class WitnessFactory implements EdgeAppender {
       return Iterables.concat(leavingEdges.get(nodeToKeep), enteringEdges.get(nodeToKeep));
     }
 
-    if (invariantExportStates.remove(nodeToRemove)) {
-      invariantExportStates.add(nodeToKeep);
+    boolean remove =
+        intoPredecessor
+            ? enteringEdges.get(nodeToRemove).size() == 1
+            : leavingEdges.get(nodeToRemove).size() == 1;
+
+    if (remove) {
+
+      if (invariantExportStates.remove(nodeToRemove)) {
+        invariantExportStates.add(nodeToKeep);
+      }
+
+      // Merge the flags
+      nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
+
+      // Merge the trees
+      mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
+
+      // Merge quasi invariant
+      mergeQuasiInvariant(nodeToKeep, nodeToRemove);
+
+      // Merge the violated properties
+      violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
+
+      // Merge mapping
+      stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
+    } else {
+      if (invariantExportStates.contains(nodeToRemove)) {
+        invariantExportStates.add(nodeToKeep);
+      }
+
+      // Merge the flags
+      nodeFlags.putAll(nodeToKeep, nodeFlags.get(nodeToRemove));
+
+      // Merge the trees
+      mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
+
+      // Merge quasi invariant
+      mergeQuasiInvariant(nodeToKeep, nodeToRemove);
+
+      // Merge the violated properties
+      violatedProperties.putAll(nodeToKeep, violatedProperties.get(nodeToRemove));
+
+      // Merge mapping
+      stateToARGStates.putAll(nodeToKeep, stateToARGStates.get(nodeToRemove));
     }
-
-    // Merge the flags
-    nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
-
-    // Merge the trees
-    mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
-
-    // Merge quasi invariant
-    mergeQuasiInvariant(nodeToKeep, nodeToRemove);
-
-    // Merge the violated properties
-    violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
-
-    // Merge mapping
-    stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
     Set<Edge> replacementEdges = new LinkedHashSet<>();
 
-    // Move the leaving edges
-    Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
-    // Create the replacement edges,
-    // Add them as leaving edges to the source node,
-    // Add them as entering edges to their target nodes
-    for (Edge leavingEdge : leavingEdgesToMove) {
-      if (!pEdge.equals(leavingEdge)) {
+    if (intoPredecessor) {
+      // Copy the leaving edges
+      // remove old edges only if this was the last entering edge of the sucessor
+      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(leavingEdges.get(nodeToRemove));
+      // Create the replacement edges,
+      // Add them as leaving edges to the source node,
+      // Add them as entering edges to their target nodes
+      for (Edge leavingEdge : leavingEdgesToMove) {
         TransitionCondition label = pEdge.getLabel();
         // Don't give function-exit transitions labels from preceding transitions
         if (leavingEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
@@ -1559,49 +1587,47 @@ class WitnessFactory implements EdgeAppender {
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(leavingEdge));
-        edgeToCFAEdges.removeAll(leavingEdge);
         replacementEdges.add(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
-          loopHeadEnteringEdges.remove(leavingEdge);
+          if (remove) {
+            loopHeadEnteringEdges.remove(leavingEdge);
+          }
           loopHeadEnteringEdges.put(replacementEdge, loopHead);
         }
+        if (remove) {
+          boolean removed = removeEdge(leavingEdge);
+          edgeToCFAEdges.removeAll(leavingEdge);
+          assert removed;
+        }
       }
-    }
-    // Remove the old edges from their successors
-    for (Edge leavingEdge : leavingEdgesToMove) {
-      boolean removed = removeEdge(leavingEdge);
-      edgeToCFAEdges.removeAll(leavingEdge);
+      boolean removed = removeEdge(pEdge);
       assert removed;
-    }
-
-    // Move the entering edges
-    Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
-    // Create the replacement edges,
-    // Add them as entering edges to the source node,
-    // Add add them as leaving edges to their source nodes
-    for (Edge enteringEdge : enteringEdgesToMove) {
-      if (!pEdge.equals(enteringEdge)) {
+    } else {
+      // Move the entering edges
+      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(enteringEdges.get(nodeToRemove));
+      // Create the replacement edges,
+      // Add them as entering edges to the source node,
+      // Add add them as leaving edges to their source nodes
+      for (Edge enteringEdge : enteringEdgesToMove) {
         TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(pEdge));
         replacementEdges.add(replacementEdge);
-        CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
-        if (loopHead != null) {
-          loopHeadEnteringEdges.remove(enteringEdge);
-          loopHeadEnteringEdges.put(replacementEdge, loopHead);
+      }
+      boolean removed = removeEdge(pEdge);
+      edgeToCFAEdges.removeAll(pEdge);
+      assert removed;
+      if (remove) {
+        // Remove the old edges from their predecessors
+        for (Edge enteringEdge : enteringEdgesToMove) {
+          removed = removeEdge(enteringEdge);
+          edgeToCFAEdges.removeAll(enteringEdge);
+          assert removed : "could not remove edge: " + enteringEdge;
         }
       }
     }
-
-    // Remove the old edges from their predecessors
-    for (Edge enteringEdge : enteringEdgesToMove) {
-      boolean removed = removeEdge(enteringEdge);
-      edgeToCFAEdges.removeAll(enteringEdge);
-      assert removed : "could not remove edge: " + enteringEdge;
-    }
-    edgeToCFAEdges.removeAll(pEdge);
 
     return replacementEdges;
   }

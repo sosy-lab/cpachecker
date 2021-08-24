@@ -103,6 +103,7 @@ import org.w3c.dom.Node;
 public class AutomatonGraphmlCommon {
 
   private static final String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
+  public static final String ENTRY_NODE_ID = "entry";
   public static final String SINK_NODE_ID = "sink";
 
   public enum AssumeCase {
