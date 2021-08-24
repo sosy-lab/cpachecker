@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.joining;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -64,6 +66,11 @@ public final class Specification {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+
     if (Iterables.isEmpty(specFiles)) {
       if (pProperties.size() == 1) {
         SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
@@ -189,6 +196,11 @@ public final class Specification {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+
     Set<Path> newSpecFiles =
         Sets.difference(pSpecificationFiles, pathToSpecificationAutomata.keySet()).immutableCopy();
     if (newSpecFiles.isEmpty()) {
@@ -227,11 +239,12 @@ public final class Specification {
     pathToSpecificationAutomata = multiplePropertiesBuilder.build();
   }
 
-  private Specification(
+  @VisibleForTesting
+  Specification(
       Set<SpecificationProperty> pProperties,
       ImmutableListMultimap<Path, Automaton> pSpecification) {
     properties = ImmutableSet.copyOf(pProperties);
-    pathToSpecificationAutomata = pSpecification;
+    pathToSpecificationAutomata = checkNotNull(pSpecification);
   }
 
   /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
