@@ -222,7 +222,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
     CoreComponentsFactory factory =
         new CoreComponentsFactory(pConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
-   ReachedSet reached = factory.createReachedSet();
+    ReachedSet reached = factory.createReachedSet(pCpa);
 
    reached.add(pCpa.getInitialState(analyzedProgram.getMainFunction(),
             StateSpacePartition.getDefaultPartition()),

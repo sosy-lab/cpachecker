@@ -214,7 +214,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
-      ReachedSet lReached = factory.createReachedSet();
+      ReachedSet lReached = factory.createReachedSet(lCpas);
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
           lCpas.getInitialPrecision(entryNode, StateSpacePartition.getDefaultPartition()));

@@ -334,7 +334,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 
-      ReachedSet reached = coreComponents.createReachedSet();
+      ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 

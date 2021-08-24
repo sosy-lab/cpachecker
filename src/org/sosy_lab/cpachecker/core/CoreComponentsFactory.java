@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import java.util.logging.Level;
@@ -629,6 +630,18 @@ public class CoreComponentsFactory {
     return algorithm;
   }
 
+  /**
+   * Creates an instance of a {@link ReachedSet}.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet createReachedSet(ConfigurableProgramAnalysis cpa) {
+    checkNotNull(cpa);
+    return createReachedSet();
+  }
+
+  /** Deprecated, call {@link #createReachedSet(ConfigurableProgramAnalysis)} */
+  @Deprecated
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 

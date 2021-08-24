@@ -353,7 +353,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();
@@ -420,7 +420,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();
@@ -603,9 +603,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         setUpInitialAbstractStateForRecurrentSet(
             pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
     pStemEndLoc.removeLeavingEdge(invCheckLoop);
-    // TODO okay that initial states is non-abstraction state?
+      // TODO okay that initial states is non-abstraction state?
 
-    reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
 
     shutdown.shutdownIfNecessary();
@@ -842,7 +842,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(pRecurrentStart, StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();

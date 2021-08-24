@@ -581,7 +581,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // the safety analysis will fail if the program is recursive
     try {
       terminationInformation.reset();
-      ReachedSet reachedSet = reachedSetFactory.create();
+      ReachedSet reachedSet = reachedSetFactory.create(safetyCPA);
       resetReachedSet(reachedSet, initialLocation);
       return safetyAlgorithm.run(reachedSet);
     } finally {

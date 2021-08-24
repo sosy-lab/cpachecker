@@ -169,7 +169,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpa)) {
+              || !checkPartialARG(factory.create(cpa), roots[i], incompleteStates, i, cpa)) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -294,8 +294,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
-          if (!checkResult.get() || roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpas[i])) {
+          if (!checkResult.get()
+              || roots[i] == null
+              || !checkPartialARG(
+                  factory.create(cpas[i]), roots[i], incompleteStates, i, cpas[i])) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }

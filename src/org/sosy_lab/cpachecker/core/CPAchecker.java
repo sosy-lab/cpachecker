@@ -323,7 +323,6 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
-      reached = factory.createReachedSet();
 
       cfa = parse(programDenotation, stats);
       GlobalInfo.getInstance().storeCFA(cfa);
@@ -361,6 +360,7 @@ public class CPAchecker {
         ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
       }
 
+      reached = factory.createReachedSet(cpa);
       if (algorithm instanceof ImpactAlgorithm) {
         ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
         reached.add(

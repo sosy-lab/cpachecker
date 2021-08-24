@@ -215,6 +215,18 @@ public class ReachedSetFactory {
     }
   }
 
+  /**
+   * Creates an instance of a {@link ReachedSet}.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet create(ConfigurableProgramAnalysis cpa) {
+    checkNotNull(cpa);
+    return create();
+  }
+
+  /** Deprecated, call {@link #create(ConfigurableProgramAnalysis)} */
+  @Deprecated
   public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
 
@@ -304,7 +316,7 @@ public class ReachedSetFactory {
       throws InterruptedException {
     checkNotNull(node);
     checkNotNull(partition);
-    ReachedSet reached = create();
+    ReachedSet reached = create(cpa);
     reached.add(cpa.getInitialState(node, partition), cpa.getInitialPrecision(node, partition));
     return reached;
   }

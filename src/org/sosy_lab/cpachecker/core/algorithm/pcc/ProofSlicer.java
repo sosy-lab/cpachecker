@@ -445,6 +445,7 @@ public class ProofSlicer {
       }
     }
 
+    @SuppressWarnings("deprecation") // easy to fix after ReachedSet.getCPA() exists
     ReachedSet returnReached = reachedSetFactory.create();
     // add root
     returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
