@@ -47,15 +47,17 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
  */
 public final class Specification {
 
-  private final Set<SpecificationProperty> properties;
+  private final ImmutableSet<SpecificationProperty> properties;
   private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
 
   public static Specification alwaysSatisfied() {
-    return new Specification(ImmutableList.of());
+    return new Specification(ImmutableSet.of(), ImmutableListMultimap.of());
   }
 
-  public static Specification fromAutomata(Iterable<Automaton> automata) {
-    return new Specification(automata);
+  public static Specification fromAutomata(List<Automaton> automata) {
+    ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata =
+        ImmutableListMultimap.<Path, Automaton>builder().putAll(Path.of(""), automata).build();
+    return new Specification(ImmutableSet.of(), pathToSpecificationAutomata);
   }
 
   public static Specification fromFiles(
@@ -231,14 +233,6 @@ public final class Specification {
     return new Specification(newProperties, pathToSpecificationAutomata);
   }
 
-  private Specification(Iterable<Automaton> pSpecificationAutomata) {
-    properties = ImmutableSet.of();
-    ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
-        ImmutableListMultimap.builder();
-    multiplePropertiesBuilder.putAll(Path.of(""), ImmutableList.copyOf(pSpecificationAutomata));
-    pathToSpecificationAutomata = multiplePropertiesBuilder.build();
-  }
-
   @VisibleForTesting
   Specification(
       Set<SpecificationProperty> pProperties,
@@ -249,7 +243,7 @@ public final class Specification {
 
   /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
   public ImmutableList<Automaton> getSpecificationAutomata() {
-    return ImmutableList.copyOf(pathToSpecificationAutomata.values());
+    return pathToSpecificationAutomata.values().asList();
   }
 
   @Override
