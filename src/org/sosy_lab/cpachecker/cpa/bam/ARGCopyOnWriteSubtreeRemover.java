@@ -319,8 +319,8 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
       final Map<ARGState, ARGState> cloneMapping) {
     // build reachedset, iteration order is very important here,
     // because pReached and clonedReached should behave similar, e.g. first state is equal
-    @SuppressWarnings("deprecation") // easy to fix after pReached.getCPA() exists
-    ReachedSet clonedReached = data.getReachedSetFactory().create();
+    // TODO enable this: assert pReached.getCPA() == bamCpa : "all reached-sets should be created with the same CPA.", ;
+    ReachedSet clonedReached = data.getReachedSetFactory().create(bamCpa);
     for (AbstractState abstractState : Iterables.filter(pReached, keepStates)) {
       ARGState state = (ARGState) abstractState;
       ARGState clonedState = cloneMapping.get(state);
