@@ -251,8 +251,12 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     Call handle_result with appropriate parameters to fit into the BenchExec expectations.
     """
     result_values = collections.OrderedDict()
+    log_present = False
+    run_info_present = False
+    host_info_present = False
 
-    def _open_output_log(output_path):
+    def _open_output_log(output_path=None):
+        log_present = True
         log_file = open(run.log_file, "wb")
         log_header = (
             " ".join(run.cmdline())
@@ -262,9 +266,11 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         return log_file
 
     def _handle_run_info(values):
+        run_info_present = True
         result_values.update(vcloudutil.parse_vcloud_run_result(values.items()))
 
     def _handle_host_info(values):
+        host_info_present = True
         host = values.pop("name", "-")
         memory = values.pop("memory", None)
         if memory.endswith("byte"):
@@ -296,6 +302,16 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             shutil.move(
                 os.path.join(log_dir, RESULT_FILE_STDERR), run.log_file + ".stdError"
             )
+
+    if not log_present:
+        _open_output_log().close()  # create dummy log with cmdline
+
+    if not run_info_present:
+        output_handler.set_error("missing results")
+    elif not log_present:
+        output_handler.set_error("missing logs")
+    elif not host_info_present:
+        output_handler.set_error("missing host information")
 
     handle_result(
         zip_content,
