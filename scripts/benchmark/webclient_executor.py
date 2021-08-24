@@ -303,15 +303,15 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
                 os.path.join(log_dir, RESULT_FILE_STDERR), run.log_file + ".stdError"
             )
 
-    if not log_present:
-        _open_output_log().close()  # create dummy log with cmdline
-
     if not run_info_present:
         output_handler.set_error("missing results")
     elif not log_present:
         output_handler.set_error("missing logs")
     elif not host_info_present:
         output_handler.set_error("missing host information")
+
+    if not log_present:
+        _open_output_log().close()  # create dummy log with cmdline
 
     handle_result(
         zip_content,
