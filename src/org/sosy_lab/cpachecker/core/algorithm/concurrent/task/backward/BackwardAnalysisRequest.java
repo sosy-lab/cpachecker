@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskRequest;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskValidity;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -167,16 +166,18 @@ public class BackwardAnalysisRequest implements TaskRequest {
    * and summary version counters. Each task type overwrites this method to implement global
    * synchronization using these structures.
    *
-   * <p>For {@link BackwardAnalysisRequest}, this method performs the following steps:
-   *
-   * <ol>
-   *   <li>tbd
-   * </ol>
+   * <p>For {@link BackwardAnalysisRequest}, this method obtains and stores the block summary for
+   * the inter-block edge along which the error condition enters the target block. As soon as the
+   * task then actually executes, it first checks whether the conjunction of this summary and the
+   * error condition is satisfiable. If this is not the case, the condition need not propagate
+   * further and the {@link BackwardAnalysis} terminates early.
    *
    * @param pSummaries Global map of block summaries
    * @param pSummaryVersions Global map of block summary versions
-   * @return {@link TaskValidity#VALID} if the task remains valid, {@link TaskValidity#INVALID} if
-   *     the method has determined the task to be outdated and requests its cancellation
+   * @return The immutable {@link BackwardAnalysis} which actually implements the {@link Task}.
+   * @see BackwardAnalysis
+   * @throws TaskInvalidatedException The {@link BackwardAnalysisRequest} has become invalidated by
+   *     a more recent one and the {@link BackwardAnalysis} must not execute.
    */
   @Override
   public Task finalize(

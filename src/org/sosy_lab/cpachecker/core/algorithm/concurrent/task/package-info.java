@@ -24,8 +24,6 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
  * interface to create actual instances of these classes and automatically submits them to a
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor} (with an instance of
  * which it has to be initialized).
- * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskValidity} offers an internal
- * enum employed to indicate task validity, while an internal
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskInvalidatedException} indicates
  * that a task has become invalid and shall not be executed.
  *

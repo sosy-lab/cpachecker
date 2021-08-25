@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskRequest;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskValidity;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -180,7 +179,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
 
   /**
    * {@link #finalize(Table, Map)} executes in the context of the central scheduler thread and
-   * operates with exclusive and thread-safe access on the global map of calculated block summaries
+   * operates with exclusive and thread-safe access on the global maps of calculated block summaries
    * and summary version counters. Each task type overwrites this method to implement global
    * synchronization using these structures.
    *
@@ -209,12 +208,12 @@ public class ForwardAnalysisRequest implements TaskRequest {
    *       #finalize(Table, Map)} for <em>t1</em> must not overwrite this value with its now
    *       outdated version of <em>Q0</em>. Such task <em>t2</em> would also already have created a
    *       new {@link ForwardAnalysisRequest} on <em>b1</em>, which makes the present task
-   *       <em>t1</em> redundant. In this case, preprocessing therefore aborts with {@link
-   *       TaskValidity#INVALID}.
-   *   <li>Store the old version of the predecessor summary whose update triggered the creation of
-   *       the present task. As soon as the task actually executes, it uses the old value to check
-   *       whether new and old formula actually differ. If they do not, it completes early and
-   *       performs no new analysis.
+   *       <em>t1</em> redundant. In this case, the method throws a {@link TaskInvalidatedException}
+   *       and the {@link ForwardAnalysisRequest} shall be discarded.
+   *   <li>Store the old predecessor summary whose update triggered the creation of the present
+   *       task. As soon as the task actually executes, it uses the old value to check whether new
+   *       and old formula actually differ. If they do not, it completes early and performs no new
+   *       analysis.
    *   <li>Increment the summary version of the block this task operates on by one and store the new
    *       value in the task.
    *   <li>Retrieve the list of all predecessor summaries of the current block and store it in the
@@ -222,25 +221,27 @@ public class ForwardAnalysisRequest implements TaskRequest {
    *       predecessor summary.
    * </ol>
    *
-   * @param summaries Global map of block summaries
-   * @param versions Global map of block summary versions
-   * @return {@link TaskValidity#VALID} if the task remains valid, {@link TaskValidity#INVALID} if
-   *     the method has determined the task to be outdated and requests its cancellation
+   * @param pSummaries Global map of block summaries
+   * @param pSummaryVersions Global map of block summary versions
+   * @return The immutable {@link ForwardAnalysis} which actually implements the {@link Task}.
+   * @see ForwardAnalysis
+   * @throws TaskInvalidatedException The {@link ForwardAnalysisRequest} has become invalidated by a
+   *     more recent one and the {@link ForwardAnalysis} must not execute.
    */
   @Override
   public Task finalize(
-      final Table<Block, Block, ShareableBooleanFormula> summaries,
-      final Map<Block, Integer> versions)
+      final Table<Block, Block, ShareableBooleanFormula> pSummaries,
+      final Map<Block, Integer> pSummaryVersions)
       throws TaskInvalidatedException {
     assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
         : "Only " + TaskExecutor.getThreadName() + " may call finalize()";
 
-    final Map<Block, ShareableBooleanFormula> incoming = summaries.column(block);
+    final Map<Block, ShareableBooleanFormula> incoming = pSummaries.column(block);
     ShareableBooleanFormula oldSummary = incoming.getOrDefault(predecessor, null);
 
-    publishPredSummary(incoming, versions);
+    publishPredSummary(incoming, pSummaryVersions);
 
-    int expectedVersion = incrementVersion(block, versions);
+    int expectedVersion = incrementVersion(block, pSummaryVersions);
     Collection<ShareableBooleanFormula> predecessorSummaries =
         Maps.filterKeys(incoming, block -> predecessor != block).values();
 
