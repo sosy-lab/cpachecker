@@ -212,6 +212,10 @@ public class ForwardAnalysis implements Task {
     LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
     assert location != null;
 
+    if (AbstractStates.isTargetState(state)) {
+      taskManager.spawnBackwardAnalysis(target, location.getLocationNode());
+    }
+
     if (target.getExits().containsKey(location.getLocationNode())) {
       PredicateAbstractState predState =
           AbstractStates.extractStateByType(state, PredicateAbstractState.class);

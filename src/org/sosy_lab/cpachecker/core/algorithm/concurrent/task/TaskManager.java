@@ -14,7 +14,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -80,6 +82,32 @@ public class TaskManager {
         new ForwardAnalysisRequest(
             null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa, this);
     executor.requestJob(request);
+  }
+
+  public void spawnBackwardAnalysis(final Block pBlock, final CFANode pStart)
+      throws InterruptedException, InvalidConfigurationException, CPAException {
+    assert pBlock.contains(pStart) : "Block must contain analysis start location";
+
+    BackwardAnalysisRequest task =
+        new BackwardAnalysisRequest(
+            pBlock, pStart, null, null, config, logManager, shutdownNotifier, cfa, this);
+
+    executor.requestJob(task);
+  }
+
+  public void spawnBackwardAnalysis(
+      final Block pBlock,
+      final CFANode pStart,
+      final Block pSource,
+      final ShareableBooleanFormula pCondition)
+      throws InterruptedException, InvalidConfigurationException, CPAException {
+    assert pBlock.contains(pStart) : "Block must contain analysis start location";
+
+    BackwardAnalysisRequest task =
+        new BackwardAnalysisRequest(
+            pBlock, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa, this);
+
+    executor.requestJob(task);
   }
 
   public static class TaskManagerFactory {
