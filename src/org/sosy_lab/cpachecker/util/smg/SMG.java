@@ -12,7 +12,11 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -21,6 +25,7 @@ import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -101,6 +106,29 @@ public class SMG {
         hasValueEdges,
         pointsToEdges,
         sizeOfPointer);
+  }
+
+  /**
+   * Creates a copy of the SMG an remove the given value.
+   *
+   * @param pValue - The object to be added.
+   * @return A modified copy of the SMG.
+   */
+  public SMG copyAndRemoveValue(SMGValue pValue) {
+    return new SMG(
+        smgObjects,
+        smgValues.removeAndCopy(pValue),
+        hasValueEdges,
+        pointsToEdges,
+        sizeOfPointer);
+  }
+
+  public SMG copyAndRemoveValues(Collection<SMGValue> pUnreachableValues) {
+    SMG returnSmg = this;
+    for (SMGValue smgValue : pUnreachableValues) {
+      returnSmg = returnSmg.copyAndRemoveValue(smgValue);
+    }
+    return returnSmg;
   }
 
   /**
@@ -265,6 +293,14 @@ public class SMG {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pObject);
     return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges, sizeOfPointer);
+  }
+
+  public SMG copyAndRemoveObjects(Collection<SMGObject> pUnreachableObjects) {
+    SMG returnSmg = this;
+    for (SMGObject smgObject : pUnreachableObjects) {
+      returnSmg = returnSmg.copyAndInvalidateObject(smgObject);
+    }
+    return returnSmg;
   }
 
   /**
@@ -735,6 +771,29 @@ public class SMG {
   public BigInteger getSizeOfPointer() {
     return sizeOfPointer;
   }
+
+  public SMGObjectsAndValues collectReachableObjectsAndValues(Collection<SMGObject> pVisibleObjects) {
+    Set<SMGObject> visitedObjects = new HashSet<>();
+    Set<SMGValue> visitedValues = new HashSet<>();
+    Deque<SMGObject> workDeque = new ArrayDeque<>(pVisibleObjects);
+    while (!workDeque.isEmpty()) {
+      SMGObject object = workDeque.pop();
+      // valid object which was not yet visited
+      if (visitedObjects.add(object) && isValid(object)) {
+        for (SMGHasValueEdge outgoingEdge : getEdges(object)) {
+          SMGValue value = outgoingEdge.hasValue();
+          // pointer value which was not yet visited
+          if (visitedValues.add(value) && isPointer(value)) {
+            SMGObject pointerTarget = getPTEdge(value).orElseThrow().pointsTo();
+            workDeque.add(pointerTarget);
+          }
+        }
+      }
+    }
+
+    return new SMGObjectsAndValues(visitedObjects, visitedValues);
+  }
+
 
 
 }
