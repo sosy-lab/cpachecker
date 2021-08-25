@@ -219,7 +219,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState copyAndPruneOutOfScopeVariables(Set<CSimpleDeclaration> pOutOfScopeVars) {
     SMGState retState = this;
     for (CSimpleDeclaration variable : pOutOfScopeVars) {
-      retState = retState.copyAndPruneVariable(MemoryLocation.valueOf(variable.getQualifiedName()));
+      retState =
+          retState.copyAndPruneVariable(
+              MemoryLocation.forDeclaration(variable));
     }
 
     return retState;
