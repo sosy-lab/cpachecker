@@ -40,20 +40,20 @@ public class Block {
     exits.put(location, successor);
   }
 
-  public void addPredecessor(final Block block){
+  public void addPredecessor(final Block block) {
     Preconditions.checkState(!complete);
     predecessors.add(block);
-  }
-
-  public void setNestedGraph(final BlockGraph pGraph) {
-    Preconditions.checkState(!complete);
-    nested = Optional.of(pGraph);
   }
 
   public BlockGraph getNestedGraph() {
     Preconditions.checkState(complete);
     Preconditions.checkState(nested.isPresent());
     return nested.get();
+  }
+
+  public void setNestedGraph(final BlockGraph pGraph) {
+    Preconditions.checkState(!complete);
+    nested = Optional.of(pGraph);
   }
 
   public void complete() {
@@ -74,5 +74,10 @@ public class Block {
 
   public Map<CFANode, Block> getExits() {
     return exits;
+  }
+
+  public ImmutableSet<Block> getPredecessors() {
+    Preconditions.checkState(complete);
+    return ImmutableSet.copyOf(predecessors);
   }
 }
