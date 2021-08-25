@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.Unmaintained;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,6 +47,8 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 
 @Options(prefix = "cpa.smg2")
+// TODO remove unmaintained annotation once all components are implemented
+@Unmaintained
 public class SMGCPA
     implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex,
     ConfigurableProgramAnalysisWithAdditionalInfo, StatisticsProvider {
