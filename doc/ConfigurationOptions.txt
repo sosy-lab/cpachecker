@@ -2801,6 +2801,91 @@ cpa.smg.verifyPredicates = false
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 
+# Allocate memory on declaration of external variable
+cpa.smg2.allocateExternalVariables = true
+
+# Array allocation functions
+cpa.smg2.arrayAllocationFunctions = {"calloc"}
+
+# with this option enabled, a check for unreachable memory occurs whenever a
+# function returns, and not only at the end of the main function
+cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
+
+# Deallocation functions
+cpa.smg2.deallocationFunctions = {"free"}
+
+# If this Option is enabled, failure of mallocis simulated
+cpa.smg2.enableMallocFail = true
+
+# Filename format for SMG graph dumps
+cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
+
+# Describes when SMG graphs should be dumped.
+cpa.smg2.exportSMGwhen = NEVER
+  enum:     [NEVER, LEAF, INTERESTING, EVERY]
+
+# Functions which indicate on external allocated memory
+cpa.smg2.externalAllocationFunction = {"ext_allocation"}
+
+# Default size of externally allocated memory
+cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
+
+# Handle external variables with incomplete type (extern int array[]) as
+# external allocation
+cpa.smg2.handleIncompleteExternalVariableAsExternalAllocation = false
+
+# with this option enabled, memory that is not freed before the end of main
+# is reported as memleak even if it is reachable from local variables in main
+cpa.smg2.handleNonFreedMemoryInMainAsMemLeak = true
+
+# Handle unknown dereference as safe and check error based on error
+# predicate, depends on trackPredicates
+cpa.smg2.handleUnknownDereferenceAsSafe = false
+
+# Sets how unknown functions are handled.
+cpa.smg2.handleUnknownFunctions = STRICT
+  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg2.joinOnBlockEnd = true
+
+# Memory allocation functions
+cpa.smg2.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
+
+# Size parameter of memory allocation functions
+cpa.smg2.memoryAllocationFunctionsSizeParameter = 0
+
+# Position of element size parameter for array allocation functions
+cpa.smg2.memoryArrayAllocationFunctionsElemSizeParameter = 1
+
+# Position of number of element parameter for array allocation functions
+cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
+
+# Determines if memory errors are target states
+cpa.smg2.memoryErrors = true
+
+# which merge operator to use for the SMGCPA
+cpa.smg2.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# Which unknown function are always considered as safe functions, i.e., free
+# of memory-related side-effects?
+cpa.smg2.safeUnknownFunctions = {"abort"}
+
+# which stop operator to use for the SMGCPA
+cpa.smg2.stop = "SEP"
+  allowed values: [SEP, NEVER, END_BLOCK]
+
+# Enable track predicates on SMG state
+cpa.smg2.trackPredicates = false
+
+# Emit messages when we encounter non-target undefined behavior
+cpa.smg2.unknownOnUndefined = true
+
+# Allocation functions which set memory to zero
+cpa.smg2.zeroingMemoryAllocation = {"calloc", "kzalloc"}
+
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.
 cpa.statistics.analysis = true
