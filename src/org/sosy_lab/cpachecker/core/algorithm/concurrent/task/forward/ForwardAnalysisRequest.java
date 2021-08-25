@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysisRequest implements TaskRequest {
@@ -57,7 +59,9 @@ public class ForwardAnalysisRequest implements TaskRequest {
   private final TaskManager taskManager;
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
+  private final Solver solver;
   private final FormulaManagerView formulaManager;
+  private final BooleanFormulaManager bfMgr;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
 
@@ -118,12 +122,14 @@ public class ForwardAnalysisRequest implements TaskRequest {
 
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
-    formulaManager = predicateCPA.getSolver().getFormulaManager();
+
+    solver = predicateCPA.getSolver();
+    formulaManager = solver.getFormulaManager();
+    bfMgr = formulaManager.getBooleanFormulaManager();
 
     newSummary =
         (pNewSummary == null)
-            ? new ShareableBooleanFormula(
-                formulaManager, formulaManager.getBooleanFormulaManager().makeTrue())
+            ? new ShareableBooleanFormula(formulaManager, bfMgr.makeTrue())
             : pNewSummary;
   }
 
@@ -227,7 +233,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
       final Map<Block, Integer> versions)
       throws TaskInvalidatedException {
     assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
-        : "Only " + TaskExecutor.getThreadName() + " may call preprocess()";
+        : "Only " + TaskExecutor.getThreadName() + " may call finalize()";
 
     final Map<Block, ShareableBooleanFormula> incoming = summaries.column(block);
     ShareableBooleanFormula oldSummary = incoming.getOrDefault(predecessor, null);
@@ -247,7 +253,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
         reached,
         algorithm,
         cpa,
-        formulaManager,
+        solver,
         taskManager,
         logManager,
         shutdownNotifier);

@@ -38,8 +38,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class ForwardAnalysis implements Task {
   private final Block target;
@@ -50,6 +52,7 @@ public class ForwardAnalysis implements Task {
   private final ReachedSet reached;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
+  private final Solver solver;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManager bfMgr;
   private final TaskManager taskManager;
@@ -65,11 +68,12 @@ public class ForwardAnalysis implements Task {
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA,
-      final FormulaManagerView pFormulaManager,
+      final Solver pSolver,
       final TaskManager pTaskManager,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
-    formulaManager = pFormulaManager;
+    solver = pSolver;
+    formulaManager = solver.getFormulaManager();
     bfMgr = formulaManager.getBooleanFormulaManager();
     target = pTarget;
     oldSummary = pOldSummary == null ? null : pOldSummary.getFor(formulaManager);
@@ -90,7 +94,7 @@ public class ForwardAnalysis implements Task {
 
   @Override
   public AlgorithmStatus call()
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     if (isSummaryUnchanged()) {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
@@ -115,7 +119,8 @@ public class ForwardAnalysis implements Task {
     return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
   }
 
-  private boolean thereIsNoRelevantChange(final BooleanFormula cumPredSummary) {
+  private boolean thereIsNoRelevantChange(final BooleanFormula cumPredSummary)
+      throws SolverException, InterruptedException {
     if (oldSummary == null || newSummary == null) {
       return false;
     }
@@ -123,7 +128,7 @@ public class ForwardAnalysis implements Task {
     BooleanFormula addedContext = bfMgr.and(oldSummary, bfMgr.not(newSummary));
     BooleanFormula relevantChange = bfMgr.implication(cumPredSummary, addedContext);
 
-    return bfMgr.isFalse(relevantChange);
+    return solver.isUnsat(relevantChange);
   }
 
   private BooleanFormula buildCumulativePredecessorSummary() {
@@ -154,13 +159,13 @@ public class ForwardAnalysis implements Task {
     return rawPredicateState;
   }
 
-  private boolean isSummaryUnchanged() {
+  private boolean isSummaryUnchanged() throws SolverException, InterruptedException {
     if (oldSummary == null || newSummary == null) {
       return false;
     }
 
     BooleanFormula equivalence = bfMgr.equivalence(newSummary, oldSummary);
-    return bfMgr.isTrue(equivalence);
+    return !solver.isUnsat(equivalence);
   }
 
   private CompositeState buildEntryState(final BooleanFormula cumPredSummary)
