@@ -113,6 +113,7 @@ public class SMGTransferRelation
     return Collections.singleton(successor);
   }
 
+  @SuppressWarnings("unused")
   private SMGState assignStatementToState(
       SMGState pState,
       SMGObject pRegion,
