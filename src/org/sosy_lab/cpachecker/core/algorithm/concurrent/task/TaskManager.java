@@ -15,7 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -58,8 +58,8 @@ public class TaskManager {
       final ShareableBooleanFormula pNewPrecondition)
       throws InterruptedException, InvalidConfigurationException, CPAException {
 
-    ForwardAnalysis task =
-        new ForwardAnalysis(
+    ForwardAnalysisRequest task =
+        new ForwardAnalysisRequest(
             pPredecessor,
             pBlock,
             pNewPrecondition,
@@ -76,11 +76,10 @@ public class TaskManager {
 
   public void spawnForwardAnalysis(final Block pBlock)
       throws InterruptedException, InvalidConfigurationException, CPAException {
-    ForwardAnalysis task =
-        new ForwardAnalysis(
+    ForwardAnalysisRequest request =
+        new ForwardAnalysisRequest(
             null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa, this);
-
-    executor.requestJob(task);
+    executor.requestJob(request);
   }
 
   public static class TaskManagerFactory {

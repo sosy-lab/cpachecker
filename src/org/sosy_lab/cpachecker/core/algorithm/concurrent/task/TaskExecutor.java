@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula
  * due to a concurrent task which completed and which calculated an updated version of such data.
  */
 public final class TaskExecutor implements Runnable {
-  private final LinkedBlockingQueue<Task> requestedJobs = new LinkedBlockingQueue<>();
+  private final LinkedBlockingQueue<TaskRequest> requestedJobs = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
   private final LogManager logManager;
   private final Collection<Thread> waitingOnCompletion = new LinkedList<>();
@@ -123,14 +123,9 @@ public final class TaskExecutor implements Runnable {
      */
     while (jobsPending.get() || !requestedJobs.isEmpty()) {
       try {
-        Task job = requestedJobs.take();
-        TaskValidity validity = job.preprocess(summaries, summaryVersion);
-
-        if (validity == TaskValidity.INVALID) {
-          continue;
-        }
-
-        Future<AlgorithmStatus> future = executor.submit(job);
+        TaskRequest job = requestedJobs.take();
+        Task task = job.finalize(summaries, summaryVersion);
+        Future<AlgorithmStatus> future = executor.submit(task);
         watchdog.await(future);
 
         if (!jobsPending.get()) {
@@ -142,12 +137,14 @@ public final class TaskExecutor implements Runnable {
           jobsPending.set(true);
           watchdog.resume();
         }
-      } catch (InterruptedException ignored) {
+      } catch (final InterruptedException ignored) {
         /*
          * If JobExecutor gets interrupted while waiting for new tasks in requestedJobs, the while
          * condition before checks again whether jobs are still pending or additional ones have been
          * requested. If either is the case, it again calls requestedJobs.take().
          */
+      } catch (final TaskInvalidatedException exception) {
+        continue;
       }
     }
 
@@ -192,17 +189,17 @@ public final class TaskExecutor implements Runnable {
    *
    * @param pTask The new job to execute.
    */
-  void requestJob(final Task pTask) {
-    checkNotNull(pTask);
+  void requestJob(final TaskRequest pRequest) {
+    checkNotNull(pRequest);
 
     boolean success = false;
 
     while (!success) {
       try {
-        requestedJobs.put(pTask);
+        requestedJobs.put(pRequest);
         success = true;
       } catch (InterruptedException ignored) {
-        success = requestedJobs.contains(pTask);
+        success = requestedJobs.contains(pRequest);
       }
     }
   }
