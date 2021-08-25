@@ -287,4 +287,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return copy;
   }
 
+  public SymbolicProgramConfiguration getHeap() {
+    return heap;
+  }
+
 }

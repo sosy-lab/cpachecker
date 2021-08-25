@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.StreamSupport;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -131,7 +131,7 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
     // If a stack variable becomes out of scope, there are not more than one frames which could contain the variable
     Optional<StackFrame> frameOptional =
-        StreamSupport.stream(stackVariableMapping.spliterator(), false)
+        Streams.stream(stackVariableMapping)
             .filter(frame -> frame.containsVariable(pIdentifier))
             .findAny();
     if (frameOptional.isEmpty()) {
@@ -203,5 +203,9 @@ public class SymbolicProgramConfiguration {
       newHeapObjects = newHeapObjects.removeAndCopy(smgObject);
     }
     return of(newSmg, globalVariableMapping, stackVariableMapping, newHeapObjects);
+  }
+
+  public Optional<SMGObject> getReturnObjectForCurrentStackFrame() {
+    return stackVariableMapping.peek().getReturnObject();
   }
 }

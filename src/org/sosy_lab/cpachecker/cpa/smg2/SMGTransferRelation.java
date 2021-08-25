@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -35,6 +37,7 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
@@ -57,10 +60,10 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
     Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();
-    return FluentIterable.from(pSuccessors).transform(successorState -> {
+    return transformedImmutableSetCopy(pSuccessors, successorState -> {
       SMGState prunedState = successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
       return checkAndSetErrorRelation(prunedState);
-    }).toSet();
+    });
   }
 
 
@@ -74,27 +77,47 @@ public class SMGTransferRelation
   @Override
   protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      SMGState lastState = state;
       if (isEntryFunction(cfaEdge)) {
-        if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-          lastState = lastState.dropStackFrame();
-        }
-        lastState = lastState.copyAndPruneUnreachable();
-        return Collections.singleton(lastState);
+        return handleReturnEntryFunction(state);
       }
     }
 
     return Collections.singleton(state);
   }
 
-  private boolean isEntryFunction(BlankEdge pCfaEdge) {
+  private Set<SMGState> handleReturnEntryFunction(SMGState pState) {
+    SMGState lastState = pState;
+    if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+      lastState = lastState.dropStackFrame();
+    }
+    return Collections.singleton(lastState.copyAndPruneUnreachable());
+  }
+
+  private boolean isEntryFunction(CFAEdge pCfaEdge) {
     return pCfaEdge.getSuccessor().getNumLeavingEdges() == 0;
   }
 
   @Override
   protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws CPATransferException {
+    Optional<SMGObject> returnObjectOptional =
+        state.getHeap().getReturnObjectForCurrentStackFrame();
+    SMGState successor = state;
+    if(returnObjectOptional.isPresent()) {
+      successor = assignStatementToState(successor, returnObjectOptional.orElseThrow(), returnEdge);
+    }
 
+    if (isEntryFunction(returnEdge)) {
+      return handleReturnEntryFunction(successor);
+    }
+    return Collections.singleton(successor);
+  }
+
+  private SMGState assignStatementToState(
+      SMGState pState,
+      SMGObject pRegion,
+      CReturnStatementEdge pReturnEdge) {
+    // TODO Auto-generated method stub
     return null;
   }
 

@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
@@ -96,6 +97,10 @@ public class SMGCPA
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
+  }
+
+  public static CPAFactory factory() {
+    return null;
   }
 
   @Override
