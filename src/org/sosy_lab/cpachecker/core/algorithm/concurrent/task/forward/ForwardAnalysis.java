@@ -12,9 +12,9 @@ import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDef
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,55 +43,101 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class ForwardAnalysis implements Task {
   private final Block target;
+  private final BooleanFormula newSummary;
+  private final BooleanFormula oldSummary;
   private final int expectedVersion;
-  private final ShareableBooleanFormula newSummary;
-  private final ShareableBooleanFormula oldSummary;
+  private final ImmutableList<BooleanFormula> predecessorSummaries;
   private final ReachedSet reached;
+  private final Algorithm algorithm;
+  private final BlockAwareCompositeCPA cpa;
+  private final FormulaManagerView formulaManager;
+  private final BooleanFormulaManager bfMgr;
   private final TaskManager taskManager;
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final FormulaManagerView formulaManager;
-  private final BooleanFormulaManager bfMgr;
-  private final ImmutableList<ShareableBooleanFormula> predecessorSummaries;
-  private final Algorithm algorithm;
-  private final BlockAwareCompositeCPA cpa;
 
   public ForwardAnalysis(
       final Block pTarget,
       @Nullable final ShareableBooleanFormula pOldSummary,
       @Nullable final ShareableBooleanFormula pNewSummary,
       final int pExpectedVersion,
+      final Collection<ShareableBooleanFormula> pPredecessorSummaries,
       final ReachedSet pReachedSet,
+      final Algorithm pAlgorithm,
+      final BlockAwareCompositeCPA pCPA,
+      final FormulaManagerView pFormulaManager,
       final TaskManager pTaskManager,
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier,
-      final FormulaManagerView pFormulaManager,
-      final ImmutableList<ShareableBooleanFormula> pPredecessorSummaries,
-      final Algorithm pAlgorithm,
-      final BlockAwareCompositeCPA pCPA) {
+      final ShutdownNotifier pShutdownNotifier) {
+    formulaManager = pFormulaManager;
+    bfMgr = formulaManager.getBooleanFormulaManager();
     target = pTarget;
-    oldSummary = pOldSummary;
-    newSummary = pNewSummary;
+    oldSummary = pOldSummary == null ? null : pOldSummary.getFor(formulaManager);
+    newSummary = pNewSummary == null ? null : pNewSummary.getFor(formulaManager);
     expectedVersion = pExpectedVersion;
+    predecessorSummaries =
+        pPredecessorSummaries.stream()
+            .map(formula -> formula.getFor(formulaManager))
+            .collect(ImmutableList.toImmutableList());
+
     reached = pReachedSet;
+    algorithm = pAlgorithm;
+    cpa = pCPA;
     taskManager = pTaskManager;
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
-    formulaManager = pFormulaManager;
-    bfMgr = formulaManager.getBooleanFormulaManager();
-    predecessorSummaries = pPredecessorSummaries;
-    algorithm = pAlgorithm;
-    cpa = pCPA;
   }
 
   @Override
   public AlgorithmStatus call()
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    if (!summaryHasChanged()) {
+    if (isSummaryUnchanged()) {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
+    BooleanFormula cumPredSummary = buildCumulativePredecessorSummary();
+    if (thereIsNoRelevantChange(cumPredSummary)) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
+    CompositeState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
+    reached.add(entryState, precision);
+
+    logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
+    AlgorithmStatus status = algorithm.run(reached);
+
+    for (final AbstractState state : reached.asCollection()) {
+      processReachedState(state);
+    }
+
+    logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
+    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
+  }
+
+  private boolean thereIsNoRelevantChange(final BooleanFormula cumPredSummary) {
+    if (oldSummary == null || newSummary == null) {
+      return false;
+    }
+
+    BooleanFormula addedContext = bfMgr.and(oldSummary, bfMgr.not(newSummary));
+    BooleanFormula relevantChange = bfMgr.implication(cumPredSummary, addedContext);
+
+    return bfMgr.isFalse(relevantChange);
+  }
+
+  private BooleanFormula buildCumulativePredecessorSummary() {
+    BooleanFormula cumPredSummary;
+    if (predecessorSummaries.isEmpty()) {
+      cumPredSummary = bfMgr.makeTrue();
+    } else {
+      cumPredSummary = bfMgr.or(predecessorSummaries);
+    }
+
+    return cumPredSummary;
+  }
+
+  private PredicateAbstractState getRawPredicateEntryState() throws InterruptedException {
     AbstractState rawInitialState = null;
     while (rawInitialState == null) {
       try {
@@ -105,39 +151,27 @@ public class ForwardAnalysis implements Task {
         AbstractStates.extractStateByType(rawInitialState, PredicateAbstractState.class);
     assert rawPredicateState != null;
 
-    BooleanFormula cumPredSummary;
-    if (predecessorSummaries.isEmpty()) {
-      cumPredSummary = bfMgr.makeTrue();
-    } else {
-      List<BooleanFormula> summaries =
-          predecessorSummaries.stream()
-              .map(summary -> summary.getFor(formulaManager))
-              .collect(Collectors.toList());
+    return rawPredicateState;
+  }
 
-      cumPredSummary = bfMgr.or(summaries);
+  private boolean isSummaryUnchanged() {
+    if (oldSummary == null || newSummary == null) {
+      return false;
     }
 
-    if (oldSummary != null) {
-      BooleanFormula addedContext =
-          bfMgr.and(
-              oldSummary.getFor(formulaManager), bfMgr.not(newSummary.getFor(formulaManager)));
-      BooleanFormula relevantChange = bfMgr.implication(cumPredSummary, addedContext);
-      if (bfMgr.isFalse(relevantChange)) {
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      }
-    }
+    BooleanFormula equivalence = bfMgr.equivalence(newSummary, oldSummary);
+    return bfMgr.isTrue(equivalence);
+  }
 
-    BooleanFormula newContext = bfMgr.or(cumPredSummary, newSummary.getFor(formulaManager));
-    PathFormula context = rawPredicateState.getPathFormula().withFormula(newContext);
-
-    PredicateAbstractState predicateState =
-        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(context, rawPredicateState);
+  private CompositeState buildEntryState(final BooleanFormula cumPredSummary)
+      throws InterruptedException {
+    PredicateAbstractState predicateEntryState = buildPredicateEntryState(cumPredSummary);
 
     List<AbstractState> componentStates = new ArrayList<>();
     for (ConfigurableProgramAnalysis componentCPA : cpa.getWrappedCPAs()) {
       AbstractState componentState = null;
       if (componentCPA instanceof PredicateCPA) {
-        componentState = predicateState;
+        componentState = predicateEntryState;
       } else {
         while (componentState == null) {
           try {
@@ -150,48 +184,41 @@ public class ForwardAnalysis implements Task {
       componentStates.add(componentState);
     }
 
-    AbstractState entryState = new CompositeState(componentStates);
-    reached.add(entryState, precision);
-
-    logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
-    AlgorithmStatus status = algorithm.run(reached);
-
-    for (final AbstractState state : reached.asCollection()) {
-      if (AbstractStates.isTargetState(state)) {
-        logManager.log(Level.FINE, "Target State:", state);
-      }
-
-      LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
-      assert location != null;
-
-      if (target.getExits().containsKey(location.getLocationNode())) {
-        PredicateAbstractState predState =
-            AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-        assert predState != null;
-
-        BooleanFormula exitFormula = predState.getPathFormula().getFormula();
-
-        Block exit = target.getExits().get(location.getLocationNode());
-        final ShareableBooleanFormula shareableFormula =
-            new ShareableBooleanFormula(formulaManager, exitFormula);
-
-        taskManager.spawnForwardAnalysis(target, expectedVersion, exit, shareableFormula);
-      }
-    }
-
-    logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
-    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    return new CompositeState(componentStates);
   }
 
-  private boolean summaryHasChanged() {
-    if (oldSummary == null || newSummary == null) {
-      return true;
+  private PredicateAbstractState buildPredicateEntryState(final BooleanFormula cumPredSummary)
+      throws InterruptedException {
+    BooleanFormula newContext = bfMgr.or(cumPredSummary, newSummary);
+
+    PredicateAbstractState rawPredicateState = getRawPredicateEntryState();
+    PathFormula context = rawPredicateState.getPathFormula().withFormula(newContext);
+
+    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+        context, rawPredicateState);
+  }
+
+  private void processReachedState(final AbstractState state)
+      throws InterruptedException, InvalidConfigurationException, CPAException {
+    if (AbstractStates.isTargetState(state)) {
+      logManager.log(Level.FINE, "Target State:", state);
     }
 
-    BooleanFormula newFormula = newSummary.getFor(formulaManager);
-    BooleanFormula oldFormula = oldSummary.getFor(formulaManager);
-    BooleanFormula equivalence = bfMgr.equivalence(newFormula, oldFormula);
+    LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
+    assert location != null;
 
-    return bfMgr.isFalse(equivalence);
+    if (target.getExits().containsKey(location.getLocationNode())) {
+      PredicateAbstractState predState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      assert predState != null;
+
+      BooleanFormula exitFormula = predState.getPathFormula().getFormula();
+
+      Block exit = target.getExits().get(location.getLocationNode());
+      final ShareableBooleanFormula shareableFormula =
+          new ShareableBooleanFormula(formulaManager, exitFormula);
+
+      taskManager.spawnForwardAnalysis(target, expectedVersion, exit, shareableFormula);
+    }
   }
 }

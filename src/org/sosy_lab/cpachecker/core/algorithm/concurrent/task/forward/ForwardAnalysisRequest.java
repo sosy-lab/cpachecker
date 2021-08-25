@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,9 +60,6 @@ public class ForwardAnalysisRequest implements TaskRequest {
   private final FormulaManagerView formulaManager;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
-  private ShareableBooleanFormula oldSummary = null;
-  private int expectedVersion = 0;
-  private ImmutableList<ShareableBooleanFormula> predecessorSummaries;
 
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Configuration file for forward analysis during concurrent analysis.")
@@ -233,27 +230,27 @@ public class ForwardAnalysisRequest implements TaskRequest {
         : "Only " + TaskExecutor.getThreadName() + " may call preprocess()";
 
     final Map<Block, ShareableBooleanFormula> incoming = summaries.column(block);
-    oldSummary = incoming.getOrDefault(predecessor, null);
+    ShareableBooleanFormula oldSummary = incoming.getOrDefault(predecessor, null);
 
     publishPredSummary(incoming, versions);
 
-    expectedVersion = incrementVersion(block, versions);
-    predecessorSummaries =
-        ImmutableList.copyOf(Maps.filterKeys(incoming, block -> predecessor != block).values());
+    int expectedVersion = incrementVersion(block, versions);
+    Collection<ShareableBooleanFormula> predecessorSummaries =
+        Maps.filterKeys(incoming, block -> predecessor != block).values();
 
     return new ForwardAnalysis(
         block,
         oldSummary,
         newSummary,
         expectedVersion,
+        predecessorSummaries,
         reached,
+        algorithm,
+        cpa,
+        formulaManager,
         taskManager,
         logManager,
-        shutdownNotifier,
-        formulaManager,
-        predecessorSummaries,
-        algorithm,
-        cpa);
+        shutdownNotifier);
   }
 
   /**
