@@ -69,7 +69,6 @@ public class SMGCPA
   private final BlockOperator blockOperator;
 
   private final LogManager logger;
-  @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
   private final CFA cfa;
@@ -127,7 +126,7 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return null;
+    return new SMGTransferRelation(options, machineModel, shutdownNotifier);
   }
 
   @Override
