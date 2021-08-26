@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
@@ -86,18 +85,19 @@ public final class Specification {
         .resolve(name + ".spc");
   }
 
+  private final ImmutableSet<Path> specificationFiles;
   private final ImmutableSet<SpecificationProperty> properties;
   private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
 
   public static Specification alwaysSatisfied() {
-    return new Specification(ImmutableSet.of(), ImmutableListMultimap.of());
+    return new Specification(ImmutableSet.of(), ImmutableSet.of(), ImmutableListMultimap.of());
   }
 
   /** Create an instance that just encapsulates the given automata. */
   public static Specification fromAutomata(List<Automaton> automata) {
     ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata =
         ImmutableListMultimap.<Path, Automaton>builder().putAll(Path.of(""), automata).build();
-    return new Specification(ImmutableSet.of(), pathToSpecificationAutomata);
+    return new Specification(ImmutableSet.of(), ImmutableSet.of(), pathToSpecificationAutomata);
   }
 
   /**
@@ -105,7 +105,7 @@ public final class Specification {
    * regular specification files with automata, and witnesses.
    */
   public static Specification fromFiles(
-      Iterable<Path> specFiles,
+      Iterable<Path> pSpecFiles,
       CFA cfa,
       Configuration config,
       LogManager logger,
@@ -116,7 +116,8 @@ public final class Specification {
     checkNotNull(logger);
     checkNotNull(pShutdownNotifier);
 
-    if (Iterables.isEmpty(specFiles)) {
+    ImmutableSet<Path> specFiles = ImmutableSet.copyOf(pSpecFiles);
+    if (specFiles.isEmpty()) {
       return alwaysSatisfied();
     }
 
@@ -190,7 +191,7 @@ public final class Specification {
       }
     }
 
-    return new Specification(properties.build(), specificationAutomata.build());
+    return new Specification(specFiles, properties.build(), specificationAutomata.build());
   }
 
   private static List<Automaton> parseSpecificationFile(
@@ -297,6 +298,7 @@ public final class Specification {
         Specification.fromFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier);
 
     return new Specification(
+        Sets.union(specificationFiles, newSpecFiles),
         Sets.union(properties, newSpec.properties),
         ImmutableListMultimap.<Path, Automaton>builder()
             .putAll(pathToSpecificationAutomata)
@@ -315,13 +317,15 @@ public final class Specification {
       return this;
     }
 
-    return new Specification(newProperties, pathToSpecificationAutomata);
+    return new Specification(specificationFiles, newProperties, pathToSpecificationAutomata);
   }
 
   @VisibleForTesting
   Specification(
+      Set<Path> pSpecificationFiles,
       Set<SpecificationProperty> pProperties,
       ImmutableListMultimap<Path, Automaton> pSpecification) {
+    specificationFiles = ImmutableSet.copyOf(pSpecificationFiles);
     properties = ImmutableSet.copyOf(pProperties);
     pathToSpecificationAutomata = checkNotNull(pSpecification);
   }
@@ -373,8 +377,8 @@ public final class Specification {
    * Get the set of files from which this instance was constructed. This can be property files,
    * regular specification files, or witnesses.
    */
-  public Set<Path> getSpecFiles() {
-    return pathToSpecificationAutomata.keySet();
+  public ImmutableSet<Path> getFiles() {
+    return specificationFiles;
   }
 
   public ImmutableListMultimap<Path, Automaton> getPathToSpecificationAutomata() {

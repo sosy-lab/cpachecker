@@ -106,7 +106,7 @@ public class VerificationTaskMetaData {
       assert witnessAutomatonFiles == null;
       ImmutableList.Builder<Path> nonWitnessAutomatonFilesBuilder = ImmutableList.builder();
       ImmutableList.Builder<Path> witnessAutomatonFilesBuilder = ImmutableList.builder();
-      Set<Path> specs = transformedImmutableSetCopy(specification.getSpecFiles(), Path::normalize);
+      Set<Path> specs = transformedImmutableSetCopy(specification.getFiles(), Path::normalize);
       for (Path path : specs) {
         if (!MoreFiles.getFileExtension(path).equals("prp")) {
           if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {

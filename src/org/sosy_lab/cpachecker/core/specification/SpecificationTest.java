@@ -43,6 +43,7 @@ public class SpecificationTest {
         .addEqualityGroup(Specification.fromAutomata(ImmutableList.of(automaton)))
         .addEqualityGroup(
             new Specification(
+                ImmutableSet.of(),
                 ImmutableSet.of(specProperty),
                 ImmutableListMultimap.of(Path.of("test.spc"), automaton)))
         .testEquals();
@@ -53,7 +54,7 @@ public class SpecificationTest {
     Specification empty = Specification.alwaysSatisfied();
     assertThat(empty.getPathToSpecificationAutomata()).isEmpty();
     assertThat(empty.getProperties()).isEmpty();
-    assertThat(empty.getSpecFiles()).isEmpty();
+    assertThat(empty.getFiles()).isEmpty();
     assertThat(empty.getSpecificationAutomata()).isEmpty();
   }
 }
