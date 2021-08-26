@@ -127,7 +127,7 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(reached);
+    checkingStrategy.writeProof(reached, pReached.getCPA());
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));

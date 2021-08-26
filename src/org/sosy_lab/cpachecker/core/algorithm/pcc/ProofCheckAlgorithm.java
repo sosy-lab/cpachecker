@@ -128,7 +128,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
         "Parameter pReachedSet may not be null and may not have any states in its waitlist.");
 
     stats.totalTimer.start();
-    checkingStrategy.constructInternalProofRepresentation(pReachedSet);
+    checkingStrategy.constructInternalProofRepresentation(pReachedSet, cpa);
     stats.totalTimer.stop();
   }
 

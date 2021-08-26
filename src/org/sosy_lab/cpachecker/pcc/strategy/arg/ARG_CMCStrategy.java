@@ -74,7 +74,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
     if (!(pReached instanceof HistoryForwardingReachedSet)) {
       throw new InvalidConfigurationException("Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart");
@@ -107,9 +108,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
-      InvalidConfigurationException, InterruptedException {
-    constructInternalProofRepresentation(pReached);
+  protected void writeProofToStream(
+      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    constructInternalProofRepresentation(pReached, pCpa);
     if (proofKnown) {
       HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
       if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {

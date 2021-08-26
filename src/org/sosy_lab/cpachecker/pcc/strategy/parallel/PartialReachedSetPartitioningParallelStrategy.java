@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
-
 
 public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrategy{
 
@@ -64,9 +64,10 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
   }
 
   @Override
@@ -127,9 +128,10 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
-      InvalidConfigurationException, InterruptedException {
-    ioHelper.writeProof(pOut,pReached);
+  protected void writeProofToStream(
+      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    ioHelper.writeProof(pOut, pReached, pCpa);
   }
 
   @Override
