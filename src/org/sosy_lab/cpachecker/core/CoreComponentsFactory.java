@@ -583,7 +583,7 @@ public class CoreComponentsFactory {
       if (useResultCheckAlgorithm) {
         algorithm =
             new ResultCheckAlgorithm(
-                algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
+                algorithm, cfa, config, logger, shutdownNotifier, specification);
       }
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);

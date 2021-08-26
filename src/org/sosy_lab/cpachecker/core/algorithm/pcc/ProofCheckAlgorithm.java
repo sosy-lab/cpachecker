@@ -107,7 +107,6 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   protected ProofCheckAlgorithm(
-      ConfigurableProgramAnalysis cpa,
       Configuration pConfig,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
@@ -118,6 +117,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
     pConfig.inject(this, ProofCheckAlgorithm.class);
 
+    ConfigurableProgramAnalysis cpa = pReachedSet.getCPA();
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
             pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
