@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.ObjectOutputStream;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
@@ -24,10 +22,7 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-@SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
-
-  private static final long serialVersionUID = 1L;
 
   private static final ImmutableSet<Property> RACE_PROPERTY =
       NamedProperty.singleton("Race condition");
@@ -93,9 +88,5 @@ public class UsageReachedSet extends PartitionedReachedSet {
     UsageState lastState = UsageState.get(getLastState());
     container.initContainerIfNecessary(lastState.getFunctionContainer());
     return container;
-  }
-
-  private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
-    throw new UnsupportedOperationException("cannot serialize Logger");
   }
 }
