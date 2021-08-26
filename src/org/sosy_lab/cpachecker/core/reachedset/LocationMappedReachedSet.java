@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -23,8 +24,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * the same location as a given one.
  */
 public class LocationMappedReachedSet extends PartitionedReachedSet {
-
-  private static final long serialVersionUID = 1L;
 
   public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
