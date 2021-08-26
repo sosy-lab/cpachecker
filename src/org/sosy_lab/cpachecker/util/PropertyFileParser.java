@@ -27,8 +27,6 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
-import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
-import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a
@@ -123,13 +121,7 @@ public class PropertyFileParser {
     String rawLtlProperty = matcher.group(2);
     Property property = propStringToProperty.get(rawLtlProperty);
     if (property == null && propStringToProperty == AVAILABLE_VERIFICATION_PROPERTIES) {
-      try {
-        property = LtlParser.parseProperty(rawLtlProperty);
-      } catch (LtlParseException e) {
-        throw new InvalidPropertyFileException(
-            String.format("Could not parse property '%s' (%s)", matcher.group(2), e.getMessage()),
-            e);
-      }
+      property = new Property.OtherVerificationProperty(rawLtlProperty);
     }
     if (property == null && propStringToProperty == AVAILABLE_COVERAGE_PROPERTIES) {
       property = CoverFunction.getProperty(rawProperty);

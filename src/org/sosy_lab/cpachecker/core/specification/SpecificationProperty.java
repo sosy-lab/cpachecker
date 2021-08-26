@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
-import java.nio.file.Path;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 
 public class SpecificationProperty {
@@ -19,13 +17,9 @@ public class SpecificationProperty {
 
   private final Property property;
 
-  private final Optional<Path> internalSpecificationPath;
-
-  public SpecificationProperty(
-      String pEntryFunction, Property pProperty, Optional<Path> pInternalSpecificationPath) {
+  public SpecificationProperty(String pEntryFunction, Property pProperty) {
     entryFunction = Objects.requireNonNull(pEntryFunction);
     property = Objects.requireNonNull(pProperty);
-    internalSpecificationPath = Objects.requireNonNull(pInternalSpecificationPath);
   }
 
   /**
@@ -35,15 +29,6 @@ public class SpecificationProperty {
    */
   public String getEntryFunction() {
     return entryFunction;
-  }
-
-  /**
-   * Gets the path to the specification automaton used to represent the property, if it exists.
-   *
-   * @return the path to the specification automaton used to represent the property, if it exists.
-   */
-  public Optional<Path> getInternalSpecificationPath() {
-    return internalSpecificationPath;
   }
 
   /**

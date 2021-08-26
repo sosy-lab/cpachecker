@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import java.nio.file.Path;
-import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -34,7 +33,7 @@ public class SpecificationTest {
             ImmutableList.of(new AutomatonInternalState("init", ImmutableList.of())),
             "init");
     final SpecificationProperty specProperty =
-        new SpecificationProperty("main", CommonPropertyType.REACHABILITY, Optional.empty());
+        new SpecificationProperty("main", CommonPropertyType.REACHABILITY);
 
     new EqualsTester()
         .addEqualityGroup(

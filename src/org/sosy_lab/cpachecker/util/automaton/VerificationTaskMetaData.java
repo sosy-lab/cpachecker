@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.util.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -81,15 +81,7 @@ public class VerificationTaskMetaData {
    */
   public List<Path> getNonPropertySpecificationFiles() throws IOException {
     classifyAutomataFiles();
-    Set<Path> pathsAssociatedWithPropertyFiles =
-        FluentIterable.from(getProperties())
-            .transform(SpecificationProperty::getInternalSpecificationPath)
-            .filter(Optional::isPresent)
-            .transform(Optional::get)
-            .toSet();
-    return FluentIterable.from(nonWitnessAutomatonFiles)
-        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p))
-        .toList();
+    return nonWitnessAutomatonFiles;
   }
 
   /**
@@ -116,10 +108,12 @@ public class VerificationTaskMetaData {
       ImmutableList.Builder<Path> witnessAutomatonFilesBuilder = ImmutableList.builder();
       Set<Path> specs = transformedImmutableSetCopy(specification.getSpecFiles(), Path::normalize);
       for (Path path : specs) {
-        if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
-          witnessAutomatonFilesBuilder.add(path);
-        } else {
-          nonWitnessAutomatonFilesBuilder.add(path);
+        if (!MoreFiles.getFileExtension(path).equals("prp")) {
+          if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
+            witnessAutomatonFilesBuilder.add(path);
+          } else {
+            nonWitnessAutomatonFilesBuilder.add(path);
+          }
         }
       }
       Optional<Path> correctnessWitness =

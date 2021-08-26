@@ -10,6 +10,19 @@ package org.sosy_lab.cpachecker.core.specification;
 
 public interface Property {
 
+  public class OtherVerificationProperty implements Property {
+    private final String representation;
+
+    public OtherVerificationProperty(String pRepresentation) {
+      representation = pRepresentation;
+    }
+
+    @Override
+    public String toString() {
+      return representation;
+    }
+  }
+
   public enum CommonPropertyType implements Property {
     REACHABILITY_LABEL("G ! label(ERROR)"),
 

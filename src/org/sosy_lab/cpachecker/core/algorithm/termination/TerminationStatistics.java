@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -184,8 +183,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                     ImmutableSet.of(
                         new SpecificationProperty(
                             pCFA.getMainFunction().getFunctionName(),
-                            CommonPropertyType.TERMINATION,
-                            Optional.empty()))),
+                            CommonPropertyType.TERMINATION))),
             pCFA);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }

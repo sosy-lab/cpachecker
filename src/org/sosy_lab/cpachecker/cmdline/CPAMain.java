@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -38,9 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -67,7 +64,6 @@ import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
@@ -96,13 +92,11 @@ public class CPAMain {
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
     String outputDirectory = null;
-    Set<SpecificationProperty> properties = null;
     try {
       try {
         Config p = createConfiguration(args);
         cpaConfig = p.configuration;
         outputDirectory = p.outputPath;
-        properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
@@ -163,7 +157,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs, properties);
+    CPAcheckerResult result = cpachecker.run(options.programs);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
@@ -307,7 +301,7 @@ public class CPAMain {
     }
 
     // Read property file if present and adjust cmdline options
-    Set<SpecificationProperty> properties = handlePropertyFile(cmdLineOptions);
+    Set<Property> properties = handlePropertyFile(cmdLineOptions);
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
@@ -358,7 +352,7 @@ public class CPAMain {
       config.dumpUsedOptionsTo(System.out);
     }
 
-    return new Config(config, outputDirectory, properties);
+    return new Config(config, outputDirectory);
   }
 
   private static String extractApproachNameFromConfigName(String configFilename) {
@@ -454,10 +448,8 @@ public class CPAMain {
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<SpecificationProperty> pProperties)
+      Set<Property> properties)
       throws InvalidConfigurationException, IOException {
-    Set<Property> properties =
-        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
 
     final Path alternateConfigFile;
 
@@ -546,22 +538,7 @@ public class CPAMain {
     return config;
   }
 
-  private static final ImmutableMap<Property, String> SPECIFICATION_FILES =
-      ImmutableMap.<Property, String>builder()
-          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(CommonPropertyType.REACHABILITY_ERROR, "sv-comp-reachability")
-          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
-          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(CommonPropertyType.DEADLOCK, "deadlock")
-          .put(CommonPropertyType.ASSERT, "JavaAssertion")
-          // .put(CommonPropertyType.TERMINATION, "none needed")
-          .build();
-
-  private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)
+  private static Set<Property> handlePropertyFile(Map<String, String> cmdLineOptions)
       throws InvalidCmdlineArgumentException {
     List<String> specificationFiles =
         Splitter.on(',')
@@ -591,25 +568,6 @@ public class CPAMain {
           "Could not read property file: " + e.getMessage(), e);
     }
 
-    // set the file from where to read the specification automaton
-    ImmutableSet<SpecificationProperty> properties =
-        transformedImmutableSetCopy(
-            parser.getProperties(),
-            prop ->
-                new SpecificationProperty(
-                    parser.getEntryFunction(),
-                    prop,
-                    Optional.ofNullable(SPECIFICATION_FILES.get(prop))
-                        .map(CmdLineArguments::resolveSpecificationFileOrExit)));
-    assert !properties.isEmpty();
-
-    String specFiles =
-        Optionals.presentInstances(
-                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
-            .map(Object::toString)
-            .distinct()
-            .collect(Collectors.joining(","));
-    cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
       if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
         throw new InvalidCmdlineArgumentException(
@@ -618,7 +576,7 @@ public class CPAMain {
     } else {
       cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
     }
-    return properties;
+    return parser.getProperties();
   }
 
   @Options
@@ -801,13 +759,9 @@ public class CPAMain {
 
     private final String outputPath;
 
-    private final Set<SpecificationProperty> properties;
-
-    public Config(
-        Configuration pConfiguration, String pOutputPath, Set<SpecificationProperty> pProperties) {
+    public Config(Configuration pConfiguration, String pOutputPath) {
       configuration = pConfiguration;
       outputPath = pOutputPath;
-      properties = ImmutableSet.copyOf(pProperties);
     }
   }
 }
