@@ -36,6 +36,11 @@ public class CoverFunction implements Property {
     return "COVER EDGES(@CALL(" + funName + "))";
   }
 
+  @Override
+  public String toFullString(String pEntryPoint) {
+    return String.format("COVER( init(%s()), FQL(%s) )", pEntryPoint, toString());
+  }
+
   public static Property getProperty(final String pRawProperty) {
     Matcher matcher = COVERAGE_FUNCTION_PATTERN.matcher(pRawProperty);
 

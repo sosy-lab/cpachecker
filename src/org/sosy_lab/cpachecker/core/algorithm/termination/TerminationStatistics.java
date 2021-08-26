@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -179,11 +178,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pConfig,
             pLogger,
             Specification.alwaysSatisfied()
-                .withAdditionalProperties(
-                    ImmutableSet.of(
-                        new SpecificationProperty(
-                            pCFA.getMainFunction().getFunctionName(),
-                            CommonPropertyType.TERMINATION))),
+                .withAdditionalProperties(ImmutableSet.of(CommonPropertyType.TERMINATION)),
             pCFA);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }

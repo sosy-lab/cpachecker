@@ -8,7 +8,27 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+
 public interface Property {
+
+  /** Return a representation of this property in an unspecified format. */
+  @Override
+  String toString();
+
+  /**
+   * Return a full representation as used by SV-COMP or Test-Comp, e.g., including the entry point.
+   */
+  String toFullString(String entryPoint);
+
+  /**
+   * Return a full representation as used by SV-COMP or Test-Comp, e.g., including the entry point,
+   * which is taken from the given CFA.
+   */
+  default String toFullString(CFA cfa) {
+    // Make sure to use orig name in case the function was renamed.
+    return toFullString(cfa.getMainFunction().getFunctionDefinition().getOrigName());
+  }
 
   public class OtherVerificationProperty implements Property {
     private final String representation;
@@ -20,6 +40,11 @@ public interface Property {
     @Override
     public String toString() {
       return representation;
+    }
+
+    @Override
+    public String toFullString(String pEntryPoint) {
+      return String.format("CHECK( init(%s()), LTL(%s) )", pEntryPoint, representation);
     }
   }
 
@@ -57,6 +82,11 @@ public interface Property {
     public String toString() {
       return representation;
     }
+
+    @Override
+    public String toFullString(String pEntryPoint) {
+      return String.format("CHECK( init(%s()), LTL(%s) )", pEntryPoint, representation);
+    }
   }
 
   public enum CommonCoverageType implements Property {
@@ -78,6 +108,11 @@ public interface Property {
     @Override
     public String toString() {
       return representation;
+    }
+
+    @Override
+    public String toFullString(String pEntryPoint) {
+      return String.format("COVER( init(%s()), FQL(%s) )", pEntryPoint, representation);
     }
   }
 }

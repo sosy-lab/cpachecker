@@ -31,13 +31,12 @@ import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -84,7 +83,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private Set<CFAEdge> testTargets;
-  private final SpecificationProperty specProp;
+  private final Property specProp;
   private final TestCaseExporter exporter;
   private double progress = 0;
 
@@ -115,10 +114,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.getProperty() instanceof CommonCoverageType
-              || specProp.getProperty() instanceof CoverFunction,
+          specProp instanceof CommonCoverageType || specProp instanceof CoverFunction,
           "Property %s not supported for test generation",
-          specProp.getProperty());
+          specProp);
     } else {
       specProp = null;
     }
@@ -281,17 +279,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
-          public Set<Property> getViolatedProperties() {
-            return NamedProperty.singleton(specProp.getProperty().toString());
+          public Set<org.sosy_lab.cpachecker.core.interfaces.Property> getViolatedProperties() {
+            return NamedProperty.singleton(specProp.toString());
           }
         },
         SingletonPrecision.getInstance());
   }
 
   private boolean shouldReportCoveredErrorCallAsError() {
-    return reportCoveredErrorCallAsError
-        && specProp != null
-        && specProp.getProperty().equals(CommonCoverageType.COVERAGE_ERROR);
+    return reportCoveredErrorCallAsError && CommonCoverageType.COVERAGE_ERROR.equals(specProp);
   }
 
   @Override

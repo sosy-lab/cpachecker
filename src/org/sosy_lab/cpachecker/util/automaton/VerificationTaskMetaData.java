@@ -25,8 +25,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 
 public class VerificationTaskMetaData {
@@ -84,12 +84,8 @@ public class VerificationTaskMetaData {
     return nonWitnessAutomatonFiles;
   }
 
-  /**
-   * The specification properties considered for this verification task.
-   *
-   * @return the specification properties considered for this verification task.
-   */
-  public Set<SpecificationProperty> getProperties() {
+  /** Return the properties considered for this verification task. */
+  public Set<Property> getProperties() {
     return specification.getProperties();
   }
 

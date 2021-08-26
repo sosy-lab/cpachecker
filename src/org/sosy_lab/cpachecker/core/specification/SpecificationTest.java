@@ -32,8 +32,6 @@ public class SpecificationTest {
             ImmutableMap.of(),
             ImmutableList.of(new AutomatonInternalState("init", ImmutableList.of())),
             "init");
-    final SpecificationProperty specProperty =
-        new SpecificationProperty("main", CommonPropertyType.REACHABILITY);
 
     new EqualsTester()
         .addEqualityGroup(
@@ -44,7 +42,7 @@ public class SpecificationTest {
         .addEqualityGroup(
             new Specification(
                 ImmutableSet.of(),
-                ImmutableSet.of(specProperty),
+                ImmutableSet.of(CommonPropertyType.REACHABILITY),
                 ImmutableListMultimap.of(Path.of("test.spc"), automaton)))
         .testEquals();
   }

@@ -86,7 +86,7 @@ public final class Specification {
   }
 
   private final ImmutableSet<Path> specificationFiles;
-  private final ImmutableSet<SpecificationProperty> properties;
+  private final ImmutableSet<Property> properties;
   private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
 
   public static Specification alwaysSatisfied() {
@@ -121,7 +121,7 @@ public final class Specification {
       return alwaysSatisfied();
     }
 
-    ImmutableSet.Builder<SpecificationProperty> properties = ImmutableSet.builder();
+    ImmutableSet.Builder<Property> properties = ImmutableSet.builder();
     ImmutableListMultimap.Builder<Path, Automaton> specificationAutomata =
         ImmutableListMultimap.builder();
 
@@ -165,7 +165,7 @@ public final class Specification {
         }
 
         for (Property prop : parser.getProperties()) {
-          properties.add(new SpecificationProperty(parser.getEntryFunction(), prop));
+          properties.add(prop);
 
           if (prop instanceof Property.OtherVerificationProperty) {
             Automaton automaton =
@@ -311,8 +311,8 @@ public final class Specification {
    * additionally some new properties. Note that this only affects {@link #getProperties()} and not
    * the actual list of automata.
    */
-  public Specification withAdditionalProperties(Set<SpecificationProperty> pProperties) {
-    Set<SpecificationProperty> newProperties = Sets.union(properties, pProperties).immutableCopy();
+  public Specification withAdditionalProperties(Set<Property> pProperties) {
+    Set<Property> newProperties = Sets.union(properties, pProperties).immutableCopy();
     if (newProperties.size() == properties.size()) {
       return this;
     }
@@ -323,7 +323,7 @@ public final class Specification {
   @VisibleForTesting
   Specification(
       Set<Path> pSpecificationFiles,
-      Set<SpecificationProperty> pProperties,
+      Set<Property> pProperties,
       ImmutableListMultimap<Path, Automaton> pSpecification) {
     specificationFiles = ImmutableSet.copyOf(pSpecificationFiles);
     properties = ImmutableSet.copyOf(pProperties);
@@ -363,13 +363,11 @@ public final class Specification {
   }
 
   /**
-   * Gets the set of specification properties, which represents a subset of the specification
-   * automata.
-   *
-   * @return the set of specification properties, which represents a subset of the specification
-   *     automata.
+   * Gets the set of properties that were read from the property files that were used to create this
+   * instance. Note that there can be additional automata read from specification files and
+   * witnesses.
    */
-  public Set<SpecificationProperty> getProperties() {
+  public Set<Property> getProperties() {
     return properties;
   }
 
