@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -84,7 +85,8 @@ public class ProofSlicer {
     reachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), pLogger);
   }
 
-  public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
+  public UnmodifiableReachedSet sliceProof(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa) {
     AbstractState first = pReached.getFirstState();
     if (first instanceof ARGState
         && AbstractStates.extractLocation(first) != null
@@ -98,8 +100,7 @@ public class ProofSlicer {
       computeRelevantVariablesPerState((ARGState) first, varMap);
 
       assert (numNotCovered == pReached.size());
-      return buildSlicedARG(varMap, pReached);
-
+      return buildSlicedARG(varMap, pReached, pCpa);
     }
 
     return pReached;
@@ -427,7 +428,9 @@ public class ProofSlicer {
   }
 
   private UnmodifiableReachedSet buildSlicedARG(
-      final Map<ARGState, Set<String>> pVarMap, final UnmodifiableReachedSet pReached) {
+      final Map<ARGState, Set<String>> pVarMap,
+      final UnmodifiableReachedSet pReached,
+      final ConfigurableProgramAnalysis pCpa) {
     Map<ARGState, ARGState> oldToSliced = Maps.newHashMapWithExpectedSize(pVarMap.size());
     ARGState root = (ARGState) pReached.getFirstState();
     assert (pVarMap.containsKey(root));
@@ -445,8 +448,7 @@ public class ProofSlicer {
       }
     }
 
-    @SuppressWarnings("deprecation") // easy to fix after ReachedSet.getCPA() exists
-    ReachedSet returnReached = reachedSetFactory.create();
+    ReachedSet returnReached = reachedSetFactory.create(pCpa);
     // add root
     returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
     // add remaining elements

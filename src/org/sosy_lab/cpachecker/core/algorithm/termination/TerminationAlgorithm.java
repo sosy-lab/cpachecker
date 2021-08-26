@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.AlwaysEmptyWaitlist;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -431,7 +432,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Create dummy reached set as holder for invariants. We do not use the reached-set factory
     // from configuration because that could require features that our dummy states do not support.
     // We use LocationMappedReachedSet because that seems useful to callers.
-    ReachedSet dummy = new LocationMappedReachedSet(AlwaysEmptyWaitlist.factory());
+    // Using AlwaysTopCPA as dummy is ok as long as UnmodifiableReachedSet does not have getCPA(),
+    // because the AggregatedReachedSet only exposes reached sets as UnmodifiableReachedSet,
+    // so no other code will be able to call dummy.getCPA().
+    ReachedSet dummy =
+        new LocationMappedReachedSet(AlwaysTopCPA.INSTANCE, AlwaysEmptyWaitlist.factory());
     CFANode location = AbstractStates.extractLocation(loopHeadState);
     FormulaManagerView fmgr = rankingRelation.getFormulaManager();
 

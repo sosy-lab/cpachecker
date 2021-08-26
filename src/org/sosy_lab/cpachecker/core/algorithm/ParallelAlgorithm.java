@@ -381,8 +381,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               @Override
               public void updated(ReachedSet pReachedSet) {
                 singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-                @SuppressWarnings("deprecation") // easy to fix after pReachedSet.getCPA() exists
-                ReachedSet newReached = coreComponents.createReachedSet();
+                ReachedSet newReached = coreComponents.createReachedSet(pReachedSet.getCPA());
                 for (AbstractState as : pReachedSet) {
                   newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
                 }

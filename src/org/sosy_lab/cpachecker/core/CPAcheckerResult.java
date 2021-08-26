@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -90,10 +89,8 @@ public class CPAcheckerResult {
     return violatedPropertyDescription;
   }
 
-  /**
-   * Return the final reached set.
-   */
-  public @Nullable UnmodifiableReachedSet getReached() {
+  /** Return the final reached set. */
+  public @Nullable ReachedSet getReached() {
     return reached;
   }
 

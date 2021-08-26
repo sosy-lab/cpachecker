@@ -222,12 +222,6 @@ public class ReachedSetFactory {
    */
   public ReachedSet create(ConfigurableProgramAnalysis cpa) {
     checkNotNull(cpa);
-    return create();
-  }
-
-  /** Deprecated, call {@link #create(ConfigurableProgramAnalysis)} */
-  @Deprecated
-  public ReachedSet create() {
     WaitlistFactory waitlistFactory = traversalMethod;
 
     if (useWeightedDepthOrder) {
@@ -284,20 +278,20 @@ public class ReachedSetFactory {
     ReachedSet reached;
     switch (reachedSet) {
     case PARTITIONED:
-        reached = new PartitionedReachedSet(waitlistFactory);
+        reached = new PartitionedReachedSet(cpa, waitlistFactory);
         break;
     case PSEUDOPARTITIONED:
-        reached = new PseudoPartitionedReachedSet(waitlistFactory);
+        reached = new PseudoPartitionedReachedSet(cpa, waitlistFactory);
         break;
     case LOCATIONMAPPED:
-        reached = new LocationMappedReachedSet(waitlistFactory);
+        reached = new LocationMappedReachedSet(cpa, waitlistFactory);
         break;
     case USAGE:
-        reached = new UsageReachedSet(waitlistFactory, usageConfig, logger);
+        reached = new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
         break;
     case NORMAL:
     default:
-        reached = new DefaultReachedSet(waitlistFactory);
+        reached = new DefaultReachedSet(cpa, waitlistFactory);
     }
 
     if (withStatistics) {

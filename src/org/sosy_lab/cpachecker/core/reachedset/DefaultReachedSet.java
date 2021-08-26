@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -35,13 +36,15 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 /** Basic implementation of ReachedSet. It does not group states by location or any other key. */
 class DefaultReachedSet implements ReachedSet {
 
+  private final ConfigurableProgramAnalysis cpa;
   private final Map<AbstractState, Precision> reached;
   private final Set<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
 
-  DefaultReachedSet(WaitlistFactory waitlistFactory) {
+  DefaultReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
+    cpa = checkNotNull(pCpa);
     reached = new LinkedHashMap<>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     waitlist = waitlistFactory.createWaitlistInstance();
@@ -301,5 +304,10 @@ class DefaultReachedSet implements ReachedSet {
     } else {
       return ImmutableMap.of();
     }
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return cpa;
   }
 }
