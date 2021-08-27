@@ -125,12 +125,12 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public boolean hasViolatedProperties() {
-    return underlying.hasViolatedProperties();
+  public boolean wasTargetReached() {
+    return underlying.wasTargetReached();
   }
 
   @Override
-  public Collection<TargetInformation> getViolatedProperties() {
-    return underlying.getViolatedProperties();
+  public Collection<TargetInformation> getTargetInformation() {
+    return underlying.getTargetInformation();
   }
 }

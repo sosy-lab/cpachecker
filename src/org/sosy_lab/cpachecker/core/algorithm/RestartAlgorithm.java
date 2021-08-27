@@ -313,7 +313,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfAlgorithmsUsed);
           status = currentAlgorithm.run(currentReached);
 
-          if (currentReached.hasViolatedProperties() && status.isPrecise()) {
+          if (currentReached.wasTargetReached() && status.isPrecise()) {
 
             // If the algorithm is not _precise_, verdict "false" actually means "unknown".
             return status;

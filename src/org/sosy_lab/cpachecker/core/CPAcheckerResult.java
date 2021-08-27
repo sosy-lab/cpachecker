@@ -42,7 +42,7 @@ public class CPAcheckerResult {
 
   private final Result result;
 
-  private final String violatedPropertyDescription;
+  private final String targetDescription;
 
   private final @Nullable ReachedSet reached;
 
@@ -54,11 +54,11 @@ public class CPAcheckerResult {
 
   CPAcheckerResult(
       Result result,
-      String violatedPropertyDescription,
+      String targetDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
       @Nullable Statistics stats) {
-    this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
+    this.targetDescription = checkNotNull(targetDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.cfa = cfa;
@@ -69,8 +69,8 @@ public class CPAcheckerResult {
     this(result, "");
   }
 
-  private CPAcheckerResult(Result result, String violatedPropertyDescription) {
-    this(result, violatedPropertyDescription, null, null, null);
+  private CPAcheckerResult(Result result, String targetDescription) {
+    this(result, targetDescription, null, null, null);
   }
 
   /**
@@ -81,12 +81,12 @@ public class CPAcheckerResult {
   }
 
   /**
-   * Return the reason as to why a property got violated. If the result does not contain a property
-   * violation, then calling this method will result in an error.
+   * Return information about the reached target. If the result does not contain a target, then
+   * calling this method will result in an error.
    */
-  public String getViolatedPropertyDescription() {
+  public String getTargetDescription() {
     checkState(result == Result.FALSE);
-    return violatedPropertyDescription;
+    return targetDescription;
   }
 
   /** Return the final reached set. */
@@ -151,8 +151,8 @@ public class CPAcheckerResult {
       case FALSE:
         StringBuilder sb = new StringBuilder();
         sb.append("FALSE. Property violation");
-        if (!violatedPropertyDescription.isEmpty()) {
-          sb.append(" (").append(violatedPropertyDescription).append(")");
+        if (!targetDescription.isEmpty()) {
+          sb.append(" (").append(targetDescription).append(")");
         }
         sb.append(" found by chosen configuration.");
         return sb.toString();

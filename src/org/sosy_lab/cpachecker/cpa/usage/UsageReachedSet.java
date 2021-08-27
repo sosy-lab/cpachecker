@@ -71,13 +71,13 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public boolean hasViolatedProperties() {
+  public boolean wasTargetReached() {
     return getUsageContainer().getTotalUnsafeSize() > 0;
   }
 
   @Override
-  public Set<TargetInformation> getViolatedProperties() {
-    if (hasViolatedProperties()) {
+  public Set<TargetInformation> getTargetInformation() {
+    if (wasTargetReached()) {
       return RACE_PROPERTY;
     } else {
       return ImmutableSet.of();

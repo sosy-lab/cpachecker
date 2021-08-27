@@ -307,7 +307,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      if (!taskReached.hasViolatedProperties()
+      if (!taskReached.wasTargetReached()
           && !from(taskReached).anyMatch(CPAInvariantGenerator::hasAssumption)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);

@@ -249,7 +249,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       }
 
       // counterexample is feasible if a target state is reachable
-      return lReached.hasViolatedProperties();
+      return lReached.wasTargetReached();
 
     } catch (InvalidConfigurationException e) {
       throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);

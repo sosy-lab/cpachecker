@@ -460,7 +460,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           // targetstate is returned to reflect that in the main analysis
           pReachedSet.clear();
           pReachedSet.add(
-              DummyTargetState.withSimpleTargetInformation(result.getViolatedPropertyDescription()),
+              DummyTargetState.withSimpleTargetInformation(result.getTargetDescription()),
               SingletonPrecision.getInstance());
         }
 

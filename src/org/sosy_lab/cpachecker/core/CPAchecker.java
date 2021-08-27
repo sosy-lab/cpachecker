@@ -312,7 +312,7 @@ public class CPAchecker {
     ReachedSet reached = null;
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
-    String violatedPropertyDescription = "";
+    String targetDescription = "";
     Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
@@ -383,8 +383,8 @@ public class CPAchecker {
 
       if (status.wasPropertyChecked()) {
         stats.resultAnalysisTime.start();
-        if (reached.hasViolatedProperties()) {
-          violatedPropertyDescription = Joiner.on(", ").join(reached.getViolatedProperties());
+        if (reached.wasTargetReached()) {
+          targetDescription = Joiner.on(", ").join(reached.getTargetInformation());
 
           if (!status.isPrecise()) {
             result = Result.UNKNOWN;
@@ -434,7 +434,7 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)

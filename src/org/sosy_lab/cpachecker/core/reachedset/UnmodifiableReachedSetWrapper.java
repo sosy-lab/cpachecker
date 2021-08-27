@@ -112,12 +112,12 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public boolean hasViolatedProperties() {
-    return delegate.hasViolatedProperties();
+  public boolean wasTargetReached() {
+    return delegate.wasTargetReached();
   }
 
   @Override
-  public Collection<TargetInformation> getViolatedProperties() {
-    return delegate.getViolatedProperties();
+  public Collection<TargetInformation> getTargetInformation() {
+    return delegate.getTargetInformation();
   }
 }
