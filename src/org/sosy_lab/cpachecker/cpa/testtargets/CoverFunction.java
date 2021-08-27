@@ -27,6 +27,16 @@ public class CoverFunction implements Property {
     funName = pFunctionName;
   }
 
+  @Override
+  public boolean isCoverage() {
+    return true;
+  }
+
+  @Override
+  public boolean isVerification() {
+    return false;
+  }
+
   public String getCoverFunction() {
     return funName;
   }

@@ -12,6 +12,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 
 public interface Property {
 
+  boolean isCoverage();
+
+  boolean isVerification();
+
   /** Return a representation of this property in an unspecified format. */
   @Override
   String toString();
@@ -35,6 +39,16 @@ public interface Property {
 
     public OtherVerificationProperty(String pRepresentation) {
       representation = pRepresentation;
+    }
+
+    @Override
+    public boolean isCoverage() {
+      return false;
+    }
+
+    @Override
+    public boolean isVerification() {
+      return true;
     }
 
     @Override
@@ -79,6 +93,16 @@ public interface Property {
     }
 
     @Override
+    public boolean isCoverage() {
+      return false;
+    }
+
+    @Override
+    public boolean isVerification() {
+      return true;
+    }
+
+    @Override
     public String toString() {
       return representation;
     }
@@ -103,6 +127,16 @@ public interface Property {
 
     CommonCoverageType(String pRepresentation) {
       representation = pRepresentation;
+    }
+
+    @Override
+    public boolean isCoverage() {
+      return true;
+    }
+
+    @Override
+    public boolean isVerification() {
+      return false;
     }
 
     @Override
