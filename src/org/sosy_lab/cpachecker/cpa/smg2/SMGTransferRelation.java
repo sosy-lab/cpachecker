@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -82,19 +83,21 @@ public class SMGTransferRelation
   protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       if (isEntryFunction(cfaEdge)) {
-        return handleReturnEntryFunction(state);
+        return handleReturnEntryFunction(Collections.singleton(state));
       }
     }
 
     return Collections.singleton(state);
   }
 
-  private Set<SMGState> handleReturnEntryFunction(SMGState pState) {
-    SMGState lastState = pState;
-    if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-      lastState = lastState.dropStackFrame();
-    }
-    return Collections.singleton(lastState.copyAndPruneUnreachable());
+  private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
+   return pSuccessors.stream().map(pState -> {
+      if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+        pState = pState.dropStackFrame();
+      }
+      return pState.copyAndPruneUnreachable();
+    }).collect(ImmutableSet.toImmutableSet());
+
   }
 
   private boolean isEntryFunction(CFAEdge pCfaEdge) {
@@ -106,19 +109,21 @@ public class SMGTransferRelation
       throws CPATransferException {
     Optional<SMGObject> returnObjectOptional =
         state.getHeap().getReturnObjectForCurrentStackFrame();
-    SMGState successor = state;
+    Collection<SMGState> successors = Collections.singleton(state);
     if(returnObjectOptional.isPresent()) {
-      successor = assignStatementToField(successor, returnObjectOptional.orElseThrow(), returnEdge);
+      successors =
+          assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
     }
 
     if (isEntryFunction(returnEdge)) {
-      return handleReturnEntryFunction(successor);
+      return handleReturnEntryFunction(successors);
     }
-    return Collections.singleton(successor);
+    return successors;
   }
 
   @SuppressWarnings("unused")
-  private SMGState assignStatementToField(
+  private Collection<SMGState>
+      assignStatementToField(
       SMGState pState,
       SMGObject pRegion,
       CReturnStatementEdge pReturnEdge) {
