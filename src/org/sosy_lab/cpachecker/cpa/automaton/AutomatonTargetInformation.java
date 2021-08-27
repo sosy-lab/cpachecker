@@ -11,21 +11,22 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
-public class AutomatonSafetyProperty implements Property {
+public class AutomatonTargetInformation implements TargetInformation {
 
   private final @NonNull Automaton automaton;
   private final @NonNull AutomatonTransition automatonTrans;
   private final @NonNull String propertyInstanceDescription;
 
-  public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition, String pDesc) {
+  public AutomatonTargetInformation(
+      Automaton pAutomaton, AutomatonTransition pTransition, String pDesc) {
     this.automaton = Preconditions.checkNotNull(pAutomaton);
     this.automatonTrans = Preconditions.checkNotNull(pTransition);
     this.propertyInstanceDescription = Preconditions.checkNotNull(pDesc);
   }
 
-  public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition) {
+  public AutomatonTargetInformation(Automaton pAutomaton, AutomatonTransition pTransition) {
     this.automaton = Preconditions.checkNotNull(pAutomaton);
     this.automatonTrans = Preconditions.checkNotNull(pTransition);
     this.propertyInstanceDescription = "";
@@ -52,10 +53,10 @@ public class AutomatonSafetyProperty implements Property {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof AutomatonSafetyProperty)) {
+    if (!(obj instanceof AutomatonTargetInformation)) {
       return false;
     }
-    AutomatonSafetyProperty other = (AutomatonSafetyProperty) obj;
+    AutomatonTargetInformation other = (AutomatonTargetInformation) obj;
     return automatonTrans.equals(other.automatonTrans)
         && automaton.equals(other.automaton)
         && propertyInstanceDescription.equals(other.propertyInstanceDescription);

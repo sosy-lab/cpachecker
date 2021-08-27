@@ -68,16 +68,16 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -109,8 +109,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
-      NamedProperty.singleton("termination");
+  private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
+      SimpleTargetInformation.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -524,7 +524,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private ARGState createNonTerminationState(AbstractState loopHead) {
     TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
     AbstractState newTerminationState =
-        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
+        terminationState.withTargetInformation(TERMINATION_PROPERTY);
     ARGState newTargetState = new ARGState(newTerminationState, null);
     return newTargetState;
   }

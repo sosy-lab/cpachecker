@@ -108,7 +108,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class NonTerminationWitnessValidator implements Algorithm, StatisticsProvider {
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
-      DummyTargetState.withSingleProperty("termination");
+      DummyTargetState.withSimpleTargetInformation("termination");
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";

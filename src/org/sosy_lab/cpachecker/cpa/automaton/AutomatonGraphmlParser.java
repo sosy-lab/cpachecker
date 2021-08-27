@@ -1789,7 +1789,7 @@ public class AutomatonGraphmlParser {
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new ViolationCopyingAutomatonTransition(builder);
+      return new TargetInformationCopyingAutomatonTransition(builder);
     }
     return builder.build();
   }
@@ -1807,19 +1807,18 @@ public class AutomatonGraphmlParser {
                 .withAssertions(pAssertions)
                 .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new ViolationCopyingAutomatonTransition(builder);
+      return new TargetInformationCopyingAutomatonTransition(builder);
     }
     return builder.build();
   }
 
   private static AutomatonTransition createAutomatonInvariantErrorTransition(
       AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
-    StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
 
     return new AutomatonTransition.Builder(pTriggers, followErrorState)
         .withAssumptions(pAssumptions)
-        .withViolatedPropertyDescription(violatedPropertyDesc)
+        .withTargetInformation(new StringExpression("Invariant not valid"))
         .build();
   }
 
@@ -1928,36 +1927,36 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
+  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private ViolationCopyingAutomatonTransition(Builder pBuilder) {
+    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 
     @Override
-    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
-      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
-      Set<String> violatedPropertyDescriptions = new LinkedHashSet<>();
+    public String getTargetInformation(AutomatonExpressionArguments pArgs) {
+      String own = getFollowState().isTarget() ? super.getTargetInformation(pArgs) : null;
+      Set<String> targetInformationDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
-        violatedPropertyDescriptions.add(own);
+        targetInformationDescriptions.add(own);
       }
 
       for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
         if (other != pArgs.getState() && other.getInternalState().isTarget()) {
           other
-              .getOptionalViolatedPropertyDescription()
+              .getOptionalTargetInformation()
               .map(Object::toString)
               .filter(s -> !s.isEmpty())
-              .ifPresent(violatedPropertyDescriptions::add);
+              .ifPresent(targetInformationDescriptions::add);
         }
       }
 
-      if (violatedPropertyDescriptions.isEmpty() && own == null) {
+      if (targetInformationDescriptions.isEmpty() && own == null) {
         return null;
       }
 
-      return Joiner.on(',').join(violatedPropertyDescriptions);
+      return Joiner.on(',').join(targetInformationDescriptions);
     }
 
   }

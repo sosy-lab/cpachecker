@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class UsageReachedSet extends PartitionedReachedSet {
 
-  private static final ImmutableSet<Property> RACE_PROPERTY =
-      NamedProperty.singleton("Race condition");
+  private static final ImmutableSet<TargetInformation> RACE_PROPERTY =
+      SimpleTargetInformation.singleton("Race condition");
 
   private final UsageConfiguration config;
   private final LogManager logger;
@@ -76,7 +76,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public Set<Property> getViolatedProperties() {
+  public Set<TargetInformation> getViolatedProperties() {
     if (hasViolatedProperties()) {
       return RACE_PROPERTY;
     } else {

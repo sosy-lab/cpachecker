@@ -27,11 +27,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -214,7 +213,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   testTargets.remove(targetEdge);
 
                   if (shouldReportCoveredErrorCallAsError()) {
-                    addErrorStateWithViolatedProperty(pReached);
+                    addErrorStateWithTargetInformation(pReached);
                     shouldReturnFalse = true;
                   }
                   progress++;
@@ -274,15 +273,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
   }
 
-  private void addErrorStateWithViolatedProperty(final ReachedSet pReached) {
+  private void addErrorStateWithTargetInformation(final ReachedSet pReached) {
     Preconditions.checkState(shouldReportCoveredErrorCallAsError());
     pReached.add(
         new DummyErrorState(pReached.getLastState()) {
           private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
-          public Set<Property> getViolatedProperties() {
-            return NamedProperty.singleton(specProp.getProperty().toString());
+          public Set<TargetInformation> getTargetInformation() {
+            return SimpleTargetInformation.singleton(specProp.getProperty().toString());
           }
         },
         SingletonPrecision.getInstance());

@@ -18,8 +18,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -130,11 +130,11 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    *
    * @return A set of violated properties, may be emtpy if no precise information is available.
    */
-  default Collection<Property> getViolatedProperties() {
+  default Collection<TargetInformation> getViolatedProperties() {
     return from(this)
         .filter(AbstractStates::isTargetState)
         .filter(Targetable.class)
-        .transformAndConcat(Targetable::getViolatedProperties)
+        .transformAndConcat(Targetable::getTargetInformation)
         .toSet();
   }
 }

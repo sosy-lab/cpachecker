@@ -20,9 +20,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
@@ -199,7 +199,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public Collection<Property> getViolatedProperties() {
+  public Collection<TargetInformation> getViolatedProperties() {
     return delegate.getViolatedProperties();
   }
 

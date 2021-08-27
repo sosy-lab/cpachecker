@@ -10,13 +10,14 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
-public final class NamedProperty implements Property {
+/** Instance of {@link TargetInformation} with just a human-readable string. */
+public final class SimpleTargetInformation implements TargetInformation {
 
   private final String text;
 
-  private NamedProperty(String pText) {
+  private SimpleTargetInformation(String pText) {
     this.text = Preconditions.checkNotNull(pText);
   }
 
@@ -27,7 +28,7 @@ public final class NamedProperty implements Property {
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof NamedProperty)) {
+    if (!(pOther instanceof SimpleTargetInformation)) {
       return false;
     }
     return this.text.equals(pOther.toString());
@@ -38,12 +39,12 @@ public final class NamedProperty implements Property {
     return text;
   }
 
-  public static NamedProperty create(final String pText) {
-    return new NamedProperty(pText);
+  public static SimpleTargetInformation create(final String pText) {
+    return new SimpleTargetInformation(pText);
   }
 
-  public static ImmutableSet<Property> singleton(final String pText) {
-    return ImmutableSet.of(NamedProperty.create(pText));
+  public static ImmutableSet<TargetInformation> singleton(final String pText) {
+    return ImmutableSet.of(SimpleTargetInformation.create(pText));
   }
 
 }
