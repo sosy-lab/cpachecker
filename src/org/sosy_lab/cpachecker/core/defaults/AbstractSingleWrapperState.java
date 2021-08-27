@@ -16,7 +16,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
@@ -53,9 +52,9 @@ public abstract class AbstractSingleWrapperState
   }
 
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     checkState(isTarget());
-    return ((Targetable)wrappedState).getViolatedProperties();
+    return ((Targetable) wrappedState).getTargetInformation();
   }
 
   @Override

@@ -215,7 +215,13 @@ public class ReachedSetFactory {
     }
   }
 
-  public ReachedSet create() {
+  /**
+   * Creates an instance of a {@link ReachedSet}.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet create(ConfigurableProgramAnalysis cpa) {
+    checkNotNull(cpa);
     WaitlistFactory waitlistFactory = traversalMethod;
 
     if (useWeightedDepthOrder) {
@@ -272,20 +278,20 @@ public class ReachedSetFactory {
     ReachedSet reached;
     switch (reachedSet) {
     case PARTITIONED:
-        reached = new PartitionedReachedSet(waitlistFactory);
+        reached = new PartitionedReachedSet(cpa, waitlistFactory);
         break;
     case PSEUDOPARTITIONED:
-        reached = new PseudoPartitionedReachedSet(waitlistFactory);
+        reached = new PseudoPartitionedReachedSet(cpa, waitlistFactory);
         break;
     case LOCATIONMAPPED:
-        reached = new LocationMappedReachedSet(waitlistFactory);
+        reached = new LocationMappedReachedSet(cpa, waitlistFactory);
         break;
     case USAGE:
-        reached = new UsageReachedSet(waitlistFactory, usageConfig, logger);
+        reached = new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
         break;
     case NORMAL:
     default:
-        reached = new DefaultReachedSet(waitlistFactory);
+        reached = new DefaultReachedSet(cpa, waitlistFactory);
     }
 
     if (withStatistics) {
@@ -304,7 +310,7 @@ public class ReachedSetFactory {
       throws InterruptedException {
     checkNotNull(node);
     checkNotNull(partition);
-    ReachedSet reached = create();
+    ReachedSet reached = create(cpa);
     reached.add(cpa.getInitialState(node, partition), cpa.getInitialPrecision(node, partition));
     return reached;
   }

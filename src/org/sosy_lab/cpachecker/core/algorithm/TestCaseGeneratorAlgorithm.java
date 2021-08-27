@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -212,7 +212,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   testTargets.remove(targetEdge);
 
                   if (shouldReportCoveredErrorCallAsError()) {
-                    addErrorStateWithViolatedProperty(pReached);
+                    addErrorStateWithTargetInformation(pReached);
                     shouldReturnFalse = true;
                   }
                   progress++;
@@ -272,15 +272,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
   }
 
-  private void addErrorStateWithViolatedProperty(final ReachedSet pReached) {
+  private void addErrorStateWithTargetInformation(final ReachedSet pReached) {
     Preconditions.checkState(shouldReportCoveredErrorCallAsError());
     pReached.add(
         new DummyErrorState(pReached.getLastState()) {
           private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
-          public Set<org.sosy_lab.cpachecker.core.interfaces.Property> getViolatedProperties() {
-            return NamedProperty.singleton(specProp.toString());
+          public Set<TargetInformation> getTargetInformation() {
+            return PropertyTargetInformation.singleton(specProp);
           }
         },
         SingletonPrecision.getInstance());

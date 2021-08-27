@@ -162,7 +162,7 @@ class KInductionProver implements AutoCloseable {
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     reachedSet =
         new UnrolledReachedSet(
-            algorithm, cpa, pLoopHeads, reachedSetFactory.create(), this::ensureK);
+            algorithm, cpa, pLoopHeads, reachedSetFactory.create(cpa), this::ensureK);
 
     @SuppressWarnings("resource")
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);

@@ -568,7 +568,7 @@ public class LiveVariables {
                                                 logger,
                                                 config,
                                                 shutdownNotifier);
-      ReachedSet reached = reachedFactory.create();
+      ReachedSet reached = reachedFactory.create(cpa);
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {

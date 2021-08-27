@@ -312,7 +312,7 @@ public class CPAchecker {
     ReachedSet reached = null;
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
-    String violatedPropertyDescription = "";
+    String targetDescription = "";
     Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
@@ -323,7 +323,6 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
-      reached = factory.createReachedSet();
 
       cfa = parse(programDenotation, stats);
       GlobalInfo.getInstance().storeCFA(cfa);
@@ -360,6 +359,7 @@ public class CPAchecker {
         ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
       }
 
+      reached = factory.createReachedSet(cpa);
       if (algorithm instanceof ImpactAlgorithm) {
         ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
         reached.add(
@@ -382,8 +382,8 @@ public class CPAchecker {
 
       if (status.wasPropertyChecked()) {
         stats.resultAnalysisTime.start();
-        if (reached.hasViolatedProperties()) {
-          violatedPropertyDescription = Joiner.on(", ").join(reached.getViolatedProperties());
+        if (reached.wasTargetReached()) {
+          targetDescription = Joiner.on(", ").join(reached.getTargetInformation());
 
           if (!status.isPrecise()) {
             result = Result.UNKNOWN;
@@ -433,7 +433,7 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)

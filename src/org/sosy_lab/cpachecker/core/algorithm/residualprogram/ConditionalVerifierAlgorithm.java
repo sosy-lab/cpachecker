@@ -160,7 +160,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             cpa.getInitialState(pEntryNode, StateSpacePartition.getDefaultPartition());
         Precision initialPrecision =
             cpa.getInitialPrecision(pEntryNode, StateSpacePartition.getDefaultPartition());
-        ReachedSet reachedSet = coreComponents.createReachedSet();
+        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
         reachedSet.add(initialState, initialPrecision);
         shutdown.shutdownIfNecessary();
 
@@ -236,7 +236,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         Precision initialPrecision =
             cpa.getInitialPrecision(
                 cfaResidProg.getMainFunction(), StateSpacePartition.getDefaultPartition());
-        ReachedSet reachedSet = coreComponents.createReachedSet();
+        ReachedSet reachedSet = coreComponents.createReachedSet(cpa);
         reachedSet.add(initialState, initialPrecision);
         reached.setDelegate(reachedSet);
         shutdown.shutdownIfNecessary();

@@ -98,7 +98,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisito
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -276,7 +276,7 @@ class WitnessFactory implements EdgeAppender {
   private final Simplifier<Object> simplifier;
 
   private final SetMultimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
-  private final Multimap<String, Property> violatedProperties = HashMultimap.create();
+  private final Multimap<String, TargetInformation> violatedProperties = HashMultimap.create();
   private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments =
       new HashMap<>();
 
@@ -1688,10 +1688,10 @@ class WitnessFactory implements EdgeAppender {
     return ImmutableSet.of();
   }
 
-  private Collection<Property> extractViolatedProperties(ARGState pState) {
-    List<Property> result = new ArrayList<>();
+  private Collection<TargetInformation> extractViolatedProperties(ARGState pState) {
+    List<TargetInformation> result = new ArrayList<>();
     if (pState.isTarget()) {
-      result.addAll(pState.getViolatedProperties());
+      result.addAll(pState.getTargetInformation());
     }
     return result;
   }

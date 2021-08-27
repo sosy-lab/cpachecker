@@ -187,7 +187,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
    * @return A reached set that has the PROGRAM_SINKS as initial states
    */
   private ReachedSet buildBackwardsReachedSet() throws InterruptedException {
-    var reachedSet = new PartitionedReachedSet(TraversalMethod.DFS);
+    var reachedSet = new PartitionedReachedSet(backwardsCpa, TraversalMethod.DFS);
     var initialLocations =
         ImmutableSet.<CFANode>builder()
             .addAll(

@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -42,7 +41,7 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private final Collection<CFAEdge> enteringEdges;
 
-  @Nullable private final Set<Property> violatedProperties;
+  @Nullable private final Set<TargetInformation> targetInformation;
 
   @Nullable private final RankingRelation unsatisfiedRankingRelation;
 
@@ -51,14 +50,14 @@ public class TerminationState extends AbstractSingleWrapperState
       @Nullable CFANode pHondaLocation,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges,
-      @Nullable Set<Property> pviolatedProperties,
+      @Nullable Set<TargetInformation> pTargetInformation,
       @Nullable RankingRelation pUnsatisfiedRankingRelation) {
     super(checkNotNull(pWrappedState));
     Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
     hondaLocation = pHondaLocation;
     dummyLocation = pDummyLocation;
     enteringEdges = checkNotNull(pEnteringEdges);
-    violatedProperties = pviolatedProperties;
+    targetInformation = pTargetInformation;
     unsatisfiedRankingRelation = pUnsatisfiedRankingRelation;
   }
 
@@ -116,17 +115,16 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} with the given violated properties.
+   * Creates a new {@link TerminationState} with the given target information.
    *
-   * @param pViolatedProperties
-   *         the edges entering the location represented by the created state
+   * @param pTargetInformation the edges entering the location represented by the created state
    * @return the created {@link TerminationState}
    */
-  public TerminationState withViolatedProperties(Set<Property> pViolatedProperties) {
-    Preconditions.checkNotNull(pViolatedProperties);
-    Preconditions.checkArgument(!pViolatedProperties.isEmpty());
+  public TerminationState withTargetInformation(Set<TargetInformation> pTargetInformation) {
+    Preconditions.checkNotNull(pTargetInformation);
+    Preconditions.checkArgument(!pTargetInformation.isEmpty());
     return new TerminationState(
-        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pViolatedProperties, null);
+        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pTargetInformation, null);
   }
 
   /**
@@ -144,7 +142,7 @@ public class TerminationState extends AbstractSingleWrapperState
         hondaLocation,
         dummyLocation,
         enteringEdges,
-        violatedProperties,
+        targetInformation,
         pUnsatisfiedRankingRelation);
   }
 
@@ -183,15 +181,15 @@ public class TerminationState extends AbstractSingleWrapperState
 
   @Override
   public boolean isTarget() {
-    return violatedProperties != null || super.isTarget();
+    return targetInformation != null || super.isTarget();
   }
 
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    if (violatedProperties != null) {
-      return violatedProperties;
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    if (targetInformation != null) {
+      return targetInformation;
     } else {
-      return super.getViolatedProperties();
+      return super.getTargetInformation();
     }
   }
 

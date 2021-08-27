@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -41,8 +42,8 @@ public class PartitionedReachedSet extends DefaultReachedSet {
 
   private final Multimap<Object, AbstractState> partitionedReached = LinkedHashMultimap.create(100, 1);
 
-  public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
-    super(waitlistFactory);
+  public PartitionedReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
+    super(pCpa, waitlistFactory);
   }
 
   @Override

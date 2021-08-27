@@ -108,7 +108,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class NonTerminationWitnessValidator implements Algorithm, StatisticsProvider {
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
-      DummyTargetState.withSingleProperty("termination");
+      DummyTargetState.withSimpleTargetInformation("termination");
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
@@ -353,7 +353,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();
@@ -420,7 +420,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();
@@ -430,7 +430,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       AlgorithmStatus result = algorithm.run(reached);
 
       if (result.isPrecise()) {
-        if (reached.hasViolatedProperties()) {
+        if (reached.wasTargetReached()) {
           logger.log(Level.INFO, "Recurrent set is reachable.");
           return true;
         }
@@ -603,9 +603,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         setUpInitialAbstractStateForRecurrentSet(
             pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
     pStemEndLoc.removeLeavingEdge(invCheckLoop);
-    // TODO okay that initial states is non-abstraction state?
+      // TODO okay that initial states is non-abstraction state?
 
-    reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
 
     shutdown.shutdownIfNecessary();
@@ -622,7 +622,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       }
 
       // check that no sink state is reachable from recurrent set
-      if (reached.hasViolatedProperties()) {
+      if (reached.wasTargetReached()) {
         logger.log(Level.INFO, "May leave recurrent set in current check.");
       return false;
     }
@@ -842,7 +842,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(pRecurrentStart, StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();

@@ -243,7 +243,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
-    if (pReachedSet.hasViolatedProperties()) {
+    if (pReachedSet.wasTargetReached()) {
       TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
     }
   }

@@ -18,10 +18,11 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
@@ -193,17 +194,22 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public boolean hasViolatedProperties() {
-    return delegate.hasViolatedProperties();
+  public boolean wasTargetReached() {
+    return delegate.wasTargetReached();
   }
 
   @Override
-  public Collection<Property> getViolatedProperties() {
-    return delegate.getViolatedProperties();
+  public Collection<TargetInformation> getTargetInformation() {
+    return delegate.getTargetInformation();
   }
 
   @Override
   public ImmutableMap<String, AbstractStatValue> getStatistics() {
     return delegate.getStatistics();
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return delegate.getCPA();
   }
 }

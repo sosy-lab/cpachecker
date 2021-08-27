@@ -130,7 +130,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     Precision initialPrecision =
         cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }

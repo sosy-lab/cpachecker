@@ -68,21 +68,22 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.AlwaysEmptyWaitlist;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -108,8 +109,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
-      NamedProperty.singleton("termination");
+  private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
+      SimpleTargetInformation.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -431,7 +432,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Create dummy reached set as holder for invariants. We do not use the reached-set factory
     // from configuration because that could require features that our dummy states do not support.
     // We use LocationMappedReachedSet because that seems useful to callers.
-    ReachedSet dummy = new LocationMappedReachedSet(AlwaysEmptyWaitlist.factory());
+    // Using AlwaysTopCPA as dummy is ok as long as UnmodifiableReachedSet does not have getCPA(),
+    // because the AggregatedReachedSet only exposes reached sets as UnmodifiableReachedSet,
+    // so no other code will be able to call dummy.getCPA().
+    ReachedSet dummy =
+        new LocationMappedReachedSet(AlwaysTopCPA.INSTANCE, AlwaysEmptyWaitlist.factory());
     CFANode location = AbstractStates.extractLocation(loopHeadState);
     FormulaManagerView fmgr = rankingRelation.getFormulaManager();
 
@@ -519,7 +524,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private ARGState createNonTerminationState(AbstractState loopHead) {
     TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
     AbstractState newTerminationState =
-        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
+        terminationState.withTargetInformation(TERMINATION_PROPERTY);
     ARGState newTargetState = new ARGState(newTerminationState, null);
     return newTargetState;
   }
@@ -581,7 +586,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // the safety analysis will fail if the program is recursive
     try {
       terminationInformation.reset();
-      ReachedSet reachedSet = reachedSetFactory.create();
+      ReachedSet reachedSet = reachedSetFactory.create(safetyCPA);
       resetReachedSet(reachedSet, initialLocation);
       return safetyAlgorithm.run(reachedSet);
     } finally {

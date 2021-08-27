@@ -667,7 +667,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           aggregatePrecisionsForReuse(previousReachedSets, initialPrecision, pFMgr, pConfig);
     }
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(pCpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }

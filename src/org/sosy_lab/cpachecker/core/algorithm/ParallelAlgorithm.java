@@ -300,9 +300,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             singleShutdownManager.getNotifier(),
             aggregatedReachedSetManager.asView());
 
-    final ReachedSet reached = coreComponents.createReachedSet();
     final ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     final Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+    final ReachedSet reached = coreComponents.createReachedSet(cpa);
 
     AtomicBoolean terminated = new AtomicBoolean(false);
     StatisticsEntry statisticsEntry =
@@ -381,11 +381,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               @Override
               public void updated(ReachedSet pReachedSet) {
                 singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
-                ReachedSet oldReachedSet = oldReached.get();
-                ReachedSet newReached = coreComponents.createReachedSet();
+                ReachedSet newReached = coreComponents.createReachedSet(pReachedSet.getCPA());
                 for (AbstractState as : pReachedSet) {
                   newReached.addNoWaitlist(as, pReachedSet.getPrecision(as));
                 }
+
+                ReachedSet oldReachedSet = oldReached.get();
                 if (oldReachedSet != null) {
                   aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);
                 } else {
@@ -456,7 +457,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           if (!stopAnalysis) {
-            currentReached = coreComponents.createReachedSet();
+            currentReached = coreComponents.createReachedSet(cpa);
             pStatisticsEntry.reachedSet.set(currentReached);
             initializeReachedSet(cpa, mainEntryNode, currentReached);
           }
