@@ -14,10 +14,11 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.io.CharSource;
+import com.google.common.io.MoreFiles;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class PropertyFileParser {
     }
   }
 
-  private final Path propertyFile;
+  private final CharSource propertyFile;
 
   private @Nullable String entryFunction;
   private @Nullable ImmutableSet<Property> properties;
@@ -76,14 +77,19 @@ public class PropertyFileParser {
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
 
-  public PropertyFileParser(final Path pPropertyFile) {
+  public PropertyFileParser(final CharSource pPropertyFile) {
     propertyFile = checkNotNull(pPropertyFile);
   }
 
+  public PropertyFileParser(final Path pPropertyFile) {
+    propertyFile = MoreFiles.asCharSource(pPropertyFile, Charset.defaultCharset());
+  }
+
   public void parse() throws InvalidPropertyFileException, IOException {
+    checkState(properties == null, "single-use only");
     ImmutableSet.Builder<Property> propertiesBuilder = ImmutableSet.builder();
     String rawProperty = null;
-    try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
+    try (BufferedReader br = propertyFile.openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
         if (!rawProperty.isEmpty()) {
           propertiesBuilder.add(parsePropertyLine(rawProperty));
