@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutation;
 import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -112,6 +111,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     totalTime.start();
 
+    AlgorithmStatus status = algorithm.runParentAlgorithm(reachedSet);
+
     try {
       logger.log(Level.INFO, "Starting program repair...");
 
@@ -128,7 +129,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       totalTime.stop();
     }
 
-    return algorithm.getAlgorithm().run(reachedSet);
+    return status;
   }
 
   private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo)
@@ -186,7 +187,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     ReachedSet reached =
         createInitialReachedSet(cpa, mutatedCFA.getMainFunction(), coreComponents, logger);
 
-    algo.getAlgorithm().run(reached);
+    algo.runParentAlgorithm(reached);
 
     return reached;
   }
@@ -241,9 +242,8 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     // run algorithm for every error
     logger.log(Level.INFO, "Starting fault localization...");
     for (CounterexampleInfo info : counterExamples) {
-      CFAPathWithAssumptions assumptions = info.getCFAPathWithAssignments();
       Optional<FaultLocalizationInfo> optionalFaultLocalizationInfo =
-          algorithm.calcFaultLocalizationInfo(assumptions, info, algorithm.getFaultAlgorithm());
+          algorithm.calcFaultLocalizationInfo(info);
 
       if (optionalFaultLocalizationInfo.isPresent()) {
         faultLocalizationInfos.add(optionalFaultLocalizationInfo.get());
