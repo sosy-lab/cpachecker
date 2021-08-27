@@ -1945,16 +1945,11 @@ public class AutomatonGraphmlParser {
 
       for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
         if (other != pArgs.getState() && other.getInternalState().isTarget()) {
-          String violatedPropDesc = "";
-
-          Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
-          if (violatedProperty.isPresent()) {
-            violatedPropDesc = violatedProperty.orElseThrow().toString();
-          }
-
-          if (!violatedPropDesc.isEmpty()) {
-            violatedPropertyDescriptions.add(violatedPropDesc);
-          }
+          other
+              .getOptionalViolatedPropertyDescription()
+              .map(Object::toString)
+              .filter(s -> !s.isEmpty())
+              .ifPresent(violatedPropertyDescriptions::add);
         }
       }
 
