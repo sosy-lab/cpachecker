@@ -9,21 +9,21 @@
 package org.sosy_lab.cpachecker.core.specification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
@@ -51,8 +51,8 @@ public class PropertyFileParser {
 
   private final Path propertyFile;
 
-  private String entryFunction;
-  private final Set<Property> properties = Sets.newHashSetWithExpectedSize(1);
+  private @Nullable String entryFunction;
+  private @Nullable ImmutableSet<Property> properties;
 
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile(
@@ -81,14 +81,16 @@ public class PropertyFileParser {
   }
 
   public void parse() throws InvalidPropertyFileException, IOException {
+    ImmutableSet.Builder<Property> propertiesBuilder = ImmutableSet.builder();
     String rawProperty = null;
     try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
       while ((rawProperty = br.readLine()) != null) {
         if (!rawProperty.isEmpty()) {
-          properties.add(parsePropertyLine(rawProperty));
+          propertiesBuilder.add(parsePropertyLine(rawProperty));
         }
       }
     }
+    properties = propertiesBuilder.build();
     if (properties.isEmpty()) {
       throw new InvalidPropertyFileException("No property in file.");
     }
@@ -131,10 +133,12 @@ public class PropertyFileParser {
   }
 
   public String getEntryFunction() {
+    checkState(entryFunction != null);
     return entryFunction;
   }
 
-  public Set<Property> getProperties() {
-    return Collections.unmodifiableSet(properties);
+  public ImmutableSet<Property> getProperties() {
+    checkState(properties != null);
+    return properties;
   }
 }
