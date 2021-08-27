@@ -119,6 +119,10 @@ public class CPAcheckerResult {
   }
 
   public void writeOutputFiles() {
+    if (result == Result.NOT_YET_STARTED) {
+      return;
+    }
+
     stats.writeOutputFiles(result, reached);
     if (proofGeneratorStats != null) {
       proofGeneratorStats.writeOutputFiles(result, reached);
