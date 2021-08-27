@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
+import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -281,7 +281,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
           @Override
           public Set<TargetInformation> getTargetInformation() {
-            return SimpleTargetInformation.singleton(specProp.getProperty().toString());
+            return PropertyTargetInformation.singleton(specProp.getProperty());
           }
         },
         SingletonPrecision.getInstance());
