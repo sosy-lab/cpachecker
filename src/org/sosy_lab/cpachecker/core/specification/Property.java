@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 
 public interface Property {
 
@@ -147,6 +150,55 @@ public interface Property {
     @Override
     public String toFullString(String pEntryPoint) {
       return String.format("COVER( init(%s()), FQL(%s) )", pEntryPoint, representation);
+    }
+  }
+
+  public static class CoverFunction implements Property {
+
+    private static final Pattern COVERAGE_FUNCTION_PATTERN =
+        Pattern.compile(
+            "COVER\\( init\\(("
+                + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
+                + ")\\(\\)\\), FQL\\(COVER EDGES\\(@CALL\\((.+)\\)\\)\\) \\)");
+
+    private final String funName;
+
+    public CoverFunction(final String pFunctionName) {
+      funName = pFunctionName;
+    }
+
+    @Override
+    public boolean isCoverage() {
+      return true;
+    }
+
+    @Override
+    public boolean isVerification() {
+      return false;
+    }
+
+    public String getCoverFunction() {
+      return funName;
+    }
+
+    @Override
+    public String toString() {
+      return "COVER EDGES(@CALL(" + funName + "))";
+    }
+
+    @Override
+    public String toFullString(String pEntryPoint) {
+      return String.format("COVER( init(%s()), FQL(%s) )", pEntryPoint, toString());
+    }
+
+    public static Property getProperty(final String pRawProperty) {
+      Matcher matcher = COVERAGE_FUNCTION_PATTERN.matcher(pRawProperty);
+
+      if (matcher.matches() && matcher.groupCount() == 2) {
+        return new CoverFunction(matcher.group(2).trim());
+      }
+
+      return null;
     }
   }
 }

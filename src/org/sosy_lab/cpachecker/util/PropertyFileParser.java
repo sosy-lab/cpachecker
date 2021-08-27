@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
+import org.sosy_lab.cpachecker.core.specification.Property.CoverFunction;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a
