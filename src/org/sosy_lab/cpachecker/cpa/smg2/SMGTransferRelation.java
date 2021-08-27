@@ -17,11 +17,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -36,11 +34,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
@@ -127,12 +123,12 @@ public class SMGTransferRelation
       SMGState pState,
       SMGObject pRegion,
       CReturnStatementEdge pReturnEdge) {
-    CExpression returnExp = pReturnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
-    CType expType = TypeUtils.getRealExpressionType(returnExp);
-    Optional<CAssignment> returnAssignment = pReturnEdge.asAssignment();
-    if (returnAssignment.isPresent()) {
-      expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
-    }
+    // CExpression returnExp = pReturnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
+    // CType expType = TypeUtils.getRealExpressionType(returnExp);
+    // Optional<CAssignment> returnAssignment = pReturnEdge.asAssignment();
+    // if (returnAssignment.isPresent()) {
+    // expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
+    // }
     return null;
   }
 

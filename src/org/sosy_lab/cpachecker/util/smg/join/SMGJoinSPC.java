@@ -117,7 +117,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
                 destSMG,
                 PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
                 resultStackMapping,
-                PersistentSet.of());
+                PersistentSet.of(),
+                PathCopyingPersistentTreeMap.of());
   }
 
 
