@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -52,9 +53,10 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
     shutdownNotifier = pShutdownNotifier;
   }
 
-
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     reachedSet = new AbstractState[pReached.size()];
     pReached.asCollection().toArray(reachedSet);
     if (reachedSet.length > 0 && reachedSet[0] instanceof ARGState) {
@@ -132,8 +134,10 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    constructInternalProofRepresentation(pReached, pCpa);
     return reachedSet;
   }
 

@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -114,10 +115,11 @@ public class ProofGenerator {
 
   }
 
-  private void constructAndWriteProof(UnmodifiableReachedSet pReached) {
+  private void constructAndWriteProof(final ReachedSet pReached) {
+    UnmodifiableReachedSet reached = pReached;
     if (slicer != null) {
       logger.log(Level.INFO, "Start slicing of proof");
-      pReached = slicer.sliceProof(pReached);
+      reached = slicer.sliceProof(reached, pReached.getCPA());
     }
 
     // saves the proof
@@ -125,14 +127,14 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(pReached);
+    checkingStrategy.writeProof(reached, pReached.getCPA());
 
     writingTimer.stop();
     logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
 
   }
 
-  protected Statistics generateProofUnchecked(final UnmodifiableReachedSet pReached) {
+  protected Statistics generateProofUnchecked(final ReachedSet pReached) {
     constructAndWriteProof(pReached);
 
     return proofGeneratorStats;

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -177,7 +178,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
 
-    pReceivedReachedSet.setDelegate(reachedSetFactory.create());
+    // TODO Need to create a CPA hierarchy that reflects what abstract states will be added to the
+    // new reached set, otherwise some features won't work.
+    // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/59#note_658864689
+    pReceivedReachedSet.setDelegate(reachedSetFactory.create(AlwaysTopCPA.INSTANCE));
     shutdown.shutdownIfNecessary();
 
     // combined root

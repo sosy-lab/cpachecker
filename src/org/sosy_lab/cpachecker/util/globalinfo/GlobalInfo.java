@@ -27,7 +27,6 @@ public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
-  private ConfigurableProgramAnalysis cpa;
   private FormulaManagerView predicateFormulaManagerView;
   private FormulaManagerView assumptionFormulaManagerView;
   private AbstractionManager absManager;
@@ -53,12 +52,7 @@ public class GlobalInfo {
     return Optional.ofNullable(cfaInfo);
   }
 
-  public synchronized Optional<ConfigurableProgramAnalysis> getCPA() {
-    return Optional.ofNullable(cpa);
-  }
-
   public synchronized void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
-    this.cpa = pCpa;
     absManager = null;
     apronManager = null;
     apronLogger = null;

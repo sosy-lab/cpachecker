@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import com.google.common.collect.ImmutableMap;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
@@ -74,4 +75,7 @@ public interface ReachedSet extends UnmodifiableReachedSet {
   default ImmutableMap<String, AbstractStatValue> getStatistics() {
     return ImmutableMap.of();
   }
+
+  /** Return the instance of the CPA that belongs to the abstract states in this reached set. */
+  ConfigurableProgramAnalysis getCPA();
 }

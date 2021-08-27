@@ -952,7 +952,7 @@ public class PdrAlgorithm implements Algorithm {
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(CFANode predecessorLocation) {
-    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create());
+    return createPartialTransitionRelation(predecessorLocation, reachedSetFactory.create(cpa));
   }
 
   private PartialTransitionRelation createPartialTransitionRelation(

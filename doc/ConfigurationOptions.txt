@@ -290,6 +290,7 @@ analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
+analysis.entryFunction = no default value
 
 # do analysis and then extract pre- and post conditions for custom
 # instruction from analysis result
@@ -687,8 +688,22 @@ bmc.usePropertyDirection = false
 # pre-processor on the file.
 cbmc.dumpCBMCfile = no default value
 
+# specify the name of the error label
+cbmc.options.errorLabel = no default value
+
+# set width of int (16, 32 or 64)
+cbmc.options.intWidth = no default value
+
+# disable unwinding assertions violation error
+cbmc.options.nuaf = no default value
+
+# specify the limit for unwindings (0 is infinite)
+cbmc.options.unwindings = no default value
+
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
+cbmc.timelimit = no default value
 cbmc.timelimit = 0ms
 
 # continue analysis after a failed refinement (e.g. due to interpolation)

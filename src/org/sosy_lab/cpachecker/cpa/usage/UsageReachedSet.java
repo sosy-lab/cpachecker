@@ -13,6 +13,7 @@ import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -34,8 +35,11 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private UsageContainer container = null;
 
   public UsageReachedSet(
-      WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
-    super(waitlistFactory);
+      ConfigurableProgramAnalysis pCpa,
+      WaitlistFactory waitlistFactory,
+      UsageConfiguration pConfig,
+      LogManager pLogger) {
+    super(pCpa, waitlistFactory);
     config = pConfig;
     logger = pLogger;
     unsafeDetector = new UnsafeDetector(pConfig);
