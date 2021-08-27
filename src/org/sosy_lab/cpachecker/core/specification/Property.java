@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -41,7 +43,7 @@ public interface Property {
     private final String representation;
 
     public OtherVerificationProperty(String pRepresentation) {
-      representation = pRepresentation;
+      representation = checkNotNull(pRepresentation);
     }
 
     @Override
@@ -62,6 +64,21 @@ public interface Property {
     @Override
     public String toFullString(String pEntryPoint) {
       return String.format("CHECK( init(%s()), LTL(%s) )", pEntryPoint, representation);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (!(pObj instanceof OtherVerificationProperty)) {
+        return false;
+      }
+
+      OtherVerificationProperty other = (OtherVerificationProperty) pObj;
+      return representation.equals(other.representation);
+    }
+
+    @Override
+    public int hashCode() {
+      return representation.hashCode();
     }
   }
 
@@ -164,7 +181,7 @@ public interface Property {
     private final String funName;
 
     public CoverFunction(final String pFunctionName) {
-      funName = pFunctionName;
+      funName = checkNotNull(pFunctionName);
     }
 
     @Override
@@ -189,6 +206,21 @@ public interface Property {
     @Override
     public String toFullString(String pEntryPoint) {
       return String.format("COVER( init(%s()), FQL(%s) )", pEntryPoint, toString());
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (!(pObj instanceof CoverFunction)) {
+        return false;
+      }
+
+      CoverFunction other = (CoverFunction) pObj;
+      return funName.equals(other.funName);
+    }
+
+    @Override
+    public int hashCode() {
+      return funName.hashCode();
     }
 
     public static Property getProperty(final String pRawProperty) {
