@@ -62,13 +62,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.core.specification.Property.CoverFunction;
+import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
-import org.sosy_lab.cpachecker.util.PropertyFileParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 

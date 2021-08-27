@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.core.specification;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -23,7 +25,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.core.specification.Property.CoverFunction;
@@ -76,7 +77,7 @@ public class PropertyFileParser {
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {
-    propertyFile = pPropertyFile;
+    propertyFile = checkNotNull(pPropertyFile);
   }
 
   public void parse() throws InvalidPropertyFileException, IOException {
