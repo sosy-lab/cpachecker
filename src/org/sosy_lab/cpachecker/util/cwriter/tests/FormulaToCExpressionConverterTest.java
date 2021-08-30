@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /** Tests for {@link FormulaToCExpressionConverter}. */
 @RunWith(Enclosed.class)
@@ -502,8 +502,8 @@ public class FormulaToCExpressionConverterTest {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
-              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+              fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x == y)");
     }
 
@@ -513,8 +513,8 @@ public class FormulaToCExpressionConverterTest {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.lessThan(
-              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+              fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x < y)");
     }
 
@@ -524,8 +524,8 @@ public class FormulaToCExpressionConverterTest {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.lessOrEquals(
-              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+              fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x <= y)");
     }
 
@@ -536,8 +536,8 @@ public class FormulaToCExpressionConverterTest {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.greaterThan(
-              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+              fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x > y)");
     }
 
@@ -548,8 +548,8 @@ public class FormulaToCExpressionConverterTest {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.greaterOrEquals(
-              fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+              fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x >= y)");
     }
 
@@ -561,9 +561,9 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
               fmgrv.add(
-                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
-              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+                  fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x + y) == z)");
     }
 
@@ -575,9 +575,9 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
               fmgrv.subtract(
-                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
-              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+                  fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x - y) == z)");
     }
 
@@ -588,8 +588,8 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
               fmgrv.negate(
-                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType())),
-              fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType()));
+                  fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(-(x) == y)");
     }
 
@@ -601,9 +601,9 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
               fmgrv.multiply(
-                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
-              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+                  fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x * y) == z)");
     }
 
@@ -615,9 +615,9 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
               fmgrv.divide(
-                  fmgrv.makeVariable("x", FloatingPointType.getSinglePrecisionFloatingPointType()),
-                  fmgrv.makeVariable("y", FloatingPointType.getSinglePrecisionFloatingPointType())),
-              fmgrv.makeVariable("z", FloatingPointType.getSinglePrecisionFloatingPointType()));
+                  fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
+                  fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
+              fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x / y) == z)");
     }
   }
