@@ -9,66 +9,36 @@
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.TreeMultimap;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 
 /**
  * This class mutates a given edge in a CFA. It clones the original CFA and then generates new edges
  * to replace the given edge.
  */
-public class Mutator {
-  private CFA cfa;
-  private CFAEdge originalEdge;
+public class CFAMutator {
+  private final CFA cfa;
+  private final CFAEdge originalEdge;
 
-  public Mutator(CFA pCfa, CFAEdge pOriginalEdge) {
-    cfa = cloneCFA(pCfa);
-    originalEdge = CorrespondingEdgeProvider.findCorrespondingEdge(pOriginalEdge, cfa);
+  public CFAMutator(CFA pCfa, CFAEdge pOriginalEdge) {
+    cfa = pCfa;
+    originalEdge = pOriginalEdge;
   }
 
-  /* TODO create deep copy */
-  static MutableCFA cloneCFA(CFA cfa) {
-    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
-
-    for (final String function : cfa.getAllFunctionNames()) {
-      nodes.putAll(
-          function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
-    }
-
-    MutableCFA clonedCFA =
-        new MutableCFA(
-            cfa.getMachineModel(),
-            cfa.getAllFunctions(),
-            nodes,
-            cfa.getMainFunction(),
-            cfa.getFileNames(),
-            cfa.getLanguage());
-
-    cfa.getLoopStructure().ifPresent(clonedCFA::setLoopStructure);
-    cfa.getLiveVariables().ifPresent(clonedCFA::setLiveVariables);
-
-    return clonedCFA;
-  }
-
-  /**
-   * Returns a set of possible mutations for the given edge based on the edge type.
-   */
+  /** Returns a set of possible mutations for the given edge based on the edge type. */
   public Set<? extends Mutation> calcPossibleMutations() {
     switch (originalEdge.getEdgeType()) {
       case AssumeEdge:
@@ -99,72 +69,60 @@ public class Mutator {
 
     return ExpressionMutator.calcMutationsFor(originalAssumeEdge.getExpression(), cfa).stream()
         .map(
-            alternativeExpression ->
-                new SimpleMutation(
-                    originalAssumeEdge,
-                    EdgeMutator.replaceExpression(originalAssumeEdge, alternativeExpression),
-                    cfa))
+            alternativeExpression -> {
+              final SimpleEdgeMutator edgeMutator = new SimpleEdgeMutator(cfa, originalAssumeEdge);
+              return new SimpleMutation(
+                  originalAssumeEdge,
+                  edgeMutator.replaceExpressionInAssumeEdge(alternativeExpression),
+                  cfa);
+            })
         .collect(Collectors.toSet());
   }
 
   private Set<SimpleMutation> generateStatementEdgeMutations(CStatementEdge originalStatementEdge) {
     return StatementMutator.calcMutationsFor(originalStatementEdge.getStatement(), cfa).stream()
         .map(
-            newStatement ->
-                new SimpleMutation(
-                    originalStatementEdge,
-                    EdgeMutator.replaceExpression(originalStatementEdge, newStatement),
-                    cfa))
+            newStatement -> {
+              final SimpleEdgeMutator edgeMutator =
+                  new SimpleEdgeMutator(cfa, originalStatementEdge);
+
+              return new SimpleMutation(
+                  originalStatementEdge,
+                  edgeMutator.replaceStatementInStatementEdge(newStatement),
+                  cfa);
+            })
         .collect(Collectors.toSet());
   }
 
   private Set<FunctionCallMutation> generateFunctionCallEdgeMutations(
       CFunctionCallEdge originalFunctionCallEdge) {
-    CFunctionSummaryEdge summaryEdge = originalFunctionCallEdge.getSummaryEdge();
-
-    return generateFunctionCallMutations(
-        originalFunctionCallEdge,
-        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(summaryEdge),
-        summaryEdge);
+    return generateFunctionCallMutations(new FunctionCallEdgeAggregate(originalFunctionCallEdge));
   }
 
   private Set<FunctionCallMutation> generateFunctionReturnEdgeMutations(
       CFunctionReturnEdge originalReturnEdge) {
-    CFunctionSummaryEdge summaryEdge = originalReturnEdge.getSummaryEdge();
-
-    return generateFunctionCallMutations(
-        CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(summaryEdge),
-        originalReturnEdge,
-        summaryEdge);
+    return generateFunctionCallMutations(new FunctionCallEdgeAggregate(originalReturnEdge));
   }
 
   private Set<FunctionCallMutation> generateFunctionSummaryEdgeMutations(
       CFunctionSummaryEdge originalSummaryEdge) {
-    return generateFunctionCallMutations(
-        CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(originalSummaryEdge),
-        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(originalSummaryEdge),
-        originalSummaryEdge);
+    return generateFunctionCallMutations(new FunctionCallEdgeAggregate(originalSummaryEdge));
   }
 
   private Set<FunctionCallMutation> generateFunctionCallMutations(
-      CFunctionCallEdge callEdge,
-      CFunctionReturnEdge returnEdge,
-      CFunctionSummaryEdge summaryEdge) {
-    CStatement functionCall = summaryEdge.getExpression();
+      FunctionCallEdgeAggregate functionCallAggregate) {
+    CStatement functionCall = functionCallAggregate.getFunctionCall();
 
     return StatementMutator.calcMutationsFor(functionCall, cfa).stream()
         .map(
             newFunctionCallStatement -> {
               CFunctionCall newFunctionCall = (CFunctionCall) newFunctionCallStatement;
-              CFunctionSummaryEdge newSummaryEdge =
-                  EdgeMutator.replaceFunctionCall(summaryEdge, newFunctionCall);
-              CFunctionCallEdge newFunctionCallEdge =
-                  EdgeMutator.replaceFunctionCall(callEdge, newSummaryEdge, newFunctionCall);
-              CFunctionReturnEdge newFunctionReturnEdge =
-                  EdgeMutator.replaceFunctionCall(returnEdge, newSummaryEdge);
+              FunctionCallMutator functionCallMutator =
+                  new FunctionCallMutator(cfa, functionCallAggregate);
+              FunctionCallEdgeAggregate newFunctionCallEdgeAggregate =
+                  functionCallMutator.replaceFunctionCall(newFunctionCall);
 
-              return new FunctionCallMutation(
-                  originalEdge, newSummaryEdge, newFunctionCallEdge, newFunctionReturnEdge, cfa);
+              return new FunctionCallMutation(originalEdge, newFunctionCallEdgeAggregate, cfa);
             })
         .collect(Collectors.toSet());
   }
@@ -184,12 +142,16 @@ public class Mutator {
     return StatementMutator.calcMutationsFor(returnAssignment, cfa).stream()
         .filter(assignment -> assignment.getRightHandSide() instanceof CExpression)
         .map(
-            assignment ->
-                new SimpleMutation(
-                    originalReturnStatementEdge,
-                    EdgeMutator.replaceReturnExpression(
-                        originalReturnStatementEdge, returnStatement, assignment),
-                    cfa))
+            assignment -> {
+              final SimpleEdgeMutator edgeMutator =
+                  new SimpleEdgeMutator(cfa, originalReturnStatementEdge);
+
+              return new SimpleMutation(
+                  originalReturnStatementEdge,
+                  edgeMutator.replaceReturnExpressionInReturnStatementEdge(
+                      returnStatement, assignment),
+                  cfa);
+            })
         .collect(Collectors.toSet());
   }
 }

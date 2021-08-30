@@ -72,7 +72,7 @@ public class CorrespondingEdgeProvider {
    * instance of the given edge. Equality of edges is assumed based file location, predecessor, successor,
    * and the code it represents.
    */
-  static CFAEdge findCorrespondingEdge(CFAEdge originalEdge, CFA clonedCFA) {
+  static <T extends CFAEdge> T findCorrespondingEdge(T originalEdge, CFA clonedCFA) {
     final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor =
         new CFATraversal.EdgeCollectingCFAVisitor();
     CFATraversal.dfs().traverseOnce(clonedCFA.getMainFunction(), edgeCollectingVisitor);
@@ -81,7 +81,7 @@ public class CorrespondingEdgeProvider {
     for (CFAEdge edge1 : edges) {
       /* TODO improve condition (toString uses  file location, predecessor, successor and the code represented.) */
       if (edge1.toString().equals(originalEdge.toString())) {
-        return edge1;
+        return (T) edge1;
       }
     }
 

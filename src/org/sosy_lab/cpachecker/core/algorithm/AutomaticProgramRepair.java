@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutation;
-import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutator;
+import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.CFAMutator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -136,9 +136,9 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       throws CPAException, InterruptedException {
     for (Fault fault : faultLocalizationInfo.getRankedList()) {
       CFAEdge edge = fault.iterator().next().correspondingEdge();
-      Mutator mutator = new Mutator(cfa, edge);
+      CFAMutator CFAMutator = new CFAMutator(cfa, edge);
 
-      for (Mutation mutation : mutator.calcPossibleMutations()) {
+      for (Mutation mutation : CFAMutator.calcPossibleMutations()) {
 
         try {
           final ReachedSet newReachedSet = rerun(mutation.getCFA());

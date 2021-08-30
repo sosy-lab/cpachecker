@@ -15,7 +15,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class represents the mutation of an edge in the CFA. The suspicious edge is the edge that
- * is being mutated. The edge has to be replaced in the the constructor of the extending classes.
+ * was mutated. The edge has to be exchanged in the cfa with a new, mutated edge in the the constructor
+ * of the extending classes.
  */
 public abstract class Mutation {
   CFAEdge suspiciousEdge;

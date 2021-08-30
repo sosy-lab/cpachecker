@@ -23,32 +23,31 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
  * all three edges must be replaced.
  */
 public class FunctionCallMutation extends Mutation {
-  private CFunctionSummaryEdge newSummaryEdge;
-  private CFunctionCallEdge newFunctionCallEdge;
-  private CFunctionReturnEdge newFunctionReturnEdge;
+ private final FunctionCallEdgeAggregate functionCallEdgeAggregate;
 
   public FunctionCallMutation(
       CFAEdge pSuspiciousEdge,
-      CFunctionSummaryEdge pNewSummaryEdge,
-      CFunctionCallEdge pNewFunctionCallEdge,
-      CFunctionReturnEdge pNewFunctionReturnEdge,
+      FunctionCallEdgeAggregate pFunctionCallEdgeAggregate,
       CFA pCFA) {
     super(pSuspiciousEdge, pCFA);
 
-    newSummaryEdge = pNewSummaryEdge;
-    newFunctionCallEdge = pNewFunctionCallEdge;
-    newFunctionReturnEdge = pNewFunctionReturnEdge;
-    exchangeEdges(List.of(newSummaryEdge, newFunctionCallEdge, newFunctionReturnEdge));
+    functionCallEdgeAggregate = pFunctionCallEdgeAggregate;
+    exchangeEdges(List.of(
+      functionCallEdgeAggregate.getSummaryEdge(),
+      functionCallEdgeAggregate.getFunctionCallEdge(),
+      functionCallEdgeAggregate.getFunctionReturnEdge()
+    ));
   }
 
   public CFAEdge getNewEdge() {
     switch (suspiciousEdge.getEdgeType()) {
       case FunctionCallEdge:
-        return newFunctionCallEdge;
+        return functionCallEdgeAggregate.getFunctionCallEdge();
       case FunctionReturnEdge:
-        return newFunctionReturnEdge;
+        return functionCallEdgeAggregate.getFunctionReturnEdge();
       case CallToReturnEdge:
-        return newSummaryEdge;
+        return functionCallEdgeAggregate.getSummaryEdge();
+
       default:
         throw new RuntimeException(
             "FunctionCallMutation can only be initialized for FunctionCallEdge, FunctionReturnEdge or CallToReturnEdge");
