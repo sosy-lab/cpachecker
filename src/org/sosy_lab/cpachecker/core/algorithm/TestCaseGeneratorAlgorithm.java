@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -284,7 +284,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   private boolean shouldReportCoveredErrorCallAsError() {
-    return reportCoveredErrorCallAsError && CommonCoverageType.COVERAGE_ERROR.equals(specProp);
+    return reportCoveredErrorCallAsError && CommonCoverageProperty.COVERAGE_ERROR.equals(specProp);
   }
 
   @Override

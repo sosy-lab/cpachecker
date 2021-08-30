@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
@@ -59,16 +59,16 @@ public final class Specification {
    */
   private static final ImmutableMap<Property, String> AUTOMATA_FOR_PROPERTIES =
       ImmutableMap.<Property, String>builder()
-          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(CommonPropertyType.REACHABILITY_ERROR, "sv-comp-reachability")
-          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
-          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(CommonPropertyType.DEADLOCK, "deadlock")
-          .put(CommonPropertyType.ASSERT, "JavaAssertion")
+          .put(CommonVerificationProperty.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(CommonVerificationProperty.REACHABILITY, "sv-comp-reachability")
+          .put(CommonVerificationProperty.REACHABILITY_ERROR, "sv-comp-reachability")
+          .put(CommonVerificationProperty.VALID_FREE, "sv-comp-memorysafety")
+          .put(CommonVerificationProperty.VALID_DEREF, "sv-comp-memorysafety")
+          .put(CommonVerificationProperty.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonVerificationProperty.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
+          .put(CommonVerificationProperty.OVERFLOW, "sv-comp-overflow")
+          .put(CommonVerificationProperty.DEADLOCK, "deadlock")
+          .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
@@ -166,7 +166,7 @@ public final class Specification {
         for (Property prop : parser.getProperties()) {
           properties.add(prop);
 
-          if (prop instanceof Property.OtherVerificationProperty) {
+          if (prop instanceof Property.OtherLtlProperty) {
             Automaton automaton =
                 parseLtlFormula(prop.toString(), cfa, config, logger, pShutdownNotifier, scope);
             specificationAutomata.put(specFile, automaton);

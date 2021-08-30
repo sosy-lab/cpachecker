@@ -15,6 +15,10 @@ import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 
+/**
+ * Instances represent some property that CPAchecker should check and are part of our {@link
+ * Specification}.
+ */
 public interface Property {
 
   boolean isCoverage();
@@ -39,10 +43,14 @@ public interface Property {
     return toFullString(cfa.getMainFunction().getFunctionDefinition().getOrigName());
   }
 
-  public class OtherVerificationProperty implements Property {
+  /**
+   * Represents an LTL property as used by SV-COMP except for the well-known ones that are
+   * represented by {@link CommonVerificationProperty}.
+   */
+  public class OtherLtlProperty implements Property {
     private final String representation;
 
-    public OtherVerificationProperty(String pRepresentation) {
+    OtherLtlProperty(String pRepresentation) {
       representation = checkNotNull(pRepresentation);
     }
 
@@ -68,11 +76,11 @@ public interface Property {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof OtherVerificationProperty)) {
+      if (!(pObj instanceof OtherLtlProperty)) {
         return false;
       }
 
-      OtherVerificationProperty other = (OtherVerificationProperty) pObj;
+      OtherLtlProperty other = (OtherLtlProperty) pObj;
       return representation.equals(other.representation);
     }
 
@@ -82,7 +90,8 @@ public interface Property {
     }
   }
 
-  public enum CommonPropertyType implements Property {
+  /** Represents the few commonly used hard-coded verification property used by SV-COMP. */
+  public enum CommonVerificationProperty implements Property {
     REACHABILITY_LABEL("G ! label(ERROR)"),
 
     REACHABILITY("G ! call(__VERIFIER_error())"),
@@ -108,7 +117,7 @@ public interface Property {
 
     private final String representation;
 
-    CommonPropertyType(String pRepresentation) {
+    CommonVerificationProperty(String pRepresentation) {
       representation = pRepresentation;
     }
 
@@ -133,7 +142,8 @@ public interface Property {
     }
   }
 
-  public enum CommonCoverageType implements Property {
+  /** Represents the few commonly used hard-coded test properties used by Test-Comp. */
+  public enum CommonCoverageProperty implements Property {
     COVERAGE_BRANCH("COVER EDGES(@DECISIONEDGE)"),
 
     COVERAGE_CONDITION("COVER EDGES(@CONDITIONEDGE)"),
@@ -145,7 +155,7 @@ public interface Property {
 
     private final String representation;
 
-    CommonCoverageType(String pRepresentation) {
+    CommonCoverageProperty(String pRepresentation) {
       representation = pRepresentation;
     }
 
@@ -170,7 +180,8 @@ public interface Property {
     }
   }
 
-  public static class CoverFunction implements Property {
+  /** Represents a property for covering all calls to a certain function as used by Test-Comp. */
+  public static class CoverFunctionCallProperty implements Property {
 
     private static final Pattern COVERAGE_FUNCTION_PATTERN =
         Pattern.compile(
@@ -180,7 +191,7 @@ public interface Property {
 
     private final String funName;
 
-    public CoverFunction(final String pFunctionName) {
+    CoverFunctionCallProperty(final String pFunctionName) {
       funName = checkNotNull(pFunctionName);
     }
 
@@ -210,11 +221,11 @@ public interface Property {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof CoverFunction)) {
+      if (!(pObj instanceof CoverFunctionCallProperty)) {
         return false;
       }
 
-      CoverFunction other = (CoverFunction) pObj;
+      CoverFunctionCallProperty other = (CoverFunctionCallProperty) pObj;
       return funName.equals(other.funName);
     }
 
@@ -223,11 +234,11 @@ public interface Property {
       return funName.hashCode();
     }
 
-    public static Property getProperty(final String pRawProperty) {
+    static Property getProperty(final String pRawProperty) {
       Matcher matcher = COVERAGE_FUNCTION_PATTERN.matcher(pRawProperty);
 
       if (matcher.matches() && matcher.groupCount() == 2) {
-        return new CoverFunction(matcher.group(2).trim());
+        return new CoverFunctionCallProperty(matcher.group(2).trim());
       }
 
       return null;

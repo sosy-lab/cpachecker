@@ -26,9 +26,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.core.specification.Property.CoverFunction;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProperty;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a
@@ -72,10 +72,10 @@ public class PropertyFileParser {
               + ")\\(\\)\\), FQL\\((.+)\\) \\)");
 
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
-      Maps.uniqueIndex(EnumSet.allOf(CommonPropertyType.class), Property::toString);
+      Maps.uniqueIndex(EnumSet.allOf(CommonVerificationProperty.class), Property::toString);
 
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
-      Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
+      Maps.uniqueIndex(EnumSet.allOf(CommonCoverageProperty.class), Property::toString);
 
   public PropertyFileParser(final CharSource pPropertyFile) {
     propertyFile = checkNotNull(pPropertyFile);
@@ -130,10 +130,10 @@ public class PropertyFileParser {
     String rawLtlProperty = matcher.group(2);
     Property property = propStringToProperty.get(rawLtlProperty);
     if (property == null && propStringToProperty == AVAILABLE_VERIFICATION_PROPERTIES) {
-      property = new Property.OtherVerificationProperty(rawLtlProperty);
+      property = new Property.OtherLtlProperty(rawLtlProperty);
     }
     if (property == null && propStringToProperty == AVAILABLE_COVERAGE_PROPERTIES) {
-      property = CoverFunction.getProperty(rawProperty);
+      property = CoverFunctionCallProperty.getProperty(rawProperty);
     }
     return property;
   }

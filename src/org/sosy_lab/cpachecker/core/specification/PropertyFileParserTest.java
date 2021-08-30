@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.Rule;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.core.specification.Property.CoverFunction;
-import org.sosy_lab.cpachecker.core.specification.Property.OtherVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.OtherLtlProperty;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 
 public class PropertyFileParserTest {
@@ -35,57 +35,57 @@ public class PropertyFileParserTest {
   private static final ImmutableMap<String, Property> TEST_PROPERTIES =
       ImmutableMap.<String, Property>builder()
           // https://github.com/sosy-lab/sv-benchmarks/tree/master/java/properties
-          .put("CHECK( init(Main.main()), LTL(G assert) )", CommonPropertyType.ASSERT)
+          .put("CHECK( init(Main.main()), LTL(G assert) )", CommonVerificationProperty.ASSERT)
           .put(
               "CHECK( init(Main.main()), LTL(G !deadlock) )",
-              new OtherVerificationProperty("G !deadlock")) // TODO fix!
+              new OtherLtlProperty("G !deadlock")) // TODO fix!
           // https://github.com/sosy-lab/sv-benchmarks/tree/master/c/properties
-          .put("CHECK( init(main()), LTL(F end) )", CommonPropertyType.TERMINATION)
+          .put("CHECK( init(main()), LTL(F end) )", CommonVerificationProperty.TERMINATION)
           .put(
               "CHECK( init(main()), LTL(G ! call(reach_error())) )",
-              CommonPropertyType.REACHABILITY_ERROR)
+              CommonVerificationProperty.REACHABILITY_ERROR)
+          .put("CHECK( init(main()), LTL(G ! data-race) )", new OtherLtlProperty("G ! data-race"))
+          .put("CHECK( init(main()), LTL(G def-behavior) )", new OtherLtlProperty("G def-behavior"))
+          .put("CHECK( init(main()), LTL(G ! overflow) )", CommonVerificationProperty.OVERFLOW)
+          .put("CHECK( init(main()), LTL(G valid-deref) )", CommonVerificationProperty.VALID_DEREF)
+          .put("CHECK( init(main()), LTL(G valid-free) )", CommonVerificationProperty.VALID_FREE)
           .put(
-              "CHECK( init(main()), LTL(G ! data-race) )",
-              new OtherVerificationProperty("G ! data-race"))
+              "CHECK( init(main()), LTL(G valid-memcleanup) )",
+              CommonVerificationProperty.VALID_MEMCLEANUP)
           .put(
-              "CHECK( init(main()), LTL(G def-behavior) )",
-              new OtherVerificationProperty("G def-behavior"))
-          .put("CHECK( init(main()), LTL(G ! overflow) )", CommonPropertyType.OVERFLOW)
-          .put("CHECK( init(main()), LTL(G valid-deref) )", CommonPropertyType.VALID_DEREF)
-          .put("CHECK( init(main()), LTL(G valid-free) )", CommonPropertyType.VALID_FREE)
-          .put(
-              "CHECK( init(main()), LTL(G valid-memcleanup) )", CommonPropertyType.VALID_MEMCLEANUP)
-          .put("CHECK( init(main()), LTL(G valid-memtrack) )", CommonPropertyType.VALID_MEMTRACK)
+              "CHECK( init(main()), LTL(G valid-memtrack) )",
+              CommonVerificationProperty.VALID_MEMTRACK)
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@BASICBLOCKENTRY)) )",
-              CommonCoverageType.COVERAGE_STATEMENT)
+              CommonCoverageProperty.COVERAGE_STATEMENT)
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CALL(reach_error))) )",
-              new CoverFunction("reach_error"))
+              new CoverFunctionCallProperty("reach_error"))
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CONDITIONEDGE)) )",
-              CommonCoverageType.COVERAGE_CONDITION)
+              CommonCoverageProperty.COVERAGE_CONDITION)
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@DECISIONEDGE)) )",
-              CommonCoverageType.COVERAGE_BRANCH)
+              CommonCoverageProperty.COVERAGE_BRANCH)
           // historic
           .put(
-              "CHECK( init(main()), LTL(G ! label(ERROR)) )", CommonPropertyType.REACHABILITY_LABEL)
+              "CHECK( init(main()), LTL(G ! label(ERROR)) )",
+              CommonVerificationProperty.REACHABILITY_LABEL)
           .put(
               "CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )",
-              CommonPropertyType.REACHABILITY)
+              CommonVerificationProperty.REACHABILITY)
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CALL(__VERIFIER_error))) )",
-              CommonCoverageType.COVERAGE_ERROR)
+              CommonCoverageProperty.COVERAGE_ERROR)
           // expected to come
-          .put("CHECK( init(main()), LTL(G ! deadlock) )", CommonPropertyType.DEADLOCK)
+          .put("CHECK( init(main()), LTL(G ! deadlock) )", CommonVerificationProperty.DEADLOCK)
           // non-hardcoded values
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CALL(some_arbitrary_function))) )",
-              new CoverFunction("some_arbitrary_function"))
+              new CoverFunctionCallProperty("some_arbitrary_function"))
           .put(
               "CHECK( init(main()), LTL( F G (x = 1) ) )",
-              new OtherVerificationProperty(" F G (x = 1) ")) // TODO should trim
+              new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
           .build();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
@@ -97,11 +97,11 @@ public class PropertyFileParserTest {
     expect
         .withMessage("Please add tests when adding new properties")
         .that(TEST_PROPERTIES.values())
-        .containsAtLeastElementsIn(CommonPropertyType.values());
+        .containsAtLeastElementsIn(CommonVerificationProperty.values());
     expect
         .withMessage("Please add tests when adding new properties")
         .that(TEST_PROPERTIES.values())
-        .containsAtLeastElementsIn(CommonCoverageType.values());
+        .containsAtLeastElementsIn(CommonCoverageProperty.values());
   }
 
   @Test
@@ -119,16 +119,16 @@ public class PropertyFileParserTest {
 
     PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
     parser.parse();
-    assertThat(parser.getProperties()).containsExactly(CommonPropertyType.ASSERT);
+    assertThat(parser.getProperties()).containsExactly(CommonVerificationProperty.ASSERT);
   }
 
   @Test
   public void testMemsafety() throws InvalidPropertyFileException, IOException {
     Set<Property> properties =
         ImmutableSet.of(
-            CommonPropertyType.VALID_DEREF,
-            CommonPropertyType.VALID_FREE,
-            CommonPropertyType.VALID_MEMTRACK);
+            CommonVerificationProperty.VALID_DEREF,
+            CommonVerificationProperty.VALID_FREE,
+            CommonVerificationProperty.VALID_MEMTRACK);
     Set<String> propertyStrings =
         Maps.filterValues(TEST_PROPERTIES, v -> properties.contains(v)).keySet();
     String fileContent = Joiner.on('\n').join(propertyStrings);

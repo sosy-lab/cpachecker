@@ -17,7 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import java.nio.file.Path;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -42,7 +42,7 @@ public class SpecificationTest {
         .addEqualityGroup(
             new Specification(
                 ImmutableSet.of(),
-                ImmutableSet.of(CommonPropertyType.REACHABILITY),
+                ImmutableSet.of(CommonVerificationProperty.REACHABILITY),
                 ImmutableListMultimap.of(Path.of("test.spc"), automaton)))
         .testEquals();
   }
