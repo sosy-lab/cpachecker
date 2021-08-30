@@ -79,6 +79,10 @@ public class FormulaToCExpressionConverterTest {
           .isNotIn(solversToSkip);
     }
 
+    // TODO: Add tests for FunctionDeclarationKind.EQ_ZERO, FunctionDeclarationKind.GTE_ZERO,
+    //                     FunctionDeclarationKind.UMINUS, FunctionDeclarationKind.BV_EQ
+    //  Problem: How to create Formulas containing these?
+
     @Test
     public void convertVar() throws InterruptedException {
       BooleanFormula var = bmgrv.makeVariable("x");
@@ -187,16 +191,6 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertEqualsZero() throws InterruptedException {
-      // TODO: How to create formula containing FunctionDeclarationKind.EQ_ZERO
-    }
-
-    @Test
-    public void convertGreaterOrEqualsZero() throws InterruptedException {
-      // TODO: How to create formula containing FunctionDeclarationKind.GTE_ZERO
-    }
-
-    @Test
     public void convertLessThan() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula = imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
@@ -277,11 +271,6 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertUnaryMinus() throws InterruptedException {
-      // TODO: How to create formula containing FunctionDeclarationKind.UMINUS
-    }
-
-    @Test
     public void convertMultiplication() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5));
       BooleanFormula formula =
@@ -308,11 +297,6 @@ public class FormulaToCExpressionConverterTest {
           imgrv.equal(
               imgrv.modulo(imgrv.makeVariable("x"), imgrv.makeNumber(2)), imgrv.makeVariable("y"));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x % 2) == y)");
-    }
-
-    @Test
-    public void convertBVEqual() throws InterruptedException {
-      // TODO: How to create formula containing FunctionDeclarationKind.BV_EQ
     }
 
     @Test
