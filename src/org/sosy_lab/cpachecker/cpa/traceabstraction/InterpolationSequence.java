@@ -8,16 +8,23 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import static com.google.common.base.Verify.verify;
+
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import java.util.TreeSet;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
@@ -29,29 +36,47 @@ class InterpolationSequence {
 
   static class Builder {
 
-    private final Multimap<String, AbstractionPredicate> functionPredicates;
-    private final Set<AbstractionPredicate> globalPredicates;
+    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
+    private final Multimap<String, IndexedAbstractionPredicate> functionPredicates;
+    private final Set<IndexedAbstractionPredicate> globalPredicates;
+
+    private final Map<String, AbstractionPredicate> predCache;
+
+    /**
+     * Builder for {@link InterpolationSequence} in which all predicates are stored only once and in
+     * the ordering in which they first appear in the respective collection.
+     */
     Builder() {
-      // We want all predicates to be stored only once and in the ordering in which they first
-      // appeared in the respective collection. This yields for every location type
-      // (function, global, etc.)
-      functionPredicates = MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
-      globalPredicates = new LinkedHashSet<>();
+      // To achieve the ordering a tree-structure for the collections are used.
+      // The predicates are numerically indexed once they are put into the collection.
+      functionPredicates = MultimapBuilder.linkedHashKeys().treeSetValues().build();
+      globalPredicates = new TreeSet<>();
+
+      predCache = new HashMap<>();
     }
 
     Builder addFunctionPredicates(
         String pFunctionName, Set<AbstractionPredicate> pFunctionPredicates) {
       assert checkOrdering(functionPredicates.get(pFunctionName), pFunctionPredicates)
           : "Sequence of interpolants is inconsistent";
-      functionPredicates.putAll(pFunctionName, pFunctionPredicates);
+      for (AbstractionPredicate abstractionPredicate : pFunctionPredicates) {
+        if (predCache.put(pFunctionName, abstractionPredicate) == null) {
+          // There was no such value previously associated with the given key, meaning
+          // this specific key-value pair is now added for the first time.
+          functionPredicates.put(
+              pFunctionName,
+              new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), abstractionPredicate));
+        }
+      }
       return this;
     }
 
     Builder addGlobalPredicate(AbstractionPredicate pGlobalPredicate) {
       assert checkOrdering(globalPredicates, pGlobalPredicate)
           : "Sequence of interpolants is inconsistent";
-      globalPredicates.add(pGlobalPredicate);
+      globalPredicates.add(
+          new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), pGlobalPredicate));
       return this;
     }
 
@@ -63,7 +88,8 @@ class InterpolationSequence {
     }
 
     private boolean checkOrdering(
-        Collection<AbstractionPredicate> pPredicates, Set<AbstractionPredicate> pPredicatesToAdd) {
+        Collection<IndexedAbstractionPredicate> pPredicates,
+        Set<AbstractionPredicate> pPredicatesToAdd) {
       if (pPredicatesToAdd.size() > 1) {
         throw new UnsupportedOperationException(
             "InterpolationSequence only allows to add one new predicate at a time");
@@ -80,9 +106,11 @@ class InterpolationSequence {
      * again given as interpolant, then c may not appear before the last occurrence of b
      */
     private boolean checkOrdering(
-        Collection<AbstractionPredicate> pPredicates, AbstractionPredicate pPredicateToAdd) {
-      return !pPredicates.contains(pPredicateToAdd)
-          || Iterables.getLast(pPredicates).equals(pPredicateToAdd);
+        Collection<IndexedAbstractionPredicate> pPredicates, AbstractionPredicate pPredicateToAdd) {
+      return FluentIterable.from(pPredicates)
+              .transform(IndexedAbstractionPredicate::getPredicate)
+              .allMatch(x -> !x.equals(pPredicateToAdd))
+          || Iterables.getLast(pPredicates).getPredicate().equals(pPredicateToAdd);
     }
 
     private boolean sanityCheck() {
@@ -97,22 +125,30 @@ class InterpolationSequence {
     }
   }
 
-  private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
-  private final ImmutableSet<AbstractionPredicate> globalPredicates;
+  private final ImmutableSetMultimap<String, IndexedAbstractionPredicate> functionPredicates;
+  private final ImmutableSet<IndexedAbstractionPredicate> globalPredicates;
 
   private InterpolationSequence(
-      Multimap<String, AbstractionPredicate> pFunctionPredicates,
-      Set<AbstractionPredicate> pGlobalPredicates) {
-    functionPredicates = ImmutableSetMultimap.copyOf(pFunctionPredicates);
+      Multimap<String, IndexedAbstractionPredicate> pFunctionPredicates,
+      Set<IndexedAbstractionPredicate> pGlobalPredicates) {
+    functionPredicates =
+        ImmutableSetMultimap.<String, IndexedAbstractionPredicate>builder()
+            .orderValuesBy(IndexedAbstractionPredicate::compareTo)
+            .putAll(pFunctionPredicates)
+            .build();
     globalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
+
+    verify(
+        functionPredicates
+            .asMap()
+            .values()
+            .stream()
+            .allMatch(x -> x instanceof ImmutableSortedSet));
   }
 
-  ImmutableSet<AbstractionPredicate> getPredicates(CFANode loc, int locInstance) {
-    return getPredicates(new LocationInstance(loc, locInstance));
-  }
-
-  ImmutableSet<AbstractionPredicate> getPredicates(LocationInstance locationInstance) {
-    ImmutableSet<AbstractionPredicate> result =
+  private ImmutableSet<IndexedAbstractionPredicate> getPredicates(
+      LocationInstance locationInstance) {
+    ImmutableSet<IndexedAbstractionPredicate> result =
         functionPredicates.get(locationInstance.getFunctionName());
     if (result.isEmpty()) {
       result = globalPredicates;
@@ -120,8 +156,21 @@ class InterpolationSequence {
     return result;
   }
 
-  AbstractionPredicate getFirst(LocationInstance locationInstance) {
-    return getPredicates(locationInstance).stream().findFirst().orElseThrow();
+  boolean isInScopeOf(LocationInstance pLocationInstance) {
+    return !getPredicates(pLocationInstance).isEmpty();
+  }
+
+  Optional<IndexedAbstractionPredicate> getFirst(LocationInstance locationInstance) {
+    return getPredicates(locationInstance).stream().findFirst();
+  }
+
+  Optional<IndexedAbstractionPredicate> getNext(
+      LocationInstance locationInstance, IndexedAbstractionPredicate pPredicate) {
+    ImmutableSortedSet<IndexedAbstractionPredicate> predicates =
+        (ImmutableSortedSet<IndexedAbstractionPredicate>)
+            functionPredicates.asMap().get(locationInstance.getFunctionName());
+
+    return Optional.ofNullable(predicates.higher(pPredicate));
   }
 
   @Override
