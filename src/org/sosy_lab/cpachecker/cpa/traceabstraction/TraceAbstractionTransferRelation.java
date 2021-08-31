@@ -18,8 +18,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -166,24 +164,13 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
           currentItpSequence.getNext(locInstance, curPreds);
 
       IndexedAbstractionPredicate precondition = nextPreds.orElse(curPreds);
-
-      AbstractionFormula computedPostCondition = null;
-      Map<IndexedAbstractionPredicate, AbstractionFormula> abstractionResults = new HashMap<>();
-      ImmutableSet<IndexedAbstractionPredicate> availablePreds =
-          nextPreds.isEmpty()
-              ? ImmutableSet.of(curPreds)
-              : ImmutableSet.of(curPreds, nextPreds.orElseThrow());
-      for (IndexedAbstractionPredicate indexedPred : availablePreds) {
-        abstractionResults.put(
-            indexedPred,
-            buildAbstraction(
-                pCfaEdge,
-                callstackWrapper,
-                abstractionFormula,
-                pathFormula,
-                ImmutableSet.of(indexedPred.getPredicate())));
-      }
-      computedPostCondition = abstractionResults.get(precondition);
+      AbstractionFormula computedPostCondition =
+          buildAbstraction(
+              pCfaEdge,
+              callstackWrapper,
+              abstractionFormula,
+              pathFormula,
+              ImmutableSet.of(precondition.getPredicate()));
 
       if (computedPostCondition.isTrue()) {
         // Abstraction formula is true; stay in the current (interpolation) state
