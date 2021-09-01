@@ -130,6 +130,11 @@ public final class LockState extends AbstractLockState {
       LockTreeNode other = (LockTreeNode) obj;
       return Objects.equals(locks, other.locks);
     }
+
+    @Override
+    public String toString() {
+      return locks.toString();
+    }
   }
 
   public class LockStateBuilder extends AbstractLockStateBuilder {
