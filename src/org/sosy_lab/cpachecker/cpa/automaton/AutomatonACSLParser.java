@@ -117,7 +117,7 @@ public class AutomatonACSLParser {
             new AutomatonBoolExpr.MatchCFAEdgeExact(pEdge.getRawStatement()),
             AutomatonInternalState.ERROR)
         .withAssumptions(pAssumptions)
-        .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+        .withTargetInformation(new StringExpression("Invariant not valid"))
         .build();
   }
 
