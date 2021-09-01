@@ -244,9 +244,7 @@ parser code {:
         assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
         for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
           CFAEdge currentEdge = successor.getEnteringEdge(i);
-          if (!currentEdge.equals(edge)) {
-            cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
-          }
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
     }
