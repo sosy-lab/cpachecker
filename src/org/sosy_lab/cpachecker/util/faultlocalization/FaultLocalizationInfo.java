@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -283,6 +283,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         preconditionString = precondition.orElseThrow().toString();
       }
     }
-      JSON.writeJSONString(Collections.singletonMap("fl-precondition", preconditionString), writer);
+    JSON.writeJSONString(ImmutableMap.of("fl-precondition", preconditionString), writer);
   }
 }

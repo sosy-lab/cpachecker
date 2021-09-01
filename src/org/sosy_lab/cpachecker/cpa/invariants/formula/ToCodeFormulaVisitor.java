@@ -40,7 +40,7 @@ public class ToCodeFormulaVisitor
             Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
             ExpressionTree<String>> {
 
-  private static final CSimpleType[] TYPES = new CSimpleType[] {
+  private static final CSimpleType[] TYPES = {
     CNumericTypes.SIGNED_CHAR,
     CNumericTypes.UNSIGNED_CHAR,
     CNumericTypes.SHORT_INT,
@@ -51,7 +51,8 @@ public class ToCodeFormulaVisitor
     CNumericTypes.LONG_INT,
     CNumericTypes.UNSIGNED_LONG_INT,
     CNumericTypes.LONG_LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_LONG_INT};
+    CNumericTypes.UNSIGNED_LONG_LONG_INT
+  };
 
   /**
    * The formula evaluation visitor used to evaluate compound state invariants
@@ -457,27 +458,27 @@ public class ToCodeFormulaVisitor
     return lessThan(operand1, operand2);
   }
 
-  private static final ExpressionTree<String> lessThan(String pLess, String pMore) {
+  private static ExpressionTree<String> lessThan(String pLess, String pMore) {
     return LeafExpression.of(String.format("(%s < %s)", pLess, pMore));
   }
 
-  private static final ExpressionTree<String> lessEqual(String pLess, String pMore) {
+  private static ExpressionTree<String> lessEqual(String pLess, String pMore) {
     return LeafExpression.of(String.format("(%s <= %s)", pLess, pMore));
   }
 
-  private static final ExpressionTree<String> greaterThan(String pMore, String pLess) {
+  private static ExpressionTree<String> greaterThan(String pMore, String pLess) {
     return LeafExpression.of(String.format("(%s > %s)", pMore, pLess));
   }
 
-  private static final ExpressionTree<String> greaterEqual(String pMore, String pLess) {
+  private static ExpressionTree<String> greaterEqual(String pMore, String pLess) {
     return LeafExpression.of(String.format("(%s >= %s)", pMore, pLess));
   }
 
-  private static final ExpressionTree<String> equal(String pLess, String pMore) {
+  private static ExpressionTree<String> equal(String pLess, String pMore) {
     return LeafExpression.of(String.format("(%s == %s)", pLess, pMore));
   }
 
-  private static final ExpressionTree<String> not(ExpressionTree<String> pOp) {
+  private static ExpressionTree<String> not(ExpressionTree<String> pOp) {
     if (pOp.equals(ExpressionTrees.getFalse())) {
       return ExpressionTrees.getTrue();
     }

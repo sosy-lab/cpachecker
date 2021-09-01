@@ -10,21 +10,34 @@ package org.sosy_lab.cpachecker.util.smg.graph;
 
 import java.math.BigInteger;
 
+/**
+ * SMG edge pointing from an (SMG-)value to an (SMG-)object. Has a target specifier consisting of
+ * SMGTargetSpecifier {first, last, all, region} and a offset.
+ */
 public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   private final SMGObject pointsToObject;
   private final BigInteger offset;
-  private final SMGTargetSpecifier targetSpecifier;
+  private SMGTargetSpecifier targetSpecifier;
 
+  /**
+   * Constructs a new edge that points-to an object that may be a region or a DLS.
+   *
+   * @param pPointsToObject - The object this edge points to (region or DLS).
+   * @param pOffset - The offset wrt. to the base address of object. This may be negative (i.e. in a
+   *     linux list).
+   * @param pTargetSpecifier - The target specifier SMGTargetSpecifier {first, last, all, region}.
+   *     The specifier is a region iff the object models a region. If the object is a DLS, this
+   *     specifies wheter it points to the first, last or all concrete regions of the object.
+   */
   public SMGPointsToEdge(
-      SMGObject pPointsToObject,
-      BigInteger pOffset,
-      SMGTargetSpecifier pTargetSpecifier) {
+      SMGObject pPointsToObject, BigInteger pOffset, SMGTargetSpecifier pTargetSpecifier) {
     pointsToObject = pPointsToObject;
     offset = pOffset;
     targetSpecifier = pTargetSpecifier;
   }
 
+  /** @return the SMGObject this edge points to. */
   public SMGObject pointsTo() {
     return pointsToObject;
   }
@@ -60,6 +73,10 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
   @Override
   public int hashCode() {
     return super.hashCode();
+  }
+
+  public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
+    targetSpecifier = pTargetSpecifier;
   }
 
 }

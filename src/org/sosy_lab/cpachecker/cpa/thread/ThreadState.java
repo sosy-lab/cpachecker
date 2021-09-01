@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.thread;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -156,17 +154,11 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   @Override
   public String toString() {
     // Info method, in difficult cases may be wrong
-    Optional<ThreadLabel> createdThread =
-        from(order)
-            .filter(
-                l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
-            .last();
-
-    if (createdThread.isPresent()) {
-      return createdThread.get().getName();
-    } else {
-      return "";
-    }
+    return Lists.reverse(order).stream()
+        .filter(l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
+        .findFirst()
+        .map(ThreadLabel::getName)
+        .orElse("");
   }
 
   @Override

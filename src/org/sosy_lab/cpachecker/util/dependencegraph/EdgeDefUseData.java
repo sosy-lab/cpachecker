@@ -9,12 +9,12 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.base.Equivalence;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -133,11 +133,11 @@ final class EdgeDefUseData {
 
       @Override
       public EdgeDefUseData extract(CFAEdge pEdge) {
-        Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
+        Optional<AAstNode> optAstNode = pEdge.getRawAST();
 
         if (optAstNode.isPresent()) {
 
-          AAstNode astNode = optAstNode.get();
+          AAstNode astNode = optAstNode.orElseThrow();
 
           if (astNode instanceof CAstNode) {
 
@@ -174,9 +174,9 @@ final class EdgeDefUseData {
 
   public interface Extractor {
 
-    public EdgeDefUseData extract(CFAEdge pEdge);
+    EdgeDefUseData extract(CFAEdge pEdge);
 
-    public EdgeDefUseData extract(CAstNode pAstNode);
+    EdgeDefUseData extract(CAstNode pAstNode);
   }
 
   public static final class CachingExtractor implements Extractor {
@@ -427,7 +427,7 @@ final class EdgeDefUseData {
       if (type instanceof CComplexType) {
         String name = ((CComplexType) type).getQualifiedName();
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
-        set.add(MemoryLocation.valueOf(name));
+        set.add(MemoryLocation.parseExtendedQualifiedName(name));
       }
 
       return null;
@@ -441,7 +441,7 @@ final class EdgeDefUseData {
       if (declaration instanceof CVariableDeclaration
           || declaration instanceof CParameterDeclaration) {
 
-        MemoryLocation memLoc = MemoryLocation.valueOf(declaration.getQualifiedName());
+        MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
         set.add(memLoc);
       }
@@ -499,7 +499,7 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CVariableDeclaration pDecl) throws EdgeDefUseDataException {
 
-      MemoryLocation memLoc = MemoryLocation.valueOf(pDecl.getQualifiedName());
+      MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
       defs.add(memLoc);
 
       CInitializer initializer = pDecl.getInitializer();
@@ -585,7 +585,7 @@ final class EdgeDefUseData {
       Optional<CExpression> optExpression = pNode.getReturnValue();
 
       if (optExpression.isPresent()) {
-        return optExpression.get().accept(this);
+        return optExpression.orElseThrow().accept(this);
       } else {
         return null;
       }

@@ -16,11 +16,12 @@ import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
 /**
  * Live view of an unmodifiable reached state set, where states
@@ -96,6 +97,11 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
+  public Stream<AbstractState> stream() {
+    return underlying.stream().map(mapStateFunction);
+  }
+
+  @Override
   public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
     checkNotNull(pAction);
     underlying.forEach(
@@ -119,12 +125,12 @@ public class UnmodifiableReachedSetView
   }
 
   @Override
-  public boolean hasViolatedProperties() {
-    return underlying.hasViolatedProperties();
+  public boolean wasTargetReached() {
+    return underlying.wasTargetReached();
   }
 
   @Override
-  public Collection<Property> getViolatedProperties() {
-    return underlying.getViolatedProperties();
+  public Collection<TargetInformation> getTargetInformation() {
+    return underlying.getTargetInformation();
   }
 }

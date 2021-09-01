@@ -151,8 +151,8 @@ class EclipseJavaParser implements Parser {
   private ImmutableList<Path> convertToPathList(String javaPath) {
     ImmutableList.Builder<Path> result = ImmutableList.builder();
 
-    for (String pathAsString : Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings()
-        .split(javaPath)) {
+    for (String pathAsString :
+        Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings().split(javaPath)) {
       Path path = Path.of(pathAsString);
       if (!Files.exists(path)) {
         logger.log(Level.WARNING, "Path", path, "could not be found.");
@@ -232,8 +232,7 @@ class EclipseJavaParser implements Parser {
       try (Writer w = IO.openOutputFile(exportTypeHierarchyFile, StandardCharsets.UTF_8)) {
         THDotBuilder.generateDOT(w, pScope);
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write TypeHierarchy to dot file");
+        logger.logUserException(Level.WARNING, e, "Could not write TypeHierarchy to dot file");
         // continue with analysis
       }
     }
@@ -328,7 +327,7 @@ class EclipseJavaParser implements Parser {
 
     cfaTimer.start();
 
-    // AstDebugg checker = new AstDebugg(logger);
+    // ASTDebug checker = new ASTDebug(logger);
     // ast.accept(checker);
 
     CFABuilder builder = new CFABuilder(logger, scope);
@@ -352,7 +351,7 @@ class EclipseJavaParser implements Parser {
           CompilationUnit astNext = parse(classFile.orElseThrow());
           cfaTimer.start();
 
-          //astNext.accept(checker);
+          // astNext.accept(checker);
           astNext.accept(builder);
         }
 
@@ -409,7 +408,7 @@ class EclipseJavaParser implements Parser {
 
     private final Path file;
 
-    private final  CompilationUnit ast;
+    private final CompilationUnit ast;
 
     public JavaFileAST(Path pFile, CompilationUnit pAst) {
       file = pFile;

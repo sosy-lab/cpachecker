@@ -13,14 +13,12 @@
  */
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -28,10 +26,9 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.SMG;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGExplicitValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C)
@@ -55,13 +52,13 @@ public class SMGJoinFields {
    * @param obj2 - SMGObject of smg2
    */
   public void joinFields(SMGObject obj1, SMGObject obj2) {
+
     Preconditions.checkArgument(
         obj1.getSize().equals(obj2.getSize()),
         "SMG fields with different sizes cannot be joined.");
     Preconditions.checkArgument(
         smg1.getObjects().contains(obj1) && smg2.getObjects().contains(obj2),
         "Only objects of givens SMGs can be joined.");
-
     // Step 2
     PersistentSet<SMGHasValueEdge> obj1Edges = processHasValueEdgeSet(obj1, obj2, smg1, smg2);
     PersistentSet<SMGHasValueEdge> obj2Edges = processHasValueEdgeSet(obj2, obj1, smg2, smg1);
@@ -73,8 +70,8 @@ public class SMGJoinFields {
     updateStatus(smg2, newSMG2, SMGJoinStatus.RIGHT_ENTAIL, obj2);
 
     // Step 5
-    PersistentSet<SMGHasValueEdge> addObj1Edges = mergeNonNullValues(newSMG2, newSMG1, obj2, obj1);
-    PersistentSet<SMGHasValueEdge> addObj2Edges = mergeNonNullValues(newSMG1, newSMG2, obj1, obj2);
+    FluentIterable<SMGHasValueEdge> addObj1Edges = mergeNonNullValues(newSMG2, newSMG1, obj2, obj1);
+    FluentIterable<SMGHasValueEdge> addObj2Edges = mergeNonNullValues(newSMG1, newSMG2, obj1, obj2);
 
     for (SMGHasValueEdge edge : addObj1Edges) {
       newSMG1 = newSMG1.copyAndAddValue(edge.hasValue());
@@ -98,37 +95,30 @@ public class SMGJoinFields {
    * @param pObject2 - the object with defined edges
    * @return extension edge set for pSMG2
    */
-  private PersistentSet<SMGHasValueEdge>
+  @VisibleForTesting
+  FluentIterable<SMGHasValueEdge>
       mergeNonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObject1, SMGObject pObject2) {
-    Set<SMGHasValueEdge> retSet = new HashSet<>();
-    Set<SMGHasValueEdge> obj1EdgesWOZero =
-        pSMG1.getEdges(pObject1)
-            .stream()
-            .filter(createEqNullValuePredicate(false))
-            .collect(ImmutableSet.toImmutableSet());
+
     PersistentSortedMap<BigInteger, SMGHasValueEdge> obj2OffsetToEdges =
         pSMG2.getEdges(pObject2).stream().collect(mapOffsetToEdgeCollector());
 
-    obj1EdgesWOZero.stream()
+    return FluentIterable.from(pSMG1.getEdges(pObject1))
         .filter(
             edge -> {
               // filter overlapping edges
-              return !obj2OffsetToEdges
-                  .subMap(edge.getOffset(), edge.getOffset().add(edge.getSizeInBits()))
-                  .isEmpty();
+              return !edge.hasValue().isZero()
+                  && !obj2OffsetToEdges
+                      .subMap(edge.getOffset(), edge.getOffset().add(edge.getSizeInBits()))
+                      .isEmpty();
             })
-        .forEach(
-            edge -> {
-              // add fresh edges for offset and size tuples, which are defined in o1 and undefined
-              // in o2
-              retSet.add(
-                  new SMGHasValueEdge(
-                      SMGSymbolicValue.of(edge.hasValue().getNestingLevel()),
-                      edge.getSizeInBits(),
-                      edge.getOffset()));
-            });
-
-    return PersistentSet.copyOf(retSet);
+        .transform(
+            // add fresh edges for offset and size tuples, which are defined in o1 and undefined
+            // in o2
+            edge ->
+                new SMGHasValueEdge(
+                    SMGValue.of(edge.hasValue().getNestingLevel()),
+                    edge.getOffset(),
+                    edge.getSizeInBits()));
   }
 
   /**
@@ -139,7 +129,8 @@ public class SMGJoinFields {
    * @param pNewStatus - Status update to applied maybe
    * @param object - the joined object
    */
-  private void updateStatus(SMG oldSmg, SMG newSmg, SMGJoinStatus pNewStatus, SMGObject object) {
+  @VisibleForTesting
+  void updateStatus(SMG oldSmg, SMG newSmg, SMGJoinStatus pNewStatus, SMGObject object) {
     // filter for null edges and map offsets on sizes
     PersistentSortedMap<BigInteger, BigInteger> oldEdgesWithZeroOffsetToSize =
         getNullEdgesMapOffsetToSize(object, oldSmg);
@@ -151,11 +142,10 @@ public class SMGJoinFields {
             .stream()
             .anyMatch(
                 entry -> {
-                  // find entry with equal offset
-                  BigInteger newSize = newEdgesWithZeroOffsetToSize.get(entry.getKey());
                   // if newSize == null the offset was shortened
                   // if !newSize.equals(entry.getValue()) the length was shortened
-                  return newSize == null || !newSize.equals(entry.getValue());
+                  return !newEdgesWithZeroOffsetToSize.containsKey(entry.getKey())
+                      || !newEdgesWithZeroOffsetToSize.get(entry.getKey()).equals(entry.getValue());
                 });
     if (applyUpdate) {
       status = status.updateWith(pNewStatus);
@@ -168,63 +158,66 @@ public class SMGJoinFields {
    * @param obj1 - SMGObject of smg1
    * @param obj2 - SMGObject of smg2
    */
-  private PersistentSet<SMGHasValueEdge>
+  @VisibleForTesting
+  PersistentSet<SMGHasValueEdge>
       processHasValueEdgeSet(SMGObject obj1, SMGObject obj2, SMG pSmg1, SMG pSmg2) {
     // H1 and H2
-    Set<SMGHasValueEdge> obj1Edges = pSmg1.getEdges(obj1);
-    Set<SMGHasValueEdge> obj2Edges = pSmg2.getEdges(obj2);
 
     // 2a)
-    Set<SMGHasValueEdge> edgesObj1Without0Address =
-        obj1Edges.stream().filter(createEqNullValuePredicate(false)).collect(ImmutableSet.toImmutableSet());
+    FluentIterable<SMGHasValueEdge> edgesObj1Without0Address =
+        pSmg1.getHasValueEdgesByPredicate(
+            obj1,
+            edge -> !edge.hasValue().isZero());
 
     // 2b)
     PersistentSortedMap<BigInteger, BigInteger> obj1EdgesWithZeroOffsetToSize =
         getNullEdgesMapOffsetToSize(obj1, pSmg1);
     PersistentSortedMap<BigInteger, BigInteger> map2 = getNullEdgesMapOffsetToSize(obj2, pSmg2);
-    Set<SMGHasValueEdge> commonNullValueEdgeSet = new LinkedHashSet<>();
 
-    obj1EdgesWithZeroOffsetToSize.entrySet().forEach(entry -> {
-      commonNullValueEdgeSet.addAll(getNullEdgesIntersection(entry, map2));
-    });
+    FluentIterable<SMGHasValueEdge> commonNullValueEdgeSet =
+        FluentIterable.from(obj1EdgesWithZeroOffsetToSize.entrySet())
+            .transformAndConcat(entry -> getNullEdgesIntersection(entry, map2));
 
     // 2c)
-    Set<SMGHasValueEdge> obj2EdgesWithoutZero =
-        obj2Edges.stream().filter(createEqNullValuePredicate(false)).collect(ImmutableSet.toImmutableSet());
+    FluentIterable<SMGHasValueEdge> obj2EdgesWithoutZero =
+        pSmg2
+            .getHasValueEdgesByPredicate(
+                obj2,
+                edge -> {
+                  if (edge.hasValue().isZero()) {
+                    return false;
+                  }
+                  // find offset wise matching edges
+                  BigInteger floor = edge.getOffset();
+                  BigInteger celing = edge.getOffset().add(edge.getSizeInBits());
+                  Entry<BigInteger, BigInteger> entry =
+                      obj1EdgesWithZeroOffsetToSize.floorEntry(floor);
+                  return entry != null
+                      && entry.getKey().add(entry.getValue()).compareTo(celing) >= 0;
+                })
+            .transform(
+                edge ->
+                    new SMGHasValueEdge(
+                        SMGValue.zeroValue(), edge.getOffset(), edge.getSizeInBits()));
 
-    Set<SMGHasValueEdge> missingNullEdgeSet = new LinkedHashSet<>();
-    obj2EdgesWithoutZero.forEach(edge -> {
-      // find offset wise matching edges
-      BigInteger floor = edge.getOffset();
-      BigInteger celing = edge.getOffset().add(edge.getSizeInBits());
-      Entry<BigInteger, BigInteger> entry = obj1EdgesWithZeroOffsetToSize.floorEntry(floor);
-      if (entry != null && entry.getKey().add(entry.getValue()).compareTo(celing) >= 0) {
-        missingNullEdgeSet.add(
-            new SMGHasValueEdge(
-                SMGExplicitValue.nullInstance(),
-                edge.getSizeInBits(),
-                edge.getOffset()));
-      }
-    });
-
-    edgesObj1Without0Address.addAll(commonNullValueEdgeSet);
-    edgesObj1Without0Address.addAll(missingNullEdgeSet);
-
-    return PersistentSet.copyOf(edgesObj1Without0Address);
+    return PersistentSet.copyOf(
+        Iterables.concat(edgesObj1Without0Address, commonNullValueEdgeSet, obj2EdgesWithoutZero));
   }
 
-  private Collection<SMGHasValueEdge> getNullEdgesIntersection(
+  @VisibleForTesting
+  FluentIterable<SMGHasValueEdge> getNullEdgesIntersection(
       Entry<BigInteger, BigInteger> pEntry,
       PersistentSortedMap<BigInteger, BigInteger> pMap) {
-    return pMap.subMap(pEntry.getKey(), pEntry.getKey().add(pEntry.getValue()))
-        .entrySet()
-        .stream()
-        .map(next -> {
-          BigInteger resultOffset = pEntry.getKey().max(next.getKey());
-          BigInteger resultSize = pEntry.getValue().max(next.getValue());
-          return new SMGHasValueEdge(SMGExplicitValue.nullInstance(), resultSize, resultOffset);
-        })
-        .collect(ImmutableSet.toImmutableSet());
+    return FluentIterable.from(
+            pMap.subMap(pEntry.getKey(), true, pEntry.getKey().add(pEntry.getValue()), false)
+                .entrySet())
+        .transform(
+            next -> {
+              BigInteger resultOffset = pEntry.getKey().max(next.getKey());
+              BigInteger resultSize =
+                  pEntry.getKey().add(pEntry.getValue()).min(next.getKey().add(next.getValue()));
+              return new SMGHasValueEdge(SMGValue.zeroValue(), resultOffset, resultSize);
+            });
   }
 
   private PersistentSortedMap<BigInteger, BigInteger>
@@ -237,7 +230,7 @@ public class SMGJoinFields {
   }
 
   private Predicate<SMGHasValueEdge> createEqNullValuePredicate(boolean equals) {
-    return edge -> equals == edge.hasValue().equals(SMGExplicitValue.nullInstance());
+    return edge -> equals == edge.hasValue().isZero();
   }
 
   private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, BigInteger>>

@@ -119,4 +119,9 @@ SPDX-License-Identifier: Apache-2.0
     <withoutfile>pack.WhileAnweisung</withoutfile>
     <withoutfile>pack.forAnweisung</withoutfile>
   </tasks>
+
+  <tasks>
+    <includesfile>../programs/java-benchmarks/ReachSafety-Java.set</includesfile>
+    <propertyfile>../programs/java-benchmarks/properties/assert.prp</propertyfile>
+  </tasks>
 </benchmark>

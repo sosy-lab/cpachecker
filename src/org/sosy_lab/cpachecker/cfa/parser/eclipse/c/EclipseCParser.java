@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -62,9 +63,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-/**
- * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
- */
+/** Wrapper for Eclipse CDT */
 class EclipseCParser implements CParser {
 
   private final ILanguage language;
@@ -339,6 +338,14 @@ class EclipseCParser implements CParser {
     }
   }
 
+  private static final CharMatcher LEGAL_VAR_NAME_CHARACTERS =
+      // Taken from § 6.4.2.1 of C11
+      CharMatcher.is('_')
+          .or(CharMatcher.inRange('A', 'Z'))
+          .or(CharMatcher.inRange('a', 'z'))
+          .or(CharMatcher.inRange('0', '9'))
+          .precomputed();
+
   /**
    * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
    * static variables
@@ -367,10 +374,9 @@ class EclipseCParser implements CParser {
       } else {
         for (IASTTranslationUnit ast : asts) {
           String staticVariablePrefix =
-              parseContext
-                  .mapFileNameToNameForHumans(ast.getFilePath())
-                  .replace("/", "_")
-                  .replaceAll("\\W", "_");
+              LEGAL_VAR_NAME_CHARACTERS
+                  .negate()
+                  .replaceFrom(parseContext.mapFileNameToNameForHumans(ast.getFilePath()), "_");
           builder.analyzeTranslationUnit(ast, staticVariablePrefix, pScope);
         }
       }
@@ -514,6 +520,12 @@ class EclipseCParser implements CParser {
       // Our version of CDT does not recognize _Float128 yet:
       // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/471
       macrosBuilder.put("_Float128", "__float128");
+      // https://gcc.gnu.org/onlinedocs/gcc/Floating-Types.html
+      // https://code.woboq.org/userspace/glibc/bits/floatn-common.h.html
+      macrosBuilder.put("_Float32", "float");
+      macrosBuilder.put("_Float32x", "double");
+      macrosBuilder.put("_Float64", "double");
+      macrosBuilder.put("_Float64x", "long double");
 
       MACROS = macrosBuilder.build();
     }

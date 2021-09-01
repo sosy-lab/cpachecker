@@ -32,6 +32,10 @@ SPDX-License-Identifier: Apache-2.0
         <fileset dir="${ivy.lib.dir}" includes="build/*.jar"/>
     </path>
 
+    <patternset id="source.additional">
+        <exclude name="**/*.java" />
+    </patternset>
+
     <!-- error-prone config from https://errorprone.info/docs/installation#jdk-16 -->
     <property name="errorprone.options.required" value="
         -XDcompilePolicy=simple
@@ -53,13 +57,7 @@ SPDX-License-Identifier: Apache-2.0
         <mkdir dir="${source.generated.dir}"/>
         <copy todir="${class.dir}">
           <fileset dir="${source.dir}">
-            <exclude name="**/*.java" />
-            <exclude name="**/*.cup" />
-            <exclude name="**/*.jflex" />
-            <exclude name="**/*.nested" />
-            <exclude name="**/*.xml" />
-            <exclude name="**/*.dia" />
-            <exclude name="**/*.pdf" />
+            <patternset refid="source.additional" />
           </fileset>
         </copy>
         <javac debug="true"

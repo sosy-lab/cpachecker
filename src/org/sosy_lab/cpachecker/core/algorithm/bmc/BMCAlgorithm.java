@@ -402,29 +402,33 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 }
               }
               final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
-              final Witness generatedWitness =
-                  argWitnessExporter.generateProofWitness(
-                      rootState,
-                      Predicates.alwaysTrue(),
-                      BiPredicates.alwaysTrue(),
-                      new InvariantProvider() {
-                        @Override
-                        public ExpressionTree<Object> provideInvariantFor(
-                            CFAEdge pCFAEdge,
-                            Optional<? extends Collection<? extends ARGState>> pStates) {
-                          CFANode node = pCFAEdge.getSuccessor();
-                          ExpressionTree<Object> result = expSup.getInvariantFor(node);
-                          if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
-                            return ExpressionTrees.getTrue();
-                          }
-                          return result;
-                        }
-                      });
               try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
+                final Witness generatedWitness =
+                    argWitnessExporter.generateProofWitness(
+                        rootState,
+                        Predicates.alwaysTrue(),
+                        BiPredicates.alwaysTrue(),
+                        new InvariantProvider() {
+                          @Override
+                          public ExpressionTree<Object> provideInvariantFor(
+                              CFAEdge pCFAEdge,
+                              Optional<? extends Collection<? extends ARGState>> pStates)
+                              throws InterruptedException {
+                            CFANode node = pCFAEdge.getSuccessor();
+                            ExpressionTree<Object> result = expSup.getInvariantFor(node);
+                            if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
+                              return ExpressionTrees.getTrue();
+                            }
+                            return result;
+                          }
+                        });
                 WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, w);
               } catch (IOException e) {
                 logger.logUserException(
                     Level.WARNING, e, "Could not write invariants to file " + invariantsExport);
+              } catch (InterruptedException e) {
+                logger.logUserException(
+                    Level.WARNING, e, "Could not export witness due to interruption");
               }
             }
           }

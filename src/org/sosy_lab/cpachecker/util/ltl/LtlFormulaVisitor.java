@@ -21,25 +21,25 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.Until;
 import org.sosy_lab.cpachecker.util.ltl.formulas.WeakUntil;
 
 public interface LtlFormulaVisitor {
-  public String visit(BooleanConstant pBooleanConstant);
+  String visit(BooleanConstant pBooleanConstant);
 
-  public String visit(Conjunction pConjunction);
+  String visit(Conjunction pConjunction);
 
-  public String visit(Disjunction pDisjunction);
+  String visit(Disjunction pDisjunction);
 
-  public String visit(Finally pFinally);
+  String visit(Finally pFinally);
 
-  public String visit(Globally pGlobally);
+  String visit(Globally pGlobally);
 
-  public String visit(Literal pLiteral);
+  String visit(Literal pLiteral);
 
-  public String visit(Next pNext);
+  String visit(Next pNext);
 
-  public String visit(Release pRelease);
+  String visit(Release pRelease);
 
-  public String visit(StrongRelease pStrongRelease);
+  String visit(StrongRelease pStrongRelease);
 
-  public String visit(Until pUntil);
+  String visit(Until pUntil);
 
-  public String visit(WeakUntil pWeakUntil);
+  String visit(WeakUntil pWeakUntil);
 }

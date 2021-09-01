@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.joining;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -50,15 +52,17 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
  */
 public final class Specification {
 
-  private final Set<SpecificationProperty> properties;
+  private final ImmutableSet<SpecificationProperty> properties;
   private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
 
   public static Specification alwaysSatisfied() {
-    return new Specification(ImmutableList.of());
+    return new Specification(ImmutableSet.of(), ImmutableListMultimap.of());
   }
 
-  public static Specification fromAutomata(Iterable<Automaton> automata) {
-    return new Specification(automata);
+  public static Specification fromAutomata(List<Automaton> automata) {
+    ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata =
+        ImmutableListMultimap.<Path, Automaton>builder().putAll(Path.of(""), automata).build();
+    return new Specification(ImmutableSet.of(), pathToSpecificationAutomata);
   }
 
   public static Specification fromFiles(
@@ -69,36 +73,30 @@ public final class Specification {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+
     if (Iterables.isEmpty(specFiles)) {
       if (pProperties.size() == 1) {
         SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
         if (specProp.getProperty() instanceof LabelledFormula) {
-          try {
-            LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
-            Scope scope =
-                cfa.getLanguage() == Language.C
-                    ? new CProgramScope(cfa, logger)
-                    : DummyScope.getInstance();
-            Automaton automaton =
-                Ltl2BuechiConverter.convertFormula(
-                    formula,
-                    specProp.getEntryFunction(),
-                    config,
-                    logger,
-                    cfa.getMachineModel(),
-                    scope,
-                    pShutdownNotifier);
-            return new Specification(
-                pProperties,
-                ImmutableListMultimap.of(Path.of(""), automaton));
-          } catch (InterruptedException e) {
-            throw new InvalidConfigurationException(
-                String.format(
-                    "Error when executing the external tool '%s': %s",
-                    Ltl2BuechiConverter.getNameOfExecutable(),
-                    e.getMessage()),
-                e);
-          }
+          LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
+          Scope scope =
+              cfa.getLanguage() == Language.C
+                  ? new CProgramScope(cfa, logger)
+                  : DummyScope.getInstance();
+          Automaton automaton =
+              Ltl2BuechiConverter.convertFormula(
+                  formula,
+                  specProp.getEntryFunction(),
+                  config,
+                  logger,
+                  cfa.getMachineModel(),
+                  scope,
+                  pShutdownNotifier);
+          return new Specification(pProperties, ImmutableListMultimap.of(Path.of(""), automaton));
         }
       }
       return new Specification(pProperties, ImmutableListMultimap.of());
@@ -223,6 +221,11 @@ public final class Specification {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+
     Set<Path> newSpecFiles =
         Sets.difference(pSpecificationFiles, pathToSpecificationAutomata.keySet()).immutableCopy();
     if (newSpecFiles.isEmpty()) {
@@ -253,24 +256,17 @@ public final class Specification {
     return new Specification(newProperties, pathToSpecificationAutomata);
   }
 
-  private Specification(Iterable<Automaton> pSpecificationAutomata) {
-    properties = ImmutableSet.of();
-    ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
-        ImmutableListMultimap.builder();
-    multiplePropertiesBuilder.putAll(Path.of(""), ImmutableList.copyOf(pSpecificationAutomata));
-    pathToSpecificationAutomata = multiplePropertiesBuilder.build();
-  }
-
-  private Specification(
+  @VisibleForTesting
+  Specification(
       Set<SpecificationProperty> pProperties,
       ImmutableListMultimap<Path, Automaton> pSpecification) {
     properties = ImmutableSet.copyOf(pProperties);
-    pathToSpecificationAutomata = pSpecification;
+    pathToSpecificationAutomata = checkNotNull(pSpecification);
   }
 
   /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
   public ImmutableList<Automaton> getSpecificationAutomata() {
-    return ImmutableList.copyOf(pathToSpecificationAutomata.values());
+    return pathToSpecificationAutomata.values().asList();
   }
 
   @Override
