@@ -79,13 +79,14 @@ int main(void)
 {
   char *str1 = ldv_xmalloc(4UL);
   char *str2 = (char *)"ldv";
+  unsigned char *str3 = (unsigned char *) str2;
   *str1 = (char)108;
   *(str1 + 1U) = (char)100;
   *(str1 + 2U) = (char)118;
   *(str1 + 3U) = (char)0;
   if (cif_strlen((char const *)str1) != 3UL) 
                                              ldv_unexpected_error();
-  if (cif_strlen((char const *)str2) != 3UL) 
+  if (cif_strlen((char const *)str3) != 3UL)
                                              ldv_unexpected_error();
   ldv_free((void *)str1);
   return 0;
