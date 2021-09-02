@@ -73,6 +73,7 @@ SPDX-License-Identifier: Apache-2.0
             <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
+            <compilerarg value="-Werror" unless:set="compile.warn"/>
             <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
             <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
