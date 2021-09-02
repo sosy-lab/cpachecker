@@ -44,6 +44,10 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     return new SMGValue(pNestingLevel);
   }
 
+  public static SMGValue of() {
+    return of(0);
+  }
+
   @Override
   public int getNestingLevel() {
     return nestingLevel;

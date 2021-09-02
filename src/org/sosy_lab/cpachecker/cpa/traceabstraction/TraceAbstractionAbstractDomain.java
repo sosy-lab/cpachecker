@@ -23,20 +23,21 @@ class TraceAbstractionAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractState join(AbstractState pState1, AbstractState pState2)
-      throws CPAException, InterruptedException {
-    throw new UnsupportedOperationException(
-        TraceAbstractionAbstractDomain.class.getSimpleName() + "does not support this method-call");
-  }
-
-  @Override
   public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
       throws CPAException, InterruptedException {
     checkArgument(pState1 instanceof TraceAbstractionState);
     checkArgument(pState2 instanceof TraceAbstractionState);
 
-    return delegateDomain.isLessOrEqual(
-        ((TraceAbstractionState) pState1).getWrappedState(),
-        ((TraceAbstractionState) pState2).getWrappedState());
+    AbstractState wrappedState1 = ((TraceAbstractionState) pState1).getWrappedState();
+    AbstractState wrappedState2 = ((TraceAbstractionState) pState2).getWrappedState();
+
+    return delegateDomain.isLessOrEqual(wrappedState1, wrappedState2);
+  }
+
+  @Override
+  public AbstractState join(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException(
+        TraceAbstractionAbstractDomain.class.getSimpleName() + "does not support this method-call");
   }
 }

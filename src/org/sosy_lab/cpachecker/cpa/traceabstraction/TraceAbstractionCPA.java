@@ -14,6 +14,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -93,7 +94,7 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public StopOperator getStopOperator() {
-    return new TraceAbstractionStopOperator(super.getStopOperator());
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override

@@ -204,15 +204,10 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
 
       if (!bFMgrView.isTrue(curInterpolant)) {
         verifyNotNull(previousState);
-        ImmutableSet<AbstractionPredicate> preds =
-            predAbsManager.getPredicatesForAtomsOf(curInterpolant);
+        AbstractionPredicate pred = predAbsManager.getPredicateFor(curInterpolant);
         String functionName = AbstractStates.extractLocation(previousState).getFunctionName();
 
-        if (preds.size() > 1) {
-          throw new UnsupportedOperationException(
-              "Multiple predicates for one interpolant are not yet supported");
-        }
-        itpSequenceBuilder.addFunctionPredicates(functionName, preds);
+        itpSequenceBuilder.addFunctionPredicates(functionName, ImmutableSet.of(pred));
       }
 
       previousState = curState;
@@ -232,7 +227,10 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
     shutdownNotifier.shutdownIfNecessary();
     argUpdateTime.start();
     for (ARGState refinementRoot : ImmutableList.copyOf(originalState.getChildren())) {
-      pReached.removeSubtree(refinementRoot);
+      if (!refinementRoot.isDestroyed()) {
+        // This ARGState might have already been destroyed in a former iteration of this loop
+        pReached.removeSubtree(refinementRoot);
+      }
     }
     argUpdateTime.stop();
 

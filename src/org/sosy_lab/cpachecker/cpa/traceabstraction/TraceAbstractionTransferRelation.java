@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -137,11 +136,11 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
         pCfaEdge.getSuccessor().getNodeNumber(),
         pCfaEdge.getDescription());
 
-    ImmutableMap.Builder<InterpolationSequence, AbstractionPredicate> newStatePreds =
+    ImmutableMap.Builder<InterpolationSequence, IndexedAbstractionPredicate> newStatePreds =
         ImmutableMap.builder();
 
     // TAStates contain only predicates that actually hold in that state
-    ImmutableMap<InterpolationSequence, AbstractionPredicate> statePredicates =
+    ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> statePredicates =
         taState.getActivePredicates();
 
     // TODO: correctly handle the actual location instance.
@@ -151,20 +150,27 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
         new PredicatePrecision.LocationInstance(pCfaEdge.getPredecessor(), 0);
 
     logger.log(Level.FINER, "Computing abstractions");
-    for (Entry<InterpolationSequence, AbstractionPredicate> entry : statePredicates.entrySet()) {
-      // TODO: check the next predicate in addition to the current one if it is non-trivial
-      // TODO: remove interpolation sequences from states once they leave their scopes
-      //       (e.g., remove function predicates from the current TAState when the function
-      //        changes)
-      AbstractionPredicate preconditionPreds = entry.getValue();
+    for (Entry<InterpolationSequence, IndexedAbstractionPredicate> entry :
+        statePredicates.entrySet()) {
 
+      InterpolationSequence currentItpSequence = entry.getKey();
+      if (!currentItpSequence.isInScopeOf(locInstance)) {
+        continue;
+      }
+
+      IndexedAbstractionPredicate curPreds = entry.getValue();
+
+      Optional<IndexedAbstractionPredicate> nextPreds =
+          currentItpSequence.getNext(locInstance, curPreds);
+
+      IndexedAbstractionPredicate precondition = nextPreds.orElse(curPreds);
       AbstractionFormula computedPostCondition =
           buildAbstraction(
               pCfaEdge,
               callstackWrapper,
               abstractionFormula,
               pathFormula,
-              ImmutableSet.of(preconditionPreds));
+              ImmutableSet.of(precondition.getPredicate()));
 
       if (computedPostCondition.isTrue()) {
         // Abstraction formula is true; stay in the current (interpolation) state
@@ -173,41 +179,46 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
       }
 
       if (computedPostCondition.isFalse()) {
-        // Abstraction is false, return bottom (represented by empty set)
-        logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
-        return ImmutableSet.of();
+        throw new AssertionError(
+            "Computed abstraction is <false>, a non-trivial result was however unexpected.");
       }
 
       // A non-trivial abstraction was computed
-      if (preconditionPreds.getSymbolicAtom().equals(computedPostCondition.asFormula())) {
+      if (precondition.getPredicate().getSymbolicAtom().equals(computedPostCondition.asFormula())) {
         // Pre- and postcondition are the same; keep current pred in TAState
-        newStatePreds.put(entry.getKey(), preconditionPreds);
-      } else if (preconditionPreds
+        newStatePreds.put(currentItpSequence, precondition);
+      } else if (precondition
+          .getPredicate()
           .getSymbolicAtom()
           .equals(bFMgrView.not(computedPostCondition.asFormula()))) {
         // Pre- and postcondition are negated to each other. The Hoare triple is of the following
-        // form: [x=0] x==0 [x!=0]
+        // form: [x==0] x!=0 [x!=0]
 
         // The next state is hence unsatisfiable.
         logger.log(
             Level.FINEST,
-            "Abstraction is contradictory to the given input preds; node is not reachable");
+            "Abstraction is contradictory to current input predicates. The node is not reachable");
         return ImmutableSet.of();
       } else {
 
         // The postcondition is ambiguous. We cannot tell anything about the next
         // state. For now an exception is thrown until this is handled accordingly to make it
         // visible in the log
-        throw new UnsupportedCodeException(
-            "Interpolant <false> is following on an interpolant <true>. This is not yet handled",
-            pCfaEdge);
+        throw new AssertionError(
+            "Interpolant <false> is following on an interpolant <true>. This is not yet handled");
       }
     }
 
     for (InterpolationSequence itpSequence :
         itpSequenceStorage.difference(statePredicates.keySet())) {
-      AbstractionPredicate preconditionPreds = itpSequence.getFirst(locInstance);
+      Optional<IndexedAbstractionPredicate> itpOpt = itpSequence.getFirst(locInstance);
+      if (itpOpt.isEmpty()) {
+        // Sequence is not in the scope of the current location or function
+        continue;
+      }
 
+      IndexedAbstractionPredicate indexedPred = itpOpt.orElseThrow();
+      AbstractionPredicate preconditionPreds = indexedPred.getPredicate();
       AbstractionFormula computedPostCondition =
           buildAbstraction(
               pCfaEdge,
@@ -225,20 +236,30 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
         // Abstraction is false, this node is infeasible.
         // TODO: this needs to be handled accordingly (i.e. return bottom state)
         // Until then an exception is thrown to make this visible in the log output
-        throw new UnsupportedCodeException(
-            "Interpolant <false> is following on an interpolant <true>. This is not yet handled",
-            pCfaEdge);
+        throw new AssertionError(
+            "Interpolant <false> is following on an interpolant <true>. This is not yet handled");
       }
 
       // A non-trivial abstraction was computed
       if (preconditionPreds.getSymbolicAtom().equals(computedPostCondition.asFormula())) {
         // Pre- and postcondition are the same; it is the first from the current interpolation
         // sequence
-        newStatePreds.put(itpSequence, preconditionPreds);
+        newStatePreds.put(itpSequence, indexedPred);
+      } else if (preconditionPreds
+          .getSymbolicAtom()
+          .equals(bFMgrView.not(computedPostCondition.asFormula()))) {
+        // Pre- and postcondition are negated to each other.
+        newStatePreds.put(itpSequence, indexedPred);
+      } else {
+        throw new AssertionError(
+            String.format(
+                "Precond: %s%nPostcond: %s",
+                preconditionPreds.getSymbolicAtom(), computedPostCondition.asFormula()));
       }
     }
 
-    ImmutableMap<InterpolationSequence, AbstractionPredicate> newPreds = newStatePreds.build();
+    ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> newPreds =
+        newStatePreds.build();
     logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
     return ImmutableSet.of(new TraceAbstractionState(predSuccessorState, newPreds));
   }
