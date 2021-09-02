@@ -26,6 +26,7 @@ import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -52,11 +54,13 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
 
   private final PredicateAbstractionManager predicateAbstractionManager;
   private final BooleanFormulaManagerView bFMgrView;
+  private final AbstractionManager abstractionManager;
 
   TraceAbstractionTransferRelation(
       TransferRelation pDelegateTransferRelation,
       FormulaManagerView pFormulaManagerView,
       PredicateAbstractionManager pPredicateAbstractionManager,
+      AbstractionManager pAbstractionManager,
       InterpolationSequenceStorage pItpSequenceStorage,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
@@ -66,6 +70,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     predicateAbstractionManager = pPredicateAbstractionManager;
+    abstractionManager = pAbstractionManager;
     bFMgrView = pFormulaManagerView.getBooleanFormulaManager();
   }
 
@@ -173,9 +178,26 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
               ImmutableSet.of(precondition.getPredicate()));
 
       if (computedPostCondition.isTrue()) {
-        // Abstraction formula is true; stay in the current (interpolation) state
-        newStatePreds.put(entry);
-        continue;
+        try {
+          // check data region represented by the computed abstraction (the postcondition) whether
+          // it is a subset of precondition
+          // (i.e., postcond => precond)
+          boolean entails =
+              abstractionManager.entails(
+                  computedPostCondition.asRegion(),
+                  precondition.getPredicate().getAbstractVariable());
+          if (!entails && pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+            // An assignment has been made for which the abstraction was computed to true.
+            // We cannot tell anything about the successor interpolation state anymore.
+            continue;
+          }
+
+          // Abstraction formula is true; stay in the current (interpolation) state
+          newStatePreds.put(entry);
+          continue;
+        } catch (SolverException e) {
+          throw new CPATransferException(e.getMessage(), e);
+        }
       }
 
       if (computedPostCondition.isFalse()) {
