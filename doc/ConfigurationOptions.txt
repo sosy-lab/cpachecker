@@ -3182,10 +3182,6 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
-# which strategy to use to convert predicate to value precision
-cpa.value.predToValPrecStrategy = no default value
-  enum:     [CONVERT_ONLY]
-
 # whether or not to add assumptions to counterexamples, e.g., for supporting
 # counterexample checks
 cpa.value.refinement.addAssumptionsToCex = true
@@ -3258,6 +3254,27 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 # Whether to write symbolic trace (including path constraints) for found
 # erexamples
 cpa.value.refinement.writePathConstraints = true
+
+# Overall timelimit for computing initial value precision from given
+# predicate precision(use seconds or specify a unit; 0 for infinite)
+cpa.value.reuse.precision.predicate.adaptionLimit = 0ns
+
+# also consider other binary operators then ==, !== when considering control
+# dependencies while adapting predicate precision
+cpa.value.reuse.precision.predicate.includeControlNonEquiv = false
+
+# comma-separated list of files with property specifications that should be
+# considered when determining the relevant edges for predicate precision
+# adaption
+cpa.value.reuse.precision.predicate.relevantProperties = []
+
+# which strategy to use to convert predicate to value precision
+cpa.value.reuse.precision.predicate.strategy = no default value
+  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
+             CONVERT_AND_ADD_FLOW_BIDIRECTED]
+
+# also consider control dependencies during adaption of predicate precision
+cpa.value.reuse.precision.predicate.useControl = false
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
