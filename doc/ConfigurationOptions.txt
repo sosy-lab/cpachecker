@@ -3269,7 +3269,7 @@ cpa.value.reuse.precision.predicate.includeControlNonEquiv = false
 cpa.value.reuse.precision.predicate.relevantProperties = []
 
 # which strategy to use to convert predicate to value precision
-cpa.value.reuse.precision.predicate.strategy = no default value
+cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
   enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
              CONVERT_AND_ADD_FLOW_BIDIRECTED]
 
