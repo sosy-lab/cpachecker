@@ -139,6 +139,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
   private TimeSpan adaptionLimit = TimeSpan.ofNanos(0);
 
   private final Timer conversionTime = new Timer();
+  private int numVarsAddedToPrecision = 0;
 
   public PredicateToValuePrecisionConverter(
       final Configuration pConfig,
@@ -284,6 +285,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     if (result == null) {
       return ImmutableListMultimap.of();
     }
+    numVarsAddedToPrecision += result.size();
     return ImmutableListMultimap.copyOf(result);
   }
 
@@ -433,6 +435,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
   public void printStatistics(
       final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     put(pOut, 0, "Time for adapting predicate precision", conversionTime);
+    put(pOut, 0, "Number of tracked variables added", numVarsAddedToPrecision);
   }
 
   @Override
