@@ -105,7 +105,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       secure = true,
       name = "strategy",
       description = "which strategy to use to convert predicate to value precision")
-  private PredicateConverterStrategy converterStrategy;
+  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.CONVERT_ONLY;
 
   @Option(
       secure = true,
