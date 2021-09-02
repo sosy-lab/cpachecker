@@ -17,13 +17,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -86,27 +81,6 @@ public class ExpressionMutator {
       alternativeExpressions.add(modifiedExpression);
     }
 
-    return alternativeExpressions;
-  }
-
-  /* TODO: figure out what to do with literals */
-  private static ArrayList<CExpression> calcMutationsFor(
-      CLiteralExpression originalLiteralExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList();
-
-    if (originalLiteralExpression instanceof CCharLiteralExpression) {
-      alternativeExpressions =
-          calcMutationsFor((CCharLiteralExpression) originalLiteralExpression, cfa);
-    } else if (originalLiteralExpression instanceof CStringLiteralExpression) {
-      alternativeExpressions =
-          calcMutationsFor((CStringLiteralExpression) originalLiteralExpression, cfa);
-    } else if (originalLiteralExpression instanceof CIntegerLiteralExpression) {
-      alternativeExpressions =
-          calcMutationsFor((CIntegerLiteralExpression) originalLiteralExpression, cfa);
-    } else if (originalLiteralExpression instanceof CFloatLiteralExpression) {
-      alternativeExpressions =
-          calcMutationsFor((CFloatLiteralExpression) originalLiteralExpression, cfa);
-    }
     return alternativeExpressions;
   }
 

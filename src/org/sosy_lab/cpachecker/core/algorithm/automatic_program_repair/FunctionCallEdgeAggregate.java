@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
  * A function call is represented in three different edges throughout the cfa. This class is an
  * aggregate of these three edges.
  */
-// TODO improve class name
 public class FunctionCallEdgeAggregate {
   private CFunctionSummaryEdge summaryEdge;
   private CFunctionCallEdge functionCallEdge;
