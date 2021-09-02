@@ -54,6 +54,12 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     return new TraceAbstractionState(pWrappedState, getActivePredicates());
   }
 
+  boolean isLessOrEqual(TraceAbstractionState pOther) {
+    // TODO: For now the states are only checked for equality.
+    // 'activePredicates' might need to be additionally checked for a lesser-relation.
+    return this.equals(pOther);
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(activePredicates);
