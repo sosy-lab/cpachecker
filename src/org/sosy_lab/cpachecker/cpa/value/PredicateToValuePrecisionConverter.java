@@ -354,7 +354,6 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                 .buildCPAs(
                     cfa,
                     Specification.fromFiles(
-                        ImmutableSet.of(),
                         relevantProperties,
                         cfa,
                         reachPropConfig,

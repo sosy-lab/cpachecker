@@ -6,29 +6,29 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.core.specification;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.io.CharSource;
+import com.google.common.io.MoreFiles;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
-import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
-import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
-import org.sosy_lab.cpachecker.util.ltl.LtlParser;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProperty;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a
@@ -50,10 +50,10 @@ public class PropertyFileParser {
     }
   }
 
-  private final Path propertyFile;
+  private final CharSource propertyFile;
 
-  private String entryFunction;
-  private final Set<Property> properties = Sets.newHashSetWithExpectedSize(1);
+  private @Nullable String entryFunction;
+  private @Nullable ImmutableSet<Property> properties;
 
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile(
@@ -72,24 +72,31 @@ public class PropertyFileParser {
               + ")\\(\\)\\), FQL\\((.+)\\) \\)");
 
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
-      Maps.uniqueIndex(EnumSet.allOf(CommonPropertyType.class), Property::toString);
+      Maps.uniqueIndex(EnumSet.allOf(CommonVerificationProperty.class), Property::toString);
 
   private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
-      Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
+      Maps.uniqueIndex(EnumSet.allOf(CommonCoverageProperty.class), Property::toString);
+
+  public PropertyFileParser(final CharSource pPropertyFile) {
+    propertyFile = checkNotNull(pPropertyFile);
+  }
 
   public PropertyFileParser(final Path pPropertyFile) {
-    propertyFile = pPropertyFile;
+    propertyFile = MoreFiles.asCharSource(pPropertyFile, Charset.defaultCharset());
   }
 
   public void parse() throws InvalidPropertyFileException, IOException {
+    checkState(properties == null, "single-use only");
+    ImmutableSet.Builder<Property> propertiesBuilder = ImmutableSet.builder();
     String rawProperty = null;
-    try (BufferedReader br = Files.newBufferedReader(propertyFile, Charset.defaultCharset())) {
+    try (BufferedReader br = propertyFile.openBufferedStream()) {
       while ((rawProperty = br.readLine()) != null) {
         if (!rawProperty.isEmpty()) {
-          properties.add(parsePropertyLine(rawProperty));
+          propertiesBuilder.add(parsePropertyLine(rawProperty));
         }
       }
     }
+    properties = propertiesBuilder.build();
     if (properties.isEmpty()) {
       throw new InvalidPropertyFileException("No property in file.");
     }
@@ -123,25 +130,21 @@ public class PropertyFileParser {
     String rawLtlProperty = matcher.group(2);
     Property property = propStringToProperty.get(rawLtlProperty);
     if (property == null && propStringToProperty == AVAILABLE_VERIFICATION_PROPERTIES) {
-      try {
-        property = LtlParser.parseProperty(rawLtlProperty);
-      } catch (LtlParseException e) {
-        throw new InvalidPropertyFileException(
-            String.format("Could not parse property '%s' (%s)", matcher.group(2), e.getMessage()),
-            e);
-      }
+      property = new Property.OtherLtlProperty(rawLtlProperty);
     }
     if (property == null && propStringToProperty == AVAILABLE_COVERAGE_PROPERTIES) {
-      property = CoverFunction.getProperty(rawProperty);
+      property = CoverFunctionCallProperty.getProperty(rawProperty);
     }
     return property;
   }
 
   public String getEntryFunction() {
+    checkState(entryFunction != null);
     return entryFunction;
   }
 
-  public Set<Property> getProperties() {
-    return Collections.unmodifiableSet(properties);
+  public ImmutableSet<Property> getProperties() {
+    checkState(properties != null);
+    return properties;
   }
 }

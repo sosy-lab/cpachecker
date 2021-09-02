@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
@@ -498,7 +498,9 @@ public class AutomatonGraphmlParser {
     // Check that there are no invariants in a violation witness
     if (!ExpressionTrees.getTrue().equals(candidateInvariants)
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && !pGraphMLParserState.getSpecificationTypes().contains(CommonPropertyType.TERMINATION)) {
+        && !pGraphMLParserState
+            .getSpecificationTypes()
+            .contains(CommonVerificationProperty.TERMINATION)) {
       throw new WitnessParseException(
           "Invariants are not allowed for violation witnesses.");
     }
@@ -1559,7 +1561,7 @@ public class AutomatonGraphmlParser {
   private Set<Property> getSpecAsProperties(final Node pAutomaton) {
     Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
     if (specText.isEmpty()) {
-      return ImmutableSet.of(CommonPropertyType.REACHABILITY);
+      return ImmutableSet.of(CommonVerificationProperty.REACHABILITY);
     } else {
       ImmutableSet.Builder<Property> properties =
           ImmutableSet.builderWithExpectedSize(specText.size());
@@ -1586,13 +1588,13 @@ public class AutomatonGraphmlParser {
       prop = pProperty;
     }
 
-    for (CommonPropertyType propType : CommonPropertyType.values()) {
+    for (CommonVerificationProperty propType : CommonVerificationProperty.values()) {
       if (propType.toString().equals(prop)) {
         return propType;
       }
     }
 
-    return CommonPropertyType.valueOf(prop.trim());
+    return CommonVerificationProperty.valueOf(prop.trim());
   }
 
   private static String transitionToString(Node pTransition) {

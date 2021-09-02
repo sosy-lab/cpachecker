@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
@@ -161,7 +160,6 @@ public class WitnessInvariantsExtractor {
   private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        ImmutableSet.of(),
         ImmutableList.of(pathToWitnessFile),
         cfa,
         config,

@@ -16,9 +16,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import java.nio.file.Path;
-import java.util.Optional;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -33,8 +32,6 @@ public class SpecificationTest {
             ImmutableMap.of(),
             ImmutableList.of(new AutomatonInternalState("init", ImmutableList.of())),
             "init");
-    final SpecificationProperty specProperty =
-        new SpecificationProperty("main", CommonPropertyType.REACHABILITY, Optional.empty());
 
     new EqualsTester()
         .addEqualityGroup(
@@ -44,7 +41,8 @@ public class SpecificationTest {
         .addEqualityGroup(Specification.fromAutomata(ImmutableList.of(automaton)))
         .addEqualityGroup(
             new Specification(
-                ImmutableSet.of(specProperty),
+                ImmutableSet.of(),
+                ImmutableSet.of(CommonVerificationProperty.REACHABILITY),
                 ImmutableListMultimap.of(Path.of("test.spc"), automaton)))
         .testEquals();
   }
@@ -54,7 +52,7 @@ public class SpecificationTest {
     Specification empty = Specification.alwaysSatisfied();
     assertThat(empty.getPathToSpecificationAutomata()).isEmpty();
     assertThat(empty.getProperties()).isEmpty();
-    assertThat(empty.getSpecFiles()).isEmpty();
+    assertThat(empty.getFiles()).isEmpty();
     assertThat(empty.getSpecificationAutomata()).isEmpty();
   }
 }
