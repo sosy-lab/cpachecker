@@ -77,7 +77,6 @@ public class StateSimplifierTest {
         .setOption("cpa.constraints.removeTrivial", "true")
         .build();
     simplifier = new StateSimplifier(config, new ConstraintsStatistics());
-    SymbolicValues.initialize();
   }
 
 

@@ -98,7 +98,6 @@ public class ConstraintsCPA
             pCfa.getMachineModel());
     constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter, stats);
 
-    SymbolicValues.initialize();
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
