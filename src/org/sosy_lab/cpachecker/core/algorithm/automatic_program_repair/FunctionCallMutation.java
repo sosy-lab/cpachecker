@@ -19,24 +19,22 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
 /**
  * This class represents the mutation of a function call in the CFA. A function call is represented
- * in three different edges (summary edge, call edge, return edge). In order to mutate a function call
- * all three edges must be replaced.
+ * in three different edges (summary edge, call edge, return edge). In order to mutate a function
+ * call all three edges must be replaced.
  */
 public class FunctionCallMutation extends Mutation {
- private final FunctionCallEdgeAggregate functionCallEdgeAggregate;
+  private final FunctionCallEdgeAggregate functionCallEdgeAggregate;
 
   public FunctionCallMutation(
-      CFAEdge pSuspiciousEdge,
-      FunctionCallEdgeAggregate pFunctionCallEdgeAggregate,
-      CFA pCFA) {
+      CFAEdge pSuspiciousEdge, FunctionCallEdgeAggregate pFunctionCallEdgeAggregate, CFA pCFA) {
     super(pSuspiciousEdge, pCFA);
 
     functionCallEdgeAggregate = pFunctionCallEdgeAggregate;
-    exchangeEdges(List.of(
-      functionCallEdgeAggregate.getSummaryEdge(),
-      functionCallEdgeAggregate.getFunctionCallEdge(),
-      functionCallEdgeAggregate.getFunctionReturnEdge()
-    ));
+    exchangeEdges(
+        List.of(
+            functionCallEdgeAggregate.getSummaryEdge(),
+            functionCallEdgeAggregate.getFunctionCallEdge(),
+            functionCallEdgeAggregate.getFunctionReturnEdge()));
   }
 
   public CFAEdge getNewEdge() {

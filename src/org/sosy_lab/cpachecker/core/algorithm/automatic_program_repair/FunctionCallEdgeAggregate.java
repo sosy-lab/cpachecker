@@ -32,35 +32,32 @@ public class FunctionCallEdgeAggregate {
     functionReturnEdge = pFunctionReturnEdge;
   }
 
-  public FunctionCallEdgeAggregate(CFunctionSummaryEdge pSummaryEdge){
+  public FunctionCallEdgeAggregate(CFunctionSummaryEdge pSummaryEdge) {
     new FunctionCallEdgeAggregate(
         pSummaryEdge,
         CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(pSummaryEdge),
-        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pSummaryEdge)
-    );
+        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pSummaryEdge));
   }
 
-  public FunctionCallEdgeAggregate(CFunctionCallEdge pFunctionCallEdge){
+  public FunctionCallEdgeAggregate(CFunctionCallEdge pFunctionCallEdge) {
     CFunctionSummaryEdge pSummaryEdge = pFunctionCallEdge.getSummaryEdge();
 
     new FunctionCallEdgeAggregate(
         pSummaryEdge,
         pFunctionCallEdge,
-        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pSummaryEdge)
-        );
+        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pSummaryEdge));
   }
 
-  public FunctionCallEdgeAggregate(CFunctionReturnEdge pFunctionReturnEdge){
+  public FunctionCallEdgeAggregate(CFunctionReturnEdge pFunctionReturnEdge) {
     CFunctionSummaryEdge pSummaryEdge = pFunctionReturnEdge.getSummaryEdge();
 
     new FunctionCallEdgeAggregate(
         pSummaryEdge,
         CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(pSummaryEdge),
-        pFunctionReturnEdge
-      );
+        pFunctionReturnEdge);
   }
 
-  public CFunctionCall getFunctionCall(){
+  public CFunctionCall getFunctionCall() {
     return summaryEdge.getExpression();
   }
 

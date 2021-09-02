@@ -136,9 +136,9 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       throws CPAException, InterruptedException {
     for (Fault fault : faultLocalizationInfo.getRankedList()) {
       CFAEdge edge = fault.iterator().next().correspondingEdge();
-      CFAMutator CFAMutator = new CFAMutator(cfa, edge);
+      CFAMutator cfaMutator = new CFAMutator(cfa, edge);
 
-      for (Mutation mutation : CFAMutator.calcPossibleMutations()) {
+      for (Mutation mutation : cfaMutator.calcPossibleMutations()) {
 
         try {
           final ReachedSet newReachedSet = rerun(mutation.getCFA());

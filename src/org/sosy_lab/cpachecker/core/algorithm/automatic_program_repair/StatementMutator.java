@@ -39,8 +39,8 @@ public class StatementMutator {
     }
   }
   /**
-   * Returns a list of possible mutations for a given expression statement.
-   * The mutation changing the right-hand side of the assignment.
+   * Returns a list of possible mutations for a given expression statement. The mutation changing
+   * the right-hand side of the assignment.
    */
   public static ArrayList<CAssignment> calcMutationsFor(CAssignment assignment, CFA cfa) {
     if (assignment instanceof CExpressionAssignmentStatement) {
@@ -53,8 +53,8 @@ public class StatementMutator {
   }
 
   /**
-   * Returns a list of possible mutations for a given expression statement.
-   * The mutation consists in changing the expression.
+   * Returns a list of possible mutations for a given expression statement. The mutation consists in
+   * changing the expression.
    */
   private static ArrayList<CStatement> calcMutationsFor(
       CExpressionStatement originalExpressionStatement, CFA cfa) {
@@ -71,8 +71,8 @@ public class StatementMutator {
   }
 
   /**
-   * Returns a list of possible mutations for a given function call statement.
-   * The mutation consists in changing one expression of the parameter list.
+   * Returns a list of possible mutations for a given function call statement. The mutation consists
+   * in changing one expression of the parameter list.
    */
   private static ArrayList<CStatement> calcMutationsFor(
       CFunctionCallStatement originalFunctionCallStatement, CFA cfa) {
@@ -151,9 +151,7 @@ public class StatementMutator {
         expressionAssignmentStatement.getLeftHandSide(),
         expression);
   }
-  /**
-   * Returns a copy of the given assignment statement but with the new assignment provided.
-   * */
+  /** Returns a copy of the given assignment statement but with the new assignment provided. */
   public static CReturnStatement replaceAssignment(
       CReturnStatement originalReturnStatement, CAssignment assignment) {
     return new CReturnStatement(

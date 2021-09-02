@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 public abstract class EdgeMutator {
   private CFA clonedCFA;
 
-  public EdgeMutator(CFA cfa){
+  public EdgeMutator(CFA cfa) {
     clonedCFA = cloneCFA(cfa);
   }
 

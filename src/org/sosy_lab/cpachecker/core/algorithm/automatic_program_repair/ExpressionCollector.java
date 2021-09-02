@@ -47,9 +47,7 @@ public class ExpressionCollector extends ForwardingCFAVisitor {
     return expressions;
   }
 
-  /**
-   * Returns all expressions found within the given CFA.
-   */
+  /** Returns all expressions found within the given CFA. */
   public static Set<CExpression> collectExpressions(CFA cfa) {
     final ExpressionCollector expressionCollector = new ExpressionCollector();
 

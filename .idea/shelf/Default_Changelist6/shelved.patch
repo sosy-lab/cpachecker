@@ -1,0 +1,23 @@
+Index: .idea/saveactions_settings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/saveactions_settings.xml b/.idea/saveactions_settings.xml
+new file mode 100644
+--- /dev/null	(date 1630608021263)
++++ b/.idea/saveactions_settings.xml	(date 1630608021263)
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="SaveActionSettings">
++    <option name="actions">
++      <set>
++        <option value="activate" />
++        <option value="reformat" />
++      </set>
++    </option>
++    <option name="configurationPath" value="" />
++  </component>
++</project>
+\ No newline at end of file

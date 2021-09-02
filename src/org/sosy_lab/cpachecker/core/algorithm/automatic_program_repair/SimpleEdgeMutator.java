@@ -26,9 +26,7 @@ public class SimpleEdgeMutator extends EdgeMutator {
     edgeToMutate = CorrespondingEdgeProvider.findCorrespondingEdge(pOriginalEdge, getClonedCFA());
   }
 
-  /**
-   * Returns a new assume edge with a different expression.
-   */
+  /** Returns a new assume edge with a different expression. */
   public CAssumeEdge replaceExpressionInAssumeEdge(CExpression newExpression) {
     CAssumeEdge originalAssumeEdge = (CAssumeEdge) edgeToMutate;
     return new CAssumeEdge(
@@ -40,11 +38,8 @@ public class SimpleEdgeMutator extends EdgeMutator {
         originalAssumeEdge.getTruthAssumption());
   }
 
-  /**
-   * Returns a new statement edge with a different expression.
-   */
-  public CStatementEdge replaceStatementInStatementEdge(
-      CStatement newStatement) {
+  /** Returns a new statement edge with a different expression. */
+  public CStatementEdge replaceStatementInStatementEdge(CStatement newStatement) {
     CStatementEdge originalStatementEdge = (CStatementEdge) edgeToMutate;
     return new CStatementEdge(
         newStatement.toASTString(),
@@ -54,13 +49,9 @@ public class SimpleEdgeMutator extends EdgeMutator {
         originalStatementEdge.getSuccessor());
   }
 
-
-  /**
-   * Returns a new return statement edge with a different return expression.
-   */
+  /** Returns a new return statement edge with a different return expression. */
   public CReturnStatementEdge replaceReturnExpressionInReturnStatementEdge(
-      CReturnStatement originalReturnStatement,
-      CAssignment assignment) {
+      CReturnStatement originalReturnStatement, CAssignment assignment) {
     CReturnStatementEdge originalReturnStatementEdge = (CReturnStatementEdge) edgeToMutate;
 
     return new CReturnStatementEdge(

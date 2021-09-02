@@ -69,8 +69,8 @@ public class CorrespondingEdgeProvider {
 
   /**
    * Given a cloned cfa and an edge out of the original cfa, this function will return the cloned
-   * instance of the given edge. Equality of edges is assumed based file location, predecessor, successor,
-   * and the code it represents.
+   * instance of the given edge. Equality of edges is assumed based file location, predecessor,
+   * successor, and the code it represents.
    */
   static <T extends CFAEdge> T findCorrespondingEdge(T originalEdge, CFA clonedCFA) {
     final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor =

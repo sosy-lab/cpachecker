@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 /**
- * This class represents a simple mutation of an edge that does not contain a function
- * call (see FunctionCallMutation).
+ * This class represents a simple mutation of an edge that does not contain a function call (see
+ * FunctionCallMutation).
  */
 public class SimpleMutation extends Mutation {
   private CFAEdge newEdge;
