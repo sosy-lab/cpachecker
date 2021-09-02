@@ -184,13 +184,16 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       conversionShutdownNotifier.shutdownIfNecessary();
 
       if (!predPrec.isEmpty()) {
-
+        logger.log(Level.INFO, "Derive value precision from given predicate precision");
         result = convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, dummyNode);
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
         if (converterStrategy != PredicateConverterStrategy.CONVERT_ONLY) {
           try {
+            logger.log(
+                Level.FINE,
+                "Enhance value precision converted from predicate precision with additional relevant variables");
             // TODO disable option dependencegraph.controldeps.considerPointees?
             Configuration depGraphConfig =
                 Configuration.builder()
