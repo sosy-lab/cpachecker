@@ -34,13 +34,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
@@ -83,7 +82,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private Set<CFAEdge> testTargets;
-  private final SpecificationProperty specProp;
+  private final Property specProp;
   private final TestCaseExporter exporter;
   private double progress = 0;
 
@@ -114,10 +113,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.getProperty() instanceof CommonCoverageType
-              || specProp.getProperty() instanceof CoverFunction,
-          "Property %s not supported for test generation",
-          specProp.getProperty());
+          specProp.isCoverage(), "Property %s not supported for test generation", specProp);
     } else {
       specProp = null;
     }
@@ -281,16 +277,14 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
           @Override
           public Set<TargetInformation> getTargetInformation() {
-            return PropertyTargetInformation.singleton(specProp.getProperty());
+            return PropertyTargetInformation.singleton(specProp);
           }
         },
         SingletonPrecision.getInstance());
   }
 
   private boolean shouldReportCoveredErrorCallAsError() {
-    return reportCoveredErrorCallAsError
-        && specProp != null
-        && specProp.getProperty().equals(CommonCoverageType.COVERAGE_ERROR);
+    return reportCoveredErrorCallAsError && CommonCoverageProperty.COVERAGE_ERROR.equals(specProp);
   }
 
   @Override

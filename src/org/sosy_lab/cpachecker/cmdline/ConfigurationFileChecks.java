@@ -505,7 +505,7 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().withMessage("Java frontend has a bug and cannot be run twice").fail();

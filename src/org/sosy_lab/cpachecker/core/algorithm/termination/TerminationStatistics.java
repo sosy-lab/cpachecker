@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -89,9 +88,8 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -180,12 +178,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pConfig,
             pLogger,
             Specification.alwaysSatisfied()
-                .withAdditionalProperties(
-                    ImmutableSet.of(
-                        new SpecificationProperty(
-                            pCFA.getMainFunction().getFunctionName(),
-                            CommonPropertyType.TERMINATION,
-                            Optional.empty()))),
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
