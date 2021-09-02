@@ -201,8 +201,10 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
       }
 
       if (computedPostCondition.isFalse()) {
-        throw new AssertionError(
-            "Computed abstraction is <false>, a non-trivial result was however unexpected.");
+        assert bFMgrView.isFalse(pathFormula.getFormula())
+            : "Computed abstraction is <false>, a non-trivial result was however unexpected.";
+        // Abstraction is false => successor state is not feasible
+        return ImmutableSet.of();
       }
 
       // A non-trivial abstraction was computed
