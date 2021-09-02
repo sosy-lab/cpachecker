@@ -519,10 +519,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
           Optional<MemoryLocation> var2 = getVariable(e.getOperand2());
 
           if (var1.isPresent() && var2.isPresent()) {
-            if (inspectedVars.contains(var1.get())) {
-              registerRelevantVar(var2.get(), inspectedVars, toProcess, result);
-            } else if (inspectedVars.contains(var2.get())) {
-              registerRelevantVar(var1.get(), inspectedVars, toProcess, result);
+            if (inspectedVars.contains(var1.orElseThrow())) {
+              registerRelevantVar(var2.orElseThrow(), inspectedVars, toProcess, result);
+            } else if (inspectedVars.contains(var2.orElseThrow())) {
+              registerRelevantVar(var1.orElseThrow(), inspectedVars, toProcess, result);
             }
           }
         }
@@ -533,7 +533,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     private void insertVariable(final CExpression exp) {
       Optional<MemoryLocation> var = getVariable(exp);
       if (var.isPresent()) {
-        registerRelevantVar(var.get(), inspectedVars, toProcess, result);
+        registerRelevantVar(var.orElseThrow(), inspectedVars, toProcess, result);
       }
     }
 
