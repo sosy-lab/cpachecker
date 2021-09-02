@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -270,7 +271,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
             "Provided predicate precision is empty and does not contain predicates.");
       }
     } catch (InterruptedException e) {
-      shutdownNotifier.shouldShutdown();
+      logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
     }
 
     if (limitChecker != null) {
@@ -343,22 +344,21 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                 .build();
 
         ReachedSetFactory rsFactory = new ReachedSetFactory(reachPropConfig, logger);
-        ReachedSet reached =
-            rsFactory.create(
-                new CPABuilder(reachPropConfig, logger, pConversionShutdownNotifier, rsFactory)
-                    .buildCPAs(
+        ConfigurableProgramAnalysis cpa =
+            new CPABuilder(reachPropConfig, logger, pConversionShutdownNotifier, rsFactory)
+                .buildCPAs(
+                    cfa,
+                    Specification.fromFiles(
+                        ImmutableSet.of(),
+                        relevantProperties,
                         cfa,
-                        Specification.fromFiles(
-                            ImmutableSet.of(),
-                            relevantProperties,
-                            cfa,
-                            reachPropConfig,
-                            logger,
-                            pConversionShutdownNotifier),
-                        AggregatedReachedSets.empty()));
+                        reachPropConfig,
+                        logger,
+                        pConversionShutdownNotifier),
+                    AggregatedReachedSets.empty());
+        ReachedSet reached = rsFactory.create(cpa);
 
-        CPAAlgorithm.create(null, logger, reachPropConfig, pConversionShutdownNotifier)
-            .run(reached);
+        CPAAlgorithm.create(cpa, logger, reachPropConfig, pConversionShutdownNotifier).run(reached);
         Preconditions.checkState(!reached.hasWaitingState());
 
         Deque<ARGState> toExplore =
