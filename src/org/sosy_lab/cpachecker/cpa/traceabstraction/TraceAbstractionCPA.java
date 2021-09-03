@@ -67,12 +67,13 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
   @SuppressWarnings("resource")
   @Override
   public TransferRelation getTransferRelation() {
-    PredicateCPA wrappedCpa = (PredicateCPA) getWrappedCpa();
+    PredicateCPA predicateCpa = (PredicateCPA) getWrappedCpa();
 
     return new TraceAbstractionTransferRelation(
-        wrappedCpa.getTransferRelation(),
-        wrappedCpa.getSolver().getFormulaManager(),
+        predicateCpa.getTransferRelation(),
+        predicateCpa.getSolver().getFormulaManager(),
         predicateManager,
+        predicateCpa.getAbstractionManager(),
         itpSequenceStorage,
         logger,
         shutdownNotifier);

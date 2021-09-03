@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -218,11 +220,13 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
             Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
             Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
-            ControlDependenceVisitor cdVisit =
-                new ControlDependenceVisitor(inspectedVars, toProcess, result);
+            BackwardsVisitOnceVisitor<Node> cdVisit =
+                depGraph.createVisitOnceVisitor(
+                    new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
-            boolean allUsesTracked;
+            boolean allUsesTracked, oneUseTracked;
+            ImmutableSet<MemoryLocation> defs;
             while (!toProcess.isEmpty()) {
               conversionShutdownNotifier.shutdownIfNecessary();
               var = toProcess.pop();
@@ -239,6 +243,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
               conversionShutdownNotifier.shutdownIfNecessary();
 
               if (considerControlDependence) {
+                cdVisit.reset();
                 depGraph.traverse(relevantGraphNodes, cdVisit);
               }
 
@@ -247,19 +252,26 @@ public class PredicateToValuePrecisionConverter implements Statistics {
               if (converterStrategy == PredicateConverterStrategy.CONVERT_AND_ADD_FLOW_BIDIRECTED) {
                 relevantGraphNodes = getRelevantGraphUsing(var, depGraph, relevantEdges);
                 for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
-                  allUsesTracked = true;
-                  for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
-                    if (inspectedVars.contains(varDep)) {
-                      allUsesTracked = false;
-                      break;
+                  defs = depGraph.getDefs(relVarUse);
+                  if (!defs.isEmpty()) {
+                    allUsesTracked = true;
+                    oneUseTracked = false;
+
+                    for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
+                      if (inspectedVars.contains(varDep)) {
+                        oneUseTracked = true;
+                      } else if (!defs.contains(varDep)) {
+                        allUsesTracked = false;
+                        break;
+                      }
                     }
-                  }
 
-                  conversionShutdownNotifier.shutdownIfNecessary();
+                    conversionShutdownNotifier.shutdownIfNecessary();
 
-                  if (allUsesTracked) {
-                    for (MemoryLocation varDef : depGraph.getDefs(relVarUse)) {
-                      registerRelevantVar(varDef, inspectedVars, toProcess, result);
+                    if (oneUseTracked && allUsesTracked) {
+                      for (MemoryLocation varDef : defs) {
+                        registerRelevantVar(varDef, inspectedVars, toProcess, result);
+                      }
                     }
                   }
                 }
@@ -360,7 +372,9 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                         logger,
                         pConversionShutdownNotifier),
                     AggregatedReachedSets.empty());
-        ReachedSet reached = rsFactory.create(cpa);
+        ReachedSet reached =
+            rsFactory.createAndInitialize(
+                cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
         CPAAlgorithm.create(cpa, logger, reachPropConfig, pConversionShutdownNotifier).run(reached);
         Preconditions.checkState(!reached.hasWaitingState());
@@ -378,6 +392,11 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
         while (!toExplore.isEmpty()) {
           exploring = toExplore.pop();
+          for (ARGState covered : exploring.getCoveredByThis()) {
+            if (visited.add(covered)) {
+              toExplore.add(covered);
+            }
+          }
           for (ARGState parent : exploring.getParents()) {
             edge = parent.getEdgeToChild(exploring);
             Preconditions.checkNotNull(edge);
@@ -447,7 +466,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       Collection<MemoryLocation> pInspectedVars,
       Deque<MemoryLocation> pToProcess,
       final Multimap<CFANode, MemoryLocation> pResult) {
-    if (!pInspectedVars.add(pVar)) {
+    if (pInspectedVars.add(pVar)) {
       pToProcess.push(pVar);
       pResult.put(dummyNode, pVar);
     }
