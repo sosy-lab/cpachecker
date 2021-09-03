@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -218,8 +220,9 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
             Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
             Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
-            ControlDependenceVisitor cdVisit =
-                new ControlDependenceVisitor(inspectedVars, toProcess, result);
+            BackwardsVisitOnceVisitor<Node> cdVisit =
+                depGraph.createVisitOnceVisitor(
+                    new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
             boolean allUsesTracked;
@@ -361,6 +364,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                         pConversionShutdownNotifier),
                     AggregatedReachedSets.empty());
         ReachedSet reached = rsFactory.create(cpa);
+        reached.add(
+            cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+            cpa.getInitialPrecision(
+                cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
 
         CPAAlgorithm.create(cpa, logger, reachPropConfig, pConversionShutdownNotifier).run(reached);
         Preconditions.checkState(!reached.hasWaitingState());
@@ -447,7 +454,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       Collection<MemoryLocation> pInspectedVars,
       Deque<MemoryLocation> pToProcess,
       final Multimap<CFANode, MemoryLocation> pResult) {
-    if (!pInspectedVars.add(pVar)) {
+    if (pInspectedVars.add(pVar)) {
       pToProcess.push(pVar);
       pResult.put(dummyNode, pVar);
     }
