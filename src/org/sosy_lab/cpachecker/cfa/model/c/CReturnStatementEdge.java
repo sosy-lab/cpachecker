@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
@@ -46,4 +47,13 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
     return Optional.of((CReturnStatement)rawAST);
   }
 
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new CReturnStatementEdge(
+        getRawStatement(),
+        getRawAST().get(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        (FunctionExitNode) pNewSuccessorNode);
+  }
 }

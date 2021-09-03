@@ -13,6 +13,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -61,5 +62,16 @@ public class JMethodCallEdge extends FunctionCallEdge {
   public JMethodEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
     return (JMethodEntryNode)super.getSuccessor();
+  }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new JMethodCallEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        (JMethodEntryNode) pNewSuccessorNode,
+        getRawAST().get(),
+        getSummaryEdge());
   }
 }

@@ -28,11 +28,11 @@ public interface CFAEdge extends Serializable {
   FileLocation getFileLocation();
 
   /**
-   * @param pNewNode Starting node of the copy of the current edge
-   * @param pNewDummyCFANode End node of the copy of the current edge
+   * @param pNewPredecessorNode Starting node of the copy of the current edge
+   * @param pNewSuccessorNode End node of the copy of the current edge
    * @return Copy of the current CFAEdge
    */
-  CFAEdge copyWith(CFANode pNewNode, CFANode pNewDummyCFANode);
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode);
 
   /**
    * Returns the part of the original input file from which this edge was

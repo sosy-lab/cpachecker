@@ -69,4 +69,9 @@ public class DummyCFAEdge implements CFAEdge {
   public String getCode() {
     return "";
   }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new DummyCFAEdge(pNewPredecessorNode, pNewSuccessorNode);
+  }
 }

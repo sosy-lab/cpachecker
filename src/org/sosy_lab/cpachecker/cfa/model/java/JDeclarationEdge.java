@@ -12,6 +12,7 @@ import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JDeclarationEdge extends ADeclarationEdge {
@@ -35,5 +36,15 @@ public class JDeclarationEdge extends ADeclarationEdge {
   @Override
   public Optional<JDeclaration> getRawAST() {
     return Optional.of((JDeclaration)declaration);
+  }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new JDeclarationEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        getDeclaration());
   }
 }

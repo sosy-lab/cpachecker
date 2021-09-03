@@ -151,7 +151,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     }
 
     @Override
-    public CFAEdge copyWith(CFANode pNewNode, CFANode pNewDummyCFANode) {
+    public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
       return new DummyEdge(this.getPredecessor().getFunctionName());
     }
   }

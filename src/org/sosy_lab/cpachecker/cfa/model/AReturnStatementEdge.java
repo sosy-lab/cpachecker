@@ -56,4 +56,13 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return (FunctionExitNode)super.getSuccessor();
   }
 
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new AReturnStatementEdge(
+        getRawStatement(),
+        getRawAST().get(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        (FunctionExitNode) pNewSuccessorNode);
+  }
 }

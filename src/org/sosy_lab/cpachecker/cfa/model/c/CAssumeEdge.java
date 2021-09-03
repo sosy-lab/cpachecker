@@ -12,6 +12,7 @@ import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -74,5 +75,18 @@ public class CAssumeEdge extends AssumeEdge {
   @Override
   public Optional<CExpression> getRawAST() {
     return Optional.of((CExpression)expression);
+  }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new CAssumeEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        getExpression(),
+        getTruthAssumption(),
+        isSwapped(),
+        isArtificialIntermediate());
   }
 }

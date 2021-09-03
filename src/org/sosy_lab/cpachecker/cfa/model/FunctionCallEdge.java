@@ -10,10 +10,9 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import com.google.common.base.Optional;
 import java.util.List;
-
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 
 
@@ -60,5 +59,16 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   public FunctionEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
     return (FunctionEntryNode)super.getSuccessor();
+  }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new FunctionCallEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        getRawAST().get(),
+        getSummaryEdge());
   }
 }

@@ -12,6 +12,7 @@ import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CStatementEdge extends AStatementEdge {
@@ -25,8 +26,6 @@ public class CStatementEdge extends AStatementEdge {
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
   }
 
-
-
   @Override
   public CStatement getStatement() {
     return (CStatement) statement;
@@ -35,5 +34,15 @@ public class CStatementEdge extends AStatementEdge {
   @Override
   public Optional<CStatement> getRawAST() {
     return Optional.of((CStatement)statement);
+  }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new CStatementEdge(
+        getRawStatement(),
+        getStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode);
   }
 }

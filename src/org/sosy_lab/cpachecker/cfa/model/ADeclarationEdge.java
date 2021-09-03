@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class ADeclarationEdge extends AbstractCFAEdge {
@@ -44,4 +44,13 @@ public class ADeclarationEdge extends AbstractCFAEdge {
     return declaration.toASTString();
   }
 
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new ADeclarationEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        getDeclaration());
+  }
 }

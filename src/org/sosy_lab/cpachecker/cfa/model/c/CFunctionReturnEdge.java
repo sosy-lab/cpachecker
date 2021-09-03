@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -35,4 +36,14 @@ public class CFunctionReturnEdge extends FunctionReturnEdge {
   public CFunctionEntryNode getFunctionEntry() {
     return (CFunctionEntryNode)super.getFunctionEntry();
   }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new CFunctionReturnEdge(
+        getFileLocation(),
+        (FunctionExitNode) pNewPredecessorNode,
+        pNewSuccessorNode,
+        getSummaryEdge());
+  }
+
 }

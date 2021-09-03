@@ -46,4 +46,14 @@ public  class FunctionSummaryEdge extends AbstractCFAEdge {
     return expression.toASTString();
   }
 
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new FunctionSummaryEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        getExpression(),
+        getFunctionEntry());
+  }
 }

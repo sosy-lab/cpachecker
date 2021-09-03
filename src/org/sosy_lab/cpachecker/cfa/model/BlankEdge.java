@@ -38,4 +38,14 @@ public class BlankEdge extends AbstractCFAEdge {
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.BlankEdge;
   }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new BlankEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        getDescription());
+  }
 }

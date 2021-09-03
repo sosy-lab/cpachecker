@@ -126,4 +126,17 @@ public class AssumeEdge extends AbstractCFAEdge {
   public boolean isArtificialIntermediate() {
     return artificialIntermediate;
   }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new AssumeEdge(
+        getRawStatement(),
+        getFileLocation(),
+        pNewPredecessorNode,
+        pNewSuccessorNode,
+        expression,
+        truthAssumption,
+        swapped,
+        artificialIntermediate);
+  }
 }

@@ -53,4 +53,13 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
   public FunctionEntryNode getFunctionEntry() {
     return summaryEdge.getFunctionEntry();
   }
+
+  @Override
+  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+    return new FunctionReturnEdge(
+        getFileLocation(),
+        (FunctionExitNode) pNewPredecessorNode,
+        pNewSuccessorNode,
+        getSummaryEdge());
+  }
 }
