@@ -372,11 +372,9 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                         logger,
                         pConversionShutdownNotifier),
                     AggregatedReachedSets.empty());
-        ReachedSet reached = rsFactory.create(cpa);
-        reached.add(
-            cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-            cpa.getInitialPrecision(
-                cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+        ReachedSet reached =
+            rsFactory.createAndInitialize(
+                cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
         CPAAlgorithm.create(cpa, logger, reachPropConfig, pConversionShutdownNotifier).run(reached);
         Preconditions.checkState(!reached.hasWaitingState());
