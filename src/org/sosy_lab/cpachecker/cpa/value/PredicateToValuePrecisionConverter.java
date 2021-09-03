@@ -225,7 +225,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                     new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
-            boolean allUsesTracked;
+            boolean allUsesTracked, oneUseTracked;
+            ImmutableSet<MemoryLocation> defs;
             while (!toProcess.isEmpty()) {
               conversionShutdownNotifier.shutdownIfNecessary();
               var = toProcess.pop();
@@ -242,6 +243,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
               conversionShutdownNotifier.shutdownIfNecessary();
 
               if (considerControlDependence) {
+                cdVisit.reset();
                 depGraph.traverse(relevantGraphNodes, cdVisit);
               }
 
@@ -250,19 +252,26 @@ public class PredicateToValuePrecisionConverter implements Statistics {
               if (converterStrategy == PredicateConverterStrategy.CONVERT_AND_ADD_FLOW_BIDIRECTED) {
                 relevantGraphNodes = getRelevantGraphUsing(var, depGraph, relevantEdges);
                 for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
-                  allUsesTracked = true;
-                  for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
-                    if (inspectedVars.contains(varDep)) {
-                      allUsesTracked = false;
-                      break;
+                  defs = depGraph.getDefs(relVarUse);
+                  if (!defs.isEmpty()) {
+                    allUsesTracked = true;
+                    oneUseTracked = false;
+
+                    for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
+                      if (inspectedVars.contains(varDep)) {
+                        oneUseTracked = true;
+                      } else if (!defs.contains(varDep)) {
+                        allUsesTracked = false;
+                        break;
+                      }
                     }
-                  }
 
-                  conversionShutdownNotifier.shutdownIfNecessary();
+                    conversionShutdownNotifier.shutdownIfNecessary();
 
-                  if (allUsesTracked) {
-                    for (MemoryLocation varDef : depGraph.getDefs(relVarUse)) {
-                      registerRelevantVar(varDef, inspectedVars, toProcess, result);
+                    if (oneUseTracked && allUsesTracked) {
+                      for (MemoryLocation varDef : defs) {
+                        registerRelevantVar(varDef, inspectedVars, toProcess, result);
+                      }
                     }
                   }
                 }
@@ -385,6 +394,11 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
         while (!toExplore.isEmpty()) {
           exploring = toExplore.pop();
+          for (ARGState covered : exploring.getCoveredByThis()) {
+            if (visited.add(covered)) {
+              toExplore.add(covered);
+            }
+          }
           for (ARGState parent : exploring.getParents()) {
             edge = parent.getEdgeToChild(exploring);
             Preconditions.checkNotNull(edge);
