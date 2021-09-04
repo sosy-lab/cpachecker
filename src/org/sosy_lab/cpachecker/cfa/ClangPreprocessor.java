@@ -54,7 +54,7 @@ public class ClangPreprocessor extends Preprocessor {
   public Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
       throws CParserException, InterruptedException {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
-    if (Files.getFileExtension(file.toString()).equals("")) {
+    if (Files.getFileExtension(file.toString()).isEmpty()) {
       assumeLanguageC();
       // TODO log?
     }
