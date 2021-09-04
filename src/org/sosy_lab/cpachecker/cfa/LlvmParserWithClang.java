@@ -74,8 +74,12 @@ public class LlvmParserWithClang extends LlvmParser {
     // The input is written to a file in a temporary directory so that clang can preprocess it.
     // This temp dir will be automatically deleted when the try block terminates.
     try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("input-for-llvm-with-clang")) {
-      // TODO handle filenames with unknown suffixes (?) and empty Strings
-      Path tempFile = tempDir.toPath().resolve(pFilename).normalize();
+      // TODO handle filenames with unknown suffixes?
+      String filename = pFilename;
+      if (filename == null || filename.isEmpty()) {
+        filename = "input-for-llvm-with-clang";
+      }
+      Path tempFile = tempDir.toPath().resolve(filename).normalize();
       IO.writeFile(tempFile, Charset.defaultCharset(), pCode);
       return parseSingleFile(tempFile);
     } catch (IOException e) {
