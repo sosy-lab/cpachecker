@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -28,15 +29,9 @@ public class SummaryInformation {
   private Map<CFANode, Map<String, CExpression>> variableDeclarations = new HashMap<>();
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<StrategyInterface> strategies = new HashSet<>();
-  protected StrategyFactory factory;
+  private StrategyFactory factory;
 
-  private static SummaryInformation singletonInstance = new SummaryInformation();
-
-  private SummaryInformation() {}
-
-  public static SummaryInformation getSummaryInformation() {
-    return singletonInstance;
-  }
+  public SummaryInformation() {}
 
   public void addNodeForStrategy(StrategiesEnum strategy, CFANode node) {
     strategiesToNodes.put(strategy, node);
@@ -81,5 +76,13 @@ public class SummaryInformation {
 
   public StrategyFactory getFactory() {
     return factory;
+  }
+
+  public Optional<Loop> getLoop(CFANode node) {
+    Loop loop = nodeToLoopStructure.get(node);
+    if (Objects.isNull(loop)) {
+      return Optional.empty();
+    }
+    return Optional.of(loop);
   }
 }

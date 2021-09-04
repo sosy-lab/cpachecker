@@ -187,7 +187,7 @@ public class MutableCFA implements CFA {
     return summaryInformation;
   }
 
-  public void initSummaryInformations() {
-    summaryInformation = Optional.of(SummaryInformation.getSummaryInformation());
+  public void setSummaryInformations(SummaryInformation pSummaryInformation) {
+    summaryInformation = Optional.of(pSummaryInformation);
   }
 }

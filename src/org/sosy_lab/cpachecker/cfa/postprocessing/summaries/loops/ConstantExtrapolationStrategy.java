@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -30,10 +31,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.AExpressionLoopIterationsVisitor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStrategy {
 
@@ -397,19 +400,56 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
   }
 
   @Override
-  public Optional<GhostCFA> summarize(final CFANode loopStartNode) {
+  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
 
-    if (loopStartNode.getNumLeavingEdges() != 1) {
+    if (beforeWhile.getNumLeavingEdges() != 1) {
       return Optional.empty();
     }
 
-    if (!loopStartNode.getLeavingEdge(0).getDescription().equals("while")) {
+    if (!beforeWhile.getLeavingEdge(0).getDescription().equals("while")) {
       return Optional.empty();
     }
 
-    CFANode loopStartNodeLocal = loopStartNode.getLeavingEdge(0).getSuccessor();
+    CFANode loopStartNode = beforeWhile.getLeavingEdge(0).getSuccessor();
 
-    Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNodeLocal);
+
+    Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
+    if (loopStructureMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    Loop loopStructure = loopStructureMaybe.get();
+
+    if (!loopStructure.onlyConstantVarModification()) {
+      return Optional.empty();
+    }
+
+    Optional<AExpression> loopBoundExpressionMaybe = loopStructure.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.get();
+
+    AExpressionLoopIterationsVisitor<Exception> visitor =
+        new AExpressionLoopIterationsVisitor<>(loopStructure);
+
+    Optional<Integer> iterationsMaybe;
+    try {
+      iterationsMaybe = loopBoundExpression.accept_(visitor);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+
+    if (iterationsMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    Integer iterations = iterationsMaybe.get();
+    if (iterations < 0) {
+      return Optional.empty();
+    }
+
+    return Optional.empty();
+
+    /*Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNodeLocal);
     Integer loopBranchIndex;
 
     if (loopBranchIndexOptional.isEmpty()) {
@@ -453,6 +493,6 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       ghostCFA = ghostCFASuccess.orElseThrow();
     }
 
-    return Optional.of(ghostCFA);
+    return Optional.of(ghostCFA);*/
   }
 }

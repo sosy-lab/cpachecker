@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryPostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.LoopStrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
@@ -768,6 +769,7 @@ public class CFACreator {
     }
 
     if (useSummaries) {
+      cfa.setSummaryInformations(new SummaryInformation());
       SummaryPostProcessor summaryPostProcessor =
           new SummaryPostProcessor(
               logger,

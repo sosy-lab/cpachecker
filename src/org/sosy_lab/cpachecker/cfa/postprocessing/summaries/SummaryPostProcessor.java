@@ -32,7 +32,7 @@ public class SummaryPostProcessor {
   protected final ShutdownNotifier shutdownNotifier;
   private int maxIterationsSummaries;
   private StrategyDependencyInterface strategyDependencies;
-  private SummaryInformation summaryInformation = SummaryInformation.getSummaryInformation();
+  private SummaryInformation summaryInformation;
 
   public SummaryPostProcessor(
       LogManager pLogger,
@@ -51,6 +51,7 @@ public class SummaryPostProcessor {
     useCompilerForSummary = pUseCompilerForSummary;
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
     setOriginalCFA(pCfa);
+    summaryInformation = pCfa.getSummaryInformation().get();
     strategyFactory =
         new StrategyFactory(
             pLogger,

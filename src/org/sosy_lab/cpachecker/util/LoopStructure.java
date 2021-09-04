@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -43,18 +44,26 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.ConstantDeltaVisitor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.IntegerValueComputationVisitor;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -125,7 +134,7 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> innerLoopEdges;
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
-    private ImmutableSet<String> loopIncDecVariables;
+    private Map<String, Integer> loopIncDecVariables;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
@@ -184,15 +193,20 @@ public final class LoopStructure implements Serializable {
       return !Sets.intersection(nodes, l.nodes).isEmpty();
     }
 
-    private ImmutableSet<String> collectLoopIncDecVariables() {
-      ImmutableSet.Builder<String> result = ImmutableSet.builder();
+    private Map<String, Integer> collectLoopIncDecVariables() {
+      Map<String, Integer> result = new HashMap<>();
       for (CFAEdge e : getInnerLoopEdges()) {
-        String var = obtainIncDecVariable(e);
-        if (var != null) {
-          result.add(var);
+        Optional<Pair<String, Integer>> varMaybe = obtainIncDecVariable(e);
+        if (varMaybe.isPresent()) {
+          Pair<String, Integer> var = varMaybe.get();
+          if (result.containsKey(var.getFirst())) {
+            result.put(var.getFirst(), result.get(var.getFirst()) + var.getSecond());
+          } else {
+            result.put(var.getFirst(), var.getSecond());
+          }
         }
       }
-      return result.build();
+      return result;
     }
 
     /**
@@ -285,7 +299,7 @@ public final class LoopStructure implements Serializable {
       if (loopIncDecVariables == null) {
         loopIncDecVariables = collectLoopIncDecVariables();
       }
-      return loopIncDecVariables;
+      return loopIncDecVariables.keySet();
     }
 
     /**
@@ -300,9 +314,13 @@ public final class LoopStructure implements Serializable {
         return Optional.empty();
       }
 
+      Map<CFANode, CFANode> originalToNewNodes = new HashMap<>();
+
       Pair<CFANode, CFANode> startNodes =
           Pair.of(
               CFANode.newDummyCFANode("Loop Unrolling Start"), this.getLoopHeads().asList().get(0));
+      originalToNewNodes.put(startNodes.getFirst(), startNodes.getSecond());
+
       CFANode firstNode = startNodes.getFirst();
       CFANode lastNode = CFANode.newDummyCFANode("Loop Unrolling End");
       List<Pair<CFANode, CFANode>> currentNodes = new ArrayList<>();
@@ -312,8 +330,19 @@ public final class LoopStructure implements Serializable {
         CFANode newNode = nodePair.getFirst();
         CFANode originalNode = nodePair.getSecond();
         for (CFAEdge succ : originalNode.getLeavingEdges()) {
-          CFAEdge pNewLeavingEdge = succ.copyWith(newNode, CFANode.newDummyCFANode("Loop Unrolling Inner"));
-          currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), succ.getSuccessor()));
+          CFANode newSuccessor;
+          CFANode successor = succ.getSuccessor();
+          if (originalToNewNodes.keySet().contains(successor)
+              && !getInnerLoopEdges().contains(succ)) {
+            newSuccessor = originalToNewNodes.get(successor);
+          } else if (successor == startNodes.getSecond() || !getInnerLoopEdges().contains(succ)) {
+            newSuccessor = lastNode;
+          } else {
+            newSuccessor = CFANode.newDummyCFANode("Loop Unrolling Inner");
+            originalToNewNodes.put(successor, newSuccessor);
+          }
+          CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
+          currentNodes.add(Pair.of(pNewLeavingEdge.getSuccessor(), successor));
         }
       }
 
@@ -354,7 +383,76 @@ public final class LoopStructure implements Serializable {
           .compare(nodes, pOther.nodes, NODES_COMPARATOR)
           .result();
     }
+
+    /*
+     * Return the bound as a CExpression, if it exists.
+     * This is specially the case for while loops of the form
+     * while (EXPR) {}
+     * Other cases may be applicable but have not been considered in this iteration.
+     */
+    public Optional<AExpression> getBound() {
+      if (this.getLoopHeads().size() != 1) {
+        return Optional.empty();
+      }
+
+      CFANode loopHead = this.getLoopHeads().asList().get(0);
+
+      Set<CFAEdge> leavingEdgesLoopHead = new HashSet<>(loopHead.getLeavingEdges());
+      Iterator<CFAEdge> iter =
+          Sets.intersection(leavingEdgesLoopHead, this.getInnerLoopEdges()).iterator();
+      if (iter.hasNext()) {
+        CFAEdge boundEdge = iter.next();
+        if (iter.hasNext()) {
+          return Optional.empty();
+        }
+
+        if (!(boundEdge instanceof AssumeEdge)) {
+          return Optional.empty();
+        }
+        return Optional.of(((AssumeEdge) boundEdge).getExpression());
+      }
+
+      return Optional.empty();
+    }
+
+    public Optional<Integer> getDelta(AIdExpression pExp) {
+      if (!this.loopIncDecVariables.containsKey(pExp.getName())) {
+        return Optional.empty();
+      } else {
+        return Optional.of(this.loopIncDecVariables.get(pExp.getName()));
+      }
+    }
+
+    public boolean onlyConstantVarModification() {
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          if (((AStatementEdge) e).getStatement() instanceof AExpressionAssignmentStatement) {
+            AExpressionAssignmentStatement aStatement =
+                ((AExpressionAssignmentStatement) ((AStatementEdge) e).getStatement());
+            if (aStatement.getLeftHandSide() instanceof AIdExpression) {
+              ConstantDeltaVisitor<Exception> visitor =
+                  new ConstantDeltaVisitor<>(
+                      Optional.of(((AIdExpression) aStatement.getLeftHandSide()).getName()));
+              try {
+                if (!aStatement.getRightHandSide().accept_(visitor)) {
+                  return false;
+                }
+              } catch (Exception e1) {
+                return false;
+              }
+            } else {
+              return false;
+            }
+          }
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
   }
+
+  private static IntegerValueComputationVisitor<Exception> integerValueComputationVisitor = new IntegerValueComputationVisitor<>();
 
   private final ImmutableListMultimap<String, Loop> loops;
 
@@ -362,7 +460,7 @@ public final class LoopStructure implements Serializable {
 
   // computed lazily
   private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
+  private transient Map<String, Integer> loopIncDecVariables;
 
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
@@ -427,67 +525,82 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Return all variables that are incremented or decremented by a fixed constant
-   * inside loops.
-   * The variable names are scoped in the same way as {@link VariableClassification}
-   * does.
+   * Return all variables that are incremented or decremented by a fixed constant inside loops. The
+   * variable names are scoped in the same way as {@link VariableClassification} does.
    */
   public Set<String> getLoopIncDecVariables() {
     if (loopIncDecVariables == null) {
       loopIncDecVariables = collectLoopIncDecVariables();
     }
-    return loopIncDecVariables;
+    return loopIncDecVariables.keySet();
   }
 
-  private ImmutableSet<String> collectLoopIncDecVariables() {
-    ImmutableSet.Builder<String> result = ImmutableSet.builder();
+  private Map<String, Integer> collectLoopIncDecVariables() {
+    Map<String, Integer> result = new HashMap<>();
     for (Loop l : loops.values()) {
-      // Get all variables that are incremented or decrement by literal values
-      result.addAll(l.collectLoopIncDecVariables());
+      // Get all variables that are incremented or decrement by Integer values
+      Map<String, Integer> resultLocal = l.collectLoopIncDecVariables();
+      for (Entry<String, Integer> e: resultLocal.entrySet()) {
+        if (result.containsKey(e.getKey())) {
+          result.put(e.getKey(), result.get(e.getKey()) + e.getValue());
+        } else {
+          result.put(e.getKey(), e.getValue());
+        }
+      }
     }
-    return result.build();
+    return result;
   }
-
-
 
   /**
-   * This method obtains a variable referenced in this edge that are incremented or decremented by a constant
-   * (if there is one such variable).
+   * This method obtains a variable referenced in this edge that are incremented or decremented by a
+   * constant (if there is one such variable).
+   *
    * @param e the edge from which to obtain variables
    * @return a variable name or null
    */
-  @Nullable
-  private static String obtainIncDecVariable(CFAEdge e) {
-    if (e instanceof CStatementEdge) {
-      CStatementEdge stmtEdge = (CStatementEdge) e;
-      if (stmtEdge.getStatement() instanceof CAssignment) {
-        CAssignment assign = (CAssignment) stmtEdge.getStatement();
+  private static Optional<Pair<String, Integer>> obtainIncDecVariable(CFAEdge e) {
+    if (e instanceof AStatementEdge) {
+      AStatementEdge stmtEdge = (AStatementEdge) e;
+      if (stmtEdge.getStatement() instanceof AAssignment) {
+        AAssignment assign = (AAssignment) stmtEdge.getStatement();
 
-        if (assign.getLeftHandSide() instanceof CIdExpression) {
-          CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+        if (assign.getLeftHandSide() instanceof AIdExpression) {
+          AIdExpression assignementToId = (AIdExpression) assign.getLeftHandSide();
           String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
           if (assign.getRightHandSide() instanceof CBinaryExpression) {
-            CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
-            BinaryOperator op = binExpr.getOperator();
+            ABinaryExpression binExpr = (ABinaryExpression) assign.getRightHandSide();
+            ABinaryOperator op = binExpr.getOperator();
 
+            // This line here currently only works for C Binary Operators
             if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
 
-              if (binExpr.getOperand1() instanceof CLiteralExpression
-                  || binExpr.getOperand2() instanceof CLiteralExpression) {
-                CIdExpression operandId = null;
+              if (binExpr.getOperand1() instanceof ALiteralExpression
+                  || binExpr.getOperand2() instanceof ALiteralExpression) {
+                AIdExpression operandId = null;
+                AExpression valueExpression = null;
 
                 if (binExpr.getOperand1() instanceof CIdExpression) {
                   operandId = (CIdExpression) binExpr.getOperand1();
+                  valueExpression = binExpr.getOperand2();
                 }
                 if (binExpr.getOperand2() instanceof CIdExpression) {
                   operandId = (CIdExpression) binExpr.getOperand2();
+                  valueExpression = binExpr.getOperand1();
                 }
 
-                if (operandId != null) {
+                if (operandId != null && valueExpression != null) {
                   String operandVar = operandId.getDeclaration().getQualifiedName();
-                  if (assignToVar.equals(operandVar)) {
-                    return assignToVar;
+
+                  Optional<Integer> valueOptional;
+                  try {
+                    valueOptional = valueExpression.accept_(integerValueComputationVisitor);
+                  } catch (Exception e1) {
+                    return Optional.empty();
+                  }
+
+                  if (assignToVar.equals(operandVar) && valueOptional.isPresent()) {
+                    return Optional.of(Pair.of(assignToVar, valueOptional.get()));
                   }
                 }
               }
@@ -496,7 +609,7 @@ public final class LoopStructure implements Serializable {
         }
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
