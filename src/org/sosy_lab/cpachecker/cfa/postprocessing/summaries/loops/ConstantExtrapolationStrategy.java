@@ -31,7 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.AExpressionLoopIterationsVisitor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.AggregateConstantsVisitor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.LoopVariableDeltaVisitor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -429,12 +430,94 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.get();
 
-    AExpressionLoopIterationsVisitor<Exception> visitor =
-        new AExpressionLoopIterationsVisitor<>(loopStructure);
-
-    Optional<Integer> iterationsMaybe;
+    Optional<Integer> iterationsMaybe = Optional.empty();
     try {
-      iterationsMaybe = loopBoundExpression.accept_(visitor);
+      // TODO For now it only works for c programs
+      if (loopBoundExpression instanceof CBinaryExpression) {
+        LoopVariableDeltaVisitor<Exception> variableVisitor =
+            new LoopVariableDeltaVisitor<>(loopStructure);
+        AggregateConstantsVisitor<Exception> constantsVisitor =
+            new AggregateConstantsVisitor<>(Optional.of(loopStructure.getLoopIncDecVariables()));
+
+        Optional<Integer> operand1variableDelta =
+            ((CBinaryExpression) loopBoundExpression).getOperand1().accept(variableVisitor);
+        Optional<Integer> operand2variableDelta =
+            ((CBinaryExpression) loopBoundExpression).getOperand2().accept(variableVisitor);
+        Optional<Integer> operand1Constants =
+            ((CBinaryExpression) loopBoundExpression).getOperand1().accept(constantsVisitor);
+        Optional<Integer> operand2Constants =
+            ((CBinaryExpression) loopBoundExpression).getOperand2().accept(constantsVisitor);
+
+        if (operand1variableDelta.isPresent()
+            && operand2variableDelta.isPresent()
+            && operand1Constants.isPresent()
+            && operand2Constants.isPresent()) {
+
+          switch (((CBinaryExpression) loopBoundExpression).getOperator()) {
+            case EQUALS:
+              // Should iterate at most once if the Deltas are non zero
+              // If the deltas are zero and the integer is zero this loop would not terminate
+              // TODO: What do we do if the loop does not terminate?
+              // TODO: this can be improved if the value of the variables is known.
+              if (operand1variableDelta.get() - operand2variableDelta.get() != 0) {
+                // Returning this works because for any number of iterations less than or equal to 2
+                // The loop is simply unrolled. Since because of overflows no extrapolation can be
+                // made
+                iterationsMaybe = Optional.of(1);
+              }
+              break;
+            case GREATER_EQUAL:
+              // TODO Revise
+              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+                iterationsMaybe =
+                    Optional.of(
+                        (operand1Constants.get() - operand2Constants.get())
+                                / -(operand1variableDelta.get() - operand2variableDelta.get())
+                            + 1);
+              }
+              break;
+            case GREATER_THAN:
+              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+                iterationsMaybe =
+                    Optional.of(
+                        (operand1Constants.get() - operand2Constants.get())
+                            / -(operand1variableDelta.get() - operand2variableDelta.get()));
+              }
+              break;
+            case LESS_EQUAL:
+              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+                iterationsMaybe =
+                    Optional.of(
+                        (operand2Constants.get() - operand1Constants.get())
+                                / -(operand2variableDelta.get() - operand1variableDelta.get())
+                            + 1);
+              }
+              break;
+            case LESS_THAN:
+              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+                iterationsMaybe =
+                    Optional.of(
+                        (operand2Constants.get() - operand1Constants.get())
+                            / -(operand2variableDelta.get() - operand1variableDelta.get()));
+              }
+              break;
+            case NOT_EQUALS:
+              // Should iterate at most once if the Deltas are non zero
+              // If the deltas are zero and the integer is zero this loop would not terminate
+              // TODO: What do we do if the loop does not terminate?
+              // TODO: this can be improved if the value of the variables is known.
+              if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
+                // Returning this works because for any number of iterations less than or equal to 2
+                // The loop is simply unrolled. Since because of overflows no extrapolation can be
+                // made
+                iterationsMaybe = Optional.of(1);
+              }
+              break;
+            default:
+              break;
+          }
+        }
+      }
     } catch (Exception e) {
       return Optional.empty();
     }

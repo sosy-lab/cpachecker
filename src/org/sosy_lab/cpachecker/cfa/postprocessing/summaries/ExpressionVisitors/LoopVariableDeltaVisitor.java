@@ -20,11 +20,14 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -42,12 +45,14 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  * The assumption is that the expression being analyzed is in the Loop at:
  * while(EXPR) {}
  */
-public class AExpressionLoopIterationsVisitor<X extends Exception>
+public class LoopVariableDeltaVisitor<X extends Exception>
     extends AExpressionVisitor<Optional<Integer>, X> {
 
   private Loop loopStructure;
+  AggregateConstantsVisitor<X> noVariablesVisitor =
+      new AggregateConstantsVisitor<>(Optional.empty());
 
-  public AExpressionLoopIterationsVisitor(Loop pLoopStructure) {
+  public LoopVariableDeltaVisitor(Loop pLoopStructure) {
     this.loopStructure = pLoopStructure;
   }
 
@@ -139,43 +144,93 @@ public class AExpressionLoopIterationsVisitor<X extends Exception>
 
   @Override
   public Optional<Integer> visit(ABinaryExpression pExp) throws X {
-    // TODO Auto-generated method stub
-    return null;
+    if (pExp instanceof CBinaryExpression) {
+      switch (((CBinaryExpression) pExp).getOperator()) {
+        case DIVIDE:
+          Optional<Integer> operand2Evaluated = pExp.getOperand2().accept_(this.noVariablesVisitor);
+          Optional<Integer> operand1Evaluated = pExp.getOperand1().accept_(this);
+          if (operand2Evaluated.isPresent() && operand1Evaluated.isPresent()) {
+            // TODO here a float division may be more appropriate than integer division.
+            // But it is the question how do you handle this case. Use the same types as in c?
+            return Optional.of(operand1Evaluated.get() / operand2Evaluated.get());
+          } else {
+            return Optional.empty();
+          }
+        case PLUS:
+          Optional<Integer> operand2EvaluatedPlus = pExp.getOperand2().accept_(this);
+          Optional<Integer> operand1EvaluatedPlus = pExp.getOperand1().accept_(this);
+          if (operand2EvaluatedPlus.isPresent() && operand1EvaluatedPlus.isPresent()) {
+            return Optional.of(operand2EvaluatedPlus.get() + operand1EvaluatedPlus.get());
+          } else {
+            return Optional.empty();
+          }
+        case MINUS:
+          Optional<Integer> operand2EvaluatedMinus = pExp.getOperand2().accept_(this);
+          Optional<Integer> operand1EvaluatedMinus = pExp.getOperand1().accept_(this);
+          if (operand2EvaluatedMinus.isPresent() && operand1EvaluatedMinus.isPresent()) {
+            return Optional.of(operand1EvaluatedMinus.get() - operand2EvaluatedMinus.get());
+          } else {
+            return Optional.empty();
+          }
+        case MULTIPLY:
+          Optional<Integer> operand2EvaluatedMultiply1 =
+              pExp.getOperand2().accept_(this.noVariablesVisitor);
+          Optional<Integer> operand1EvaluatedMultiply1 = pExp.getOperand1().accept_(this);
+          Optional<Integer> operand2EvaluatedMultiply2 = pExp.getOperand2().accept_(this);
+          Optional<Integer> operand1EvaluatedMultiply2 =
+              pExp.getOperand1().accept_(this.noVariablesVisitor);
+          if (operand2EvaluatedMultiply1.isPresent() && operand1EvaluatedMultiply1.isPresent()) {
+            return Optional.of(operand2EvaluatedMultiply1.get() * operand1EvaluatedMultiply1.get());
+          } else if (operand2EvaluatedMultiply2.isPresent()
+              && operand1EvaluatedMultiply2.isPresent()) {
+            return Optional.of(operand2EvaluatedMultiply2.get() * operand1EvaluatedMultiply2.get());
+          } else {
+            return Optional.empty();
+          }
+        default:
+          return Optional.empty();
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
   public Optional<Integer> visit(ACastExpression pExp) throws X {
-    // TODO may be used to allow for more complex bounds
     return Optional.empty();
   }
 
   @Override
   public Optional<Integer> visit(ACharLiteralExpression pExp) throws X {
-    // TODO may be used to allow for more complex bounds
     return Optional.empty();
   }
 
   @Override
   public Optional<Integer> visit(AFloatLiteralExpression pExp) throws X {
-    // TODO may be used to allow for more complex bounds
-    return Optional.empty();
+    return Optional.of(0);
   }
 
   @Override
   public Optional<Integer> visit(AIntegerLiteralExpression pExp) throws X {
-    // TODO Auto-generated method stub
-    return null;
+    return Optional.of(0);
   }
 
   @Override
   public Optional<Integer> visit(AStringLiteralExpression pExp) throws X {
-    // TODO may be used to allow for more complex bounds
     return Optional.empty();
   }
 
   @Override
   public Optional<Integer> visit(AUnaryExpression pExp) throws X {
-    // TODO Auto-generated method stub
-    return null;
+    if (pExp instanceof CUnaryExpression) {
+      if (pExp.getOperator() == UnaryOperator.MINUS) {
+        Optional<Integer> result = pExp.getOperand().accept_(this);
+        if (result.isPresent()) {
+          return Optional.of(-result.get());
+        } else {
+          return Optional.empty();
+        }
+      }
+    }
+    return Optional.empty();
   }
 }

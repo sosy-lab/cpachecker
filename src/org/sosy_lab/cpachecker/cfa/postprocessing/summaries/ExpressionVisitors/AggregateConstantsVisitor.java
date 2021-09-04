@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors;
 
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
@@ -20,6 +21,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
@@ -37,8 +40,15 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 
-public class IntegerValueComputationVisitor<X extends Exception>
+public class AggregateConstantsVisitor<X extends Exception>
     extends AExpressionVisitor<Optional<Integer>, X> {
+
+  Optional<Set<String>> knownVariables;
+  AggregateConstantsVisitor<X> noVariablesVisitor = new AggregateConstantsVisitor<>(Optional.empty());
+
+  public AggregateConstantsVisitor(Optional<Set<String>> pKnownVariables) {
+    knownVariables = pKnownVariables;
+  }
 
   @Override
   public Optional<Integer> visit(CTypeIdExpression pIastTypeIdExpression) throws X {
@@ -67,11 +77,6 @@ public class IntegerValueComputationVisitor<X extends Exception>
 
   @Override
   public Optional<Integer> visit(CComplexCastExpression pComplexCastExpression) throws X {
-    return Optional.empty();
-  }
-
-  @Override
-  public Optional<Integer> visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
     return Optional.empty();
   }
 
@@ -122,11 +127,55 @@ public class IntegerValueComputationVisitor<X extends Exception>
 
   @Override
   public Optional<Integer> visit(AIdExpression pExp) throws X {
-    return Optional.empty();
+    if (this.knownVariables.isEmpty()) {
+      return Optional.empty();
+    } else if (this.knownVariables.get().contains(pExp.getName())) {
+      return Optional.of(0);
+    } else {
+      return Optional.empty();
+    }
   }
 
   @Override
   public Optional<Integer> visit(ABinaryExpression pExp) throws X {
+    if (pExp instanceof CBinaryExpression) {
+      Optional<Integer> operand1Maybe =  pExp.getOperand1().accept_(this);
+      if (((CBinaryExpression) pExp).getOperator() == BinaryOperator.DIVIDE) {
+        Optional<Integer> operand2Maybe = pExp.getOperand2().accept_(this.noVariablesVisitor);
+        if (operand2Maybe.isPresent() && operand1Maybe.isPresent()) {
+          // TODO here a float division may be more appropriate than integer division.
+          // But it is the question how do you handle this case. Use the same types as in c?
+          return Optional.of(operand1Maybe.get() / operand2Maybe.get());
+        } else {
+          return Optional.empty();
+        }
+      }
+
+      Optional<Integer> operand2Maybe =  pExp.getOperand2().accept_(this);
+      if (operand1Maybe.isEmpty() || operand2Maybe.isEmpty()) {
+        return Optional.empty();
+      }
+
+      Integer operand1 = operand1Maybe.get();
+      Integer operand2 = operand2Maybe.get();
+
+      switch (((CBinaryExpression) pExp).getOperator()) {
+        case MINUS:
+          return Optional.of(operand1 - operand2);
+        case MULTIPLY:
+          if (pExp.getOperand1() instanceof AIntegerLiteralExpression) {
+            return Optional.of(operand1 * operand2);
+          } else if (pExp.getOperand2() instanceof AIntegerLiteralExpression) {
+            return Optional.of(operand1 * operand2);
+          } else {
+            return Optional.empty();
+          }
+        case PLUS:
+          return Optional.of(operand1 + operand2);
+        default:
+          return Optional.empty();
+      }
+    }
     return Optional.empty();
   }
 
@@ -142,6 +191,7 @@ public class IntegerValueComputationVisitor<X extends Exception>
 
   @Override
   public Optional<Integer> visit(AFloatLiteralExpression pExp) throws X {
+    // TODO: How do we handle floats?
     return Optional.empty();
   }
 
@@ -159,15 +209,17 @@ public class IntegerValueComputationVisitor<X extends Exception>
   public Optional<Integer> visit(AUnaryExpression pExp) throws X {
     if (pExp instanceof CUnaryExpression) {
       if (pExp.getOperator() == UnaryOperator.MINUS) {
-        Optional<Integer> result = pExp.getOperand().accept_(this);
-        if (result.isEmpty()) {
-          return Optional.empty();
-        } else {
-          return Optional.of(-result.get());
+        Optional<Integer> operandEvaluated = pExp.getOperand().accept_(this);
+        if (operandEvaluated.isPresent()) {
+          return Optional.of(-operandEvaluated.get());
         }
       }
     }
+    return Optional.empty();
+  }
 
+  @Override
+  public Optional<Integer> visit(JBooleanLiteralExpression pJBooleanLiteralExpression) throws X {
     return Optional.empty();
   }
 }

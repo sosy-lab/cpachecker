@@ -556,7 +556,7 @@ public final class LoopStructure implements Serializable {
    * constant (if there is one such variable).
    *
    * @param e the edge from which to obtain variables
-   * @return a variable name or null
+   * @return a variable name and the constant increment or None
    */
   private static Optional<Pair<String, Integer>> obtainIncDecVariable(CFAEdge e) {
     if (e instanceof AStatementEdge) {
@@ -572,7 +572,7 @@ public final class LoopStructure implements Serializable {
             ABinaryExpression binExpr = (ABinaryExpression) assign.getRightHandSide();
             ABinaryOperator op = binExpr.getOperator();
 
-            // This line here currently only works for C Binary Operators
+            // TODO This line here currently only works for C Binary Operators
             if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
 
               if (binExpr.getOperand1() instanceof ALiteralExpression
