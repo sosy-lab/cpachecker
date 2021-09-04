@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -151,14 +151,14 @@ public class SynchronizedRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy pStrategy) {
+  public void reorder(VariableOrderingStrategy pStrategy) {
     synchronized (delegate) {
       delegate.reorder(pStrategy);
     }
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
     synchronized (delegate) {
       return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
     }

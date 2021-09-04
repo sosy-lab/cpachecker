@@ -14,7 +14,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.math.LongMath;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -256,9 +255,7 @@ public class RCNFManager implements StatisticsProvider {
         for (BooleanFormula op : operands) {
           Set<BooleanFormula> out = bfmgr.toConjunctionArgs(op, true);
           try {
-            sizeAfterExpansion = LongMath.checkedMultiply(
-                sizeAfterExpansion, out.size()
-            );
+            sizeAfterExpansion = Math.multiplyExact(sizeAfterExpansion, out.size());
           } catch (ArithmeticException ex) {
             sizeAfterExpansion = expansionResultSizeLimit + 1L;
             break;

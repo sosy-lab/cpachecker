@@ -147,8 +147,8 @@ class THTypeConverter extends TypeConverter {
       if (type instanceof JInterfaceType) {
         return (JInterfaceType) type;
       } else {
-        throw new CFAGenerationRuntimeException("Interface type " + typeName +
-            " was parsed as class type.");
+        throw new CFAGenerationRuntimeException(
+            "Interface type " + typeName + " was parsed as class type.");
       }
     }
 
@@ -189,9 +189,7 @@ class THTypeConverter extends TypeConverter {
   }
 
   private JClassType createClassType(
-      ITypeBinding t,
-      JClassType pSuperClass,
-      Set<JInterfaceType> pImplementedInterfaces) {
+      ITypeBinding t, JClassType pSuperClass, Set<JInterfaceType> pImplementedInterfaces) {
 
     checkArgument(t.isTopLevel());
 
@@ -210,8 +208,8 @@ class THTypeConverter extends TypeConverter {
         pImplementedInterfaces);
   }
 
-  private JInterfaceType createInterfaceType(ITypeBinding t,
-      Set<JInterfaceType> pExtendedInterfaces) {
+  private JInterfaceType createInterfaceType(
+      ITypeBinding t, Set<JInterfaceType> pExtendedInterfaces) {
 
     checkArgument(t.isTopLevel());
 
@@ -251,8 +249,10 @@ class THTypeConverter extends TypeConverter {
         pEnclosingType);
   }
 
-  private JInterfaceType createInterfaceType(ITypeBinding t,
-      Set<JInterfaceType> pExtendedInterfaces, JClassOrInterfaceType pEnclosingType) {
+  private JInterfaceType createInterfaceType(
+      ITypeBinding t,
+      Set<JInterfaceType> pExtendedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
 
     checkArgument(!t.isTopLevel());
 
@@ -260,8 +260,7 @@ class THTypeConverter extends TypeConverter {
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);
-    return JInterfaceType.valueOf(name, simpleName, mB.getVisibility(),
-        pExtendedInterfaces, pEnclosingType);
+    return JInterfaceType.valueOf(
+        name, simpleName, mB.getVisibility(), pExtendedInterfaces, pEnclosingType);
   }
-
 }

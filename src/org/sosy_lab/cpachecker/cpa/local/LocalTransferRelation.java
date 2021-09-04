@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cpa.local;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -121,9 +121,10 @@ public class LocalTransferRelation
     LocalState newState = state.copy();
     if (returnExpression.isPresent()) {
 
-      int potentialDereference = findDereference(returnExpression.get().getExpressionType());
+      int potentialDereference =
+          findDereference(returnExpression.orElseThrow().getExpressionType());
       ReturnIdentifier id = ReturnIdentifier.getInstance(0);
-      assign(newState, id, potentialDereference, returnExpression.get());
+      assign(newState, id, potentialDereference, returnExpression.orElseThrow());
     }
     return newState;
   }

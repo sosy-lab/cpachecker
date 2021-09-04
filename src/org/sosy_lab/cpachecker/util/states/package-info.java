@@ -7,6 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * This package contains classes relevant to different abstract domains.
+ * This package contains the class {@link org.sosy_lab.cpachecker.util.states.MemoryLocation}, that
+ * is used by several CPAs.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.states;

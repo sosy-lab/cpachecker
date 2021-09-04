@@ -199,7 +199,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       case ReturnStatementEdge:
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
         if (returnEdge.getExpression().isPresent()) {
-          returnEdge.getExpression().get().accept(finder);
+          returnEdge.getExpression().orElseThrow().accept(finder);
         }
         break;
       case FunctionReturnEdge:

@@ -83,7 +83,10 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*"
+          ".*File .* does not exist.*"
+              + "|.*Witness file is missing in specification.*"
+              + "|.*Configuration requires exactly one specification automaton, but none were given.*"
+              + "|.*Could not read precision from file.*"
               + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
           Pattern.DOTALL);
 
@@ -498,7 +501,7 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().withMessage("Java frontend has a bug and cannot be run twice").fail();

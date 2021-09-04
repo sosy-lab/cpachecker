@@ -13,7 +13,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -26,6 +25,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.LongSummaryStatistics;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -1561,20 +1561,21 @@ class ASTConverter {
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
     final Optional<CExpression> returnExp =
-        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
+        Optional.ofNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
     final Optional<CVariableDeclaration> returnVariableDeclaration =
 ((FunctionScope)scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
     if (returnVariableDeclaration.isPresent()) {
-      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.get());
+      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
       CExpression rhs = null;
       if (returnExp.isPresent()) {
-        rhs = returnExp.get();
+        rhs = returnExp.orElseThrow();
       } else {
         logger.log(
             Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
-        CInitializer defaultValue = CDefaults.forType(returnVariableDeclaration.get().getType(), loc);
+        CInitializer defaultValue =
+            CDefaults.forType(returnVariableDeclaration.orElseThrow().getType(), loc);
         if (defaultValue instanceof CInitializerExpression) {
           rhs = ((CInitializerExpression)defaultValue).getExpression();
         }
@@ -1582,7 +1583,7 @@ class ASTConverter {
       if (rhs != null) {
         returnAssignment = Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
-        returnAssignment = Optional.absent();
+        returnAssignment = Optional.empty();
       }
 
     } else {
@@ -1591,10 +1592,10 @@ class ASTConverter {
             Level.WARNING,
             loc + ":",
             "Return statement with expression",
-            returnExp.get(),
+            returnExp.orElseThrow(),
             "in void function.");
       }
-      returnAssignment = Optional.absent();
+      returnAssignment = Optional.empty();
     }
 
     return new CReturnStatement(loc, returnExp, returnAssignment);

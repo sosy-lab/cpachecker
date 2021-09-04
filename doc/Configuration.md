@@ -127,12 +127,29 @@ ErrorLocationAutomaton.cpa.automaton.inputFile = config/specification/ErrorLocat
 ```
 
 Note that instead of manually specifying an `ObserverAutomatonCPA`, you can
-use the option `specification`. The following example is identical to the last one:
+use the option `specification` (or the equivalent command-line argument `-spec`).
+The following example is identical to the last one:
 
 ```
 cpa = cpa.arg.ARGCPA arg
 arg.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA
+specification = config/specification/ErrorLocation.spc
+```
+
+If the option `specification` is used, CPAchecker will create CPA instances
+for each of the automata within the specification
+and insert them in an appropriate place in the tree of CPAs,
+usually below a CompositeCPA instance.
+To override this behavior
+and specify where the CPAs for specification automata should be inserted,
+use the placeholder `$specification` in the appropriate place.
+Thus the following example is again identical to the previous two:
+
+```
+cpa = cpa.arg.ARGCPA arg
+arg.cpa = cpa.composite.CompositeCPA composite
+composite.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.predicate.PredicateCPA, $specification
 specification = config/specification/ErrorLocation.spc
 ```
 

@@ -11,11 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 /**
- * This interface represents all sorts of top-level declarations (i.e., declarations
- * not nested inside another type declaration).
- * This excludes for examples methods parameter declarations.
- * It includes variables, as well as methods.
+ * This interface represents all sorts of top-level declarations (i.e., declarations not nested
+ * inside another type declaration). This excludes for examples methods parameter declarations. It
+ * includes variables, as well as methods.
  */
-public interface JDeclaration extends ADeclaration, JSimpleDeclaration {
-
-}
+public interface JDeclaration extends ADeclaration, JSimpleDeclaration {}

@@ -475,7 +475,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
-    AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+    AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
     return super.createAlgorithm(
         singleConfigFileName,
         mainFunction,

@@ -16,9 +16,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -330,11 +327,10 @@ public class CustomInstructionApplications {
       start.addLeavingEdge(ciEdge);
       end.addEnteringEdge(ciEdge);
       // build custom instruction
-      List<String> input = new ArrayList<>(2);
-      input.add("x");
-      input.add("y");
-      CustomInstruction ci = new CustomInstruction(start, Collections.singleton(end),
-          input, ImmutableList.of("r"), shutdownNotifier);
+      ImmutableList<String> input = ImmutableList.of("x", "y");
+      CustomInstruction ci =
+          new CustomInstruction(
+              start, ImmutableSet.of(end), input, ImmutableList.of("r"), shutdownNotifier);
 
       // find applied custom instructions in program
       try (Writer aciDef =
@@ -365,8 +361,8 @@ public class CustomInstructionApplications {
         br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
       }
 
-      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa).
-          parse(ci, foundCustomInstructionsDefinition);
+      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
+          .parse(ci, foundCustomInstructionsDefinition);
     }
 
     @Override

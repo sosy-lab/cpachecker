@@ -62,7 +62,7 @@ public class AssumptionWithLocation implements Appender {
     return Appenders.toString(this);
   }
 
-  private static final String formatAssumption(Entry<CFANode, BooleanFormula> entry) {
+  private static String formatAssumption(Entry<CFANode, BooleanFormula> entry) {
     int nodeId = entry.getKey().getNodeNumber();
     BooleanFormula assumption = entry.getValue();
     return "pc = " + nodeId + "\t =====>  " + assumption;

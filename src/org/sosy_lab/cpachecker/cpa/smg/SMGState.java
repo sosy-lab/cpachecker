@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -1149,7 +1150,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     Matcher result = externalAllocationRecursivePattern.matcher(pLabel);
     if (result.matches()) {
       String in = result.group(2);
-      Integer level = Integer.parseInt(in) + 1;
+      int level = Integer.parseInt(in) + 1;
       return result.replaceFirst("$1" + level + "$3");
     } else {
       return "r_1_" + pLabel;
@@ -2089,7 +2090,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
       functionName.append("_");
-      functionName.append(parameterDcl.toASTString().replace("*", "_").replace(" ", "_"));
+      functionName.append(CharMatcher.anyOf("* ").replaceFrom(parameterDcl.toASTString(), "_"));
     }
 
     return "__" + functionName;
@@ -2193,7 +2194,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
       String variableName = variableEntry.getKey();
       SMGRegion reg = variableEntry.getValue();
-      result.put(MemoryLocation.valueOf(variableName), reg);
+      result.put(MemoryLocation.parseExtendedQualifiedName(variableName), reg);
     }
 
     for (CLangStackFrame frame : heap.getStackFrames()) {
@@ -2202,7 +2203,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       for (Entry<String, SMGRegion> variableEntry : frame.getVariables().entrySet()) {
         String variableName = variableEntry.getKey();
         SMGRegion reg = variableEntry.getValue();
-        result.put(MemoryLocation.valueOf(functionName, variableName), reg);
+        result.put(MemoryLocation.forLocalVariable(functionName, variableName), reg);
       }
     }
 
@@ -2214,7 +2215,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     boolean change = false;
 
     for (String variable : heap.getGlobalObjects().keySet()) {
-      MemoryLocation globalVar = MemoryLocation.valueOf(variable);
+      MemoryLocation globalVar = MemoryLocation.parseExtendedQualifiedName(variable);
       if (!pTrackedStackVariables.contains(globalVar)) {
         heap.removeGlobalVariableAndEdges(variable);
         change = true;
@@ -2224,7 +2225,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     for (CLangStackFrame frame : heap.getStackFrames()) {
       String functionName = frame.getFunctionDeclaration().getName();
       for (String variable : frame.getVariables().keySet()) {
-        MemoryLocation var = MemoryLocation.valueOf(functionName, variable);
+        MemoryLocation var = MemoryLocation.forLocalVariable(functionName, variable);
         if (!pTrackedStackVariables.contains(var)) {
           heap.forgetFunctionStackVariable(var, false);
           change = true;

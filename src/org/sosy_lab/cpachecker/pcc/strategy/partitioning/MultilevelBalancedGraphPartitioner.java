@@ -14,7 +14,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -154,12 +153,7 @@ public class MultilevelBalancedGraphPartitioner implements WeightedBalancedGraph
    * @param partitions the partitioning to be cleaned up.
    */
   private void removeEmptyPartitions(List<Set<Integer>> partitions) {
-    for (Iterator<Set<Integer>> iter = partitions.listIterator(); iter.hasNext();) {
-      Set<Integer> partition = iter.next();
-      if (partition != null && partition.isEmpty()) {
-        iter.remove();
-      }
-    }
+    partitions.removeIf(partition -> partition != null && partition.isEmpty());
   }
 
 

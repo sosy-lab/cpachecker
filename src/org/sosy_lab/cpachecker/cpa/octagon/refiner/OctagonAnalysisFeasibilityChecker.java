@@ -99,7 +99,7 @@ public class OctagonAnalysisFeasibilityChecker {
     UseDefRelation useDefRelation = new UseDefRelation(foundPath, ImmutableSet.of(), false);
 
     return FluentIterable.from(useDefRelation.getUsesAsQualifiedName())
-        .transform(MemoryLocation::valueOf);
+        .transform(MemoryLocation::parseExtendedQualifiedName);
   }
 
   /**

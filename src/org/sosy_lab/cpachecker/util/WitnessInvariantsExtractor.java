@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
@@ -161,7 +160,6 @@ public class WitnessInvariantsExtractor {
   private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        ImmutableSet.of(),
         ImmutableList.of(pathToWitnessFile),
         cfa,
         config,
@@ -172,16 +170,14 @@ public class WitnessInvariantsExtractor {
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
     Configuration localConfig = generateLocalConfiguration(config);
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
-    reachedSet = reachedSetFactory.create();
     CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa =
-        builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
+        builder.buildCPAs(cfa, automatonAsSpec, AggregatedReachedSets.empty());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, localConfig, shutdownNotifier);
     CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     try {
-      reachedSet.add(
-          cpa.getInitialState(rootNode, partition), cpa.getInitialPrecision(rootNode, partition));
+      reachedSet = reachedSetFactory.createAndInitialize(cpa, rootNode, partition);
       algorithm.run(reachedSet);
     } catch (InterruptedException e) {
       // Candidate collection was interrupted,

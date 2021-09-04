@@ -577,7 +577,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     long offset = hvEdge.getOffset();
 
     if (global_objects.containsValue(object) || isHeapObject(object)) {
-      return MemoryLocation.valueOf(object.getLabel(), offset);
+      return MemoryLocation.fromQualifiedName(object.getLabel(), offset);
     } else {
 
       String regionLabel = object.getLabel();
@@ -590,7 +590,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
       String functionName = frame.getFunctionDeclaration().getName();
 
-      return MemoryLocation.valueOf(functionName, object.getLabel(), offset);
+      return MemoryLocation.forLocalVariable(functionName, object.getLabel(), offset);
     }
   }
 

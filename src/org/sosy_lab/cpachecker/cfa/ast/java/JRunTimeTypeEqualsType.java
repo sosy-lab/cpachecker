@@ -17,10 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- * This class represents an expression unique to the java cfa.
- * It evaluates to true, if the run time type of the expression is the same
- * as the type Definition. Otherwise, it evaluates to false.
- *
+ * This class represents an expression unique to the java cfa. It evaluates to true, if the run time
+ * type of the expression is the same as the type Definition. Otherwise, it evaluates to false.
  */
 public final class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
 
@@ -28,8 +26,10 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
   private final JRunTimeTypeExpression runTimeTypeExpression;
   private final JReferenceType typeDef;
 
-  public JRunTimeTypeEqualsType(FileLocation pFileLocation,
-      JRunTimeTypeExpression pRunTimeTypeExpression, JReferenceType pTypeDef) {
+  public JRunTimeTypeEqualsType(
+      FileLocation pFileLocation,
+      JRunTimeTypeExpression pRunTimeTypeExpression,
+      JReferenceType pTypeDef) {
     super(pFileLocation, JSimpleType.getBoolean());
 
     runTimeTypeExpression = pRunTimeTypeExpression;
@@ -94,15 +94,13 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof JRunTimeTypeEqualsType)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JRunTimeTypeEqualsType) || !super.equals(obj)) {
       return false;
     }
 
     JRunTimeTypeEqualsType other = (JRunTimeTypeEqualsType) obj;
 
     return Objects.equals(other.runTimeTypeExpression, runTimeTypeExpression)
-            && Objects.equals(other.typeDef, typeDef);
+        && Objects.equals(other.typeDef, typeDef);
   }
-
 }

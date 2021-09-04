@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -89,9 +88,8 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -180,12 +178,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pConfig,
             pLogger,
             Specification.alwaysSatisfied()
-                .withAdditionalProperties(
-                    ImmutableSet.of(
-                        new SpecificationProperty(
-                            pCFA.getMainFunction().getFunctionName(),
-                            CommonPropertyType.TERMINATION,
-                            Optional.empty()))),
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
@@ -424,9 +417,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
-          pReached
-              .asCollection()
-              .stream()
+          pReached.stream()
               .filter(AbstractStates::isTargetState)
               .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
               .filter(s -> s.getCounterexampleInformation().isPresent())
@@ -494,28 +485,33 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
-    final Witness witness =
-        witnessExporter.generateTerminationErrorWitness(
-            newRoot,
-            relevantStates,
-            BiPredicates.bothSatisfy(relevantStates),
-            state -> Objects.equals(state, loopStartInCEX),
-            provideQuasiInvariant);
+    try {
+      final Witness witness =
+          witnessExporter.generateTerminationErrorWitness(
+              newRoot,
+              relevantStates,
+              BiPredicates.bothSatisfy(relevantStates),
+              state -> Objects.equals(state, loopStartInCEX),
+              provideQuasiInvariant);
 
-    if (violationWitness != null) {
-      WitnessToOutputFormatsUtils.writeWitness(
-          violationWitness,
-          compressWitness,
-          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
-          logger);
-    }
+      if (violationWitness != null) {
+        WitnessToOutputFormatsUtils.writeWitness(
+            violationWitness,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+            logger);
+      }
 
-    if (violationWitnessDot != null) {
-      WitnessToOutputFormatsUtils.writeWitness(
-          violationWitnessDot,
-          compressWitness,
-          pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
-          logger);
+      if (violationWitnessDot != null) {
+        WitnessToOutputFormatsUtils.writeWitness(
+            violationWitnessDot,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+            logger);
+      }
+    } catch (InterruptedException e) {
+      logger.logUserException(
+          WARNING, e, "Could not export termination witness due to interruption");
     }
   }
 
@@ -783,7 +779,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return expressionVarName(varName);
     }
 
-    MemoryLocation memLoc = MemoryLocation.valueOf(varName);
+    MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(varName);
     return memLoc.getIdentifier();
   }
 
@@ -823,7 +819,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       result = result.substring(1, result.length() - 1);
     }
 
-    MemoryLocation memLoc = MemoryLocation.valueOf(result);
+    MemoryLocation memLoc = MemoryLocation.parseExtendedQualifiedName(result);
     return memLoc.getIdentifier();
   }
 

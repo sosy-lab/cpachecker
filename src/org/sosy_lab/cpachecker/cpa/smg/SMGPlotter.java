@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
@@ -152,7 +153,7 @@ public final class SMGPlotter {
   public SMGPlotter() {} /* utility class */
 
   static public String convertToValidDot(String original) {
-    return original.replaceAll("[:]", "_");
+    return CharMatcher.anyOf("[]:").replaceFrom(original, "_");
   }
 
   public String smgAsDot(

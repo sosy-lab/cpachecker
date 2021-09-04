@@ -531,7 +531,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     ConfigurableProgramAnalysis cpa = null;
     try {
-      AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+      AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
       CoreComponentsFactory localCoreComponents =
           new CoreComponentsFactory(
               pCurrentContext.getConfig(),
@@ -667,7 +667,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           aggregatePrecisionsForReuse(previousReachedSets, initialPrecision, pFMgr, pConfig);
     }
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(pCpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }
@@ -790,7 +790,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-          trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+          trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
       }
     }
 
