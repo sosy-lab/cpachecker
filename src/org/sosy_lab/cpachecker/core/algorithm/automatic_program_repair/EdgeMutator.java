@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
  * instance of the edge that is equal to the once given except for the replaced parameter.
  */
 public abstract class EdgeMutator {
-  private CFA clonedCFA;
+  private final CFA clonedCFA;
 
   public EdgeMutator(CFA cfa) {
     clonedCFA = cloneCFA(cfa);

@@ -39,7 +39,7 @@ public class CorrespondingEdgeProvider {
     }
 
     if (functionCallEdge == null) {
-      throw new FunctionReturnWithoutFunctionCallException();
+      throw new IllegalStateException("CFunctionSummaryEdge without corresponding CFunctionCallEdge");
     }
 
     return functionCallEdge;
@@ -61,7 +61,7 @@ public class CorrespondingEdgeProvider {
     }
 
     if (returnEdge == null) {
-      throw new FunctionCallWithoutFunctionReturnException();
+      throw new IllegalStateException("CFunctionSummaryEdge without corresponding CFunctionReturnEdge.");
     }
 
     return returnEdge;
@@ -72,19 +72,19 @@ public class CorrespondingEdgeProvider {
    * instance of the given edge. Equality of edges is assumed based file location, predecessor,
    * successor, and the code it represents.
    */
-  public static <T extends CFAEdge> T findCorrespondingEdge(T originalEdge, CFA clonedCFA) {
+  public static CFAEdge findCorrespondingEdge(CFAEdge originalEdge, CFA clonedCFA) {
     final CFATraversal.EdgeCollectingCFAVisitor edgeCollectingVisitor =
         new CFATraversal.EdgeCollectingCFAVisitor();
     CFATraversal.dfs().traverseOnce(clonedCFA.getMainFunction(), edgeCollectingVisitor);
     FluentIterable<CFAEdge> edges = from(edgeCollectingVisitor.getVisitedEdges());
 
     for (CFAEdge currentEdge : edges) {
-      if (areEdgesEqual(originalEdge, currentEdge)) {
-        return (T) currentEdge;
+      if (areEdgesEqual(originalEdge, currentEdge) ) {
+        return currentEdge;
       }
     }
 
-    throw new CorrespondingEdgeNotFound();
+    throw new RuntimeException("Could not find the corresponding edge in the given CFA.");
   }
 
   private static boolean areEdgesEqual(CFAEdge edge1, CFAEdge edge2) {
@@ -94,9 +94,3 @@ public class CorrespondingEdgeProvider {
         && edge1.getCode().equals(edge2.getCode());
   }
 }
-
-class CorrespondingEdgeNotFound extends RuntimeException {}
-
-class FunctionReturnWithoutFunctionCallException extends RuntimeException {}
-
-class FunctionCallWithoutFunctionReturnException extends RuntimeException {}

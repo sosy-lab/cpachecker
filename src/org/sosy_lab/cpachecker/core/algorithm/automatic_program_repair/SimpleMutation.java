@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * FunctionCallMutation).
  */
 public class SimpleMutation extends Mutation {
-  private CFAEdge newEdge;
+  private final CFAEdge newEdge;
 
   public SimpleMutation(CFAEdge pSuspiciousEdge, CFAEdge pNewEdge, CFA pCFA) {
     super(pSuspiciousEdge, pCFA);
@@ -24,6 +24,7 @@ public class SimpleMutation extends Mutation {
     exchangeEdge(newEdge);
   }
 
+  @Override
   public CFAEdge getNewEdge() {
     return newEdge;
   }

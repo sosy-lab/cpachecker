@@ -32,7 +32,7 @@ public class ExpressionMutator {
    * of the same CBasicType.
    */
   public static ArrayList<CExpression> calcMutationsFor(CExpression originalExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList();
+    ArrayList<CExpression> alternativeExpressions = new ArrayList<>();
     final Set<CExpression> expressions = ExpressionCollector.collectExpressions(cfa);
     final Map<CType, Set<CExpression>> expressionsSortedByType =
         groupExpressionsByType(expressions);
@@ -64,7 +64,7 @@ public class ExpressionMutator {
 
   private static ArrayList<CExpression> calcMutationsFor(
       CUnaryExpression originalUnaryExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList();
+    ArrayList<CExpression> alternativeExpressions = new ArrayList<>();
 
     for (UnaryOperator operator : UnaryOperator.values()) {
       if (originalUnaryExpression.getOperator() != operator) {
@@ -86,7 +86,7 @@ public class ExpressionMutator {
 
   private static ArrayList<CExpression> calcMutationsFor(
       CBinaryExpression originalBinaryExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList();
+    ArrayList<CExpression> alternativeExpressions = new ArrayList<>();
 
     for (BinaryOperator operator : BinaryOperator.values()) {
       if (originalBinaryExpression.getOperator().isLogicalOperator() == operator.isLogicalOperator()

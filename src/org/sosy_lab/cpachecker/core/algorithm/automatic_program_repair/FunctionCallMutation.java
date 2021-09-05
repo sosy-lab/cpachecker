@@ -37,6 +37,7 @@ public class FunctionCallMutation extends Mutation {
             functionCallEdgeAggregate.getFunctionReturnEdge()));
   }
 
+  @Override
   public CFAEdge getNewEdge() {
     switch (suspiciousEdge.getEdgeType()) {
       case FunctionCallEdge:

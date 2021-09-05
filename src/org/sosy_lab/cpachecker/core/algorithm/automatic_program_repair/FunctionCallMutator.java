@@ -21,11 +21,11 @@ public class FunctionCallMutator extends EdgeMutator {
     super(cfa);
     functionCallEdgeAggregate =
         new FunctionCallEdgeAggregate(
-            CorrespondingEdgeProvider.findCorrespondingEdge(
+            (CFunctionSummaryEdge) CorrespondingEdgeProvider.findCorrespondingEdge(
                 pFunctionCallEdgeAggregate.getSummaryEdge(), getClonedCFA()),
-            CorrespondingEdgeProvider.findCorrespondingEdge(
+            (CFunctionCallEdge) CorrespondingEdgeProvider.findCorrespondingEdge(
                 pFunctionCallEdgeAggregate.getFunctionCallEdge(), getClonedCFA()),
-            CorrespondingEdgeProvider.findCorrespondingEdge(
+            (CFunctionReturnEdge) CorrespondingEdgeProvider.findCorrespondingEdge(
                 pFunctionCallEdgeAggregate.getFunctionReturnEdge(), getClonedCFA()));
   }
 

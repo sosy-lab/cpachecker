@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutation;
 import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.CFAMutator;
+import org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair.Mutation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -63,12 +62,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, Statistics {
 
   private final FaultLocalizationWithTraceFormula algorithm;
-  private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
   private final Specification specification;
   private final ShutdownNotifier shutdownNotifier;
-  private final LiveVariables liveVariables; // TODO: either use or throw out
 
   private final StatTimer totalTime = new StatTimer("Total time for bug repair");
   private boolean fixFound = false;
@@ -97,14 +94,12 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
           "Automatic program repair is only supported for C code.");
     }
 
-    config = pConfig;
     algorithm = (FaultLocalizationWithTraceFormula) pStoreAlgorithm;
     cfa = pCfa;
     logger = pLogger;
     specification = pSpecification;
     shutdownNotifier = pShutdownNotifier;
-    liveVariables = pCfa.getLiveVariables().orElseThrow();
-    config.inject(this);
+    pConfig.inject(this);
   }
 
   @Override
@@ -256,19 +251,13 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add(algorithm);
-    }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
-    }
+    statsCollection.add(algorithm);
+    algorithm.collectStatistics(statsCollection);
   }
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    writer.writingStatisticsTo(out).put(totalTime);
-    writer.put("Fix found", fixFound);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put("Fix found", fixFound);
   }
 
   @Override

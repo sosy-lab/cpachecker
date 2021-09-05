@@ -3939,6 +3939,9 @@ program.splitter.heuristic = no default value
 # maximal number
 program.splitter.max = 2
 
+# Config file of the internal analysis.
+programRepair.internalAnalysisConfigFile = no default value
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
