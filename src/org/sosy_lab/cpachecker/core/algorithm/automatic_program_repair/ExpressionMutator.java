@@ -120,7 +120,7 @@ public class ExpressionMutator {
           calcMutationsFor(originalParameterExpression, cfa)
               .map(
                   (CExpression alternativeParameterExpression) -> {
-                    ArrayList<CExpression> alternativeParameterList =
+                    List<CExpression> alternativeParameterList =
                         new ArrayList<>(originalParameterExpressions);
                     alternativeParameterList.set(currentIndex, alternativeParameterExpression);
 

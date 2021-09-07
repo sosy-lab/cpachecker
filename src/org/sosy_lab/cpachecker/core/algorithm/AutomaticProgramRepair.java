@@ -226,8 +226,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   private List<FaultLocalizationInfo> localizeFaults(ReachedSet reachedSet)
       throws InterruptedException, InvalidConfigurationException, SolverException, CPAException {
     algorithm.checkOptions();
-
-    ArrayList<FaultLocalizationInfo> faultLocalizationInfos = new ArrayList<>();
+    List<FaultLocalizationInfo> faultLocalizationInfos = new ArrayList<>();
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
