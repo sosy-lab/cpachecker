@@ -164,7 +164,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       }
     }
 
-    logger.log(Level.INFO, "No fix found for " + faultLocalizationInfo.toString());
+    logger.log(Level.INFO, "No fix found for " + faultLocalizationInfo);
   }
 
   private ReachedSet rerun(CFA mutatedCFA)

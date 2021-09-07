@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
@@ -38,9 +39,7 @@ public class CorrespondingEdgeProvider {
       }
     }
 
-    if (functionCallEdge == null) {
-      throw new IllegalStateException("CFunctionSummaryEdge without corresponding CFunctionCallEdge");
-    }
+    checkState(functionCallEdge != null, "CFunctionSummaryEdge without corresponding CFunctionCallEdge");
 
     return functionCallEdge;
   }
@@ -60,9 +59,7 @@ public class CorrespondingEdgeProvider {
       }
     }
 
-    if (returnEdge == null) {
-      throw new IllegalStateException("CFunctionSummaryEdge without corresponding CFunctionReturnEdge.");
-    }
+    checkState(returnEdge != null, "CFunctionSummaryEdge without corresponding CFunctionReturnEdge.");
 
     return returnEdge;
   }

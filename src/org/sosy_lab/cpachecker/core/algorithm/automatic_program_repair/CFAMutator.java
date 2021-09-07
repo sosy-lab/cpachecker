@@ -129,12 +129,12 @@ public class CFAMutator {
     Preconditions.checkNotNull(originalReturnStatementEdge.getRawAST());
 
     CReturnStatement returnStatement =
-        (CReturnStatement) originalReturnStatementEdge.getRawAST().get();
+        (CReturnStatement) originalReturnStatementEdge.getRawAST().orElseThrow();
 
     Preconditions.checkNotNull(returnStatement.getReturnValue());
     Preconditions.checkNotNull(returnStatement.asAssignment());
 
-    CAssignment returnAssignment = returnStatement.asAssignment().get();
+    CAssignment returnAssignment = returnStatement.asAssignment().orElseThrow();
 
     return StatementMutator.calcMutationsFor(returnAssignment, cfa)
         .filter(assignment -> assignment.getRightHandSide() instanceof CExpression)
