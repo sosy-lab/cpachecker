@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ExpressionCollector extends ForwardingCFAVisitor {
-  private final Set<CExpression> expressions = Sets.newHashSet();
+  private final Set<CExpression> expressions = new HashSet<>();
 
   public ExpressionCollector() {
     super(new EdgeCollectingCFAVisitor());

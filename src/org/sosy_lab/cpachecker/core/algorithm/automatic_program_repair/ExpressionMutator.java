@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -187,7 +187,7 @@ public class ExpressionMutator {
   /* GROUPING */
   /** Groups a list of expressions by their CType into a map. */
   public static Map<CType, Set<CExpression>> groupExpressionsByType(Set<CExpression> expressions) {
-    final Map<CType, Set<CExpression>> expressionsSortedByType = Maps.newHashMap();
+    final Map<CType, Set<CExpression>> expressionsSortedByType = new HashMap<>();
 
     for (CExpression expression : expressions) {
       CType type = expression.getExpressionType();
@@ -205,7 +205,7 @@ public class ExpressionMutator {
   /** Groups a list of expressions by their CBasicType into a map. */
   public static Map<CBasicType, Set<CExpression>> groupExpressionsByBasicType(
       Set<CExpression> expressions) {
-    final Map<CBasicType, Set<CExpression>> expressionsSortedByType = Maps.newHashMap();
+    final Map<CBasicType, Set<CExpression>> expressionsSortedByType = new HashMap<>();
 
     for (CExpression expression : expressions) {
       CType type = expression.getExpressionType();
