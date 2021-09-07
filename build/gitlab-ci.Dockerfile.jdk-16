@@ -21,4 +21,4 @@ RUN apt-get update && apt-get install -y \
   libgmp10 \
   libgomp1 \
   python3 \
-  clang-6.0
+  clang-9
