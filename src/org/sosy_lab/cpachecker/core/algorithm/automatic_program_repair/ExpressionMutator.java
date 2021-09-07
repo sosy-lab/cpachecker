@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -31,8 +33,8 @@ public class ExpressionMutator {
    * flipping a binary or unary operator, or a different expression found in the same file that is
    * of the same CBasicType.
    */
-  public static ArrayList<CExpression> calcMutationsFor(CExpression originalExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList<>();
+  public static Stream<CExpression> calcMutationsFor(CExpression originalExpression, CFA cfa) {
+    Stream<CExpression> unaryOrBinaryExpressions = Stream.empty();
     final Set<CExpression> expressions = ExpressionCollector.collectExpressions(cfa);
     final Map<CType, Set<CExpression>> expressionsSortedByType =
         groupExpressionsByType(expressions);
@@ -40,93 +42,91 @@ public class ExpressionMutator {
         groupExpressionsByBasicType(expressions);
 
     if (originalExpression instanceof CBinaryExpression) {
-      alternativeExpressions = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
+      unaryOrBinaryExpressions = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
     } else if (originalExpression instanceof CUnaryExpression) {
-      alternativeExpressions = calcMutationsFor((CUnaryExpression) originalExpression, cfa);
+      unaryOrBinaryExpressions = calcMutationsFor((CUnaryExpression) originalExpression, cfa);
     }
+
     final CType type = originalExpression.getExpressionType();
-    Set<CExpression> sameTypeExpressions;
+    Set<CExpression> sameTypeExpressionsSet;
 
     if (type instanceof CSimpleType) {
-      sameTypeExpressions = expressionsSortedByBasicType.get(((CSimpleType) type).getType());
+      sameTypeExpressionsSet = expressionsSortedByBasicType.get(((CSimpleType) type).getType());
     } else {
-      sameTypeExpressions = expressionsSortedByType.get(type);
+      sameTypeExpressionsSet = expressionsSortedByType.get(type);
     }
 
-    for (CExpression expression : sameTypeExpressions) {
-      if (!originalExpression.equals(expression)) {
-        alternativeExpressions.add(expression);
-      }
-    }
-
-    return alternativeExpressions;
+    return Stream.concat(
+        unaryOrBinaryExpressions,
+        sameTypeExpressionsSet.stream()
+            .filter((CExpression expression) -> !originalExpression.equals(expression)));
   }
 
-  private static ArrayList<CExpression> calcMutationsFor(
+  private static Stream<CExpression> calcMutationsFor(
       CUnaryExpression originalUnaryExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList<>();
 
-    for (UnaryOperator operator : UnaryOperator.values()) {
-      if (originalUnaryExpression.getOperator() != operator) {
-        final CUnaryExpression modifiedExpression =
-            replaceUnaryOperator(originalUnaryExpression, operator);
-        alternativeExpressions.add(modifiedExpression);
-      }
-    }
+    Stream<CExpression> alternativeOperatorExpressions =
+        Arrays.stream(UnaryOperator.values())
+            .filter((UnaryOperator operator) -> originalUnaryExpression.getOperator() != operator)
+            .map(
+                (UnaryOperator operator) ->
+                    replaceUnaryOperator(originalUnaryExpression, operator));
 
-    for (CExpression alternativeExpression :
-        calcMutationsFor(originalUnaryExpression.getOperand(), cfa)) {
-      final CUnaryExpression modifiedExpression =
-          replaceUnaryOperand(originalUnaryExpression, alternativeExpression);
-      alternativeExpressions.add(modifiedExpression);
-    }
+    Stream<CExpression> alternativeOperandExpressions =
+        calcMutationsFor(originalUnaryExpression.getOperand(), cfa)
+            .map(
+                (CExpression alternativeExpression) ->
+                    replaceUnaryOperand(originalUnaryExpression, alternativeExpression));
 
-    return alternativeExpressions;
+    return Stream.concat(alternativeOperatorExpressions, alternativeOperandExpressions);
   }
 
-  private static ArrayList<CExpression> calcMutationsFor(
+  private static Stream<CExpression> calcMutationsFor(
       CBinaryExpression originalBinaryExpression, CFA cfa) {
-    ArrayList<CExpression> alternativeExpressions = new ArrayList<>();
 
-    for (BinaryOperator operator : BinaryOperator.values()) {
-      if (originalBinaryExpression.getOperator().isLogicalOperator() == operator.isLogicalOperator()
-          && originalBinaryExpression.getOperator() != operator) {
-        final CBinaryExpression modifiedExpression =
-            replaceBinaryOperator(originalBinaryExpression, operator);
-        alternativeExpressions.add(modifiedExpression);
-      }
-    }
+    Stream<CExpression> alternativeOperatorExpressions =
+        Arrays.stream(BinaryOperator.values())
+            .filter(
+                (BinaryOperator operator) ->
+                    originalBinaryExpression.getOperator().isLogicalOperator()
+                            == operator.isLogicalOperator()
+                        && originalBinaryExpression.getOperator() != operator)
+            .map(
+                (BinaryOperator operator) ->
+                    replaceBinaryOperator(originalBinaryExpression, operator));
 
-    for (CExpression alternativeExpression :
-        calcMutationsFor(originalBinaryExpression.getOperand2(), cfa)) {
-      final CBinaryExpression modifiedExpression =
-          replaceBinaryOperand(originalBinaryExpression, alternativeExpression);
-      alternativeExpressions.add(modifiedExpression);
-    }
+    Stream<CExpression> alternativeOperandExpressions =
+        calcMutationsFor(originalBinaryExpression.getOperand2(), cfa)
+            .map(
+                (CExpression alternativeExpression) ->
+                    replaceBinaryOperand(originalBinaryExpression, alternativeExpression));
 
-    return alternativeExpressions;
+    return Stream.concat(alternativeOperatorExpressions, alternativeOperandExpressions);
   }
 
-  public static ArrayList<CFunctionCallExpression> calcMutationsFor(
+  public static Stream<CFunctionCallExpression> calcMutationsFor(
       CFunctionCallExpression originalFunctionCallExpression, CFA cfa) {
-    ArrayList<CFunctionCallExpression> alternativeFunctionCallExpressions = new ArrayList<>();
+    Stream<CFunctionCallExpression> alternativeFunctionCallExpressions = Stream.empty();
     List<CExpression> originalParameterExpressions =
         originalFunctionCallExpression.getParameterExpressions();
 
     /* Creates a list of CFunctionCallAssignmentStatements, where each entry has a copy of the original
     parameter list but with one altered parameter */
+
     for (int i = 0; i < originalParameterExpressions.size(); i++) {
       CExpression originalParameterExpression = originalParameterExpressions.get(i);
+      final int currentIndex = i;
+      alternativeFunctionCallExpressions =
+          calcMutationsFor(originalParameterExpression, cfa)
+              .map(
+                  (CExpression alternativeParameterExpression) -> {
+                    ArrayList<CExpression> alternativeParameterList =
+                        new ArrayList<>(originalParameterExpressions);
+                    alternativeParameterList.set(currentIndex, alternativeParameterExpression);
 
-      for (CExpression alternativeParameterExpression :
-          calcMutationsFor(originalParameterExpression, cfa)) {
-
-        ArrayList<CExpression> alternatives = new ArrayList<>(originalParameterExpressions);
-        alternatives.set(i, alternativeParameterExpression);
-
-        alternativeFunctionCallExpressions.add(
-            replaceParameters(originalFunctionCallExpression, alternatives));
-      }
+                    return replaceParameters(
+                        originalFunctionCallExpression, alternativeParameterList);
+                  });
     }
 
     return alternativeFunctionCallExpressions;

@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
-import java.util.ArrayList;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -26,7 +26,7 @@ public class StatementMutator {
    * Returns a list of possible mutations for a given statement. The mutation consists in altering
    * an expression contained in the statement.
    */
-  public static <T extends CStatement> ArrayList<? extends CStatement> calcMutationsFor(
+  public static <T extends CStatement> Stream<? extends CStatement> calcMutationsFor(
       T statement, CFA cfa) {
     if (statement instanceof CExpressionStatement) {
       return calcMutationsFor((CExpressionStatement) statement, cfa);
@@ -35,20 +35,20 @@ public class StatementMutator {
     } else if (statement instanceof CAssignment) {
       return calcMutationsFor((CAssignment) statement, cfa);
     } else {
-      return new ArrayList<>();
+      return Stream.empty();
     }
   }
   /**
    * Returns a list of possible mutations for a given expression statement. The mutation changing
    * the right-hand side of the assignment.
    */
-  public static ArrayList<CAssignment> calcMutationsFor(CAssignment assignment, CFA cfa) {
+  public static Stream<CAssignment> calcMutationsFor(CAssignment assignment, CFA cfa) {
     if (assignment instanceof CExpressionAssignmentStatement) {
       return calcMutationsFor((CExpressionAssignmentStatement) assignment, cfa);
     } else if (assignment instanceof CFunctionCallAssignmentStatement) {
       return calcMutationsFor((CFunctionCallAssignmentStatement) assignment, cfa);
     } else {
-      return new ArrayList<>();
+      return Stream.empty();
     }
   }
 
@@ -56,69 +56,46 @@ public class StatementMutator {
    * Returns a list of possible mutations for a given expression statement. The mutation consists in
    * changing the expression.
    */
-  private static ArrayList<CStatement> calcMutationsFor(
+  private static Stream<CStatement> calcMutationsFor(
       CExpressionStatement originalExpressionStatement, CFA cfa) {
-    ArrayList<CStatement> alternativeStatements = new ArrayList<>();
     CExpression originalExpression = originalExpressionStatement.getExpression();
-    final ArrayList<CExpression> expressions =
-        ExpressionMutator.calcMutationsFor(originalExpression, cfa);
-
-    for (CExpression expression : expressions) {
-      alternativeStatements.add(replaceExpression(originalExpressionStatement, expression));
-    }
-
-    return alternativeStatements;
+    return ExpressionMutator.calcMutationsFor(originalExpression, cfa)
+        .map(
+            (CExpression expression) -> replaceExpression(originalExpressionStatement, expression));
   }
 
   /**
    * Returns a list of possible mutations for a given function call statement. The mutation consists
    * in changing one expression of the parameter list.
    */
-  private static ArrayList<CStatement> calcMutationsFor(
+  private static Stream<CStatement> calcMutationsFor(
       CFunctionCallStatement originalFunctionCallStatement, CFA cfa) {
-    ArrayList<CStatement> alternativeStatements = new ArrayList<>();
     CFunctionCallExpression originalFunctionCallExpression =
         originalFunctionCallStatement.getFunctionCallExpression();
-    ArrayList<CFunctionCallExpression> alternativeFunctionCalls =
-        ExpressionMutator.calcMutationsFor(originalFunctionCallExpression, cfa);
-
-    for (CFunctionCallExpression alternativeFunctionCall : alternativeFunctionCalls) {
-      alternativeStatements.add(
-          replaceFunctionCall(originalFunctionCallStatement, alternativeFunctionCall));
-    }
-
-    return alternativeStatements;
+    return ExpressionMutator.calcMutationsFor(originalFunctionCallExpression, cfa)
+        .map(
+            (CFunctionCallExpression alternativeFunctionCall) ->
+                replaceFunctionCall(originalFunctionCallStatement, alternativeFunctionCall));
   }
 
-  private static ArrayList<CAssignment> calcMutationsFor(
+  private static Stream<CAssignment> calcMutationsFor(
       CExpressionAssignmentStatement originalExpressionAssignmentStatement, CFA cfa) {
-
-    ArrayList<CAssignment> alternativeStatements = new ArrayList<>();
     CExpression originalExpression = originalExpressionAssignmentStatement.getRightHandSide();
-    final ArrayList<CExpression> expressions =
-        ExpressionMutator.calcMutationsFor(originalExpression, cfa);
-
-    for (CExpression expression : expressions) {
-      alternativeStatements.add(
-          replaceExpression(originalExpressionAssignmentStatement, expression));
-    }
-    return alternativeStatements;
+    return ExpressionMutator.calcMutationsFor(originalExpression, cfa)
+        .map(
+            (CExpression expression) ->
+                replaceExpression(originalExpressionAssignmentStatement, expression));
   }
 
-  private static ArrayList<CAssignment> calcMutationsFor(
+  private static Stream<CAssignment> calcMutationsFor(
       CFunctionCallAssignmentStatement originalFunctionCallAssignmentStatement, CFA cfa) {
-    ArrayList<CAssignment> alternativeStatements = new ArrayList<>();
     CFunctionCallExpression originalFunctionCallExpression =
         originalFunctionCallAssignmentStatement.getRightHandSide();
-    ArrayList<CFunctionCallExpression> alternativeFunctionCalls =
-        ExpressionMutator.calcMutationsFor(originalFunctionCallExpression, cfa);
-
-    for (CFunctionCallExpression alternativeFunctionCall : alternativeFunctionCalls) {
-      alternativeStatements.add(
-          replaceRightHandSide(originalFunctionCallAssignmentStatement, alternativeFunctionCall));
-    }
-
-    return alternativeStatements;
+    return ExpressionMutator.calcMutationsFor(originalFunctionCallExpression, cfa)
+        .map(
+            (CFunctionCallExpression alternativeFunctionCall) ->
+                replaceRightHandSide(
+                    originalFunctionCallAssignmentStatement, alternativeFunctionCall));
   }
 
   /* REPLACEMENTS */

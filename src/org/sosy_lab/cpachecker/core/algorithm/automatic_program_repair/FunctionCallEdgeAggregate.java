@@ -32,27 +32,23 @@ public class FunctionCallEdgeAggregate {
   }
 
   public FunctionCallEdgeAggregate(CFunctionSummaryEdge pSummaryEdge) {
-    new FunctionCallEdgeAggregate(
+    this(
         pSummaryEdge,
         CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(pSummaryEdge),
         CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pSummaryEdge));
   }
 
   public FunctionCallEdgeAggregate(CFunctionCallEdge pFunctionCallEdge) {
-    CFunctionSummaryEdge pSummaryEdge = pFunctionCallEdge.getSummaryEdge();
-
-    new FunctionCallEdgeAggregate(
-        pSummaryEdge,
+    this(
+        pFunctionCallEdge.getSummaryEdge(),
         pFunctionCallEdge,
-        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pSummaryEdge));
+        CorrespondingEdgeProvider.findCorrespondingFunctionReturnEdge(pFunctionCallEdge.getSummaryEdge()));
   }
 
   public FunctionCallEdgeAggregate(CFunctionReturnEdge pFunctionReturnEdge) {
-    CFunctionSummaryEdge pSummaryEdge = pFunctionReturnEdge.getSummaryEdge();
-
-    new FunctionCallEdgeAggregate(
-        pSummaryEdge,
-        CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(pSummaryEdge),
+    this(
+        pFunctionReturnEdge.getSummaryEdge(),
+        CorrespondingEdgeProvider.findCorrespondingFunctionCallEdge(pFunctionReturnEdge.getSummaryEdge()),
         pFunctionReturnEdge);
   }
 

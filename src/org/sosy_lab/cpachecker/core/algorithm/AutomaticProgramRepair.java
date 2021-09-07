@@ -17,7 +17,9 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -133,7 +135,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       CFAEdge edge = fault.iterator().next().correspondingEdge();
       CFAMutator cfaMutator = new CFAMutator(cfa, edge);
 
-      for (Mutation mutation : cfaMutator.calcPossibleMutations()) {
+      for (Mutation mutation : cfaMutator.calcPossibleMutations().collect(Collectors.toSet())) {
 
         try {
           final ReachedSet newReachedSet = rerun(mutation.getCFA());
@@ -221,7 +223,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     return reached;
   }
 
-  private ArrayList<FaultLocalizationInfo> localizeFaults(ReachedSet reachedSet)
+  private List<FaultLocalizationInfo> localizeFaults(ReachedSet reachedSet)
       throws InterruptedException, InvalidConfigurationException, SolverException, CPAException {
     algorithm.checkOptions();
 
