@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
+import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -1736,6 +1737,12 @@ class WitnessFactory implements EdgeAppender {
       ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
       stateInvariants.put(pStateId, existingTree);
       return existingTree;
+    } else if (prev.equals(ExpressionTrees.getTrue())) {
+      stateInvariants.put(pStateId, other);
+      return other;
+    } else if (other.equals(ExpressionTrees.getTrue())) {
+      stateInvariants.put(pStateId, prev);
+      return prev;
     }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
@@ -1749,6 +1756,13 @@ class WitnessFactory implements EdgeAppender {
             .map(AbstractStates.toState(PredicateAbstractState.class))
             .filter(s -> s != null)
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
+      return true;
+    }
+    if (pFromState.isPresent()
+        && pFromState.orElseThrow().stream()
+        .map(AbstractStates.toState(ACSLState.class))
+        .filter(s -> s != null)
+        .anyMatch(ACSLState::hasAnnotations)) {
       return true;
     }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {

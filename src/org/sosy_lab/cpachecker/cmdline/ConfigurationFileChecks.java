@@ -135,6 +135,7 @@ public class ConfigurationFileChecks {
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
+          "witness.validation.correctness.acsl",
           "witness.validation.correctness.config",
           "witness.validation.correctness.isa",
           "pcc.proofgen.doPCC",
@@ -471,7 +472,10 @@ public class ConfigurationFileChecks {
       assume()
           .that((Iterable<?>) configFile)
           .containsNoneOf(
-              Path.of("includes"), Path.of("pcc"), Path.of("witnessValidation.properties"));
+              Path.of("includes"),
+              Path.of("pcc"),
+              Path.of("witnessValidation.properties"),
+              Path.of("wacsl.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();

@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -183,6 +184,9 @@ public class CoreComponentsFactory {
             + " analysis finishing in time. All other analyses are terminated."
   )
   private boolean useParallelAlgorithm = false;
+
+  @Option(secure = true, description = "converts a witness to an ACSL annotated program")
+  private boolean useWitnessToACSLAlgorithm = false;
 
   @Option(
     secure = true,
@@ -441,6 +445,9 @@ public class CoreComponentsFactory {
               specification,
               cfa,
               aggregatedReachedSets);
+
+    } else if (useWitnessToACSLAlgorithm) {
+      algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
 
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
