@@ -9,6 +9,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.base.Strings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -76,7 +77,7 @@ public class LlvmParserWithClang extends LlvmParser {
     try (DeleteOnCloseDir tempDir = TempFile.createDeleteOnCloseDir("input-for-llvm-with-clang")) {
       // TODO handle filenames with unknown suffixes?
       String filename = pFilename;
-      if (filename == null || filename.isEmpty()) {
+      if (Strings.isNullOrEmpty(filename)) {
         filename = "input-for-llvm-with-clang";
       }
       Path tempFile = tempDir.toPath().resolve(filename).normalize();
