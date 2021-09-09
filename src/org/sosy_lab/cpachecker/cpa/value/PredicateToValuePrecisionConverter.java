@@ -174,6 +174,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     Multimap<CFANode, MemoryLocation> result = null;
 
+    conversionTime.start();
     try (Solver solver = Solver.create(config, logger, conversionShutdownNotifier)) {
       FormulaManagerView formulaManager = solver.getFormulaManager();
 
@@ -288,6 +289,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       }
     } catch (InterruptedException e) {
       logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
+    } finally {
+      conversionTime.stopIfRunning();
     }
 
     if (limitChecker != null) {

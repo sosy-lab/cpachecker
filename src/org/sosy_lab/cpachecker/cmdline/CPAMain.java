@@ -614,6 +614,12 @@ public class CPAMain {
         name = "witness.validation.correctness.isa",
         description = "Use correctness witness as invariants specification automaton (ISA).")
     private boolean validateInvariantsSpecificationAutomaton = false;
+
+    @Option(
+        secure = true,
+        name = "witness.validation.correctness.acsl",
+        description = "Validate program using invariants from ACSL annotations.")
+    private boolean useACSLAnnotatedProgram = false;
   }
 
   private static Configuration handleWitnessOptions(
@@ -625,25 +631,35 @@ public class CPAMain {
       return config;
     }
 
-    WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
     final Path validationConfigFile;
-    switch (witnessType) {
-      case VIOLATION_WITNESS:
-        validationConfigFile = options.violationWitnessValidationConfig;
-        appendWitnessToSpecificationOption(options, overrideOptions);
-        break;
-      case CORRECTNESS_WITNESS:
-        validationConfigFile = options.correctnessWitnessValidationConfig;
-        if (options.validateInvariantsSpecificationAutomaton) {
+    if (options.useACSLAnnotatedProgram) {
+      validationConfigFile = options.correctnessWitnessValidationConfig;
+      appendWitnessToSpecificationOption(options, overrideOptions);
+    } else {
+      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      switch (witnessType) {
+        case VIOLATION_WITNESS:
+          validationConfigFile = options.violationWitnessValidationConfig;
           appendWitnessToSpecificationOption(options, overrideOptions);
-        } else {
-        overrideOptions.put(
-            "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
-        }
-        break;
-      default:
-        throw new InvalidConfigurationException(
-            "Witness type " + witnessType + " of witness " + options.witness + " is not supported");
+          break;
+        case CORRECTNESS_WITNESS:
+          validationConfigFile = options.correctnessWitnessValidationConfig;
+          if (options.validateInvariantsSpecificationAutomaton) {
+            appendWitnessToSpecificationOption(options, overrideOptions);
+          } else {
+            overrideOptions.put(
+                "invariantGeneration.kInduction.invariantsAutomatonFile",
+                options.witness.toString());
+          }
+          break;
+        default:
+          throw new InvalidConfigurationException(
+              "Witness type "
+                  + witnessType
+                  + " of witness "
+                  + options.witness
+                  + " is not supported");
+      }
     }
     if (validationConfigFile == null) {
       throw new InvalidConfigurationException(
@@ -656,6 +672,7 @@ public class CPAMain {
             .clearOption("witness.validation.file")
             .clearOption("witness.validation.violation.config")
             .clearOption("witness.validation.correctness.config")
+            .clearOption("witness.validation.correctness.acsl")
             .clearOption("output.path")
             .clearOption("rootDirectory");
     if (configFileName.isPresent()) {

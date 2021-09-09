@@ -290,6 +290,7 @@ analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
+analysis.entryFunction = no default value
 
 # do analysis and then extract pre- and post conditions for custom
 # instruction from analysis result
@@ -499,6 +500,9 @@ analysis.useParallelAnalyses = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
+# converts a witness to an ACSL annotated program
+analysis.useWitnessToACSLAlgorithm = false
+
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)
 assumptions.automatonBranchingThreshold = 0
@@ -687,8 +691,22 @@ bmc.usePropertyDirection = false
 # pre-processor on the file.
 cbmc.dumpCBMCfile = no default value
 
+# specify the name of the error label
+cbmc.options.errorLabel = no default value
+
+# set width of int (16, 32 or 64)
+cbmc.options.intWidth = no default value
+
+# disable unwinding assertions violation error
+cbmc.options.nuaf = no default value
+
+# specify the limit for unwindings (0 is infinite)
+cbmc.options.unwindings = no default value
+
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
+cbmc.timelimit = no default value
 cbmc.timelimit = 0ms
 
 # continue analysis after a failed refinement (e.g. due to interpolation)
@@ -1092,6 +1110,9 @@ cpa.abe.checkTargetStates = true
 
 # Cache formulas produced by path formula manager
 cpa.abe.useCachingPathFormulaManager = true
+
+# only store pure C expressions without ACSL-specific constructs
+cpa.acsl.usePureExpressionsOnly = true
 
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
@@ -1643,6 +1664,33 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# which default SecurityClass to use for PolicyEnforcementCPA
+cpa.ifcsecurity.defaultsc = no default value
+
+# which immediatechecksfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.immediatechecksfile = no default value
+
+# which merge operator to use for ControlDependencyTrackerCPA
+# which merge operator to use for DependencyTrackerCPA
+# which merge operator to use for PolicyEnforcementCPA
+cpa.ifcsecurity.merge = no default value
+  allowed values: [SEP, JOIN]
+
+# which policy to use for PolicyEnforcementCPA
+cpa.ifcsecurity.policy = no default value
+
+# which betamapfile to use for PolicyEnforcementCPA
+cpa.ifcsecurity.scMappingFile = no default value
+
+# which states shall be checked
+cpa.ifcsecurity.statestocheck = no default value
+
+# which stop operator to use for ControlDependencyTrackerCPA
+# which stop operator to use for DependencyTrackerCPA
+# which stop operator to use for PolicyEnforcementCPA
+cpa.ifcsecurity.stop = no default value
+  allowed values: [SEP, JOIN]
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -3725,6 +3773,9 @@ parser.clang = "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /
 # Whether to dump the results of the preprocessor to disk.
 parser.clang.dumpResults = true
 
+# Whether to collect ACSL annotations if present
+parser.collectACSLAnnotations = false
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -4410,6 +4461,20 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
 
+# Instead of comments, output the assertions into the original program as
+# violations to unreach_call.prp
+wacsl.makeDirectAssertions = false
+
+# The directory where generated, ACSL annotated programs are stored.
+wacsl.outDir = "annotated"
+
+# Makes the annotated file's name identical to the original source file's
+# name.
+wacsl.useSameFileName = false
+
+# The witness from which ACSL annotations should be generated.
+wacsl.witness = no default value
+
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
@@ -4470,6 +4535,9 @@ witness.strictChecking = true
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
 witness.useInvariantsAsAssumptions = true
+
+# Validate program using invariants from ACSL annotations.
+witness.validation.correctness.acsl = false
 
 # When validating a correctness witness, use this configuration file instead
 # of the current one.
