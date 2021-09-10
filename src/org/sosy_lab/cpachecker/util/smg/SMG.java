@@ -448,7 +448,7 @@ public class SMG {
   public SMG writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+    assert (offset.add(sizeInBits).compareTo(object.getSize()) < 0);
     BigInteger offsetPlusSize = offset.add(sizeInBits);
 
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
