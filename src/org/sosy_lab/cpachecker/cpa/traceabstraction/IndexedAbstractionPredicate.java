@@ -46,7 +46,21 @@ class IndexedAbstractionPredicate implements Comparable<IndexedAbstractionPredic
 
   @Override
   public int compareTo(IndexedAbstractionPredicate pOther) {
-    return Integer.compare(index, pOther.index);
+    int result = Integer.compare(index, pOther.index);
+    if (result == 0 && !predicate.equals(pOther.predicate)) {
+      // The index is in principle the only significant value that should be checked for the
+      // ordering.
+      // However, if the index is equal, the contained predicate needs to be additionally checked
+      // since otherwise objects of this class with the same index get wrongly replaced by objects
+      // with different predicates. It makes no sense to order predicates in case of inequality, but
+      // we still need to ensure that they fulfill the contract of proper comparable-implementations.
+      return predicate
+          .getAbstractVariable()
+          .toString()
+          .compareTo(pOther.predicate.getAbstractVariable().toString());
+    }
+
+    return result;
   }
 
   @Override
