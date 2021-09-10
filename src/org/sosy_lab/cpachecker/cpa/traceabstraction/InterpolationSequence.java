@@ -10,16 +10,13 @@ package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import static com.google.common.base.Verify.verify;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -36,24 +33,28 @@ class InterpolationSequence {
 
   static class Builder {
 
-    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+    private final UniqueIdGenerator id_generator;
 
     private final Multimap<String, IndexedAbstractionPredicate> functionPredicates;
     private final Set<IndexedAbstractionPredicate> globalPredicates;
 
-    private final Map<String, AbstractionPredicate> predCache;
+    private final Multimap<String, AbstractionPredicate> functionPredCache;
+    private final Set<AbstractionPredicate> globalPredCache;
 
     /**
      * Builder for {@link InterpolationSequence} in which all predicates are stored only once and in
      * the ordering in which they first appear in the respective collection.
      */
     Builder() {
+      id_generator = new UniqueIdGenerator();
+
       // To achieve the ordering a tree-structure for the collections are used.
       // The predicates are numerically indexed once they are put into the collection.
       functionPredicates = MultimapBuilder.linkedHashKeys().treeSetValues().build();
       globalPredicates = new TreeSet<>();
 
-      predCache = new HashMap<>();
+      functionPredCache = HashMultimap.create();
+      globalPredCache = new HashSet<>();
     }
 
     Builder addFunctionPredicates(
@@ -61,22 +62,22 @@ class InterpolationSequence {
       assert checkOrdering(functionPredicates.get(pFunctionName), pFunctionPredicates)
           : "Sequence of interpolants is inconsistent";
       for (AbstractionPredicate abstractionPredicate : pFunctionPredicates) {
-        if (predCache.put(pFunctionName, abstractionPredicate) == null) {
+        if (functionPredCache.put(pFunctionName, abstractionPredicate)) {
           // There was no such value previously associated with the given key, meaning
           // this specific key-value pair is now added for the first time.
           functionPredicates.put(
               pFunctionName,
-              new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), abstractionPredicate));
+              new IndexedAbstractionPredicate(id_generator.getFreshId(), abstractionPredicate));
         }
       }
       return this;
     }
 
     Builder addGlobalPredicate(AbstractionPredicate pGlobalPredicate) {
-      assert checkOrdering(globalPredicates, pGlobalPredicate)
-          : "Sequence of interpolants is inconsistent";
-      globalPredicates.add(
-          new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), pGlobalPredicate));
+      if (globalPredCache.add(pGlobalPredicate)) {
+        globalPredicates.add(
+            new IndexedAbstractionPredicate(id_generator.getFreshId(), pGlobalPredicate));
+      }
       return this;
     }
 
