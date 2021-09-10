@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
-import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.MoreStrings;
@@ -42,8 +43,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRelation {
@@ -53,6 +57,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
   private final InterpolationSequenceStorage itpSequenceStorage;
 
   private final PredicateAbstractionManager predicateAbstractionManager;
+  private final FormulaManagerView fMgrView;
   private final BooleanFormulaManagerView bFMgrView;
   private final AbstractionManager abstractionManager;
 
@@ -71,6 +76,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
     shutdownNotifier = pShutdownNotifier;
     predicateAbstractionManager = pPredicateAbstractionManager;
     abstractionManager = pAbstractionManager;
+    fMgrView = pFormulaManagerView;
     bFMgrView = pFormulaManagerView.getBooleanFormulaManager();
   }
 
@@ -102,6 +108,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
+    checkNotNull(pCfaEdge);
 
     TraceAbstractionState taState = (TraceAbstractionState) pState;
 
@@ -120,9 +127,6 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
       return ImmutableList.of(taState.withWrappedState(predSuccessorState));
     }
 
-    verifyNotNull(pCfaEdge, "cfaEdge may not be null.");
-
-    PathFormula pathFormula = predSuccessorState.getPathFormula();
     AbstractionFormula abstractionFormula = predSuccessorState.getAbstractionFormula();
 
     verify(
@@ -137,7 +141,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
             .toJavaUtil();
 
     logger.logf(
-        Level.FINER,
+        Level.FINE,
         "Taking edge: N%s -> N%s // %s\n",
         pCfaEdge.getPredecessor().getNodeNumber(),
         pCfaEdge.getSuccessor().getNodeNumber(),
@@ -160,67 +164,104 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
     for (Entry<InterpolationSequence, IndexedAbstractionPredicate> entry :
         statePredicates.entrySet()) {
 
-      InterpolationSequence currentItpSequence = entry.getKey();
+      Optional<InterpolationSequence> updatedItpSequence =
+          itpSequenceStorage.getUpdatedItpSequence(entry.getKey());
+      InterpolationSequence currentItpSequence = updatedItpSequence.orElse(entry.getKey());
       if (!currentItpSequence.isInScopeOf(locInstance)) {
         continue;
       }
+
+      PathFormula pathFormula = predSuccessorState.getPathFormula();
 
       IndexedAbstractionPredicate curPreds = entry.getValue();
 
       Optional<IndexedAbstractionPredicate> nextPreds =
           currentItpSequence.getNext(locInstance, curPreds);
 
-      IndexedAbstractionPredicate precondition = nextPreds.orElse(curPreds);
+      ImmutableList<IndexedAbstractionPredicate> precondition =
+          nextPreds.isEmpty()
+              ? ImmutableList.of(curPreds)
+              : ImmutableList.of(curPreds, nextPreds.orElseThrow());
+
+      BooleanFormula instantiatedFormula =
+          fMgrView.instantiate(
+              curPreds.getPredicate().getSymbolicAtom(),
+              abstractionFormula.getBlockFormula().getSsa());
+
+      BooleanFormula resultFormula = bFMgrView.and(pathFormula.getFormula(), instantiatedFormula);
+      pathFormula = pathFormula.withFormula(resultFormula);
+
+      // TODO: the falsePredicate will eventually be added directly to the interpolation-sequence
+      // and removed from here
+      AbstractionPredicate falsePredicate = predicateAbstractionManager.makeFalsePredicate();
+      ImmutableSet<AbstractionPredicate> availablePreds =
+          ImmutableSet.of(
+              curPreds.getPredicate(), nextPreds.map(x -> x.getPredicate()).orElse(falsePredicate));
       AbstractionFormula computedPostCondition =
           buildAbstraction(
-              pCfaEdge,
-              callstackWrapper,
-              abstractionFormula,
-              pathFormula,
-              ImmutableSet.of(precondition.getPredicate()));
+              pCfaEdge, callstackWrapper, abstractionFormula, pathFormula, availablePreds);
 
       if (computedPostCondition.isTrue()) {
-        try {
-          // check data region represented by the computed abstraction (the postcondition) whether
-          // it is a subset of precondition
-          // (i.e., postcond => precond)
-          boolean entails =
-              abstractionManager.entails(
-                  computedPostCondition.asRegion(),
-                  precondition.getPredicate().getAbstractVariable());
-          if (!entails && pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-            // An assignment has been made for which the abstraction was computed to true.
-            // We cannot tell anything about the successor interpolation state anymore.
+
+        if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          boolean assignmentMadeForRelevantPred =
+              precondition
+                  .stream()
+                  .anyMatch(
+                      pred ->
+                          anyVariableModified(
+                              abstractionFormula.getBlockFormula().getSsa(),
+                              computedPostCondition.getBlockFormula().getSsa(),
+                              fMgrView.extractVariableNames(
+                                  pred.getPredicate().getSymbolicAtom())));
+          if (assignmentMadeForRelevantPred) {
             continue;
           }
-
-          // Abstraction formula is true; stay in the current (interpolation) state
-          newStatePreds.put(entry);
-          continue;
-        } catch (SolverException e) {
-          throw new CPATransferException(e.getMessage(), e);
         }
+
+        // Abstraction formula is true; stay in the current (interpolation) state
+        newStatePreds.put(currentItpSequence, curPreds);
+        continue;
       }
 
       if (computedPostCondition.isFalse()) {
-        assert bFMgrView.isFalse(pathFormula.getFormula())
-            : "Computed abstraction is <false>, a non-trivial result was however unexpected.";
         // Abstraction is false => successor state is not feasible
         return ImmutableSet.of();
       }
 
       // A non-trivial abstraction was computed
-      if (precondition.getPredicate().getSymbolicAtom().equals(computedPostCondition.asFormula())) {
-        // Pre- and postcondition are the same; keep current pred in TAState
-        newStatePreds.put(currentItpSequence, precondition);
-      } else if (precondition
+      if (nextPreds.isPresent()
+          && entailsRegions(nextPreds.orElseThrow().getPredicate(), computedPostCondition)) {
+        newStatePreds.put(currentItpSequence, nextPreds.orElseThrow());
+        continue;
+      } else if (entailsRegions(curPreds.getPredicate(), computedPostCondition)) {
+        newStatePreds.put(currentItpSequence, curPreds);
+        continue;
+      }
+
+      if (curPreds
           .getPredicate()
           .getSymbolicAtom()
           .equals(bFMgrView.not(computedPostCondition.asFormula()))) {
         // Pre- and postcondition are negated to each other. The Hoare triple is of the following
         // form: [x==0] x!=0 [x!=0]
 
-        // The next state is hence unsatisfiable.
+        if (nextPreds.isEmpty()) {
+          // The next pred is <false>.
+          // As the abstraction result  was however not evaluated to false, this just means
+          // that the current predicate just does not hold anymore in the next state.
+          logger.log(
+              Level.FINEST,
+              "Abstraction is contradictory to current input predicates. The node is not reachable");
+          continue;
+        }
+
+      } else if (nextPreds.isPresent()
+          && nextPreds
+              .orElseThrow()
+              .getPredicate()
+              .getSymbolicAtom()
+              .equals(bFMgrView.not(computedPostCondition.asFormula()))) {
         logger.log(
             Level.FINEST,
             "Abstraction is contradictory to current input predicates. The node is not reachable");
@@ -250,37 +291,23 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
               pCfaEdge,
               callstackWrapper,
               abstractionFormula,
-              pathFormula,
+              predSuccessorState.getPathFormula(),
               ImmutableSet.of(preconditionPreds));
 
-      if (computedPostCondition.isTrue()) {
-        // Abstraction formula yields result <true>; discard the current itpSequence in this state
+      if (computedPostCondition.isTrue() || computedPostCondition.isFalse()) {
+        // If abstraction formula is either <true> or <false>, simply disregard the current selected
+        // itpSequence in this state
         continue;
       }
 
-      if (computedPostCondition.isFalse()) {
-        // Abstraction is false, this node is infeasible.
-        // TODO: this needs to be handled accordingly (i.e. return bottom state)
-        // Until then an exception is thrown to make this visible in the log output
-        throw new AssertionError(
-            "Interpolant <false> is following on an interpolant <true>. This is not yet handled");
-      }
-
-      // A non-trivial abstraction was computed
-      if (preconditionPreds.getSymbolicAtom().equals(computedPostCondition.asFormula())) {
+      // Only if a non-trivial abstraction was computed that entails the input predicates
+      // (i.e., abstraction result => input predicate), we add the current predicate to the
+      // successor TAState
+      if (entailsRegions(preconditionPreds, computedPostCondition)) {
+        assert preconditionPreds.getSymbolicAtom().equals(computedPostCondition.asFormula());
         // Pre- and postcondition are the same; it is the first from the current interpolation
         // sequence
         newStatePreds.put(itpSequence, indexedPred);
-      } else if (preconditionPreds
-          .getSymbolicAtom()
-          .equals(bFMgrView.not(computedPostCondition.asFormula()))) {
-        // Pre- and postcondition are negated to each other.
-        newStatePreds.put(itpSequence, indexedPred);
-      } else {
-        throw new AssertionError(
-            String.format(
-                "Precond: %s%nPostcond: %s",
-                preconditionPreds.getSymbolicAtom(), computedPostCondition.asFormula()));
       }
     }
 
@@ -288,6 +315,36 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
         newStatePreds.build();
     logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
     return ImmutableSet.of(new TraceAbstractionState(predSuccessorState, newPreds));
+  }
+
+  /**
+   * check data region represented by the computed abstraction (the postcondition) whether it is a
+   * subset of precondition
+   *
+   * <p>More precisely, it checks the following condition: postcond => precond
+   */
+  private boolean entailsRegions(
+      AbstractionPredicate precondition, AbstractionFormula computedPostCondition)
+      throws CPATransferException, InterruptedException {
+    try {
+      return abstractionManager.entails(
+          computedPostCondition.asRegion(), precondition.getAbstractVariable());
+    } catch (SolverException e) {
+      throw new CPATransferException(e.getMessage(), e);
+    }
+  }
+
+  private boolean anyVariableModified(
+      SSAMap ssaParent, SSAMap ssaChild, Set<String> predVariables) {
+    for (String variable : predVariables) {
+      if (ssaChild.containsVariable(variable)
+          && ssaParent.containsVariable(variable)
+          && ssaChild.getIndex(variable) == ssaParent.getIndex(variable) + 1) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private TransferRelation getWrappedTR() {
