@@ -122,11 +122,11 @@ public class Worker implements Runnable {
     return (CompositeState) argState.getWrappedState();
   }
 
-  private <T> ImmutableSet<T> getStatesFromCompositeState(Class<T> pStateClass, @Nonnull CompositeState pCompositeState) {
-    Set<T> result = new HashSet<>();
+  private ImmutableSet<PredicateAbstractState> getPredicateStatesFromCompositeState(@Nonnull CompositeState pCompositeState) {
+    Set<PredicateAbstractState> result = new HashSet<>();
     for (AbstractState wrappedState : pCompositeState.getWrappedStates()) {
-      if (wrappedState.getClass().equals(pStateClass) || pStateClass.isAssignableFrom(wrappedState.getClass())) {
-        result.add((T) wrappedState);
+      if (wrappedState instanceof PredicateAbstractState) {
+        result.add((PredicateAbstractState) wrappedState);
       }
     }
     return ImmutableSet.copyOf(result);
@@ -183,7 +183,7 @@ public class Worker implements Runnable {
   private Message forwardAnalysis() throws CPAException, InterruptedException {
     reachedSet.clear();
     PredicateAbstractState firstPredicateState =
-        getStatesFromCompositeState(PredicateAbstractState.class, startState).stream().findFirst()
+        getPredicateStatesFromCompositeState(startState).stream().findFirst()
             .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
     firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), getPreCondition()),
