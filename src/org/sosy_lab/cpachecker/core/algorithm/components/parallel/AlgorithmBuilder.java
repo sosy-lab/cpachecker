@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -71,6 +70,7 @@ public class AlgorithmBuilder {
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), new AggregatedReachedSets());
+
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     ARGCPA argcpa = (ARGCPA) cpa;
     List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();

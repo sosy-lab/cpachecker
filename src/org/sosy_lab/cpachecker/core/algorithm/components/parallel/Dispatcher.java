@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -26,23 +27,33 @@ public class Dispatcher {
 
   private final BlockingQueue<Message> inputStream;
   private final ConcurrentLinkedQueue<BlockingQueue<Message>> outputStreams;
+  private final LogManager logManager;
 
 
-  public Dispatcher() {
+  public Dispatcher(LogManager pLogManager) {
     inputStream = new LinkedBlockingQueue<>();
     outputStreams = new ConcurrentLinkedQueue<>();
+    logManager = pLogManager;
   }
 
-  public synchronized Worker registerNodeAndGetWorker(BlockNode pNode, LogManager pLogger, CFA pCFA, Specification pSpecification, Configuration pConfiguration, ShutdownManager pShutdownManager)
+  public synchronized Worker registerNodeAndGetWorker(
+      BlockNode pNode,
+      LogManager pLogger,
+      CFA pCFA,
+      Specification pSpecification,
+      Configuration pConfiguration,
+      ShutdownManager pShutdownManager)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     BlockingQueue<Message> queue = new LinkedBlockingQueue<>();
     outputStreams.add(queue);
-    return new Worker(pNode, queue, inputStream, pLogger, pCFA, pSpecification, pConfiguration, pShutdownManager);
+    return new Worker(pNode, queue, inputStream, pLogger, pCFA, pSpecification, pConfiguration,
+        pShutdownManager);
   }
 
   public void start() throws InterruptedException {
     while (true) {
       final Message m = inputStream.take();
+      logManager.log(Level.INFO, "Broadcasting", m);
       for (BlockingQueue<Message> outputStream : outputStreams) {
         outputStream.add(m);
       }

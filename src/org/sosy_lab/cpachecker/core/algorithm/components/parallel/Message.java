@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class Message {
@@ -20,18 +21,24 @@ public class Message {
     FINISHED
   }
 
-  private final BlockNode from;
+  private final BlockNode sender;
   private final MessageType type;
   private final BooleanFormula condition;
+  private final Precision precision;
 
-  public Message(MessageType pType, BlockNode pFrom, BooleanFormula pCondition) {
-    from = pFrom;
+  public Message(
+      MessageType pType,
+      BlockNode pSender,
+      BooleanFormula pCondition,
+      Precision pPrecision) {
+    sender = pSender;
     type = pType;
     condition = pCondition;
+    precision = pPrecision;
   }
 
-  public BlockNode getFrom() {
-    return from;
+  public BlockNode getSender() {
+    return sender;
   }
 
   public BooleanFormula getCondition() {
@@ -42,10 +49,14 @@ public class Message {
     return type;
   }
 
+  public Precision getPrecision() {
+    return precision;
+  }
+
   @Override
   public String toString() {
     return "Message{" +
-        "from=" + from +
+        "sender=" + sender +
         ", type=" + type +
         ", condition=" + condition +
         '}';
@@ -57,12 +68,12 @@ public class Message {
       return false;
     }
     Message message = (Message) pO;
-    return Objects.equals(from, message.from) && type == message.type && Objects
+    return Objects.equals(sender, message.sender) && type == message.type && Objects
         .equals(condition, message.condition);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(from, type, condition);
+    return Objects.hash(sender, type, condition);
   }
 }
