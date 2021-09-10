@@ -59,8 +59,6 @@ class InterpolationSequence {
 
     Builder addFunctionPredicates(
         String pFunctionName, Set<AbstractionPredicate> pFunctionPredicates) {
-      assert checkOrdering(functionPredicates.get(pFunctionName), pFunctionPredicates)
-          : "Sequence of interpolants is inconsistent";
       for (AbstractionPredicate abstractionPredicate : pFunctionPredicates) {
         if (functionPredCache.put(pFunctionName, abstractionPredicate)) {
           // There was no such value previously associated with the given key, meaning
@@ -86,32 +84,6 @@ class InterpolationSequence {
           : "InterpolationSequence consists of more than *one* set of predicates "
               + "(either one of global-, local-, or function-predicates are allowed)";
       return new InterpolationSequence(functionPredicates, globalPredicates);
-    }
-
-    private boolean checkOrdering(
-        Collection<IndexedAbstractionPredicate> pPredicates,
-        Set<AbstractionPredicate> pPredicatesToAdd) {
-      if (pPredicatesToAdd.size() > 1) {
-        throw new UnsupportedOperationException(
-            "InterpolationSequence only allows to add one new predicate at a time");
-      }
-
-      return checkOrdering(pPredicates, Iterables.getOnlyElement(pPredicatesToAdd));
-    }
-
-    /**
-     * Check that if a predicate is already contained in the collection, then the position is always
-     * only the direct predecessor
-     *
-     * <p>In other words, if the interpolants a -> a -> b -> b -> c were given before, and c is
-     * again given as interpolant, then c may not appear before the last occurrence of b
-     */
-    private boolean checkOrdering(
-        Collection<IndexedAbstractionPredicate> pPredicates, AbstractionPredicate pPredicateToAdd) {
-      return FluentIterable.from(pPredicates)
-              .transform(IndexedAbstractionPredicate::getPredicate)
-              .allMatch(x -> !x.equals(pPredicateToAdd))
-          || Iterables.getLast(pPredicates).getPredicate().equals(pPredicateToAdd);
     }
 
     private boolean sanityCheck() {
