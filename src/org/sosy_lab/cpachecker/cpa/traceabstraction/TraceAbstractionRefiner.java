@@ -204,10 +204,21 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
 
       if (!bFMgrView.isTrue(curInterpolant)) {
         verifyNotNull(previousState);
-        AbstractionPredicate pred = predAbsManager.getPredicateFor(curInterpolant);
+        ImmutableSet<AbstractionPredicate> preds =
+            // predAbsManager.getPredicatesForAtomsOf(curInterpolant);
+            ImmutableSet.of(predAbsManager.getPredicateFor(curInterpolant));
+        if (preds.size() > 1) {
+          Comparator<AbstractionPredicate> comparator =
+              (pred1, pred2) ->
+                  pred1
+                      .getSymbolicVariable()
+                      .toString()
+                      .compareTo(pred2.getSymbolicVariable().toString());
+          preds = preds.stream().sorted(comparator).collect(ImmutableSet.toImmutableSet());
+        }
         String functionName = AbstractStates.extractLocation(previousState).getFunctionName();
 
-        itpSequenceBuilder.addFunctionPredicates(functionName, ImmutableSet.of(pred));
+        itpSequenceBuilder.addFunctionPredicates(functionName, preds);
       }
 
       previousState = curState;
