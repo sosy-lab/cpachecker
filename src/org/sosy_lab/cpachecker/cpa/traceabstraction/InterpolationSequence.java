@@ -120,9 +120,9 @@ class InterpolationSequence {
   }
 
   private ImmutableSet<IndexedAbstractionPredicate> getPredicates(
-      LocationInstance locationInstance) {
+      LocationInstance pLocationInstance) {
     ImmutableSet<IndexedAbstractionPredicate> result =
-        functionPredicates.get(locationInstance.getFunctionName());
+        functionPredicates.get(pLocationInstance.getFunctionName());
     if (result.isEmpty()) {
       result = globalPredicates;
     }
@@ -133,17 +133,36 @@ class InterpolationSequence {
     return !getPredicates(pLocationInstance).isEmpty();
   }
 
-  Optional<IndexedAbstractionPredicate> getFirst(LocationInstance locationInstance) {
-    return getPredicates(locationInstance).stream().findFirst();
+  Optional<IndexedAbstractionPredicate> getFirst(LocationInstance PLocationInstance) {
+    return getPredicates(PLocationInstance).stream().findFirst();
   }
 
   Optional<IndexedAbstractionPredicate> getNext(
-      LocationInstance locationInstance, IndexedAbstractionPredicate pPredicate) {
+      LocationInstance pLocationInstance, IndexedAbstractionPredicate pPredicate) {
     ImmutableSortedSet<IndexedAbstractionPredicate> predicates =
         (ImmutableSortedSet<IndexedAbstractionPredicate>)
-            functionPredicates.asMap().get(locationInstance.getFunctionName());
+            functionPredicates.asMap().get(pLocationInstance.getFunctionName());
 
     return Optional.ofNullable(predicates.higher(pPredicate));
+  }
+
+  boolean isStrictSubsetOf(InterpolationSequence pOtherSequence) {
+    if (this.equals(pOtherSequence)) {
+      return false;
+    }
+    return pOtherSequence.getGlobalPredicates().containsAll(getGlobalPredicates())
+        && pOtherSequence
+            .getFunctionPredicates()
+            .entries()
+            .containsAll(getFunctionPredicates().entries());
+  }
+
+  private ImmutableSet<IndexedAbstractionPredicate> getGlobalPredicates() {
+    return globalPredicates;
+  }
+
+  private ImmutableSetMultimap<String, IndexedAbstractionPredicate> getFunctionPredicates() {
+    return functionPredicates;
   }
 
   @Override
@@ -152,14 +171,14 @@ class InterpolationSequence {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
       return true;
     }
-    if (!(obj instanceof InterpolationSequence)) {
+    if (!(pObj instanceof InterpolationSequence)) {
       return false;
     }
-    InterpolationSequence other = (InterpolationSequence) obj;
+    InterpolationSequence other = (InterpolationSequence) pObj;
     return Objects.equals(functionPredicates, other.functionPredicates)
         && Objects.equals(globalPredicates, other.globalPredicates);
   }
