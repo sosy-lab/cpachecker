@@ -112,6 +112,21 @@ public class ARGUtils {
     return result.build();
   }
 
+  /** Get all abstract states without successors. */
+  public static ImmutableSet<ARGState> getFinalStates(UnmodifiableReachedSet pReached) {
+
+    ImmutableSet.Builder<ARGState> result = ImmutableSet.builder();
+
+    for (AbstractState e : pReached) {
+      ARGState state = AbstractStates.extractStateByType(e, ARGState.class);
+      if (state != null && state.getChildren().isEmpty()) {
+        result.add(state);
+      }
+    }
+
+    return result.build();
+  }
+
   /**
    * Explores the paths through the ARG starting at the given root state and considering only the
    * given relevant states, and checks if there is any branching that can not be mapped uniquely to
