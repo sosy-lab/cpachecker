@@ -112,7 +112,9 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
     PredicateAbstractState predSuccessorState =
         (PredicateAbstractState) Iterables.getOnlyElement(delegateStrengthenedStates);
 
-    if (itpSequenceStorage.isEmpty() && !taState.containsPredicates()) {
+    if (pCfaEdge.getEdgeType() == CFAEdgeType.BlankEdge) {
+      return ImmutableList.of(taState.withWrappedState(predSuccessorState));
+    } else if (itpSequenceStorage.isEmpty() && !taState.containsPredicates()) {
       // The predecessor states have not yet been part of a refinement.
       // There are hence no predicates available for further processing.
       return ImmutableList.of(taState.withWrappedState(predSuccessorState));
