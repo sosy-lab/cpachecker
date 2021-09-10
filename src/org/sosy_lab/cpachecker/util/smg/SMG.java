@@ -139,8 +139,8 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndAddHVEdge(SMGHasValueEdge edge, SMGObject source) {
-
-    if (hasValueEdges.containsKey(source) && hasValueEdges.get(source).contains(edge)) {
+    if (hasValueEdges.containsKey(source)
+        && hasValueEdges.getOrDefault(source, PersistentSet.of()).contains(edge)) {
       return this;
     }
 
@@ -214,10 +214,12 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndRemoveHVEdges(Iterable<SMGHasValueEdge> edges, SMGObject source) {
-    PersistentSet<SMGHasValueEdge> smgEdges = hasValueEdges.get(source);
+    PersistentSet<SMGHasValueEdge> smgEdges =
+        hasValueEdges.getOrDefault(source, PersistentSet.of());
     for (SMGHasValueEdge edgeToRemove : edges) {
       smgEdges = smgEdges.removeAndCopy(edgeToRemove);
     }
+
     return new SMG(
         smgObjects,
         smgValues,
@@ -471,6 +473,7 @@ public class SMG {
                 !(n.getOffset().add(n.getSizeInBits()).compareTo(offset) <= 0
                     || offsetPlusSize.compareTo(n.getOffset()) <= 0));
     newSMG = newSMG.copyAndRemoveHVEdges(nonZeroOverlappingEdges, object);
+
     if (!value.isZero()) {
       // If the value is non-zero, then for each hasValueEdge with a zero value, remove the edge,
       // and reintroduce new edges not overlapping with the field.
