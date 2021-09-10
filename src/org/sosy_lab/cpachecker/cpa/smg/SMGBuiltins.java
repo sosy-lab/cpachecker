@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -51,6 +53,7 @@ public class SMGBuiltins {
   private final LogManager logger;
   private final SMGExportDotOption exportSMGOptions;
   private final SMGOptions options;
+  private ImmutableList<Pattern> safeUnknownFunctionCompiledPatterns;
 
   public SMGBuiltins(
       SMGRightHandSideEvaluator pExpressionEvaluator,
@@ -924,7 +927,7 @@ public class SMGBuiltins {
       throws CPATransferException, AssertionError {
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
-        if (!options.getSafeUnknownFunctions().contains(calledFunctionName)) {
+        if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the "
@@ -940,6 +943,22 @@ public class SMGBuiltins {
         throw new AssertionError(
             "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
     }
+  }
+
+  private boolean isSafeFunction(String calledFunctionName) {
+    if (safeUnknownFunctionCompiledPatterns == null) {
+      Builder<Pattern> builder = new Builder<>();
+      for (String safeUnknownFunctionPattern : options.getSafeUnknownFunctionsPatterns()) {
+        builder.add(Pattern.compile(safeUnknownFunctionPattern));
+      }
+      safeUnknownFunctionCompiledPatterns = builder.build();
+    }
+    for (Pattern safeUnknownFunctionPattern : safeUnknownFunctionCompiledPatterns) {
+      if (safeUnknownFunctionPattern.matcher(calledFunctionName).matches()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public List<? extends SMGValueAndState> handleFunctioncall(
