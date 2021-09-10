@@ -471,7 +471,8 @@ public class SMG {
             object,
             n ->
                 !(n.getOffset().add(n.getSizeInBits()).compareTo(offset) <= 0
-                    || offsetPlusSize.compareTo(n.getOffset()) <= 0));
+                        || offsetPlusSize.compareTo(n.getOffset()) <= 0)
+                    && !n.hasValue().isZero());
     newSMG = newSMG.copyAndRemoveHVEdges(nonZeroOverlappingEdges, object);
 
     if (!value.isZero()) {
@@ -499,6 +500,7 @@ public class SMG {
     final BigInteger offsetPlusSize = offset.add(sizeInBits);
     PersistentSet<SMGHasValueEdge> toRemoveEdgesSet = PersistentSet.of();
     PersistentSet<SMGHasValueEdge> toAddEdgesSet = PersistentSet.of();
+
 
     for (SMGHasValueEdge hvEdge : hasValueEdges.get(object)) {
       final BigInteger hvEdgeOffsetPlusSize = hvEdge.getOffset().add(hvEdge.getSizeInBits());
