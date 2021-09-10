@@ -8,32 +8,36 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
+/*
+ * Tracks if the string contains elements of a given set
+ */
 //@Options(prefix = "string.cpa")
-public class PrefixDomain implements AbstractStringDomain {
+public class ContainsDomain implements AbstractStringDomain {
 
-  // @Option(
-  // secure = true,
-  // name = "prefixlength",
-  // description = "which prefixlength shall be tracked")
-  private int prefixLength;
-  private static final DomainType TYPE = DomainType.PREFFIX;
+  // @Option(description = "the given set to compare to", name = "containset")
+  private List<String> givenset; // = new ArrayList<>();
+
+  private static final DomainType TYPE = DomainType.CONTAINS;
   // private final StringOptions options;
 
-  private PrefixDomain(StringOptions pOptions) {
+  private ContainsDomain(StringOptions pOptions) {
     // options = pOptions;
-    prefixLength = pOptions.getPrefixLength();
+    givenset = pOptions.getContainset();
   }
 
   @Override
   public Aspect toAdd(String pVariable) {
-    int temp = prefixLength;
-    if (prefixLength > pVariable.length()) {
-      temp = pVariable.length();
+    StringBuilder sb = new StringBuilder();
+    for (String given : givenset) {
+      if (pVariable.contains(sb)) {
+        sb.append(given);
+      }
     }
-    return new Aspect(TYPE, pVariable.substring(0, temp));
+    return new Aspect(TYPE, sb.toString());
   }
 
   @Override
@@ -41,9 +45,9 @@ public class PrefixDomain implements AbstractStringDomain {
     return TYPE;
   }
 
-
   @Override
   public AbstractStringDomain createInstance(StringOptions pOptions) {
-    return new PrefixDomain(pOptions);
+    return new ContainsDomain(pOptions);
   }
+
 }

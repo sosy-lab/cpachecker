@@ -9,6 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
 public enum DomainType {
-  PREFFIX
+  PREFFIX,
+  SUFFIX,
+  LENGTH,
+  CONTAINS,
+  STRING_SET,
+  CHAR_SET
 
 }

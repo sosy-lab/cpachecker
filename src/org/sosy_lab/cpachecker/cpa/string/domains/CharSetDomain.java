@@ -8,32 +8,28 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
-//@Options(prefix = "string.cpa")
-public class PrefixDomain implements AbstractStringDomain {
+/*
+ * Tracks the characters in the string
+ */
+public class CharSetDomain implements AbstractStringDomain {
 
-  // @Option(
-  // secure = true,
-  // name = "prefixlength",
-  // description = "which prefixlength shall be tracked")
-  private int prefixLength;
-  private static final DomainType TYPE = DomainType.PREFFIX;
+  private static final DomainType TYPE = DomainType.CHAR_SET;
   // private final StringOptions options;
 
-  private PrefixDomain(StringOptions pOptions) {
+  private CharSetDomain(StringOptions pOptions) {
     // options = pOptions;
-    prefixLength = pOptions.getPrefixLength();
   }
 
   @Override
   public Aspect toAdd(String pVariable) {
-    int temp = prefixLength;
-    if (prefixLength > pVariable.length()) {
-      temp = pVariable.length();
-    }
-    return new Aspect(TYPE, pVariable.substring(0, temp));
+    String noDuplicates =
+        Arrays.asList(pVariable.split("")).stream().distinct().collect(Collectors.joining());
+    return new Aspect(TYPE, noDuplicates);
   }
 
   @Override
@@ -41,9 +37,9 @@ public class PrefixDomain implements AbstractStringDomain {
     return TYPE;
   }
 
-
   @Override
   public AbstractStringDomain createInstance(StringOptions pOptions) {
-    return new PrefixDomain(pOptions);
+    return new CharSetDomain(pOptions);
   }
+
 }

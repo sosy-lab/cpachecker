@@ -150,10 +150,12 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
       default:
         // logger.log(Level.SEVERE, "No such edge existing");
     }
-    if (successor == null) {
-      return ImmutableSet.of();
-    } else {
+    if (successor != null) {
       return Collections.singleton(successor);
+    }
+    else {
+      // TODO change to fail
+      return ImmutableSet.of();
     }
   }
 

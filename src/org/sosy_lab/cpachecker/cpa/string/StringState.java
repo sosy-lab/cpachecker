@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
-import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,18 +17,27 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class StringState implements LatticeAbstractState<StringState> {
 
   private StringOptions options;
-  private Map<JVariableIdentifier, ValueAndAspects> stringsAndAspects;
+  private ImmutableMap<JVariableIdentifier, ValueAndAspects> stringsAndAspects;
 
   public StringState(Map<JVariableIdentifier, String> pStringMap, StringOptions pOptions) {
     options = pOptions;
-    stringsAndAspects = new HashMap<>();
+    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
     for (JVariableIdentifier jid : pStringMap.keySet()) {
       if (HelperMethods.isString(jid.getType())) { // Doublecheck to be 100% sure
         String value = pStringMap.get(jid);
         ValueAndAspects vaa = new ValueAndAspects(value, storeAllAspects(value));
-        stringsAndAspects.put(jid, vaa);
+        builder.put(jid, vaa);
+        // stringsAndAspects.put(jid, vaa);
       }
     }
+    stringsAndAspects = ImmutableMap.copyOf(builder.build());
+  }
+
+  private StringState(
+      ImmutableMap<JVariableIdentifier, ValueAndAspects> pStringMap,
+      StringOptions pOptions) {
+    options = pOptions;
+    stringsAndAspects = ImmutableMap.copyOf(pStringMap);
   }
 
   private StringState(StringState state) {
@@ -44,14 +53,20 @@ public class StringState implements LatticeAbstractState<StringState> {
     return updateVariable(jid, updateValue.getValue());
   }
 
-  public StringState updateVariable(JVariableIdentifier jid, String updateValue) {
-    StringState state = copyOf(this);
+  public StringState updateVariable(JVariableIdentifier pJid, String updateValue) {
+    // StringState state = copyOf(this);
     ValueAndAspects svaa = new ValueAndAspects(updateValue, storeAllAspects(updateValue));
-    if (stringsAndAspects.containsKey(jid)) {
-      state.stringsAndAspects.remove(jid);
+    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
+      if (!jid.equals(pJid)) {
+        builder.put(jid, stringsAndAspects.get(jid));
+      }
     }
-    state.stringsAndAspects.put(jid, svaa);
-    return state;
+
+    // state.stringsAndAspects.remove(jid);
+    builder.put(pJid, svaa);
+    // state.stringsAndAspects.put(pJid, svaa);
+    return new StringState(builder.build(), options);
   }
 
   public StringState addVariable(JVariableIdentifier jid) {
@@ -86,23 +101,22 @@ public class StringState implements LatticeAbstractState<StringState> {
     return this;
   }
 
-  private HashMap<JVariableIdentifier, ValueAndAspects>
+  private ImmutableMap<JVariableIdentifier, ValueAndAspects>
       joinMapsNoDups(Map<JVariableIdentifier, ValueAndAspects> pStringMap) {
-    HashMap<JVariableIdentifier, ValueAndAspects> result =
-        (HashMap<JVariableIdentifier, ValueAndAspects>) this.stringsAndAspects;
+    // HashMap<JVariableIdentifier, ValueAndAspects> result =
+    // (HashMap<JVariableIdentifier, ValueAndAspects>) this.stringsAndAspects;
+    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    builder.putAll(stringsAndAspects);
     for (JVariableIdentifier jid : pStringMap.keySet()) {
-      if (!result.containsKey(jid)) {
-        result.put(jid, pStringMap.get(jid));
+      if (!stringsAndAspects.containsKey(jid)) {
+        builder.put(jid, pStringMap.get(jid));
       }
     }
-    return result;
+    return builder.build();
   }
 
   @Override
   public boolean isLessOrEqual(StringState pOther) throws CPAException, InterruptedException {
-    if (!Objects.equal(this, pOther)) {
-      return false;
-    }
     if (!(this.stringsAndAspects.size() != pOther.stringsAndAspects.size())) {
       return false;
     } else {
@@ -124,31 +138,38 @@ public class StringState implements LatticeAbstractState<StringState> {
     return Optional.empty();
   }
 
-  public StringState clearAVariable(JVariableIdentifier jid) {
-    StringState state = copyOf(this);
-    if (state.stringsAndAspects.containsKey(jid)) {
-      state.stringsAndAspects.remove(jid);
-    }
-    return state;
-  }
+  // Not needed atm
+  // public StringState clearAVariable(JVariableIdentifier jid) {
+  //// StringState state = copyOf(this);
+  // Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+  // if (stringsAndAspects.containsKey(jid)) {
+  //
+  //// state.stringsAndAspects.remove(jid);
+  // }
+  // return state;
+  // }
 
   public StringState clearAFunction(String funcname) {
-    StringState state = copyOf(this);
-    for (JVariableIdentifier jid : state.stringsAndAspects.keySet()) {
-      if (jid.getMemLoc().isOnFunctionStack(funcname)) {
-        state.stringsAndAspects.remove(jid);
+    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
+      if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
+        // state.stringsAndAspects.remove(jid);
+        builder.put(jid, stringsAndAspects.get(jid));
       }
     }
-    return state;
+    return new StringState(builder.build(), options);
   }
+
   public StringState clearAllLocalVariables() {
-    StringState state = copyOf(this);
-    for (JVariableIdentifier jid : state.stringsAndAspects.keySet()) {
+    // StringState state = copyOf(this);
+    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
       if (!jid.isGlobal()) {
-        state.stringsAndAspects.remove(jid);
+        // state.stringsAndAspects.remove(jid);
+        builder.put(jid, stringsAndAspects.get(jid));
       }
     }
-    return state;
+    return new StringState(builder.build(), options);
   }
 
   @Override

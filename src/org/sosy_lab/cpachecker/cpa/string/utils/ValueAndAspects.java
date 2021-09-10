@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueAndAspects {
 
@@ -24,7 +23,7 @@ public class ValueAndAspects {
 
   public ValueAndAspects(String pValue) {
     value = pValue;
-    aspects = new LinkedList<>();
+    aspects = new ArrayList<>();
   }
 
   public void addAspect(Aspect pAdd) {
@@ -88,7 +87,7 @@ public class ValueAndAspects {
     private final UnknownValueAndAspects instance = new UnknownValueAndAspects();
     private UnknownValueAndAspects() {
       value = "";
-      aspects = new LinkedList<>();
+      aspects = new ArrayList<>();
     }
 
     public UnknownValueAndAspects getInstance() {

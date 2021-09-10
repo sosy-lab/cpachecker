@@ -11,29 +11,21 @@ package org.sosy_lab.cpachecker.cpa.string.domains;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
-//@Options(prefix = "string.cpa")
-public class PrefixDomain implements AbstractStringDomain {
+/*
+ * Tracks the Length of String
+ */
+public class LengthDomain implements AbstractStringDomain {
 
-  // @Option(
-  // secure = true,
-  // name = "prefixlength",
-  // description = "which prefixlength shall be tracked")
-  private int prefixLength;
-  private static final DomainType TYPE = DomainType.PREFFIX;
+  private static final DomainType TYPE = DomainType.LENGTH;
   // private final StringOptions options;
 
-  private PrefixDomain(StringOptions pOptions) {
+  private LengthDomain(StringOptions pOptions) {
     // options = pOptions;
-    prefixLength = pOptions.getPrefixLength();
   }
 
   @Override
   public Aspect toAdd(String pVariable) {
-    int temp = prefixLength;
-    if (prefixLength > pVariable.length()) {
-      temp = pVariable.length();
-    }
-    return new Aspect(TYPE, pVariable.substring(0, temp));
+    return new Aspect(TYPE, String.valueOf(pVariable.length()));
   }
 
   @Override
@@ -41,9 +33,9 @@ public class PrefixDomain implements AbstractStringDomain {
     return TYPE;
   }
 
-
   @Override
   public AbstractStringDomain createInstance(StringOptions pOptions) {
-    return new PrefixDomain(pOptions);
+    return new LengthDomain(pOptions);
   }
+
 }

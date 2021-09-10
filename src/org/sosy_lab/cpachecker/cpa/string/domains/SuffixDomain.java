@@ -12,28 +12,29 @@ import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
 //@Options(prefix = "string.cpa")
-public class PrefixDomain implements AbstractStringDomain {
+public class SuffixDomain implements AbstractStringDomain {
 
   // @Option(
   // secure = true,
-  // name = "prefixlength",
-  // description = "which prefixlength shall be tracked")
-  private int prefixLength;
-  private static final DomainType TYPE = DomainType.PREFFIX;
+  // name = "suffixlength",
+  // description = "which suffixlength shall be tracked")
+  // private int suffixLength = 3;
+  private int suffixLength;
+  private static final DomainType TYPE = DomainType.SUFFIX;
   // private final StringOptions options;
 
-  private PrefixDomain(StringOptions pOptions) {
+  private SuffixDomain(StringOptions pOptions) {
     // options = pOptions;
-    prefixLength = pOptions.getPrefixLength();
+    suffixLength = pOptions.getSuffixLength();
   }
 
   @Override
   public Aspect toAdd(String pVariable) {
-    int temp = prefixLength;
-    if (prefixLength > pVariable.length()) {
-      temp = pVariable.length();
+    int len = pVariable.length();
+    if (len < suffixLength) {
+      return new Aspect(TYPE, pVariable);
     }
-    return new Aspect(TYPE, pVariable.substring(0, temp));
+    return new Aspect(TYPE, pVariable.substring(len - suffixLength, len));
   }
 
   @Override
@@ -41,9 +42,9 @@ public class PrefixDomain implements AbstractStringDomain {
     return TYPE;
   }
 
-
   @Override
   public AbstractStringDomain createInstance(StringOptions pOptions) {
-    return new PrefixDomain(pOptions);
+    return new SuffixDomain(pOptions);
   }
+
 }
