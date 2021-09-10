@@ -15,6 +15,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Optional;
@@ -31,7 +32,7 @@ class InterpolationSequenceStorage {
   // considered eventually.
 
   private final Set<InterpolationSequence> itpSequences = new HashSet<>();
-  private final HashMultimap<InterpolationSequence, InterpolationSequence> referenceMap =
+  private final SetMultimap<InterpolationSequence, InterpolationSequence> referenceMap =
       HashMultimap.create();
 
   ImmutableSet<InterpolationSequence> getInterpolationSequences() {
@@ -56,7 +57,7 @@ class InterpolationSequenceStorage {
 
   private void updateReferenceMap(
       InterpolationSequence pSubset, InterpolationSequence pNewSequence) {
-    HashMultimap<InterpolationSequence, InterpolationSequence> invertedReferences =
+    SetMultimap<InterpolationSequence, InterpolationSequence> invertedReferences =
         Multimaps.invertFrom(referenceMap, HashMultimap.create());
 
     Set<InterpolationSequence> sequencesPointingToSubset = invertedReferences.get(pSubset);
