@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -35,8 +36,9 @@ public class BlockCPA extends AbstractCPA {
   public void init(BlockNode pBlockNode) {
     startNode = pBlockNode.getStartNode();
     TransferRelation relation = getTransferRelation();
-    checkArgument(relation instanceof BlockTransferRelation, "Expected BlockTransferRelation but got " + relation.getClass());
-    ((BlockTransferRelation)relation).init(pBlockNode);
+    checkState(relation instanceof BlockTransferRelation,
+        "Expected " + BlockTransferRelation.class + " but got " + relation.getClass());
+    ((BlockTransferRelation) relation).init(pBlockNode);
   }
 
   public static CPAFactory factory() {
