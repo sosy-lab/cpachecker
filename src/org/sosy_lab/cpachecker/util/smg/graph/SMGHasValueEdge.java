@@ -52,7 +52,20 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   @Override
   public int compareTo(SMGHasValueEdge pArg0) {
-    return value.compareTo(pArg0.value);
+    int valueCompare = value.compareTo(pArg0.value);
+    if (valueCompare == 0) {
+      if (offset.compareTo(pArg0.offset) == 0) {
+        if (sizeInBits.compareTo(pArg0.sizeInBits) == 0) {
+          return 0;
+        } else {
+          return sizeInBits.compareTo(pArg0.sizeInBits);
+        }
+      } else {
+        return offset.compareTo(pArg0.offset);
+      }
+    } else {
+      return valueCompare;
+    }
   }
 
   @Override
@@ -73,5 +86,10 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
   @Override
   public int hashCode() {
     return super.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return value + " [" + offset + "; " + sizeInBits + ")";
   }
 }
