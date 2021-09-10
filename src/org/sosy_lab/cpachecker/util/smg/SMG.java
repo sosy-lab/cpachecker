@@ -578,18 +578,18 @@ public class SMG {
       return false;
     }
     BigInteger offsetPlusSize = offset.add(size);
-    currentMax = nullEdgesRangeMap.get(currentMax);
+    currentMax = nullEdgesRangeMap.get(currentMax).add(currentMax);
     // TreeMaps keySet is ordered!
     for (Map.Entry<BigInteger, BigInteger> entry : nullEdgesRangeMap.entrySet()) {
       // The max encountered yet has to be bigger to the next key.
-      // ( > because the size begins with the offset and does not include the offset + size bit!)
-      if (currentMax.compareTo(entry.getKey()) > 0) {
+      // ( < because the size begins with the offset and does not include the offset + size bit!)
+      if (currentMax.compareTo(entry.getKey()) < 0) {
         return false;
       }
-      currentMax = currentMax.max(entry.getValue());
+      currentMax = currentMax.max(entry.getValue().add(currentMax));
       // If there are no gaps,
       // the max encountered has to be == offset + size at some point.
-      if (currentMax.compareTo(offsetPlusSize) == 0) {
+      if (currentMax.compareTo(offsetPlusSize) >= 0) {
         return true;
       }
     }
@@ -609,20 +609,17 @@ public class SMG {
   private ImmutableSortedMap<BigInteger, BigInteger> getZeroValueEdgesForObject(
       SMGObject smgObject, BigInteger offset, BigInteger sizeInBits) {
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    // TODO: Re-evaluate if edges exceeding the boundries of the field have to be used!
-    // FIT-TR-2013-4 appendix B states that they have to be used as well!
-    // Old idea: Both inequalities have to hold, else one may read invalid memory outside of the
-    // object!
-    // ObjectOffset <= HasValueEdgeOffset
-    // HasValueEdgeOffset + HasValueEdgeSize <= ObjectOffset + ObjectSize
+    // FIT-TR-2013-4 appendix B states that the entered field has to be covered. It does not matter
+    // if this is done in a sinle edge, or multiple, or that the edges exceed the field entered.
+    // They must be in the objects boundries however.
     return hasValueEdges
         .get(smgObject)
         .stream()
         .filter(
             n ->
                 n.hasValue().isZero()
-                    && offset.compareTo(n.getOffset()) <= 0
-                    && offsetPlusSize.compareTo(n.getOffset().add(n.getSizeInBits())) >= 0)
+                    && offsetPlusSize.compareTo(n.getOffset()) >= 0
+                    && offset.compareTo(n.getOffset().add(n.getSizeInBits())) <= 0)
         .collect(
             ImmutableSortedMap.toImmutableSortedMap(
                 Comparator.naturalOrder(),
