@@ -402,7 +402,7 @@ public class SMG {
    */
   public SMGandValue readValue(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) < 0);
+    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
 
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
@@ -448,8 +448,8 @@ public class SMG {
   public SMG writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) < 0);
     BigInteger offsetPlusSize = offset.add(sizeInBits);
+    assert (offsetPlusSize.compareTo(object.getSize()) <= 0);
 
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
