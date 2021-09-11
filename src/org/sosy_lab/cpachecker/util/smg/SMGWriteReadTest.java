@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.smg;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -59,7 +58,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   public void emptyObjectTest() {
     // Assert empty SMG
     assertThat(smg.getPTEdges().toList()).isEqualTo(ImmutableList.of(nullPointer));
-    assertTrue(smg.getHVEdges().toList().isEmpty());
+    assertThat(smg.getHVEdges().toList()).isEmpty();
     assertThat(smg.getValues()).isEqualTo(PersistentSet.of(SMGValue.zeroValue()));
     assertThat(smg.getObjects()).isEqualTo(PersistentSet.of(SMGObject.nullInstance()));
 
@@ -69,7 +68,7 @@ public class SMGWriteReadTest extends SMGTest0 {
 
     // TODO: Determine if new Objects should automatically recieve HVEdges to the zero value!
     assertThat(smg.getPTEdges().toList()).isEqualTo(ImmutableList.of(nullPointer));
-    assertTrue(smg.getHVEdges().toList().isEmpty());
+    assertThat(smg.getHVEdges().toList()).isEmpty();
     assertThat(smg.getValues()).isEqualTo(PersistentSet.of(SMGValue.zeroValue()));
     assertThat(smg.getObjects())
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
@@ -116,12 +115,12 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(smg.getHVEdges().toList()).containsExactlyElementsIn(expectedEdges);
     assertThat(smg.getValues())
         .isEqualTo(PersistentSet.of(SMGValue.zeroValue()).addAndCopy(value1));
-    assertThat(smg.getValues().size()).isEqualTo(2);
+    assertThat(smg.getValues()).hasSize(2);
     assertThat(smg.getObjects())
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
 
     // writeValue() a2 to the region at byte 7, a2 is [7; 8), this deletes the value1 edge
     smg = smg.writeValue(testObject, BigInteger.valueOf(7 * 8), BigInteger.valueOf(8 * 8), value2);
@@ -153,7 +152,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the SMGObject
     assertThat(smg.getEdges(testObject)).isEqualTo(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /*
@@ -171,11 +170,11 @@ public class SMGWriteReadTest extends SMGTest0 {
 
     // First we need to write everything to 0 for both objects
     smg = smg.writeValue(testObject1, BigInteger.ZERO, testObject1.getSize(), SMGValue.zeroValue());
-    assertTrue(!smg.getEdges(testObject1).isEmpty());
-    assertTrue(smg.getEdges(testObject2).isEmpty());
+    assertThat(smg.getEdges(testObject1)).isNotEmpty();
+    assertThat(smg.getEdges(testObject2)).isEmpty();
     smg = smg.writeValue(testObject2, BigInteger.ZERO, testObject2.getSize(), SMGValue.zeroValue());
-    assertTrue(!smg.getEdges(testObject1).isEmpty());
-    assertTrue(!smg.getEdges(testObject2).isEmpty());
+    assertThat(smg.getEdges(testObject1)).isNotEmpty();
+    assertThat(smg.getEdges(testObject2)).isNotEmpty();
     // writeValue() to testObject1 with value1 [3; 8)
     smg = smg.writeValue(testObject1, BigInteger.valueOf(3 * 8), BigInteger.valueOf(8 * 8), value1);
 
@@ -302,7 +301,7 @@ public class SMGWriteReadTest extends SMGTest0 {
 
     // Assert that the smg with the object does not have any values/edges etc.
     assertThat(smg.getPTEdges().toList()).isEqualTo(ImmutableList.of(nullPointer));
-    assertTrue(smg.getHVEdges().toList().isEmpty());
+    assertThat(smg.getHVEdges().toList()).isEmpty();
     assertThat(smg.getValues()).isEqualTo(PersistentSet.of(SMGValue.zeroValue()));
     assertThat(smg.getObjects()).isEqualTo(PersistentSet.of(SMGObject.nullInstance()));
 
@@ -329,7 +328,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).isEqualTo(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /** Write everything to 0, then the first half of the region to value1. */
@@ -365,7 +364,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that nothing changed for the points to edges
     assertThat(smg.getPTEdges().toList()).isEqualTo(ImmutableList.of(nullPointer));
     // Check that the HVEdge exists
-    assertThat(smg.getHVEdges().toList().size()).isEqualTo(2);
+    assertThat(smg.getHVEdges().toList()).hasSize(2);
     assertThat(smg.getHVEdges().toList()).contains(expectedValueEdge);
     assertThat(smg.getHVEdges().toList()).contains(expectedZeroEdge);
     assertThat(smg.getValues())
@@ -415,7 +414,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     // Assert that nothing changed for the points to edges
     assertThat(smg.getPTEdges().toList()).isEqualTo(ImmutableList.of(nullPointer));
     // Check that the HVEdge exists
-    assertThat(smg.getHVEdges().toList().size()).isEqualTo(2);
+    assertThat(smg.getHVEdges().toList()).hasSize(2);
     assertThat(smg.getHVEdges().toList()).contains(expectedValueEdge);
     assertThat(smg.getHVEdges().toList()).contains(expectedZeroEdge);
     assertThat(smg.getValues())
@@ -468,7 +467,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /*
@@ -522,7 +521,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /*
@@ -574,7 +573,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /*
@@ -634,7 +633,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /*
@@ -689,7 +688,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   /*
@@ -741,7 +740,7 @@ public class SMGWriteReadTest extends SMGTest0 {
         .isEqualTo(PersistentSet.of(SMGObject.nullInstance()).addAndCopy(testObject));
     // Check that only the expected HVEdges exists for the object
     assertThat(smg.getEdges(testObject)).containsExactlyElementsIn(expectedEdges);
-    assertThat(smg.getEdges(testObject).size()).isEqualTo(expectedEdges.size());
+    assertThat(smg.getEdges(testObject)).hasSize(expectedEdges.size());
   }
 
   // Try writing a value that goes beyond the testObjects field
@@ -830,9 +829,9 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMGandValue readReinterpretation3 =
         smg.readValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32 * 8));
 
-    assertTrue(readReinterpretation1.getValue().isZero());
-    assertTrue(readReinterpretation2.getValue().isZero());
-    assertTrue(readReinterpretation3.getValue().isZero());
+    assertThat(readReinterpretation1.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation2.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation3.getValue()).isEqualTo(SMGValue.zeroValue());
   }
 
   /**
@@ -865,11 +864,11 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMGandValue readReinterpretation5 =
         smg.readValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32 * 8));
 
-    assertTrue(readReinterpretation1.getValue().isZero());
-    assertTrue(readReinterpretation2.getValue().isZero());
-    assertTrue(readReinterpretation3.getValue().isZero());
-    assertTrue(readReinterpretation4.getValue().isZero());
-    assertTrue(readReinterpretation5.getValue().isZero());
+    assertThat(readReinterpretation1.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation2.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation3.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation4.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation5.getValue()).isEqualTo(SMGValue.zeroValue());
   }
 
   /**
@@ -901,9 +900,9 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMGandValue readReinterpretation5 =
         smg.readValue(testObject, BigInteger.ZERO, BigInteger.valueOf(32 * 8));
 
-    assertTrue(readReinterpretation1.getValue().isZero());
-    assertTrue(!readReinterpretation2.getValue().isZero());
-    assertTrue(!readReinterpretation4.getValue().isZero());
-    assertTrue(!readReinterpretation5.getValue().isZero());
+    assertThat(readReinterpretation1.getValue()).isEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation2.getValue()).isNotEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation4.getValue()).isNotEqualTo(SMGValue.zeroValue());
+    assertThat(readReinterpretation5.getValue()).isNotEqualTo(SMGValue.zeroValue());
   }
 }
