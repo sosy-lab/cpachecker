@@ -18,10 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -253,7 +250,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     // run algorithm for every error
     logger.log(Level.INFO, "Starting fault localization...");
     for (CounterexampleInfo info : counterExamples) {
-      com.google.common.base.Optional<FaultLocalizationInfo> optionalFaultLocalizationInfo =
+      Optional<FaultLocalizationInfo> optionalFaultLocalizationInfo =
           algorithm.calcFaultLocalizationInfo(info);
 
       if (optionalFaultLocalizationInfo.isPresent()) {

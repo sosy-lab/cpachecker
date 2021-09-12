@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -337,14 +337,14 @@ public class FaultLocalizationWithTraceFormula
     if (assumptions.isEmpty()) {
       logger.log(
           Level.INFO, "The analysis returned no assumptions. Fault localization not possible.");
-      return Optional.absent();
+      return Optional.empty();
     }
     // Collect all edges that do not evaluate to true
     List<CFAEdge> edgeList = calcEdgeList(assumptions);
 
     if (edgeList.isEmpty()) {
       logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
-      return Optional.absent();
+      return Optional.empty();
     }
 
     // Find correct scoring and correct trace formula for the specified algorithm
@@ -357,7 +357,7 @@ public class FaultLocalizationWithTraceFormula
           Level.INFO,
           "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely"
               + " the variables in your post-condition never change their value.");
-      return Optional.absent();
+      return Optional.empty();
     }
     Set<Fault> errorIndicators = faultAlgorithm.run(context, tf);
 
