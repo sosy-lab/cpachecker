@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -18,6 +17,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
+import scala.annotation.meta.param;
 
 @Options(prefix = "programRepair")
 public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, Statistics {
@@ -129,42 +132,54 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     return status;
   }
 
-  private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo)
-      throws CPAException, InterruptedException {
+  private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo) {
     for (Fault fault : faultLocalizationInfo.getRankedList()) {
       CFAEdge edge = fault.iterator().next().correspondingEdge();
       CFAMutator cfaMutator = new CFAMutator(cfa, edge);
 
-      for (Mutation mutation : cfaMutator.calcPossibleMutations().collect(Collectors.toSet())) {
+      cfaMutator
+          .calcPossibleMutations()
+          .filter(
+              (Mutation mutation) -> {
+                try {
+                  return rerun(mutation.getCFA()).hasViolatedProperties();
+                } catch (InvalidConfigurationException e) {
+                  logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+                  return false;
+                } catch (IOException e) {
+                  logger.logUserException(Level.SEVERE, e, "IO failed");
+                  return false;
+                } catch (InterruptedException | CPAException pE) {
+                  throw new RuntimeException(pE);
+                }
+              })
+          .findAny()
+          .ifPresent(
+              (Mutation mutation) -> {
+                logger.log(Level.INFO, "Successfully patched fault");
+                logger.log(
+                    Level.INFO,
+                    "Replaced "
+                        + mutation.getSuspiciousEdge()
+                        + " with "
+                        + mutation.getNewEdge()
+                        + " on line "
+                        + edge.getLineNumber());
 
-        try {
-          final ReachedSet newReachedSet = rerun(mutation.getCFA());
+                fixFound = true;
+              });
 
-          if (!newReachedSet.hasViolatedProperties()) {
-            logger.log(Level.INFO, "Successfully patched fault");
-            logger.log(
-                Level.INFO,
-                "Replaced "
-                    + mutation.getSuspiciousEdge()
-                    + " with "
-                    + mutation.getNewEdge()
-                    + " on line "
-                    + edge.getLineNumber());
-
-            fixFound = true;
-
-            return;
-          }
-
-        } catch (InvalidConfigurationException e) {
-          logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-        } catch (IOException e) {
-          logger.logUserException(Level.SEVERE, e, "IO failed");
-        }
+      if (fixFound) {
+        return;
       }
     }
 
-    logger.log(Level.INFO, "No fix found for " + faultLocalizationInfo);
+    logger.log(Level.INFO, "No fix found. \n" + faultLocalizationInfo);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> void throwActualException(Exception exception) throws E {
+    throw (E) exception;
   }
 
   private ReachedSet rerun(CFA mutatedCFA)
@@ -238,7 +253,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     // run algorithm for every error
     logger.log(Level.INFO, "Starting fault localization...");
     for (CounterexampleInfo info : counterExamples) {
-      Optional<FaultLocalizationInfo> optionalFaultLocalizationInfo =
+      com.google.common.base.Optional<FaultLocalizationInfo> optionalFaultLocalizationInfo =
           algorithm.calcFaultLocalizationInfo(info);
 
       if (optionalFaultLocalizationInfo.isPresent()) {
