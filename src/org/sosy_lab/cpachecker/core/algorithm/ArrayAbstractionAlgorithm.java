@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -74,7 +72,7 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
       name = "cfa.file",
       description = "DOT file path for CFA with abstracted arrays.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportTranslatedCfaFile = Paths.get("cfa-abstracted-arrays.dot");
+  private Path exportTranslatedCfaFile = Path.of("cfa-abstracted-arrays.dot");
 
   private enum ArrayAbstractionMethod {
     NONDET_READ,

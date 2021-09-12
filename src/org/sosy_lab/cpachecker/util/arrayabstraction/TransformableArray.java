@@ -732,7 +732,7 @@ public final class TransformableArray {
       Optional<CExpression> optExpression = pNode.getReturnValue();
 
       if (optExpression.isPresent()) {
-        return optExpression.get().accept(this);
+        return optExpression.orElseThrow().accept(this);
       } else {
         return null;
       }
