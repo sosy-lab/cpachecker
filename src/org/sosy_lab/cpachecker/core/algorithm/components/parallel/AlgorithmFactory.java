@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -39,28 +38,19 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-public class AlgorithmBuilder {
+public class AlgorithmFactory {
 
-  private final LogManager logger;
-  private final Specification specification;
-  private final CFA cfa;
-  private final Configuration globalConfig;
-
-  public AlgorithmBuilder(final LogManager pLogger, final Specification pSpecification, final CFA pCFA, final Configuration pGlobalConfig) {
-    logger = pLogger;
-    specification = pSpecification;
-    cfa = pCFA;
-    globalConfig = pGlobalConfig;
-  }
-
-  protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
-      ShutdownManager singleShutdownManager,
-      Collection<String> ignoreOptions,
-      Collection<Statistics> stats,
-      BlockNode node)
+  public static Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+      final LogManager logger,
+      final Specification specification,
+      final CFA cfa,
+      final Configuration globalConfig,
+      final ShutdownManager singleShutdownManager,
+      final Collection<String> ignoreOptions,
+      final BlockNode node)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
-    Configuration singleConfig = buildSubConfig(ignoreOptions);
+    Configuration singleConfig = buildSubConfig(ignoreOptions, globalConfig);
     LogManager singleLogger = logger.withComponentName("Analysis " + node);
 
     ResourceLimitChecker singleLimits =
@@ -73,8 +63,7 @@ public class AlgorithmBuilder {
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     ARGCPA argcpa = (ARGCPA) cpa;
-    List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();
-    cpas.addAll(argcpa.getWrappedCPAs());
+    List<ConfigurableProgramAnalysis> cpas = new ArrayList<>(argcpa.getWrappedCPAs());
     while (!cpas.isEmpty()) {
       ConfigurableProgramAnalysis wrappedCPA = cpas.remove(0);
       if (wrappedCPA instanceof BlockCPA) {
@@ -91,7 +80,7 @@ public class AlgorithmBuilder {
     return Triple.of(algorithm, cpa, reached);
   }
 
-  private Configuration buildSubConfig(Collection<String> ignoreOptions)
+  private static Configuration buildSubConfig(Collection<String> ignoreOptions, Configuration globalConfig)
       throws InvalidConfigurationException {
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
