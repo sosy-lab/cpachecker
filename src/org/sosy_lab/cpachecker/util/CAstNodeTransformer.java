@@ -58,14 +58,14 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public final class CAstNodeTransformer<X extends Exception> {
 
-  private final TransformingVisitor<X> transformingVisitor;
+  private final CAstNodeVisitor<CAstNode, X> transformingVisitor;
 
-  private CAstNodeTransformer(TransformingVisitor<X> pTransformingVisitor) {
+  private CAstNodeTransformer(CAstNodeVisitor<CAstNode, X> pTransformingVisitor) {
     transformingVisitor = pTransformingVisitor;
   }
 
   public static <X extends Exception> CAstNodeTransformer<X> of(
-      TransformingVisitor<X> pTransformingVisitor) {
+      CAstNodeVisitor<CAstNode, X> pTransformingVisitor) {
 
     Objects.requireNonNull(pTransformingVisitor, "pTransformingVisitor must not be null");
 
@@ -84,113 +84,8 @@ public final class CAstNodeTransformer<X extends Exception> {
     }
   }
 
-  public static interface TransformingVisitor<X extends Exception>
-      extends CAstNodeVisitor<CAstNode, X> {
-
-    @Override
-    public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X;
-
-    @Override
-    public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) throws X;
-
-    @Override
-    public CFieldDesignator visit(CFieldDesignator pCFieldDesignator) throws X;
-
-    @Override
-    public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) throws X;
-
-    @Override
-    public CInitializerList visit(CInitializerList pCInitializerList) throws X;
-
-    @Override
-    public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws X;
-
-    @Override
-    public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression) throws X;
-
-    @Override
-    public CExpression visit(CBinaryExpression pCBinaryExpression) throws X;
-
-    @Override
-    public CExpression visit(CCastExpression pCCastExpression) throws X;
-
-    @Override
-    public CExpression visit(CCharLiteralExpression pCCharLiteralExpression) throws X;
-
-    @Override
-    public CExpression visit(CFloatLiteralExpression pCFloatLiteralExpression) throws X;
-
-    @Override
-    public CExpression visit(CIntegerLiteralExpression pCIntegerLiteralExpression) throws X;
-
-    @Override
-    public CExpression visit(CStringLiteralExpression pCStringLiteralExpression) throws X;
-
-    @Override
-    public CExpression visit(CTypeIdExpression pCTypeIdExpression) throws X;
-
-    @Override
-    public CExpression visit(CUnaryExpression pCUnaryExpression) throws X;
-
-    @Override
-    public CExpression visit(CImaginaryLiteralExpression pCImaginaryLiteralExpression) throws X;
-
-    @Override
-    public CExpression visit(CAddressOfLabelExpression pCAddressOfLabelExpression) throws X;
-
-    @Override
-    public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) throws X;
-
-    @Override
-    public CExpression visit(CFieldReference pCFieldReference) throws X;
-
-    @Override
-    public CExpression visit(CIdExpression pCIdExpression) throws X;
-
-    @Override
-    public CExpression visit(CPointerExpression pCPointerExpression) throws X;
-
-    @Override
-    public CExpression visit(CComplexCastExpression pCComplexCastExpression) throws X;
-
-    @Override
-    public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) throws X;
-
-    @Override
-    public CComplexTypeDeclaration visit(CComplexTypeDeclaration pCComplexTypeDeclaration) throws X;
-
-    @Override
-    public CTypeDefDeclaration visit(CTypeDefDeclaration pCTypeDefDeclaration) throws X;
-
-    @Override
-    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) throws X;
-
-    @Override
-    public CParameterDeclaration visit(CParameterDeclaration pCParameterDeclaration) throws X;
-
-    @Override
-    public CEnumerator visit(CEnumerator pCEnumerator) throws X;
-
-    @Override
-    public CStatement visit(CExpressionStatement pCExpressionStatement) throws X;
-
-    @Override
-    public CStatement visit(CExpressionAssignmentStatement pCExpressionAssignmentStatement)
-        throws X;
-
-    @Override
-    public CStatement visit(CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement)
-        throws X;
-
-    @Override
-    public CStatement visit(CFunctionCallStatement pCFunctionCallStatement) throws X;
-
-    @Override
-    public CReturnStatement visit(CReturnStatement pCReturnStatement) throws X;
-  }
-
   public abstract static class AbstractTransformingVisitor<X extends Exception>
-      implements TransformingVisitor<X> {
+      implements CAstNodeVisitor<CAstNode, X> {
 
     // required to prevent infinite recursive calls due to AST node cycles
     private CVariableDeclaration visitedVariableDeclaration = null;
@@ -521,7 +416,8 @@ public final class CAstNodeTransformer<X extends Exception> {
     }
   }
 
-  private static final class FastIdentityTransformer implements TransformingVisitor<NoException> {
+  private static final class FastIdentityTransformer
+      implements CAstNodeVisitor<CAstNode, NoException> {
 
     @Override
     public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) {
