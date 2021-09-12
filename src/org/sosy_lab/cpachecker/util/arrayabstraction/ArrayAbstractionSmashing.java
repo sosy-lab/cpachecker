@@ -77,7 +77,7 @@ public class ArrayAbstractionSmashing {
   }
 
   private static void transformArrayWriteEdge(
-      CfaTransformer pCfaTransformer, VariableGenerator pVariableGenerator, CFAEdge pEdge) {
+      CfaTransformer<?, ?> pCfaTransformer, VariableGenerator pVariableGenerator, CFAEdge pEdge) {
 
     String nondetVariableName = pVariableGenerator.createNewVariableName();
     MemoryLocation nondetVariable = MemoryLocation.forIdentifier(nondetVariableName);
