@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,7 +32,7 @@ public class FunctionCallMutation extends Mutation {
 
     functionCallEdgeAggregate = pFunctionCallEdgeAggregate;
     exchangeEdges(
-        List.of(
+        ImmutableList.of(
             functionCallEdgeAggregate.getSummaryEdge(),
             functionCallEdgeAggregate.getFunctionCallEdge(),
             functionCallEdgeAggregate.getFunctionReturnEdge()));
