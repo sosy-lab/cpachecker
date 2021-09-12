@@ -158,7 +158,9 @@ public class ArrayAbstractionSmashing {
       }
     }
 
-    AstTransformer astTransformer = new AstTransformer(ImmutableSet.copyOf(arrayMemoryLocations));
+    CAstNodeTransformer<DummyException> astTransformer =
+        CAstNodeTransformer.of(
+            new AstTransformingVisitor(ImmutableSet.copyOf(arrayMemoryLocations)));
     SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
     SimpleEdgeTransformer<DummyException> edgeTransformer =
         new SimpleEdgeTransformer<>(edge -> astTransformer);
@@ -171,11 +173,12 @@ public class ArrayAbstractionSmashing {
     private static final long serialVersionUID = -2116660848954687565L;
   }
 
-  private static final class AstTransformer extends CAstNodeTransformer<DummyException> {
+  private static final class AstTransformingVisitor
+      extends CAstNodeTransformer.AbstractTransformingVisitor<DummyException> {
 
     private final ImmutableSet<MemoryLocation> arrayMemoryLocations;
 
-    private AstTransformer(ImmutableSet<MemoryLocation> pArrayMemoryLocations) {
+    private AstTransformingVisitor(ImmutableSet<MemoryLocation> pArrayMemoryLocations) {
       arrayMemoryLocations = pArrayMemoryLocations;
     }
 
@@ -231,7 +234,7 @@ public class ArrayAbstractionSmashing {
     }
 
     @Override
-    public CIdExpression visit(CIdExpression pCIdExpression) {
+    public CExpression visit(CIdExpression pCIdExpression) {
 
       if (isArrayIdExpression(pCIdExpression)) {
         CDeclaration declaration = (CDeclaration) pCIdExpression.getDeclaration().accept(this);

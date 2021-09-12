@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -53,342 +55,469 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 
-/** An instance of this abstract class can be used to modify specific parts of an AST. */
-public abstract class CAstNodeTransformer<X extends Exception>
-    implements CAstNodeVisitor<CAstNode, X> {
+public final class CAstNodeTransformer<X extends Exception> {
 
-  // required to prevent infinite recursive calls due to AST node cycles
-  private CVariableDeclaration visitedVariableDeclaration = null;
-  private CVariableDeclaration createdVariableDeclaration = null;
+  private final TransformingVisitor<X> transformingVisitor;
 
-  public static CAstNodeTransformer<ImpossibleException> createIdentityTransformer() {
-    return new FastIdentityTransformer<>();
+  private CAstNodeTransformer(TransformingVisitor<X> pTransformingVisitor) {
+    transformingVisitor = pTransformingVisitor;
+  }
+
+  public static <X extends Exception> CAstNodeTransformer<X> of(
+      TransformingVisitor<X> pTransformingVisitor) {
+
+    Objects.requireNonNull(pTransformingVisitor, "pTransformingVisitor must not be null");
+
+    return new CAstNodeTransformer<>(pTransformingVisitor);
+  }
+
+  public static CAstNodeTransformer<ImpossibleException> identity() {
+    return new CAstNodeTransformer<>(new FastIdentityTransformer<>());
   }
 
   public CAstNode transform(CAstNode pCAstNode) throws X {
-    return pCAstNode.accept(this);
-  }
-
-  @Override
-  public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X {
-    return new CArrayDesignator(
-        pCArrayDesignator.getFileLocation(),
-        (CExpression) pCArrayDesignator.getSubscriptExpression().accept(this));
-  }
-
-  @Override
-  public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) throws X {
-    return new CArrayRangeDesignator(
-        pCArrayRangeDesignator.getFileLocation(),
-        (CExpression) pCArrayRangeDesignator.getFloorExpression().accept(this),
-        (CExpression) pCArrayRangeDesignator.getCeilExpression().accept(this));
-  }
-
-  @Override
-  public CFieldDesignator visit(CFieldDesignator pCFieldDesignator) throws X {
-    return pCFieldDesignator;
-  }
-
-  @Override
-  public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) throws X {
-    return new CInitializerExpression(
-        pCInitializerExpression.getFileLocation(),
-        (CExpression) pCInitializerExpression.getExpression().accept(this));
-  }
-
-  @Override
-  public CInitializerList visit(CInitializerList pCInitializerList) throws X {
-
-    ImmutableList.Builder<CInitializer> initializersBuilder =
-        ImmutableList.builderWithExpectedSize(pCInitializerList.getInitializers().size());
-
-    for (CInitializer initializer : pCInitializerList.getInitializers()) {
-      initializersBuilder.add((CInitializer) initializer.accept(this));
+    if (pCAstNode != null) {
+      return pCAstNode.accept(transformingVisitor);
+    } else {
+      return null;
     }
-
-    return new CInitializerList(pCInitializerList.getFileLocation(), initializersBuilder.build());
   }
 
-  @Override
-  public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws X {
+  public static interface TransformingVisitor<X extends Exception>
+      extends CAstNodeVisitor<CAstNode, X> {
 
-    ImmutableList.Builder<CDesignator> designatorsBuilder =
-        ImmutableList.builderWithExpectedSize(pDesignatedInitializer.getDesignators().size());
+    @Override
+    public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X;
 
-    for (CDesignator designator : pDesignatedInitializer.getDesignators()) {
-      designatorsBuilder.add((CDesignator) designator.accept(this));
-    }
+    @Override
+    public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) throws X;
 
-    return new CDesignatedInitializer(
-        pDesignatedInitializer.getFileLocation(),
-        designatorsBuilder.build(),
-        (CInitializer) pDesignatedInitializer.getRightHandSide().accept(this));
+    @Override
+    public CFieldDesignator visit(CFieldDesignator pCFieldDesignator) throws X;
+
+    @Override
+    public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) throws X;
+
+    @Override
+    public CInitializerList visit(CInitializerList pCInitializerList) throws X;
+
+    @Override
+    public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws X;
+
+    @Override
+    public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression) throws X;
+
+    @Override
+    public CExpression visit(CBinaryExpression pCBinaryExpression) throws X;
+
+    @Override
+    public CExpression visit(CCastExpression pCCastExpression) throws X;
+
+    @Override
+    public CExpression visit(CCharLiteralExpression pCCharLiteralExpression) throws X;
+
+    @Override
+    public CExpression visit(CFloatLiteralExpression pCFloatLiteralExpression) throws X;
+
+    @Override
+    public CExpression visit(CIntegerLiteralExpression pCIntegerLiteralExpression) throws X;
+
+    @Override
+    public CExpression visit(CStringLiteralExpression pCStringLiteralExpression) throws X;
+
+    @Override
+    public CExpression visit(CTypeIdExpression pCTypeIdExpression) throws X;
+
+    @Override
+    public CExpression visit(CUnaryExpression pCUnaryExpression) throws X;
+
+    @Override
+    public CExpression visit(CImaginaryLiteralExpression pCImaginaryLiteralExpression) throws X;
+
+    @Override
+    public CExpression visit(CAddressOfLabelExpression pCAddressOfLabelExpression) throws X;
+
+    @Override
+    public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) throws X;
+
+    @Override
+    public CExpression visit(CFieldReference pCFieldReference) throws X;
+
+    @Override
+    public CExpression visit(CIdExpression pCIdExpression) throws X;
+
+    @Override
+    public CExpression visit(CPointerExpression pCPointerExpression) throws X;
+
+    @Override
+    public CExpression visit(CComplexCastExpression pCComplexCastExpression) throws X;
+
+    @Override
+    public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) throws X;
+
+    @Override
+    public CComplexTypeDeclaration visit(CComplexTypeDeclaration pCComplexTypeDeclaration) throws X;
+
+    @Override
+    public CTypeDefDeclaration visit(CTypeDefDeclaration pCTypeDefDeclaration) throws X;
+
+    @Override
+    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) throws X;
+
+    @Override
+    public CParameterDeclaration visit(CParameterDeclaration pCParameterDeclaration) throws X;
+
+    @Override
+    public CEnumerator visit(CEnumerator pCEnumerator) throws X;
+
+    @Override
+    public CStatement visit(CExpressionStatement pCExpressionStatement) throws X;
+
+    @Override
+    public CStatement visit(CExpressionAssignmentStatement pCExpressionAssignmentStatement)
+        throws X;
+
+    @Override
+    public CStatement visit(CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement)
+        throws X;
+
+    @Override
+    public CStatement visit(CFunctionCallStatement pCFunctionCallStatement) throws X;
+
+    @Override
+    public CReturnStatement visit(CReturnStatement pCReturnStatement) throws X;
   }
 
-  @Override
-  public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression) throws X {
-
-    ImmutableList.Builder<CExpression> parameterExpressionsBuilder =
-        ImmutableList.builderWithExpectedSize(
-            pCFunctionCallExpression.getParameterExpressions().size());
-
-    for (CExpression parameterExpression : pCFunctionCallExpression.getParameterExpressions()) {
-      parameterExpressionsBuilder.add((CExpression) parameterExpression.accept(this));
-    }
-
-    CFunctionDeclaration functionDeclaration = pCFunctionCallExpression.getDeclaration();
-    if (functionDeclaration != null) {
-      functionDeclaration = (CFunctionDeclaration) functionDeclaration.accept(this);
-    }
-
-    return new CFunctionCallExpression(
-        pCFunctionCallExpression.getFileLocation(),
-        pCFunctionCallExpression.getExpressionType(),
-        (CExpression) pCFunctionCallExpression.getFunctionNameExpression().accept(this),
-        parameterExpressionsBuilder.build(),
-        functionDeclaration);
-  }
-
-  @Override
-  public CExpression visit(CBinaryExpression pCBinaryExpression) throws X {
-    return new CBinaryExpression(
-        pCBinaryExpression.getFileLocation(),
-        pCBinaryExpression.getExpressionType(),
-        pCBinaryExpression.getCalculationType(),
-        (CExpression) pCBinaryExpression.getOperand1().accept(this),
-        (CExpression) pCBinaryExpression.getOperand2().accept(this),
-        pCBinaryExpression.getOperator());
-  }
-
-  @Override
-  public CExpression visit(CCastExpression pCCastExpression) throws X {
-    return new CCastExpression(
-        pCCastExpression.getFileLocation(),
-        pCCastExpression.getExpressionType(),
-        (CExpression) pCCastExpression.getOperand().accept(this));
-  }
-
-  @Override
-  public CLiteralExpression visit(CCharLiteralExpression pCCharLiteralExpression) throws X {
-    return pCCharLiteralExpression;
-  }
-
-  @Override
-  public CLiteralExpression visit(CFloatLiteralExpression pCFloatLiteralExpression) throws X {
-    return pCFloatLiteralExpression;
-  }
-
-  @Override
-  public CLiteralExpression visit(CIntegerLiteralExpression pCIntegerLiteralExpression) throws X {
-    return pCIntegerLiteralExpression;
-  }
-
-  @Override
-  public CLiteralExpression visit(CStringLiteralExpression pCStringLiteralExpression) throws X {
-    return pCStringLiteralExpression;
-  }
-
-  @Override
-  public CTypeIdExpression visit(CTypeIdExpression pCTypeIdExpression) throws X {
-    return pCTypeIdExpression;
-  }
-
-  @Override
-  public CExpression visit(CUnaryExpression pCUnaryExpression) throws X {
-    return new CUnaryExpression(
-        pCUnaryExpression.getFileLocation(),
-        pCUnaryExpression.getExpressionType(),
-        (CExpression) pCUnaryExpression.getOperand().accept(this),
-        pCUnaryExpression.getOperator());
-  }
-
-  @Override
-  public CLiteralExpression visit(CImaginaryLiteralExpression pCImaginaryLiteralExpression)
-      throws X {
-    return new CImaginaryLiteralExpression(
-        pCImaginaryLiteralExpression.getFileLocation(),
-        pCImaginaryLiteralExpression.getExpressionType(),
-        (CLiteralExpression) pCImaginaryLiteralExpression.getValue().accept(this));
-  }
-
-  @Override
-  public CAddressOfLabelExpression visit(CAddressOfLabelExpression pCAddressOfLabelExpression)
-      throws X {
-    return pCAddressOfLabelExpression;
-  }
-
-  @Override
-  public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) throws X {
-    return new CArraySubscriptExpression(
-        pCArraySubscriptExpression.getFileLocation(),
-        pCArraySubscriptExpression.getExpressionType(),
-        (CExpression) pCArraySubscriptExpression.getArrayExpression().accept(this),
-        (CExpression) pCArraySubscriptExpression.getSubscriptExpression().accept(this));
-  }
-
-  @Override
-  public CFieldReference visit(CFieldReference pCFieldReference) throws X {
-    return new CFieldReference(
-        pCFieldReference.getFileLocation(),
-        pCFieldReference.getExpressionType(),
-        pCFieldReference.getFieldName(),
-        (CExpression) pCFieldReference.getFieldOwner().accept(this),
-        pCFieldReference.isPointerDereference());
-  }
-
-  @Override
-  public CIdExpression visit(CIdExpression pCIdExpression) throws X {
-
-    CSimpleDeclaration declaration = pCIdExpression.getDeclaration();
-    if (declaration != null) {
-      declaration = (CSimpleDeclaration) declaration.accept(this);
-    }
-
-    return new CIdExpression(
-        pCIdExpression.getFileLocation(),
-        pCIdExpression.getExpressionType(),
-        pCIdExpression.getName(),
-        declaration);
-  }
-
-  @Override
-  public CPointerExpression visit(CPointerExpression pCPointerExpression) throws X {
-    return new CPointerExpression(
-        pCPointerExpression.getFileLocation(),
-        pCPointerExpression.getExpressionType(),
-        (CExpression) pCPointerExpression.getOperand().accept(this));
-  }
-
-  @Override
-  public CComplexCastExpression visit(CComplexCastExpression pCComplexCastExpression) throws X {
-    return new CComplexCastExpression(
-        pCComplexCastExpression.getFileLocation(),
-        pCComplexCastExpression.getExpressionType(),
-        (CExpression) pCComplexCastExpression.getOperand().accept(this),
-        pCComplexCastExpression.getType(),
-        pCComplexCastExpression.isRealCast());
-  }
-
-  @Override
-  public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) throws X {
-
-    ImmutableList.Builder<CParameterDeclaration> parametersBuilder =
-        ImmutableList.builderWithExpectedSize(pCFunctionDeclaration.getParameters().size());
-
-    for (CParameterDeclaration parameterDeclaration : pCFunctionDeclaration.getParameters()) {
-      parametersBuilder.add((CParameterDeclaration) parameterDeclaration.accept(this));
-    }
-
-    return new CFunctionDeclaration(
-        pCFunctionDeclaration.getFileLocation(),
-        pCFunctionDeclaration.getType(),
-        pCFunctionDeclaration.getName(),
-        pCFunctionDeclaration.getOrigName(),
-        parametersBuilder.build());
-  }
-
-  @Override
-  public CComplexTypeDeclaration visit(CComplexTypeDeclaration pCComplexTypeDeclaration) throws X {
-    return pCComplexTypeDeclaration;
-  }
-
-  @Override
-  public CTypeDefDeclaration visit(CTypeDefDeclaration pCTypeDefDeclaration) throws X {
-    return pCTypeDefDeclaration;
-  }
-
-  @Override
-  public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) throws X {
+  public abstract static class AbstractTransformingVisitor<X extends Exception>
+      implements TransformingVisitor<X> {
 
     // required to prevent infinite recursive calls due to AST node cycles
-    if (visitedVariableDeclaration == pCVariableDeclaration) {
-      return createdVariableDeclaration;
+    private CVariableDeclaration visitedVariableDeclaration = null;
+    private CVariableDeclaration createdVariableDeclaration = null;
+
+    @Override
+    public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X {
+      return new CArrayDesignator(
+          pCArrayDesignator.getFileLocation(),
+          (CExpression) pCArrayDesignator.getSubscriptExpression().accept(this));
     }
 
-    CVariableDeclaration variableDeclaration =
-        new CVariableDeclaration(
-            pCVariableDeclaration.getFileLocation(),
-            pCVariableDeclaration.isGlobal(),
-            pCVariableDeclaration.getCStorageClass(),
-            pCVariableDeclaration.getType(),
-            pCVariableDeclaration.getName(),
-            pCVariableDeclaration.getOrigName(),
-            pCVariableDeclaration.getQualifiedName(),
-            null);
-
-    visitedVariableDeclaration = pCVariableDeclaration;
-    createdVariableDeclaration = variableDeclaration;
-
-    CInitializer initializer = pCVariableDeclaration.getInitializer();
-    if (initializer != null) {
-      variableDeclaration.addInitializer((CInitializer) initializer.accept(this));
+    @Override
+    public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) throws X {
+      return new CArrayRangeDesignator(
+          pCArrayRangeDesignator.getFileLocation(),
+          (CExpression) pCArrayRangeDesignator.getFloorExpression().accept(this),
+          (CExpression) pCArrayRangeDesignator.getCeilExpression().accept(this));
     }
 
-    visitedVariableDeclaration = null;
-    createdVariableDeclaration = null;
-
-    return variableDeclaration;
-  }
-
-  @Override
-  public CParameterDeclaration visit(CParameterDeclaration pCParameterDeclaration) throws X {
-    return pCParameterDeclaration;
-  }
-
-  @Override
-  public CEnumerator visit(CEnumerator pCEnumerator) throws X {
-    return pCEnumerator;
-  }
-
-  @Override
-  public CExpressionStatement visit(CExpressionStatement pCExpressionStatement) throws X {
-    return new CExpressionStatement(
-        pCExpressionStatement.getFileLocation(),
-        (CExpression) pCExpressionStatement.getExpression().accept(this));
-  }
-
-  @Override
-  public CExpressionAssignmentStatement visit(
-      CExpressionAssignmentStatement pCExpressionAssignmentStatement) throws X {
-    return new CExpressionAssignmentStatement(
-        pCExpressionAssignmentStatement.getFileLocation(),
-        (CLeftHandSide) pCExpressionAssignmentStatement.getLeftHandSide().accept(this),
-        (CExpression) pCExpressionAssignmentStatement.getRightHandSide().accept(this));
-  }
-
-  @Override
-  public CFunctionCallAssignmentStatement visit(
-      CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) throws X {
-    return new CFunctionCallAssignmentStatement(
-        pCFunctionCallAssignmentStatement.getFileLocation(),
-        (CLeftHandSide) pCFunctionCallAssignmentStatement.getLeftHandSide().accept(this),
-        (CFunctionCallExpression)
-            pCFunctionCallAssignmentStatement.getFunctionCallExpression().accept(this));
-  }
-
-  @Override
-  public CFunctionCallStatement visit(CFunctionCallStatement pCFunctionCallStatement) throws X {
-    return new CFunctionCallStatement(
-        pCFunctionCallStatement.getFileLocation(),
-        (CFunctionCallExpression) pCFunctionCallStatement.getFunctionCallExpression().accept(this));
-  }
-
-  @Override
-  public CReturnStatement visit(CReturnStatement pCReturnStatement) throws X {
-
-    Optional<? extends CExpression> oldReturnValue = pCReturnStatement.getReturnValue();
-    Optional<CExpression> newReturnValue = Optional.absent();
-    if (oldReturnValue.isPresent()) {
-      newReturnValue = Optional.of((CExpression) oldReturnValue.orNull().accept(this));
+    @Override
+    public CFieldDesignator visit(CFieldDesignator pCFieldDesignator) throws X {
+      return pCFieldDesignator;
     }
 
-    Optional<? extends CAssignment> oldAssignment = pCReturnStatement.asAssignment();
-    Optional<CAssignment> newAssignment = Optional.absent();
-    if (oldAssignment.isPresent()) {
-      newAssignment = Optional.of((CAssignment) oldAssignment.orNull().accept(this));
+    @Override
+    public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) throws X {
+      return new CInitializerExpression(
+          pCInitializerExpression.getFileLocation(),
+          (CExpression) pCInitializerExpression.getExpression().accept(this));
     }
 
-    return new CReturnStatement(pCReturnStatement.getFileLocation(), newReturnValue, newAssignment);
+    @Override
+    public CInitializerList visit(CInitializerList pCInitializerList) throws X {
+
+      ImmutableList.Builder<CInitializer> initializersBuilder =
+          ImmutableList.builderWithExpectedSize(pCInitializerList.getInitializers().size());
+
+      for (CInitializer initializer : pCInitializerList.getInitializers()) {
+        initializersBuilder.add((CInitializer) initializer.accept(this));
+      }
+
+      return new CInitializerList(pCInitializerList.getFileLocation(), initializersBuilder.build());
+    }
+
+    @Override
+    public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws X {
+
+      ImmutableList.Builder<CDesignator> designatorsBuilder =
+          ImmutableList.builderWithExpectedSize(pDesignatedInitializer.getDesignators().size());
+
+      for (CDesignator designator : pDesignatedInitializer.getDesignators()) {
+        designatorsBuilder.add((CDesignator) designator.accept(this));
+      }
+
+      return new CDesignatedInitializer(
+          pDesignatedInitializer.getFileLocation(),
+          designatorsBuilder.build(),
+          (CInitializer) pDesignatedInitializer.getRightHandSide().accept(this));
+    }
+
+    @Override
+    public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression)
+        throws X {
+
+      ImmutableList.Builder<CExpression> parameterExpressionsBuilder =
+          ImmutableList.builderWithExpectedSize(
+              pCFunctionCallExpression.getParameterExpressions().size());
+
+      for (CExpression parameterExpression : pCFunctionCallExpression.getParameterExpressions()) {
+        parameterExpressionsBuilder.add((CExpression) parameterExpression.accept(this));
+      }
+
+      CFunctionDeclaration functionDeclaration = pCFunctionCallExpression.getDeclaration();
+      if (functionDeclaration != null) {
+        functionDeclaration = (CFunctionDeclaration) functionDeclaration.accept(this);
+      }
+
+      return new CFunctionCallExpression(
+          pCFunctionCallExpression.getFileLocation(),
+          pCFunctionCallExpression.getExpressionType(),
+          (CExpression) pCFunctionCallExpression.getFunctionNameExpression().accept(this),
+          parameterExpressionsBuilder.build(),
+          functionDeclaration);
+    }
+
+    @Override
+    public CExpression visit(CBinaryExpression pCBinaryExpression) throws X {
+      return new CBinaryExpression(
+          pCBinaryExpression.getFileLocation(),
+          pCBinaryExpression.getExpressionType(),
+          pCBinaryExpression.getCalculationType(),
+          (CExpression) pCBinaryExpression.getOperand1().accept(this),
+          (CExpression) pCBinaryExpression.getOperand2().accept(this),
+          pCBinaryExpression.getOperator());
+    }
+
+    @Override
+    public CExpression visit(CCastExpression pCCastExpression) throws X {
+      return new CCastExpression(
+          pCCastExpression.getFileLocation(),
+          pCCastExpression.getExpressionType(),
+          (CExpression) pCCastExpression.getOperand().accept(this));
+    }
+
+    @Override
+    public CExpression visit(CCharLiteralExpression pCCharLiteralExpression) throws X {
+      return pCCharLiteralExpression;
+    }
+
+    @Override
+    public CExpression visit(CFloatLiteralExpression pCFloatLiteralExpression) throws X {
+      return pCFloatLiteralExpression;
+    }
+
+    @Override
+    public CExpression visit(CIntegerLiteralExpression pCIntegerLiteralExpression) throws X {
+      return pCIntegerLiteralExpression;
+    }
+
+    @Override
+    public CExpression visit(CStringLiteralExpression pCStringLiteralExpression) throws X {
+      return pCStringLiteralExpression;
+    }
+
+    @Override
+    public CExpression visit(CTypeIdExpression pCTypeIdExpression) throws X {
+      return pCTypeIdExpression;
+    }
+
+    @Override
+    public CExpression visit(CUnaryExpression pCUnaryExpression) throws X {
+      return new CUnaryExpression(
+          pCUnaryExpression.getFileLocation(),
+          pCUnaryExpression.getExpressionType(),
+          (CExpression) pCUnaryExpression.getOperand().accept(this),
+          pCUnaryExpression.getOperator());
+    }
+
+    @Override
+    public CExpression visit(CImaginaryLiteralExpression pCImaginaryLiteralExpression) throws X {
+      return new CImaginaryLiteralExpression(
+          pCImaginaryLiteralExpression.getFileLocation(),
+          pCImaginaryLiteralExpression.getExpressionType(),
+          (CLiteralExpression) pCImaginaryLiteralExpression.getValue().accept(this));
+    }
+
+    @Override
+    public CExpression visit(CAddressOfLabelExpression pCAddressOfLabelExpression) throws X {
+      return pCAddressOfLabelExpression;
+    }
+
+    @Override
+    public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) throws X {
+      return new CArraySubscriptExpression(
+          pCArraySubscriptExpression.getFileLocation(),
+          pCArraySubscriptExpression.getExpressionType(),
+          (CExpression) pCArraySubscriptExpression.getArrayExpression().accept(this),
+          (CExpression) pCArraySubscriptExpression.getSubscriptExpression().accept(this));
+    }
+
+    @Override
+    public CExpression visit(CFieldReference pCFieldReference) throws X {
+      return new CFieldReference(
+          pCFieldReference.getFileLocation(),
+          pCFieldReference.getExpressionType(),
+          pCFieldReference.getFieldName(),
+          (CExpression) pCFieldReference.getFieldOwner().accept(this),
+          pCFieldReference.isPointerDereference());
+    }
+
+    @Override
+    public CExpression visit(CIdExpression pCIdExpression) throws X {
+
+      CSimpleDeclaration declaration = pCIdExpression.getDeclaration();
+      if (declaration != null) {
+        declaration = (CSimpleDeclaration) declaration.accept(this);
+      }
+
+      return new CIdExpression(
+          pCIdExpression.getFileLocation(),
+          pCIdExpression.getExpressionType(),
+          pCIdExpression.getName(),
+          declaration);
+    }
+
+    @Override
+    public CExpression visit(CPointerExpression pCPointerExpression) throws X {
+      return new CPointerExpression(
+          pCPointerExpression.getFileLocation(),
+          pCPointerExpression.getExpressionType(),
+          (CExpression) pCPointerExpression.getOperand().accept(this));
+    }
+
+    @Override
+    public CExpression visit(CComplexCastExpression pCComplexCastExpression) throws X {
+      return new CComplexCastExpression(
+          pCComplexCastExpression.getFileLocation(),
+          pCComplexCastExpression.getExpressionType(),
+          (CExpression) pCComplexCastExpression.getOperand().accept(this),
+          pCComplexCastExpression.getType(),
+          pCComplexCastExpression.isRealCast());
+    }
+
+    @Override
+    public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) throws X {
+
+      ImmutableList.Builder<CParameterDeclaration> parametersBuilder =
+          ImmutableList.builderWithExpectedSize(pCFunctionDeclaration.getParameters().size());
+
+      for (CParameterDeclaration parameterDeclaration : pCFunctionDeclaration.getParameters()) {
+        parametersBuilder.add((CParameterDeclaration) parameterDeclaration.accept(this));
+      }
+
+      return new CFunctionDeclaration(
+          pCFunctionDeclaration.getFileLocation(),
+          pCFunctionDeclaration.getType(),
+          pCFunctionDeclaration.getName(),
+          pCFunctionDeclaration.getOrigName(),
+          parametersBuilder.build());
+    }
+
+    @Override
+    public CComplexTypeDeclaration visit(CComplexTypeDeclaration pCComplexTypeDeclaration)
+        throws X {
+      return pCComplexTypeDeclaration;
+    }
+
+    @Override
+    public CTypeDefDeclaration visit(CTypeDefDeclaration pCTypeDefDeclaration) throws X {
+      return pCTypeDefDeclaration;
+    }
+
+    @Override
+    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) throws X {
+
+      // required to prevent infinite recursive calls due to AST node cycles
+      if (visitedVariableDeclaration == pCVariableDeclaration) {
+        return createdVariableDeclaration;
+      }
+
+      CVariableDeclaration variableDeclaration =
+          new CVariableDeclaration(
+              pCVariableDeclaration.getFileLocation(),
+              pCVariableDeclaration.isGlobal(),
+              pCVariableDeclaration.getCStorageClass(),
+              pCVariableDeclaration.getType(),
+              pCVariableDeclaration.getName(),
+              pCVariableDeclaration.getOrigName(),
+              pCVariableDeclaration.getQualifiedName(),
+              null);
+
+      visitedVariableDeclaration = pCVariableDeclaration;
+      createdVariableDeclaration = variableDeclaration;
+
+      CInitializer initializer = pCVariableDeclaration.getInitializer();
+      if (initializer != null) {
+        variableDeclaration.addInitializer((CInitializer) initializer.accept(this));
+      }
+
+      visitedVariableDeclaration = null;
+      createdVariableDeclaration = null;
+
+      return variableDeclaration;
+    }
+
+    @Override
+    public CParameterDeclaration visit(CParameterDeclaration pCParameterDeclaration) throws X {
+      return pCParameterDeclaration;
+    }
+
+    @Override
+    public CEnumerator visit(CEnumerator pCEnumerator) throws X {
+      return pCEnumerator;
+    }
+
+    @Override
+    public CStatement visit(CExpressionStatement pCExpressionStatement) throws X {
+      return new CExpressionStatement(
+          pCExpressionStatement.getFileLocation(),
+          (CExpression) pCExpressionStatement.getExpression().accept(this));
+    }
+
+    @Override
+    public CStatement visit(CExpressionAssignmentStatement pCExpressionAssignmentStatement)
+        throws X {
+      return new CExpressionAssignmentStatement(
+          pCExpressionAssignmentStatement.getFileLocation(),
+          (CLeftHandSide) pCExpressionAssignmentStatement.getLeftHandSide().accept(this),
+          (CExpression) pCExpressionAssignmentStatement.getRightHandSide().accept(this));
+    }
+
+    @Override
+    public CStatement visit(CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement)
+        throws X {
+      return new CFunctionCallAssignmentStatement(
+          pCFunctionCallAssignmentStatement.getFileLocation(),
+          (CLeftHandSide) pCFunctionCallAssignmentStatement.getLeftHandSide().accept(this),
+          (CFunctionCallExpression)
+              pCFunctionCallAssignmentStatement.getFunctionCallExpression().accept(this));
+    }
+
+    @Override
+    public CStatement visit(CFunctionCallStatement pCFunctionCallStatement) throws X {
+      return new CFunctionCallStatement(
+          pCFunctionCallStatement.getFileLocation(),
+          (CFunctionCallExpression)
+              pCFunctionCallStatement.getFunctionCallExpression().accept(this));
+    }
+
+    @Override
+    public CReturnStatement visit(CReturnStatement pCReturnStatement) throws X {
+
+      Optional<? extends CExpression> oldReturnValue = pCReturnStatement.getReturnValue();
+      Optional<CExpression> newReturnValue = Optional.absent();
+      if (oldReturnValue.isPresent()) {
+        newReturnValue = Optional.of((CExpression) oldReturnValue.orNull().accept(this));
+      }
+
+      Optional<? extends CAssignment> oldAssignment = pCReturnStatement.asAssignment();
+      Optional<CAssignment> newAssignment = Optional.absent();
+      if (oldAssignment.isPresent()) {
+        newAssignment = Optional.of((CAssignment) oldAssignment.orNull().accept(this));
+      }
+
+      return new CReturnStatement(
+          pCReturnStatement.getFileLocation(), newReturnValue, newAssignment);
+    }
   }
 
   public static final class ImpossibleException extends RuntimeException {
@@ -399,7 +528,7 @@ public abstract class CAstNodeTransformer<X extends Exception>
   }
 
   private static final class FastIdentityTransformer<X extends Exception>
-      extends CAstNodeTransformer<X> {
+      implements TransformingVisitor<X> {
 
     @Override
     public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X {

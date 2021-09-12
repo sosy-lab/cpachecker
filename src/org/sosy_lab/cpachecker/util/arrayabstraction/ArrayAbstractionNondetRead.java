@@ -127,11 +127,11 @@ public class ArrayAbstractionNondetRead {
       replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
     }
 
-    private AstTransformer getAstTransformer(CFAEdge pEdge) {
+    private CAstNodeTransformer<DummyException> getAstTransformer(CFAEdge pEdge) {
 
       Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
           replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
-      return new AstTransformer(replacements);
+      return CAstNodeTransformer.of(new AstTransformingVisitor(replacements));
     }
   }
 
@@ -140,11 +140,12 @@ public class ArrayAbstractionNondetRead {
     private static final long serialVersionUID = -3851124331643184847L;
   }
 
-  private static final class AstTransformer extends CAstNodeTransformer<DummyException> {
+  private static final class AstTransformingVisitor
+      extends CAstNodeTransformer.AbstractTransformingVisitor<DummyException> {
 
     private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
 
-    private AstTransformer(
+    private AstTransformingVisitor(
         Map<TransformableArray.ArrayOperation, MemoryLocation> pArrayOperationToNondetVariable) {
       arrayOperationReplacements = pArrayOperationToNondetVariable;
     }

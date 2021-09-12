@@ -109,8 +109,9 @@ public class ArrayAbstractionNondetSingleCell {
     ImmutableSet.Builder<CExpression> conditionsBuilder = ImmutableSet.builder();
 
     for (TransformableArray transformableArray : pTransformableArrays) {
-      ReplaceLoopIndexAstTransformer astTransformer =
-          new ReplaceLoopIndexAstTransformer(transformableArray, pTransformableLoop);
+      CAstNodeTransformer<CAstNodeTransformer.ImpossibleException> astTransformer =
+          CAstNodeTransformer.of(
+              new ReplaceLoopIndexAstTransformingVisitor(transformableArray, pTransformableLoop));
       conditionsBuilder.add((CExpression) astTransformer.transform(indexGreaterEqualZeroCondition));
       conditionsBuilder.add((CExpression) astTransformer.transform(initCondition));
       conditionsBuilder.add((CExpression) astTransformer.transform(loopCondition));
@@ -400,21 +401,22 @@ public class ArrayAbstractionNondetSingleCell {
       replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
     }
 
-    private AstTransformer getAstTransformer(CFAEdge pEdge) {
+    private CAstNodeTransformer<DummyException> getAstTransformer(CFAEdge pEdge) {
 
       Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
           replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
-      return new AstTransformer(replacements);
+      return CAstNodeTransformer.of(new AstTransformingVisitor(replacements));
     }
   }
 
-  private static final class ReplaceLoopIndexAstTransformer
-      extends CAstNodeTransformer<CAstNodeTransformer.ImpossibleException> {
+  private static final class ReplaceLoopIndexAstTransformingVisitor
+      extends CAstNodeTransformer.AbstractTransformingVisitor<
+          CAstNodeTransformer.ImpossibleException> {
 
     private final TransformableArray transformableArray;
     private final TransformableLoop transformableLoop;
 
-    private ReplaceLoopIndexAstTransformer(
+    private ReplaceLoopIndexAstTransformingVisitor(
         TransformableArray pTransformableArray, TransformableLoop pTransformableLoop) {
 
       transformableArray = pTransformableArray;
@@ -422,7 +424,7 @@ public class ArrayAbstractionNondetSingleCell {
     }
 
     @Override
-    public CIdExpression visit(CIdExpression pCIdExpression) throws ImpossibleException {
+    public CExpression visit(CIdExpression pCIdExpression) {
 
       if (ArrayAbstractionUtils.getMemoryLocation(pCIdExpression)
           .equals(transformableLoop.getLoopIndexMemoryLocation())) {
@@ -438,11 +440,12 @@ public class ArrayAbstractionNondetSingleCell {
     private static final long serialVersionUID = 5190704946346699983L;
   }
 
-  private static final class AstTransformer extends CAstNodeTransformer<DummyException> {
+  private static final class AstTransformingVisitor
+      extends CAstNodeTransformer.AbstractTransformingVisitor<DummyException> {
 
     private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
 
-    private AstTransformer(
+    private AstTransformingVisitor(
         Map<TransformableArray.ArrayOperation, MemoryLocation> pArrayOperationToNondetVariable) {
       arrayOperationReplacements = pArrayOperationToNondetVariable;
     }
