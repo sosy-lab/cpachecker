@@ -97,7 +97,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
           Path.of("config/components/goalConverterBackwardsSearch.properties"),
           pCfa.getMainFunction(),
           ShutdownManager.createWithParent(pShutdownNotifier),
-          new AggregatedReachedSets(),
+          AggregatedReachedSets.empty(),
           ImmutableList.of(
               "analysis.testGoalConverter",
               "cpa",
@@ -187,7 +187,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
    * @return A reached set that has the PROGRAM_SINKS as initial states
    */
   private ReachedSet buildBackwardsReachedSet() throws InterruptedException {
-    var reachedSet = new PartitionedReachedSet(TraversalMethod.DFS);
+    var reachedSet = new PartitionedReachedSet(backwardsCpa, TraversalMethod.DFS);
     var initialLocations =
         ImmutableSet.<CFANode>builder()
             .addAll(

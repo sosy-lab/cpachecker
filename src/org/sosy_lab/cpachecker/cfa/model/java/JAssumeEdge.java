@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -46,15 +45,5 @@ public class JAssumeEdge extends AssumeEdge {
   @Override
   public JExpression getExpression() {
     return (JExpression) expression;
-  }
-
-  /**
-   * TODO Warning: for instances with {@link #getTruthAssumption()} == false, the return value of
-   * this method does not represent exactly the return value of {@link #getRawStatement()} (it
-   * misses the outer negation of the expression).
-   */
-  @Override
-  public Optional<JExpression> getRawAST() {
-    return Optional.of((JExpression) expression);
   }
 }

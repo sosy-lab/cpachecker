@@ -460,7 +460,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           // targetstate is returned to reflect that in the main analysis
           pReachedSet.clear();
           pReachedSet.add(
-              DummyTargetState.withSingleProperty(result.getViolatedPropertyDescription()),
+              DummyTargetState.withSimpleTargetInformation(result.getTargetDescription()),
               SingletonPrecision.getInstance());
         }
 
@@ -511,7 +511,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     private final Path configPath;
     private final Path outputPath;
     private final Path logfileName;
-    private final Path specPath;
 
     private final Configuration config;
     private final ImmutableList<String> cmdLine;
@@ -527,7 +526,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       configPath = configFiles.get(subanalysis_index);
       outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
       logfileName = Path.of(SUBANALYSIS_DIR + subanalysis_index + ".log");
-      specPath = Iterables.getOnlyElement(specification.getSpecFiles());
+      String specPath = Joiner.on(", ").join(specification.getFiles());
 
       /*
        * Hack to setup the desired config options for the child CPAchecker processes. The idea is to
@@ -549,7 +548,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               .clearOption("mpiAlgorithm.disableMCAOptions")
               .setOption("limits.time.cpu", pSubanalysesTimelimit)
               .setOption("output.path", checkNotNull(outputPath.toString()))
-              .setOption("specification", checkNotNull(specPath.toString()))
+              .setOption("specification", specPath)
               .build();
 
       // Bring the command-line into a format which is executable by a python-script

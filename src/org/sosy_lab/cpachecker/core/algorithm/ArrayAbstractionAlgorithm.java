@@ -136,7 +136,7 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
       CoreComponentsFactory pCoreComponents, ConfigurableProgramAnalysis pCpa, CFA pCfa)
       throws InterruptedException {
 
-    ReachedSet reached = pCoreComponents.createReachedSet();
+    ReachedSet reached = pCoreComponents.createReachedSet(pCpa);
     CFANode mainFunction = pCfa.getMainFunction();
 
     AbstractState initialState =
@@ -184,8 +184,7 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
-    AggregatedReachedSets aggregatedReached =
-        new AggregatedReachedSets(ImmutableSet.of(pReachedSet));
+    AggregatedReachedSets aggregatedReached = AggregatedReachedSets.singleton(pReachedSet);
     Configuration delegateAnalysisConfiguration = createDelegateAnalysisConfiguration();
 
     CFA translatedCfa;
@@ -218,7 +217,7 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
         status = runDelegateAnalysis(coreComponents, translatedCfa, forwardingReachedSet);
       }
 
-      if (checkCounterexamples && forwardingReachedSet.hasViolatedProperties()) {
+      if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
         status = runDelegateAnalysis(coreComponents, originalCfa, forwardingReachedSet);
       }
 

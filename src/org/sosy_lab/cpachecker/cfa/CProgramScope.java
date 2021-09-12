@@ -596,8 +596,8 @@ public class CProgramScope implements Scope {
     return Multimaps.index(pQualifiedDeclarations.values(), CProgramScope::getName);
   }
 
-  private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
-    Iterable<? extends AAstNode> nodes =
+  private static Iterable<AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    Iterable<AAstNode> nodes =
         FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
             .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge) {

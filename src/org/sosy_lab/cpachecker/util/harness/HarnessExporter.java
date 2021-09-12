@@ -759,7 +759,7 @@ public class HarnessExporter {
             FileLocation.DUMMY,
             type,
             "malloc",
-            Collections.singletonList(
+            ImmutableList.of(
                 new CParameterDeclaration(
                     FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")));
     return new CFunctionCallExpression(

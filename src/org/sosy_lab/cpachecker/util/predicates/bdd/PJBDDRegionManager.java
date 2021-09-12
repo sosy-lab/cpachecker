@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.unwrap;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.wrap;
 
-import com.google.common.base.Preconditions;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -98,8 +97,7 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    out.println("Stats to be printed");
-    // TODO out.print(bddCreator.getCreatorStats().prettyPrint());
+    out.print(bddCreator.getCreatorStats().prettyPrint());
   }
 
   @Override
@@ -109,15 +107,12 @@ public class PJBDDRegionManager implements RegionManager {
 
   @Override
   public void setVarOrder(ImmutableIntArray pOrder) {
-    throw new UnsupportedOperationException(
-        "'reorder(PredicateOrderingStrategy)' not yet implemented");
-    // bddCreator.setVarOrder(pOrder.asList());
+    bddCreator.setVarOrder(pOrder.asList());
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
-    throw new UnsupportedOperationException(
-        "'reorder(PredicateOrderingStrategy)' not yet implemented");
+  public void reorder(VariableOrderingStrategy strategy) {
+    throw new UnsupportedOperationException("dynamic reordering not yet implemented");
   }
 
   @Override
@@ -173,12 +168,12 @@ public class PJBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
-    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
+    checkArgument(pOldPredicates.size() == pNewPredicates.size());
     DD bdd = unwrap(pRegion);
-    for (int i = 0; i < pOldPredicates.length; i++) {
-      DD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates[i]).getVariable());
-      DD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates[i]).getVariable());
+    for (int i = 0; i < pOldPredicates.size(); i++) {
+      DD oldVar = bddCreator.makeIthVar(unwrap(pOldPredicates.get(i)).getVariable());
+      DD newVar = bddCreator.makeIthVar(unwrap(pNewPredicates.get(i)).getVariable());
       bdd = bddCreator.makeReplace(bdd, oldVar, newVar);
     }
     return wrap(bdd);

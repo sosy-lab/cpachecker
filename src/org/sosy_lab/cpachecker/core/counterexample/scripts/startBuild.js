@@ -7,11 +7,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 const fs = require("fs");
-const tmp_path = "build_tmp";
 
-if (!fs.existsSync(tmp_path)) {
-  fs.mkdirSync(tmp_path);
+const tmpPath = "build_tmp";
+
+if (!fs.existsSync(tmpPath)) {
+  fs.mkdirSync(tmpPath);
 }
 
-require("./dependencies.js")
-require("./injectWorkers.js")
+require("./dependencies");
+require("./injectWorkers");

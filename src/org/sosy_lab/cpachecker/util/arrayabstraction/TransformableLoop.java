@@ -207,7 +207,7 @@ public final class TransformableLoop {
           if (indexCIdExpression != null) {
 
             MemoryLocation lhsMemoryLocation =
-                MemoryLocation.valueOf(declaration.getQualifiedName());
+                MemoryLocation.forDeclaration(declaration);
             MemoryLocation indexMemoryLocation =
                 ArrayAbstractionUtils.getMemoryLocation(indexCIdExpression);
 

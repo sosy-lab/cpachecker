@@ -31,7 +31,7 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
   @Override
   public AggregatedReachedSets get() throws CPAException, InterruptedException {
-    return new AggregatedReachedSets();
+    return AggregatedReachedSets.empty();
   }
 
   @Override

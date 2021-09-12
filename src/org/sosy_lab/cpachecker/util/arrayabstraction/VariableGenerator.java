@@ -98,7 +98,7 @@ class VariableGenerator {
             pType,
             variableName,
             variableName,
-            pMemoryLocation.getAsSimpleString(),
+            pMemoryLocation.getExtendedQualifiedName(),
             null);
     CIdExpression variableNameExpression =
         new CIdExpression(FileLocation.DUMMY, pType, variableName, variableDeclaration);
@@ -115,9 +115,9 @@ class VariableGenerator {
 
     if (pFunctionName.isPresent()) {
       return createVariableNameExpression(
-          pType, MemoryLocation.valueOf(pFunctionName.orElseThrow(), pVariableName));
+          pType, MemoryLocation.forLocalVariable(pFunctionName.orElseThrow(), pVariableName));
     } else {
-      return createVariableNameExpression(pType, MemoryLocation.valueOf(pVariableName));
+      return createVariableNameExpression(pType, MemoryLocation.forIdentifier(pVariableName));
     }
   }
 

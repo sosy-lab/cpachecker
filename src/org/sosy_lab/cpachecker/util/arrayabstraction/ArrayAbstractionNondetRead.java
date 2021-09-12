@@ -81,7 +81,7 @@ public class ArrayAbstractionNondetRead {
               : "Missing TransformableArray for ArrayOperation: " + arrayOperation;
 
           String replacementVariableName = variableGenerator.createNewVariableName();
-          MemoryLocation replacementVariable = MemoryLocation.valueOf(replacementVariableName);
+          MemoryLocation replacementVariable = MemoryLocation.forIdentifier(replacementVariableName);
           arrayOperationReplacementMap.insertReplacement(edge, arrayOperation, replacementVariable);
 
           if (arrayOperation.getType() == TransformableArray.ArrayOperationType.READ) {

@@ -642,7 +642,11 @@ public class CustomInstruction {
           throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()){
-      ciEdge.getExpression().get().accept(new StructureComparisonVisitor(aciEdge.getExpression().get(), ciVarToAciVar));
+      ciEdge
+          .getExpression()
+          .orElseThrow()
+          .accept(
+              new StructureComparisonVisitor(aciEdge.getExpression().orElseThrow(), ciVarToAciVar));
 
     } else if ((!ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent())
           ||(ciEdge.getExpression().isPresent() && !aciEdge.getExpression().isPresent()) ){

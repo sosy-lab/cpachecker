@@ -29,11 +29,13 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
- * This class implements a faster way to test, if one smg is less or equal to another.
- * Simply joining two smg and requesting its status takes too long.
+ * This class implements a faster way to test, if one smg is less or equal to another. Simply
+ * joining two smg and requesting its status takes too long.
  */
+@SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
 public class SMGIsLessOrEqual {
 
+  // FIXME static state is bad and produces wrong statistics!
   public static final ThreadSafeTimerContainer isLEQTimer =
       new ThreadSafeTimerContainer("Time for joining SMGs");
   public static final ThreadSafeTimerContainer globalsTimer =

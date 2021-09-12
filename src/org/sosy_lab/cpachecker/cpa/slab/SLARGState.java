@@ -21,10 +21,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
@@ -135,8 +134,8 @@ public class SLARGState extends ARGState
   }
 
   @Override
-  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return NamedProperty.singleton("Error state reached");
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    return SimpleTargetInformation.singleton("Error state reached");
   }
 
   /*@Override

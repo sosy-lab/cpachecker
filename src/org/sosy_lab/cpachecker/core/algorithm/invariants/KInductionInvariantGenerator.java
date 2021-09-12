@@ -95,9 +95,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -255,7 +253,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         pReachedSetFactory,
         pAsync,
         candidateGenerator,
-        new AggregatedReachedSets());
+        AggregatedReachedSets.empty());
   }
 
   private KInductionInvariantGenerator(
@@ -464,10 +462,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       shutdownManager.getNotifier().shutdownIfNecessary();
 
       try {
-        ReachedSet reachedSet = reachedSetFactory.create();
-        AbstractState initialState = cpa.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition());
-        Precision initialPrecision = cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition());
-        reachedSet.add(initialState, initialPrecision);
+        ReachedSet reachedSet =
+            reachedSetFactory.createAndInitialize(
+                cpa, initialLocation, StateSpacePartition.getDefaultPartition());
         algorithm.run(reachedSet);
         return Pair.of(
             algorithm.getCurrentInvariants(), algorithm.getCurrentInvariantsAsExpressionTree());

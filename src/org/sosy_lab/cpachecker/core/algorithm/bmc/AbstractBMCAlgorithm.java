@@ -257,7 +257,7 @@ abstract class AbstractBMCAlgorithm
       CPABuilder builder =
           new CPABuilder(
               pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
-      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, new AggregatedReachedSets());
+      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
           CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
@@ -357,9 +357,7 @@ abstract class AbstractBMCAlgorithm
     Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
-        reachedSet.removeOnlyFromWaitlist(state);
-      }
+      reachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 

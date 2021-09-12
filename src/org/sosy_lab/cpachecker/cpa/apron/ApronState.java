@@ -493,7 +493,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
     List<MemoryLocation> keysToRemove = new ArrayList<>();
     int intsRemoved = 0;
     for (MemoryLocation var : integerToIndexMap) {
-      if (var.getAsSimpleString().startsWith(varPrefix)) {
+      if (var.getExtendedQualifiedName().startsWith(varPrefix)) {
         keysToRemove.add(var);
         intsRemoved++;
       }
@@ -501,7 +501,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
     int realsRemoved = 0;
     for (MemoryLocation var : realToIndexMap) {
-      if (var.getAsSimpleString().startsWith(varPrefix)) {
+      if (var.getExtendedQualifiedName().startsWith(varPrefix)) {
         keysToRemove.add(var);
         realsRemoved++;
       }
@@ -665,9 +665,9 @@ logger.log(Level.FINEST, "apron state: isEqual");
 
       // TODO fix size, machinemodel needed?
       if (isInt(pNode.dim)) {
-        return bitFmgr.makeVariable(32, integerToIndexMap.get(pNode.dim).getAsSimpleString());
+        return bitFmgr.makeVariable(32, integerToIndexMap.get(pNode.dim).getExtendedQualifiedName());
       } else {
-        return bitFmgr.makeVariable(32, realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getAsSimpleString());
+        return bitFmgr.makeVariable(32, realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getExtendedQualifiedName());
       }
     }
 

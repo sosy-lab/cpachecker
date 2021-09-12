@@ -361,8 +361,8 @@ public class CustomInstructionApplications {
         br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
       }
 
-      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa).
-          parse(ci, foundCustomInstructionsDefinition);
+      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
+          .parse(ci, foundCustomInstructionsDefinition);
     }
 
     @Override

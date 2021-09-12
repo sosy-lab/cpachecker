@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
@@ -90,9 +91,10 @@ public class PartitioningIOHelper {
     return null;
   }
 
-  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached));
+    saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached, pCpa));
   }
 
   protected void saveInternalProof(final int size,
@@ -109,9 +111,12 @@ public class PartitioningIOHelper {
     }
   }
 
-  public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> computePartialReachedSetAndPartition(
-      final UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException {
-    AbstractState[] partialCertificate = partialConstructor.computePartialReachedSet(pReached);
+  public Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>>
+      computePartialReachedSetAndPartition(
+          final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
+          throws InvalidConfigurationException, InterruptedException {
+    AbstractState[] partialCertificate =
+        partialConstructor.computePartialReachedSet(pReached, pCpa);
     ARGState[] argNodes = new ARGState[partialCertificate.length];
     for (int i = 0; i < partialCertificate.length; i++) {
       argNodes[i] = (ARGState) partialCertificate[i];
@@ -207,10 +212,13 @@ public class PartitioningIOHelper {
     pOut.writeObject(pAdjacentNodesOutside);
   }
 
-  public void writeProof(final ObjectOutputStream pOut, final UnmodifiableReachedSet pReached)
+  public void writeProof(
+      final ObjectOutputStream pOut,
+      final UnmodifiableReachedSet pReached,
+      final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, IOException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
-        computePartialReachedSetAndPartition(pReached);
+        computePartialReachedSetAndPartition(pReached, pCpa);
 
     writeMetadata(pOut, pReached.size(), partitionDescription.getSecond().size());
     for (Set<Integer> partition : partitionDescription.getSecond()) {

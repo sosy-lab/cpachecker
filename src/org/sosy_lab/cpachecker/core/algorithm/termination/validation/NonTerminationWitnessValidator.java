@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -26,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
@@ -108,7 +108,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class NonTerminationWitnessValidator implements Algorithm, StatisticsProvider {
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
-      DummyTargetState.withSingleProperty("termination");
+      DummyTargetState.withSimpleTargetInformation("termination");
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
@@ -239,13 +239,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         shutdown.shutdownIfNecessary();
 
         if (stemSynState.isPresent()) {
-          CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
+          CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.orElseThrow());
           CFANode afterInvCheck = new CFANode(stemEndLoc.getFunction());
 
           // extract quasi invariant which describes recurrent set, use true as default
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
 
-          for (AbstractState state : AbstractStates.asIterable(stemSynState.get())) {
+          for (AbstractState state : AbstractStates.asIterable(stemSynState.orElseThrow())) {
             if (state instanceof AutomatonState) {
               AutomatonState automatonState = (AutomatonState) state;
               if (automatonState.getOwningAutomaton() == witness) {
@@ -341,7 +341,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
@@ -353,7 +353,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();
@@ -364,8 +364,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           "Search for program location at which infinite path(s) split into stem and looping part");
       algorithm.run(reached);
 
-      Optional<AbstractState> stemState = from(reached).firstMatch(AbstractStates::isTargetState);
-
+      Optional<AbstractState> stemState =
+          reached.stream().filter(AbstractStates::isTargetState).findFirst();
       return stemState;
 
     } catch (IOException | InvalidConfigurationException | CPAException e) {
@@ -373,7 +373,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           Level.FINE,
           e,
           "Exception occurred while trying to find location which is visited infinitely in a nonterminating execution");
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 
@@ -408,7 +408,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
@@ -420,7 +420,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();
@@ -430,7 +430,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       AlgorithmStatus result = algorithm.run(reached);
 
       if (result.isPrecise()) {
-        if (reached.hasViolatedProperties()) {
+        if (reached.wasTargetReached()) {
           logger.log(Level.INFO, "Recurrent set is reachable.");
           return true;
         }
@@ -562,7 +562,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     Configuration singleConfig = singleConfigBuilder.build();
 
     CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+        new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
     cpa = coreComponents.createCPA(cfa, spec);
 
     Preconditions.checkArgument(
@@ -603,9 +603,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         setUpInitialAbstractStateForRecurrentSet(
             pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
     pStemEndLoc.removeLeavingEdge(invCheckLoop);
-    // TODO okay that initial states is non-abstraction state?
+      // TODO okay that initial states is non-abstraction state?
 
-    reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
 
     shutdown.shutdownIfNecessary();
@@ -622,7 +622,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       }
 
       // check that no sink state is reachable from recurrent set
-      if (reached.hasViolatedProperties()) {
+      if (reached.wasTargetReached()) {
         logger.log(Level.INFO, "May leave recurrent set in current check.");
       return false;
     }
@@ -830,7 +830,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Configuration singleConfig = singleConfigBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(singleConfig, logger, shutdown, new AggregatedReachedSets());
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
@@ -842,7 +842,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Precision initialPrecision =
           cpa.getInitialPrecision(pRecurrentStart, StateSpacePartition.getDefaultPartition());
 
-      reached = coreComponents.createReachedSet();
+      reached = coreComponents.createReachedSet(cpa);
       reached.add(initialState, initialPrecision);
 
       shutdown.shutdownIfNecessary();

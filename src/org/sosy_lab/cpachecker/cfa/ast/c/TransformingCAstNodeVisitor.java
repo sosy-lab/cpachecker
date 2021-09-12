@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
@@ -538,10 +538,10 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
 
     boolean changed = false;
 
-    Optional<? extends CExpression> oldOptionalReturnValue = pCReturnStatement.getReturnValue();
-    Optional<CExpression> newOptionalReturnValue = Optional.absent();
+    Optional<CExpression> oldOptionalReturnValue = pCReturnStatement.getReturnValue();
+    Optional<CExpression> newOptionalReturnValue = Optional.empty();
     if (oldOptionalReturnValue.isPresent()) {
-      CExpression oldReturnValue = oldOptionalReturnValue.orNull();
+      CExpression oldReturnValue = oldOptionalReturnValue.orElseThrow();
       CExpression newReturnValue = (CExpression) oldReturnValue.accept(this);
       newOptionalReturnValue = Optional.of(newReturnValue);
       if (oldReturnValue != newReturnValue) {
@@ -549,10 +549,10 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
       }
     }
 
-    Optional<? extends CAssignment> oldOptionalAssignment = pCReturnStatement.asAssignment();
-    Optional<CAssignment> newOptionalAssignment = Optional.absent();
+    Optional<CAssignment> oldOptionalAssignment = pCReturnStatement.asAssignment();
+    Optional<CAssignment> newOptionalAssignment = Optional.empty();
     if (oldOptionalAssignment.isPresent()) {
-      CAssignment oldAssignment = oldOptionalAssignment.orNull();
+      CAssignment oldAssignment = oldOptionalAssignment.orElseThrow();
       CAssignment newAssignment = (CAssignment) oldAssignment.accept(this);
       newOptionalAssignment = Optional.of(newAssignment);
       if (oldAssignment != newAssignment) {

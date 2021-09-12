@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.IdentityHashMap;
-import java.util.Map;
 
 /**
  * {@link TransformingCAstNodeVisitor} that prevents infinite recursive visit-calls due to cyclic
@@ -21,7 +20,7 @@ public abstract class AbstractTransformingCAstNodeVisitor<X extends Exception>
     implements TransformingCAstNodeVisitor<X> {
 
   // original CVariableDeclaration --> transformed CVariableDeclaration
-  private final Map<CVariableDeclaration, CVariableDeclaration> variableDeclarations =
+  private final IdentityHashMap<CVariableDeclaration, CVariableDeclaration> variableDeclarations =
       new IdentityHashMap<>();
 
   @Override

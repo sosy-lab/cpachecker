@@ -83,7 +83,10 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*"
+          ".*File .* does not exist.*"
+              + "|.*Witness file is missing in specification.*"
+              + "|.*Configuration requires exactly one specification automaton, but none were given.*"
+              + "|.*Could not read precision from file.*"
               + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
           Pattern.DOTALL);
 
@@ -132,6 +135,7 @@ public class ConfigurationFileChecks {
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
           "witness.validation.violation.config",
+          "witness.validation.correctness.acsl",
           "witness.validation.correctness.config",
           "witness.validation.correctness.isa",
           "pcc.proofgen.doPCC",
@@ -468,7 +472,10 @@ public class ConfigurationFileChecks {
       assume()
           .that((Iterable<?>) configFile)
           .containsNoneOf(
-              Path.of("includes"), Path.of("pcc"), Path.of("witnessValidation.properties"));
+              Path.of("includes"),
+              Path.of("pcc"),
+              Path.of("witnessValidation.properties"),
+              Path.of("wacsl.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -498,7 +505,7 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().withMessage("Java frontend has a bug and cannot be run twice").fail();

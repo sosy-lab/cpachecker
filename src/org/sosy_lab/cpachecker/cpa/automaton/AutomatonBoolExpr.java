@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -20,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -636,7 +636,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws UnrecognizedCFAEdgeException {
-      Optional<?> ast = Optional.absent();
+      Optional<?> ast = Optional.empty();
       CFAEdge edge = pArgs.getCfaEdge();
       if (edge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         // Ignore this edge, FunctionReturnEdge will be taken instead.

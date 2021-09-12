@@ -29,7 +29,7 @@ final class ArrayAbstractionUtils {
   static CIdExpression createCIdExpression(CType pType, MemoryLocation pMemoryLocation) {
 
     String variableName = pMemoryLocation.getIdentifier();
-    String qualifiedName = pMemoryLocation.getAsSimpleString();
+    String qualifiedName = pMemoryLocation.getExtendedQualifiedName();
 
     CVariableDeclaration variableDeclaration =
         new CVariableDeclaration(
@@ -49,7 +49,7 @@ final class ArrayAbstractionUtils {
 
     String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
 
-    return MemoryLocation.valueOf(qualifiedName);
+    return MemoryLocation.fromQualifiedName(qualifiedName);
   }
 
   static CAssumeEdge createAssumeEdge(CExpression pCondition, boolean pTruthAssumption) {

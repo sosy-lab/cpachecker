@@ -256,7 +256,7 @@ public class PredicateCPA
         return new PredicateMergeOperator(
             logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
       default:
-        throw new InternalError("Update list of allowed merge operators");
+        throw new AssertionError("Update list of allowed merge operators");
     }
   }
 
@@ -270,7 +270,7 @@ public class PredicateCPA
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
-        throw new InternalError("Update list of allowed stop operators");
+        throw new AssertionError("Update list of allowed stop operators");
     }
   }
 

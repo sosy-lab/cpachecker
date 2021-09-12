@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
-import java.util.Optional;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -160,16 +159,11 @@ class SimpleEdgeTransformer<X extends RuntimeException> implements CCfaTransform
       CReturnStatementEdge pOldCReturnStatementEdge,
       CFANode pNewPredecessor,
       FunctionExitNode pNewSuccessor) {
-
-    Optional<CReturnStatement> optOldReturnStatement =
-        pOldCReturnStatementEdge.getRawAST().toJavaUtil();
-    CReturnStatement newReturnStatement = null;
-    if (optOldReturnStatement.isPresent()) {
-      newReturnStatement =
-          (CReturnStatement)
-              createAstTransformer(pOldCReturnStatementEdge)
-                  .transform(optOldReturnStatement.orElseThrow());
-    }
+    
+    CReturnStatement newReturnStatement =
+    (CReturnStatement)
+        createAstTransformer(pOldCReturnStatementEdge)
+            .transform(pOldCReturnStatementEdge.getReturnStatement());
 
     return new CReturnStatementEdge(
         pOldCReturnStatementEdge.getRawStatement(),

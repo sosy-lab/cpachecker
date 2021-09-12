@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -152,7 +152,7 @@ public final class TransformableArray {
           CType type = declaration.getType();
           if (declaration instanceof CVariableDeclaration && type instanceof CArrayType) {
             MemoryLocation arrayMemoryLocation =
-                MemoryLocation.valueOf(declaration.getQualifiedName());
+                MemoryLocation.forDeclaration(declaration);
             TransformableArray.Builder builder =
                 new TransformableArray.Builder(arrayMemoryLocation, (CArrayType) type);
             builders.put(arrayMemoryLocation, builder);
@@ -449,8 +449,7 @@ public final class TransformableArray {
 
       if (arrayExpression instanceof CIdExpression) {
         CIdExpression arrayIdExpression = (CIdExpression) arrayExpression;
-        String qualifiedName = arrayIdExpression.getDeclaration().getQualifiedName();
-        MemoryLocation arrayMemoryLocation = MemoryLocation.valueOf(qualifiedName);
+        MemoryLocation arrayMemoryLocation = MemoryLocation.forDeclaration(arrayIdExpression.getDeclaration());
         handleArrayOperation(mode, arrayMemoryLocation, subscriptExpression);
       }
 

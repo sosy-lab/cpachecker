@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -30,10 +29,5 @@ public class CDeclarationEdge extends ADeclarationEdge {
   @Override
   public CDeclaration getDeclaration() {
     return (CDeclaration) declaration;
-  }
-
-  @Override
-  public Optional<CDeclaration> getRawAST() {
-    return Optional.of((CDeclaration)declaration);
   }
 }

@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 public interface InvariantProvider {
 
   ExpressionTree<Object> provideInvariantFor(
-      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates);
+      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates)
+      throws InterruptedException;
 
   enum TrueInvariantProvider implements InvariantProvider {
     INSTANCE;

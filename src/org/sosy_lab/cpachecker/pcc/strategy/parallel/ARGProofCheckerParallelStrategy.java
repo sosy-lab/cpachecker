@@ -34,6 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,7 +74,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) {
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
     if (correctReachedSetFormatForProof(pReached)) {
       args = orderBAMBlockStartStates((ARGState) pReached.getFirstState());
       args[args.length - 1] = (ARGState) pReached.getFirstState();
@@ -271,8 +273,9 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
+    constructInternalProofRepresentation(pReached, pCpa);
     return args;
   }
 

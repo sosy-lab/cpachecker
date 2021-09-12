@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import com.google.common.base.Optional;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 

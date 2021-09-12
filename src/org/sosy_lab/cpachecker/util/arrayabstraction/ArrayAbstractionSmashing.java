@@ -78,7 +78,7 @@ public class ArrayAbstractionSmashing {
       CfaTransformer pCfaTransformer, VariableGenerator pVariableGenerator, CFAEdge pEdge) {
 
     String nondetVariableName = pVariableGenerator.createNewVariableName();
-    MemoryLocation nondetVariable = MemoryLocation.valueOf(nondetVariableName);
+    MemoryLocation nondetVariable = MemoryLocation.forIdentifier(nondetVariableName);
     CType intType = getIntType();
 
     Optional<String> functionName = Optional.of(pEdge.getPredecessor().getFunctionName());
@@ -218,8 +218,7 @@ public class ArrayAbstractionSmashing {
       if (type instanceof CArrayType) {
         return ArrayAbstractionUtils.createNonArrayVariableDeclaration(pCVariableDeclaration);
       } else if (type instanceof CPointerType) {
-        String variableName = pCVariableDeclaration.getQualifiedName();
-        MemoryLocation memoryLocation = MemoryLocation.valueOf(variableName);
+        MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pCVariableDeclaration);
         if (arrayMemoryLocations.contains(memoryLocation)) {
           CType newType = ((CPointerType) type).getType();
           return ArrayAbstractionUtils.createVariableDeclarationWithType(

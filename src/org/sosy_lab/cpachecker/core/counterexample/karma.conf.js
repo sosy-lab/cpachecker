@@ -12,11 +12,8 @@
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 const fs = require("fs");
-const path = require("path");
 const isDocker = require("is-docker")();
-const webpack = require("webpack");
-const webpackConfig = require("./webpack.config.js");
-const devFolder = "development_data/";
+const webpackConfig = require("./webpack.config");
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
 // Remove everything from the line with REPORT_CSS to the line after REPORT_JS
@@ -28,7 +25,7 @@ fs.writeFileSync(
     .replace(/^.*REPORT_CSS[^]*REPORT_JS.*\n.*$/m, "")
 );
 
-module.exports = function (config) {
+module.exports = (config) => {
   config.set({
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
@@ -86,15 +83,16 @@ module.exports = function (config) {
       preferHeadless: true,
       // Start Chromium and Chrome with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
       postDetection: (availableBrowsers) => {
-        if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
-          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] =
+        const newBrowsers = availableBrowsers;
+        if (isDocker && newBrowsers.includes("ChromiumHeadless")) {
+          newBrowsers[newBrowsers.indexOf("ChromiumHeadless")] =
             "ChromiumHeadlessNoSandbox";
         }
-        if (isDocker && availableBrowsers.includes("ChromeHeadless")) {
-          availableBrowsers[availableBrowsers.indexOf("ChromeHeadless")] =
+        if (isDocker && newBrowsers.includes("ChromeHeadless")) {
+          newBrowsers[newBrowsers.indexOf("ChromeHeadless")] =
             "ChromeHeadlessNoSandbox";
         }
-        return availableBrowsers.filter(
+        return newBrowsers.filter(
           (browser) =>
             browser.includes("Chromium") ||
             browser.includes("Chrome") ||

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -28,6 +27,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -452,7 +452,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       return false;
 
     } else {
-      return handleAssignment(edge.asAssignment().get(), importantVars);
+      return handleAssignment(edge.asAssignment().orElseThrow(), importantVars);
     }
   }
 
@@ -475,7 +475,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
         if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
           Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
           if (returnVar.isPresent()) {
-            importantVars.add(returnVar.get().getQualifiedName());
+            importantVars.add(returnVar.orElseThrow().getQualifiedName());
             return true;
           }
         }

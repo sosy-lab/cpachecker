@@ -5,10 +5,11 @@
 // SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-
 /**
- * This package contains utility classes for program slicing.
- *
- * @see org.sosy_lab.cpachecker.util.dependencegraph
+ * The implementation of basic SMG graph data structure, including (in sub-packages) the abstraction
+ * (SMGJoin) algorithms.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.smg;

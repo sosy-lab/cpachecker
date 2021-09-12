@@ -57,7 +57,7 @@ public class ArrayAbstractionNondetSingleCell {
     String arrayName = pTransformableArray.getMemoryLocation().getIdentifier();
     String name = "__array_witness_variable_" + arrayName;
 
-    return ArrayAbstractionUtils.createCIdExpression(type, MemoryLocation.valueOf(name));
+    return ArrayAbstractionUtils.createCIdExpression(type, MemoryLocation.forIdentifier(name));
   }
 
   private static CIdExpression createIndexCIdExpression(TransformableArray pTransformableArray) {
@@ -68,7 +68,7 @@ public class ArrayAbstractionNondetSingleCell {
     String arrayName = pTransformableArray.getMemoryLocation().getIdentifier();
     String name = "__array_witness_index_" + arrayName;
 
-    return ArrayAbstractionUtils.createCIdExpression(type, MemoryLocation.valueOf(name));
+    return ArrayAbstractionUtils.createCIdExpression(type, MemoryLocation.forIdentifier(name));
   }
 
   private static ImmutableSet<CExpression> getConditionExpressions(
@@ -307,7 +307,7 @@ public class ArrayAbstractionNondetSingleCell {
                 type, nondetVariableName, Optional.of(functionName));
         CIdExpression nondetVariableIdExpression =
             ArrayAbstractionUtils.createCIdExpression(
-                type, MemoryLocation.valueOf(functionName, nondetVariableName));
+                type, MemoryLocation.forLocalVariable(functionName, nondetVariableName));
         CFAEdge assignNondetVariableCfaEdge =
             ArrayAbstractionUtils.createAssignEdge(loopDef, nondetVariableIdExpression);
 
@@ -367,7 +367,7 @@ public class ArrayAbstractionNondetSingleCell {
 
           if (replacement == null) {
             String newVariableName = variableGenerator.createNewVariableName();
-            replacement = MemoryLocation.valueOf(newVariableName);
+            replacement = MemoryLocation.forIdentifier(newVariableName);
           }
 
           arrayOperationReplacementMap.insertReplacement(edge, arrayOperation, replacement);
