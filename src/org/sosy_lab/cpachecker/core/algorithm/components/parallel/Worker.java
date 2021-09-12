@@ -36,14 +36,18 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -55,6 +59,8 @@ public class Worker implements Runnable {
 
   private final ConcurrentHashMap<BlockNode, Message> postConditionUpdates;
   private final ConcurrentHashMap<BlockNode, Message> preConditionUpdates;
+  private final Solver solver;
+  private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bmgr;
   private final PathFormulaManagerImpl pathFormulaManager;
 
@@ -81,36 +87,54 @@ public class Worker implements Runnable {
     block = pBlock;
     read = pOutputStream;
     write = pInputStream;
-    postConditionUpdates = new ConcurrentHashMap<>();
-    preConditionUpdates = new ConcurrentHashMap<>();
-    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownManager.getNotifier());
-    pathFormulaManager = new PathFormulaManagerImpl(
-        solver.getFormulaManager(),
-        pConfiguration,
-        pLogger,
-        pShutdownManager.getNotifier(),
-        pCFA,
-        AnalysisDirection.FORWARD);
-    bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     logger = pLogger;
     finished = false;
     status = AlgorithmStatus.NO_PROPERTY_CHECKED;
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet>  parts = new AlgorithmBuilder(logger, pSpecification, pCFA, pConfiguration).createAlgorithm(pShutdownManager,
-        ImmutableSet.of(
-            "analysis.algorithm.configurableComponents",
-            "analysis.useLoopStructure",
-            "cpa.predicate.blk.alwaysAtJoin",
-            "cpa.predicate.blk.alwaysAtBranch",
-            "cpa.predicate.blk.alwaysAtProgramExit"), ImmutableSet.of(), pBlock);
-    checkNotNull(parts.getFirst());
-    checkNotNull(parts.getSecond());
-    checkNotNull(parts.getThird());
+
+    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
+        AlgorithmFactory.createAlgorithm(logger, pSpecification, pCFA, pConfiguration,
+            pShutdownManager,
+            ImmutableSet.of(
+                "analysis.algorithm.configurableComponents",
+                "analysis.useLoopStructure",
+                "cpa.predicate.blk.alwaysAtJoin",
+                "cpa.predicate.blk.alwaysAtBranch",
+                "cpa.predicate.blk.alwaysAtProgramExit"), pBlock);
     algorithm = parts.getFirst();
+    solver = extractAnalysis(parts.getSecond(), PredicateCPA.class).getSolver();
     reachedSet = parts.getThird();
     startState = extractCompositeStateFromReachedSet(reachedSet);
 
-    postConditionUpdates.put(block, new Message(MessageType.PRECONDITION, block, bmgr.makeTrue(), reachedSet.getPrecision(reachedSet.getFirstState())));
-    preConditionUpdates.put(block, new Message(MessageType.POSTCONDITION, block, bmgr.makeTrue(), reachedSet.getPrecision(reachedSet.getFirstState())));
+    fmgr = solver.getFormulaManager();
+    bmgr = fmgr.getBooleanFormulaManager();
+    pathFormulaManager = new PathFormulaManagerImpl(
+        solver.getFormulaManager(),
+        pConfiguration,
+        logger,
+        pShutdownManager.getNotifier(),
+        pCFA,
+        AnalysisDirection.FORWARD);
+
+    postConditionUpdates = new ConcurrentHashMap<>();
+    preConditionUpdates = new ConcurrentHashMap<>();
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends ConfigurableProgramAnalysis> T extractAnalysis(ConfigurableProgramAnalysis cpa, Class<T> pTarget) {
+    ARGCPA argCpa = (ARGCPA) cpa;
+    if (argCpa.getWrappedCPAs().size() > 1) {
+      throw new AssertionError("Wrapper expected but got " + cpa + "instead");
+    }
+    if (!(argCpa.getWrappedCPAs().get(0) instanceof CompositeCPA)) {
+      throw new AssertionError("Expected " + CompositeCPA.class + " but got " + argCpa.getWrappedCPAs().get(0).getClass());
+    }
+    CompositeCPA compositeCPA = (CompositeCPA) argCpa.getWrappedCPAs().get(0);
+    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
+      if (wrappedCPA.getClass().equals(pTarget)) {
+        return (T) wrappedCPA;
+      }
+    }
+    throw new AssertionError("Expected analysis " + pTarget + " is not part of the composite cpa " + cpa);
   }
 
   private CompositeState extractCompositeStateFromReachedSet(@Nonnull ReachedSet pReachedSet) {
@@ -122,27 +146,29 @@ public class Worker implements Runnable {
     return (CompositeState) argState.getWrappedState();
   }
 
-  private ImmutableSet<PredicateAbstractState> getPredicateStatesFromCompositeState(@Nonnull CompositeState pCompositeState) {
-    Set<PredicateAbstractState> result = new HashSet<>();
+  private <T extends AbstractState> ImmutableSet<T> getStatesFromCompositeState(@Nonnull CompositeState pCompositeState, Class<T> pTarget) {
+    Set<T> result = new HashSet<>();
     for (AbstractState wrappedState : pCompositeState.getWrappedStates()) {
-      if (wrappedState instanceof PredicateAbstractState) {
-        result.add((PredicateAbstractState) wrappedState);
+      if (pTarget.isAssignableFrom(wrappedState.getClass())) {
+        result.add(pTarget.cast(wrappedState));
+      } else if (wrappedState instanceof CompositeState) {
+        result.addAll(getStatesFromCompositeState((CompositeState) wrappedState, pTarget));
       }
     }
     return ImmutableSet.copyOf(result);
   }
 
   public BooleanFormula getPostCondition() {
-    checkState(preConditionUpdates.containsKey(block), "preConditionUpdates must contain own pre-condition");
-    return postConditionUpdates.get(block).getCondition();
+    return postConditionUpdates.values().stream().map(message -> fmgr.translateFrom(
+        message.getCondition(), message.getFmgr())).collect(bmgr.toDisjunction());
   }
 
   public BooleanFormula getPreCondition() {
-    checkState(preConditionUpdates.containsKey(block), "preConditionUpdates must contain own pre-condition");
-    return preConditionUpdates.get(block).getCondition();
+    return preConditionUpdates.values().stream().map(message -> fmgr.translateFrom(
+        message.getCondition(), message.getFmgr())).collect(bmgr.toDisjunction());
   }
 
-  public void analyze() throws InterruptedException, CPAException {
+  public void analyze() throws InterruptedException, CPAException, InvalidConfigurationException {
     while (true) {
       Message m = read.take();
       processMessage(m);
@@ -152,11 +178,12 @@ public class Worker implements Runnable {
     }
   }
 
-  private void processMessage(Message message) throws InterruptedException, CPAException {
+  private void processMessage(Message message)
+      throws InterruptedException, CPAException {
     switch (message.getType()) {
       case FINISHED:
         finished = true;
-        return;
+        break;
       case PRECONDITION:
         if (message.getSender().getSuccessors().contains(block)) {
           preConditionUpdates.put(message.getSender(), message);
@@ -174,16 +201,10 @@ public class Worker implements Runnable {
     }
   }
 
-  private Precision getPreconditionPrecision() {
-    checkState(preConditionUpdates.containsKey(block), "preConditionUpdates must contain own pre-condition");
-    return preConditionUpdates.get(block).getPrecision();
-  }
-
   // return post condition
   private Message forwardAnalysis() throws CPAException, InterruptedException {
-    reachedSet.clear();
     PredicateAbstractState firstPredicateState =
-        getPredicateStatesFromCompositeState(startState).stream().findFirst()
+        getStatesFromCompositeState(startState, PredicateAbstractState.class).stream().findFirst()
             .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
     firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), getPreCondition()),
@@ -197,8 +218,10 @@ public class Worker implements Runnable {
       }
     }
     CompositeState actualStartState = new CompositeState(states);
+    // TODO wrong Precision in most cases
+    Precision wrongPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
     reachedSet.clear();
-    reachedSet.add(new ARGState(actualStartState, null), getPreconditionPrecision());
+    reachedSet.add(new ARGState(actualStartState, null), wrongPrecision);
     status = algorithm.run(reachedSet);
     ImmutableSet<ARGState> finalStates = ARGUtils.getFinalStates(reachedSet);
     BooleanFormula preconditionForNextBlock = bmgr.makeFalse();
@@ -219,18 +242,18 @@ public class Worker implements Runnable {
       preconditionForNextBlock = bmgr.makeTrue();
     }
     return new Message(MessageType.PRECONDITION, block, preconditionForNextBlock,
-        reachedSet.getPrecision(reachedSet.getLastState()));
+        reachedSet.getPrecision(reachedSet.getLastState()), fmgr);
   }
 
   // return pre condition
   private Message backwardAnalysis() {
-    return new Message(MessageType.POSTCONDITION, block, bmgr.makeTrue(), reachedSet.getPrecision(reachedSet.getLastState()));
+    return new Message(MessageType.POSTCONDITION, block, bmgr.makeTrue(), reachedSet.getPrecision(reachedSet.getLastState()), fmgr);
   }
 
   private void runContinuousAnalysis() {
     try {
       analyze();
-    } catch (InterruptedException | CPAException pE) {
+    } catch (InterruptedException | CPAException | InvalidConfigurationException pE) {
       if (!finished) {
         logger.log(Level.SEVERE, this + " run into an error while waiting because of " + pE);
         logger.log(Level.SEVERE, "Restarting Worker " + this + "...");
