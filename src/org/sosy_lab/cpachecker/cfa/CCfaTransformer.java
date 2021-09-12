@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
@@ -26,9 +26,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -37,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -48,17 +47,20 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
-public final class CCfaTransformer extends CfaTransformer {
+public final class CCfaTransformer
+    extends CfaTransformer<CCfaNodeTransformer, CCfaEdgeTransformer> {
 
   private final Configuration configuration;
   private final LogManager logger;
 
   private final CFA originalCfa;
-  private final Map<CFANode, Node> oldCfaNodeToNodeMap;
-  
+  private final Map<CFANode, Node> originalCfaNodeToNodeMap;
+
   private CCfaTransformer(
       Configuration pConfiguration,
       LogManager pLogger,
@@ -69,7 +71,7 @@ public final class CCfaTransformer extends CfaTransformer {
     logger = pLogger;
 
     originalCfa = pOriginalCfa;
-    oldCfaNodeToNodeMap = pNodeMap;
+    originalCfaNodeToNodeMap = pNodeMap;
   }
 
   public static CCfaTransformer createTransformer(
@@ -82,10 +84,10 @@ public final class CCfaTransformer extends CfaTransformer {
     Map<CFANode, Node> nodeMap = new HashMap<>();
 
     for (CFANode cfaNode : pCfa.getAllNodes()) {
-      nodeMap.put(cfaNode, CfaTransformer.Node.createFrom(cfaNode));
+      nodeMap.put(cfaNode, CfaTransformer.Node.forOriginal(cfaNode));
       if (cfaNode instanceof FunctionEntryNode) {
         FunctionExitNode functionExitNode = ((FunctionEntryNode) cfaNode).getExitNode();
-        nodeMap.put(functionExitNode, Node.createFrom(functionExitNode));
+        nodeMap.put(functionExitNode, Node.forOriginal(functionExitNode));
       }
     }
 
@@ -93,7 +95,7 @@ public final class CCfaTransformer extends CfaTransformer {
       Node predecessor = nodeMap.get(cfaNode);
       for (CFAEdge cfaEdge : CFAUtils.allLeavingEdges(cfaNode)) {
         Node successor = nodeMap.get(cfaEdge.getSuccessor());
-        Edge edge = Edge.createFrom(cfaEdge);
+        Edge edge = Edge.forOriginal(cfaEdge);
         successor.attachEntering(edge);
         predecessor.attachLeaving(edge);
     }
@@ -103,96 +105,41 @@ public final class CCfaTransformer extends CfaTransformer {
   }
 
   @Override
-  public Optional<Node> getNode(CFANode pCfaNode) {
+  public Optional<Node> get(CFANode pCfaNode) {
 
     Objects.requireNonNull(pCfaNode, "pCfaNode must not be null");
 
-    return Optional.ofNullable(oldCfaNodeToNodeMap.get(pCfaNode));
+    return Optional.ofNullable(originalCfaNodeToNodeMap.get(pCfaNode));
   }
 
-  public CFA createCfa(NodeTransformer pNodeTransformer, EdgeTransformer pEdgeTransformer) {
+  @Override
+  public CFA createCfa(CCfaNodeTransformer pNodeTransformer, CCfaEdgeTransformer pEdgeTransformer) {
 
     Objects.requireNonNull(pNodeTransformer, "pNodeTransformer must not be null");
     Objects.requireNonNull(pEdgeTransformer, "pEdgeTransformer must not be null");
 
-    CfaBuilder cfaBuilder = new CfaBuilder(oldCfaNodeToNodeMap, pNodeTransformer, pEdgeTransformer);
+    CfaBuilder cfaBuilder =
+        new CfaBuilder(originalCfaNodeToNodeMap, pNodeTransformer, pEdgeTransformer);
 
     return cfaBuilder.createCfa(configuration, logger, originalCfa);
-  }
-
-  public interface NodeTransformer {
-
-    CFANode transformCfaNode(CFANode pOldCfaNode);
-
-    CFATerminationNode transformCfaTerminationNode(CFATerminationNode pOldCfaTerminationNode);
-
-    FunctionExitNode transformFunctionExitNode(FunctionExitNode pOldFunctionExitNode);
-
-    CFunctionEntryNode transformCFunctionEntryNode(
-        CFunctionEntryNode pOldCFunctionEntryNode, FunctionExitNode pNewFunctionExitNode);
-
-    CFANode transformCLabelNode(CLabelNode pOldCLabelNode);
-  }
-
-  public interface EdgeTransformer {
-
-    CFAEdge transformBlankEdge(
-        BlankEdge pOldBlankEdge, CFANode pNewPredecessor, CFANode pNewSuccessor);
-
-    CFAEdge transformCAssumeEdge(
-        CAssumeEdge pOldCAssumeEdge, CFANode pNewPredecessor, CFANode pNewSuccessor);
-
-    CFAEdge transformCDeclarationEdge(
-        CDeclarationEdge pOldCDeclarationEdge, CFANode pNewPredecessor, CFANode pNewSuccessor);
-
-    CFAEdge transformCStatementEdge(
-        CStatementEdge pOldCStatementEdge, CFANode pNewPredecessor, CFANode pNewSuccessor);
-
-    CFunctionCallEdge transformCFunctionCallEdge(
-        CFunctionCallEdge pOldCFunctionCallEdge,
-        CFANode pNewPredecessor,
-        CFunctionEntryNode pNewSuccessor,
-        CFunctionSummaryEdge pNewCFunctionSummaryEdge);
-
-    CFunctionReturnEdge transformCFunctionReturnEdge(
-        CFunctionReturnEdge pOldCFunctionReturnEdge,
-        FunctionExitNode pNewPredecessor,
-        CFANode pNewSuccessor,
-        CFunctionSummaryEdge pNewCFunctionSummaryEdge);
-
-    CFunctionSummaryEdge transformCFunctionSummaryEdge(
-        CFunctionSummaryEdge pOldCFunctionSummaryEdge,
-        CFANode pNewPredecessor,
-        CFANode pNewSuccessor,
-        CFunctionEntryNode pNewCFunctionEntryNode);
-
-    CReturnStatementEdge transformCReturnStatementEdge(
-        CReturnStatementEdge pOldCReturnStatementEdge,
-        CFANode pNewPredecessor,
-        FunctionExitNode pNewSuccessor);
-
-    CFunctionSummaryStatementEdge transformCFunctionSummaryStatementEdge(
-        CFunctionSummaryStatementEdge pOldCFunctionSummaryStatementEdge,
-        CFANode pNewPredecessor,
-        CFANode pNewSuccessor);
   }
   
   private static final class CfaBuilder {
 
-    private final Map<CFANode, CfaTransformer.Node> oldCfaNodeToNode;
+    private final Map<CFANode, CfaTransformer.Node> originalCfaNodeToNode;
 
-    private final NodeTransformer nodeTransformer;
-    private final EdgeTransformer edgeTransformer;
+    private final CCfaNodeTransformer nodeTransformer;
+    private final CCfaEdgeTransformer edgeTransformer;
 
     private final Map<CfaTransformer.Node, CFANode> nodeToNewCfaNode;
     private final Map<CfaTransformer.Edge, CFAEdge> edgeToNewCfaEdge;
 
     private CfaBuilder(
-        Map<CFANode, CfaTransformer.Node> pOldCfaNodeToNode,
-        NodeTransformer pNodeTransformer,
-        EdgeTransformer pEdgeTransformer) {
+        Map<CFANode, CfaTransformer.Node> pOriginalCfaNodeToNode,
+        CCfaNodeTransformer pNodeTransformer,
+        CCfaEdgeTransformer pEdgeTransformer) {
 
-      oldCfaNodeToNode = pOldCfaNodeToNode;
+      originalCfaNodeToNode = pOriginalCfaNodeToNode;
 
       nodeTransformer = pNodeTransformer;
       edgeTransformer = pEdgeTransformer;
@@ -208,24 +155,26 @@ public final class CCfaTransformer extends CfaTransformer {
         return newCfaNode;
       }
 
-      CFANode oldCfaNode = pNode.getOldCfaNode();
+      CFANode originalCfaNode = pNode.getOriginalCfaNode();
 
-      if (oldCfaNode instanceof CLabelNode) {
-        newCfaNode = nodeTransformer.transformCLabelNode((CLabelNode) oldCfaNode);
-      } else if (oldCfaNode instanceof CFunctionEntryNode) {
-        CFunctionEntryNode oldCfaEntryNode = (CFunctionEntryNode) oldCfaNode;
-        CfaTransformer.Node exitNode = oldCfaNodeToNode.get(oldCfaEntryNode.getExitNode());
+      if (originalCfaNode instanceof CLabelNode) {
+        newCfaNode = nodeTransformer.transformCLabelNode((CLabelNode) originalCfaNode);
+      } else if (originalCfaNode instanceof CFunctionEntryNode) {
+        CFunctionEntryNode originalCfaEntryNode = (CFunctionEntryNode) originalCfaNode;
+        CfaTransformer.Node exitNode =
+            originalCfaNodeToNode.get(originalCfaEntryNode.getExitNode());
         FunctionExitNode newCfaExitNode = (FunctionExitNode) newCfaNodeIfAbsent(exitNode);
         newCfaNode =
             nodeTransformer.transformCFunctionEntryNode(
-                (CFunctionEntryNode) oldCfaNode, newCfaExitNode);
+                (CFunctionEntryNode) originalCfaNode, newCfaExitNode);
         newCfaExitNode.setEntryNode((CFunctionEntryNode) newCfaNode);
-      } else if (oldCfaNode instanceof FunctionExitNode) {
-        newCfaNode = nodeTransformer.transformFunctionExitNode((FunctionExitNode) oldCfaNode);
-      } else if (oldCfaNode instanceof CFATerminationNode) {
-        newCfaNode = nodeTransformer.transformCfaTerminationNode((CFATerminationNode) oldCfaNode);
+      } else if (originalCfaNode instanceof FunctionExitNode) {
+        newCfaNode = nodeTransformer.transformFunctionExitNode((FunctionExitNode) originalCfaNode);
+      } else if (originalCfaNode instanceof CFATerminationNode) {
+        newCfaNode =
+            nodeTransformer.transformCfaTerminationNode((CFATerminationNode) originalCfaNode);
       } else {
-        newCfaNode = nodeTransformer.transformCfaNode(oldCfaNode);
+        newCfaNode = nodeTransformer.transformCfaNode(originalCfaNode);
       }
 
       nodeToNewCfaNode.put(pNode, newCfaNode);
@@ -237,11 +186,11 @@ public final class CCfaTransformer extends CfaTransformer {
         CfaTransformer.Edge pEdge, CFANode pNewCfaPredecessorNode, CFANode pNewCfaSuccessorNode) {
 
       for (CfaTransformer.Edge leavingEdge : pEdge.getPredecessorOrElseThrow().iterateLeaving()) {
-        if (leavingEdge.getOldCfaEdge() instanceof CFunctionCallEdge) {
+        if (leavingEdge.getOriginalCfaEdge() instanceof CFunctionCallEdge) {
           CFunctionEntryNode cfaEntryNode =
               (CFunctionEntryNode) nodeToNewCfaNode.get(leavingEdge.getSuccessorOrElseThrow());
           return edgeTransformer.transformCFunctionSummaryEdge(
-              (CFunctionSummaryEdge) pEdge.getOldCfaEdge(),
+              (CFunctionSummaryEdge) pEdge.getOriginalCfaEdge(),
               pNewCfaPredecessorNode,
               pNewCfaSuccessorNode,
               cfaEntryNode);
@@ -254,11 +203,11 @@ public final class CCfaTransformer extends CfaTransformer {
     private CFunctionCallEdge newCFunctionCallEdge(
         CfaTransformer.Edge pEdge, CFANode pNewCfaPredecessorNode, CFANode pNewCfaSuccessorNode) {
       for (CfaTransformer.Edge summaryEdge : pEdge.getPredecessorOrElseThrow().iterateLeaving()) {
-        if (summaryEdge.getOldCfaEdge() instanceof CFunctionSummaryEdge) {
+        if (summaryEdge.getOriginalCfaEdge() instanceof CFunctionSummaryEdge) {
           CFunctionSummaryEdge cfaSummaryEdge =
               (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
           return edgeTransformer.transformCFunctionCallEdge(
-              (CFunctionCallEdge) pEdge.getOldCfaEdge(),
+              (CFunctionCallEdge) pEdge.getOriginalCfaEdge(),
               pNewCfaPredecessorNode,
               (CFunctionEntryNode) pNewCfaSuccessorNode,
               cfaSummaryEdge);
@@ -271,11 +220,11 @@ public final class CCfaTransformer extends CfaTransformer {
     private CFunctionReturnEdge newCFunctionReturnEdge(
         CfaTransformer.Edge pEdge, CFANode pNewCfaPredecessorNode, CFANode pNewCfaSuccessorNode) {
       for (CfaTransformer.Edge summaryEdge : pEdge.getSuccessorOrElseThrow().iterateEntering()) {
-        if (summaryEdge.getOldCfaEdge() instanceof CFunctionSummaryEdge) {
+        if (summaryEdge.getOriginalCfaEdge() instanceof CFunctionSummaryEdge) {
           CFunctionSummaryEdge cfaSummaryEdge =
               (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
           return edgeTransformer.transformCFunctionReturnEdge(
-              (CFunctionReturnEdge) pEdge.getOldCfaEdge(),
+              (CFunctionReturnEdge) pEdge.getOriginalCfaEdge(),
               (FunctionExitNode) pNewCfaPredecessorNode,
               pNewCfaSuccessorNode,
               cfaSummaryEdge);
@@ -295,66 +244,68 @@ public final class CCfaTransformer extends CfaTransformer {
       CFANode cfaPredecessorNode = nodeToNewCfaNode.get(pEdge.getPredecessorOrElseThrow());
       CFANode cfaSuccessorNode = nodeToNewCfaNode.get(pEdge.getSuccessorOrElseThrow());
 
-      CFAEdge oldCfaEdge = pEdge.getOldCfaEdge();
+      CFAEdge originalCfaEdge = pEdge.getOriginalCfaEdge();
 
-      if (oldCfaEdge instanceof BlankEdge) {
+      if (originalCfaEdge instanceof BlankEdge) {
         newCfaEdge =
             edgeTransformer.transformBlankEdge(
-                (BlankEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else if (oldCfaEdge instanceof CAssumeEdge) {
+                (BlankEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+      } else if (originalCfaEdge instanceof CAssumeEdge) {
         newCfaEdge =
             edgeTransformer.transformCAssumeEdge(
-                (CAssumeEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else if (oldCfaEdge instanceof CDeclarationEdge) {
+                (CAssumeEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+      } else if (originalCfaEdge instanceof CDeclarationEdge) {
         newCfaEdge =
             edgeTransformer.transformCDeclarationEdge(
-                (CDeclarationEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else if (oldCfaEdge instanceof CFunctionSummaryStatementEdge) {
+                (CDeclarationEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+      } else if (originalCfaEdge instanceof CFunctionSummaryStatementEdge) {
         if (pAllowInterprocedural) {
           newCfaEdge =
               edgeTransformer.transformCFunctionSummaryStatementEdge(
-                  (CFunctionSummaryStatementEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+                  (CFunctionSummaryStatementEdge) originalCfaEdge,
+                  cfaPredecessorNode,
+                  cfaSuccessorNode);
         } else {
           newCfaEdge =
               new SummaryPlaceholderEdge(
                   "",
-                  oldCfaEdge.getFileLocation(),
+                  originalCfaEdge.getFileLocation(),
                   cfaPredecessorNode,
                   cfaSuccessorNode,
                   "summary-placeholder-edge");
         }
-      } else if (oldCfaEdge instanceof CReturnStatementEdge) {
+      } else if (originalCfaEdge instanceof CReturnStatementEdge) {
         newCfaEdge =
             edgeTransformer.transformCReturnStatementEdge(
-                (CReturnStatementEdge) oldCfaEdge,
+                (CReturnStatementEdge) originalCfaEdge,
                 cfaPredecessorNode,
                 (FunctionExitNode) cfaSuccessorNode);
-      } else if (oldCfaEdge instanceof CFunctionSummaryEdge) {
+      } else if (originalCfaEdge instanceof CFunctionSummaryEdge) {
         if (pAllowInterprocedural) {
           newCfaEdge = newCFunctionSummaryEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
         } else {
           newCfaEdge =
               new SummaryPlaceholderEdge(
                   "",
-                  oldCfaEdge.getFileLocation(),
+                  originalCfaEdge.getFileLocation(),
                   cfaPredecessorNode,
                   cfaSuccessorNode,
                   "summary-placeholder-edge");
         }
-      } else if (oldCfaEdge instanceof CFunctionReturnEdge) {
+      } else if (originalCfaEdge instanceof CFunctionReturnEdge) {
         if (pAllowInterprocedural) {
           newCfaEdge = newCFunctionReturnEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
         }
-      } else if (oldCfaEdge instanceof CFunctionCallEdge) {
+      } else if (originalCfaEdge instanceof CFunctionCallEdge) {
         if (pAllowInterprocedural) {
           newCfaEdge = newCFunctionCallEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
         }
-      } else if (oldCfaEdge instanceof CStatementEdge) {
+      } else if (originalCfaEdge instanceof CStatementEdge) {
         newCfaEdge =
             edgeTransformer.transformCStatementEdge(
-                (CStatementEdge) oldCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
+                (CStatementEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
       } else {
-        throw new AssertionError("Unknown CFA edge type: " + oldCfaEdge.getClass());
+        throw new AssertionError("Unknown CFA edge type: " + originalCfaEdge.getClass());
       }
 
       if (newCfaEdge != null) {
@@ -409,7 +360,7 @@ public final class CCfaTransformer extends CfaTransformer {
 
     private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
 
-      CfaTransformer.Node mainEntryNode = oldCfaNodeToNode.get(pOriginalCfa.getMainFunction());
+      CfaTransformer.Node mainEntryNode = originalCfaNodeToNode.get(pOriginalCfa.getMainFunction());
 
       NavigableMap<String, FunctionEntryNode> newCfaFunctions = new TreeMap<>();
       TreeMultimap<String, CFANode> newCfaNodes = TreeMultimap.create();

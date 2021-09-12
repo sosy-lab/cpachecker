@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
@@ -15,37 +15,39 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-/** An instance of this class can be used to modify specific parts of a control flow graph (CFA). */
-public abstract class CfaTransformer {
+public abstract class CfaTransformer<N extends CfaNodeTransformer, E extends CfaEdgeTransformer> {
 
-  public abstract Optional<Node> getNode(CFANode pCfaNode);
+  public abstract Optional<Node> get(CFANode pOriginalCfaNode);
+
+  public abstract CFA createCfa(N pNodeTransformer, E pEdgeTransformer);
 
   public static final class Node {
 
-    private final CFANode oldCfaNode;
+    private final CFANode originalCfaNode;
     private final List<Edge> enteringEdges;
     private final List<Edge> leavingEdges;
 
-    private Node(CFANode pOldCfaNode) {
+    private Node(CFANode pOriginalCfaNode) {
 
-      oldCfaNode = pOldCfaNode;
+      originalCfaNode = pOriginalCfaNode;
 
       enteringEdges = new ArrayList<>();
       leavingEdges = new ArrayList<>();
     }
 
-    public static Node createFrom(CFANode pOldCfaNode) {
+    public static Node forOriginal(CFANode pOriginalCfaNode) {
 
-      Objects.requireNonNull(pOldCfaNode, "pOldCfaNode must not be null");
+      Objects.requireNonNull(pOriginalCfaNode, "pOriginalCfaNode must not be null");
 
-      return new Node(pOldCfaNode);
+      return new Node(pOriginalCfaNode);
     }
 
-    public CFANode getOldCfaNode() {
-      return oldCfaNode;
+    public CFANode getOriginalCfaNode() {
+      return originalCfaNode;
     }
 
     public void attachEntering(Edge pEdge) {
@@ -55,18 +57,23 @@ public abstract class CfaTransformer {
           !pEdge.getSuccessor().isPresent(),
           "Cannot attach entering edge that already has a successor");
 
-      pEdge.setSuccessor(Optional.of(this));
-      addEnteringEdge(pEdge);
+      pEdge.setSuccessor(this);
+      enteringEdges.add(pEdge);
     }
 
-    public void detachEntering(Edge pEdge) {
+    public boolean detachEntering(Edge pEdge) {
 
       Objects.requireNonNull(pEdge, "pEdge must not be null");
       Preconditions.checkArgument(
           !pEdge.getSuccessor().isEmpty(), "Cannot detach entering edge that has no successor");
 
-      pEdge.setSuccessor(Optional.empty());
-      removeEnteringEdge(pEdge);
+      boolean contained = enteringEdges.remove(pEdge);
+
+      if (contained) {
+        pEdge.setSuccessor(null);
+      }
+
+      return contained;
     }
 
     public void attachLeaving(Edge pEdge) {
@@ -76,18 +83,23 @@ public abstract class CfaTransformer {
           !pEdge.getPredecessor().isPresent(),
           "Cannot attach leaving edge that already has a predecessor");
 
-      pEdge.setPredecessor(Optional.of(this));
-      addLeavingEdge(pEdge);
+      pEdge.setPredecessor(this);
+      leavingEdges.add(pEdge);
     }
 
-    public void detachLeaving(Edge pEdge) {
+    public boolean detachLeaving(Edge pEdge) {
 
       Objects.requireNonNull(pEdge, "pEdge must not be null");
       Preconditions.checkArgument(
           !pEdge.getPredecessor().isEmpty(), "Cannot detach leaving edge that has no predecessor");
 
-      pEdge.setPredecessor(Optional.empty());
-      removeLeavingEdge(pEdge);
+      boolean contained = leavingEdges.remove(pEdge);
+
+      if (contained) {
+        pEdge.setPredecessor(null);
+      }
+
+      return contained;
     }
 
     /**
@@ -102,7 +114,7 @@ public abstract class CfaTransformer {
      *
      * }</pre>
      */
-    public void splitAndInsertEntering(Edge pEdge, Node pNewNode) {
+    public void insertPredecessor(Edge pEdge, Node pNewNode) {
 
       for (Iterator<CfaTransformer.Edge> iterator = newEnteringIterator(); iterator.hasNext(); ) {
         CfaTransformer.Edge enteringEdge = iterator.next();
@@ -126,7 +138,7 @@ public abstract class CfaTransformer {
      *
      * }</pre>
      */
-    public void splitAndInsertLeaving(Edge pEdge, Node pNewNode) {
+    public void insertSuccessor(Edge pEdge, Node pNewNode) {
 
       for (Iterator<CfaTransformer.Edge> iterator = newLeavingIterator(); iterator.hasNext(); ) {
         CfaTransformer.Edge leavingEdge = iterator.next();
@@ -138,15 +150,7 @@ public abstract class CfaTransformer {
       attachLeaving(pEdge);
     }
 
-    private void addEnteringEdge(Edge pEdge) {
-      enteringEdges.add(pEdge);
-    }
-
-    private void removeEnteringEdge(Edge pEdge) {
-      enteringEdges.remove(pEdge);
-    }
-
-    public Iterator<Edge> newEnteringIterator() {
+    private Iterator<Edge> newEnteringIterator() {
       return new Iterator<>() {
 
         private Iterator<Edge> delegate = enteringEdges.iterator();
@@ -165,7 +169,7 @@ public abstract class CfaTransformer {
         @Override
         public void remove() {
           delegate.remove();
-          current.setSuccessor(Optional.empty());
+          current.setSuccessor(null);
         }
       };
     }
@@ -174,15 +178,7 @@ public abstract class CfaTransformer {
       return this::newEnteringIterator;
     }
 
-    private void addLeavingEdge(Edge pEdge) {
-      leavingEdges.add(pEdge);
-    }
-
-    private void removeLeavingEdge(Edge pEdge) {
-      leavingEdges.remove(pEdge);
-    }
-
-    public Iterator<Edge> newLeavingIterator() {
+    private Iterator<Edge> newLeavingIterator() {
       return new Iterator<>() {
 
         private Iterator<Edge> delegate = leavingEdges.iterator();
@@ -201,7 +197,7 @@ public abstract class CfaTransformer {
         @Override
         public void remove() {
           delegate.remove();
-          current.setPredecessor(Optional.empty());
+          current.setPredecessor(null);
         }
       };
     }
@@ -214,9 +210,9 @@ public abstract class CfaTransformer {
     public String toString() {
       return String.format(
           Locale.ENGLISH,
-          "%s[oldCfaNode=%s, enteringEdges=%s, leavingEdges=%s]",
+          "%s[originalCfaNode=%s, enteringEdges=%s, leavingEdges=%s]",
           getClass(),
-          oldCfaNode,
+          originalCfaNode,
           enteringEdges,
           leavingEdges);
     }
@@ -224,29 +220,29 @@ public abstract class CfaTransformer {
 
   public static final class Edge {
 
-    private final CFAEdge oldCfaEdge;
-    private Optional<Node> predecessor;
-    private Optional<Node> successor;
+    private final CFAEdge originalCfaEdge;
+    private @Nullable Node predecessor;
+    private @Nullable Node successor;
 
-    private Edge(CFAEdge pOldCfaEdge) {
-      oldCfaEdge = pOldCfaEdge;
-      predecessor = Optional.empty();
-      successor = Optional.empty();
+    private Edge(CFAEdge pOriginalCfaEdge) {
+      originalCfaEdge = pOriginalCfaEdge;
+      predecessor = null;
+      successor = null;
     }
 
-    public static Edge createFrom(CFAEdge pOldCfaEdge) {
+    public static Edge forOriginal(CFAEdge pOriginalCfaEdge) {
 
-      Objects.requireNonNull(pOldCfaEdge, "pOldCfaEdge must not be null");
+      Objects.requireNonNull(pOriginalCfaEdge, "pOriginalCfaEdge must not be null");
 
-      return new Edge(pOldCfaEdge);
+      return new Edge(pOriginalCfaEdge);
     }
 
-    public CFAEdge getOldCfaEdge() {
-      return oldCfaEdge;
+    public CFAEdge getOriginalCfaEdge() {
+      return originalCfaEdge;
     }
 
     public Optional<Node> getPredecessor() {
-      return predecessor;
+      return Optional.ofNullable(predecessor);
     }
 
     Node getPredecessorOrElseThrow() {
@@ -254,12 +250,12 @@ public abstract class CfaTransformer {
           .orElseThrow(() -> new IllegalStateException("Missing edge predecessor: " + this));
     }
 
-    private void setPredecessor(Optional<Node> pPredecessor) {
+    private void setPredecessor(Node pPredecessor) {
       predecessor = pPredecessor;
     }
 
     public Optional<Node> getSuccessor() {
-      return successor;
+      return Optional.ofNullable(successor);
     }
 
     Node getSuccessorOrElseThrow() {
@@ -267,18 +263,18 @@ public abstract class CfaTransformer {
           .orElseThrow(() -> new IllegalStateException("Missing edge successor: " + this));
     }
 
-    private void setSuccessor(Optional<Node> pSuccessor) {
+    private void setSuccessor(Node pSuccessor) {
       successor = pSuccessor;
     }
 
     public void detachAll() {
 
-      if (predecessor.isPresent()) {
-        predecessor.orElseThrow().detachLeaving(this);
+      if (predecessor != null) {
+        predecessor.detachLeaving(this);
       }
 
-      if (successor.isPresent()) {
-        successor.orElseThrow().detachEntering(this);
+      if (successor != null) {
+        successor.detachEntering(this);
       }
     }
 
@@ -286,9 +282,9 @@ public abstract class CfaTransformer {
     public String toString() {
       return String.format(
           Locale.ENGLISH,
-          "%s[oldCfaEdge=%s, predecessor=%s, successor=%s]",
+          "%s[originalCfaEdge=%s, predecessor=%s, successor=%s]",
           getClass(),
-          oldCfaEdge,
+          originalCfaEdge,
           predecessor,
           successor);
     }

@@ -16,7 +16,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -33,15 +35,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CfaTransformer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -95,32 +97,31 @@ public class ArrayAbstractionSmashing {
     CFAEdge conditionCfaEdgeFalse =
         ArrayAbstractionUtils.createAssumeEdge(nondetVariableLessThanZeroExpression, false);
 
-    CfaTransformer.Node predecessorNode =
-        pCfaTransformer.getNode(pEdge.getPredecessor()).orElseThrow();
-    CfaTransformer.Node successorNode = pCfaTransformer.getNode(pEdge.getSuccessor()).orElseThrow();
+    CfaTransformer.Node predecessorNode = pCfaTransformer.get(pEdge.getPredecessor()).orElseThrow();
+    CfaTransformer.Node successorNode = pCfaTransformer.get(pEdge.getSuccessor()).orElseThrow();
     // --- a ---> [predecessorNode]
     // --- <array-write> ---> [successorNode]
     // --- b --->
 
-    CfaTransformer.Edge nondetVariableEdge = CfaTransformer.Edge.createFrom(nondetVariableCfaEdge);
-    predecessorNode.splitAndInsertEntering(
-        nondetVariableEdge, CfaTransformer.Node.createFrom(predecessorNode.getOldCfaNode()));
+    CfaTransformer.Edge nondetVariableEdge = CfaTransformer.Edge.forOriginal(nondetVariableCfaEdge);
+    predecessorNode.insertPredecessor(
+        nondetVariableEdge, CfaTransformer.Node.forOriginal(predecessorNode.getOriginalCfaNode()));
     // --- a ---> [newNodeFst]
     // --- <new-nondet-var> ---> [predecessorNode]
     // --- <array-write> ---> [successorNode]
     // --- b --->
 
     CfaTransformer.Node newNodeSnd =
-        CfaTransformer.Node.createFrom(predecessorNode.getOldCfaNode());
-    CfaTransformer.Edge conditionEdgeTrue = CfaTransformer.Edge.createFrom(conditionCfaEdgeTrue);
-    predecessorNode.splitAndInsertEntering(conditionEdgeTrue, newNodeSnd);
+        CfaTransformer.Node.forOriginal(predecessorNode.getOriginalCfaNode());
+    CfaTransformer.Edge conditionEdgeTrue = CfaTransformer.Edge.forOriginal(conditionCfaEdgeTrue);
+    predecessorNode.insertPredecessor(conditionEdgeTrue, newNodeSnd);
     // --- a ---> [newNodeFst]
     // --- <new-nondet-var> ---> [newNodeSnd]
     // --- <nondet-var-condition> ---> [predecessorNode]
     // --- <array-write> ---> [successorNode]
     // --- b --->
 
-    CfaTransformer.Edge conditionEdgeFalse = CfaTransformer.Edge.createFrom(conditionCfaEdgeFalse);
+    CfaTransformer.Edge conditionEdgeFalse = CfaTransformer.Edge.forOriginal(conditionCfaEdgeFalse);
     newNodeSnd.attachLeaving(conditionEdgeFalse);
     successorNode.attachEntering(conditionEdgeFalse);
   }
@@ -163,11 +164,11 @@ public class ArrayAbstractionSmashing {
 
     TransformingCAstNodeVisitor<NoException> astTransformer =
         new AstTransformingVisitor(ImmutableSet.copyOf(arrayMemoryLocations));
-    SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
-    SimpleEdgeTransformer<NoException> edgeTransformer =
-        new SimpleEdgeTransformer<>(edge -> astTransformer);
+    CCfaEdgeTransformer edgeTransformer =
+        CCfaEdgeTransformer.forAstTransformer(
+            (originalCfaEdge, originalAstNode) -> astTransformer.transform(originalAstNode));
 
-    return cfaTransformer.createCfa(nodeTransformer, edgeTransformer);
+    return cfaTransformer.createCfa(CCfaNodeTransformer.DEFAULT, edgeTransformer);
   }
 
   private static final class AstTransformingVisitor
