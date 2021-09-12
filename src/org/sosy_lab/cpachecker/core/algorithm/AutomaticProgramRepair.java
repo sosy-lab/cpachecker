@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
-import scala.annotation.meta.param;
 
 @Options(prefix = "programRepair")
 public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, Statistics {
@@ -172,11 +171,6 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     }
 
     logger.log(Level.INFO, "No fix found. \n" + faultLocalizationInfo);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> void throwActualException(Exception exception) throws E {
-    throw (E) exception;
   }
 
   private ReachedSet rerun(CFA mutatedCFA)
