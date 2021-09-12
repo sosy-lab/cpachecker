@@ -93,17 +93,32 @@ public final class CAstNodeTransformer<X extends Exception> {
 
     @Override
     public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X {
-      return new CArrayDesignator(
-          pCArrayDesignator.getFileLocation(),
-          (CExpression) pCArrayDesignator.getSubscriptExpression().accept(this));
+
+      CExpression oldSubscriptExpression = pCArrayDesignator.getSubscriptExpression();
+      CExpression newSubscriptExpression = (CExpression) oldSubscriptExpression.accept(this);
+
+      if (oldSubscriptExpression != newSubscriptExpression) {
+        return new CArrayDesignator(pCArrayDesignator.getFileLocation(), newSubscriptExpression);
+      } else {
+        return pCArrayDesignator;
+      }
     }
 
     @Override
     public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) throws X {
-      return new CArrayRangeDesignator(
-          pCArrayRangeDesignator.getFileLocation(),
-          (CExpression) pCArrayRangeDesignator.getFloorExpression().accept(this),
-          (CExpression) pCArrayRangeDesignator.getCeilExpression().accept(this));
+
+      CExpression oldFloorExpression = pCArrayRangeDesignator.getFloorExpression();
+      CExpression newFloorExpression = (CExpression) oldFloorExpression.accept(this);
+
+      CExpression oldCeilExpression = pCArrayRangeDesignator.getCeilExpression();
+      CExpression newCeilExpression = (CExpression) oldCeilExpression.accept(this);
+
+      if (oldFloorExpression != newFloorExpression || oldCeilExpression != newCeilExpression) {
+        return new CArrayRangeDesignator(
+            pCArrayRangeDesignator.getFileLocation(), newFloorExpression, newCeilExpression);
+      } else {
+        return pCArrayRangeDesignator;
+      }
     }
 
     @Override
@@ -113,82 +128,144 @@ public final class CAstNodeTransformer<X extends Exception> {
 
     @Override
     public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) throws X {
-      return new CInitializerExpression(
-          pCInitializerExpression.getFileLocation(),
-          (CExpression) pCInitializerExpression.getExpression().accept(this));
+
+      CExpression oldExpression = pCInitializerExpression.getExpression();
+      CExpression newExpression = (CExpression) oldExpression.accept(this);
+
+      if (oldExpression != newExpression) {
+        return new CInitializerExpression(pCInitializerExpression.getFileLocation(), newExpression);
+      } else {
+        return pCInitializerExpression;
+      }
     }
 
     @Override
     public CInitializerList visit(CInitializerList pCInitializerList) throws X {
 
+      boolean initializersChanged = false;
       ImmutableList.Builder<CInitializer> initializersBuilder =
           ImmutableList.builderWithExpectedSize(pCInitializerList.getInitializers().size());
 
-      for (CInitializer initializer : pCInitializerList.getInitializers()) {
-        initializersBuilder.add((CInitializer) initializer.accept(this));
+      for (CInitializer oldInitializer : pCInitializerList.getInitializers()) {
+        CInitializer newInitializer = (CInitializer) oldInitializer.accept(this);
+        initializersBuilder.add(newInitializer);
+        if (oldInitializer != newInitializer) {
+          initializersChanged = true;
+        }
       }
 
-      return new CInitializerList(pCInitializerList.getFileLocation(), initializersBuilder.build());
+      if (initializersChanged) {
+        return new CInitializerList(
+            pCInitializerList.getFileLocation(), initializersBuilder.build());
+      } else {
+        return pCInitializerList;
+      }
     }
 
     @Override
     public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws X {
 
+      boolean designatorsChanged = false;
       ImmutableList.Builder<CDesignator> designatorsBuilder =
           ImmutableList.builderWithExpectedSize(pDesignatedInitializer.getDesignators().size());
 
-      for (CDesignator designator : pDesignatedInitializer.getDesignators()) {
-        designatorsBuilder.add((CDesignator) designator.accept(this));
+      for (CDesignator oldDesignator : pDesignatedInitializer.getDesignators()) {
+        CDesignator newDesignator = (CDesignator) oldDesignator.accept(this);
+        designatorsBuilder.add(newDesignator);
+        if (oldDesignator != newDesignator) {
+          designatorsChanged = true;
+        }
       }
 
-      return new CDesignatedInitializer(
-          pDesignatedInitializer.getFileLocation(),
-          designatorsBuilder.build(),
-          (CInitializer) pDesignatedInitializer.getRightHandSide().accept(this));
+      CInitializer oldRightHandSide = pDesignatedInitializer.getRightHandSide();
+      CInitializer newRightHandSide = (CInitializer) oldRightHandSide.accept(this);
+
+      if (designatorsChanged || oldRightHandSide != newRightHandSide) {
+        return new CDesignatedInitializer(
+            pDesignatedInitializer.getFileLocation(), designatorsBuilder.build(), newRightHandSide);
+      } else {
+        return pDesignatedInitializer;
+      }
     }
 
     @Override
     public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression)
         throws X {
 
+      boolean parameterExpressionsChanged = false;
       ImmutableList.Builder<CExpression> parameterExpressionsBuilder =
           ImmutableList.builderWithExpectedSize(
               pCFunctionCallExpression.getParameterExpressions().size());
 
-      for (CExpression parameterExpression : pCFunctionCallExpression.getParameterExpressions()) {
-        parameterExpressionsBuilder.add((CExpression) parameterExpression.accept(this));
+      for (CExpression oldParameterExpression :
+          pCFunctionCallExpression.getParameterExpressions()) {
+        CExpression newParameterExpression = (CExpression) oldParameterExpression.accept(this);
+        parameterExpressionsBuilder.add(newParameterExpression);
+        if (oldParameterExpression != newParameterExpression) {
+          parameterExpressionsChanged = true;
+        }
       }
 
-      CFunctionDeclaration functionDeclaration = pCFunctionCallExpression.getDeclaration();
-      if (functionDeclaration != null) {
-        functionDeclaration = (CFunctionDeclaration) functionDeclaration.accept(this);
+      CFunctionDeclaration oldFunctionDeclaration = pCFunctionCallExpression.getDeclaration();
+      CFunctionDeclaration newFunctionDeclaration = null;
+      if (oldFunctionDeclaration != null) {
+        newFunctionDeclaration = (CFunctionDeclaration) oldFunctionDeclaration.accept(this);
       }
 
-      return new CFunctionCallExpression(
-          pCFunctionCallExpression.getFileLocation(),
-          pCFunctionCallExpression.getExpressionType(),
-          (CExpression) pCFunctionCallExpression.getFunctionNameExpression().accept(this),
-          parameterExpressionsBuilder.build(),
-          functionDeclaration);
+      CExpression oldFunctionNameExpression = pCFunctionCallExpression.getFunctionNameExpression();
+      CExpression newFunctionNameExpression = (CExpression) oldFunctionNameExpression.accept(this);
+
+      if (parameterExpressionsChanged
+          || oldFunctionDeclaration != newFunctionDeclaration
+          || oldFunctionNameExpression != newFunctionNameExpression) {
+        return new CFunctionCallExpression(
+            pCFunctionCallExpression.getFileLocation(),
+            pCFunctionCallExpression.getExpressionType(),
+            newFunctionNameExpression,
+            parameterExpressionsBuilder.build(),
+            newFunctionDeclaration);
+      } else {
+        return pCFunctionCallExpression;
+      }
     }
 
     @Override
     public CExpression visit(CBinaryExpression pCBinaryExpression) throws X {
-      return new CBinaryExpression(
-          pCBinaryExpression.getFileLocation(),
-          pCBinaryExpression.getExpressionType(),
-          pCBinaryExpression.getCalculationType(),
-          (CExpression) pCBinaryExpression.getOperand1().accept(this),
-          (CExpression) pCBinaryExpression.getOperand2().accept(this),
-          pCBinaryExpression.getOperator());
+
+      CExpression oldOperand1Expression = pCBinaryExpression.getOperand1();
+      CExpression newOperand1Expression = (CExpression) oldOperand1Expression.accept(this);
+
+      CExpression oldOperand2Expression = pCBinaryExpression.getOperand2();
+      CExpression newOperand2Expression = (CExpression) oldOperand2Expression.accept(this);
+
+      if (oldOperand1Expression != newOperand1Expression
+          || oldOperand2Expression != newOperand2Expression) {
+        return new CBinaryExpression(
+            pCBinaryExpression.getFileLocation(),
+            pCBinaryExpression.getExpressionType(),
+            pCBinaryExpression.getCalculationType(),
+            newOperand1Expression,
+            newOperand2Expression,
+            pCBinaryExpression.getOperator());
+      } else {
+        return pCBinaryExpression;
+      }
     }
 
     @Override
     public CExpression visit(CCastExpression pCCastExpression) throws X {
-      return new CCastExpression(
-          pCCastExpression.getFileLocation(),
-          pCCastExpression.getExpressionType(),
-          (CExpression) pCCastExpression.getOperand().accept(this));
+
+      CExpression oldOperandExpression = pCCastExpression.getOperand();
+      CExpression newOperandExpression = (CExpression) oldOperandExpression.accept(this);
+
+      if (oldOperandExpression != newOperandExpression) {
+        return new CCastExpression(
+            pCCastExpression.getFileLocation(),
+            pCCastExpression.getExpressionType(),
+            newOperandExpression);
+      } else {
+        return pCCastExpression;
+      }
     }
 
     @Override
@@ -218,19 +295,35 @@ public final class CAstNodeTransformer<X extends Exception> {
 
     @Override
     public CExpression visit(CUnaryExpression pCUnaryExpression) throws X {
-      return new CUnaryExpression(
-          pCUnaryExpression.getFileLocation(),
-          pCUnaryExpression.getExpressionType(),
-          (CExpression) pCUnaryExpression.getOperand().accept(this),
-          pCUnaryExpression.getOperator());
+
+      CExpression oldOperandExpression = pCUnaryExpression.getOperand();
+      CExpression newOperandExpression = (CExpression) oldOperandExpression.accept(this);
+
+      if (oldOperandExpression != newOperandExpression) {
+        return new CUnaryExpression(
+            pCUnaryExpression.getFileLocation(),
+            pCUnaryExpression.getExpressionType(),
+            newOperandExpression,
+            pCUnaryExpression.getOperator());
+      } else {
+        return pCUnaryExpression;
+      }
     }
 
     @Override
     public CExpression visit(CImaginaryLiteralExpression pCImaginaryLiteralExpression) throws X {
-      return new CImaginaryLiteralExpression(
-          pCImaginaryLiteralExpression.getFileLocation(),
-          pCImaginaryLiteralExpression.getExpressionType(),
-          (CLiteralExpression) pCImaginaryLiteralExpression.getValue().accept(this));
+
+      CLiteralExpression oldValueExpression = pCImaginaryLiteralExpression.getValue();
+      CLiteralExpression newValueExpression = (CLiteralExpression) oldValueExpression.accept(this);
+
+      if (oldValueExpression != newValueExpression) {
+        return new CImaginaryLiteralExpression(
+            pCImaginaryLiteralExpression.getFileLocation(),
+            pCImaginaryLiteralExpression.getExpressionType(),
+            newValueExpression);
+      } else {
+        return pCImaginaryLiteralExpression;
+      }
     }
 
     @Override
@@ -240,72 +333,123 @@ public final class CAstNodeTransformer<X extends Exception> {
 
     @Override
     public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) throws X {
-      return new CArraySubscriptExpression(
-          pCArraySubscriptExpression.getFileLocation(),
-          pCArraySubscriptExpression.getExpressionType(),
-          (CExpression) pCArraySubscriptExpression.getArrayExpression().accept(this),
-          (CExpression) pCArraySubscriptExpression.getSubscriptExpression().accept(this));
+
+      CExpression oldArrayExpression = pCArraySubscriptExpression.getArrayExpression();
+      CExpression newArrayExpression = (CExpression) oldArrayExpression.accept(this);
+
+      CExpression oldSubscriptExpression = pCArraySubscriptExpression.getSubscriptExpression();
+      CExpression newSubscriptExpression = (CExpression) oldSubscriptExpression.accept(this);
+
+      if (oldArrayExpression != newArrayExpression
+          || oldSubscriptExpression != newSubscriptExpression) {
+        return new CArraySubscriptExpression(
+            pCArraySubscriptExpression.getFileLocation(),
+            pCArraySubscriptExpression.getExpressionType(),
+            newArrayExpression,
+            newSubscriptExpression);
+      } else {
+        return pCArraySubscriptExpression;
+      }
     }
 
     @Override
     public CExpression visit(CFieldReference pCFieldReference) throws X {
-      return new CFieldReference(
-          pCFieldReference.getFileLocation(),
-          pCFieldReference.getExpressionType(),
-          pCFieldReference.getFieldName(),
-          (CExpression) pCFieldReference.getFieldOwner().accept(this),
-          pCFieldReference.isPointerDereference());
+
+      CExpression oldFieldOwnerExpression = pCFieldReference.getFieldOwner();
+      CExpression newFieldOwnerExpression = (CExpression) oldFieldOwnerExpression.accept(this);
+
+      if (oldFieldOwnerExpression != newFieldOwnerExpression) {
+        return new CFieldReference(
+            pCFieldReference.getFileLocation(),
+            pCFieldReference.getExpressionType(),
+            pCFieldReference.getFieldName(),
+            newFieldOwnerExpression,
+            pCFieldReference.isPointerDereference());
+      } else {
+        return pCFieldReference;
+      }
     }
 
     @Override
     public CExpression visit(CIdExpression pCIdExpression) throws X {
 
-      CSimpleDeclaration declaration = pCIdExpression.getDeclaration();
-      if (declaration != null) {
-        declaration = (CSimpleDeclaration) declaration.accept(this);
+      CSimpleDeclaration oldDeclaration = pCIdExpression.getDeclaration();
+      CSimpleDeclaration newDeclaration = null;
+      if (oldDeclaration != null) {
+        newDeclaration = (CSimpleDeclaration) oldDeclaration.accept(this);
       }
 
-      return new CIdExpression(
-          pCIdExpression.getFileLocation(),
-          pCIdExpression.getExpressionType(),
-          pCIdExpression.getName(),
-          declaration);
+      if (oldDeclaration != newDeclaration) {
+        return new CIdExpression(
+            pCIdExpression.getFileLocation(),
+            pCIdExpression.getExpressionType(),
+            pCIdExpression.getName(),
+            newDeclaration);
+      } else {
+        return pCIdExpression;
+      }
     }
 
     @Override
     public CExpression visit(CPointerExpression pCPointerExpression) throws X {
-      return new CPointerExpression(
-          pCPointerExpression.getFileLocation(),
-          pCPointerExpression.getExpressionType(),
-          (CExpression) pCPointerExpression.getOperand().accept(this));
+
+      CExpression oldOperandExpression = pCPointerExpression.getOperand();
+      CExpression newOperandExpression = (CExpression) oldOperandExpression.accept(this);
+
+      if (oldOperandExpression != newOperandExpression) {
+        return new CPointerExpression(
+            pCPointerExpression.getFileLocation(),
+            pCPointerExpression.getExpressionType(),
+            newOperandExpression);
+      } else {
+        return pCPointerExpression;
+      }
     }
 
     @Override
     public CExpression visit(CComplexCastExpression pCComplexCastExpression) throws X {
-      return new CComplexCastExpression(
-          pCComplexCastExpression.getFileLocation(),
-          pCComplexCastExpression.getExpressionType(),
-          (CExpression) pCComplexCastExpression.getOperand().accept(this),
-          pCComplexCastExpression.getType(),
-          pCComplexCastExpression.isRealCast());
+
+      CExpression oldOperandExpression = pCComplexCastExpression.getOperand();
+      CExpression newOperandExpression = (CExpression) oldOperandExpression.accept(this);
+
+      if (oldOperandExpression != newOperandExpression) {
+        return new CComplexCastExpression(
+            pCComplexCastExpression.getFileLocation(),
+            pCComplexCastExpression.getExpressionType(),
+            newOperandExpression,
+            pCComplexCastExpression.getType(),
+            pCComplexCastExpression.isRealCast());
+      } else {
+        return pCComplexCastExpression;
+      }
     }
 
     @Override
     public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) throws X {
 
+      boolean parametersChanged = false;
       ImmutableList.Builder<CParameterDeclaration> parametersBuilder =
           ImmutableList.builderWithExpectedSize(pCFunctionDeclaration.getParameters().size());
 
-      for (CParameterDeclaration parameterDeclaration : pCFunctionDeclaration.getParameters()) {
-        parametersBuilder.add((CParameterDeclaration) parameterDeclaration.accept(this));
+      for (CParameterDeclaration oldParameterDeclaration : pCFunctionDeclaration.getParameters()) {
+        CParameterDeclaration newParameterDeclaration =
+            (CParameterDeclaration) oldParameterDeclaration.accept(this);
+        parametersBuilder.add(newParameterDeclaration);
+        if (oldParameterDeclaration != newParameterDeclaration) {
+          parametersChanged = true;
+        }
       }
 
-      return new CFunctionDeclaration(
-          pCFunctionDeclaration.getFileLocation(),
-          pCFunctionDeclaration.getType(),
-          pCFunctionDeclaration.getName(),
-          pCFunctionDeclaration.getOrigName(),
-          parametersBuilder.build());
+      if (parametersChanged) {
+        return new CFunctionDeclaration(
+            pCFunctionDeclaration.getFileLocation(),
+            pCFunctionDeclaration.getType(),
+            pCFunctionDeclaration.getName(),
+            pCFunctionDeclaration.getOrigName(),
+            parametersBuilder.build());
+      } else {
+        return pCFunctionDeclaration;
+      }
     }
 
     @Override
@@ -341,15 +485,21 @@ public final class CAstNodeTransformer<X extends Exception> {
       visitedVariableDeclaration = pCVariableDeclaration;
       createdVariableDeclaration = variableDeclaration;
 
-      CInitializer initializer = pCVariableDeclaration.getInitializer();
-      if (initializer != null) {
-        variableDeclaration.addInitializer((CInitializer) initializer.accept(this));
+      CInitializer oldInitializer = pCVariableDeclaration.getInitializer();
+      CInitializer newInitializer = null;
+      if (oldInitializer != null) {
+        newInitializer = (CInitializer) oldInitializer.accept(this);
+        variableDeclaration.addInitializer(newInitializer);
       }
 
       visitedVariableDeclaration = null;
       createdVariableDeclaration = null;
 
-      return variableDeclaration;
+      if (oldInitializer != newInitializer) {
+        return variableDeclaration;
+      } else {
+        return pCVariableDeclaration;
+      }
     }
 
     @Override
@@ -364,55 +514,107 @@ public final class CAstNodeTransformer<X extends Exception> {
 
     @Override
     public CStatement visit(CExpressionStatement pCExpressionStatement) throws X {
-      return new CExpressionStatement(
-          pCExpressionStatement.getFileLocation(),
-          (CExpression) pCExpressionStatement.getExpression().accept(this));
+
+      CExpression oldExpression = pCExpressionStatement.getExpression();
+      CExpression newExpression = (CExpression) oldExpression.accept(this);
+
+      if (oldExpression != newExpression) {
+        return new CExpressionStatement(pCExpressionStatement.getFileLocation(), newExpression);
+      } else {
+        return pCExpressionStatement;
+      }
     }
 
     @Override
     public CStatement visit(CExpressionAssignmentStatement pCExpressionAssignmentStatement)
         throws X {
-      return new CExpressionAssignmentStatement(
-          pCExpressionAssignmentStatement.getFileLocation(),
-          (CLeftHandSide) pCExpressionAssignmentStatement.getLeftHandSide().accept(this),
-          (CExpression) pCExpressionAssignmentStatement.getRightHandSide().accept(this));
+
+      CLeftHandSide oldLeftHandSide = pCExpressionAssignmentStatement.getLeftHandSide();
+      CLeftHandSide newLeftHandSide = (CLeftHandSide) oldLeftHandSide.accept(this);
+
+      CExpression oldRightHandSide = pCExpressionAssignmentStatement.getRightHandSide();
+      CExpression newRightHandSide = (CExpression) oldRightHandSide.accept(this);
+
+      if (oldLeftHandSide != newLeftHandSide || oldRightHandSide != newRightHandSide) {
+        return new CExpressionAssignmentStatement(
+            pCExpressionAssignmentStatement.getFileLocation(), newLeftHandSide, newRightHandSide);
+      } else {
+        return pCExpressionAssignmentStatement;
+      }
     }
 
     @Override
     public CStatement visit(CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement)
         throws X {
-      return new CFunctionCallAssignmentStatement(
-          pCFunctionCallAssignmentStatement.getFileLocation(),
-          (CLeftHandSide) pCFunctionCallAssignmentStatement.getLeftHandSide().accept(this),
-          (CFunctionCallExpression)
-              pCFunctionCallAssignmentStatement.getFunctionCallExpression().accept(this));
+
+      CLeftHandSide oldLeftHandSide = pCFunctionCallAssignmentStatement.getLeftHandSide();
+      CLeftHandSide newLeftHandSide = (CLeftHandSide) oldLeftHandSide.accept(this);
+
+      CFunctionCallExpression oldFunctionCallExpression =
+          pCFunctionCallAssignmentStatement.getFunctionCallExpression();
+      CFunctionCallExpression newFunctionCallExpression =
+          (CFunctionCallExpression) oldFunctionCallExpression.accept(this);
+
+      if (oldLeftHandSide != newLeftHandSide
+          || oldFunctionCallExpression != newFunctionCallExpression) {
+        return new CFunctionCallAssignmentStatement(
+            pCFunctionCallAssignmentStatement.getFileLocation(),
+            newLeftHandSide,
+            newFunctionCallExpression);
+      } else {
+        return pCFunctionCallAssignmentStatement;
+      }
     }
 
     @Override
     public CStatement visit(CFunctionCallStatement pCFunctionCallStatement) throws X {
-      return new CFunctionCallStatement(
-          pCFunctionCallStatement.getFileLocation(),
-          (CFunctionCallExpression)
-              pCFunctionCallStatement.getFunctionCallExpression().accept(this));
+
+      CFunctionCallExpression oldFunctionCallExpression =
+          pCFunctionCallStatement.getFunctionCallExpression();
+      CFunctionCallExpression newFunctionCallExpression =
+          (CFunctionCallExpression) oldFunctionCallExpression.accept(this);
+
+      if (oldFunctionCallExpression != newFunctionCallExpression) {
+        return new CFunctionCallStatement(
+            pCFunctionCallStatement.getFileLocation(), newFunctionCallExpression);
+      } else {
+        return pCFunctionCallStatement;
+      }
     }
 
     @Override
     public CReturnStatement visit(CReturnStatement pCReturnStatement) throws X {
 
-      Optional<? extends CExpression> oldReturnValue = pCReturnStatement.getReturnValue();
-      Optional<CExpression> newReturnValue = Optional.absent();
-      if (oldReturnValue.isPresent()) {
-        newReturnValue = Optional.of((CExpression) oldReturnValue.orNull().accept(this));
+      boolean changed = false;
+
+      Optional<? extends CExpression> oldOptionalReturnValue = pCReturnStatement.getReturnValue();
+      Optional<CExpression> newOptionalReturnValue = Optional.absent();
+      if (oldOptionalReturnValue.isPresent()) {
+        CExpression oldReturnValue = oldOptionalReturnValue.orNull();
+        CExpression newReturnValue = (CExpression) oldReturnValue.accept(this);
+        newOptionalReturnValue = Optional.of(newReturnValue);
+        if (oldReturnValue != newReturnValue) {
+          changed = true;
+        }
       }
 
-      Optional<? extends CAssignment> oldAssignment = pCReturnStatement.asAssignment();
-      Optional<CAssignment> newAssignment = Optional.absent();
-      if (oldAssignment.isPresent()) {
-        newAssignment = Optional.of((CAssignment) oldAssignment.orNull().accept(this));
+      Optional<? extends CAssignment> oldOptionalAssignment = pCReturnStatement.asAssignment();
+      Optional<CAssignment> newOptionalAssignment = Optional.absent();
+      if (oldOptionalAssignment.isPresent()) {
+        CAssignment oldAssignment = oldOptionalAssignment.orNull();
+        CAssignment newAssignment = (CAssignment) oldAssignment.accept(this);
+        newOptionalAssignment = Optional.of(newAssignment);
+        if (oldAssignment != newAssignment) {
+          changed = true;
+        }
       }
 
-      return new CReturnStatement(
-          pCReturnStatement.getFileLocation(), newReturnValue, newAssignment);
+      if (changed) {
+        return new CReturnStatement(
+            pCReturnStatement.getFileLocation(), newOptionalReturnValue, newOptionalAssignment);
+      } else {
+        return pCReturnStatement;
+      }
     }
   }
 
