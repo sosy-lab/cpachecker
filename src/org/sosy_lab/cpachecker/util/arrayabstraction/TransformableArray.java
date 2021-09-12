@@ -440,7 +440,7 @@ public final class TransformableArray {
         CExpression pIndexExpression);
 
     @Override
-    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) throws NoException {
+    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
       ArrayOperationType prev = mode;
 
@@ -463,7 +463,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CArrayDesignator pArrayDesignator) throws NoException {
+    public Void visit(CArrayDesignator pArrayDesignator) {
 
       pArrayDesignator.getSubscriptExpression().accept(this);
 
@@ -471,7 +471,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) throws NoException {
+    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) {
 
       pArrayRangeDesignator.getFloorExpression().accept(this);
       pArrayRangeDesignator.getCeilExpression().accept(this);
@@ -480,12 +480,12 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CFieldDesignator pFieldDesignator) throws NoException {
+    public Void visit(CFieldDesignator pFieldDesignator) {
       return null;
     }
 
     @Override
-    public Void visit(CInitializerExpression pInitializerExpression) throws NoException {
+    public Void visit(CInitializerExpression pInitializerExpression) {
 
       pInitializerExpression.getExpression().accept(this);
 
@@ -493,7 +493,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CInitializerList pInitializerList) throws NoException {
+    public Void visit(CInitializerList pInitializerList) {
 
       for (CInitializer initializer : pInitializerList.getInitializers()) {
         initializer.accept(this);
@@ -503,7 +503,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CDesignatedInitializer pCStructInitializerPart) throws NoException {
+    public Void visit(CDesignatedInitializer pCStructInitializerPart) {
 
       pCStructInitializerPart.getRightHandSide().accept(this);
 
@@ -515,7 +515,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CFunctionCallExpression pIastFunctionCallExpression) throws NoException {
+    public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
 
       pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
 
@@ -527,7 +527,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CBinaryExpression pIastBinaryExpression) throws NoException {
+    public Void visit(CBinaryExpression pIastBinaryExpression) {
 
       pIastBinaryExpression.getOperand1().accept(this);
       pIastBinaryExpression.getOperand2().accept(this);
@@ -536,7 +536,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CCastExpression pIastCastExpression) throws NoException {
+    public Void visit(CCastExpression pIastCastExpression) {
 
       pIastCastExpression.getOperand().accept(this);
 
@@ -544,32 +544,32 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CCharLiteralExpression pIastCharLiteralExpression) throws NoException {
+    public Void visit(CCharLiteralExpression pIastCharLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws NoException {
+    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws NoException {
+    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CStringLiteralExpression pIastStringLiteralExpression) throws NoException {
+    public Void visit(CStringLiteralExpression pIastStringLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
+    public Void visit(CTypeIdExpression pIastTypeIdExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) throws NoException {
+    public Void visit(CUnaryExpression pIastUnaryExpression) {
 
       pIastUnaryExpression.getOperand().accept(this);
 
@@ -577,17 +577,17 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) throws NoException {
+    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws NoException {
+    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CFieldReference pIastFieldReference) throws NoException {
+    public Void visit(CFieldReference pIastFieldReference) {
 
       if (pIastFieldReference.isPointerDereference()) {
 
@@ -606,12 +606,12 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CIdExpression pIastIdExpression) throws NoException {
+    public Void visit(CIdExpression pIastIdExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CPointerExpression pPointerExpression) throws NoException {
+    public Void visit(CPointerExpression pPointerExpression) {
 
       ArrayOperationType prev = mode;
 
@@ -624,7 +624,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CComplexCastExpression pComplexCastExpression) throws NoException {
+    public Void visit(CComplexCastExpression pComplexCastExpression) {
 
       pComplexCastExpression.getOperand().accept(this);
 
@@ -632,7 +632,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CFunctionDeclaration pDecl) throws NoException {
+    public Void visit(CFunctionDeclaration pDecl) {
 
       for (CParameterDeclaration declaration : pDecl.getParameters()) {
         declaration.accept(this);
@@ -642,17 +642,17 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CComplexTypeDeclaration pDecl) throws NoException {
+    public Void visit(CComplexTypeDeclaration pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CTypeDefDeclaration pDecl) throws NoException {
+    public Void visit(CTypeDefDeclaration pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CVariableDeclaration pDecl) throws NoException {
+    public Void visit(CVariableDeclaration pDecl) {
 
       CInitializer initializer = pDecl.getInitializer();
       if (initializer != null) {
@@ -664,7 +664,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CParameterDeclaration pDecl) throws NoException {
+    public Void visit(CParameterDeclaration pDecl) {
 
       pDecl.asVariableDeclaration().accept(this);
 
@@ -672,12 +672,12 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CEnumerator pDecl) throws NoException {
+    public Void visit(CEnumerator pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CExpressionStatement pIastExpressionStatement) throws NoException {
+    public Void visit(CExpressionStatement pIastExpressionStatement) {
 
       pIastExpressionStatement.getExpression().accept(this);
 
@@ -685,8 +685,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
-        throws NoException {
+    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
 
       mode = ArrayOperationType.WRITE;
       pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
@@ -698,8 +697,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
-        throws NoException {
+    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
 
       mode = ArrayOperationType.WRITE;
       pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
@@ -711,7 +709,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) throws NoException {
+    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
 
       List<CExpression> paramExpressions =
           pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
@@ -730,7 +728,7 @@ public final class TransformableArray {
     }
 
     @Override
-    public Void visit(CReturnStatement pNode) throws NoException {
+    public Void visit(CReturnStatement pNode) {
 
       Optional<CExpression> optExpression = pNode.getReturnValue();
 
