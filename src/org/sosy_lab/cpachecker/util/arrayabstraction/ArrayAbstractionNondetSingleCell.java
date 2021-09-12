@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CfaTransformer;
@@ -109,7 +110,7 @@ public class ArrayAbstractionNondetSingleCell {
     ImmutableSet.Builder<CExpression> conditionsBuilder = ImmutableSet.builder();
 
     for (TransformableArray transformableArray : pTransformableArrays) {
-      CAstNodeTransformer<CAstNodeTransformer.ImpossibleException> astTransformer =
+      CAstNodeTransformer<NoException> astTransformer =
           CAstNodeTransformer.of(
               new ReplaceLoopIndexAstTransformingVisitor(transformableArray, pTransformableLoop));
       conditionsBuilder.add((CExpression) astTransformer.transform(indexGreaterEqualZeroCondition));
@@ -376,7 +377,7 @@ public class ArrayAbstractionNondetSingleCell {
     }
 
     SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
-    SimpleEdgeTransformer<DummyException> edgeTransformer =
+    SimpleEdgeTransformer<NoException> edgeTransformer =
         new SimpleEdgeTransformer<>(arrayOperationReplacementMap::getAstTransformer);
 
     return cfaTransformer.createCfa(nodeTransformer, edgeTransformer);
@@ -401,7 +402,7 @@ public class ArrayAbstractionNondetSingleCell {
       replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
     }
 
-    private CAstNodeTransformer<DummyException> getAstTransformer(CFAEdge pEdge) {
+    private CAstNodeTransformer<NoException> getAstTransformer(CFAEdge pEdge) {
 
       Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
           replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
@@ -410,8 +411,7 @@ public class ArrayAbstractionNondetSingleCell {
   }
 
   private static final class ReplaceLoopIndexAstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<
-          CAstNodeTransformer.ImpossibleException> {
+      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
 
     private final TransformableArray transformableArray;
     private final TransformableLoop transformableLoop;
@@ -435,13 +435,8 @@ public class ArrayAbstractionNondetSingleCell {
     }
   }
 
-  /** Dummy exception that is never thrown. */
-  private static final class DummyException extends RuntimeException {
-    private static final long serialVersionUID = 5190704946346699983L;
-  }
-
   private static final class AstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<DummyException> {
+      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
 
     private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
 

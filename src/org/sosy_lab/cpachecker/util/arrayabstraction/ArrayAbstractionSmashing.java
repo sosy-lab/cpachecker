@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -158,23 +159,18 @@ public class ArrayAbstractionSmashing {
       }
     }
 
-    CAstNodeTransformer<DummyException> astTransformer =
+    CAstNodeTransformer<NoException> astTransformer =
         CAstNodeTransformer.of(
             new AstTransformingVisitor(ImmutableSet.copyOf(arrayMemoryLocations)));
     SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
-    SimpleEdgeTransformer<DummyException> edgeTransformer =
+    SimpleEdgeTransformer<NoException> edgeTransformer =
         new SimpleEdgeTransformer<>(edge -> astTransformer);
 
     return cfaTransformer.createCfa(nodeTransformer, edgeTransformer);
   }
 
-  /** Dummy exception that is never thrown. */
-  private static final class DummyException extends RuntimeException {
-    private static final long serialVersionUID = -2116660848954687565L;
-  }
-
   private static final class AstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<DummyException> {
+      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
 
     private final ImmutableSet<MemoryLocation> arrayMemoryLocations;
 

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -102,7 +103,7 @@ public class ArrayAbstractionNondetRead {
     }
 
     SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
-    SimpleEdgeTransformer<DummyException> edgeTransformer =
+    SimpleEdgeTransformer<NoException> edgeTransformer =
         new SimpleEdgeTransformer<>(arrayOperationReplacementMap::getAstTransformer);
 
     return cfaTransformer.createCfa(nodeTransformer, edgeTransformer);
@@ -127,7 +128,7 @@ public class ArrayAbstractionNondetRead {
       replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
     }
 
-    private CAstNodeTransformer<DummyException> getAstTransformer(CFAEdge pEdge) {
+    private CAstNodeTransformer<NoException> getAstTransformer(CFAEdge pEdge) {
 
       Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
           replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
@@ -135,13 +136,8 @@ public class ArrayAbstractionNondetRead {
     }
   }
 
-  /** Dummy exception that is never thrown. */
-  private static final class DummyException extends RuntimeException {
-    private static final long serialVersionUID = -3851124331643184847L;
-  }
-
   private static final class AstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<DummyException> {
+      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
 
     private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
 

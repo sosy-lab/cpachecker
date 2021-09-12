@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public final class CAstNodeTransformer<X extends Exception> {
 
@@ -71,8 +72,8 @@ public final class CAstNodeTransformer<X extends Exception> {
     return new CAstNodeTransformer<>(pTransformingVisitor);
   }
 
-  public static CAstNodeTransformer<ImpossibleException> identity() {
-    return new CAstNodeTransformer<>(new FastIdentityTransformer<>());
+  public static CAstNodeTransformer<NoException> identity() {
+    return new CAstNodeTransformer<>(new FastIdentityTransformer());
   }
 
   public CAstNode transform(CAstNode pCAstNode) throws X {
@@ -520,188 +521,173 @@ public final class CAstNodeTransformer<X extends Exception> {
     }
   }
 
-  public static final class ImpossibleException extends RuntimeException {
-
-    private static final long serialVersionUID = 2348284925894663519L;
-
-    private ImpossibleException() {}
-  }
-
-  private static final class FastIdentityTransformer<X extends Exception>
-      implements TransformingVisitor<X> {
+  private static final class FastIdentityTransformer implements TransformingVisitor<NoException> {
 
     @Override
-    public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) throws X {
+    public CArrayDesignator visit(CArrayDesignator pCArrayDesignator) {
       return pCArrayDesignator;
     }
 
     @Override
-    public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) throws X {
+    public CArrayRangeDesignator visit(CArrayRangeDesignator pCArrayRangeDesignator) {
       return pCArrayRangeDesignator;
     }
 
     @Override
-    public CFieldDesignator visit(CFieldDesignator pCFieldDesignator) throws X {
+    public CFieldDesignator visit(CFieldDesignator pCFieldDesignator) {
       return pCFieldDesignator;
     }
 
     @Override
-    public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) throws X {
+    public CInitializerExpression visit(CInitializerExpression pCInitializerExpression) {
       return pCInitializerExpression;
     }
 
     @Override
-    public CInitializerList visit(CInitializerList pCInitializerList) throws X {
+    public CInitializerList visit(CInitializerList pCInitializerList) {
       return pCInitializerList;
     }
 
     @Override
-    public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) throws X {
+    public CDesignatedInitializer visit(CDesignatedInitializer pDesignatedInitializer) {
       return pDesignatedInitializer;
     }
 
     @Override
-    public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression)
-        throws X {
+    public CFunctionCallExpression visit(CFunctionCallExpression pCFunctionCallExpression) {
       return pCFunctionCallExpression;
     }
 
     @Override
-    public CBinaryExpression visit(CBinaryExpression pCBinaryExpression) throws X {
+    public CBinaryExpression visit(CBinaryExpression pCBinaryExpression) {
       return pCBinaryExpression;
     }
 
     @Override
-    public CCastExpression visit(CCastExpression pCCastExpression) throws X {
+    public CCastExpression visit(CCastExpression pCCastExpression) {
       return pCCastExpression;
     }
 
     @Override
-    public CCharLiteralExpression visit(CCharLiteralExpression pCCharLiteralExpression) throws X {
+    public CCharLiteralExpression visit(CCharLiteralExpression pCCharLiteralExpression) {
       return pCCharLiteralExpression;
     }
 
     @Override
-    public CFloatLiteralExpression visit(CFloatLiteralExpression pCFloatLiteralExpression)
-        throws X {
+    public CFloatLiteralExpression visit(CFloatLiteralExpression pCFloatLiteralExpression) {
       return pCFloatLiteralExpression;
     }
 
     @Override
-    public CIntegerLiteralExpression visit(CIntegerLiteralExpression pCIntegerLiteralExpression)
-        throws X {
+    public CIntegerLiteralExpression visit(CIntegerLiteralExpression pCIntegerLiteralExpression) {
       return pCIntegerLiteralExpression;
     }
 
     @Override
-    public CStringLiteralExpression visit(CStringLiteralExpression pCStringLiteralExpression)
-        throws X {
+    public CStringLiteralExpression visit(CStringLiteralExpression pCStringLiteralExpression) {
       return pCStringLiteralExpression;
     }
 
     @Override
-    public CTypeIdExpression visit(CTypeIdExpression pCTypeIdExpression) throws X {
+    public CTypeIdExpression visit(CTypeIdExpression pCTypeIdExpression) {
       return pCTypeIdExpression;
     }
 
     @Override
-    public CUnaryExpression visit(CUnaryExpression pCUnaryExpression) throws X {
+    public CUnaryExpression visit(CUnaryExpression pCUnaryExpression) {
       return pCUnaryExpression;
     }
 
     @Override
     public CImaginaryLiteralExpression visit(
-        CImaginaryLiteralExpression pCImaginaryLiteralExpression) throws X {
+        CImaginaryLiteralExpression pCImaginaryLiteralExpression) {
       return pCImaginaryLiteralExpression;
     }
 
     @Override
-    public CAddressOfLabelExpression visit(CAddressOfLabelExpression pCAddressOfLabelExpression)
-        throws X {
+    public CAddressOfLabelExpression visit(CAddressOfLabelExpression pCAddressOfLabelExpression) {
       return pCAddressOfLabelExpression;
     }
 
     @Override
-    public CArraySubscriptExpression visit(CArraySubscriptExpression pCArraySubscriptExpression)
-        throws X {
+    public CArraySubscriptExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) {
       return pCArraySubscriptExpression;
     }
 
     @Override
-    public CFieldReference visit(CFieldReference pCFieldReference) throws X {
+    public CFieldReference visit(CFieldReference pCFieldReference) {
       return pCFieldReference;
     }
 
     @Override
-    public CIdExpression visit(CIdExpression pCIdExpression) throws X {
+    public CIdExpression visit(CIdExpression pCIdExpression) {
       return pCIdExpression;
     }
 
     @Override
-    public CPointerExpression visit(CPointerExpression pCPointerExpression) throws X {
+    public CPointerExpression visit(CPointerExpression pCPointerExpression) {
       return pCPointerExpression;
     }
 
     @Override
-    public CComplexCastExpression visit(CComplexCastExpression pCComplexCastExpression) throws X {
+    public CComplexCastExpression visit(CComplexCastExpression pCComplexCastExpression) {
       return pCComplexCastExpression;
     }
 
     @Override
-    public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) throws X {
+    public CFunctionDeclaration visit(CFunctionDeclaration pCFunctionDeclaration) {
       return pCFunctionDeclaration;
     }
 
     @Override
-    public CComplexTypeDeclaration visit(CComplexTypeDeclaration pCComplexTypeDeclaration)
-        throws X {
+    public CComplexTypeDeclaration visit(CComplexTypeDeclaration pCComplexTypeDeclaration) {
       return pCComplexTypeDeclaration;
     }
 
     @Override
-    public CTypeDefDeclaration visit(CTypeDefDeclaration pCTypeDefDeclaration) throws X {
+    public CTypeDefDeclaration visit(CTypeDefDeclaration pCTypeDefDeclaration) {
       return pCTypeDefDeclaration;
     }
 
     @Override
-    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) throws X {
+    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) {
       return pCVariableDeclaration;
     }
 
     @Override
-    public CParameterDeclaration visit(CParameterDeclaration pCParameterDeclaration) throws X {
+    public CParameterDeclaration visit(CParameterDeclaration pCParameterDeclaration) {
       return pCParameterDeclaration;
     }
 
     @Override
-    public CEnumerator visit(CEnumerator pCEnumerator) throws X {
+    public CEnumerator visit(CEnumerator pCEnumerator) {
       return pCEnumerator;
     }
 
     @Override
-    public CExpressionStatement visit(CExpressionStatement pCExpressionStatement) throws X {
+    public CExpressionStatement visit(CExpressionStatement pCExpressionStatement) {
       return pCExpressionStatement;
     }
 
     @Override
     public CExpressionAssignmentStatement visit(
-        CExpressionAssignmentStatement pCExpressionAssignmentStatement) throws X {
+        CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
       return pCExpressionAssignmentStatement;
     }
 
     @Override
     public CFunctionCallAssignmentStatement visit(
-        CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) throws X {
+        CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) {
       return pCFunctionCallAssignmentStatement;
     }
 
     @Override
-    public CFunctionCallStatement visit(CFunctionCallStatement pCFunctionCallStatement) throws X {
+    public CFunctionCallStatement visit(CFunctionCallStatement pCFunctionCallStatement) {
       return pCFunctionCallStatement;
     }
 
     @Override
-    public CReturnStatement visit(CReturnStatement pCReturnStatement) throws X {
+    public CReturnStatement visit(CReturnStatement pCReturnStatement) {
       return pCReturnStatement;
     }
   }
