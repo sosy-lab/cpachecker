@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,18 +29,17 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 
 class SimpleEdgeTransformer<X extends RuntimeException> implements CCfaTransformer.EdgeTransformer {
 
-  private final Function<CFAEdge, CAstNodeTransformer<X>> edgeToAstTransformer;
+  private final Function<CFAEdge, TransformingCAstNodeVisitor<X>> edgeToAstTransformer;
 
-  SimpleEdgeTransformer(Function<CFAEdge, CAstNodeTransformer<X>> pEdgeToAstTransformer) {
+  SimpleEdgeTransformer(Function<CFAEdge, TransformingCAstNodeVisitor<X>> pEdgeToAstTransformer) {
     edgeToAstTransformer = pEdgeToAstTransformer;
   }
 
-  private CAstNodeTransformer<X> createAstTransformer(CFAEdge pCfaEdge) {
+  private TransformingCAstNodeVisitor<X> createAstTransformer(CFAEdge pCfaEdge) {
     return edgeToAstTransformer.apply(pCfaEdge);
   }
 
@@ -185,7 +185,8 @@ class SimpleEdgeTransformer<X extends RuntimeException> implements CCfaTransform
       CFANode pNewPredecessor,
       CFANode pNewSuccessor) {
 
-    CAstNodeTransformer<X> astTransformer = createAstTransformer(pOldCFunctionSummaryStatementEdge);
+    TransformingCAstNodeVisitor<X> astTransformer =
+        createAstTransformer(pOldCFunctionSummaryStatementEdge);
     CStatement newStatement =
         (CStatement) astTransformer.transform(pOldCFunctionSummaryStatementEdge.getStatement());
     CFunctionCall newFunctionCall =

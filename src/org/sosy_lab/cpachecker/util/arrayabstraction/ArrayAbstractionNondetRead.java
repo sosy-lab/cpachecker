@@ -17,15 +17,16 @@ import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CfaTransformer;
@@ -128,16 +129,16 @@ public class ArrayAbstractionNondetRead {
       replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
     }
 
-    private CAstNodeTransformer<NoException> getAstTransformer(CFAEdge pEdge) {
+    private TransformingCAstNodeVisitor<NoException> getAstTransformer(CFAEdge pEdge) {
 
       Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
           replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
-      return CAstNodeTransformer.of(new AstTransformingVisitor(replacements));
+      return new AstTransformingVisitor(replacements);
     }
   }
 
   private static final class AstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
+      extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
 
@@ -147,7 +148,7 @@ public class ArrayAbstractionNondetRead {
     }
 
     @Override
-    public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) {
+    public CAstNode visit(CArraySubscriptExpression pCArraySubscriptExpression) {
 
       if (!arrayOperationReplacements.isEmpty()) {
 
@@ -180,7 +181,7 @@ public class ArrayAbstractionNondetRead {
     }
 
     @Override
-    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) {
+    public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
 
       if (pCVariableDeclaration.getType() instanceof CArrayType) {
         return ArrayAbstractionUtils.createNonArrayVariableDeclaration(pCVariableDeclaration);

@@ -18,7 +18,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -28,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -36,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CfaTransformer;
@@ -159,9 +161,8 @@ public class ArrayAbstractionSmashing {
       }
     }
 
-    CAstNodeTransformer<NoException> astTransformer =
-        CAstNodeTransformer.of(
-            new AstTransformingVisitor(ImmutableSet.copyOf(arrayMemoryLocations)));
+    TransformingCAstNodeVisitor<NoException> astTransformer =
+        new AstTransformingVisitor(ImmutableSet.copyOf(arrayMemoryLocations));
     SimpleNodeTransformer nodeTransformer = new SimpleNodeTransformer();
     SimpleEdgeTransformer<NoException> edgeTransformer =
         new SimpleEdgeTransformer<>(edge -> astTransformer);
@@ -170,7 +171,7 @@ public class ArrayAbstractionSmashing {
   }
 
   private static final class AstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
+      extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final ImmutableSet<MemoryLocation> arrayMemoryLocations;
 
@@ -192,7 +193,7 @@ public class ArrayAbstractionSmashing {
     }
 
     @Override
-    public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) {
+    public CAstNode visit(CArraySubscriptExpression pCArraySubscriptExpression) {
 
       ImmutableSet<TransformableArray.ArrayOperation> arrayOperations =
           TransformableArray.getArrayOperations(pCArraySubscriptExpression);
@@ -211,7 +212,7 @@ public class ArrayAbstractionSmashing {
     }
 
     @Override
-    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) {
+    public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
 
       CType type = pCVariableDeclaration.getType();
       if (type instanceof CArrayType) {
@@ -230,7 +231,7 @@ public class ArrayAbstractionSmashing {
     }
 
     @Override
-    public CExpression visit(CIdExpression pCIdExpression) {
+    public CAstNode visit(CIdExpression pCIdExpression) {
 
       if (isArrayIdExpression(pCIdExpression)) {
         CDeclaration declaration = (CDeclaration) pCIdExpression.getDeclaration().accept(this);

@@ -20,7 +20,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -40,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CAstNodeTransformer;
 import org.sosy_lab.cpachecker.util.CCfaTransformer;
 import org.sosy_lab.cpachecker.util.CfaTransformer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -110,9 +112,8 @@ public class ArrayAbstractionNondetSingleCell {
     ImmutableSet.Builder<CExpression> conditionsBuilder = ImmutableSet.builder();
 
     for (TransformableArray transformableArray : pTransformableArrays) {
-      CAstNodeTransformer<NoException> astTransformer =
-          CAstNodeTransformer.of(
-              new ReplaceLoopIndexAstTransformingVisitor(transformableArray, pTransformableLoop));
+      TransformingCAstNodeVisitor<NoException> astTransformer =
+          new ReplaceLoopIndexAstTransformingVisitor(transformableArray, pTransformableLoop);
       conditionsBuilder.add((CExpression) astTransformer.transform(indexGreaterEqualZeroCondition));
       conditionsBuilder.add((CExpression) astTransformer.transform(initCondition));
       conditionsBuilder.add((CExpression) astTransformer.transform(loopCondition));
@@ -402,16 +403,16 @@ public class ArrayAbstractionNondetSingleCell {
       replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
     }
 
-    private CAstNodeTransformer<NoException> getAstTransformer(CFAEdge pEdge) {
+    private TransformingCAstNodeVisitor<NoException> getAstTransformer(CFAEdge pEdge) {
 
       Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
           replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
-      return CAstNodeTransformer.of(new AstTransformingVisitor(replacements));
+      return new AstTransformingVisitor(replacements);
     }
   }
 
   private static final class ReplaceLoopIndexAstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
+      extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final TransformableArray transformableArray;
     private final TransformableLoop transformableLoop;
@@ -424,7 +425,7 @@ public class ArrayAbstractionNondetSingleCell {
     }
 
     @Override
-    public CExpression visit(CIdExpression pCIdExpression) {
+    public CAstNode visit(CIdExpression pCIdExpression) {
 
       if (ArrayAbstractionUtils.getMemoryLocation(pCIdExpression)
           .equals(transformableLoop.getLoopIndexMemoryLocation())) {
@@ -436,7 +437,7 @@ public class ArrayAbstractionNondetSingleCell {
   }
 
   private static final class AstTransformingVisitor
-      extends CAstNodeTransformer.AbstractTransformingVisitor<NoException> {
+      extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
 
@@ -446,7 +447,7 @@ public class ArrayAbstractionNondetSingleCell {
     }
 
     @Override
-    public CExpression visit(CArraySubscriptExpression pCArraySubscriptExpression) {
+    public CAstNode visit(CArraySubscriptExpression pCArraySubscriptExpression) {
 
       if (!arrayOperationReplacements.isEmpty()) {
 
@@ -479,7 +480,7 @@ public class ArrayAbstractionNondetSingleCell {
     }
 
     @Override
-    public CVariableDeclaration visit(CVariableDeclaration pCVariableDeclaration) {
+    public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
 
       if (pCVariableDeclaration.getType() instanceof CArrayType) {
         return ArrayAbstractionUtils.createNonArrayVariableDeclaration(pCVariableDeclaration);
