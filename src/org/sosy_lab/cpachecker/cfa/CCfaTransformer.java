@@ -52,8 +52,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
-public final class CCfaTransformer
-    extends CfaTransformer<CCfaNodeTransformer, CCfaEdgeTransformer> {
+public final class CCfaTransformer extends CfaTransformer {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -112,7 +111,6 @@ public final class CCfaTransformer
     return Optional.ofNullable(originalCfaNodeToNodeMap.get(pCfaNode));
   }
 
-  @Override
   public CFA createCfa(CCfaNodeTransformer pNodeTransformer, CCfaEdgeTransformer pEdgeTransformer) {
 
     Objects.requireNonNull(pNodeTransformer, "pNodeTransformer must not be null");

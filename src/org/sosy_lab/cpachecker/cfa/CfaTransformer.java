@@ -19,11 +19,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public abstract class CfaTransformer<N extends CfaNodeTransformer, E extends CfaEdgeTransformer> {
+public abstract class CfaTransformer {
 
   public abstract Optional<Node> get(CFANode pOriginalCfaNode);
-
-  public abstract CFA createCfa(N pNodeTransformer, E pEdgeTransformer);
 
   public static final class Node {
 

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
-import org.sosy_lab.cpachecker.cfa.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
+public interface CCfaEdgeTransformer {
 
   /**
    * Returns a new {@code CCfaEdgeTransformer} for the specified AST-transformer.
@@ -203,6 +202,9 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
       }
     };
   }
+
+  CFAEdge transformBlankEdge(
+      BlankEdge pOriginalBlankEdge, CFANode pNewPredecessor, CFANode pNewSuccessor);
 
   CFAEdge transformCAssumeEdge(
       CAssumeEdge pOriginalCAssumeEdge, CFANode pNewPredecessor, CFANode pNewSuccessor);
