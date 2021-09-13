@@ -50,9 +50,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ArrayAbstractionNondetSingleCell {
+public class ArrayAbstraction {
 
-  private ArrayAbstractionNondetSingleCell() {}
+  private ArrayAbstraction() {}
 
   private static CIdExpression createCIdExpression(CType pType, MemoryLocation pMemoryLocation) {
 

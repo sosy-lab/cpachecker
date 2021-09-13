@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionNondetSingleCell;
+import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
 
 @Options(prefix = "arrayAbstraction")
 public final class ArrayAbstractionAlgorithm implements Algorithm {
@@ -174,8 +174,7 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
     AggregatedReachedSets aggregatedReached = AggregatedReachedSets.singleton(pReachedSet);
     Configuration delegateAnalysisConfiguration = createDelegateAnalysisConfiguration();
 
-    CFA translatedCfa =
-        ArrayAbstractionNondetSingleCell.transformCfa(configuration, logger, originalCfa);
+    CFA translatedCfa = ArrayAbstraction.transformCfa(configuration, logger, originalCfa);
     exportTranslatedCfa(translatedCfa);
 
     try {
