@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeVisitor;
 
-/**
- * A CFANode that marks the end of a path.
- */
-public class CFATerminationNode extends CFANode {
+/** A CFANode that marks the end of a path. */
+public class CFATerminationNode extends CFANode implements CCfaNode {
 
   private static final long serialVersionUID = -8328879108494506389L;
 
@@ -29,5 +29,10 @@ public class CFATerminationNode extends CFANode {
   @Override
   public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
     throw new AssertionError(pEdge);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }
