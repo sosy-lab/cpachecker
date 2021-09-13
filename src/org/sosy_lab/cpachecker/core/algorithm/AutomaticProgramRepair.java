@@ -248,7 +248,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
           algorithm.calcFaultLocalizationInfo(info);
 
       if (optionalFaultLocalizationInfo.isPresent()) {
-        faultLocalizationInfos.add(optionalFaultLocalizationInfo.get());
+        faultLocalizationInfos.add(optionalFaultLocalizationInfo.orElseThrow());
       }
     }
     logger.log(Level.INFO, "Stopping fault localization...");

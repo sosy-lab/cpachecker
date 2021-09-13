@@ -236,7 +236,7 @@ public class FaultLocalizationWithTraceFormula
       Optional<FaultLocalizationInfo> optionalInfo = calcFaultLocalizationInfo(pInfo);
 
       if (optionalInfo.isPresent()) {
-        FaultLocalizationInfo info = optionalInfo.get();
+        FaultLocalizationInfo info = optionalInfo.orElseThrow();
 
         if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
           info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
