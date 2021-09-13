@@ -22,11 +22,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -101,6 +103,40 @@ public final class CCfaTransformer extends CfaTransformer {
   }
 
     return new CCfaTransformer(pConfiguration, pLogger, pCfa, nodeMap);
+  }
+
+  /**
+   * Returns a new CFA that represents the specified CFA with substituted AST-nodes.
+   *
+   * <p>The substitution of AST-nodes is specified by the substitution function that maps a CFA-edge
+   * and its AST-node to the substituted AST-node for the edge.
+   *
+   * <p>The original CFA is not modified.
+   *
+   * @param pConfiguration the configuration that was used to create the original CFA
+   * @param pLogger the logger to use
+   * @param pCfa the original CFA
+   * @param pSubstitutionFunction {@code CFA-edge, original AST-node --> substituted AST-node}
+   * @return a new CFA that represents the specified CFA with substituted AST-nodes
+   * @throws NullPointerException if any of the parameters is {@code null}
+   */
+  public static CFA substituteAstNodes(
+      Configuration pConfiguration,
+      LogManager pLogger,
+      CFA pCfa,
+      BiFunction<CFAEdge, CAstNode, CAstNode> pSubstitutionFunction) {
+
+    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
+    Objects.requireNonNull(pLogger, "pLogger must not be null");
+    Objects.requireNonNull(pCfa, "pCfa must not be null");
+    Objects.requireNonNull(pSubstitutionFunction, "pSubstitutionFunction must not be null");
+
+    CCfaTransformer cfaTransformer = createTransformer(pConfiguration, pLogger, pCfa);
+    CCfaNodeTransformer nodeTransformer = CCfaNodeTransformer.DEFAULT;
+    CCfaEdgeTransformer edgeTransformer =
+        CCfaEdgeTransformer.forAstTransformer(pSubstitutionFunction);
+
+    return cfaTransformer.createCfa(nodeTransformer, edgeTransformer);
   }
 
   @Override
