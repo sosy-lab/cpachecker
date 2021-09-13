@@ -29,7 +29,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,7 +42,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -94,15 +100,15 @@ public final class CCfaTransformer {
       LogManager pLogger,
       CFA pOriginalCfa,
       MutableGraph<CFANode, CFAEdge> pMutableGraph,
-      CCfaEdgeTransformer pEdgeTransformer) {
+      BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitution) {
 
     Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
     Objects.requireNonNull(pLogger, "pLogger must not be null");
     Objects.requireNonNull(pOriginalCfa, "pOriginalCfa must not be null");
     Objects.requireNonNull(pMutableGraph, "pMutableGraph must not be null");
-    Objects.requireNonNull(pEdgeTransformer, "pEdgeTransformer must not be null");
+    Objects.requireNonNull(pAstNodeSubstitution, "pAstNodeSubstitution must not be null");
 
-    CfaBuilder cfaBuilder = new CfaBuilder(pMutableGraph, pEdgeTransformer);
+    CfaBuilder cfaBuilder = new CfaBuilder(pMutableGraph, pAstNodeSubstitution);
 
     return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
   }
@@ -134,10 +140,8 @@ public final class CCfaTransformer {
     Objects.requireNonNull(pSubstitutionFunction, "pSubstitutionFunction must not be null");
 
     MutableGraph<CFANode, CFAEdge> mutableGraph = createMutableGraph(pCfa);
-    CCfaEdgeTransformer edgeTransformer =
-        CCfaEdgeTransformer.forAstTransformer(pSubstitutionFunction);
 
-    return createCfa(pConfiguration, pLogger, pCfa, mutableGraph, edgeTransformer);
+    return createCfa(pConfiguration, pLogger, pCfa, mutableGraph, pSubstitutionFunction);
   }
 
   private static final class CfaMutableGraph extends MutableGraph<CFANode, CFAEdge> {
@@ -172,18 +176,18 @@ public final class CCfaTransformer {
 
     private final MutableGraph<CFANode, CFAEdge> mutableGraph;
 
-    private final CCfaEdgeTransformer edgeTransformer;
+    private final BiFunction<CFAEdge, CAstNode, CAstNode> astNodeSubstitutionFunction;
 
     private final Map<MutableGraph.Node<CFANode, CFAEdge>, CFANode> nodeToNewCfaNode;
     private final Map<MutableGraph.Edge<CFANode, CFAEdge>, CFAEdge> edgeToNewCfaEdge;
 
     private CfaBuilder(
         MutableGraph<CFANode, CFAEdge> pMutableGraph,
-        CCfaEdgeTransformer pEdgeTransformer) {
+        BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitutionFunction) {
 
       mutableGraph = pMutableGraph;
 
-      edgeTransformer = pEdgeTransformer;
+      astNodeSubstitutionFunction = pAstNodeSubstitutionFunction;
 
       nodeToNewCfaNode = new HashMap<>();
       edgeToNewCfaEdge = new HashMap<>();
@@ -256,10 +260,18 @@ public final class CCfaTransformer {
         if (leavingEdge.getWrappedEdge() instanceof CFunctionCallEdge) {
           CFunctionEntryNode cfaEntryNode =
               (CFunctionEntryNode) nodeToNewCfaNode.get(leavingEdge.getSuccessorOrElseThrow());
-          return edgeTransformer.transformCFunctionSummaryEdge(
-              (CFunctionSummaryEdge) pEdge.getWrappedEdge(),
+
+          CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pEdge.getWrappedEdge();
+          CFunctionCall newFunctionCall =
+              (CFunctionCall)
+                  astNodeSubstitutionFunction.apply(summaryEdge, summaryEdge.getExpression());
+
+          return new CFunctionSummaryEdge(
+              summaryEdge.getRawStatement(),
+              summaryEdge.getFileLocation(),
               pNewCfaPredecessorNode,
               pNewCfaSuccessorNode,
+              newFunctionCall,
               cfaEntryNode);
         }
       }
@@ -276,10 +288,14 @@ public final class CCfaTransformer {
         if (summaryEdge.getWrappedEdge() instanceof CFunctionSummaryEdge) {
           CFunctionSummaryEdge cfaSummaryEdge =
               (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
-          return edgeTransformer.transformCFunctionCallEdge(
-              (CFunctionCallEdge) pEdge.getWrappedEdge(),
+          CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge.getWrappedEdge();
+
+          return new CFunctionCallEdge(
+              functionCallEdge.getRawStatement(),
+              functionCallEdge.getFileLocation(),
               pNewCfaPredecessorNode,
               (CFunctionEntryNode) pNewCfaSuccessorNode,
+              cfaSummaryEdge.getExpression(),
               cfaSummaryEdge);
         }
       }
@@ -296,8 +312,8 @@ public final class CCfaTransformer {
         if (summaryEdge.getWrappedEdge() instanceof CFunctionSummaryEdge) {
           CFunctionSummaryEdge cfaSummaryEdge =
               (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
-          return edgeTransformer.transformCFunctionReturnEdge(
-              (CFunctionReturnEdge) pEdge.getWrappedEdge(),
+          return new CFunctionReturnEdge(
+              ((CFunctionReturnEdge) pEdge.getWrappedEdge()).getFileLocation(),
               (FunctionExitNode) pNewCfaPredecessorNode,
               pNewCfaSuccessorNode,
               cfaSummaryEdge);
@@ -308,7 +324,7 @@ public final class CCfaTransformer {
     }
 
     private CFAEdge newCfaEdgeIfAbsent(
-        MutableGraph.Edge<CFANode, CFAEdge> pEdge, boolean pAllowInterprocedural) {
+        MutableGraph.Edge<CFANode, CFAEdge> pEdge, boolean pBuildSupergraph) {
 
       CFAEdge newCfaEdge = edgeToNewCfaEdge.get(pEdge);
       if (newCfaEdge != null) {
@@ -318,69 +334,154 @@ public final class CCfaTransformer {
       CFANode cfaPredecessorNode = nodeToNewCfaNode.get(pEdge.getPredecessorOrElseThrow());
       CFANode cfaSuccessorNode = nodeToNewCfaNode.get(pEdge.getSuccessorOrElseThrow());
 
-      CFAEdge originalCfaEdge = pEdge.getWrappedEdge();
+      CCfaEdgeVisitor<CFAEdge, NoException> transformingEdgeVisitor =
+          new CCfaEdgeVisitor<>() {
 
-      if (originalCfaEdge instanceof BlankEdge) {
-        newCfaEdge =
-            edgeTransformer.transformBlankEdge(
-                (BlankEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else if (originalCfaEdge instanceof CAssumeEdge) {
-        newCfaEdge =
-            edgeTransformer.transformCAssumeEdge(
-                (CAssumeEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else if (originalCfaEdge instanceof CDeclarationEdge) {
-        newCfaEdge =
-            edgeTransformer.transformCDeclarationEdge(
-                (CDeclarationEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else if (originalCfaEdge instanceof CFunctionSummaryStatementEdge) {
-        if (pAllowInterprocedural) {
-          newCfaEdge =
-              edgeTransformer.transformCFunctionSummaryStatementEdge(
-                  (CFunctionSummaryStatementEdge) originalCfaEdge,
+            @Override
+            public CFAEdge visit(BlankEdge pBlankEdge) {
+              return new BlankEdge(
+                  pBlankEdge.getRawStatement(),
+                  pBlankEdge.getFileLocation(),
+                  cfaPredecessorNode,
+                  cfaSuccessorNode,
+                  pBlankEdge.getDescription());
+            }
+
+            @Override
+            public CFAEdge visit(CAssumeEdge pCAssumeEdge) {
+
+              CExpression newExpression =
+                  (CExpression)
+                      astNodeSubstitutionFunction.apply(pCAssumeEdge, pCAssumeEdge.getExpression());
+
+              return new CAssumeEdge(
+                  pCAssumeEdge.getRawStatement(),
+                  pCAssumeEdge.getFileLocation(),
+                  cfaPredecessorNode,
+                  cfaSuccessorNode,
+                  newExpression,
+                  pCAssumeEdge.getTruthAssumption(),
+                  pCAssumeEdge.isSwapped(),
+                  pCAssumeEdge.isArtificialIntermediate());
+            }
+
+            @Override
+            public CFAEdge visit(CDeclarationEdge pCDeclarationEdge) {
+
+              CDeclaration newDeclaration =
+                  (CDeclaration)
+                      astNodeSubstitutionFunction.apply(
+                          pCDeclarationEdge, pCDeclarationEdge.getDeclaration());
+
+              return new CDeclarationEdge(
+                  pCDeclarationEdge.getRawStatement(),
+                  pCDeclarationEdge.getFileLocation(),
+                  cfaPredecessorNode,
+                  cfaSuccessorNode,
+                  newDeclaration);
+            }
+
+            @Override
+            public CFAEdge visit(CStatementEdge pCStatementEdge) {
+
+              CStatement newStatement =
+                  (CStatement)
+                      astNodeSubstitutionFunction.apply(
+                          pCStatementEdge, pCStatementEdge.getStatement());
+
+              return new CStatementEdge(
+                  pCStatementEdge.getRawStatement(),
+                  newStatement,
+                  pCStatementEdge.getFileLocation(),
                   cfaPredecessorNode,
                   cfaSuccessorNode);
-        } else {
-          newCfaEdge =
-              new SummaryPlaceholderEdge(
-                  "",
-                  originalCfaEdge.getFileLocation(),
+            }
+
+            @Override
+            public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
+              if (pBuildSupergraph) {
+                return newCFunctionCallEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+              } else {
+                return null;
+              }
+            }
+
+            @Override
+            public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
+              if (pBuildSupergraph) {
+                return newCFunctionReturnEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+              } else {
+                return null;
+              }
+            }
+
+            @Override
+            public CFAEdge visit(CFunctionSummaryEdge pCFunctionSummaryEdge) {
+              if (pBuildSupergraph) {
+                return newCFunctionSummaryEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+              } else {
+                return new SummaryPlaceholderEdge(
+                    "",
+                    pCFunctionSummaryEdge.getFileLocation(),
+                    cfaPredecessorNode,
+                    cfaSuccessorNode,
+                    "summary-placeholder-edge");
+              }
+            }
+
+            @Override
+            public CFAEdge visit(CReturnStatementEdge pCReturnStatementEdge) {
+
+              CReturnStatement newReturnStatement =
+                  (CReturnStatement)
+                      astNodeSubstitutionFunction.apply(
+                          pCReturnStatementEdge, pCReturnStatementEdge.getReturnStatement());
+
+              return new CReturnStatementEdge(
+                  pCReturnStatementEdge.getRawStatement(),
+                  newReturnStatement,
+                  pCReturnStatementEdge.getFileLocation(),
                   cfaPredecessorNode,
-                  cfaSuccessorNode,
-                  "summary-placeholder-edge");
-        }
-      } else if (originalCfaEdge instanceof CReturnStatementEdge) {
-        newCfaEdge =
-            edgeTransformer.transformCReturnStatementEdge(
-                (CReturnStatementEdge) originalCfaEdge,
-                cfaPredecessorNode,
-                (FunctionExitNode) cfaSuccessorNode);
-      } else if (originalCfaEdge instanceof CFunctionSummaryEdge) {
-        if (pAllowInterprocedural) {
-          newCfaEdge = newCFunctionSummaryEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
-        } else {
-          newCfaEdge =
-              new SummaryPlaceholderEdge(
-                  "",
-                  originalCfaEdge.getFileLocation(),
-                  cfaPredecessorNode,
-                  cfaSuccessorNode,
-                  "summary-placeholder-edge");
-        }
-      } else if (originalCfaEdge instanceof CFunctionReturnEdge) {
-        if (pAllowInterprocedural) {
-          newCfaEdge = newCFunctionReturnEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
-        }
-      } else if (originalCfaEdge instanceof CFunctionCallEdge) {
-        if (pAllowInterprocedural) {
-          newCfaEdge = newCFunctionCallEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
-        }
-      } else if (originalCfaEdge instanceof CStatementEdge) {
-        newCfaEdge =
-            edgeTransformer.transformCStatementEdge(
-                (CStatementEdge) originalCfaEdge, cfaPredecessorNode, cfaSuccessorNode);
-      } else {
-        throw new AssertionError("Unknown CFA edge type: " + originalCfaEdge.getClass());
-      }
+                  (FunctionExitNode) cfaSuccessorNode);
+            }
+
+            @Override
+            public CFAEdge visit(CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
+              if (pBuildSupergraph) {
+
+                CStatement newStatement =
+                    (CStatement)
+                        astNodeSubstitutionFunction.apply(
+                            pCFunctionSummaryStatementEdge,
+                            pCFunctionSummaryStatementEdge.getStatement());
+                CFunctionCall newFunctionCall =
+                    (CFunctionCall)
+                        astNodeSubstitutionFunction.apply(
+                            pCFunctionSummaryStatementEdge,
+                            pCFunctionSummaryStatementEdge.getFunctionCall());
+
+                return new CFunctionSummaryStatementEdge(
+                    pCFunctionSummaryStatementEdge.getRawStatement(),
+                    newStatement,
+                    pCFunctionSummaryStatementEdge.getFileLocation(),
+                    cfaPredecessorNode,
+                    cfaSuccessorNode,
+                    newFunctionCall,
+                    pCFunctionSummaryStatementEdge.getFunctionName());
+              } else {
+                return new SummaryPlaceholderEdge(
+                    "",
+                    pCFunctionSummaryStatementEdge.getFileLocation(),
+                    cfaPredecessorNode,
+                    cfaSuccessorNode,
+                    "summary-placeholder-edge");
+              }
+            }
+          };
+
+      CFAEdge originalCfaEdge = pEdge.getWrappedEdge();
+
+      newCfaEdge = ((CCfaEdge) originalCfaEdge).accept(transformingEdgeVisitor);
 
       if (newCfaEdge != null) {
 
@@ -478,7 +579,7 @@ public final class CCfaTransformer {
       // don't create create function call, return and summary edges
       for (MutableGraph.Node<CFANode, CFAEdge> currentNode : nodeToNewCfaNode.keySet()) {
         for (MutableGraph.Edge<CFANode, CFAEdge> edge : mutableGraph.iterateLeaving(currentNode)) {
-          newCfaEdgeIfAbsent(edge, /* allow interprocedural edges = */ false);
+          newCfaEdgeIfAbsent(edge, false);
         }
       }
 
@@ -508,7 +609,7 @@ public final class CCfaTransformer {
       removeSummaryPlaceholderEdges();
       for (MutableGraph.Node<CFANode, CFAEdge> currentNode : nodeToNewCfaNode.keySet()) {
         for (MutableGraph.Edge<CFANode, CFAEdge> edge : mutableGraph.iterateLeaving(currentNode)) {
-          newCfaEdgeIfAbsent(edge, /* allow interprocedural edges = */ true);
+          newCfaEdgeIfAbsent(edge, true);
         }
       }
 
