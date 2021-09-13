@@ -53,10 +53,11 @@ public abstract class AbstractTransformingCAstNodeVisitor<X extends Exception>
       variableDeclarations.put(pCVariableDeclaration, newVariableDeclaration);
 
       CInitializer oldInitializer = pCVariableDeclaration.getInitializer();
-      CInitializer newInitializer = null;
       if (oldInitializer != null) {
-        newInitializer = (CInitializer) oldInitializer.accept(this);
-        newVariableDeclaration.addInitializer(newInitializer);
+        CInitializer newInitializer = (CInitializer) oldInitializer.accept(this);
+        if (newInitializer != null) {
+          newVariableDeclaration.addInitializer(newInitializer);
+        }
       }
     }
 
