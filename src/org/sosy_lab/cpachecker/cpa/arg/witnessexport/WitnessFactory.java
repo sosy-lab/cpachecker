@@ -1518,62 +1518,34 @@ class WitnessFactory implements EdgeAppender {
       return Iterables.concat(leavingEdges.get(nodeToKeep), enteringEdges.get(nodeToKeep));
     }
 
-    boolean remove =
-        intoPredecessor
-            ? enteringEdges.get(nodeToRemove).size() == 1
-            : leavingEdges.get(nodeToRemove).size() == 1;
-
-    if (remove) {
-
-      if (invariantExportStates.remove(nodeToRemove)) {
-        invariantExportStates.add(nodeToKeep);
-      }
-
-      // Merge the flags
-      nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
-
-      // Merge the trees
-      mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
-
-      // Merge quasi invariant
-      mergeQuasiInvariant(nodeToKeep, nodeToRemove);
-
-      // Merge the violated properties
-      violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
-
-      // Merge mapping
-      stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
-    } else {
-      if (invariantExportStates.contains(nodeToRemove)) {
-        invariantExportStates.add(nodeToKeep);
-      }
-
-      // Merge the flags
-      nodeFlags.putAll(nodeToKeep, nodeFlags.get(nodeToRemove));
-
-      // Merge the trees
-      mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
-
-      // Merge quasi invariant
-      mergeQuasiInvariant(nodeToKeep, nodeToRemove);
-
-      // Merge the violated properties
-      violatedProperties.putAll(nodeToKeep, violatedProperties.get(nodeToRemove));
-
-      // Merge mapping
-      stateToARGStates.putAll(nodeToKeep, stateToARGStates.get(nodeToRemove));
+    if (invariantExportStates.remove(nodeToRemove)) {
+      invariantExportStates.add(nodeToKeep);
     }
+
+    // Merge the flags
+    nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
+
+    // Merge the trees
+    mergeExpressionTreesIntoFirst(nodeToKeep, nodeToRemove);
+
+    // Merge quasi invariant
+    mergeQuasiInvariant(nodeToKeep, nodeToRemove);
+
+    // Merge the violated properties
+    violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
+
+    // Merge mapping
+    stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
     Set<Edge> replacementEdges = new LinkedHashSet<>();
 
-    if (intoPredecessor) {
-      // Copy the leaving edges
-      // remove old edges only if this was the last entering edge of the sucessor
-      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(leavingEdges.get(nodeToRemove));
-      // Create the replacement edges,
-      // Add them as leaving edges to the source node,
-      // Add them as entering edges to their target nodes
-      for (Edge leavingEdge : leavingEdgesToMove) {
+    // Move the leaving edges
+    Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
+    // Create the replacement edges,
+    // Add them as leaving edges to the source node,
+    // Add them as entering edges to their target nodes
+    for (Edge leavingEdge : leavingEdgesToMove) {
+      if (!pEdge.equals(leavingEdge)) {
         TransitionCondition label = pEdge.getLabel();
         // Don't give function-exit transitions labels from preceding transitions
         if (leavingEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)) {
@@ -1587,47 +1559,49 @@ class WitnessFactory implements EdgeAppender {
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(leavingEdge));
+        edgeToCFAEdges.removeAll(leavingEdge);
         replacementEdges.add(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
-          if (remove) {
-            loopHeadEnteringEdges.remove(leavingEdge);
-          }
+          loopHeadEnteringEdges.remove(leavingEdge);
           loopHeadEnteringEdges.put(replacementEdge, loopHead);
         }
-        if (remove) {
-          boolean removed = removeEdge(leavingEdge);
-          edgeToCFAEdges.removeAll(leavingEdge);
-          assert removed;
-        }
       }
-      boolean removed = removeEdge(pEdge);
+    }
+    // Remove the old edges from their successors
+    for (Edge leavingEdge : leavingEdgesToMove) {
+      boolean removed = removeEdge(leavingEdge);
+      edgeToCFAEdges.removeAll(leavingEdge);
       assert removed;
-    } else {
-      // Move the entering edges
-      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(enteringEdges.get(nodeToRemove));
-      // Create the replacement edges,
-      // Add them as entering edges to the source node,
-      // Add add them as leaving edges to their source nodes
-      for (Edge enteringEdge : enteringEdgesToMove) {
+    }
+
+    // Move the entering edges
+    Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
+    // Create the replacement edges,
+    // Add them as entering edges to the source node,
+    // Add add them as leaving edges to their source nodes
+    for (Edge enteringEdge : enteringEdgesToMove) {
+      if (!pEdge.equals(enteringEdge)) {
         TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(pEdge));
         replacementEdges.add(replacementEdge);
-      }
-      boolean removed = removeEdge(pEdge);
-      edgeToCFAEdges.removeAll(pEdge);
-      assert removed;
-      if (remove) {
-        // Remove the old edges from their predecessors
-        for (Edge enteringEdge : enteringEdgesToMove) {
-          removed = removeEdge(enteringEdge);
-          edgeToCFAEdges.removeAll(enteringEdge);
-          assert removed : "could not remove edge: " + enteringEdge;
+        CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
+        if (loopHead != null) {
+          loopHeadEnteringEdges.remove(enteringEdge);
+          loopHeadEnteringEdges.put(replacementEdge, loopHead);
         }
       }
     }
+
+    // Remove the old edges from their predecessors
+    for (Edge enteringEdge : enteringEdgesToMove) {
+      boolean removed = removeEdge(enteringEdge);
+      edgeToCFAEdges.removeAll(enteringEdge);
+      assert removed : "could not remove edge: " + enteringEdge;
+    }
+    edgeToCFAEdges.removeAll(pEdge);
 
     return replacementEdges;
   }
