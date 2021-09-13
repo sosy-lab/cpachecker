@@ -181,7 +181,7 @@ public class ArrayAbstraction {
   }
 
   private static void replaceLoopWithBranching(
-      CfaTransformer<?, ?> pTransformer,
+      CfaTransformer pTransformer,
       ImmutableSet<TransformableArray> pTransformableArrays,
       TransformableLoop pTransformableLoop) {
 
