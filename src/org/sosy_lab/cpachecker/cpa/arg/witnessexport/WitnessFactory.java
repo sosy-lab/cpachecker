@@ -1436,6 +1436,14 @@ class WitnessFactory implements EdgeAppender {
     final String target = pEdge.getTarget();
     final TransitionCondition label = pEdge.getLabel();
 
+    if (!target.equals(SINK_NODE_ID) && enteringEdges.get(target).size() != 1) {
+      return false;
+    }
+
+    if (target.equals(SINK_NODE_ID) && leavingEdges.get(source).size() != 1) {
+      return false;
+    }
+
     if (isIrrelevantNode(target)) {
       return true;
     }
