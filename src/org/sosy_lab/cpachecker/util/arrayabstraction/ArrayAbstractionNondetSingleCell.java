@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -53,13 +54,32 @@ public class ArrayAbstractionNondetSingleCell {
 
   private ArrayAbstractionNondetSingleCell() {}
 
+  private static CIdExpression createCIdExpression(CType pType, MemoryLocation pMemoryLocation) {
+
+    String variableName = pMemoryLocation.getIdentifier();
+    String qualifiedName = pMemoryLocation.getExtendedQualifiedName();
+
+    CVariableDeclaration variableDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            pType,
+            variableName,
+            variableName,
+            qualifiedName,
+            null);
+
+    return new CIdExpression(FileLocation.DUMMY, variableDeclaration);
+  }
+
   private static CIdExpression createVariableCIdExpression(TransformableArray pTransformableArray) {
 
     CType type = pTransformableArray.getArrayType().getType();
     String arrayName = pTransformableArray.getMemoryLocation().getIdentifier();
     String name = "__array_witness_variable_" + arrayName;
 
-    return ArrayAbstractionUtils.createCIdExpression(type, MemoryLocation.forIdentifier(name));
+    return createCIdExpression(type, MemoryLocation.forIdentifier(name));
   }
 
   private static CIdExpression createIndexCIdExpression(TransformableArray pTransformableArray) {
@@ -70,7 +90,7 @@ public class ArrayAbstractionNondetSingleCell {
     String arrayName = pTransformableArray.getMemoryLocation().getIdentifier();
     String name = "__array_witness_index_" + arrayName;
 
-    return ArrayAbstractionUtils.createCIdExpression(type, MemoryLocation.forIdentifier(name));
+    return createCIdExpression(type, MemoryLocation.forIdentifier(name));
   }
 
   private static ImmutableSet<CExpression> getConditionExpressions(
@@ -124,6 +144,42 @@ public class ArrayAbstractionNondetSingleCell {
     return conditionsBuilder.build();
   }
 
+  private static CFANode createDummyPredecessor() {
+    return CFANode.newDummyCFANode("dummy-predecessor");
+  }
+
+  private static CFANode createDummySuccessor() {
+    return CFANode.newDummyCFANode("dummy-successor");
+  }
+
+  private static BlankEdge createBlankEdge(String pDescription) {
+    return new BlankEdge(
+        "", FileLocation.DUMMY, createDummyPredecessor(), createDummySuccessor(), pDescription);
+  }
+
+  private static CAssumeEdge createAssumeEdge(CExpression pCondition, boolean pTruthAssumption) {
+    return new CAssumeEdge(
+        "",
+        FileLocation.DUMMY,
+        createDummyPredecessor(),
+        createDummySuccessor(),
+        pCondition,
+        pTruthAssumption);
+  }
+
+  private static CStatementEdge createAssignEdge(CLeftHandSide pLhs, CIdExpression pRhs) {
+
+    CExpressionAssignmentStatement assignmentStatement =
+        new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
+
+    return new CStatementEdge(
+        "",
+        assignmentStatement,
+        FileLocation.DUMMY,
+        createDummyPredecessor(),
+        createDummySuccessor());
+  }
+
   private static void replaceLoopWithBranching(
       CfaTransformer<?, ?> pTransformer,
       ImmutableSet<TransformableArray> pTransformableArrays,
@@ -174,24 +230,12 @@ public class ArrayAbstractionNondetSingleCell {
     breakEdge.detachAll();
 
     CfaTransformer.Edge enterUnrolledLoopEdge =
-        CfaTransformer.Edge.forOriginal(
-            new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                CFANode.newDummyCFANode("dummy-predecessor"),
-                CFANode.newDummyCFANode("dummy-successor"),
-                "enter-loop-body"));
+        CfaTransformer.Edge.forOriginal(createBlankEdge("enter-loop-body"));
     outerBeforeLoop.attachLeaving(enterUnrolledLoopEdge);
     loopBodyFirst.attachEntering(enterUnrolledLoopEdge);
 
     CfaTransformer.Edge exitUnrolledLoopEdge =
-        CfaTransformer.Edge.forOriginal(
-            new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                CFANode.newDummyCFANode("dummy-predecessor"),
-                CFANode.newDummyCFANode("dummy-successor"),
-                "exit-loop-body"));
+        CfaTransformer.Edge.forOriginal(createBlankEdge("exit-loop-body"));
     loopBodyLast.attachLeaving(exitUnrolledLoopEdge);
     outerAfterLoop.attachEntering(exitUnrolledLoopEdge);
 
@@ -199,25 +243,12 @@ public class ArrayAbstractionNondetSingleCell {
         getConditionExpressions(pTransformableArrays, pTransformableLoop)) {
 
       outerBeforeLoop.insertSuccessor(
-          CfaTransformer.Edge.forOriginal(
-              new CAssumeEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  CFANode.newDummyCFANode("dummy-predecessor"),
-                  CFANode.newDummyCFANode("dummy-successor"),
-                  conditionExpression,
-                  true)),
+          CfaTransformer.Edge.forOriginal(createAssumeEdge(conditionExpression, true)),
           CfaTransformer.Node.forOriginal(outerBeforeLoop.getOriginalCfaNode()));
 
       CfaTransformer.Edge skipLoopBody =
-          CfaTransformer.Edge.forOriginal(
-              new CAssumeEdge(
-                  "",
-                  FileLocation.DUMMY,
-                  CFANode.newDummyCFANode("dummy-predecessor"),
-                  CFANode.newDummyCFANode("dummy-successor"),
-                  conditionExpression,
-                  false));
+          CfaTransformer.Edge.forOriginal(createAssumeEdge(conditionExpression, false));
+
       outerBeforeLoop.attachLeaving(skipLoopBody);
       outerAfterLoop.attachEntering(skipLoopBody);
     }
@@ -293,8 +324,7 @@ public class ArrayAbstractionNondetSingleCell {
           CIdExpression arrayIndexWitnessIdExpression =
               createIndexCIdExpression(transformableArray);
           CFAEdge indexAssignCfaEdge =
-              ArrayAbstractionUtils.createAssignEdge(
-                  loopIndexIdExpression, arrayIndexWitnessIdExpression);
+              createAssignEdge(loopIndexIdExpression, arrayIndexWitnessIdExpression);
           CfaTransformer.Edge indexAssignEdge = CfaTransformer.Edge.forOriginal(indexAssignCfaEdge);
           firstLoopBodyNode.insertSuccessor(
               indexAssignEdge,
@@ -307,10 +337,9 @@ public class ArrayAbstractionNondetSingleCell {
             VariableGenerator.createNondetVariableEdge(
                 type, nondetVariableName, Optional.of(functionName));
         CIdExpression nondetVariableIdExpression =
-            ArrayAbstractionUtils.createCIdExpression(
+            createCIdExpression(
                 type, MemoryLocation.forLocalVariable(functionName, nondetVariableName));
-        CFAEdge assignNondetVariableCfaEdge =
-            ArrayAbstractionUtils.createAssignEdge(loopDef, nondetVariableIdExpression);
+        CFAEdge assignNondetVariableCfaEdge = createAssignEdge(loopDef, nondetVariableIdExpression);
 
         CfaTransformer.Edge assignNondetVariableEdgeStart =
             CfaTransformer.Edge.forOriginal(assignNondetVariableCfaEdge);
@@ -354,15 +383,15 @@ public class ArrayAbstractionNondetSingleCell {
             CIdExpression arrayIndexIdExpression = (CIdExpression) arrayIndexExpression;
 
             MemoryLocation loopIndexMemoryLocation =
-                ArrayAbstractionUtils.getMemoryLocation(loopIndexIdExpression);
+                MemoryLocation.forDeclaration(loopIndexIdExpression.getDeclaration());
             MemoryLocation arrayIndexMemoryLocation =
-                ArrayAbstractionUtils.getMemoryLocation(arrayIndexIdExpression);
+                MemoryLocation.forDeclaration(arrayIndexIdExpression.getDeclaration());
 
             if (loopIndexMemoryLocation.equals(arrayIndexMemoryLocation)) {
               CIdExpression arrayVariableWitnessIdExpression =
                   createVariableCIdExpression(transformableArray);
               replacement =
-                  ArrayAbstractionUtils.getMemoryLocation(arrayVariableWitnessIdExpression);
+                  MemoryLocation.forDeclaration(arrayVariableWitnessIdExpression.getDeclaration());
             }
           }
 
@@ -431,7 +460,7 @@ public class ArrayAbstractionNondetSingleCell {
     @Override
     public CAstNode visit(CIdExpression pCIdExpression) {
 
-      if (ArrayAbstractionUtils.getMemoryLocation(pCIdExpression)
+      if (MemoryLocation.forDeclaration(pCIdExpression.getDeclaration())
           .equals(transformableLoop.getLoopIndexMemoryLocation())) {
         return createIndexCIdExpression(transformableArray);
       }
@@ -475,7 +504,7 @@ public class ArrayAbstractionNondetSingleCell {
 
           if (nondetVariableMemoryLocation != null) {
             CType type = pCArraySubscriptExpression.getExpressionType();
-            return ArrayAbstractionUtils.createCIdExpression(type, nondetVariableMemoryLocation);
+            return createCIdExpression(type, nondetVariableMemoryLocation);
           }
         }
       }
@@ -486,8 +515,19 @@ public class ArrayAbstractionNondetSingleCell {
     @Override
     public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
 
-      if (pCVariableDeclaration.getType() instanceof CArrayType) {
-        return ArrayAbstractionUtils.createNonArrayVariableDeclaration(pCVariableDeclaration);
+      CType type = pCVariableDeclaration.getType();
+
+      if (type instanceof CArrayType) {
+        CType newType = ((CArrayType) type).getType();
+        return new CVariableDeclaration(
+            pCVariableDeclaration.getFileLocation(),
+            pCVariableDeclaration.isGlobal(),
+            pCVariableDeclaration.getCStorageClass(),
+            newType,
+            pCVariableDeclaration.getName(),
+            pCVariableDeclaration.getOrigName(),
+            pCVariableDeclaration.getQualifiedName(),
+            null);
       }
 
       return super.visit(pCVariableDeclaration);

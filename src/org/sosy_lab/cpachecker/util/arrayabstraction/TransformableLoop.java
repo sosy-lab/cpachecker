@@ -107,7 +107,7 @@ public final class TransformableLoop {
   }
 
   public MemoryLocation getLoopIndexMemoryLocation() {
-    return ArrayAbstractionUtils.getMemoryLocation(loopIndexExpression);
+    return MemoryLocation.forDeclaration(loopIndexExpression.getDeclaration());
   }
 
   public CExpression getLoopIndexInitExpression() {
@@ -138,7 +138,7 @@ public final class TransformableLoop {
 
     EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
     MemoryLocation indexMemoryLocation =
-        ArrayAbstractionUtils.getMemoryLocation(loopIndexExpression);
+        MemoryLocation.forDeclaration(loopIndexExpression.getDeclaration());
 
     for (CFAEdge edge : loopEdges) {
       if (!edge.equals(updateLoopIndexCfaEdge)) {
@@ -152,7 +152,8 @@ public final class TransformableLoop {
           CExpression operationIndexExpression = arrayOperation.getIndexExpression();
 
           if (!(operationIndexExpression instanceof CIdExpression)
-              || !ArrayAbstractionUtils.getMemoryLocation((CIdExpression) operationIndexExpression)
+              || !MemoryLocation.forDeclaration(
+                      ((CIdExpression) operationIndexExpression).getDeclaration())
                   .equals(indexMemoryLocation)) {
             return false;
           }
@@ -209,7 +210,7 @@ public final class TransformableLoop {
             MemoryLocation lhsMemoryLocation =
                 MemoryLocation.forDeclaration(declaration);
             MemoryLocation indexMemoryLocation =
-                ArrayAbstractionUtils.getMemoryLocation(indexCIdExpression);
+                MemoryLocation.forDeclaration(indexCIdExpression.getDeclaration());
 
             if (!lhsMemoryLocation.equals(indexMemoryLocation)) {
               return false;
@@ -255,9 +256,9 @@ public final class TransformableLoop {
               } else {
 
                 MemoryLocation lhsMemoryLocation =
-                    ArrayAbstractionUtils.getMemoryLocation(lhsIdExpression);
+                    MemoryLocation.forDeclaration(lhsIdExpression.getDeclaration());
                 MemoryLocation indexMemoryLocation =
-                    ArrayAbstractionUtils.getMemoryLocation(indexCIdExpression);
+                    MemoryLocation.forDeclaration(indexCIdExpression.getDeclaration());
 
                 if (!lhsMemoryLocation.equals(indexMemoryLocation)) {
                   return false;
@@ -332,9 +333,9 @@ public final class TransformableLoop {
 
             CIdExpression fstOperandIdExpression = (CIdExpression) fstOperand;
             MemoryLocation fstOperandMemoryLocation =
-                ArrayAbstractionUtils.getMemoryLocation(fstOperandIdExpression);
+                MemoryLocation.forDeclaration(fstOperandIdExpression.getDeclaration());
             MemoryLocation indexMemoryLocation =
-                ArrayAbstractionUtils.getMemoryLocation(indexCIdExpression);
+                MemoryLocation.forDeclaration(indexCIdExpression.getDeclaration());
 
             if (!fstOperandMemoryLocation.equals(indexMemoryLocation)) {
               return false;
