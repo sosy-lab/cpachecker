@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import com.google.common.base.Preconditions;
 import java.util.IdentityHashMap;
 
 /**
@@ -25,6 +26,10 @@ public abstract class AbstractTransformingCAstNodeVisitor<X extends Exception>
 
   @Override
   public CAstNode transform(CAstNode pOriginalAstNode) throws X {
+
+    Preconditions.checkState(
+        variableDeclarations.isEmpty(),
+        "internal state was not cleared after last invocation of transform");
 
     CAstNode transformedAstNode = TransformingCAstNodeVisitor.super.transform(pOriginalAstNode);
     variableDeclarations.clear();
