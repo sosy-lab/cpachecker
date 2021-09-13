@@ -10,5 +10,5 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 public interface CCfaNode {
 
-  <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> pVisitor) throws X;
 }
