@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeTransformer;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -421,8 +420,7 @@ public class ArrayAbstraction {
                     .getAstTransformer(originalCfaEdge)
                     .transform(originalAstNode));
 
-    return CCfaTransformer.createCfa(
-        pConfiguration, pLogger, pCfa, mutableGraph, CCfaNodeTransformer.DEFAULT, edgeTransformer);
+    return CCfaTransformer.createCfa(pConfiguration, pLogger, pCfa, mutableGraph, edgeTransformer);
   }
 
   private static final class ArrayOperationReplacementMap {
