@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -130,43 +131,45 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
   private void runAlgorithm(FaultLocalizationInfo faultLocalizationInfo) {
     for (Fault fault : faultLocalizationInfo.getRankedList()) {
-      CFAEdge edge = fault.iterator().next().correspondingEdge();
-      CFAMutator cfaMutator = new CFAMutator(cfa, edge);
+      for (FaultContribution faultContribution : fault) {
+        CFAEdge edge = faultContribution.correspondingEdge();
+        CFAMutator cfaMutator = new CFAMutator(cfa, edge);
 
-      cfaMutator
-          .calcPossibleMutations()
-          .filter(
-              (Mutation mutation) -> {
-                try {
-                  return rerun(mutation.getCFA()).hasViolatedProperties();
-                } catch (InvalidConfigurationException e) {
-                  logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-                  return false;
-                } catch (IOException e) {
-                  logger.logUserException(Level.SEVERE, e, "IO failed");
-                  return false;
-                } catch (InterruptedException | CPAException pE) {
-                  throw new RuntimeException(pE);
-                }
-              })
-          .findAny()
-          .ifPresent(
-              (Mutation mutation) -> {
-                logger.log(Level.INFO, "Successfully patched fault");
-                logger.log(
-                    Level.INFO,
-                    "Replaced "
-                        + mutation.getSuspiciousEdge()
-                        + " with "
-                        + mutation.getNewEdge()
-                        + " on line "
-                        + edge.getLineNumber());
+        cfaMutator
+            .calcPossibleMutations()
+            .filter(
+                (Mutation mutation) -> {
+                  try {
+                    return rerun(mutation.getCFA()).hasViolatedProperties();
+                  } catch (InvalidConfigurationException e) {
+                    logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+                    return false;
+                  } catch (IOException e) {
+                    logger.logUserException(Level.SEVERE, e, "IO failed");
+                    return false;
+                  } catch (InterruptedException | CPAException pE) {
+                    throw new RuntimeException(pE);
+                  }
+                })
+            .findAny()
+            .ifPresent(
+                (Mutation mutation) -> {
+                  logger.log(Level.INFO, "Successfully patched fault");
+                  logger.log(
+                      Level.INFO,
+                      "Replaced "
+                          + mutation.getSuspiciousEdge()
+                          + " with "
+                          + mutation.getNewEdge()
+                          + " on line "
+                          + edge.getLineNumber());
 
-                fixFound = true;
-              });
+                  fixFound = true;
+                });
 
-      if (fixFound) {
-        return;
+        if (fixFound) {
+          return;
+        }
       }
     }
 
