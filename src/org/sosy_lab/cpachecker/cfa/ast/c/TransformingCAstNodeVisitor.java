@@ -11,15 +11,19 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
- * A {@link CAstNodeVisitor} that is used to modify abstract syntax trees (ASTs).
+ * A {@link CAstNodeVisitor} that is used to create modified copies of abstract syntax tree (AST)
+ * nodes.
  *
- * <p>Changing parts of an AST is achieved by overriding visit-methods and returning modified
- * AST-nodes. If no visit-method is overridden, the AST is not changed.
+ * <p>Creating modified copies of AST-nodes is achieved by overriding visit-methods and returning
+ * new AST-nodes that differ from the original AST-nodes. The default implementation of a
+ * visit-method calls (other) visit-methods recursively to create modified copies for AST-nodes
+ * referenced by an original AST-node. If no visit-method is overridden, the returned AST-node is
+ * equal to the original AST-node. The implementation may return the same instance for AST-nodes
+ * that are equal.
  *
- * <p>In order to transform AST-nodes using a {@code TransformingCAstNodeVisitor}, call {@link
+ * <p>In order to create modified AST-nodes using a {@code TransformingCAstNodeVisitor}, call {@link
  * #transform(CAstNode)}.
  *
  * <p>Note: for some AST-nodes, it's required to prevent infinite recursive visit-calls due to
