@@ -1236,13 +1236,31 @@ class WitnessFactory implements EdgeAppender {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
-      // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
+      // If the edge still exists in the graph and is irrelevant, remove it if possible
+      if (leavingEdges.get(edge.getSource()).contains(edge)
+          && isEdgeIrrelevant(edge)
+          && canBeMerged(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(ENTRY_NODE_ID);
       }
       setLoopHeadInvariantIfApplicable(edge.getTarget());
     }
+  }
+
+  /**
+   * Returns whether the source and target nodes of the given edge can be merged, i.e. whether
+   * the edge may be used as parameter for {@link #mergeNodes}.
+   */
+  private boolean canBeMerged(Edge pEdge) {
+    String source = pEdge.getSource();
+    String target = pEdge.getTarget();
+    if (target.equals(SINK_NODE_ID) && leavingEdges.get(source).size() != 1) {
+      return false;
+    }
+    if (!target.equals(SINK_NODE_ID) && enteringEdges.get(target).size() != 1) {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -1435,14 +1453,6 @@ class WitnessFactory implements EdgeAppender {
     final String source = pEdge.getSource();
     final String target = pEdge.getTarget();
     final TransitionCondition label = pEdge.getLabel();
-
-    if (!target.equals(SINK_NODE_ID) && enteringEdges.get(target).size() != 1) {
-      return false;
-    }
-
-    if (target.equals(SINK_NODE_ID) && leavingEdges.get(source).size() != 1) {
-      return false;
-    }
 
     if (isIrrelevantNode(target)) {
       return true;
