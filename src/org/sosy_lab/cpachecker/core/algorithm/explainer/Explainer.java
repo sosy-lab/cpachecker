@@ -33,7 +33,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
@@ -113,7 +112,7 @@ public class Explainer extends NestingAlgorithm {
 
     try {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-      secondAlg = createAlgorithm(firstStepConfig, cfa.getMainFunction(), shutdownManager, reached);
+      secondAlg = createAlgorithm(firstStepConfig, cfa, shutdownManager, reached);
       cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, Explainer.class);
     } catch (IOException pE) {
       throw new AssertionError(pE);
@@ -262,7 +261,7 @@ public class Explainer extends NestingAlgorithm {
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName,
-      CFANode mainFunction,
+      CFA pCfa,
       ShutdownManager singleShutdownManager,
       ReachedSet currentReached)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
@@ -274,7 +273,7 @@ public class Explainer extends NestingAlgorithm {
     }
     return super.createAlgorithm(
         singleConfigFileName,
-        mainFunction,
+        pCfa,
         singleShutdownManager,
         aggregateReached,
         ImmutableSet.of("analysis.algorithm.faultLocalization.by_distance"),

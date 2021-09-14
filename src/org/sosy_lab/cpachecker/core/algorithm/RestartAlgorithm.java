@@ -135,8 +135,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     secure = true,
     name = "combineARGsAfterRestart",
     description =
-        "combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration"
-  )
+          "combine (partial) ARGs obtained by restarts of the analysis after an unknown result with"
+              + " a different configuration")
   private boolean useARGCombiningAlgorithm = false;
 
   @Option(
@@ -232,6 +232,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
     CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
+    // FIXME: is this assertion even necessary? remove this assertion?
+    assert mainFunction.equals(cfa.getMainFunction());
 
     PeekingIterator<AnnotatedValue<Path>> configFilesIterator =
         Iterators.peekingIterator(configFiles.iterator());
@@ -265,7 +267,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
               createNextAlgorithm(
                   singleConfigFileName,
-                  mainFunction,
+                  cfa,
                   singleShutdownManager,
                   provideReachedForNextAlgorithm,
                   // we can only use the reached set if the last analysis terminated without exception
@@ -477,7 +479,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
       Path singleConfigFileName,
-      CFANode mainFunction,
+      CFA pCfa,
       ShutdownManager singleShutdownManager,
       boolean pProvideReachedForNextAlgorithm,
       ReachedSet pCurrentReached)
@@ -492,7 +494,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     return super.createAlgorithm(
         singleConfigFileName,
-        mainFunction,
+        pCfa,
         singleShutdownManager,
         aggregateReached,
         Sets.newHashSet("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),

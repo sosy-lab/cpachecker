@@ -273,7 +273,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     final Path preAnalysisConfig = preAnalysisAlgorithmConfig;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa.getMainFunction(), shutdownManager);
+      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa, shutdownManager);
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
@@ -440,7 +440,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), shutdownManager);
+      currentAlg = createAlgorithm(chosenConfig, cfa, shutdownManager);
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
@@ -473,12 +473,12 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
-      Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager)
+      Path singleConfigFileName, CFA pCfa, ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
     return super.createAlgorithm(
         singleConfigFileName,
-        mainFunction,
+        pCfa,
         singleShutdownManager,
         aggregateReached,
         ImmutableSet.of("analysis.selectAnalysisHeuristically"),

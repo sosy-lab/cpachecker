@@ -67,7 +67,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
   protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName,
-      CFANode mainFunction,
+      CFA pCfa,
       ShutdownManager singleShutdownManager,
       AggregatedReachedSets aggregateReached,
       Collection<String> ignoreOptions,
@@ -84,10 +84,11 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-    Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    ReachedSet reached = createInitialReachedSet(cpa, mainFunction, coreComponents, singleLogger);
+    Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
+    ReachedSet reached =
+        createInitialReachedSet(cpa, pCfa.getMainFunction(), coreComponents, singleLogger);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats);

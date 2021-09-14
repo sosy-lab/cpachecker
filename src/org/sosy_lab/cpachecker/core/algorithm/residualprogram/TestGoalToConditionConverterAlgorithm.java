@@ -93,25 +93,24 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
         throw new InvalidConfigurationException("A strategy must be selected!");
     }
     try {
-      var backwardsCpaTriple = this.createAlgorithm(
-          Path.of("config/components/goalConverterBackwardsSearch.properties"),
-          pCfa.getMainFunction(),
-          ShutdownManager.createWithParent(pShutdownNotifier),
-          AggregatedReachedSets.empty(),
-          ImmutableList.of(
-              "analysis.testGoalConverter",
-              "cpa",
-              "specification",
-              "ARGCPA.cpa",
-              "cpa.property_reachability.noFollowBackwardsUnreachable",
-              "analysis.initialStatesFor",
-              "CompositeCPA.cpas",
-              "cpa.callstack.traverseBackwards",
-              "analysis.collectAssumptions",
-              "assumptions.automatonFile"
-          ),
-          new HashSet<>()
-      );
+      var backwardsCpaTriple =
+          this.createAlgorithm(
+              Path.of("config/components/goalConverterBackwardsSearch.properties"),
+              pCfa,
+              ShutdownManager.createWithParent(pShutdownNotifier),
+              AggregatedReachedSets.empty(),
+              ImmutableList.of(
+                  "analysis.testGoalConverter",
+                  "cpa",
+                  "specification",
+                  "ARGCPA.cpa",
+                  "cpa.property_reachability.noFollowBackwardsUnreachable",
+                  "analysis.initialStatesFor",
+                  "CompositeCPA.cpas",
+                  "cpa.callstack.traverseBackwards",
+                  "analysis.collectAssumptions",
+                  "assumptions.automatonFile"),
+              new HashSet<>());
 
       backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
       backwardsCpa = backwardsCpaTriple.getSecond();
