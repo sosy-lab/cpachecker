@@ -32,20 +32,6 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 public interface TransformingCAstNodeVisitor<X extends Exception>
     extends CAstNodeVisitor<CAstNode, X> {
 
-  /** {@link TransformingCAstNodeVisitor} that does not change AST-nodes. */
-  public static final TransformingCAstNodeVisitor<NoException> IDENTITY =
-      new TransformingCAstNodeVisitor<>() {
-
-        @Override
-        public CAstNode transform(CAstNode pCAstNode) throws NoException {
-          if (pCAstNode != null) {
-            return pCAstNode;
-          } else {
-            return null;
-          }
-        }
-      };
-
   /**
    * Returns the transformed AST-node for a specified AST-node.
    *
