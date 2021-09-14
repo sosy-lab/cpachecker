@@ -930,8 +930,8 @@ public class SMGBuiltins {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
-                  "Unknown function '%s' may be unsafe. See the "
-                      + "cpa.smg.handleUnknownFunctions or cpa.smg.safeUnknownFunctions",
+                  "Unknown function '%s' may be unsafe. See the cpa.smg.handleUnknownFunctions or"
+                      + " cpa.smg.safeUnknownFunctionsPatterns",
                   calledFunctionName));
         }
         // $FALL-THROUGH$ // for safe functions
