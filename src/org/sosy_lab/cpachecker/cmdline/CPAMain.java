@@ -165,8 +165,7 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, shutdown hooks, etc.
-    shutdownHook.disable();
+    // so we disable all the limits, etc.
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
@@ -181,6 +180,8 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
+    // Prevent closing on incoming signal from benchexec while printResultAndStatistics
+    shutdownHook.disableAndStop();
   }
 
   // Default values for options from external libraries
