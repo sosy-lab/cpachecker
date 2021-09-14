@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import com.google.common.base.Preconditions;
 import java.util.IdentityHashMap;
 
 /**
@@ -25,21 +24,9 @@ public abstract class AbstractTransformingCAstNodeVisitor<X extends Exception>
       new IdentityHashMap<>();
 
   @Override
-  public CAstNode transform(CAstNode pOriginalAstNode) throws X {
-
-    Preconditions.checkState(
-        variableDeclarations.isEmpty(),
-        "internal state was not cleared after last invocation of transform");
-
-    CAstNode transformedAstNode = TransformingCAstNodeVisitor.super.transform(pOriginalAstNode);
-    variableDeclarations.clear();
-
-    return transformedAstNode;
-  }
-
-  @Override
   public CAstNode visit(CVariableDeclaration pCVariableDeclaration) throws X {
 
+    boolean firstVisitedVariableDeclaration = variableDeclarations.isEmpty();
     CVariableDeclaration newVariableDeclaration = variableDeclarations.get(pCVariableDeclaration);
 
     if (newVariableDeclaration == null) {
@@ -64,6 +51,10 @@ public abstract class AbstractTransformingCAstNodeVisitor<X extends Exception>
           newVariableDeclaration.addInitializer(newInitializer);
         }
       }
+    }
+
+    if (firstVisitedVariableDeclaration) {
+      variableDeclarations.clear();
     }
 
     return newVariableDeclaration;

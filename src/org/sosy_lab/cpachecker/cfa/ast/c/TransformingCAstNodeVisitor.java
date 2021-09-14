@@ -23,8 +23,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
  * equal to the original AST-node. The implementation may return the same instance for AST-nodes
  * that are equal.
  *
- * <p>In order to create modified AST-nodes using a {@code TransformingCAstNodeVisitor}, call {@link
- * #transform(CAstNode)}.
+ * <p>Modified AST-nodes are created by calling {@link CAstNode#accept(CAstNodeVisitor)} with an
+ * {@code TransformingCAstNodeVisitor}:
+ *
+ * <pre>{@code
+ * CAstNode transformedAstNode = originalAstNode.accept(transformingVisitor);
+ * }</pre>
  *
  * <p>Note: for some AST-nodes, it's required to prevent infinite recursive visit-calls due to
  * cyclic references between variable declarations and their initializer expressions. The
@@ -35,22 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
  */
 public interface TransformingCAstNodeVisitor<X extends Exception>
     extends CAstNodeVisitor<CAstNode, X> {
-
-  /**
-   * Returns the transformed AST-node for a specified AST-node.
-   *
-   * <p>If the specified AST-node is {@code null}, {@code null} is returned.
-   *
-   * @param pCAstNode the original AST-node
-   * @return the transformed AST-node
-   */
-  default CAstNode transform(CAstNode pCAstNode) throws X {
-    if (pCAstNode != null) {
-      return pCAstNode.accept(this);
-    } else {
-      return null;
-    }
-  }
 
   @Override
   default CAstNode visit(CArrayDesignator pCArrayDesignator) throws X {

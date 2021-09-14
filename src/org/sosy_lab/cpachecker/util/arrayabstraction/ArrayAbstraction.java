@@ -134,9 +134,9 @@ public class ArrayAbstraction {
     for (TransformableArray transformableArray : pTransformableArrays) {
       TransformingCAstNodeVisitor<NoException> astTransformer =
           new ReplaceLoopIndexAstTransformingVisitor(transformableArray, pTransformableLoop);
-      conditionsBuilder.add((CExpression) astTransformer.transform(indexGreaterEqualZeroCondition));
-      conditionsBuilder.add((CExpression) astTransformer.transform(initCondition));
-      conditionsBuilder.add((CExpression) astTransformer.transform(loopCondition));
+      conditionsBuilder.add((CExpression) indexGreaterEqualZeroCondition.accept(astTransformer));
+      conditionsBuilder.add((CExpression) initCondition.accept(astTransformer));
+      conditionsBuilder.add((CExpression) loopCondition.accept(astTransformer));
     }
 
     return conditionsBuilder.build();
@@ -418,9 +418,8 @@ public class ArrayAbstraction {
         pCfa,
         mutableGraph,
         (originalCfaEdge, originalAstNode) ->
-            arrayOperationReplacementMap
-                .getAstTransformer(originalCfaEdge)
-                .transform(originalAstNode));
+            originalAstNode.accept(
+                arrayOperationReplacementMap.getAstTransformer(originalCfaEdge)));
   }
 
   private static final class ArrayOperationReplacementMap {
