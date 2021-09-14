@@ -77,6 +77,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   private final ShutdownManager shutdownManager;
   private final Collection<Statistics> stats;
+  private final CFA translatedCfa;
 
   public ArrayAbstractionAlgorithm(
       Configuration pConfiguration,
@@ -89,6 +90,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     stats = new CopyOnWriteArrayList<>();
+    translatedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, getOriginalCfa());
 
     pConfiguration.inject(this);
   }
@@ -135,17 +137,6 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     return status;
   }
 
-  private void exportTranslatedCfa(CFA pTranslatedCfa) {
-
-    if (exportTranslatedCfa && exportTranslatedCfaFile != null && pTranslatedCfa != null) {
-      try (Writer w = IO.openOutputFile(exportTranslatedCfaFile, Charset.defaultCharset())) {
-        DOTBuilder.generateDOT(w, pTranslatedCfa);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write CFA to dot file");
-      }
-    }
-  }
-
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
@@ -153,13 +144,10 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
     AggregatedReachedSets aggregatedReached = AggregatedReachedSets.singleton(pReachedSet);
 
-    CFA transformedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, getOriginalCfa());
-    exportTranslatedCfa(transformedCfa);
-
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
-    if (transformedCfa != null) {
-      status = runDelegateAnalysis(transformedCfa, forwardingReachedSet, aggregatedReached);
+    if (translatedCfa != null) {
+      status = runDelegateAnalysis(translatedCfa, forwardingReachedSet, aggregatedReached);
     }
 
     if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
@@ -171,6 +159,15 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+
     pStatsCollection.addAll(stats);
+
+    if (exportTranslatedCfa && exportTranslatedCfaFile != null && translatedCfa != null) {
+      try (Writer writer = IO.openOutputFile(exportTranslatedCfaFile, Charset.defaultCharset())) {
+        DOTBuilder.generateDOT(writer, translatedCfa);
+      } catch (IOException ex) {
+        logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
+      }
+    }
   }
 }
