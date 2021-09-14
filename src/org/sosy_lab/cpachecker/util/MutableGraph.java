@@ -24,7 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * <p>Nodes from the existing graph are wrapped in {@link MutableGraph.Node} objects. Edges from the
  * existing graph are wrapped in {@link MutableGraph.Edge} objects. All connections between nodes
  * and edges are stored in the mutable graph nodes and edges and can be modified. The connections of
- * the wrapped nodes and edges are not changed by the mutable graph an may differ from the mutable
+ * the wrapped nodes and edges are not changed by the mutable graph and may differ from the mutable
  * graph node and edge connections.
  *
  * @param <N> the wrapped node type
