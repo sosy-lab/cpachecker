@@ -8,14 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -24,22 +27,25 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
 
+/**
+ * Algorithm for array abstraction by program translation.
+ *
+ * <p>A delegate analysis is run on the abstracted program which is represented by a transformed CFA
+ * that is derived from the specified original CFA.
+ */
 @Options(prefix = "arrayAbstraction")
-public final class ArrayAbstractionAlgorithm implements Algorithm {
+public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   @Option(
       secure = true,
@@ -69,11 +75,8 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportTranslatedCfaFile = Path.of("cfa-abstracted-arrays.dot");
 
-  private final Configuration configuration;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Specification specification;
-  private final CFA originalCfa;
+  private final ShutdownManager shutdownManager;
+  private final Collection<Statistics> stats;
 
   public ArrayAbstractionAlgorithm(
       Configuration pConfiguration,
@@ -82,67 +85,44 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
+    super(pConfiguration, pLogger, pShutdownNotifier, pSpecification, pCfa);
 
-    configuration = pConfiguration;
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    specification = pSpecification;
-    originalCfa = pCfa;
+    shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+    stats = new CopyOnWriteArrayList<>();
 
     pConfiguration.inject(this);
   }
 
-  private Configuration createDelegateAnalysisConfiguration() {
-
-    try {
-
-      ConfigurationBuilder delegateConfigBuilder = Configuration.builder();
-      delegateConfigBuilder.copyFrom(configuration);
-      delegateConfigBuilder.clearOption("analysis.useArrayAbstraction");
-      delegateConfigBuilder.clearOption("arrayAbstraction.delegateAnalysis");
-      delegateConfigBuilder.loadFromFile(delegateAnalysisConfigurationFile);
-
-      Configuration delegateConfig = delegateConfigBuilder.build();
-      NestingAlgorithm.checkConfigs(
-          configuration, delegateConfig, delegateAnalysisConfigurationFile, logger);
-      return delegateConfig;
-
-    } catch (IOException | InvalidConfigurationException ex) {
-
-      logger.logfUserException(
-          Level.SEVERE,
-          ex,
-          "Cannot read configuration file for delegate analysis: %s",
-          delegateAnalysisConfigurationFile);
-
-      return null;
-    }
-  }
-
-  private ReachedSet createInitialReachedSet(
-      CoreComponentsFactory pCoreComponents, ConfigurableProgramAnalysis pCpa, CFA pCfa)
-      throws InterruptedException {
-
-    ReachedSet reached = pCoreComponents.createReachedSet(pCpa);
-    CFANode mainFunction = pCfa.getMainFunction();
-
-    AbstractState initialState =
-        pCpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
-    Precision initialPrecision =
-        pCpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
-    reached.add(initialState, initialPrecision);
-
-    return reached;
+  private CFA getOriginalCfa() {
+    return cfa;
   }
 
   private AlgorithmStatus runDelegateAnalysis(
-      CoreComponentsFactory pCoreComponents, CFA pCfa, ForwardingReachedSet pForwardingReachedSet)
-      throws InvalidConfigurationException, InterruptedException,
-          CPAEnabledAnalysisPropertyViolationException, CPAException {
+      CFA pCfa,
+      ForwardingReachedSet pForwardingReachedSet,
+      AggregatedReachedSets pAggregatedReached)
+      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
 
-    ConfigurableProgramAnalysis cpa = pCoreComponents.createCPA(pCfa, specification);
-    Algorithm algorithm = pCoreComponents.createAlgorithm(cpa, pCfa, specification);
-    ReachedSet reached = createInitialReachedSet(pCoreComponents, cpa, pCfa);
+    ImmutableSet<String> ignoreOptions =
+        ImmutableSet.of("analysis.useArrayAbstraction", "arrayAbstraction.delegateAnalysis");
+
+    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> delegate;
+    try {
+      delegate =
+          createAlgorithm(
+              delegateAnalysisConfigurationFile,
+              pCfa,
+              shutdownManager,
+              pAggregatedReached,
+              ignoreOptions,
+              stats);
+    } catch (IOException | InvalidConfigurationException ex) {
+      logger.logUserException(Level.SEVERE, ex, "Could not create delegate algorithm");
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
+    Algorithm algorithm = delegate.getFirst();
+    ReachedSet reached = delegate.getThird();
 
     AlgorithmStatus status = algorithm.run(reached);
 
@@ -172,31 +152,25 @@ public final class ArrayAbstractionAlgorithm implements Algorithm {
 
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
     AggregatedReachedSets aggregatedReached = AggregatedReachedSets.singleton(pReachedSet);
-    Configuration delegateAnalysisConfiguration = createDelegateAnalysisConfiguration();
 
-    CFA translatedCfa = ArrayAbstraction.transformCfa(configuration, logger, originalCfa);
-    exportTranslatedCfa(translatedCfa);
+    CFA transformedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, getOriginalCfa());
+    exportTranslatedCfa(transformedCfa);
 
-    try {
+    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
-      CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(
-              delegateAnalysisConfiguration, logger, shutdownNotifier, aggregatedReached);
-
-      AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
-
-      if (translatedCfa != null) {
-        status = runDelegateAnalysis(coreComponents, translatedCfa, forwardingReachedSet);
-      }
-
-      if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
-        status = runDelegateAnalysis(coreComponents, originalCfa, forwardingReachedSet);
-      }
-
-      return status;
-    } catch (InvalidConfigurationException ex) {
-      logger.logUserException(Level.SEVERE, ex, "Cannot run delegate analysis");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    if (transformedCfa != null) {
+      status = runDelegateAnalysis(transformedCfa, forwardingReachedSet, aggregatedReached);
     }
+
+    if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
+      status = runDelegateAnalysis(getOriginalCfa(), forwardingReachedSet, aggregatedReached);
+    }
+
+    return status;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.addAll(stats);
   }
 }
