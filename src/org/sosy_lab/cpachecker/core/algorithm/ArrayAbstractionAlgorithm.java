@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
 
 /**
- * Algorithm for array abstraction by program translation.
+ * Algorithm for array abstraction by program transformation.
  *
  * <p>A delegate analysis is run on the abstracted program which is represented by a transformed CFA
  * that is derived from the specified original CFA.
@@ -50,7 +50,8 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
   @Option(
       secure = true,
       name = "delegateAnalysis",
-      description = "Configuration of the delegate analysis running on the translated program")
+      description =
+          "Configuration file path of the delegate analysis running on the transformed program.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path delegateAnalysisConfigurationFile;
 
@@ -66,18 +67,18 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
       secure = true,
       name = "cfa.export",
       description = "Whether to export the CFA with abstracted arrays as DOT file.")
-  private boolean exportTranslatedCfa = true;
+  private boolean exportTransformedCfa = true;
 
   @Option(
       secure = true,
       name = "cfa.file",
       description = "DOT file path for CFA with abstracted arrays.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportTranslatedCfaFile = Path.of("cfa-abstracted-arrays.dot");
+  private Path exportTransformedCfaFile = Path.of("cfa-abstracted-arrays.dot");
 
   private final ShutdownManager shutdownManager;
   private final Collection<Statistics> stats;
-  private final CFA translatedCfa;
+  private final CFA transformedCfa;
 
   public ArrayAbstractionAlgorithm(
       Configuration pConfiguration,
@@ -90,7 +91,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     stats = new CopyOnWriteArrayList<>();
-    translatedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, getOriginalCfa());
+    transformedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, getOriginalCfa());
 
     pConfiguration.inject(this);
   }
@@ -146,8 +147,8 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
-    if (translatedCfa != null) {
-      status = runDelegateAnalysis(translatedCfa, forwardingReachedSet, aggregatedReached);
+    if (transformedCfa != null) {
+      status = runDelegateAnalysis(transformedCfa, forwardingReachedSet, aggregatedReached);
     }
 
     if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
@@ -162,9 +163,9 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     pStatsCollection.addAll(stats);
 
-    if (exportTranslatedCfa && exportTranslatedCfaFile != null && translatedCfa != null) {
-      try (Writer writer = IO.openOutputFile(exportTranslatedCfaFile, Charset.defaultCharset())) {
-        DOTBuilder.generateDOT(writer, translatedCfa);
+    if (exportTransformedCfa && exportTransformedCfaFile != null && transformedCfa != null) {
+      try (Writer writer = IO.openOutputFile(exportTransformedCfaFile, Charset.defaultCharset())) {
+        DOTBuilder.generateDOT(writer, transformedCfa);
       } catch (IOException ex) {
         logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
       }

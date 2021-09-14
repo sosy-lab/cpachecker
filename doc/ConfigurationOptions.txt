@@ -516,7 +516,8 @@ arrayAbstraction.cfa.file = "cfa-abstracted-arrays.dot"
 # program that contains (non-abstracted) arrays.
 arrayAbstraction.checkCounterexamples = false
 
-# Configuration of the delegate analysis running on the translated program
+# Configuration file path of the delegate analysis running on the transformed
+# program.
 arrayAbstraction.delegateAnalysis = no default value
 
 # Add a threshold to the automaton, after so many branches on a path the
