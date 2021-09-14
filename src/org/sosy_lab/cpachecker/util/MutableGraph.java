@@ -56,6 +56,19 @@ public abstract class MutableGraph<N, E> {
     return new Edge<>(pWrappedEdge);
   }
 
+  public Edge<N, E> wrapEdge(E pWrappedEdge, Node<N, E> pPredecessor, Node<N, E> pSuccessor) {
+
+    Objects.requireNonNull(pWrappedEdge, "pWrappedEdge must not be null");
+    Objects.requireNonNull(pPredecessor, "pPredecessor must not be null");
+    Objects.requireNonNull(pSuccessor, "pSuccessor must not be null");
+
+    Edge<N, E> edge = wrapEdge(pWrappedEdge);
+    attachLeaving(pPredecessor, edge);
+    attachEntering(pSuccessor, edge);
+
+    return edge;
+  }
+
   public void attachEntering(Node<N, E> pNode, Edge<N, E> pEdge) {
 
     Objects.requireNonNull(pNode, "pNode must not be null");

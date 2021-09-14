@@ -86,9 +86,7 @@ public final class CCfaTransformer {
       for (CFAEdge cfaEdge : CFAUtils.allLeavingEdges(cfaNode)) {
         MutableGraph.Node<CFANode, CFAEdge> successor =
             mutableGraph.getNode(cfaEdge.getSuccessor()).orElseThrow();
-        MutableGraph.Edge<CFANode, CFAEdge> edge = mutableGraph.wrapEdge(cfaEdge);
-        mutableGraph.attachEntering(successor, edge);
-        mutableGraph.attachLeaving(predecessor, edge);
+        mutableGraph.wrapEdge(cfaEdge, predecessor, successor);
       }
     }
 
