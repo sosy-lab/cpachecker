@@ -79,6 +79,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
   private final ShutdownManager shutdownManager;
   private final Collection<Statistics> stats;
   private final CFA transformedCfa;
+  private final CFA originalCfa;
 
   public ArrayAbstractionAlgorithm(
       Configuration pConfiguration,
@@ -87,17 +88,14 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pConfiguration, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pConfiguration, pLogger, pShutdownNotifier, pSpecification);
 
     shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     stats = new CopyOnWriteArrayList<>();
-    transformedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, getOriginalCfa());
+    originalCfa = pCfa;
+    transformedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
 
     pConfiguration.inject(this);
-  }
-
-  private CFA getOriginalCfa() {
-    return cfa;
   }
 
   private AlgorithmStatus runDelegateAnalysis(
@@ -152,7 +150,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     }
 
     if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
-      status = runDelegateAnalysis(getOriginalCfa(), forwardingReachedSet, aggregatedReached);
+      status = runDelegateAnalysis(originalCfa, forwardingReachedSet, aggregatedReached);
     }
 
     return status;

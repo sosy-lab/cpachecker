@@ -71,6 +71,8 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path inputfile;
 
+  private final CFA cfa;
+
   public TestGoalToConditionConverterAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
@@ -79,8 +81,10 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
       Algorithm pOuter,
       ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException, InterruptedException {
 
-    super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied(), pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied());
     pConfig.inject(this);
+
+    cfa = pCfa;
 
     switch (strategy) {
       case NAIVE:

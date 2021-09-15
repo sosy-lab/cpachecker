@@ -174,6 +174,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
+  private final CFA cfa;
   private Algorithm currentAlgorithm;
 
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
@@ -189,11 +190,14 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(config, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(config, pLogger, pShutdownNotifier, pSpecification);
     config.inject(this);
 
+    cfa = pCfa;
+
     if (configFiles.isEmpty()) {
-      throw new InvalidConfigurationException("Need at least one configuration for restart algorithm!");
+      throw new InvalidConfigurationException(
+          "Need at least one configuration for restart algorithm!");
     }
 
     this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
@@ -224,8 +228,11 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
-    checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
-    checkArgument(pReached.size() <= 1, "RestartAlgorithm does not support being called several times with the same reached set");
+    checkArgument(
+        pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
+    checkArgument(
+        pReached.size() <= 1,
+        "RestartAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReached.isEmpty(), "RestartAlgorithm needs non-empty reached set");
 
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
@@ -334,7 +341,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
             // continue with the next algorithm
             logger.logf(
                 Level.INFO,
-                "Analysis %d terminated but did not finish: There are still states to be processed.",
+                "Analysis %d terminated but did not finish: There are still states to be"
+                    + " processed.",
                 stats.noOfAlgorithmsUsed);
 
           } else if (!(from(currentReached).anyMatch(AbstractStates::isTargetState)
@@ -381,7 +389,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       } finally {
         unregisterReachedSetUpdateListeners();
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
-        singleShutdownManager.requestShutdown("Analysis terminated"); // shutdown any remaining components
+        singleShutdownManager.requestShutdown(
+            "Analysis terminated"); // shutdown any remaining components
         stats.totalTime.stop();
       }
 

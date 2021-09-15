@@ -173,16 +173,23 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       out.println("Size of preliminary analysis reached set:      " + sizeOfPreAnaReachedSet);
       out.println("Used algorithm property:                       " + chosenConfig);
       out.println(
-          "Program containing only relevant bools:        " + (requiresOnlyRelevantBoolsHandling ? 1 : 0));
+          "Program containing only relevant bools:        "
+              + (requiresOnlyRelevantBoolsHandling ? 1 : 0));
       out.println(
           String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
-      out.println("Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
-      out.println("Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
       out.println(
-          "Requires composite-type handling:              " + (requiresCompositeTypeHandling ? 1 : 0));
-      out.println("Requires array handling:                       " + (requiresArrayHandling ? 1 : 0));
-      out.println("Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
-      out.println("Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
+          "Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
+      out.println(
+          "Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
+      out.println(
+          "Requires composite-type handling:              "
+              + (requiresCompositeTypeHandling ? 1 : 0));
+      out.println(
+          "Requires array handling:                       " + (requiresArrayHandling ? 1 : 0));
+      out.println(
+          "Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
+      out.println(
+          "Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -249,8 +256,11 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @Option(
       secure = true,
       description =
-          "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig.")
+          "Ratio of addressed vars. Values bigger than the passed value lead to @option"
+              + " addressedConfig.")
   private double addressedRatio = 0;
+
+  private final CFA cfa;
 
   public SelectionAlgorithm(
       CFA pCfa,
@@ -259,8 +269,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       Specification pSpecification,
       LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification);
     pConfig.inject(this);
+    cfa = pCfa;
     stats = new SelectionAlgorithmStatistics(pLogger);
   }
 

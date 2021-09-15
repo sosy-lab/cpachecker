@@ -90,6 +90,7 @@ public class Explainer extends NestingAlgorithm {
   private PredicateCPA cpa;
 
   private final ExplainerAlgorithmStatistics stats;
+  private final CFA cfa;
 
   public Explainer(
       Configuration pConfig,
@@ -98,8 +99,9 @@ public class Explainer extends NestingAlgorithm {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification);
     pConfig.inject(this);
+    cfa = pCfa;
     stats = new ExplainerAlgorithmStatistics(pLogger);
   }
 
