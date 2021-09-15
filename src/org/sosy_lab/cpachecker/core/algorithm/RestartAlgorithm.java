@@ -238,9 +238,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
-    CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
-    // FIXME: is this assertion even necessary? remove this assertion?
-    assert mainFunction.equals(cfa.getMainFunction());
+    CFANode initialNode = Iterables.getOnlyElement(initialNodes);
 
     PeekingIterator<AnnotatedValue<Path>> configFilesIterator =
         Iterators.peekingIterator(configFiles.iterator());
@@ -274,10 +272,12 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
               createNextAlgorithm(
                   singleConfigFileName,
+                  initialNode,
                   cfa,
                   singleShutdownManager,
                   provideReachedForNextAlgorithm,
-                  // we can only use the reached set if the last analysis terminated without exception
+                  // we can only use the reached set if the last analysis terminated without
+                  // exception
                   isLastReachedSetUsable ? reached.getDelegate() : null);
           currentAlgorithm = currentAlg.getFirst();
           currentCpa = currentAlg.getSecond();
@@ -488,6 +488,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
       Path singleConfigFileName,
+      CFANode pInitialNode,
       CFA pCfa,
       ShutdownManager singleShutdownManager,
       boolean pProvideReachedForNextAlgorithm,
@@ -503,6 +504,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     return super.createAlgorithm(
         singleConfigFileName,
+        pInitialNode,
         pCfa,
         singleShutdownManager,
         aggregateReached,

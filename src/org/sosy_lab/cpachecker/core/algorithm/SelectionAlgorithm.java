@@ -284,7 +284,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     final Path preAnalysisConfig = preAnalysisAlgorithmConfig;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa, shutdownManager);
+      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa.getMainFunction(), cfa, shutdownManager);
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
@@ -484,11 +484,12 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
-      Path singleConfigFileName, CFA pCfa, ShutdownManager singleShutdownManager)
+      Path singleConfigFileName, CFA pInitialNode, CFA pCfa, ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
     return super.createAlgorithm(
         singleConfigFileName,
+        pInitialNode,
         pCfa,
         singleShutdownManager,
         aggregateReached,

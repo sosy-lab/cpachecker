@@ -112,6 +112,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
       delegate =
           createAlgorithm(
               delegateAnalysisConfigurationFile,
+              pCfa.getMainFunction(),
               pCfa,
               shutdownManager,
               pAggregatedReached,
