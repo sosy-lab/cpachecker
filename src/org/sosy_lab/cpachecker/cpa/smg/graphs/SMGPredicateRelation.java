@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -45,19 +44,18 @@ public final class SMGPredicateRelation {
       SMGValue pTwo,
       SMGType pSMGTypeTwo,
       BinaryOperator pOperator) {
-    // TODO: track address values
-    if (!pOne.isUnknown()
-        && !pTwo.isUnknown()
-        && !(pOne instanceof SMGKnownAddressValue)
-        && !(pTwo instanceof SMGKnownAddressValue)) {
-      if (!pOne.isZero() && !pTwo.isZero()) {
+    if (!pOne.isUnknown() && !pTwo.isUnknown()) {
+      if (pOne instanceof SMGExplicitValue) {
+        addExplicitRelation(
+            pTwo, pSMGTypeTwo, (SMGExplicitValue) pOne, pOperator.getOppositLogicalOperator());
+      } else if (pTwo instanceof SMGExplicitValue) {
+        addExplicitRelation(pOne, pSMGTypeOne, (SMGExplicitValue) pTwo, pOperator);
+      } else if (!pOne.isZero() && !pTwo.isZero()) {
         addSymbolicRelation(pOne, pSMGTypeOne, pTwo, pSMGTypeTwo, pOperator);
-      }
-      if (pOne.isZero() && !pTwo.isZero()) {
+      } else if (pOne.isZero() && !pTwo.isZero()) {
         addExplicitRelation(
             pTwo, pSMGTypeTwo, SMGZeroValue.INSTANCE, pOperator.getOppositLogicalOperator());
-      }
-      if (pTwo.isZero() && !pOne.isZero()) {
+      } else if (pTwo.isZero() && !pOne.isZero()) {
         addExplicitRelation(pOne, pSMGTypeOne, SMGZeroValue.INSTANCE, pOperator);
       }
     }

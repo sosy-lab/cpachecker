@@ -67,7 +67,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
             smgExpressionEvaluator.evaluateExpressionValue(
                 getInitialSmgState(), edge, leftSideExpression)) {
           SMGValue leftSideVal = leftSideValAndState.getObject();
-        SMGState newState = leftSideValAndState.getSmgState();
+          SMGState newState = leftSideValAndState.getSmgState();
 
           for (SMGValueAndState rightSideValAndState :
               smgExpressionEvaluator.evaluateExpressionValue(newState, edge, rightSideExpression)) {
@@ -134,10 +134,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               //FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
                   // next line: use the symbolic value here and not the potential explicit one.
-                  leftSideValAndState.getObject(),
+                  leftSideVal,
                   leftSideSMGType,
                   // next line: use the symbolic value here and not the potential explicit one.
-                  rightSideValAndState.getObject(),
+                  rightSideVal,
                   rightSideSMGType,
                   binaryOperator,
                   edge);

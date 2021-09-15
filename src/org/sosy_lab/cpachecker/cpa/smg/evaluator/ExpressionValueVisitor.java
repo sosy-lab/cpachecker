@@ -493,10 +493,7 @@ class ExpressionValueVisitor
       List<SMGValueAndState> castedValueAndStates = new ArrayList<>(smgValueAndStates.size());
       for (SMGValueAndState valueAndState : smgValueAndStates) {
         if (valueAndState instanceof SMGAddressValueAndState) {
-          castedValueAndStates.add(
-              SMGValueAndState.of(
-                  valueAndState.getSmgState(),
-                  ((SMGAddressValueAndState) valueAndState).getObject()));
+          castedValueAndStates.add(valueAndState);
         }
       }
       return castedValueAndStates;
