@@ -236,7 +236,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addGlobalVariable(int pTypeSize, String pVarName)
+  public SMGObject addGlobalVariable(long pTypeSize, String pVarName)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
@@ -257,7 +257,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public Optional<SMGObject> addLocalVariable(int pTypeSize, String pVarName)
+  public Optional<SMGObject> addLocalVariable(long pTypeSize, String pVarName)
       throws SMGInconsistentException {
     if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();
@@ -309,7 +309,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public void addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject)
+  public void addLocalVariable(long pTypeSize, String pVarName, SMGRegion smgObject)
       throws SMGInconsistentException {
     SMGRegion new_object2 = new SMGRegion(pTypeSize, pVarName);
 
@@ -1806,7 +1806,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           if (zeroEdgeOffset < pTargetOffset) {
             heap.addHasValueEdge(
                 new SMGEdgeHasValue(
-                    Math.toIntExact(pTargetOffset - zeroEdgeOffset),
+                    pTargetOffset - zeroEdgeOffset,
                     zeroEdgeOffset,
                     object,
                     SMGZeroValue.INSTANCE));
@@ -1816,7 +1816,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           if (targetRangeSize < zeroEdgeOffset2) {
             heap.addHasValueEdge(
                 new SMGEdgeHasValue(
-                    Math.toIntExact(zeroEdgeOffset2 - targetRangeSize),
+                    zeroEdgeOffset2 - targetRangeSize,
                     targetRangeSize,
                     object,
                     SMGZeroValue.INSTANCE));
@@ -1828,18 +1828,33 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // Shift the source edge offset depending on the target range offset
     long copyShift = pTargetOffset - pSourceOffset;
     for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
+      SMGValue newValue = edge.getValue();
       if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset)) {
-        long offset = edge.getOffset() + copyShift;
-        newSMGState =
-            writeValue0(pTarget, offset, edge.getSizeInBits(), edge.getValue()).getState();
+        long newSize = edge.getSizeInBits();
+        long edgeOffset = edge.getOffset();
+        long edgeEndOffset = edgeOffset + newSize;
+        boolean writeEdge = true;
+        if (edgeEndOffset > pSourceLastCopyBitOffset) {
+          newSize = newSize - (edgeEndOffset - pSourceLastCopyBitOffset);
+          writeEdge = newValue.isZero();
+        }
+        long newOffset = edgeOffset + copyShift;
+        if (edgeOffset < pSourceOffset) {
+          newOffset = pTargetOffset;
+          newSize = newSize - (pSourceOffset - edgeOffset);
+          writeEdge = newValue.isZero();
+        }
+        if (writeEdge) {
+          newSMGState = writeValue0(pTarget, newOffset, newSize, newValue).getState();
+        }
       }
     }
 
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     // TODO Why do I do this here?
-    Set<SMGObject> unreachable = heap.pruneUnreachable();
+    Set<SMGObject> unreachable = newSMGState.heap.pruneUnreachable();
     if (!unreachable.isEmpty()) {
-      setMemLeak("Memory leak is detected", unreachable);
+      newSMGState.setMemLeak("Memory leak is detected", unreachable);
     }
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     return newSMGState;

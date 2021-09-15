@@ -260,7 +260,7 @@ class ExpressionValueVisitor
         return result.build();
 
     case SIZEOF:
-        int size =
+        long size =
             smgExpressionEvaluator.getBitSizeof(
                 cfaEdge,
                 TypeUtils.getRealExpressionType(unaryOperand),
