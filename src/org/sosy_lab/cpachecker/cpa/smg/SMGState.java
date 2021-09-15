@@ -1196,9 +1196,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       if (pOffset >= object_edge.getOffset()
           && pOffset + pSizeInBits <= object_edge.getOffset() + object_edge.getSizeInBits()) {
         SMGValue symValue = object_edge.getValue();
-        if (symValue instanceof SMGKnownSymbolicValue
-            && isExplicit((SMGKnownSymbolicValue) symValue)) {
-          SMGKnownExpValue expValue = getExplicit((SMGKnownSymbolicValue) symValue);
+        if (isExplicit(symValue)) {
+          SMGKnownExpValue expValue = getExplicit(symValue);
           BigInteger value = expValue.getValue();
 
           // extract the important bits
@@ -2010,13 +2009,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public boolean isExplicit(SMGKnownSymbolicValue value) {
+  public boolean isExplicit(SMGValue value) {
     return explicitValues.containsKey(value);
   }
 
   @Override
   @Nullable
-  public SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey) {
+  public SMGKnownExpValue getExplicit(SMGValue pKey) {
     return explicitValues.get(pKey);
   }
 
@@ -2050,16 +2049,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     if (pValue1.isUnknown() || pValue2.isUnknown() || pValue1.equals(pValue2)) {
       return false;
-    } else {
-      if (heap.isPointer(pValue1) && heap.isPointer(pValue2)) {
-        SMGObject object1 = heap.getObjectPointedBy(pValue1);
-        SMGObject object2 = heap.getObjectPointedBy(pValue2);
-        if (!object1.equals(object2)) {
-          return !heap.arePossibleEquals(object1, object2);
-        }
+    } else if (pValue1 instanceof SMGExplicitValue && pValue2 instanceof SMGExplicitValue){
+      return !pValue1.equals(pValue2);
+    } else if (isExplicit(pValue1) && isExplicit(pValue2)) {
+      return !getExplicit(pValue1).equals(getExplicit(pValue2));
+    } else if (heap.isPointer(pValue1) && heap.isPointer(pValue2)) {
+      SMGObject object1 = heap.getObjectPointedBy(pValue1);
+      SMGObject object2 = heap.getObjectPointedBy(pValue2);
+      if (!object1.equals(object2)) {
+        return !heap.arePossibleEquals(object1, object2);
       }
-      return heap.haveNeqRelation(pValue1, pValue2);
     }
+    return heap.haveNeqRelation(pValue1, pValue2);
   }
 
   @Override
