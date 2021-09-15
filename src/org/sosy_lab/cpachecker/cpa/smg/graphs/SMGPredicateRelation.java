@@ -47,14 +47,20 @@ public final class SMGPredicateRelation {
     if (!pOne.isUnknown() && !pTwo.isUnknown()) {
       if (pOne instanceof SMGExplicitValue) {
         addExplicitRelation(
-            pTwo, pSMGTypeTwo, (SMGExplicitValue) pOne, pOperator.getOppositLogicalOperator());
+            pTwo,
+            pSMGTypeTwo,
+            (SMGExplicitValue) pOne,
+            pOperator.getSwitchOperandsSidesLogicalOperator());
       } else if (pTwo instanceof SMGExplicitValue) {
         addExplicitRelation(pOne, pSMGTypeOne, (SMGExplicitValue) pTwo, pOperator);
       } else if (!pOne.isZero() && !pTwo.isZero()) {
         addSymbolicRelation(pOne, pSMGTypeOne, pTwo, pSMGTypeTwo, pOperator);
       } else if (pOne.isZero() && !pTwo.isZero()) {
         addExplicitRelation(
-            pTwo, pSMGTypeTwo, SMGZeroValue.INSTANCE, pOperator.getOppositLogicalOperator());
+            pTwo,
+            pSMGTypeTwo,
+            SMGZeroValue.INSTANCE,
+            pOperator.getSwitchOperandsSidesLogicalOperator());
       } else if (pTwo.isZero() && !pOne.isZero()) {
         addExplicitRelation(pOne, pSMGTypeOne, SMGZeroValue.INSTANCE, pOperator);
       }
