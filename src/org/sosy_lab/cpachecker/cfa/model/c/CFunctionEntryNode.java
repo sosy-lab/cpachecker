@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public class CFunctionEntryNode extends FunctionEntryNode implements CCfaNode {
+public class CFunctionEntryNode extends FunctionEntryNode {
 
   private static final long serialVersionUID = -730687961628864953L;
 
@@ -47,10 +47,5 @@ public class CFunctionEntryNode extends FunctionEntryNode implements CCfaNode {
   @Override
   public Optional<CVariableDeclaration> getReturnVariable() {
     return (Optional<CVariableDeclaration>)super.getReturnVariable();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
   }
 }

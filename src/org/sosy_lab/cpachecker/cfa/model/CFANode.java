@@ -26,11 +26,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
-public class CFANode implements Comparable<CFANode>, Serializable, CCfaNode {
+public class CFANode implements Comparable<CFANode>, Serializable {
 
   private static final long serialVersionUID = 5168350921309486536L;
 
@@ -317,10 +315,5 @@ public class CFANode implements Comparable<CFANode>, Serializable, CCfaNode {
       return ImmutableSet.of();
     }
     return Collections.unmodifiableSet(outOfScopeVariables);
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
   }
 }

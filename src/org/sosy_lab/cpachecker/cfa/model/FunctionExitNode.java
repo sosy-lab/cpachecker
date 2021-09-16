@@ -12,10 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeVisitor;
 
-public class FunctionExitNode extends CFANode implements CCfaNode {
+public class FunctionExitNode extends CFANode {
 
   private static final long serialVersionUID = -7883542777389959334L;
   private FunctionEntryNode entryNode;
@@ -32,10 +30,5 @@ public class FunctionExitNode extends CFANode implements CCfaNode {
   public FunctionEntryNode getEntryNode() {
     checkState(entryNode != null);
     return entryNode;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
   }
 }

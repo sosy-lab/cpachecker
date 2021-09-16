@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CLabelNode extends CFANode implements CCfaNode {
+public class CLabelNode extends CFANode {
 
   private static final long serialVersionUID = 9172364902060726643L;
   private final String label;
@@ -26,10 +26,5 @@ public class CLabelNode extends CFANode implements CCfaNode {
 
   public String getLabel() {
     return label;
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(CCfaNodeVisitor<R, X> pVisitor) throws X {
-    return pVisitor.visit(this);
   }
 }
