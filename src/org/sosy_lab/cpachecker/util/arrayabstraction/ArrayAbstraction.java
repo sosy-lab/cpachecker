@@ -492,6 +492,8 @@ public class ArrayAbstraction {
         ImmutableSet<TransformableArray.ArrayOperation> arrayOperations =
             TransformableArray.getArrayOperations(pCArraySubscriptExpression);
 
+        // TODO: the current array abstraction implementation can only handle edges that contain
+        // at most one array operation
         if (arrayOperations.size() == 1) {
 
           TransformableArray.ArrayOperation arrayOperation =
