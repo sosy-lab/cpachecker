@@ -156,6 +156,7 @@ solver.z3.requireProofs = false
 solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -483,6 +484,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# Use array abstraction by program translation
+analysis.useArrayAbstraction = false
+
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
@@ -501,6 +505,20 @@ analysis.useTestCaseGeneratorAlgorithm = false
 
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
+
+# Whether to export the CFA with abstracted arrays as DOT file.
+arrayAbstraction.cfa.export = true
+
+# DOT file path for CFA with abstracted arrays.
+arrayAbstraction.cfa.file = "cfa-abstracted-arrays.dot"
+
+# Use a second delegate analysis run to check counterexamples on the original
+# program that contains (non-abstracted) arrays.
+arrayAbstraction.checkCounterexamples = false
+
+# Configuration file path of the delegate analysis running on the transformed
+# program.
+arrayAbstraction.delegateAnalysis = no default value
 
 # Add a threshold to the automaton, after so many branches on a path the
 # automaton will be ignored (0 to disable)

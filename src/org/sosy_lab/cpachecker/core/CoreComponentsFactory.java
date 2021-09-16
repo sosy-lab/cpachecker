@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
@@ -203,6 +204,12 @@ public class CoreComponentsFactory {
           "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
               + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useArrayAbstraction",
+      description = "Use array abstraction by program translation")
+  private boolean useArrayAbstraction = false;
 
   @Option(
       secure = true,
@@ -460,6 +467,9 @@ public class CoreComponentsFactory {
           shutdownNotifier,
           specification,
           cfa);
+    } else if (useArrayAbstraction) {
+      algorithm =
+          new ArrayAbstractionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -649,7 +659,8 @@ public class CoreComponentsFactory {
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
-        || useFaultLocalizationWithDistanceMetrics) {
+        || useFaultLocalizationWithDistanceMetrics
+        || useArrayAbstraction) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -679,7 +690,8 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useFaultLocalizationWithDistanceMetrics) {
+        || useFaultLocalizationWithDistanceMetrics
+        || useArrayAbstraction) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
