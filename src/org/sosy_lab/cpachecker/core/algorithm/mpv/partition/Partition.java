@@ -62,7 +62,7 @@ public final class Partition {
    */
   public boolean isChecked(ReachedSet reached) {
     // Check for property violations
-    if (reached.hasViolatedProperties()) {
+    if (reached.wasTargetReached()) {
       properties.processPropertyViolation(reached);
     }
     // Stop if all properties have been checked

@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -221,7 +220,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     description = "where to store initial condition, when generated"
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
+  private Path initialCondition = Path.of("AssumptionAutomaton.txt");
 
   private AlgorithmCompositionStrategy selectionStrategy; // TODO initialize, set up
 
@@ -532,7 +531,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     ConfigurableProgramAnalysis cpa = null;
     try {
-      AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+      AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
       CoreComponentsFactory localCoreComponents =
           new CoreComponentsFactory(
               pCurrentContext.getConfig(),
@@ -668,7 +667,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           aggregatePrecisionsForReuse(previousReachedSets, initialPrecision, pFMgr, pConfig);
     }
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(pCpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }
@@ -791,7 +790,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-          trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+          trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
       }
     }
 

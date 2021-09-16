@@ -30,7 +30,7 @@ public class SingleValueChecker extends PerElementPropertyChecker {
 
   public SingleValueChecker(final String varWithSingleValue, final String varValue,
       final String labelForLocationWithSingleValue) {
-    varValRep = MemoryLocation.valueOf(varWithSingleValue);
+    varValRep = MemoryLocation.parseExtendedQualifiedName(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
     varValBigInt = new NumericValue(new BigInteger(varValue));
     varValLong = new NumericValue(Long.parseLong(varValue));

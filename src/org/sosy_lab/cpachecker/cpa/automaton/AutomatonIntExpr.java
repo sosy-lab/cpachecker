@@ -26,14 +26,14 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
   @Override
-  abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
+  ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
   /** Stores a constant integer. */
   static class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
 
     public Constant(int pI) {
-      this.constantResult = new ResultValue<>(Integer.valueOf(pI));
+      this.constantResult = new ResultValue<>(pI);
     }
 
     public Constant(String pI) {
@@ -41,7 +41,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     }
 
     public int getIntValue() {
-      return constantResult.getValue().intValue();
+      return constantResult.getValue();
     }
 
     @Override
@@ -92,17 +92,17 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
         }
         try {
           int value = Integer.parseInt(val);
-          return new ResultValue<>(Integer.valueOf(value));
+          return new ResultValue<>(value);
         } catch (NumberFormatException e) {
           return logAndReturn(
               pArgs, "could not parse the contents of transition variable $%s=\"%s\".", key, val);
         }
       } else if (varId.equals("$line")) { // $line  line number in sourcecode
-        return new ResultValue<>(Integer.valueOf(pArgs.getCfaEdge().getLineNumber()));
+        return new ResultValue<>(pArgs.getCfaEdge().getLineNumber());
       } else {
         AutomatonVariable variable = pArgs.getAutomatonVariables().get(varId);
         if (variable != null) {
-          return new ResultValue<>(Integer.valueOf(variable.getValue()));
+          return new ResultValue<>(variable.getValue());
         } else {
           return logAndReturn(pArgs, "could not find the automaton variable %s.", varId);
         }

@@ -15,12 +15,14 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
@@ -52,6 +54,11 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   @Override
   public Iterator<AbstractState> iterator() {
     return delegate.iterator();
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return delegate.stream();
   }
 
   @Override
@@ -123,6 +130,12 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
+  public void addNoWaitlist(AbstractState pState, Precision pPrecision)
+      throws IllegalArgumentException {
+    delegate.addNoWaitlist(pState, pPrecision);
+  }
+
+  @Override
   public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
     delegate.addAll(pToAdd);
   }
@@ -158,6 +171,11 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
+  public void clearWaitlist() {
+    delegate.clearWaitlist();
+  }
+
+  @Override
   public AbstractState popFromWaitlist() {
     return delegate.popFromWaitlist();
   }
@@ -176,17 +194,22 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public boolean hasViolatedProperties() {
-    return delegate.hasViolatedProperties();
+  public boolean wasTargetReached() {
+    return delegate.wasTargetReached();
   }
 
   @Override
-  public Collection<Property> getViolatedProperties() {
-    return delegate.getViolatedProperties();
+  public Collection<TargetInformation> getTargetInformation() {
+    return delegate.getTargetInformation();
   }
 
   @Override
   public ImmutableMap<String, AbstractStatValue> getStatistics() {
     return delegate.getStatistics();
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return delegate.getCPA();
   }
 }

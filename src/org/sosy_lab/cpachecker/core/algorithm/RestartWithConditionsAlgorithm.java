@@ -72,7 +72,7 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       // run the inner algorithm to fill the reached set
       status = status.update(innerAlgorithm.run(pReached));
 
-      if (pReached.hasViolatedProperties() && status.isPrecise()) {
+      if (pReached.wasTargetReached() && status.isPrecise()) {
         return status;
       }
 

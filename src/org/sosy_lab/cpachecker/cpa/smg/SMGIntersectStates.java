@@ -335,7 +335,7 @@ public final class SMGIntersectStates {
     boolean isPointer1 = heap1.isPointer(pValue1);
     boolean isPointer2 = heap2.isPointer(pValue2);
 
-    if ((isPointer1 && !isPointer2) || (!isPointer1 && isPointer2)) {
+    if (isPointer1 ^ isPointer2) {
       return false;
     }
 

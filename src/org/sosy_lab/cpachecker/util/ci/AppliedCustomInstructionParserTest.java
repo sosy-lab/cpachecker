@@ -36,14 +36,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AppliedCustomInstructionParserTest {
 
-  private CFAInfo cfaInfo;
   private CFA cfa;
   private AppliedCustomInstructionParser aciParser;
   private List<CLabelNode> labelNodes;
@@ -95,22 +93,22 @@ public class AppliedCustomInstructionParserTest {
             LogManager.createTestLogManager(),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
-    cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
     labelNodes = getLabelNodes(cfa);
   }
 
   @Test
   public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException {
     try {
-      aciParser.getCFANode("N57", cfaInfo);
+      aciParser.getCFANode("N57");
       assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
     }
 
-    Truth.assertThat(aciParser.getCFANode("-1", cfaInfo)).isNull();
+    Truth.assertThat(aciParser.getCFANode("-1")).isNull();
 
-    Truth.assertThat(aciParser.getCFANode(cfa.getFunctionHead("main").getNodeNumber() + "", cfaInfo)).isEqualTo(cfa.getMainFunction());
+    Truth.assertThat(aciParser.getCFANode(cfa.getFunctionHead("main").getNodeNumber() + ""))
+        .isEqualTo(cfa.getMainFunction());
   }
 
   @Test

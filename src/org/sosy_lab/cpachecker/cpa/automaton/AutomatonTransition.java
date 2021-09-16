@@ -79,7 +79,7 @@ class AutomatonTransition {
   /** The actions are applied after the assertion are checked successfully. */
   private final ImmutableList<AutomatonAction> actions;
 
-  private final StringExpression violatedPropertyDescription;
+  private final StringExpression targetInformation;
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -98,7 +98,7 @@ class AutomatonTransition {
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
     private ExpressionTree<AExpression> candidateInvariants;
-    private @Nullable StringExpression violatedPropertyDescription;
+    private @Nullable StringExpression targetInformation;
 
     Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
       trigger = pTrigger;
@@ -139,8 +139,8 @@ class AutomatonTransition {
       return this;
     }
 
-    Builder withViolatedPropertyDescription(StringExpression pViolatedPropertyDescription) {
-      this.violatedPropertyDescription = pViolatedPropertyDescription;
+    Builder withTargetInformation(StringExpression pTargetInformation) {
+      this.targetInformation = pTargetInformation;
       return this;
     }
 
@@ -153,7 +153,7 @@ class AutomatonTransition {
           actions,
           followStateName,
           followState,
-          violatedPropertyDescription);
+          targetInformation);
     }
   }
 
@@ -166,7 +166,7 @@ class AutomatonTransition {
         b.actions,
         b.followStateName,
         b.followState,
-        b.violatedPropertyDescription);
+        b.targetInformation);
   }
 
   private AutomatonTransition(
@@ -177,7 +177,7 @@ class AutomatonTransition {
       List<AutomatonAction> pActions,
       String pFollowStateName,
       AutomatonInternalState pFollowState,
-      StringExpression pViolatedPropertyDescription) {
+      StringExpression pTargetInformation) {
 
     this.trigger = checkNotNull(pTrigger);
 
@@ -192,7 +192,7 @@ class AutomatonTransition {
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
-    this.violatedPropertyDescription = pViolatedPropertyDescription;
+    this.targetInformation = pTargetInformation;
 
     if (pAssertions.isEmpty()) {
       this.assertion = AutomatonBoolExpr.TRUE;
@@ -214,7 +214,7 @@ class AutomatonTransition {
   @Override
   public int hashCode() {
     return Objects.hash(
-        actions, assertion, assumptions, followStateName, trigger, violatedPropertyDescription);
+        actions, assertion, assumptions, followStateName, trigger, targetInformation);
   }
 
   @Override
@@ -233,7 +233,7 @@ class AutomatonTransition {
         && Objects.equals(assumptions, other.assumptions)
         && Objects.equals(followStateName, other.followStateName)
         && Objects.equals(trigger, other.trigger)
-        && Objects.equals(violatedPropertyDescription, other.violatedPropertyDescription);
+        && Objects.equals(targetInformation, other.targetInformation);
   }
 
   /**
@@ -308,14 +308,14 @@ class AutomatonTransition {
     return trigger;
   }
 
-  public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
-    if (violatedPropertyDescription == null) {
+  public String getTargetInformation(AutomatonExpressionArguments pArgs) {
+    if (targetInformation == null) {
       if (getFollowState().isTarget()) {
           return getFollowState().getName();
       }
       return null;
     }
-    return violatedPropertyDescription.eval(pArgs).getValue();
+    return targetInformation.eval(pArgs).getValue();
   }
 
   @Override

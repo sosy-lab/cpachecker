@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -29,7 +30,6 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -92,17 +92,11 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     if (pValue instanceof SMGKnownExpValue) {
       return (SMGExplicitValue) pValue;
     }
-    Preconditions.checkState(
-        pValue instanceof SMGKnownSymbolicValue,
-        "known value '%s' has invalid type '%s'",
-        pValue,
-        pValue.getClass());
-    if (!getState().isExplicit((SMGKnownSymbolicValue) pValue)) {
+    if (!getState().isExplicit(pValue)) {
       return SMGUnknownValue.INSTANCE;
     }
     return Preconditions.checkNotNull(
-        getState().getExplicit((SMGKnownSymbolicValue) pValue),
-        "known and existing value cannot be read from state");
+        getState().getExplicit(pValue), "known and existing value cannot be read from state");
   }
 
   @Override
@@ -241,5 +235,10 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
       throws UnrecognizedCodeException {
     return evaluateLeftHandSideExpression(pLValue);
+  }
+
+  @Override
+  public Value visit(JClassLiteralExpression pJClassLiteralExpression) {
+    return UnknownValue.getInstance();
   }
 }

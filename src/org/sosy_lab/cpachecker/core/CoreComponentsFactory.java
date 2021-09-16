@@ -22,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
@@ -29,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
@@ -184,6 +186,9 @@ public class CoreComponentsFactory {
   )
   private boolean useParallelAlgorithm = false;
 
+  @Option(secure = true, description = "converts a witness to an ACSL annotated program")
+  private boolean useWitnessToACSLAlgorithm = false;
+
   @Option(
     secure = true,
     name = "algorithm.MPI",
@@ -199,6 +204,12 @@ public class CoreComponentsFactory {
           "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
               + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useArrayAbstraction",
+      description = "Use array abstraction by program translation")
+  private boolean useArrayAbstraction = false;
 
   @Option(
       secure = true,
@@ -304,12 +315,6 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.CBMC",
-      description = "use CBMC as an external tool from CPAchecker")
-  boolean runCBMCasExternalTool = false;
-
-  @Option(
-      secure = true,
       name = "algorithm.faultLocalization.by_coverage",
       description = "for found property violation, perform fault localization with coverage")
   private boolean useFaultLocalizationWithCoverage = false;
@@ -322,9 +327,12 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.faultlocalization.by_distance",
+      name = "algorithm.faultLocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
+
+  @Option(secure = true, description = "Enable converting test goals to conditions.")
+  private boolean testGoalConverter;
 
   private final Configuration config;
   private final LogManager logger;
@@ -335,6 +343,7 @@ public class CoreComponentsFactory {
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
+
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -382,7 +391,6 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && !runCBMCasExternalTool
         && (useBMC || useIMC);
   }
 
@@ -435,13 +443,6 @@ public class CoreComponentsFactory {
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
-    } else if (runCBMCasExternalTool) {
-      if (cfa.getFileNames().size() > 1) {
-        throw new InvalidConfigurationException(
-            "Cannot use CBMC as analysis with more than one input file");
-      }
-      algorithm = new ExternalCBMCAlgorithm(cfa.getFileNames().get(0), config, logger);
-
     } else if (useParallelAlgorithm) {
       algorithm =
           new ParallelAlgorithm(
@@ -451,6 +452,9 @@ public class CoreComponentsFactory {
               specification,
               cfa,
               aggregatedReachedSets);
+
+    } else if (useWitnessToACSLAlgorithm) {
+      algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
 
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
@@ -463,8 +467,16 @@ public class CoreComponentsFactory {
           shutdownNotifier,
           specification,
           cfa);
+    } else if (useArrayAbstraction) {
+      algorithm =
+          new ArrayAbstractionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if(testGoalConverter) {
+        algorithm = new TestGoalToConditionConverterAlgorithm(config, logger, shutdownNotifier,
+            cfa, algorithm, cpa);
+      }
 
       if (constructResidualProgram) {
         algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,
@@ -588,7 +600,7 @@ public class CoreComponentsFactory {
       if (useResultCheckAlgorithm) {
         algorithm =
             new ResultCheckAlgorithm(
-                algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
+                algorithm, cfa, config, logger, shutdownNotifier, specification);
       }
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
@@ -634,15 +646,21 @@ public class CoreComponentsFactory {
     return algorithm;
   }
 
-  public ReachedSet createReachedSet() {
-    ReachedSet reached = reachedSetFactory.create();
+  /**
+   * Creates an instance of a {@link ReachedSet}.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet createReachedSet(ConfigurableProgramAnalysis cpa) {
+    ReachedSet reached = reachedSetFactory.create(cpa);
 
     if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
-        || useFaultLocalizationWithDistanceMetrics) {
+        || useFaultLocalizationWithDistanceMetrics
+        || useArrayAbstraction) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -672,7 +690,8 @@ public class CoreComponentsFactory {
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
         || constructProgramSlice
-        || useFaultLocalizationWithDistanceMetrics) {
+        || useFaultLocalizationWithDistanceMetrics
+        || useArrayAbstraction) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

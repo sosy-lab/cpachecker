@@ -54,7 +54,7 @@ This is the configuration file for your `Karma/Jasmine` and it houses informatio
 
 **2. 'test' directory:**
 
-There is a directory titled `test` in the testing directory. 
+There is a directory titled `test` in the testing directory.
 
 It houses all `test case` files for Unit testing.
 
@@ -62,7 +62,7 @@ It houses all `test case` files for Unit testing.
 
 At first the javascript loads all the scripts in the the `report.html` to the `testreport.html` and then we start testing our functions using Jasmine/Karma.
 
-We are using PhantomJS browser for Unit testing application.
+We will use all available browsers out of `Google Chrome`, `Chromium` and `Firefox` that are installed locally in headless mode for Unit testing application. Make sure that at least one of these is installed on your machine.
 
 For more information regarding configuration you can browse `karma.conf.js`.
 
@@ -73,10 +73,15 @@ Run the below commands in your terminal for Unit testing:
 
 1. `npm install`
 At first you have to install all dependencies and third party libraries to run the test cases.
-This command is not needed everytime you run the tests, it is required for the first time.
+This command is not needed every time you run the tests, it is required for the first time.
 
-2.  `npm test`
-This command first compiles the application, then simultaneously re-compiles and runs the karma test-runner. 
+2. `npm run build`
+Next, you will need to bundle all necessary `.js` and `.css` of our source code and all third party libraries into single files.
+The tests assume that these bundles files are available and will not work with only the raw files.
+This command is not needed for every test run either, but should be used every time any changes to the JS-related source files are made.
+
+3.  `npm test`
+This command first compiles the application, then simultaneously re-compiles and runs the karma test-runner.
 Test-runner output appears in the terminal window.
 We can update our app and our tests in real-time, keeping a weather eye on the console for broken tests during development by setting up `karma.conf.js` file ( Set variable `autoWatch : true` and `singleRun : false` ).
 

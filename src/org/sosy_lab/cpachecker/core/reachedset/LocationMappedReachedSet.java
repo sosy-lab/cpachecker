@@ -12,8 +12,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -24,10 +26,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  */
 public class LocationMappedReachedSet extends PartitionedReachedSet {
 
-  private static final long serialVersionUID = 1L;
-
-  public LocationMappedReachedSet(WaitlistFactory waitlistFactory) {
-    super(waitlistFactory);
+  public LocationMappedReachedSet(
+      ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
+    super(pCpa, waitlistFactory);
   }
 
   @Override

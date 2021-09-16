@@ -102,8 +102,7 @@ public class BlockPartitioningBuilder {
       Map<FunctionEntryNode, Set<FunctionEntryNode>> innerFunctionCalls,
       Set<FunctionEntryNode> directFunctions) {
     Set<FunctionEntryNode> calledFunctions = new HashSet<>();
-    Deque<FunctionEntryNode> waitlist = new ArrayDeque<>();
-    waitlist.addAll(directFunctions);
+    Deque<FunctionEntryNode> waitlist = new ArrayDeque<>(directFunctions);
     while (!waitlist.isEmpty()) {
       FunctionEntryNode entry  = waitlist.pop();
       if (calledFunctions.add(entry)) {

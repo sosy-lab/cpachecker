@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
  *
  * <p>We aim towards a centralized and threadsafe implementation here.
  */
+@SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
 public class PredicateStatistics {
 
   // merge operator

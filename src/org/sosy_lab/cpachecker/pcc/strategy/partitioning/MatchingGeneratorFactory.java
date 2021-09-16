@@ -14,7 +14,8 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.MatchingGenerator;
 public class MatchingGeneratorFactory {
 
   private MatchingGeneratorFactory() {}
-  public static enum MatchingGenerators {
+
+  public enum MatchingGenerators {
     RANDOM,
     HEAVY_EDGE
   }

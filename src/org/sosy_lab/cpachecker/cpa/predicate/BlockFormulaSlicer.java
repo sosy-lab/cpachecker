@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -28,6 +27,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -120,7 +120,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState end = path.get(i);
       final Set<ARGState> block = blocks.get(i);
 
-      final PathFormula oldPf = pfmgr.makeEmptyPathFormula(pf);
+      final PathFormula oldPf = pfmgr.makeEmptyPathFormulaWithContextFrom(pf);
       pf = buildFormula(start, end, block, oldPf, importantEdges);
       pfs.add(pf.getFormula());
     }
@@ -237,11 +237,9 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState child1 = usedChildren.get(0);
       s2s.putAll(current, s2s.get(child1));
 
-      final Collection<String> iVars = new LinkedHashSet<>();
       // vars from latest important child,
       // we have to copy them, there could be another parent somewhere else
-      iVars.addAll(s2v.get(child1));
-      return iVars;
+      return new LinkedHashSet<>(s2v.get(child1));
 
     } else {
       // there can be several children --> collect their vars and join them
@@ -259,8 +257,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
           newVars = oldVars;
         } else {
           // copy oldVars, they will be used later for a second parent
-          newVars = new LinkedHashSet<>();
-          newVars.addAll(oldVars);
+          newVars = new LinkedHashSet<>(oldVars);
         }
 
         // do the hard work
@@ -455,7 +452,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       return false;
 
     } else {
-      return handleAssignment(edge.asAssignment().get(), importantVars);
+      return handleAssignment(edge.asAssignment().orElseThrow(), importantVars);
     }
   }
 
@@ -478,7 +475,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
         if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
           Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
           if (returnVar.isPresent()) {
-            importantVars.add(returnVar.get().getQualifiedName());
+            importantVars.add(returnVar.orElseThrow().getQualifiedName());
             return true;
           }
         }

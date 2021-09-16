@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
@@ -498,7 +498,9 @@ public class AutomatonGraphmlParser {
     // Check that there are no invariants in a violation witness
     if (!ExpressionTrees.getTrue().equals(candidateInvariants)
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && !pGraphMLParserState.getSpecificationTypes().contains(CommonPropertyType.TERMINATION)) {
+        && !pGraphMLParserState
+            .getSpecificationTypes()
+            .contains(CommonVerificationProperty.TERMINATION)) {
       throw new WitnessParseException(
           "Invariants are not allowed for violation witnesses.");
     }
@@ -1152,10 +1154,7 @@ public class AutomatonGraphmlParser {
           Collections3.transformedImmutableSetCopy(loopHeadFlags, Boolean::parseBoolean);
       if (loopHeadFlagValues.size() > 1) {
         throw new WitnessParseException(
-            "Conflicting values for the flag "
-                + KeyDef.ENTERLOOPHEAD
-                + ": "
-                + loopHeadFlags.toString());
+            "Conflicting values for the flag " + KeyDef.ENTERLOOPHEAD + ": " + loopHeadFlags);
       }
       if (loopHeadFlagValues.iterator().next()) {
         return true;
@@ -1562,7 +1561,7 @@ public class AutomatonGraphmlParser {
   private Set<Property> getSpecAsProperties(final Node pAutomaton) {
     Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
     if (specText.isEmpty()) {
-      return ImmutableSet.of(CommonPropertyType.REACHABILITY);
+      return ImmutableSet.of(CommonVerificationProperty.REACHABILITY);
     } else {
       ImmutableSet.Builder<Property> properties =
           ImmutableSet.builderWithExpectedSize(specText.size());
@@ -1589,13 +1588,13 @@ public class AutomatonGraphmlParser {
       prop = pProperty;
     }
 
-    for (CommonPropertyType propType : CommonPropertyType.values()) {
+    for (CommonVerificationProperty propType : CommonVerificationProperty.values()) {
       if (propType.toString().equals(prop)) {
         return propType;
       }
     }
 
-    return CommonPropertyType.valueOf(prop.trim());
+    return CommonVerificationProperty.valueOf(prop.trim());
   }
 
   private static String transitionToString(Node pTransition) {
@@ -1792,7 +1791,7 @@ public class AutomatonGraphmlParser {
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new ViolationCopyingAutomatonTransition(builder);
+      return new TargetInformationCopyingAutomatonTransition(builder);
     }
     return builder.build();
   }
@@ -1810,19 +1809,18 @@ public class AutomatonGraphmlParser {
                 .withAssertions(pAssertions)
                 .withActions(pActions);
     if (pLeadsToViolationNode) {
-      return new ViolationCopyingAutomatonTransition(builder);
+      return new TargetInformationCopyingAutomatonTransition(builder);
     }
     return builder.build();
   }
 
   private static AutomatonTransition createAutomatonInvariantErrorTransition(
       AutomatonBoolExpr pTriggers, List<AExpression> pAssumptions) {
-    StringExpression violatedPropertyDesc = new StringExpression("Invariant not valid");
     AutomatonInternalState followErrorState = AutomatonInternalState.ERROR;
 
     return new AutomatonTransition.Builder(pTriggers, followErrorState)
         .withAssumptions(pAssumptions)
-        .withViolatedPropertyDescription(violatedPropertyDesc)
+        .withTargetInformation(new StringExpression("Invariant not valid"))
         .build();
   }
 
@@ -1931,41 +1929,36 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private static class ViolationCopyingAutomatonTransition extends AutomatonTransition {
+  private static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
 
-    private ViolationCopyingAutomatonTransition(Builder pBuilder) {
+    private TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
     }
 
     @Override
-    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
-      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
-      Set<String> violatedPropertyDescriptions = new LinkedHashSet<>();
+    public String getTargetInformation(AutomatonExpressionArguments pArgs) {
+      String own = getFollowState().isTarget() ? super.getTargetInformation(pArgs) : null;
+      Set<String> targetInformationDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
-        violatedPropertyDescriptions.add(own);
+        targetInformationDescriptions.add(own);
       }
 
       for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
         if (other != pArgs.getState() && other.getInternalState().isTarget()) {
-          String violatedPropDesc = "";
-
-          Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
-          if (violatedProperty.isPresent()) {
-            violatedPropDesc = violatedProperty.orElseThrow().toString();
-          }
-
-          if (!violatedPropDesc.isEmpty()) {
-            violatedPropertyDescriptions.add(violatedPropDesc);
-          }
+          other
+              .getOptionalTargetInformation()
+              .map(Object::toString)
+              .filter(s -> !s.isEmpty())
+              .ifPresent(targetInformationDescriptions::add);
         }
       }
 
-      if (violatedPropertyDescriptions.isEmpty() && own == null) {
+      if (targetInformationDescriptions.isEmpty() && own == null) {
         return null;
       }
 
-      return Joiner.on(',').join(violatedPropertyDescriptions);
+      return Joiner.on(',').join(targetInformationDescriptions);
     }
 
   }
@@ -2222,7 +2215,7 @@ public class AutomatonGraphmlParser {
   private static String getMessage(Throwable pException) {
     String message = pException.getMessage();
     if (message == null) {
-      message = "Exception occurred, but details are unknown: " + pException.toString();
+      message = "Exception occurred, but details are unknown: " + pException;
     }
     if (pException instanceof IOException) {
       return String.format("Error while accessing witness file: %s!", message);
@@ -2230,7 +2223,7 @@ public class AutomatonGraphmlParser {
     return message;
   }
 
-  private static interface InputHandler<T, E extends Throwable> {
+  private interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }

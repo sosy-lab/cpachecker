@@ -197,7 +197,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
     @Override
     protected void refineUsingInterpolants(
         final ARGReachedSet pReached,
-        InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree) {
+        InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree)
+        throws InterruptedException {
 
       timeStrengthen.start();
       Set<ARGState> strengthenedStates = strengthenStates(pInterpolationTree);
@@ -290,9 +291,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
     }
 
     private void tryToCoverArg(
-        Set<ARGState> strengthenedStates,
-        ARGReachedSet reached,
-        ARGState pTargetState) {
+        Set<ARGState> strengthenedStates, ARGReachedSet reached, ARGState pTargetState)
+        throws InterruptedException {
       ARGState coverageRoot = null;
 
       ARGPath errorPath = ARGUtils.getOnePathTo(pTargetState);
@@ -308,8 +308,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
               coverageRoot = state;
               break;
             }
-          } catch (CPAException | InterruptedException e) {
-            throw new Error(); // TODO
+          } catch (CPAException e) {
+            throw new AssertionError(e); // TODO
           }
         }
       }
