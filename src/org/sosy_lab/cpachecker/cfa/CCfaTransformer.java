@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -44,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeVisitor;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -106,7 +105,8 @@ public final class CCfaTransformer {
     Objects.requireNonNull(pMutableGraph, "pMutableGraph must not be null");
     Objects.requireNonNull(pAstNodeSubstitution, "pAstNodeSubstitution must not be null");
 
-    CfaBuilder cfaBuilder = new CfaBuilder(pMutableGraph, pAstNodeSubstitution);
+    CfaBuilder cfaBuilder =
+        new CfaBuilder(pMutableGraph, CCfaNodeTransformer.DEFAULT, pAstNodeSubstitution);
 
     return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
   }
@@ -174,6 +174,7 @@ public final class CCfaTransformer {
 
     private final MutableGraph<CFANode, CFAEdge> mutableGraph;
 
+    private final CCfaNodeTransformer nodeTransformer;
     private final BiFunction<CFAEdge, CAstNode, CAstNode> astNodeSubstitutionFunction;
 
     private final Map<MutableGraph.Node<CFANode, CFAEdge>, CFANode> nodeToNewCfaNode;
@@ -181,10 +182,12 @@ public final class CCfaTransformer {
 
     private CfaBuilder(
         MutableGraph<CFANode, CFAEdge> pMutableGraph,
+        CCfaNodeTransformer pNodeTransformer,
         BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitutionFunction) {
 
       mutableGraph = pMutableGraph;
 
+      nodeTransformer = pNodeTransformer;
       astNodeSubstitutionFunction = pAstNodeSubstitutionFunction;
 
       nodeToNewCfaNode = new HashMap<>();
@@ -198,50 +201,27 @@ public final class CCfaTransformer {
         return newCfaNode;
       }
 
-      CCfaNodeVisitor<CFANode, NoException> transformingNodeVisitor =
-          new CCfaNodeVisitor<>() {
+      CFANode originalCfaNode = pNode.getWrappedNode();
 
-            @Override
-            public CFANode visit(CFANode pCfaNode) {
-              return new CFANode(pCfaNode.getFunction());
-            }
-
-            @Override
-            public CFANode visit(CFATerminationNode pCfaTerminationNode) {
-              return new CFATerminationNode(pCfaTerminationNode.getFunction());
-            }
-
-            @Override
-            public CFANode visit(FunctionExitNode pFunctionExitNode) {
-              return new FunctionExitNode(pFunctionExitNode.getFunction());
-            }
-
-            @Override
-            public CFANode visit(CFunctionEntryNode pCFunctionEntryNode) {
-
-              MutableGraph.Node<CFANode, CFAEdge> exitNode =
-                  mutableGraph.getNode(pCFunctionEntryNode.getExitNode()).orElseThrow();
-              FunctionExitNode cfaExitNode = (FunctionExitNode) newCfaNodeIfAbsent(exitNode);
-
-              CFunctionEntryNode newCfaEntryNode =
-                  new CFunctionEntryNode(
-                      pCFunctionEntryNode.getFileLocation(),
-                      (CFunctionDeclaration) pCFunctionEntryNode.getFunction(),
-                      cfaExitNode,
-                      pCFunctionEntryNode.getReturnVariable());
-
-              cfaExitNode.setEntryNode(newCfaEntryNode);
-
-              return newCfaEntryNode;
-            }
-
-            @Override
-            public CFANode visit(CLabelNode pCLabelNode) {
-              return new CLabelNode(pCLabelNode.getFunction(), pCLabelNode.getLabel());
-            }
-          };
-
-      newCfaNode = pNode.getWrappedNode().accept(transformingNodeVisitor);
+      if (originalCfaNode instanceof CLabelNode) {
+        newCfaNode = nodeTransformer.transformCLabelNode((CLabelNode) originalCfaNode);
+      } else if (originalCfaNode instanceof CFunctionEntryNode) {
+        CFunctionEntryNode originalCfaEntryNode = (CFunctionEntryNode) originalCfaNode;
+        MutableGraph.Node<CFANode, CFAEdge> exitNode =
+            mutableGraph.getNode(originalCfaEntryNode.getExitNode()).orElseThrow();
+        FunctionExitNode newCfaExitNode = (FunctionExitNode) newCfaNodeIfAbsent(exitNode);
+        newCfaNode =
+            nodeTransformer.transformCFunctionEntryNode(
+                (CFunctionEntryNode) originalCfaNode, newCfaExitNode);
+        newCfaExitNode.setEntryNode((CFunctionEntryNode) newCfaNode);
+      } else if (originalCfaNode instanceof FunctionExitNode) {
+        newCfaNode = nodeTransformer.transformFunctionExitNode((FunctionExitNode) originalCfaNode);
+      } else if (originalCfaNode instanceof CFATerminationNode) {
+        newCfaNode =
+            nodeTransformer.transformCfaTerminationNode((CFATerminationNode) originalCfaNode);
+      } else {
+        newCfaNode = nodeTransformer.transformCfaNode(originalCfaNode);
+      }
 
       nodeToNewCfaNode.put(pNode, newCfaNode);
 
