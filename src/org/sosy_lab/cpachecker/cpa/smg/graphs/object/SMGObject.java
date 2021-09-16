@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
  */
 public abstract class SMGObject implements Comparable<SMGObject> {
 
-  private final int size;
+  private final long size;
   private final String label;
   private final int level;
   private final SMGObjectKind kind;
@@ -29,11 +29,11 @@ public abstract class SMGObject implements Comparable<SMGObject> {
     return kind;
   }
 
-  protected SMGObject(int pSize, String pLabel, SMGObjectKind pKind) {
+  protected SMGObject(long pSize, String pLabel, SMGObjectKind pKind) {
     this(pSize, pLabel, 0, pKind);
   }
 
-  protected SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
+  protected SMGObject(long pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
     this(pSize, pLabel, pLevel, pKind, getNewId());
   }
 
@@ -41,7 +41,7 @@ public abstract class SMGObject implements Comparable<SMGObject> {
     this(pOther.size, pOther.label, pOther.level, pOther.kind, pOther.id);
   }
 
-  private SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind, int pId) {
+  private SMGObject(long pSize, String pLabel, int pLevel, SMGObjectKind pKind, int pId) {
     size = pSize;
     label = pLabel;
     level = pLevel;
@@ -55,7 +55,7 @@ public abstract class SMGObject implements Comparable<SMGObject> {
     return label;
   }
 
-  public int getSize() {
+  public long getSize() {
     return size;
   }
 

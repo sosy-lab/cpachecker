@@ -388,7 +388,7 @@ public class SMGTransferRelation
      }
 
      // If parameter is a array, convert to pointer
-     final int size;
+     final long size;
      if (cParamType instanceof CArrayType) {
        size = machineModel.getSizeofPtrInBits();
      } else {
@@ -479,7 +479,7 @@ public class SMGTransferRelation
 
       SMGRegion newObject = values.get(i).getFirst();
       SMGValue symbolicValue = values.get(i).getSecond();
-      int typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
+      long typeSize = expressionEvaluator.getBitSizeof(callEdge, cParamType, newState);
 
       newState.addLocalVariable(typeSize, varName, newObject);
 
@@ -926,7 +926,7 @@ public class SMGTransferRelation
      *  already processed the declaration, we do nothing.
      */
     if (newObject == null && (!isExtern || options.getAllocateExternalVariables())) {
-      int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
+      long typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
       // Handle incomplete type of extern variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
@@ -1181,7 +1181,7 @@ public class SMGTransferRelation
     if (pVarDecl.isGlobal()) {
       List<Pair<SMGState, Long>> result = new ArrayList<>();
 
-      int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+      long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
       SMGState newState =
           expressionEvaluator.writeValue(
@@ -1274,7 +1274,7 @@ public class SMGTransferRelation
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
+    long sizeOfElementType = expressionEvaluator.getBitSizeof(pEdge, elementType, pNewState);
 
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
@@ -1286,7 +1286,7 @@ public class SMGTransferRelation
 
       for (SMGState newState : newStates) {
         if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
-          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+          long sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
           newState =
               expressionEvaluator.writeValue(
                   newState,

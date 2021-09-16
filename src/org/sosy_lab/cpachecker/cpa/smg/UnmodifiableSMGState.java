@@ -154,9 +154,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   SMGPredicateRelation getErrorPredicateRelation();
 
-  boolean isExplicit(SMGKnownSymbolicValue value);
+  boolean isExplicit(SMGValue value);
 
-  SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey);
+  SMGKnownExpValue getExplicit(SMGValue pKey);
 
   boolean hasMemoryErrors();
 

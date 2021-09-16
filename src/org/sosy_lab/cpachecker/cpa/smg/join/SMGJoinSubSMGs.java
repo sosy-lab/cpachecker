@@ -101,7 +101,16 @@ final class SMGJoinSubSMGs {
 
     for (SMGEdgeHasValue hvIn1 : hvEdgesIn1) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset()).filterWithoutSize();
-      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
+      SMGHasValueEdges hvEdges2 = inputSMG2.getHVEdges(filterOnSMG2);
+
+      // FIXME: check why it is possible to have no edges
+      if (hvEdges2.size() != 1) {
+        defined = false;
+        status = SMGJoinStatus.INCOMPARABLE;
+        return;
+      }
+
+      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(hvEdges2);
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
       int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
