@@ -39,8 +39,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.smg")
 public class SMGPredicateManager {
-  private static final String SYM_NAME = "Sym_";
-
   @Option(secure=true, name="verifyPredicates", description = "Allow SMG to check predicates")
   private boolean verifyPredicates = false;
 
@@ -112,9 +110,9 @@ public class SMGPredicateManager {
   }
 
   /**
-   * Method for getting symbolic value casted to different types
+   * Method for getting value casted to different types
    *
-   * @param pSMGValue symbolic value
+   * @param pSMGValue value
    * @param pSMGType casting type
    * @return formula with variable for value casted according to pSMGType
    */
@@ -123,7 +121,8 @@ public class SMGPredicateManager {
     if (valueFormula == null) {
       long size = pSMGType.getOriginSize();
       boolean isSigned = pSMGType.isOriginSigned();
-      valueFormula = efmgr.makeVariable(BigInteger.valueOf(size).intValueExact(), SYM_NAME + pSMGValue);
+      valueFormula =
+          efmgr.makeVariable(BigInteger.valueOf(size).intValueExact(), pSMGValue.toString());
       valueFormula = efmgr.extend(valueFormula, 0, isSigned);
       createdValueFormulas.put(pSMGValue, valueFormula);
       valueTypes.put(pSMGValue, pSMGType);
