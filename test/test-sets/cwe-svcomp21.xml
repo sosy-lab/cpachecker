@@ -28,6 +28,27 @@ We expect a small runtime and memory usage per run and define the limits smaller
 
 <rundefinition name="SV-COMP">
   <option name="-svcomp21"/>
+  <tasks name="CWE121_Stack_Based_Buffer_Overflow">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE121_Stack_Based_Buffer_Overflow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE122_Heap_Based_Buffer_Overflow">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE122_Heap_Based_Buffer_Overflow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE124_Buffer_Underwrite">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE124_Buffer_Underwrite.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE126_Buffer_Overread">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE126_Buffer_Overread.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE127_Buffer_Underread">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE127_Buffer_Underread.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
   <tasks name="CWE190_Integer_Overflow">
     <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE190_Integer_Overflow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
@@ -36,6 +57,7 @@ We expect a small runtime and memory usage per run and define the limits smaller
     <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE191_Integer_Underflow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
+
   <tasks name="CWE401_Memory_Leak">
     <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE401_Memory_Leak.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -48,10 +70,32 @@ We expect a small runtime and memory usage per run and define the limits smaller
     <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE416_Use_After_Free.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
+  <tasks name="CWE476_NULL_Pointer_Dereference">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE476_NULL_Pointer_Dereference.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE590_Free_Memory_Not_on_Heap">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE590_Free_Memory_Not_on_Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE761_Free_Pointer_Not_at_Start_of_Buffer">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE761_Free_Pointer_Not_at_Start_of_Buffer.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="CWE789_Uncontrolled_Mem_Alloc">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE789_Uncontrolled_Mem_Alloc.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <tasks name="CWE835_Infinite_Loop">
+    <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE835_Infinite_Loop.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
+
   <tasks name="CWE843_Type_Confusion">
     <includesfile>../programs/benchmarks/Juliet_Test/Juliet_Test_Suite_v1.3_for_C_Cpp/C/set-files/CWE843_Type_Confusion.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 </rundefinition>
-  
+
 </benchmark>
