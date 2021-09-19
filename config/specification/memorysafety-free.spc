@@ -15,6 +15,6 @@ CONTROL AUTOMATON SMGCPAFREE
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(SMGCPA, "has-invalid-frees") -> ERROR("valid free: invalid pointer free in $location (CWE-415 Double Free)");
+  CHECK(SMGCPA, "has-invalid-frees") -> ERROR("valid-free: invalid pointer free in $location (CWE-415 or CWE-590)");
 
 END AUTOMATON
