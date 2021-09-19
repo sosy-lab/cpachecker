@@ -806,7 +806,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               case ACTUAL_OUT:
                 return "Number of actual-out nodes";
               default:
-                return "Number of " + pNodeType.toString() + " nodes";
+                return "Number of " + pNodeType + " nodes";
             }
           }
 
@@ -826,7 +826,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               case SUMMARY_EDGE:
                 return "Number of summary edges";
               default:
-                return "Number of " + pEdgeType.toString() + " edges";
+                return "Number of " + pEdgeType + " edges";
             }
           }
 
