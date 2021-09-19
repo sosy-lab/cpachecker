@@ -790,7 +790,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     pStatsCollection.add(
         new Statistics() {
 
-          private String getNodeDescription(SystemDependenceGraph.NodeType pNodeType) {
+          private String getNodeCountDescription(SystemDependenceGraph.NodeType pNodeType) {
             // TODO: use switch expression when project is on Java >= 14
             switch (pNodeType) {
               case ENTRY:
@@ -810,7 +810,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             }
           }
 
-          private String getEdgeDescription(SystemDependenceGraph.EdgeType pEdgeType) {
+          private String getEdgeCountDescription(SystemDependenceGraph.EdgeType pEdgeType) {
             // TODO: use switch expression when project is on Java >= 14
             switch (pEdgeType) {
               case FLOW_DEPENDENCY:
@@ -846,13 +846,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
               for (var nodeType : SystemDependenceGraph.NodeType.values()) {
                 int nodeCount = systemDependenceGraph.getNodeCount(nodeType);
-                String description = getNodeDescription(nodeType);
+                String description = getNodeCountDescription(nodeType);
                 put(pOut, detailsIndentation, description, String.valueOf(nodeCount));
               }
 
               for (var edgeType : SystemDependenceGraph.EdgeType.values()) {
                 int edgeCount = systemDependenceGraph.getEdgeCount(edgeType);
-                String description = getEdgeDescription(edgeType);
+                String description = getEdgeCountDescription(edgeType);
                 put(pOut, detailsIndentation, description, String.valueOf(edgeCount));
               }
 
