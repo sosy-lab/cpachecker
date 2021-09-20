@@ -74,9 +74,9 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 
 <YYINITIAL> {
    "//@"                {yybegin(SINGLE_LINE_ANNOTATION); nextAnnotation = true;
-                        return symbol(sym.NEXTCONTRACT);}
+                        return symbol(ACSLSymbols.NEXTCONTRACT);}
    "/*@"                {yybegin(MULTI_LINE_ANNOTATION);  nextAnnotation = true;
-                        return symbol(sym.NEXTCONTRACT);}
+                        return symbol(ACSLSymbols.NEXTCONTRACT);}
    {LineBreak}          {/* do nothing */}
    .                    {/* do nothing */}
 }
@@ -91,70 +91,71 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 }
 
 <SINGLE_LINE_ANNOTATION, MULTI_LINE_ANNOTATION> {
-    "\\true"            {return symbol(sym.TRUE);}
-    "\\false"           {return symbol(sym.FALSE);}
-    "["                 {return symbol(sym.LBRACKET);}
-    "]"                 {return symbol(sym.RBRACKET);}
-    "?"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.QUESTION);}
-    "!"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.NEG);}
-    "~"                 {return symbol(sym.BNEG);}
-    "*"                 {return symbol(sym.STAR);}
-    "/"                 {return symbol(sym.DIVIDE);}
-    "%"                 {return symbol(sym.MOD);}
-    "+"                 {return symbol(sym.PLUS);}
-    "-"                 {return symbol(sym.MINUS);}
-    "<<"                {return symbol(sym.LSHIFT);}
-    ">>"                {return symbol(sym.RSHIFT);}
-    "&"                 {return symbol(sym.AMPERSAND);}
-    "|"                 {return symbol(sym.BOR);}
-    "^"                 {return symbol(sym.BXOR);}
-    "-->"               {return symbol(sym.BIMP);}
-    "<-->"              {return symbol(sym.BEQV);}
-    "&&"                {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.AND);}
-    "||"                {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.OR);}
-    "==>"               {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.IMP);}
-    "<==>"              {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.EQV);}
-    "^^"                {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.XOR);}
-    "=="                {return symbol(sym.EQ);}
-    "!="                {return symbol(sym.NEQ);}
-    "<="                {return symbol(sym.LEQ);}
-    ">="                {return symbol(sym.GEQ);}
-    ">"                 {return symbol(sym.GT);}
-    "<"                 {return symbol(sym.LT);}
-    "("                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.LPAREN);}
-    ")"                 {return symbol(sym.RPAREN);}
-    "for"               {return symbol(sym.FOR);}
-    "sizeof"            {return symbol(sym.SIZEOF);}
-    "behavior"          {return symbol(sym.BEHAVIOR);}
-    "complete behaviors"    {return symbol(sym.COMPLETE_BEHAVIORS);}
-    "disjoint behaviors"    {return symbol(sym.DISJOINT_BEHAVIORS);}
-    "ensures"           {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.ENS);}
-    "requires"          {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.REQ);}
-    "loop invariant"    {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.LINVARIANT);}
-    "assert"            {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.ASSERT);}
-    "check"             {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.CHECK);}
-    "assumes"           {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.ASS);}
-    ":"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.COLON);}
-    ","                 {return symbol(sym.COMMA);}
-    ";"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.SEMI);}
-    "\\old"             {return symbol(sym.OLD);}
-    "\\result"          {return symbol(sym.RETVAL);}
-    "\\forall"          {return symbol(sym.FORALL);}
-    "\\exists"          {return symbol(sym.EXISTS);}
+    "\\true"            {return symbol(ACSLSymbols.TRUE);}
+    "\\false"           {return symbol(ACSLSymbols.FALSE);}
+    "["                 {return symbol(ACSLSymbols.LBRACKET);}
+    "]"                 {return symbol(ACSLSymbols.RBRACKET);}
+    "?"                 {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.QUESTION);}
+    "!"                 {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.NEG);}
+    "~"                 {return symbol(ACSLSymbols.BNEG);}
+    "*"                 {return symbol(ACSLSymbols.STAR);}
+    "/"                 {return symbol(ACSLSymbols.DIVIDE);}
+    "%"                 {return symbol(ACSLSymbols.MOD);}
+    "+"                 {return symbol(ACSLSymbols.PLUS);}
+    "-"                 {return symbol(ACSLSymbols.MINUS);}
+    "<<"                {return symbol(ACSLSymbols.LSHIFT);}
+    ">>"                {return symbol(ACSLSymbols.RSHIFT);}
+    "&"                 {return symbol(ACSLSymbols.AMPERSAND);}
+    "|"                 {return symbol(ACSLSymbols.BOR);}
+    "^"                 {return symbol(ACSLSymbols.BXOR);}
+    "-->"               {return symbol(ACSLSymbols.BIMP);}
+    "<-->"              {return symbol(ACSLSymbols.BEQV);}
+    "&&"                {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.AND);}
+    "||"                {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.OR);}
+    "==>"               {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.IMP);}
+    "<==>"              {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.EQV);}
+    "^^"                {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.XOR);}
+    "=="                {return symbol(ACSLSymbols.EQ);}
+    "!="                {return symbol(ACSLSymbols.NEQ);}
+    "<="                {return symbol(ACSLSymbols.LEQ);}
+    ">="                {return symbol(ACSLSymbols.GEQ);}
+    ">"                 {return symbol(ACSLSymbols.GT);}
+    "<"                 {return symbol(ACSLSymbols.LT);}
+    "("                 {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.LPAREN);}
+    ")"                 {return symbol(ACSLSymbols.RPAREN);}
+    "for"               {return symbol(ACSLSymbols.FOR);}
+    "sizeof"            {return symbol(ACSLSymbols.SIZEOF);}
+    "behavior"          {return symbol(ACSLSymbols.BEHAVIOR);}
+    "complete behaviors"    {return symbol(ACSLSymbols.COMPLETE_BEHAVIORS);}
+    "disjoint behaviors"    {return symbol(ACSLSymbols.DISJOINT_BEHAVIORS);}
+    "ensures"           {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.ENS);}
+    "requires"          {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.REQ);}
+    "loop invariant"    {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.LINVARIANT);}
+    "assert"            {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.ASSERT);}
+    "check"             {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.CHECK);}
+    "assumes"           {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.ASS);}
+    ":"                 {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.COLON);}
+    ","                 {return symbol(ACSLSymbols.COMMA);}
+    ";"                 {addTokenToQueue(symbol(ACSLSymbols.PRED_START)); return symbol(ACSLSymbols.SEMI);}
+    "\\old"             {return symbol(ACSLSymbols.OLD);}
+    "\\result"          {return symbol(ACSLSymbols.RETVAL);}
+    "\\forall"          {return symbol(ACSLSymbols.FORALL);}
+    "\\exists"          {return symbol(ACSLSymbols.EXISTS);}
     {DecInt}            {builder.setLength(0); String matched = yytext().toLowerCase();
                         while (matched.endsWith("u") || matched.endsWith("l")) {
                           matched = matched.substring(0, matched.length() - 1);
                         }
-                        return symbol(sym.LITERAL, new BigInteger(builder.append(matched).toString()));}
+                        return symbol(ACSLSymbols.LITERAL, new BigInteger(builder.append(matched).toString()));}
     {CType}             {builder.setLength(0);
-                        return symbol(sym.TYPE, new ACSLType(builder.append(yytext()).toString()));}
+                        return symbol(ACSLSymbols.TYPE, new ACSLType(builder.append(yytext()).toString()));}
     {ACSLType}          {builder.setLength(0);
-                        return symbol(sym.TYPE, new ACSLType(builder.append(yytext()).toString()));}
+                        return symbol(ACSLSymbols.TYPE, new ACSLType(builder.append(yytext()).toString()));}
     {Identifier}        {builder.setLength(0);
-                        return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
+                        return symbol(ACSLSymbols.IDENTIFIER, builder.append(yytext()).toString());}
     {String}            {builder.setLength(0);
-                        return symbol(sym.STRING_LITERAL, builder.append(yytext()).toString());}
+                        return symbol(ACSLSymbols.STRING_LITERAL, builder.append(yytext()).toString());}
     {Space}             {/* do nothing */}
 }
 
     [^]                 {throw new Error("Illegal character: <" + yytext() + ">");}
+    <<EOF>>             { return symbol(ACSLSymbols.EOF, yytext()); }
