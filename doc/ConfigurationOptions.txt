@@ -206,13 +206,16 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# Use fault localization with distance metrics
+analysis.algorithm.configurableComponents = false
+
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
 
 # Use fault localization with distance metrics
 analysis.algorithm.faultLocalization.by_distance = false
 
-# for found property violation, perform fault localization with trace
+# for found property violation, perform fault lCoreCocalization with trace
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
 
