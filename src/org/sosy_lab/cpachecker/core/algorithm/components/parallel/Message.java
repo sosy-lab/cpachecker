@@ -25,19 +25,16 @@ public class Message {
   private final BlockNode sender;
   private final MessageType type;
   private final BooleanFormula condition;
-  private final Precision precision;
   private final FormulaManagerView fmgr;
 
   public Message(
       MessageType pType,
       BlockNode pSender,
       BooleanFormula pCondition,
-      Precision pPrecision,
       FormulaManagerView pFmgr) {
     sender = pSender;
     type = pType;
     condition = pCondition;
-    precision = pPrecision;
     fmgr = pFmgr;
   }
 
@@ -51,10 +48,6 @@ public class Message {
 
   public MessageType getType() {
     return type;
-  }
-
-  public Precision getPrecision() {
-    return precision;
   }
 
   public FormulaManagerView getFmgr() {

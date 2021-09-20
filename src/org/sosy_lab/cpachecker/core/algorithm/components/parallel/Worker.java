@@ -105,7 +105,7 @@ public class Worker implements Runnable {
     solver = extractAnalysis(parts.getSecond(), PredicateCPA.class).getSolver();
     reachedSet = parts.getThird();
     startState = extractCompositeStateFromReachedSet(reachedSet);
-    emptyPrecision = reachedSet.getPrecision(startState);
+    emptyPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
 
     fmgr = solver.getFormulaManager();
     bmgr = fmgr.getBooleanFormulaManager();
@@ -240,13 +240,12 @@ public class Worker implements Runnable {
       logger.log(Level.WARNING, "The reached set does not contain any states: " + reachedSet);
       preconditionForNextBlock = bmgr.makeTrue();
     }
-    return new Message(MessageType.PRECONDITION, block, preconditionForNextBlock,
-        reachedSet.getPrecision(reachedSet.getLastState()), fmgr);
+    return new Message(MessageType.PRECONDITION, block, preconditionForNextBlock, fmgr);
   }
 
   // return pre condition
   private Message backwardAnalysis() {
-    return new Message(MessageType.POSTCONDITION, block, bmgr.makeTrue(), reachedSet.getPrecision(reachedSet.getLastState()), fmgr);
+    return new Message(MessageType.POSTCONDITION, block, bmgr.makeTrue(), fmgr);
   }
 
   private void runContinuousAnalysis() {
