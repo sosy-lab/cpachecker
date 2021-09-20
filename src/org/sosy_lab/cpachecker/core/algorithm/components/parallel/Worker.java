@@ -107,7 +107,8 @@ public class Worker implements Runnable {
         if (message.getSender().getSuccessors().contains(block)) {
           preConditionUpdates.put(message.getSender(), message);
           Message toSend = forwardAnalysis();
-          if (lastPreConditionMessage.isEmpty() || !toSend.equals(lastPreConditionMessage.orElseThrow())) {
+          if (lastPreConditionMessage.isEmpty() || !toSend.equals(
+              lastPreConditionMessage.orElseThrow())) {
             write.add(toSend);
           }
         }
@@ -116,7 +117,8 @@ public class Worker implements Runnable {
         if (message.getSender().getPredecessors().contains(block)) {
           postConditionUpdates.put(message.getSender(), message);
           Message toSend = backwardAnalysis();
-          if (lastPreConditionMessage.isEmpty() || !toSend.equals(lastPreConditionMessage.orElseThrow())) {
+          if (lastPreConditionMessage.isEmpty() || !toSend.equals(
+              lastPreConditionMessage.orElseThrow())) {
             write.add(toSend);
           }
         }

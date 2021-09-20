@@ -197,7 +197,8 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager, AnalysisDirection.FORWARD);
+      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager,
+          AnalysisDirection.FORWARD);
     }
 
     @Override
@@ -206,7 +207,8 @@ public abstract class WorkerAnalysis {
           getStatesFromCompositeState(startState, PredicateAbstractState.class).stream().findFirst()
               .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
       firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-          pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), fmgr.uninstantiate(condition)),
+          pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(),
+              fmgr.uninstantiate(condition)),
           firstPredicateState);
       List<AbstractState> states = new ArrayList<>();
       for (AbstractState wrappedState : startState.getWrappedStates()) {
@@ -253,7 +255,8 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager, AnalysisDirection.BACKWARD);
+      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager,
+          AnalysisDirection.BACKWARD);
     }
 
     @Override

@@ -63,8 +63,10 @@ public class ComponentAnalysis implements Algorithm {
       }
       Dispatcher dispatcher = new Dispatcher(logger);
       Set<Worker> workers = new HashSet<>();
-      for (BlockNode node: tree.getDistinctNodes()) {
-        Worker worker = dispatcher.registerNodeAndGetWorker(node, logger, cfa, specification, configuration, shutdownManager);
+      for (BlockNode node : tree.getDistinctNodes()) {
+        Worker worker =
+            dispatcher.registerNodeAndGetWorker(node, logger, cfa, specification, configuration,
+                shutdownManager);
         workers.add(worker);
       }
       workers.forEach(runner -> new Thread(runner).start());

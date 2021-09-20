@@ -61,7 +61,8 @@ public class AlgorithmFactory {
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(), new AggregatedReachedSets());
+            singleConfig, singleLogger, singleShutdownManager.getNotifier(),
+            new AggregatedReachedSets());
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     ARGCPA argcpa = (ARGCPA) cpa;
@@ -77,12 +78,15 @@ public class AlgorithmFactory {
     }
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    ReachedSet reached = createInitialReachedSet(cpa, node.getStartNode(), coreComponents, singleLogger);
+    ReachedSet reached =
+        createInitialReachedSet(cpa, node.getStartNode(), coreComponents, singleLogger);
 
     return Triple.of(algorithm, cpa, reached);
   }
 
-  private static Configuration buildSubConfig(Collection<String> ignoreOptions, Configuration globalConfig)
+  private static Configuration buildSubConfig(
+      Collection<String> ignoreOptions,
+      Configuration globalConfig)
       throws InvalidConfigurationException {
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -91,7 +95,8 @@ public class AlgorithmFactory {
       singleConfigBuilder.clearOption(ignore);
     }
 
-    return singleConfigBuilder.setOption("CompositeCPA.cpas", "cpa.block.BlockCPA,cpa.predicate.PredicateCPA").build();
+    return singleConfigBuilder.setOption("CompositeCPA.cpas",
+        "cpa.block.BlockCPA,cpa.predicate.PredicateCPA").build();
   }
 
   private static ReachedSet createInitialReachedSet(
