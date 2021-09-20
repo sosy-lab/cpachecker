@@ -452,6 +452,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         .toList();
   }
 
+  public boolean collectedStats() {
+    return conversionTime.getNumberOfIntervals() > 0;
+  }
+
   @Override
   public void printStatistics(
       final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
