@@ -36,8 +36,8 @@ public class BlockCPA extends AbstractCPA {
   public void init(BlockNode pBlockNode) {
     startNode = pBlockNode.getStartNode();
     TransferRelation relation = getTransferRelation();
-    checkState(relation instanceof BlockTransferRelation,
-        "Expected " + BlockTransferRelation.class + " but got " + relation.getClass());
+    checkState(relation instanceof BlockTransferRelation, "Expected %s but got %s",
+        BlockTransferRelation.class, relation.getClass());
     ((BlockTransferRelation) relation).init(pBlockNode);
   }
 
