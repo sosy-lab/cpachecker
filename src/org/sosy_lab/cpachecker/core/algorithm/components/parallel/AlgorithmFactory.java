@@ -20,6 +20,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
@@ -47,7 +48,8 @@ public class AlgorithmFactory {
       final Configuration globalConfig,
       final ShutdownManager singleShutdownManager,
       final Collection<String> ignoreOptions,
-      final BlockNode node)
+      final BlockNode node,
+      final AnalysisDirection direction)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
     Configuration singleConfig = buildSubConfig(ignoreOptions, globalConfig);

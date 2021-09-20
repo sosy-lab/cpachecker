@@ -73,7 +73,8 @@ public abstract class IndependentAnalysis {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      AnalysisDirection pAnalysisDirection)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(pLogger, pSpecification, pCFA, pConfiguration,
@@ -83,7 +84,7 @@ public abstract class IndependentAnalysis {
                 "analysis.useLoopStructure",
                 "cpa.predicate.blk.alwaysAtJoin",
                 "cpa.predicate.blk.alwaysAtBranch",
-                "cpa.predicate.blk.alwaysAtProgramExit"), pBlock);
+                "cpa.predicate.blk.alwaysAtProgramExit"), pBlock, pAnalysisDirection);
     algorithm = parts.getFirst();
     status = AlgorithmStatus.NO_PROPERTY_CHECKED;
     solver = extractAnalysis(parts.getSecond(), PredicateCPA.class).getSolver();
@@ -99,7 +100,7 @@ public abstract class IndependentAnalysis {
         pLogger,
         pShutdownManager.getNotifier(),
         pCFA,
-        AnalysisDirection.FORWARD);
+        pAnalysisDirection);
 
     block = pBlock;
     logger = pLogger;
@@ -197,7 +198,7 @@ public abstract class IndependentAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager, AnalysisDirection.FORWARD);
     }
 
     @Override
@@ -253,7 +254,7 @@ public abstract class IndependentAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager, AnalysisDirection.BACKWARD);
     }
 
     @Override
