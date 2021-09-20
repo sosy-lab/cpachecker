@@ -391,8 +391,7 @@ public class SMG {
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
-   * guaranteed to be completely accurate! TODO: Do we have to check for nullified blocks even if a
-   * value is defined?
+   * guaranteed to be completely accurate!
    *
    * @param object The object from which is to be read.
    * @param offset The offset from which on the field in the object is to be read.
@@ -406,7 +405,11 @@ public class SMG {
 
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
-    // Check if multiple edges may exists for the same offset and size!
+    // Check if multiple edges may exists for the same offset and size! -> There should never be
+    // multiple edges for the exact same offset/size
+    // TODO: We only check for the exact matches to offset + size, what if one reads
+    // a field that is completely covered by a value field? I guess this is meant this way, but we
+    // should discuss it nevertheless.
     Predicate<SMGHasValueEdge> filterByOffsetAndSize =
         o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
     Optional<SMGHasValueEdge> maybeValue =
@@ -569,6 +572,9 @@ public class SMG {
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
     NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap =
         getZeroValueEdgesForObject(object, offset, size);
+    if (nullEdgesRangeMap.isEmpty()) {
+      return false;
+    }
     // We start at the first value equalling zero in the object itself. To not read potentially
     // invalid memory, the first SMGHasValueEdge has to equal the offset, while only a single offset
     // + size in the map(=HasValueEdges) has to equal the offset + size of the field to be read.
