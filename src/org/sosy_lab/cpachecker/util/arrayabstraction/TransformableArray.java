@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -262,15 +262,12 @@ public final class TransformableArray {
 
   @Override
   public String toString() {
-
-    return String.format(
-        Locale.ENGLISH,
-        "%s[memoryLocation=%s,arrayType=%s,#readEdges=%d,#writeEdges=%d]",
-        getClass().getName(),
-        memoryLocation,
-        type,
-        readEdges.size(),
-        writeEdges.size());
+    return MoreObjects.toStringHelper(this)
+        .add("memoryLocation", memoryLocation)
+        .add("arrayType", type)
+        .add("#readEdges", readEdges.size())
+        .add("#writeEdges", writeEdges.size())
+        .toString();
   }
 
   /** Represents the type of an array operation (read/write). */
@@ -373,13 +370,11 @@ public final class TransformableArray {
 
     @Override
     public String toString() {
-      return String.format(
-          Locale.ENGLISH,
-          "%s[type=%s, arrayMemoryLocation=%s, indexExpression=%s]",
-          getClass().getName(),
-          type,
-          arrayMemoryLocation,
-          indexExpression);
+      return MoreObjects.toStringHelper(this)
+          .add("type", type)
+          .add("arrayMemoryLocation", arrayMemoryLocation)
+          .add("indexExpression", indexExpression)
+          .toString();
     }
   }
 
