@@ -168,9 +168,7 @@ public final class TransformableLoop {
         uses.removeAll(arrayMemoryLocations);
 
         if (!defs.isEmpty() || !edgeDefUseData.getPointeeDefs().isEmpty()) {
-          if (!uses.isEmpty() || !edgeDefUseData.getPointeeUses().isEmpty()) {
-            return false;
-          }
+          return false;
         }
       }
     }
