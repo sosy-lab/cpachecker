@@ -212,10 +212,10 @@ public class Worker implements Runnable {
         firstPredicateState);
     List<AbstractState> states = new ArrayList<>();
     for (AbstractState wrappedState : startState.getWrappedStates()) {
-      if (!(wrappedState instanceof PredicateAbstractState)) {
-        states.add(wrappedState);
-      } else {
+      if (wrappedState instanceof PredicateAbstractState) {
         states.add(firstPredicateState);
+      } else {
+        states.add(wrappedState);
       }
     }
     CompositeState actualStartState = new CompositeState(states);
