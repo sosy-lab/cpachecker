@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import java_cup.runtime.*;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java_cup.runtime.Symbol;
 
 @javax.annotation.processing.Generated("JFlex")
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"URF_UNREAD_FIELD", "DLS_DEAD_LOCAL_STORE"})
