@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public abstract class IndependentAnalysis {
+public abstract class WorkerAnalysis {
 
   protected final Solver solver;
   protected final FormulaManagerView fmgr;
@@ -67,7 +67,7 @@ public abstract class IndependentAnalysis {
 
   protected AlgorithmStatus status;
 
-  public IndependentAnalysis(
+  public WorkerAnalysis(
       LogManager pLogger,
       BlockNode pBlock,
       CFA pCFA,
@@ -188,7 +188,7 @@ public abstract class IndependentAnalysis {
       throws CPAException, InterruptedException;
 
 
-  public static class ForwardAnalysis extends IndependentAnalysis {
+  public static class ForwardAnalysis extends WorkerAnalysis {
 
     public ForwardAnalysis(
         LogManager pLogger,
@@ -244,7 +244,7 @@ public abstract class IndependentAnalysis {
     }
   }
 
-  public static class BackwardAnalysis extends IndependentAnalysis {
+  public static class BackwardAnalysis extends WorkerAnalysis {
 
     public BackwardAnalysis(
         LogManager pLogger,
