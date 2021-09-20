@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,7 +73,7 @@ public abstract class WorkerAnalysis {
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
-      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(pLogger, pSpecification, pCFA, pConfiguration,
             pShutdownManager,
@@ -126,7 +125,7 @@ public abstract class WorkerAnalysis {
         "Expected analysis " + pTarget + " is not part of the composite cpa " + cpa);
   }
 
-  protected CompositeState extractCompositeStateFromReachedSet(@Nonnull ReachedSet pReachedSet) {
+  protected CompositeState extractCompositeStateFromReachedSet(ReachedSet pReachedSet) {
     AbstractState state = pReachedSet.getFirstState();
     checkNotNull(state, "ReachedSet has to have a starting state");
     checkState(state instanceof ARGState, "First state has to be an ARGState");
@@ -137,7 +136,7 @@ public abstract class WorkerAnalysis {
   }
 
   protected <T extends AbstractState> ImmutableSet<T> getStatesFromCompositeState(
-      @Nonnull CompositeState pCompositeState,
+      CompositeState pCompositeState,
       Class<T> pTarget) {
     Set<T> result = new HashSet<>();
     for (AbstractState wrappedState : pCompositeState.getWrappedStates()) {
