@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -273,14 +273,12 @@ public abstract class MutableGraph<N, E> {
 
     @Override
     public String toString() {
-      return String.format(
-          Locale.ENGLISH,
-          "%s[wrappedNode=%s, enteringEdges=%s, leavingEdges=%s]",
-          getClass(),
-          wrappedNode,
-          enteringEdges,
-          leavingEdges);
-    }
+      return MoreObjects.toStringHelper(this)
+          .add("wrappedNode", wrappedNode)
+          .add("enteringEdges", enteringEdges)
+          .add("leavingEdges", leavingEdges)
+          .toString();
+  }
   }
 
   public static final class Edge<N, E> {
@@ -319,13 +317,11 @@ public abstract class MutableGraph<N, E> {
 
     @Override
     public String toString() {
-      return String.format(
-          Locale.ENGLISH,
-          "%s[wrappedEdge=%s, predecessor=%s, successor=%s]",
-          getClass(),
-          wrappedEdge,
-          predecessor,
-          successor);
+      return MoreObjects.toStringHelper(this)
+          .add("wrappedEdge", wrappedEdge)
+          .add("predecessor", predecessor)
+          .add("successor", successor)
+          .toString();
     }
   }
 }
