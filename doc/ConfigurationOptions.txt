@@ -484,7 +484,7 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# Use array abstraction by program translation
+# Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
 # select an analysis from a set of analyses after unknown result
