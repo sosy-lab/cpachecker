@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
+import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
 /**
  * Algorithm for array abstraction by program transformation.
@@ -65,16 +66,29 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   @Option(
       secure = true,
-      name = "cfa.export",
+      name = "cfa.dot.export",
       description = "Whether to export the CFA with abstracted arrays as DOT file.")
-  private boolean exportTransformedCfa = true;
+  private boolean exportDotTransformedCfa = true;
 
   @Option(
       secure = true,
-      name = "cfa.file",
+      name = "cfa.dot.file",
       description = "DOT file path for CFA with abstracted arrays.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportTransformedCfaFile = Path.of("cfa-abstracted-arrays.dot");
+  private Path exportDotTransformedCfaFile = Path.of("cfa-abstracted-arrays.dot");
+
+  @Option(
+      secure = true,
+      name = "cfa.c.export",
+      description = "Whether to export the CFA with abstracted arrays as C source file.")
+  private boolean exportCTransformedCfa = true;
+
+  @Option(
+      secure = true,
+      name = "cfa.c.file",
+      description = "C source file path for CFA with abstracted arrays.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportCTransformedCfaFile = Path.of("abstracted-arrays.c");
 
   private final ShutdownManager shutdownManager;
   private final Collection<Statistics> stats;
@@ -162,11 +176,24 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     pStatsCollection.addAll(stats);
 
-    if (exportTransformedCfa && exportTransformedCfaFile != null && transformedCfa != null) {
-      try (Writer writer = IO.openOutputFile(exportTransformedCfaFile, Charset.defaultCharset())) {
-        DOTBuilder.generateDOT(writer, transformedCfa);
-      } catch (IOException ex) {
-        logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
+    if (transformedCfa != null) {
+      if (exportDotTransformedCfa && exportDotTransformedCfaFile != null) {
+        try (Writer writer =
+            IO.openOutputFile(exportDotTransformedCfaFile, Charset.defaultCharset())) {
+          DOTBuilder.generateDOT(writer, transformedCfa);
+        } catch (IOException ex) {
+          logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
+        }
+      }
+
+      if (exportCTransformedCfa && exportCTransformedCfaFile != null) {
+        try (Writer writer =
+            IO.openOutputFile(exportCTransformedCfaFile, Charset.defaultCharset())) {
+          String sourceCode = new CFAToCTranslator(globalConfig).translateCfa(transformedCfa);
+          writer.write(sourceCode);
+        } catch (IOException | CPAException | InvalidConfigurationException ex) {
+          logger.logUserException(Level.WARNING, ex, "Could not export CFA as C source file");
+        }
       }
     }
   }
