@@ -1117,7 +1117,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     assertThat(newSMG.getValues()).hasSize(allValuesBeforeRead.size() + 1);
     // Check that the new value is indeed the value that is read
     SMGValue newValue =
-        Sets.difference(newSMG.getValues(), allValuesBeforeRead).stream().findFirst().get();
+        Sets.difference(newSMG.getValues(), allValuesBeforeRead).stream().findFirst().orElseThrow();
     assertThat(readReinterpretation.getValue()).isEqualTo(newValue);
     // Assert that there is now a new SMGHasValueEdge for the field with the new value.
     // Since its sets, it doesn't matter if this is read repeatedly.
