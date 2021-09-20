@@ -87,7 +87,7 @@ public class Worker implements Runnable {
         .collect(fmgr.getBooleanFormulaManager().toDisjunction());
   }
 
-  public void analyze() throws InterruptedException, CPAException, InvalidConfigurationException {
+  public void analyze() throws InterruptedException, CPAException {
     while (true) {
       Message m = read.take();
       processMessage(m);
@@ -147,7 +147,7 @@ public class Worker implements Runnable {
   private void runContinuousAnalysis() {
     try {
       analyze();
-    } catch (InterruptedException | CPAException | InvalidConfigurationException pE) {
+    } catch (InterruptedException | CPAException pE) {
       if (!finished) {
         logger.log(Level.SEVERE, this + " run into an error while waiting because of " + pE);
         logger.log(Level.SEVERE, "Restarting Worker " + this + "...");

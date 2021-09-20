@@ -48,9 +48,8 @@ public class AlgorithmFactory {
       final Configuration globalConfig,
       final ShutdownManager singleShutdownManager,
       final Collection<String> ignoreOptions,
-      final BlockNode node,
-      final AnalysisDirection direction)
-      throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
+      final BlockNode node)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     Configuration singleConfig = buildSubConfig(ignoreOptions, globalConfig);
     LogManager singleLogger = logger.withComponentName("Analysis " + node);

@@ -73,9 +73,8 @@ public abstract class WorkerAnalysis {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager,
-      AnalysisDirection pAnalysisDirection)
-      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+      ShutdownManager pShutdownManager)
+      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(pLogger, pSpecification, pCFA, pConfiguration,
             pShutdownManager,
@@ -84,7 +83,7 @@ public abstract class WorkerAnalysis {
                 "analysis.useLoopStructure",
                 "cpa.predicate.blk.alwaysAtJoin",
                 "cpa.predicate.blk.alwaysAtBranch",
-                "cpa.predicate.blk.alwaysAtProgramExit"), pBlock, pAnalysisDirection);
+                "cpa.predicate.blk.alwaysAtProgramExit"), pBlock);
     algorithm = parts.getFirst();
     status = AlgorithmStatus.NO_PROPERTY_CHECKED;
     solver = extractAnalysis(parts.getSecond(), PredicateCPA.class).getSolver();
@@ -197,8 +196,7 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager,
-          AnalysisDirection.FORWARD);
+      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
     }
 
     @Override
@@ -255,8 +253,7 @@ public abstract class WorkerAnalysis {
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
         throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager,
-          AnalysisDirection.BACKWARD);
+      super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
     }
 
     @Override

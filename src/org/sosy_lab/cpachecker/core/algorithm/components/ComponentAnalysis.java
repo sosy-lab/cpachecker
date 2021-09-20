@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ComponentAnalysis implements Algorithm {
 
-  private final Algorithm parentAlgorithm;
   private final Configuration configuration;
   private final LogManager logger;
   private final CFA cfa;
@@ -37,14 +36,11 @@ public class ComponentAnalysis implements Algorithm {
   private final Specification specification;
 
   public ComponentAnalysis(
-      Algorithm pAlgorithm,
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
       ShutdownManager pShutdownManager,
-      Specification pSpecification)
-      throws InvalidConfigurationException {
-    parentAlgorithm = pAlgorithm;
+      Specification pSpecification) {
     configuration = pConfig;
     logger = pLogger;
     cfa = pCfa;
