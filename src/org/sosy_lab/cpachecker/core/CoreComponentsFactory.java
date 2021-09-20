@@ -641,7 +641,7 @@ public class CoreComponentsFactory {
       }
 
       if (useConfigurableComponents) {
-        algorithm = new ComponentAnalysis(algorithm, config, logger, cfa, ShutdownManager.createWithParent(shutdownNotifier), specification);
+        algorithm = new ComponentAnalysis(config, logger, cfa, ShutdownManager.createWithParent(shutdownNotifier), specification);
       }
 
       if (useFaultLocalizationWithCoverage) {
