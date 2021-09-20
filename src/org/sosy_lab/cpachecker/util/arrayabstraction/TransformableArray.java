@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -156,6 +157,19 @@ public final class TransformableArray {
             TransformableArray.Builder builder =
                 new TransformableArray.Builder(arrayMemoryLocation, (CArrayType) type);
             builders.put(arrayMemoryLocation, builder);
+          }
+        } else if (edge instanceof CFunctionSummaryEdge) {
+          CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) edge;
+          CFunctionEntryNode entryNode = summaryEdge.getFunctionEntry();
+          List<CParameterDeclaration> parameters = entryNode.getFunctionParameters();
+          for (CParameterDeclaration parameter : parameters) {
+            CType type = parameter.getType();
+            if (type instanceof CArrayType) {
+              MemoryLocation arrayMemoryLocation = MemoryLocation.forDeclaration(parameter);
+              TransformableArray.Builder builder =
+                  new TransformableArray.Builder(arrayMemoryLocation, (CArrayType) type);
+              builders.put(arrayMemoryLocation, builder);
+            }
           }
         }
       }
