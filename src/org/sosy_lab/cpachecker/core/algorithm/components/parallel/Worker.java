@@ -117,8 +117,8 @@ public class Worker implements Runnable {
         if (message.getSender().getPredecessors().contains(block)) {
           postConditionUpdates.put(message.getSender(), message);
           Message toSend = backwardAnalysis();
-          if (lastPreConditionMessage.isEmpty() || !toSend.equals(
-              lastPreConditionMessage.orElseThrow())) {
+          if (lastPostConditionMessage.isEmpty() || !toSend.equals(
+              lastPostConditionMessage.orElseThrow())) {
             write.add(toSend);
           }
         }
