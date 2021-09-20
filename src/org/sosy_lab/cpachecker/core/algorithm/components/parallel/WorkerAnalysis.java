@@ -100,8 +100,7 @@ public abstract class WorkerAnalysis {
         pLogger,
         pShutdownManager.getNotifier(),
         pCFA,
-        pAnalysisDirection);
-
+        AnalysisDirection.FORWARD);
     block = pBlock;
     logger = pLogger;
   }
@@ -207,7 +206,7 @@ public abstract class WorkerAnalysis {
           getStatesFromCompositeState(startState, PredicateAbstractState.class).stream().findFirst()
               .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
       firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-          pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), condition),
+          pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), fmgr.uninstantiate(condition)),
           firstPredicateState);
       List<AbstractState> states = new ArrayList<>();
       for (AbstractState wrappedState : startState.getWrappedStates()) {
