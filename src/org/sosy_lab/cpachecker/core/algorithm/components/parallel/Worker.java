@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -43,6 +44,9 @@ public class Worker implements Runnable {
   private boolean finished;
   private AlgorithmStatus status;
 
+  private Optional<Message> lastPreConditionMessage;
+  private Optional<Message> lastPostConditionMessage;
+
   public Worker(
       BlockNode pBlock,
       BlockingQueue<Message> pOutputStream,
@@ -67,6 +71,9 @@ public class Worker implements Runnable {
     backwardAnalysis = new BackwardAnalysis(pLogger, pBlock, pCFA, pSpecification, pConfiguration,
         pShutdownManager);
     status = forwardAnalysis.getStatus();
+
+    lastPreConditionMessage = Optional.empty();
+    lastPostConditionMessage = Optional.empty();
   }
 
   public BooleanFormula getPostCondition(FormulaManagerView fmgr) {
@@ -99,13 +106,19 @@ public class Worker implements Runnable {
       case PRECONDITION:
         if (message.getSender().getSuccessors().contains(block)) {
           preConditionUpdates.put(message.getSender(), message);
-          write.add(forwardAnalysis());
+          Message toSend = forwardAnalysis();
+          if (lastPreConditionMessage.isEmpty() || !toSend.equals(lastPreConditionMessage.orElseThrow())) {
+            write.add(toSend);
+          }
         }
         break;
       case POSTCONDITION:
         if (message.getSender().getPredecessors().contains(block)) {
           postConditionUpdates.put(message.getSender(), message);
-          write.add(backwardAnalysis());
+          Message toSend = backwardAnalysis();
+          if (lastPreConditionMessage.isEmpty() || !toSend.equals(lastPreConditionMessage.orElseThrow())) {
+            write.add(toSend);
+          }
         }
         break;
       default:
@@ -117,6 +130,7 @@ public class Worker implements Runnable {
   private Message forwardAnalysis() throws CPAException, InterruptedException {
     Message message = forwardAnalysis.analyze(getPreCondition(forwardAnalysis.getFmgr()));
     status = forwardAnalysis.getStatus();
+    lastPreConditionMessage = Optional.of(message);
     return message;
   }
 
@@ -124,6 +138,7 @@ public class Worker implements Runnable {
   private Message backwardAnalysis() throws CPAException, InterruptedException {
     Message message = backwardAnalysis.analyze(getPostCondition(backwardAnalysis.getFmgr()));
     status = backwardAnalysis.getStatus();
+    lastPostConditionMessage = Optional.of(message);
     return message;
   }
 
