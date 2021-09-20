@@ -592,7 +592,7 @@ public class SMG {
       if (currentMax.compareTo(entry.getKey()) < 0) {
         return false;
       }
-      currentMax = currentMax.max(entry.getValue().add(currentMax));
+      currentMax = currentMax.max(entry.getValue().add(entry.getKey()));
       // If there are no gaps,
       // the max encountered has to be == offset + size at some point.
       if (currentMax.compareTo(offsetPlusSize) >= 0) {
