@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.cut;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -79,12 +80,8 @@ public class BlockOperatorCutter implements CFACutter {
       // additionally we want to store any node that is between start -> end of a BlockNode
       // so we use the class Entry to track the current node and the nodes in between.
       final CFANode currentRootNode = lastCFANode;
-      toSearch.addAll(
-          CFAUtils.successorsOf(lastCFANode).stream()
-              .map(
-                  succ ->
-                      new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ))))
-              .collect(Collectors.toList()));
+      toSearch.addAll(FluentIterable.from(CFAUtils.successorsOf(lastCFANode)).transform(succ ->
+          new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ)))).toList());
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
       while (!toSearch.isEmpty()) {

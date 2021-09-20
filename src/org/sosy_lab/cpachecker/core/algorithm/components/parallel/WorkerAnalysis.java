@@ -194,7 +194,7 @@ public abstract class WorkerAnalysis {
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
-        throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
     }
 
@@ -251,7 +251,7 @@ public abstract class WorkerAnalysis {
         Specification pSpecification,
         Configuration pConfiguration,
         ShutdownManager pShutdownManager)
-        throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+        throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
     }
 
