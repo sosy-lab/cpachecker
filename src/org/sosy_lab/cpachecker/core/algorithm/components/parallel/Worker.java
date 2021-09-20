@@ -73,6 +73,7 @@ public class Worker implements Runnable {
   private AlgorithmStatus status;
 
   private final CompositeState startState;
+  private final Precision emptyPrecision;
 
   public Worker(
       BlockNode pBlock,
@@ -104,6 +105,7 @@ public class Worker implements Runnable {
     solver = extractAnalysis(parts.getSecond(), PredicateCPA.class).getSolver();
     reachedSet = parts.getThird();
     startState = extractCompositeStateFromReachedSet(reachedSet);
+    emptyPrecision = reachedSet.getPrecision(startState);
 
     fmgr = solver.getFormulaManager();
     bmgr = fmgr.getBooleanFormulaManager();
@@ -119,7 +121,6 @@ public class Worker implements Runnable {
     preConditionUpdates = new ConcurrentHashMap<>();
   }
 
-  @SuppressWarnings("unchecked")
   private <T extends ConfigurableProgramAnalysis> T extractAnalysis(ConfigurableProgramAnalysis cpa, Class<T> pTarget) {
     ARGCPA argCpa = (ARGCPA) cpa;
     if (argCpa.getWrappedCPAs().size() > 1) {
@@ -131,7 +132,7 @@ public class Worker implements Runnable {
     CompositeCPA compositeCPA = (CompositeCPA) argCpa.getWrappedCPAs().get(0);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       if (wrappedCPA.getClass().equals(pTarget)) {
-        return (T) wrappedCPA;
+        return pTarget.cast(wrappedCPA);
       }
     }
     throw new AssertionError("Expected analysis " + pTarget + " is not part of the composite cpa " + cpa);
@@ -218,10 +219,8 @@ public class Worker implements Runnable {
       }
     }
     CompositeState actualStartState = new CompositeState(states);
-    // TODO wrong Precision in most cases
-    Precision wrongPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
     reachedSet.clear();
-    reachedSet.add(new ARGState(actualStartState, null), wrongPrecision);
+    reachedSet.add(new ARGState(actualStartState, null), emptyPrecision);
     status = algorithm.run(reachedSet);
     ImmutableSet<ARGState> finalStates = ARGUtils.getFinalStates(reachedSet);
     BooleanFormula preconditionForNextBlock = bmgr.makeFalse();
