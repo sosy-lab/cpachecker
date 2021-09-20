@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory;
 
 public abstract class AbstractStrategy implements StrategyInterface {
 
@@ -27,6 +28,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
   protected final ShutdownNotifier shutdownNotifier;
   protected final SummaryInformation summaryInformation;
   private StrategyDependencyInterface strategyDependencies;
+  private AExpressionsFactory expressionFactory;
 
   protected AbstractStrategy(
       final LogManager pLogger,
@@ -37,6 +39,7 @@ public abstract class AbstractStrategy implements StrategyInterface {
     this.logger = pLogger;
     this.strategyDependencies = strategyDependencies;
     this.summaryInformation = pCfa.getSummaryInformation().get();
+    this.setExpressionFactory(new AExpressionsFactory());
   }
 
   protected CAssumeEdge overwriteStartEndStateEdge(
@@ -80,5 +83,13 @@ public abstract class AbstractStrategy implements StrategyInterface {
   @Override
   public boolean isPrecise() {
     return false;
+  }
+
+  public AExpressionsFactory getExpressionFactory() {
+    return expressionFactory;
+  }
+
+  public void setExpressionFactory(AExpressionsFactory pExpressionFactory) {
+    expressionFactory = pExpressionFactory;
   }
 }

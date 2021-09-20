@@ -40,7 +40,7 @@ public class BlankEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public BlankEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new BlankEdge(
         getRawStatement(),
         getFileLocation(),

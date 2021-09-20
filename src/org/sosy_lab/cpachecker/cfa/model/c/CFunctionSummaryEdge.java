@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
@@ -38,7 +37,7 @@ public class CFunctionSummaryEdge extends FunctionSummaryEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public CFunctionSummaryEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new CFunctionSummaryEdge(
         getRawStatement(),
         getFileLocation(),

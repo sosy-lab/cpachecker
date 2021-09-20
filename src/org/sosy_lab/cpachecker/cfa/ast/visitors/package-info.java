@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Visitors of expression to generate the Summaries */
-package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors;
+/**
+ * Some useful visitors in order to extract information from #{@link AAstNode} or #{@link
+ * AExpression}
+ */
+package org.sosy_lab.cpachecker.cfa.ast.visitors;

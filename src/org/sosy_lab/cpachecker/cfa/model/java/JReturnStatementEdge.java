@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
@@ -48,7 +47,7 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public JReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new JReturnStatementEdge(
         getRawStatement(),
         getRawAST().get(),

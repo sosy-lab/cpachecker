@@ -45,7 +45,7 @@ public class AStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public AStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new AStatementEdge(
         getRawStatement(),
         getStatement(),

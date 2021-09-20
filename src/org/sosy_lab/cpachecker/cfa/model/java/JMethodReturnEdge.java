@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.model.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -38,7 +37,7 @@ public class JMethodReturnEdge extends FunctionReturnEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public JMethodReturnEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new JMethodReturnEdge(
         getFileLocation(),
         (FunctionExitNode) pNewPredecessorNode,

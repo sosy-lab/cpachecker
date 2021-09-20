@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CFunctionSummaryStatementEdge extends CStatementEdge {
@@ -38,7 +37,8 @@ public class CFunctionSummaryStatementEdge extends CStatementEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public CFunctionSummaryStatementEdge copyWith(
+      CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new CFunctionSummaryStatementEdge(
         getRawStatement(),
         getStatement(),
@@ -48,4 +48,5 @@ public class CFunctionSummaryStatementEdge extends CStatementEdge {
         getFunctionCall(),
         getFunctionName());
   }
+
 }

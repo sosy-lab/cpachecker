@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -171,8 +172,8 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       return Optional.empty();
     }
 
-    Map<String, Integer> loopVariableDelta =
-        getLoopVariableDeltas(loopStartNodeLocal, loopBranchIndex);
+    Map<String, Integer> loopVariableDelta = new HashMap<>();
+    // getLoopVariableDeltas(loopStartNodeLocal, loopBranchIndex);
 
     GhostCFA ghostCFA;
     Optional<GhostCFA> ghostCFASuccess =

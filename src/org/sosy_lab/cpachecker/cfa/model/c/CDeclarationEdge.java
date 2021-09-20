@@ -12,7 +12,6 @@ import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CDeclarationEdge extends ADeclarationEdge {
@@ -39,7 +38,7 @@ public class CDeclarationEdge extends ADeclarationEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public CDeclarationEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new CDeclarationEdge(
         getRawStatement(),
         getFileLocation(),

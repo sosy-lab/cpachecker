@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.model.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
@@ -38,7 +37,7 @@ public class JMethodSummaryEdge extends FunctionSummaryEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public JMethodSummaryEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new JMethodSummaryEdge(
         getRawStatement(),
         getFileLocation(),

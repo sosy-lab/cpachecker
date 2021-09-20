@@ -12,7 +12,6 @@ import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -78,7 +77,7 @@ public class JAssumeEdge extends AssumeEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public JAssumeEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new JAssumeEdge(
         getRawStatement(),
         getFileLocation(),

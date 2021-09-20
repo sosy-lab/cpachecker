@@ -57,7 +57,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public AReturnStatementEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new AReturnStatementEdge(
         getRawStatement(),
         getRawAST().get(),

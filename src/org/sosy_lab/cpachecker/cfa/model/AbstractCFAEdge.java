@@ -93,4 +93,10 @@ public abstract class AbstractCFAEdge implements CFAEdge {
         getDescription().replaceAll("\n", " ") +
         "}-> " + getSuccessor();
   }
+
+  @Override
+  public void connect() {
+    this.getPredecessor().addLeavingEdge(this);
+    this.getSuccessor().addEnteringEdge(this);
+  }
 }

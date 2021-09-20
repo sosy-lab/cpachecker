@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -31,15 +34,20 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.AggregateConstantsVisitor;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.LoopVariableDeltaVisitor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory.ExpressionType;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AggregateConstantsVisitor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.LoopVariableDeltaVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStrategy {
+
+  private StrategiesEnum strategyEnum;
 
   public ConstantExtrapolationStrategy(
       final LogManager pLogger,
@@ -47,148 +55,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
       StrategyDependencyInterface pStrategyDependencies,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
-  }
 
-  protected Map<String, Integer> getLoopVariableDeltas(
-      CFANode loopStartNode, final Integer loopBranchIndex) {
-    Map<String, Integer> loopVariableDelta = new HashMap<>();
-    loopStartNode = loopStartNode.getLeavingEdge(loopBranchIndex).getSuccessor();
-    // Calculate deltas in one Loop Iteration
-    CFANode currentNode = loopStartNode;
-    boolean initial = true;
-    while (currentNode != loopStartNode || initial) {
-      initial = false;
-      CFAEdge edge = currentNode.getLeavingEdge(0);
-      if (edge instanceof CStatementEdge) {
-        CStatement statement = ((CStatementEdge) edge).getStatement();
-        CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-        CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
-        if (leftSide instanceof CIdExpression && rigthSide instanceof CBinaryExpression) {
-            Integer value = 0;
-          CExpression operand1 = ((CBinaryExpression) rigthSide).getOperand1();
-            CExpression operand2 = ((CBinaryExpression) rigthSide).getOperand2();
-            if (operand1 instanceof CIntegerLiteralExpression) {
-              value = ((CIntegerLiteralExpression) operand1).getValue().intValue();
-            } else if (operand2 instanceof CIntegerLiteralExpression) {
-              value = ((CIntegerLiteralExpression) operand2).getValue().intValue();
-            }
-
-            switch (((CBinaryExpression) rigthSide).getOperator().getOperator()) {
-              case "+":
-              if (loopVariableDelta.containsKey(((CIdExpression) leftSide).getName())) {
-                loopVariableDelta.put(
-                    ((CIdExpression) leftSide).getName(),
-                    value + loopVariableDelta.get(((CIdExpression) leftSide).getName()));
-                } else {
-                loopVariableDelta.put(((CIdExpression) leftSide).getName(), value);
-                }
-                break;
-              case "-":
-              if (loopVariableDelta.containsKey(((CIdExpression) leftSide).getName())) {
-                loopVariableDelta.put(
-                    ((CIdExpression) leftSide).getName(),
-                    -value + loopVariableDelta.get(((CIdExpression) leftSide).getName()));
-              } else {
-                loopVariableDelta.put(((CIdExpression) leftSide).getName(), -value);
-              }
-                break;
-              default:
-                break;
-            }
-        }
-      }
-      currentNode = edge.getSuccessor();
-    }
-    return loopVariableDelta;
-  }
-
-  @Override
-  protected boolean linearArithmeticExpressionsLoop(final CFANode pLoopStartNode, int branchIndex) {
-    CFANode nextNode0 = pLoopStartNode.getLeavingEdge(branchIndex).getSuccessor();
-    boolean nextNode0Valid = true;
-    while (nextNode0 != pLoopStartNode && nextNode0Valid) {
-      CFAEdge currentEdge = nextNode0.getLeavingEdge(0);
-      if (nextNode0Valid
-          && nextNode0.getNumLeavingEdges() == 1
-          && linearArithmeticExpressionEdge(currentEdge)) {
-
-        if (currentEdge instanceof CStatementEdge) {
-
-          CStatement statement = ((CStatementEdge) currentEdge).getStatement();
-          if (!(statement instanceof CExpressionAssignmentStatement)) {
-            return false;
-          }
-
-          CExpression leftSide = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-          CExpression rigthSide = ((CExpressionAssignmentStatement) statement).getRightHandSide();
-
-          if (rigthSide instanceof CBinaryExpression) {
-            CExpression firstOperand = ((CBinaryExpression) rigthSide).getOperand1();
-            CExpression secondOperand = ((CBinaryExpression) rigthSide).getOperand2();
-            if (firstOperand instanceof CIdExpression) {
-              if (!((CIdExpression) firstOperand)
-                      .getName()
-                      .equals(((CIdExpression) leftSide).getName())
-                  && secondOperand instanceof CIntegerLiteralExpression) {
-                return false;
-              }
-            } else if (secondOperand instanceof CIdExpression) {
-              if (!((CIdExpression) secondOperand)
-                      .getName()
-                      .equals(((CIdExpression) leftSide).getName())
-                  && firstOperand instanceof CIntegerLiteralExpression) {
-                return false;
-              }
-            } else {
-              return false;
-            }
-          } else if (rigthSide instanceof CIdExpression) {
-            if (!((CIdExpression) rigthSide)
-                .getName()
-                .equals(((CIdExpression) leftSide).getName())) {
-              return false;
-            }
-          } else {
-            // TODO: sometimes rigthSide can be an instanceof CIntegerLiteralExpression
-            // Improve this, since this kind of summary should be capable of dealing with this case
-            return false;
-          }
-        }
-        nextNode0 = nextNode0.getLeavingEdge(0).getSuccessor();
-      } else {
-        nextNode0Valid = false;
-      }
-      if (nextNode0 == pLoopStartNode) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private int boundDelta(
-      final Map<String, Integer> loopVariableDelta, final CExpression loopBound) {
-    if (!(loopBound instanceof CBinaryExpression)) {
-      if (loopBound instanceof CIdExpression) {
-        if (loopVariableDelta.containsKey(((CIdExpression) loopBound).getName())) {
-          return loopVariableDelta.get(((CIdExpression) loopBound).getName());
-        } else {
-          return 0;
-        }
-      } else {
-        return 0;
-      }
-    } else {
-      switch (((CBinaryExpression) loopBound).getOperator().getOperator()) {
-        case "+":
-          return boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand1())
-              + boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand2());
-        case "-":
-          return boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand1())
-              - boundDelta(loopVariableDelta, ((CBinaryExpression) loopBound).getOperand2());
-        default:
-          return 0;
-      }
-    }
+    this.strategyEnum = StrategiesEnum.LoopConstantExtrapolation;
   }
 
   // There was a method unrollLoopOnce which overrided the unroll loop once method in the abstract
@@ -377,27 +245,221 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
             StrategiesEnum.LoopConstantExtrapolation));
   }
 
-  @Override
-  protected boolean linearArithemticExpression(final CExpression expression) {
-    if (expression instanceof CIdExpression) {
-      return true;
-    } else if (expression instanceof CBinaryExpression) {
-      String operator = ((CBinaryExpression) expression).getOperator().getOperator();
-      CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-      CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-      switch (operator) {
-        case "+":
-        case "-":
-          return ((operand1 instanceof CIdExpression)
-                  && (operand2 instanceof CIntegerLiteralExpression))
-              || ((operand2 instanceof CIdExpression)
-                  && (operand1 instanceof CIntegerLiteralExpression));
-        default:
-          return false;
+  /**
+   * This method returns the Amount of iterations the loop will go through, if it is possible to
+   * calculate this
+   *
+   * @param loopBoundExpression the expression of the loop while (EXPR) { something; }
+   * @param loopStructure The loop structure which is being summarized
+   */
+  public Optional<AIntegerLiteralExpression> loopIterations(
+      AExpression loopBoundExpression, Loop loopStructure) {
+    // This expression is the amount of iterations given in symbols
+    try {
+      Optional<AIntegerLiteralExpression> iterationsMaybe = Optional.empty();
+      // TODO For now it only works for c programs
+      if (loopBoundExpression instanceof CBinaryExpression) {
+        LoopVariableDeltaVisitor<Exception> variableVisitor =
+            new LoopVariableDeltaVisitor<>(loopStructure, true);
+        AggregateConstantsVisitor<Exception> constantsVisitor =
+            new AggregateConstantsVisitor<>(
+                Optional.of(loopStructure.getLoopIncDecVariables()), true);
+
+        CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
+        CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
+        BinaryOperator operator = ((CBinaryExpression) loopBoundExpression).getOperator();
+
+        Optional<Integer> operand1variableDelta = operand1.accept(variableVisitor);
+        Optional<Integer> operand2variableDelta = operand2.accept(variableVisitor);
+        Optional<Integer> operand1Constants = operand1.accept(constantsVisitor);
+        Optional<Integer> operand2Constants = operand2.accept(constantsVisitor);
+
+        if (operand1variableDelta.isPresent()
+            && operand2variableDelta.isPresent()
+            && operand1Constants.isPresent()
+            && operand2Constants.isPresent()) {
+
+          switch (operator) {
+            case EQUALS:
+              // Should iterate at most once if the Deltas are non zero
+              // If the deltas are zero and the integer is zero this loop would not terminate
+              // TODO: What do we do if the loop does not terminate?
+              // TODO: this can be improved if the value of the variables is known.
+              if (operand1variableDelta.get() - operand2variableDelta.get() != 0) {
+                // Returning this works because for any number of iterations less than or equal to 2
+                // The loop is simply unrolled. Since because of overflows no extrapolation can be
+                // made
+                iterationsMaybe =
+                    Optional.of(this.getExpressionFactory().from(1, ExpressionType.C));
+              }
+              break;
+            case GREATER_EQUAL:
+              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+                Integer iterationsAmnt =
+                    (operand1Constants.get() - operand2Constants.get())
+                            / -(operand1variableDelta.get() - operand2variableDelta.get())
+                        + 1;
+                iterationsMaybe =
+                    Optional.of(this.getExpressionFactory().from(iterationsAmnt, ExpressionType.C));
+              }
+              break;
+            case GREATER_THAN:
+              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
+                Integer iterationsAmnt =
+                    (operand1Constants.get() - operand2Constants.get())
+                        / -(operand1variableDelta.get() - operand2variableDelta.get());
+                iterationsMaybe =
+                    Optional.of(this.getExpressionFactory().from(iterationsAmnt, ExpressionType.C));
+              }
+              break;
+            case LESS_EQUAL:
+              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+                Integer iterationsAmnt =
+                    (operand2Constants.get() - operand1Constants.get())
+                            / -(operand2variableDelta.get() - operand1variableDelta.get())
+                        + 1;
+                iterationsMaybe =
+                    Optional.of(this.getExpressionFactory().from(iterationsAmnt, ExpressionType.C));
+              }
+              break;
+            case LESS_THAN:
+              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
+                iterationsMaybe =
+                    Optional.of(
+                        this.getExpressionFactory()
+                            .from(
+                                (operand2Constants.get() - operand1Constants.get()),
+                                ExpressionType.C));
+              }
+              break;
+            case NOT_EQUALS:
+              // Should iterate at most once if the Deltas are non zero
+              // If the deltas are zero and the integer is zero this loop would not terminate
+              // TODO: What do we do if the loop does not terminate?
+              // TODO: this can be improved if the value of the variables is known.
+              if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
+                // Returning this works because for any number of iterations less than or equal to 2
+                // The loop is simply unrolled. Since because of overflows no extrapolation can be
+                // made
+                iterationsMaybe =
+                    Optional.of(this.getExpressionFactory().from(1, ExpressionType.C));
+              }
+              break;
+            default:
+              break;
+          }
+        }
+      }
+      return iterationsMaybe;
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  private Optional<GhostCFA> summarizeLoop(
+      AIntegerLiteralExpression pIterations,
+      AExpression pLoopBoundExpression,
+      Loop pLoopStructure,
+      CFANode pBeforeWhile) {
+
+    CFANode startNodeGhostCFA = CFANode.newDummyCFANode("STARTGHOST");
+    CFANode endNodeGhostCFA = CFANode.newDummyCFANode("ENDGHHOST");
+
+    Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
+    if (unrolledLoopNodesMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+
+    CFANode startUnrolledLoopNode = unrolledLoopNodesMaybe.get().getFirst();
+    CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.get().getSecond();
+
+    startNodeGhostCFA.connectTo(startUnrolledLoopNode);
+
+    CFANode currentSummaryNodeCFA = CFANode.newDummyCFANode("Start Summary Node");
+
+    CFAEdge loopBoundCFAEdge =
+        new AssumeEdge(
+            "Loop Bound Assumption",
+            FileLocation.DUMMY,
+            endUnrolledLoopNode,
+            currentSummaryNodeCFA,
+            pLoopBoundExpression,
+            true); // TODO: this may not be the correct way to do this; Review
+    loopBoundCFAEdge.connect();
+
+    CFAEdge negatedBoundCFAEdge = ((AssumeEdge) loopBoundCFAEdge).negate();
+    negatedBoundCFAEdge.connect();
+
+    CFANode nextSummaryNode = CFANode.newDummyCFANode("Inner Summary Node");
+
+    // Make Summary of Loop
+
+    for (AVariableDeclaration var : pLoopStructure.getModifiedVariables()) {
+      Optional<Integer> deltaMaybe = pLoopStructure.getDelta(var.getName());
+      if (deltaMaybe.isEmpty()) {
+        return Optional.empty();
+      }
+
+      Integer delta = deltaMaybe.get();
+
+      // TODO: Refactor expression Factory
+      // TODO: the use of a C expression should be replaced for selecting if a Java or C
+      // expression should be used in this context
+      AExpressionsFactory expressionFactory = new AExpressionsFactory(ExpressionType.C);
+      AExpression assignmentExpression =
+          (AExpression)
+              expressionFactory
+                  .from(pIterations)
+                  .minus(1)
+                  .multiply(delta)
+                  .add(var)
+                  .assignTo(var)
+                  .build();
+
+      CFAEdge dummyEdge =
+          new CStatementEdge(
+              assignmentExpression.toString(),
+              (CStatement) assignmentExpression,
+              FileLocation.DUMMY,
+              currentSummaryNodeCFA,
+              nextSummaryNode);
+      dummyEdge.connect();
+
+      currentSummaryNodeCFA = nextSummaryNode;
+      nextSummaryNode = CFANode.newDummyCFANode("Inner Summary Node");
+    }
+
+    // Unroll Loop Once again
+
+    unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
+    if (unrolledLoopNodesMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+
+    startUnrolledLoopNode = unrolledLoopNodesMaybe.get().getFirst();
+    endUnrolledLoopNode = unrolledLoopNodesMaybe.get().getSecond();
+    currentSummaryNodeCFA.connectTo(startUnrolledLoopNode);
+    endUnrolledLoopNode.connectTo(endNodeGhostCFA);
+
+    CFAEdge leavingEdge;
+    Iterator<CFAEdge> iter =
+        pLoopStructure.getOutgoingEdges().iterator();
+    if (iter.hasNext()) {
+      leavingEdge = iter.next();
+      if (iter.hasNext()) {
+        return Optional.empty();
       }
     } else {
-      return false;
+      return Optional.empty();
     }
+
+    return Optional.of(
+        new GhostCFA(
+            startNodeGhostCFA,
+            endNodeGhostCFA,
+            pBeforeWhile,
+            leavingEdge.getSuccessor(),
+            this.strategyEnum));
   }
 
   @Override
@@ -412,7 +474,6 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
 
     CFANode loopStartNode = beforeWhile.getLeavingEdge(0).getSuccessor();
-
 
     Optional<Loop> loopStructureMaybe = summaryInformation.getLoop(loopStartNode);
     if (loopStructureMaybe.isEmpty()) {
@@ -430,152 +491,22 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.get();
 
-    Optional<Integer> iterationsMaybe = Optional.empty();
-    try {
-      // TODO For now it only works for c programs
-      if (loopBoundExpression instanceof CBinaryExpression) {
-        LoopVariableDeltaVisitor<Exception> variableVisitor =
-            new LoopVariableDeltaVisitor<>(loopStructure);
-        AggregateConstantsVisitor<Exception> constantsVisitor =
-            new AggregateConstantsVisitor<>(Optional.of(loopStructure.getLoopIncDecVariables()));
-
-        Optional<Integer> operand1variableDelta =
-            ((CBinaryExpression) loopBoundExpression).getOperand1().accept(variableVisitor);
-        Optional<Integer> operand2variableDelta =
-            ((CBinaryExpression) loopBoundExpression).getOperand2().accept(variableVisitor);
-        Optional<Integer> operand1Constants =
-            ((CBinaryExpression) loopBoundExpression).getOperand1().accept(constantsVisitor);
-        Optional<Integer> operand2Constants =
-            ((CBinaryExpression) loopBoundExpression).getOperand2().accept(constantsVisitor);
-
-        if (operand1variableDelta.isPresent()
-            && operand2variableDelta.isPresent()
-            && operand1Constants.isPresent()
-            && operand2Constants.isPresent()) {
-
-          switch (((CBinaryExpression) loopBoundExpression).getOperator()) {
-            case EQUALS:
-              // Should iterate at most once if the Deltas are non zero
-              // If the deltas are zero and the integer is zero this loop would not terminate
-              // TODO: What do we do if the loop does not terminate?
-              // TODO: this can be improved if the value of the variables is known.
-              if (operand1variableDelta.get() - operand2variableDelta.get() != 0) {
-                // Returning this works because for any number of iterations less than or equal to 2
-                // The loop is simply unrolled. Since because of overflows no extrapolation can be
-                // made
-                iterationsMaybe = Optional.of(1);
-              }
-              break;
-            case GREATER_EQUAL:
-              // TODO Revise
-              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (operand1Constants.get() - operand2Constants.get())
-                                / -(operand1variableDelta.get() - operand2variableDelta.get())
-                            + 1);
-              }
-              break;
-            case GREATER_THAN:
-              if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (operand1Constants.get() - operand2Constants.get())
-                            / -(operand1variableDelta.get() - operand2variableDelta.get()));
-              }
-              break;
-            case LESS_EQUAL:
-              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (operand2Constants.get() - operand1Constants.get())
-                                / -(operand2variableDelta.get() - operand1variableDelta.get())
-                            + 1);
-              }
-              break;
-            case LESS_THAN:
-              if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
-                iterationsMaybe =
-                    Optional.of(
-                        (operand2Constants.get() - operand1Constants.get())
-                            / -(operand2variableDelta.get() - operand1variableDelta.get()));
-              }
-              break;
-            case NOT_EQUALS:
-              // Should iterate at most once if the Deltas are non zero
-              // If the deltas are zero and the integer is zero this loop would not terminate
-              // TODO: What do we do if the loop does not terminate?
-              // TODO: this can be improved if the value of the variables is known.
-              if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
-                // Returning this works because for any number of iterations less than or equal to 2
-                // The loop is simply unrolled. Since because of overflows no extrapolation can be
-                // made
-                iterationsMaybe = Optional.of(1);
-              }
-              break;
-            default:
-              break;
-          }
-        }
-      }
-    } catch (Exception e) {
-      return Optional.empty();
-    }
+    Optional<AIntegerLiteralExpression> iterationsMaybe =
+        this.loopIterations(loopBoundExpression, loopStructure);
 
     if (iterationsMaybe.isEmpty()) {
       return Optional.empty();
     }
-    Integer iterations = iterationsMaybe.get();
-    if (iterations < 0) {
+
+    AIntegerLiteralExpression iterations = iterationsMaybe.get();
+    if (iterations.getValue().intValue() < 0) {
       return Optional.empty();
     }
 
-    return Optional.empty();
+    Optional<GhostCFA> summarizedLoopMaybe =
+        summarizeLoop(iterations, loopBoundExpression, loopStructure, beforeWhile);
 
-    /*Optional<Integer> loopBranchIndexOptional = getLoopBranchIndex(loopStartNodeLocal);
-    Integer loopBranchIndex;
+    return summarizedLoopMaybe;
 
-    if (loopBranchIndexOptional.isEmpty()) {
-      return Optional.empty();
-    } else {
-      loopBranchIndex = loopBranchIndexOptional.orElseThrow();
-    }
-
-    Optional<CExpression> loopBoundOptional = bound(loopStartNodeLocal);
-    CExpression loopBound;
-    if (loopBoundOptional.isEmpty()) {
-      return Optional.empty();
-    } else {
-      loopBound = loopBoundOptional.orElseThrow();
-    }
-
-    if (!linearArithmeticExpressionsLoop(loopStartNodeLocal, loopBranchIndex)) {
-      return Optional.empty();
-    }
-
-    Map<String, Integer> loopVariableDelta = getLoopVariableDeltas(loopStartNodeLocal, loopBranchIndex);
-
-    int boundDelta = boundDelta(loopVariableDelta, loopBound);
-    if (boundDelta >= 0) { // TODO How do you treat non Termination?
-      return Optional.empty();
-    }
-
-    GhostCFA ghostCFA;
-    Optional<GhostCFA> ghostCFASuccess =
-        summaryCFA(
-            loopStartNodeLocal,
-            loopVariableDelta,
-            loopBound,
-            Math.abs(boundDelta),
-            boundDelta,
-            loopBranchIndex);
-
-    if (ghostCFASuccess.isEmpty()) {
-      return Optional.empty();
-    } else {
-      ghostCFA = ghostCFASuccess.orElseThrow();
-    }
-
-    return Optional.of(ghostCFA);*/
   }
 }

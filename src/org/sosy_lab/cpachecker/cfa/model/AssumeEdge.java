@@ -48,6 +48,36 @@ public class AssumeEdge extends AbstractCFAEdge {
     artificialIntermediate = pArtificialIntermediate;
   }
 
+  public AssumeEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      AExpression pExpression,
+      boolean pTruthAssumption) {
+    this(
+        pRawStatement,
+        pFileLocation,
+        pPredecessor,
+        pSuccessor,
+        pExpression,
+        pTruthAssumption,
+        false,
+        false);
+  }
+
+  public AssumeEdge negate() {
+    return new AssumeEdge(
+        getRawStatement(),
+        getFileLocation(),
+        this.getPredecessor(),
+        this.getSuccessor(),
+        expression,
+        !truthAssumption,
+        swapped,
+        artificialIntermediate);
+  }
+
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.AssumeEdge;
@@ -128,7 +158,7 @@ public class AssumeEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public AssumeEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new AssumeEdge(
         getRawStatement(),
         getFileLocation(),

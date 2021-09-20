@@ -51,9 +51,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.visitors.VariableCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,8 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.ConstantDeltaVisitor;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.ExpressionVisitors.IntegerValueComputationVisitor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -135,6 +137,10 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
     private Map<String, Integer> loopIncDecVariables;
+    private Set<AVariableDeclaration> modifiedVariables;
+
+    // Some visitors
+    private VariableCollectorVisitor<Exception> variableCollectorVisitor;
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
@@ -142,6 +148,7 @@ public final class LoopStructure implements Serializable {
                                 .addAll(pNodes)
                                 .add(loopHead)
                                 .build();
+      this.variableCollectorVisitor = new VariableCollectorVisitor<>();
     }
 
     private void computeSets() {
@@ -171,6 +178,38 @@ public final class LoopStructure implements Serializable {
       this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
 
       loopIncDecVariables = collectLoopIncDecVariables();
+      modifiedVariables = collectModifiedVariables();
+    }
+
+    /**
+     * Collects the names of all variables which have been modified in this loop. This means in some
+     * statement in the inner Edges of the loop and all variables which are on the left hand side of
+     * some assignment expression in the loop What the variable is assigned to is not important, for
+     * these other collectors are used.
+     */
+    private Set<AVariableDeclaration> collectModifiedVariables() {
+      // TODO: For code reuse consider changing the Set<String> into LiveVariables class or
+      // something similar.
+      Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
+      for (CFAEdge e : this.getInnerLoopEdges()) {
+        if (e instanceof AStatementEdge) {
+          AStatement statement = ((AStatementEdge) e).getStatement();
+          if (statement instanceof AAssignment) {
+            try {
+              modifiedVariablesLocal.addAll(
+                  ((AAssignment) statement)
+                      .getLeftHandSide()
+                      .accept_(this.variableCollectorVisitor));
+            } catch (Exception e1) {
+              // TODO: Improve this, since if everything is coded correctly the error here should
+              // never happen
+              continue;
+            }
+          }
+        }
+      }
+
+      return modifiedVariablesLocal;
     }
 
     private void addNodes(Loop l) {
@@ -333,7 +372,7 @@ public final class LoopStructure implements Serializable {
           CFANode newSuccessor;
           CFANode successor = succ.getSuccessor();
           if (originalToNewNodes.keySet().contains(successor)
-              && !getInnerLoopEdges().contains(succ)) {
+              && getInnerLoopEdges().contains(succ)) {
             newSuccessor = originalToNewNodes.get(successor);
           } else if (successor == startNodes.getSecond() || !getInnerLoopEdges().contains(succ)) {
             newSuccessor = lastNode;
@@ -348,7 +387,6 @@ public final class LoopStructure implements Serializable {
 
       return Optional.of(Pair.of(firstNode, lastNode));
     }
-
 
     @Override
     public String toString() {
@@ -423,6 +461,14 @@ public final class LoopStructure implements Serializable {
       }
     }
 
+    public Optional<Integer> getDelta(String varName) {
+      if (!this.loopIncDecVariables.containsKey(varName)) {
+        return Optional.empty();
+      } else {
+        return Optional.of(this.loopIncDecVariables.get(varName));
+      }
+    }
+
     public boolean onlyConstantVarModification() {
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
@@ -430,11 +476,12 @@ public final class LoopStructure implements Serializable {
             AExpressionAssignmentStatement aStatement =
                 ((AExpressionAssignmentStatement) ((AStatementEdge) e).getStatement());
             if (aStatement.getLeftHandSide() instanceof AIdExpression) {
-              ConstantDeltaVisitor<Exception> visitor =
-                  new ConstantDeltaVisitor<>(
-                      Optional.of(((AIdExpression) aStatement.getLeftHandSide()).getName()));
+              Set<String> varSet = new HashSet<>();
+              varSet.add(((AIdExpression) aStatement.getLeftHandSide()).getName());
+              AggregateConstantsVisitor<Exception> visitor =
+                  new AggregateConstantsVisitor<>(Optional.of(varSet), true);
               try {
-                if (!aStatement.getRightHandSide().accept_(visitor)) {
+                if (aStatement.getRightHandSide().accept_(visitor).isEmpty()) {
                   return false;
                 }
               } catch (Exception e1) {
@@ -450,9 +497,22 @@ public final class LoopStructure implements Serializable {
       }
       return true;
     }
+
+    public Set<AVariableDeclaration> getModifiedVariables() {
+      return modifiedVariables;
+    }
+
+    public Set<String> getModifiedVariablesNames() {
+      Set<String> modifiedVarsNames = new HashSet<>();
+      for (AVariableDeclaration var : this.getModifiedVariables()) {
+        modifiedVarsNames.add(var.getName());
+      }
+      return modifiedVarsNames;
+    }
   }
 
-  private static IntegerValueComputationVisitor<Exception> integerValueComputationVisitor = new IntegerValueComputationVisitor<>();
+  private static AggregateConstantsVisitor<Exception> integerValueComputationVisitor =
+      new AggregateConstantsVisitor<>(Optional.empty(), true);
 
   private final ImmutableListMultimap<String, Loop> loops;
 

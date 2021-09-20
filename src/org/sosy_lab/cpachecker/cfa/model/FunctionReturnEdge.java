@@ -55,11 +55,12 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public FunctionReturnEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new FunctionReturnEdge(
         getFileLocation(),
         (FunctionExitNode) pNewPredecessorNode,
         pNewSuccessorNode,
         getSummaryEdge());
   }
+
 }

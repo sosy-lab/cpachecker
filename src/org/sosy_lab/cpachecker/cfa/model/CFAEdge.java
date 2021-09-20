@@ -27,6 +27,9 @@ public interface CFAEdge extends Serializable {
 
   FileLocation getFileLocation();
 
+  /** connects the edge to the predecessor and successor */
+  public void connect();
+
   /**
    * @param pNewPredecessorNode Starting node of the copy of the current edge
    * @param pNewSuccessorNode End node of the copy of the current edge

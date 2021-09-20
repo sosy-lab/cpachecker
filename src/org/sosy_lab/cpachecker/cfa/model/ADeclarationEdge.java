@@ -45,7 +45,7 @@ public class ADeclarationEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public ADeclarationEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new ADeclarationEdge(
         getRawStatement(),
         getFileLocation(),

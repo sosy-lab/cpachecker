@@ -22,6 +22,10 @@ public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
 
   private static final long serialVersionUID = 1867514989284112879L;
 
+  public static JIntegerLiteralExpression createDummyLiteral(long value) {
+    return new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(value));
+  }
+
   public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {
     super(pFileLocation, JSimpleType.getInt(), pValue);
   }

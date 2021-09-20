@@ -62,7 +62,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public CFAEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
+  public FunctionCallEdge copyWith(CFANode pNewPredecessorNode, CFANode pNewSuccessorNode) {
     return new FunctionCallEdge(
         getRawStatement(),
         getFileLocation(),
