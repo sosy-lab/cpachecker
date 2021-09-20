@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class Message {
 
@@ -24,34 +21,27 @@ public class Message {
 
   private final BlockNode sender;
   private final MessageType type;
-  private final BooleanFormula condition;
-  private final FormulaManagerView fmgr;
+  private final String condition;
 
   public Message(
       MessageType pType,
       BlockNode pSender,
-      BooleanFormula pCondition,
-      FormulaManagerView pFmgr) {
+      String pCondition) {
     sender = pSender;
     type = pType;
     condition = pCondition;
-    fmgr = pFmgr;
   }
 
   public BlockNode getSender() {
     return sender;
   }
 
-  public BooleanFormula getCondition() {
+  public String getCondition() {
     return condition;
   }
 
   public MessageType getType() {
     return type;
-  }
-
-  public FormulaManagerView getFmgr() {
-    return fmgr;
   }
 
   @Override
