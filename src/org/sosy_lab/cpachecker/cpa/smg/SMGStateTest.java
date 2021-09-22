@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public class SMGStateTest {
   static private final  LogManager logger = LogManager.createTestLogManager();
@@ -142,8 +142,13 @@ public class SMGStateTest {
     smg1.setValidity(l4, true);
     smg1.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(
-        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg1,
+            0,
+            PersistentBiMap.of());
 
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
@@ -253,8 +258,13 @@ public class SMGStateTest {
    heap.setValidity(l4, true);
    heap.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(logger, new SMGOptions(
-        Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            heap,
+            0,
+            PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(64, "head");
@@ -316,7 +326,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(nextField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
@@ -391,7 +401,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(initialDataField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
