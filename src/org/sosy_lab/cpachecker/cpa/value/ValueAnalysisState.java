@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -28,18 +30,29 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -65,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -75,6 +89,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariablesCollectingVisitor;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -760,6 +775,60 @@ public final class ValueAnalysisState
     return this;
   }
 
+  private Set<MemoryLocation> getRelevantVariables(CFANode pLocation) {
+    Builder<MemoryLocation> builder = ImmutableSet.builder();
+    CExpressionVisitor<Set<String>, NoException> visitor =
+        new VariablesCollectingVisitor(pLocation);
+
+    for (int i = 0; i < pLocation.getNumEnteringEdges(); i++) {
+      CFAEdge edge = pLocation.getEnteringEdge(i);
+      switch (edge.getEdgeType()) {
+        case DeclarationEdge:
+          ADeclaration declaration = ((ADeclarationEdge) edge).getDeclaration();
+          String name = declaration.getQualifiedName();
+          for (MemoryLocation memoryLocation : constantsMap.keySet()) {
+            if (memoryLocation.getExtendedQualifiedName().equals(name)) {
+              builder.add(memoryLocation);
+              break;
+            }
+          }
+          break;
+        case StatementEdge:
+          AStatement statement = ((AStatementEdge) edge).getStatement();
+          CAssignment assignment = null;
+          if (statement instanceof CFunctionCallAssignmentStatement) {
+            assignment = (CFunctionCallAssignmentStatement) statement;
+          } else if (statement instanceof CExpressionAssignmentStatement) {
+            assignment = (CExpressionAssignmentStatement) statement;
+          }
+          if (assignment != null) {
+            CLeftHandSide lhs = assignment.getLeftHandSide();
+            Set<String> names = lhs.accept(visitor);
+            for (MemoryLocation memoryLocation : constantsMap.keySet()) {
+              if (names.contains(memoryLocation.getExtendedQualifiedName())) {
+                builder.add(memoryLocation);
+              }
+            }
+          }
+          break;
+        case AssumeEdge:
+          if (edge instanceof CAssumeEdge) {
+            CExpression expression = ((CAssumeEdge) edge).getExpression();
+            Set<String> names = expression.accept(visitor);
+            for (MemoryLocation memoryLocation : constantsMap.keySet()) {
+              if (names.contains(memoryLocation.getExtendedQualifiedName())) {
+                builder.add(memoryLocation);
+              }
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    return builder.build();
+  }
+
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
@@ -773,8 +842,12 @@ public final class ValueAnalysisState
         new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     List<ExpressionTree<Object>> result = new ArrayList<>();
+    Set<MemoryLocation> relevantVars = getRelevantVariables(pLocation);
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      if (!relevantVars.contains(entry.getKey())) {
+        continue;
+      }
       Value valueOfEntry = entry.getValue().getValue();
       if(valueOfEntry instanceof EnumConstantValue){
         continue;
