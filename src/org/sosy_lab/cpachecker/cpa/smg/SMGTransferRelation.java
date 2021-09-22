@@ -1118,12 +1118,11 @@ public class SMGTransferRelation
 
     // handle string initializer nested in struct type or assign string to pointer
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
-      // create a new region for string expression
-      SMGRegion region =
-          pNewState
-              .addAnonymousVariable(
-                  machineModel.getSizeofCharInBits() * (pExpression.getValue().length() + 1))
-              .orElseThrow();
+      // create a new global region for string literal expression
+      SMGObject region =
+          pNewState.addGlobalVariable(
+              machineModel.getSizeofCharInBits() * (pExpression.getContentString().length() + 1),
+              pExpression.getContentString() + "ID" + SMGCPA.getNewValue());
       CInitializerExpression initializer = new CInitializerExpression(pExpression.getFileLocation(), pExpression);
       CType cParamType = pExpression.transformTypeToArrayType();
       CVariableDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO, cParamType, region.getLabel(), region.getLabel(), region.getLabel(), initializer);
