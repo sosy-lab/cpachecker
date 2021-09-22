@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -365,8 +366,12 @@ public class SMGTransferRelation
       String varName = paramDecl.get(i).getName();
       CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
 
-     // handle string argument
-     if(exp instanceof CStringLiteralExpression) {
+      // workaround for casting
+      if (exp instanceof CCastExpression) {
+        exp = ((CCastExpression) exp).getOperand();
+      }
+      // handle string argument
+      if (exp instanceof CStringLiteralExpression) {
        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
        cParamType =  strExp.transformTypeToArrayType();
         // 1. create region and save string as char array
@@ -991,22 +996,33 @@ public class SMGTransferRelation
       CInitializer pInitializer)
       throws CPATransferException {
 
-    //string literal handling
-    if (pInitializer instanceof CInitializerExpression && ((CInitializerExpression) pInitializer).getExpression() instanceof CStringLiteralExpression){
-      return handleStringInitializer(
-          pNewState,
-          pVarDecl,
-          pEdge,
-          pNewObject,
-          pOffset,
-          pLValueType,
-          pInitializer.getFileLocation(),
-          (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
-
-    } else if (pInitializer instanceof CInitializerExpression) {
-        return assignFieldToState(pNewState, pEdge, pNewObject,
-            pOffset, pLValueType,
-            ((CInitializerExpression) pInitializer).getExpression());
+    if (pInitializer instanceof CInitializerExpression) {
+      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
+      // string literal handling
+      if (expression instanceof CStringLiteralExpression) {
+        return handleStringInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            pNewObject,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CStringLiteralExpression) expression);
+      } else if (expression instanceof CCastExpression) {
+        // handle casting on initialization like 'char *str = (char *)"string";'
+        return handleCastInitializer(
+            pNewState,
+            pVarDecl,
+            pEdge,
+            pNewObject,
+            pOffset,
+            pLValueType,
+            pInitializer.getFileLocation(),
+            (CCastExpression) expression);
+      } else {
+        return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
+      }
     } else if (pInitializer instanceof CInitializerList) {
       CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
       CType realCType = pLValueType.getCanonicalType();
@@ -1039,6 +1055,41 @@ public class SMGTransferRelation
     }
   }
 
+  private List<SMGState> handleCastInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      FileLocation pFileLocation,
+      CCastExpression pExpression)
+      throws CPATransferException {
+    CExpression expression = pExpression.getOperand();
+    if (expression instanceof CStringLiteralExpression) {
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CStringLiteralExpression) expression);
+    } else if (expression instanceof CCastExpression) {
+      return handleCastInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pFileLocation,
+          (CCastExpression) expression);
+    } else {
+      return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
+    }
+  }
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:
