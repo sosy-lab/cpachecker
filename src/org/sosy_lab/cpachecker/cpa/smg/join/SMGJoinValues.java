@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -1529,9 +1530,13 @@ final class SMGJoinValues {
             int newLevel = level + pLevelDiff;
 
             copyOfReachedObject = reachedObjectSubSmg.copy(newLevel);
-            pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
-            ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
-            pDestSMG.setValidity(copyOfReachedObject, pInputSMG1.isObjectValid(reachedObjectSubSmg));
+            // Avoid adding null object
+            if (!copyOfReachedObject.equals(SMGNullObject.INSTANCE)) {
+              pMapping.map(reachedObjectSubSmg, copyOfReachedObject);
+              ((CLangSMG) pDestSMG).addHeapObject(copyOfReachedObject);
+              pDestSMG.setValidity(copyOfReachedObject,
+                  pInputSMG1.isObjectValid(reachedObjectSubSmg));
+            }
             pToBeChecked.add(reachedObjectSubSmg);
           } else {
             copyOfReachedObject = pMapping.get(reachedObjectSubSmg);
