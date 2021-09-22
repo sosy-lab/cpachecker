@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -542,7 +543,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
 
     SMGHasValueEdges values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
@@ -628,7 +629,7 @@ public class SMGStateTest {
         SMGEdgeHasValueFilter.objectFilter(pt.getObject())
             .filterHavingValue(SMGZeroValue.INSTANCE)
             .filterWithoutSize();
-    SMGHasValueEdges nulls_for_value = state.getHVEdges(nullFilter);
+    Iterable<SMGEdgeHasValue> nulls_for_value = state.getHVEdges(nullFilter);
     assertThat(nulls_for_value).hasSize(2);
 
     assertThat(state.getHVEdges(nullFilter.filterAtOffset(0))).hasSize(1);

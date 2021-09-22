@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -42,7 +43,8 @@ public class CLangSMGTest {
   private CLangStackFrame sf;
 
   static private final LogManager logger = LogManager.createTestLogManager();
-  static private final CIdExpression id_expression = new CIdExpression(FileLocation.DUMMY, null, "label", null);
+  static private final CIdExpression id_expression =
+      new CIdExpression(FileLocation.DUMMY, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
     return new CLangSMG(MachineModel.LINUX64);
@@ -96,7 +98,7 @@ public class CLangSMGTest {
 
     assertThat(smg_copy.getObjectPointedBy(val1)).isEqualTo(obj1);
 
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj2);
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(obj2);
     assertThat(smg_copy.getHVEdges(filter)).containsExactly(hv);
   }
 
