@@ -6,19 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.model.c;
+package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CLabelNode extends CFANode {
+/** A CFANode for a location that a label in the original source code. */
+public class CFALabelNode extends CFANode {
 
   private static final long serialVersionUID = 9172364902060726643L;
   private final String label;
 
-  public CLabelNode(AFunctionDeclaration pFunction, String pLabel) {
+  public CFALabelNode(AFunctionDeclaration pFunction, String pLabel) {
     super(pFunction);
     checkArgument(!pLabel.isEmpty());
     label = pLabel;

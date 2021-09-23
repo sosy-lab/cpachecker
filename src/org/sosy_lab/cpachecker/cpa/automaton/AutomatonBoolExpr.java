@@ -39,13 +39,13 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -550,8 +550,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CLabelNode
-          && label.equals(((CLabelNode) successorNode).getLabel())) {
+      if (successorNode instanceof CFALabelNode
+          && label.equals(((CFALabelNode) successorNode).getLabel())) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
@@ -589,8 +589,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CLabelNode) {
-        String label = ((CLabelNode) successorNode).getLabel();
+      if (successorNode instanceof CFALabelNode) {
+        String label = ((CFALabelNode) successorNode).getLabel();
         if (pattern.matcher(label).matches()) {
           return CONST_TRUE;
         } else {

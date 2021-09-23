@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -289,8 +289,8 @@ class FunctionCloner implements CFAVisitor {
 
     // clone correct type of node
     final CFANode newNode;
-    if (node instanceof CLabelNode) {
-      newNode = new CLabelNode(cloneAst(node.getFunction()), ((CLabelNode) node).getLabel());
+    if (node instanceof CFALabelNode) {
+      newNode = new CFALabelNode(cloneAst(node.getFunction()), ((CFALabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
       newNode = new CFATerminationNode(cloneAst(node.getFunction()));

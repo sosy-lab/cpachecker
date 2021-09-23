@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -54,7 +54,7 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
-  private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
+  private final Deque<Map<String, CFALabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
@@ -326,20 +326,20 @@ class FunctionScope extends AbstractScope {
     return labelsStack.peekLast().containsKey(labelName);
   }
 
-  public boolean containsLabelCFANode(CLabelNode node) {
+  public boolean containsLabelCFANode(CFALabelNode node) {
     return labelsNodeStack.peekLast().containsKey(node.getLabel());
   }
 
-  public void addLabelCFANode(CLabelNode node) {
+  public void addLabelCFANode(CFALabelNode node) {
     labelsNodeStack.peekLast().put(node.getLabel(), node);
   }
 
-  public CLabelNode lookupLocalLabelNode(String name) {
-    Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
+  public CFALabelNode lookupLocalLabelNode(String name) {
+    Iterator<Map<String, CFALabelNode>> it = labelsNodeStack.descendingIterator();
     while (it.hasNext()) {
-      Map<String, CLabelNode> nodes = it.next();
+      Map<String, CFALabelNode> nodes = it.next();
 
-      CLabelNode node = nodes.get(name);
+      CFALabelNode node = nodes.get(name);
       if (node != null) {
         return node;
       }
