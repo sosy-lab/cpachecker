@@ -50,7 +50,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -786,7 +785,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     predicates.addAll(pPredPrec.getLocalPredicates().values());
 
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
-    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
+    CFANode dummyNode = CFANode.newDummyCFANode();
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {

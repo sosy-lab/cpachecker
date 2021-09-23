@@ -69,6 +69,11 @@ public class CFANode implements Comparable<CFANode>, Serializable {
             ImmutableList.of()));
   }
 
+  /** Create a new CFA node for a dummy function (with a C type). */
+  public static CFANode newDummyCFANode() {
+    return new CFANode(CFunctionDeclaration.DUMMY);
+  }
+
   public CFANode(AFunctionDeclaration pFunction) {
     function = pFunction;
     nodeNumber = idGenerator.getFreshId();
