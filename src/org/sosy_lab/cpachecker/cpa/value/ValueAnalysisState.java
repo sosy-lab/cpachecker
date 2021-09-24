@@ -804,6 +804,9 @@ public final class ValueAnalysisState
           if (assignment != null) {
             CLeftHandSide lhs = assignment.getLeftHandSide();
             Set<String> names = lhs.accept(visitor);
+            if (names == null) {
+              break;
+            }
             for (MemoryLocation memoryLocation : constantsMap.keySet()) {
               if (names.contains(memoryLocation.getExtendedQualifiedName())) {
                 builder.add(memoryLocation);
@@ -815,6 +818,9 @@ public final class ValueAnalysisState
           if (edge instanceof CAssumeEdge) {
             CExpression expression = ((CAssumeEdge) edge).getExpression();
             Set<String> names = expression.accept(visitor);
+            if (names == null) {
+              break;
+            }
             for (MemoryLocation memoryLocation : constantsMap.keySet()) {
               if (names.contains(memoryLocation.getExtendedQualifiedName())) {
                 builder.add(memoryLocation);
