@@ -39,8 +39,6 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisitor
     implements AddressEvaluator {
 
-  private SMGState state;
-
   public SMGCPAValueExpressionEvaluator(
       String pFunctionName,
       MachineModel pMachineModel,
@@ -97,20 +95,12 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
       CFAEdge cfaEdge,
       CRightHandSide rValue)
       throws CPATransferException {
-    state = pState;
-    Value value = rValue.accept(this);
-    if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
-
-    }
-    // no poin
     return null;
   }
 
   public Collection<CValueAndSMGState>
       evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue)
           throws CPATransferException {
-
-
     if (isAddressType(rValue.getExpressionType())) {
       /*
        * expressions with Array Types as result are transformed. a = &(a[0])
@@ -123,7 +113,7 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
       return evaluateAddress(smgState, cfaEdge, rValue);
     } else {
       // derive value
-      return rValue.accept(new NonPointerExpressionVisitor(state, this));
+      return rValue.accept(new NonPointerExpressionVisitor(smgState, this));
     }
   }
 
