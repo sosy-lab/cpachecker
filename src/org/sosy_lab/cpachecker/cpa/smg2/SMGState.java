@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValueAndSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -289,6 +292,34 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   public SymbolicProgramConfiguration getHeap() {
     return heap;
+  }
+
+  public Optional<SMGValue> getSMGValueForCValue(CValue cValue) {
+    return getHeap().getValue(cValue);
+  }
+
+  public SMGState copyAndAddValue(CValue pValue, SMGValue pSmgValueRep) {
+    if (getHeap().getValue(pValue).isPresent()) {
+      return this;
+    } else {
+      return of(
+          machineModel,
+          heap.copyAndPutValue(pValue, pSmgValueRep),
+          logger,
+          options);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  public SMGState addElementToCurrentChain(SMGObject pVariableObject) {
+    // TODO Auto-generated method stub
+    return this;
+  }
+
+  @SuppressWarnings("unused")
+  public SMGState addElementToCurrentChain(CValueAndSMGState pResult) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }
