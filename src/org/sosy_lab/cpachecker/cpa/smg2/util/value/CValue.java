@@ -12,6 +12,7 @@ import java.math.BigInteger;
 
 public class CValue implements Comparable<CValue> {
 
+  private static final CValue unknownValue = new CValue(BigInteger.valueOf(Integer.MIN_VALUE));
   private final BigInteger value;
 
   private CValue(BigInteger pValue) {
@@ -28,6 +29,9 @@ public class CValue implements Comparable<CValue> {
 
   @Override
   public int compareTo(CValue other) {
+    if(isUnknown()) {
+      return (other.isUnknown()) ? 0 : -1;
+    }
     return value.compareTo(other.value);
   }
 
@@ -38,7 +42,22 @@ public class CValue implements Comparable<CValue> {
 
   @Override
   public boolean equals(Object pObj) {
+    if (isUnknown() && pObj instanceof CValue) {
+      return ((CValue) pObj).isUnknown();
+    }
     return pObj instanceof CValue && value.equals(((CValue) pObj).value);
+  }
+
+  public boolean isUnknown() {
+    return unknownValue == this;
+  }
+
+  public static CValue getUnknownValue() {
+    return unknownValue;
+  }
+
+  public boolean isZero() {
+    return BigInteger.ZERO.equals(value);
   }
 
 }
