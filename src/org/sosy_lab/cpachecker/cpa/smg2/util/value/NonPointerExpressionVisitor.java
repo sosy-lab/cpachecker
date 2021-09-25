@@ -166,7 +166,7 @@ public class NonPointerExpressionVisitor
         BigDecimal.valueOf(pE.getValue().toBigIntegerExact().longValueExact());
     // TODO The old implementation only checks for zero and returns unknown else.
     // It needs to be checked whether floats which are actual integer can be treated as integer
-    if (floatValue.equals(floatValueRounded)) {
+    if (floatValue.compareTo(floatValueRounded) == 0) {
       return valueAndStatesForIntValue(pE.getValue().toBigIntegerExact());
     }
 
@@ -231,7 +231,7 @@ public class NonPointerExpressionVisitor
     case MINUS:
 
      return unaryOperand.accept(this).stream().map(valueAndState -> {
-       CValue val = (valueAndState.getValue().isZero()) ? CValue.zero() : CValue.getUnknownValue();
+       CValue val = valueAndState.getValue().isZero() ? CValue.zero() : CValue.getUnknownValue();
        return CValueAndSMGState.of(val, valueAndState.getState());
      }).collect(ImmutableList.toImmutableList());
 

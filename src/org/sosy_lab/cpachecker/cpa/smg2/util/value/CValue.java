@@ -30,7 +30,7 @@ public class CValue implements Comparable<CValue> {
   @Override
   public int compareTo(CValue other) {
     if(isUnknown()) {
-      return (other.isUnknown()) ? 0 : -1;
+      return other.isUnknown() ? 0 : -1;
     }
     return value.compareTo(other.value);
   }
