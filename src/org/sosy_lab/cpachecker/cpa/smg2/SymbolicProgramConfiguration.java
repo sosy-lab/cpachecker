@@ -239,4 +239,21 @@ public class SymbolicProgramConfiguration {
     return copyAndPutValue(cValue, SMGValue.of());
   }
 
+  public Optional<SMGObject>
+      getObjectForVisibleVariable(String pName) {
+
+    // First look in stack frame
+    for (StackFrame frame : stackVariableMapping) {
+      if (frame.containsVariable(pName)) {
+        return Optional.of(frame.getVariable(pName));
+      }
+    }
+    // Second check global
+    if (globalVariableMapping.containsKey(pName)) {
+      return Optional.of(globalVariableMapping.get(pName));
+    }
+    // no variable found
+    return Optional.empty();
+  }
+
 }
