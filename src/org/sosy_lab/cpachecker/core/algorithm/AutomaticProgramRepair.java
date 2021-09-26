@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
@@ -135,8 +136,10 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
         CFAEdge edge = faultContribution.correspondingEdge();
         CFAMutator cfaMutator = new CFAMutator(cfa, edge);
 
+        
         cfaMutator
             .calcPossibleMutations()
+            .parallel()
             .filter(
                 (Mutation mutation) -> {
                   try {
@@ -147,9 +150,11 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
                   } catch (IOException e) {
                     logger.logUserException(Level.SEVERE, e, "IO failed");
                     return false;
-                  } catch (InterruptedException | CPAException pE) {
-                    throw new RuntimeException(pE);
-                  }
+                  } catch (InterruptedException | CPAException e) {
+                      // The exception can't be propagated here, because we're overwriting a method in which the
+                      // method signature cannot be changed. Thus, we have to throw an unchecked exceptions here.
+                      throw new AutomaticProgramRepairException(e.getMessage(), e);
+                    }
                 })
             .findAny()
             .ifPresent(
@@ -273,5 +278,15 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   @Override
   public @Nullable String getName() {
     return getClass().getSimpleName();
+  }
+
+
+  private static class AutomaticProgramRepairException extends RuntimeException {
+
+    private static final long serialVersionUID = 928410299865065936L;
+
+    AutomaticProgramRepairException(String pMsg, Throwable pCause) {
+      super(checkNotNull(pMsg), checkNotNull(pCause));
+    }
   }
 }
