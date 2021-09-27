@@ -9,6 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.filterLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -20,6 +25,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
@@ -29,13 +35,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -95,13 +101,14 @@ public class ForwardAnalysis implements Task {
   @Override
   public AlgorithmStatus call()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
     if (isSummaryUnchanged()) {
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      return status;
     }
 
     BooleanFormula cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      return status;
     }
 
     CompositeState entryState = buildEntryState(cumPredSummary);
@@ -109,11 +116,24 @@ public class ForwardAnalysis implements Task {
     reached.add(entryState, precision);
 
     logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
-    AlgorithmStatus status = algorithm.run(reached);
+    do {
+      status = status.update(algorithm.run(reached));
 
-    for (final AbstractState state : reached.asCollection()) {
-      processReachedState(state);
-    }
+      for (final AbstractState waiting : reached.getWaitlist()) {
+        if (isTargetState(waiting)) {
+          reached.removeOnlyFromWaitlist(waiting);
+
+          final Pair<CompositeState, Precision> reset = resetAutomata((CompositeState) waiting);
+          assert reset.getFirst() != null && reset.getSecond() != null;
+
+          reached.add(reset.getFirst(), reset.getSecond());
+        }
+      }
+
+    } while (reached.hasWaitingState());
+
+    handleTargetStates();
+    propagateThroughExits();
 
     logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
     return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
@@ -153,7 +173,7 @@ public class ForwardAnalysis implements Task {
     }
 
     PredicateAbstractState rawPredicateState =
-        AbstractStates.extractStateByType(rawInitialState, PredicateAbstractState.class);
+        extractStateByType(rawInitialState, PredicateAbstractState.class);
     assert rawPredicateState != null;
 
     return rawPredicateState;
@@ -199,7 +219,7 @@ public class ForwardAnalysis implements Task {
     PredicateAbstractState rawPredicateState = getRawPredicateEntryState();
     PathFormula context = rawPredicateState.getPathFormula().withFormula(newContext);
 
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+    return mkNonAbstractionStateWithNewPathFormula(
         context, rawPredicateState);
   }
 
@@ -227,7 +247,32 @@ public class ForwardAnalysis implements Task {
       final ShareableBooleanFormula shareableFormula =
           new ShareableBooleanFormula(formulaManager, exitFormula);
 
-      taskManager.spawnForwardAnalysis(target, expectedVersion, exit, shareableFormula);
+      taskManager.spawnForwardAnalysis(target, expectedVersion, successor, shareableFormula);
     }
+  }
+
+  private Pair<CompositeState, Precision> resetAutomata(final CompositeState state)
+      throws InterruptedException {
+    List<AbstractState> componentStates = new ArrayList<>();
+    for (final AbstractState wrappedState : state.getWrappedStates()) {
+      if (!(wrappedState instanceof AutomatonState)) {
+        componentStates.add(wrappedState);
+      }
+    }
+
+    CFANode location = extractLocation(state);
+    assert location != null;
+
+    CompositeState initialState =
+        (CompositeState) cpa.getInitialState(location, getDefaultPartition());
+
+    for (final AbstractState wrappedInitialState : initialState.getWrappedStates()) {
+      if (wrappedInitialState instanceof AutomatonState) {
+        componentStates.add(wrappedInitialState);
+      }
+    }
+
+    Precision precision = cpa.getInitialPrecision(location, getDefaultPartition());
+    return Pair.of(new CompositeState(componentStates), precision);
   }
 }
