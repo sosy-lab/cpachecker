@@ -20,7 +20,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -409,7 +408,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
       String name = terminationArgument.getKey();
-      String whiteSpaces = Strings.repeat(" ", 49 - name.length());
+      String whiteSpaces = " ".repeat(49 - name.length());
       pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));
     }
 

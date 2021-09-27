@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -114,7 +113,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       String text =
           "Statistics for " + noOfRuns + ". execution of composition algorithm";
       pOut.println(text);
-      pOut.println(Strings.repeat("=", text.length()));
+      pOut.println("=".repeat(text.length()));
 
       printSubStatistics(pOut, pResult, pReached);
       pOut.println();
