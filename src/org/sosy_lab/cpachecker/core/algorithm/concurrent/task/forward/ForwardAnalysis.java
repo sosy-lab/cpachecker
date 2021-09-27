@@ -223,27 +223,36 @@ public class ForwardAnalysis implements Task {
         context, rawPredicateState);
   }
 
-  private void processReachedState(final AbstractState state)
-      throws InterruptedException, InvalidConfigurationException, CPAException {
-    if (AbstractStates.isTargetState(state)) {
-      logManager.log(Level.FINE, "Target State:", state);
+  private void handleTargetStates()
+      throws InterruptedException, CPAException, InvalidConfigurationException {
+    for (final AbstractState state : reached.asCollection()) {
+      CFANode location = extractLocation(state);
+      assert location != null;
+
+      if (isTargetState(state)) {
+        logManager.log(Level.FINE, "Target State:", state);
+        taskManager.spawnBackwardAnalysis(target, location);
+      }
     }
+  }
 
-    LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
-    assert location != null;
+  private void propagateThroughExits()
+      throws InterruptedException, CPAException, InvalidConfigurationException {
+    for (final CFANode exit : target.getExits().keySet()) {
+      List<BooleanFormula> exitFormulas = new ArrayList<>();
 
-    if (AbstractStates.isTargetState(state)) {
-      taskManager.spawnBackwardAnalysis(target, location.getLocationNode());
-    }
+      for (final AbstractState exitState : filterLocation(reached, exit)) {
+        final PredicateAbstractState predState =
+            extractStateByType(exitState, PredicateAbstractState.class);
+        assert predState != null;
 
-    if (target.getExits().containsKey(location.getLocationNode())) {
-      PredicateAbstractState predState =
-          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-      assert predState != null;
+        BooleanFormula formula = predState.getPathFormula().getFormula();
+        exitFormulas.add(formula);
+      }
 
-      BooleanFormula exitFormula = predState.getPathFormula().getFormula();
 
-      Block exit = target.getExits().get(location.getLocationNode());
+      BooleanFormula exitFormula = bfMgr.or(exitFormulas);
+      Block successor = target.getExits().get(exit);
       final ShareableBooleanFormula shareableFormula =
           new ShareableBooleanFormula(formulaManager, exitFormula);
 
