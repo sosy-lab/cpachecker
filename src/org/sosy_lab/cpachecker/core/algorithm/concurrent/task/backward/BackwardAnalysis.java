@@ -97,7 +97,13 @@ public class BackwardAnalysis implements Task {
           AbstractStates.extractStateByType(state, PredicateAbstractState.class);
       assert predState != null;
 
-      BooleanFormula condition = predState.getPathFormula().getFormula();
+      BooleanFormula condition;
+      if (predState.isAbstractionState()) {
+        condition = predState.getAbstractionFormula().getBlockFormula().getFormula();
+      } else {
+        condition = predState.getPathFormula().getFormula();
+      }
+
       ShareableBooleanFormula shareableCondition =
           new ShareableBooleanFormula(formulaManager, condition);
 
