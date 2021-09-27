@@ -2053,6 +2053,9 @@ cpa.predicate.blk.alwaysAtLoops = true
 # of threshold
 cpa.predicate.blk.alwaysAtProgramExit = false
 
+# abstraction always at target location
+cpa.predicate.blk.alwaysAtTarget = true
+
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
 cpa.predicate.blk.functions = false

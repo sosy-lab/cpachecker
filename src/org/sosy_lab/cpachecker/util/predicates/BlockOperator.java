@@ -76,11 +76,14 @@ public class BlockOperator {
   @Option(secure = true, description="force abstractions at program exit (program end, abort, etc.), regardless of threshold")
   private boolean alwaysAtProgramExit = false;
 
-  @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
+  @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
-  @Option(secure=true, description="abstraction always at explicitly computed abstraction nodes.")
+  @Option(secure=true, description="abstraction always at explicitly computed abstraction nodes")
   private boolean alwaysAtExplicitNodes = false;
+
+  @Option(secure = true, description = "abstraction always at target location")
+  private boolean alwaysAtTarget = true;
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
@@ -271,8 +274,8 @@ public class BlockOperator {
   }
 
   private static boolean isFirstLocationInMainFunctionBody(CFANode pLoc) {
-    for (CFAEdge edge: CFAUtils.leavingEdges(pLoc)) {
-      if (edge instanceof BlankEdge)  {
+    for (CFAEdge edge : CFAUtils.leavingEdges(pLoc)) {
+      if (edge instanceof BlankEdge) {
         if (edge.getDescription().equals("Function start dummy edge")) {
           return true;
         }
@@ -280,5 +283,9 @@ public class BlockOperator {
     }
 
     return false;
+  }
+
+  public boolean shouldEndBlockOnTarget() {
+    return alwaysAtTarget;
   }
 }
