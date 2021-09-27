@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.makeName;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +20,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
@@ -35,23 +38,25 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class BackwardAnalysis implements Task {
   private final Block target;
   private final CFANode start;
-  private final BooleanFormula errorCondition;
-  private final BooleanFormula blockSummary;
+  private final PathFormula errorCondition;
+  private final PathFormula blockSummary;
   private final ReachedSet reached;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
   private final Solver solver;
-  private final FormulaManagerView formulaManager;
-  private final BooleanFormulaManager bfMgr;
+  private final FormulaManagerView fMgr;
+  private final PathFormulaManager pfMgr;
   private final TaskManager taskManager;
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
@@ -64,22 +69,24 @@ public class BackwardAnalysis implements Task {
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA,
-      final Solver pSolver,
       final TaskManager pTaskManager,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
-    solver = pSolver;
-    formulaManager = pSolver.getFormulaManager();
-    bfMgr = formulaManager.getBooleanFormulaManager();
+    cpa = pCPA;
+    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
+    assert predicateCPA != null;
+
+    solver = predicateCPA.getSolver();
+    fMgr = solver.getFormulaManager();
+    pfMgr = predicateCPA.getPathFormulaManager();
 
     target = pBlock;
     start = pStart;
-    errorCondition = pErrorCondition.getFor(formulaManager);
-    blockSummary = pBlockSummary.getFor(formulaManager);
+    errorCondition = pErrorCondition.getFor(fMgr, pfMgr);
+    blockSummary = pBlockSummary.getFor(fMgr, pfMgr);
 
     reached = pReachedSet;
     algorithm = pAlgorithm;
-    cpa = pCPA;
     taskManager = pTaskManager;
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
@@ -97,15 +104,15 @@ public class BackwardAnalysis implements Task {
           AbstractStates.extractStateByType(state, PredicateAbstractState.class);
       assert predState != null;
 
-      BooleanFormula condition;
+      PathFormula condition;
       if (predState.isAbstractionState()) {
-        condition = predState.getAbstractionFormula().getBlockFormula().getFormula();
+        condition = predState.getAbstractionFormula().getBlockFormula();
       } else {
-        condition = predState.getPathFormula().getFormula();
+        condition = predState.getPathFormula();
       }
 
       ShareableBooleanFormula shareableCondition =
-          new ShareableBooleanFormula(formulaManager, condition);
+          new ShareableBooleanFormula(fMgr, condition);
 
       for (final Block predecessor : target.getPredecessors()) {
         taskManager.spawnBackwardAnalysis(predecessor, node, target, shareableCondition);
@@ -113,10 +120,10 @@ public class BackwardAnalysis implements Task {
 
       if (target.getPredecessors().isEmpty()) {
         try {
-          if (solver.isUnsat(condition)) {
-            logManager.log(Level.INFO, "Error condition unsatisfiable", condition);
+          if (solver.isUnsat(condition.getFormula())) {
+            logManager.log(Level.INFO, "Verdict: Error condition unsatisfiable", condition);
           } else {
-            logManager.log(Level.INFO, "Satisfiable error condition!", condition);
+            logManager.log(Level.INFO, "Verdict: Satisfiable error condition!", condition);
           }
         } catch (SolverException ignored) {
           logManager.log(Level.WARNING, "Unhandled Solver Exception!");
@@ -127,8 +134,10 @@ public class BackwardAnalysis implements Task {
 
   @Override
   public AlgorithmStatus call() throws Exception {
-    BooleanFormula entryCondition = bfMgr.and(blockSummary, errorCondition);
-    if (solver.isUnsat(entryCondition)) {
+    PathFormula condition = stitchIndicesTogether(blockSummary, errorCondition);
+    BooleanFormula reachable = fMgr.makeAnd(blockSummary.getFormula(), condition.getFormula());
+    if (solver.isUnsat(reachable)) {
+      logManager.log(Level.INFO, "Verdict: Swallowed error condition: ", errorCondition.getFormula());
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -142,7 +151,7 @@ public class BackwardAnalysis implements Task {
     do {
       AlgorithmStatus newStatus = algorithm.run(reached);
       status = status.update(newStatus);
-
+      
       for (final AbstractState reachedState : reached.asCollection()) {
         processReachedState(reachedState);
       }
@@ -188,10 +197,8 @@ public class BackwardAnalysis implements Task {
 
   private PredicateAbstractState buildPredicateEntryState() throws InterruptedException {
     PredicateAbstractState rawPredicateState = getRawPredicateEntryState();
-    PathFormula context = rawPredicateState.getPathFormula().withFormula(errorCondition);
-
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        context, rawPredicateState);
+        errorCondition, rawPredicateState);
   }
 
   private PredicateAbstractState getRawPredicateEntryState() throws InterruptedException {
@@ -209,5 +216,45 @@ public class BackwardAnalysis implements Task {
     assert rawPredicateState != null;
 
     return rawPredicateState;
+  }
+
+  /**
+   * Todo: Merge Pointer Target Sets
+   */
+  private PathFormula stitchIndicesTogether(final PathFormula lower, final PathFormula upper) {
+    BooleanFormula targetRaw = upper.getFormula();
+
+    SSAMap lowerSSA = lower.getSsa();
+    SSAMap upperSSA = upper.getSsa();
+
+    Map<String, String> replacements = new HashMap<>();
+    SSAMapBuilder newSSABuilder = upperSSA.builder();
+
+    for (final String name : lowerSSA.allVariables()) {
+      int indexBase = lowerSSA.getIndex(name);
+
+      if (upperSSA.containsVariable(name)) {
+        int maxUpperIndex = upperSSA.getIndex(name);
+        int diff = indexBase - 1;
+
+        for (int index = 1; index <= maxUpperIndex; ++index) {
+          replacements.put(makeName(name, index), makeName(name, index + diff));
+        }
+
+        final CType type = upperSSA.getType(name);
+        newSSABuilder = newSSABuilder.setIndex(name, type, maxUpperIndex + diff);
+      }
+    }
+
+    if (replacements.isEmpty()) {
+      return upper;
+    }
+
+    targetRaw = fMgr.renameFreeVariablesAndUFs(targetRaw,
+        (pName) -> replacements.getOrDefault(pName, pName));
+    SSAMap newSSA = newSSABuilder.build();
+
+    PathFormula result = pfMgr.makeEmptyPathFormula();
+    return result.withFormula(targetRaw).withContext(newSSA, upper.getPointerTargetSet());
   }
 }

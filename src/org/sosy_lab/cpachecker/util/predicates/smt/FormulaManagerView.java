@@ -1136,7 +1136,7 @@ public class FormulaManagerView {
   private static final char INDEX_SEPARATOR = '@';
   private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
-  static String makeName(String name, int idx) {
+  public static String makeName(String name, int idx) {
     checkArgument(
         name.indexOf(INDEX_SEPARATOR) == -1,
         "Instantiating already instantiated variable %s with index %s",

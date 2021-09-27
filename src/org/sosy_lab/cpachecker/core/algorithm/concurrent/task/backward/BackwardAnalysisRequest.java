@@ -42,10 +42,10 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix = "concurrent.task.backward")
 public class BackwardAnalysisRequest implements TaskRequest {
@@ -60,7 +60,8 @@ public class BackwardAnalysisRequest implements TaskRequest {
   private final TaskManager taskManager;
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final FormulaManagerView formulaManager;
+  private final FormulaManagerView fMgr;
+  private final PathFormulaManager pfMgr;
   private final Solver solver;
 
   @SuppressWarnings("FieldMayBeFinal")
@@ -124,11 +125,12 @@ public class BackwardAnalysisRequest implements TaskRequest {
     assert predicateCPA != null;
 
     solver = predicateCPA.getSolver();
-    formulaManager = solver.getFormulaManager();
-
+    fMgr = solver.getFormulaManager();
+    pfMgr = predicateCPA.getPathFormulaManager();
+    
     if (pErrorCondition == null) {
-      BooleanFormula condition = formulaManager.getBooleanFormulaManager().makeTrue();
-      errorCondition = new ShareableBooleanFormula(formulaManager, condition);
+      PathFormula condition = pfMgr.makeEmptyPathFormula();
+      errorCondition = new ShareableBooleanFormula(fMgr, condition);
     } else {
       errorCondition = pErrorCondition;
     }
@@ -198,8 +200,8 @@ public class BackwardAnalysisRequest implements TaskRequest {
     }
 
     if (blockSummary == null) {
-      BooleanFormulaManager bfMgr = solver.getFormulaManager().getBooleanFormulaManager();
-      blockSummary = new ShareableBooleanFormula(solver.getFormulaManager(), bfMgr.makeTrue());
+      PathFormula emptyFormula = pfMgr.makeEmptyPathFormula();
+      blockSummary = new ShareableBooleanFormula(fMgr, emptyFormula);
     }
 
     return new BackwardAnalysis(
@@ -210,7 +212,6 @@ public class BackwardAnalysisRequest implements TaskRequest {
         reached,
         algorithm,
         cpa,
-        solver,
         taskManager,
         logManager,
         shutdownNotifier);

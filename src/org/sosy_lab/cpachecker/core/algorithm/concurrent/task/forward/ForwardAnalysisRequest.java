@@ -43,9 +43,8 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 @Options(prefix = "concurrent.task.forward")
 public class ForwardAnalysisRequest implements TaskRequest {
@@ -60,9 +59,6 @@ public class ForwardAnalysisRequest implements TaskRequest {
   private final TaskManager taskManager;
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final Solver solver;
-  private final FormulaManagerView formulaManager;
-  private final BooleanFormulaManager bfMgr;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
 
@@ -123,14 +119,13 @@ public class ForwardAnalysisRequest implements TaskRequest {
 
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
-
-    solver = predicateCPA.getSolver();
-    formulaManager = solver.getFormulaManager();
-    bfMgr = formulaManager.getBooleanFormulaManager();
+    
+    FormulaManagerView formulaManager = predicateCPA.getSolver().getFormulaManager();
+    PathFormulaManager pfMgr = predicateCPA.getPathFormulaManager();
 
     newSummary =
         (pNewSummary == null)
-        ? new ShareableBooleanFormula(formulaManager, bfMgr.makeTrue())
+        ? new ShareableBooleanFormula(formulaManager, pfMgr.makeEmptyPathFormula())
         : pNewSummary;
   }
 
@@ -254,7 +249,6 @@ public class ForwardAnalysisRequest implements TaskRequest {
         reached,
         algorithm,
         cpa,
-        solver,
         taskManager,
         logManager,
         shutdownNotifier);
