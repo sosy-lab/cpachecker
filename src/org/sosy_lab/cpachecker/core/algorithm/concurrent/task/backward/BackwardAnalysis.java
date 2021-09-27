@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class BackwardAnalysis implements Task {
   private final Block target;
@@ -105,7 +106,15 @@ public class BackwardAnalysis implements Task {
       }
 
       if (target.getPredecessors().isEmpty()) {
-        logManager.log(Level.FINE, "Reached program entry, formula:", condition);
+        try {
+          if (solver.isUnsat(condition)) {
+            logManager.log(Level.INFO, "Error condition unsatisfiable", condition);
+          } else {
+            logManager.log(Level.INFO, "Satisfiable error condition!", condition);
+          }
+        } catch (SolverException ignored) {
+          logManager.log(Level.WARNING, "Unhandled Solver Exception!");
+        }
       }
     }
   }
