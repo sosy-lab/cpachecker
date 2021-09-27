@@ -9,26 +9,29 @@
 
 const EC = protractor.ExpectedConditions;
 
-const hasClass = function (element, cls) {
-  return element.getAttribute("class").then(function (classes) {
+const hasClass = (element, cls) =>
+  element.getAttribute("class").then((classes) => {
     console.log("");
     return classes.split(" ").indexOf(cls) !== -1;
   });
-};
 
-describe("Error path section in Report.js", function () {
-  let dirname = __dirname + "/Counterexample.1.html";
+describe("Error path section in Report.js", () => {
+  let dirname = `${__dirname}/Counterexample.1.html`;
   dirname = dirname.replace(/\\/g, "/");
   browser.waitForAngularEnabled(false);
   browser.get(dirname);
   browser.driver.sleep(100);
 
-  describe("Start button click test in CFA tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Start button click test in CFA tab", () => {
+    it("Clicked Error path element in error path code", () => {
       browser
         .actions()
         .mouseMove(
-          element(by.css("#errorpath_section > header > div.btn-group > button.btn.btn-warning"))
+          element(
+            by.css(
+              "#errorpath_section > header > div.btn-group > button.btn.btn-warning"
+            )
+          )
         )
         .click()
         .perform();
@@ -39,7 +42,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in CFA graph", function () {
+    it("Mark Error path element in CFA graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-cfa-edge"))));
       expect(
         hasClass(
@@ -51,8 +54,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Next button click test in CFA tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Next button click test in CFA tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(
         by.css(
           "#errorpath_section > header > div.btn-group > button:nth-child(3)"
@@ -65,7 +68,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in CFA graph", function () {
+    it("Mark Error path element in CFA graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-cfa-node"))));
       expect(
         hasClass(element(by.xpath('//*[@id="cfa-node27"]')), "marked-cfa-node")
@@ -73,7 +76,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element node label in CFA graph", function () {
+    it("Mark Error path element node label in CFA graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-cfa-node-label"))));
       expect(
         hasClass(
@@ -87,8 +90,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Previous button click test in CFA tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Previous button click test in CFA tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(
         by.css(
           "#errorpath_section > header > div.btn-group > button:nth-child(1)"
@@ -101,7 +104,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in CFA graph", function () {
+    it("Mark Error path element in CFA graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-cfa-edge"))));
       expect(
         hasClass(
@@ -113,8 +116,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Error Code line click test in CFA tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Error Code line click test in CFA tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(by.css("#errpath-6")).click();
       browser.wait(EC.presenceOf(element(by.css(".clickedErrPathElement"))));
       expect(
@@ -123,7 +126,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in CFA graph", function () {
+    it("Mark Error path element in CFA graph", () => {
       element(by.css("#errpath-6")).click();
       browser.wait(EC.presenceOf(element(by.css(".marked-cfa-node"))));
       expect(
@@ -133,8 +136,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Start button click test in ARG tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Start button click test in ARG tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(by.id("set-tab-2")).click();
       element(
         by.css(
@@ -148,7 +151,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in ARG graph", function () {
+    it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
         hasClass(element(by.xpath('//*[@id="arg-node0"]')), "marked-arg-node")
@@ -157,8 +160,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Next button click test in ARG tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Next button click test in ARG tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(
         by.css(
           "#errorpath_section > header > div.btn-group > button:nth-child(3)"
@@ -171,7 +174,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in ARG graph", function () {
+    it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
         hasClass(element(by.xpath('//*[@id="arg-node1"]')), "marked-arg-node")
@@ -180,8 +183,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Previous button click test in ARG tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Previous button click test in ARG tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(
         by.css(
           "#errorpath_section > header > div.btn-group > button:nth-child(1)"
@@ -194,7 +197,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in ARG graph", function () {
+    it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
         hasClass(element(by.xpath('//*[@id="arg-node0"]')), "marked-arg-node")
@@ -203,8 +206,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Error Code line click test in ARG tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Error Code line click test in ARG tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(by.css("#errpath-8")).click();
       browser.wait(EC.presenceOf(element(by.css(".clickedErrPathElement"))));
       expect(
@@ -213,7 +216,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Mark Error path element in ARG graph", function () {
+    it("Mark Error path element in ARG graph", () => {
       element(by.css("#errpath-8")).click();
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
@@ -223,8 +226,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Start button click test in Source tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Start button click test in Source tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(by.id("set-tab-3")).click();
       element(
         by.css(
@@ -238,7 +241,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Highlight selected code in source tab", function () {
+    it("Highlight selected code in source tab", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-source-line"))));
       expect(
         hasClass(
@@ -250,8 +253,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Next button click test in Source tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Next button click test in Source tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(
         by.css(
           "#errorpath_section > header > div.btn-group > button:nth-child(3)"
@@ -270,7 +273,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Highlight selected code in source tab", function () {
+    it("Highlight selected code in source tab", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-source-line"))));
       expect(
         hasClass(
@@ -282,8 +285,8 @@ describe("Error path section in Report.js", function () {
     browser.driver.sleep(100);
   });
 
-  describe("Previous button click test in Source tab", function () {
-    it("Clicked Error path element in error path code", function () {
+  describe("Previous button click test in Source tab", () => {
+    it("Clicked Error path element in error path code", () => {
       element(
         by.css(
           "#errorpath_section > header > div.btn-group > button:nth-child(1)"
@@ -302,7 +305,7 @@ describe("Error path section in Report.js", function () {
     });
     browser.driver.sleep(100);
 
-    it("Highlight selected code in source tab", function () {
+    it("Highlight selected code in source tab", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-source-line"))));
       expect(
         hasClass(
@@ -330,16 +333,14 @@ describe("Error path section in Report.js", function () {
 
   function findTooltipWithText(text) {
     return $$("div.tooltip-inner")
-      .filter(function (elem) {
-        return elem.getText().then(function (elementText) {
-          return elementText.includes(text);
-        });
-      })
+      .filter((elem) =>
+        elem.getText().then((elementText) => elementText.includes(text))
+      )
       .first();
   }
 
-  describe("Button Group tooltip test", function () {
-    it("Prev button tooltip test", async function (done) {
+  describe("Button Group tooltip test", () => {
+    it("Prev button tooltip test", async (done) => {
       browser
         .actions()
         .mouseMove(
@@ -348,28 +349,28 @@ describe("Error path section in Report.js", function () {
           )
         )
         .perform();
-      tooltipText = findTooltipWithText("Previous Line");
+      const tooltipText = findTooltipWithText("Previous Line");
       browser.wait(EC.presenceOf(tooltipText));
       expect(tooltipText.isDisplayed()).toBeTruthy();
       done();
     });
     browser.driver.sleep(100);
 
-    it("help button tooltip test", async function (done) {
+    it("help button tooltip test", async (done) => {
       browser
         .actions()
         .mouseMove(
           element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))
         )
         .perform();
-      tooltipText = findTooltipWithText("help");
+      const tooltipText = findTooltipWithText("help");
       browser.wait(EC.presenceOf(tooltipText));
       expect(tooltipText.isDisplayed()).toBeTruthy();
       done();
     });
     browser.driver.sleep(100);
 
-    it("Next button tooltip test", async function (done) {
+    it("Next button tooltip test", async (done) => {
       browser
         .actions()
         .mouseMove(
@@ -378,7 +379,7 @@ describe("Error path section in Report.js", function () {
           )
         )
         .perform();
-      tooltipText = findTooltipWithText("Next Line");
+      const tooltipText = findTooltipWithText("Next Line");
       browser.wait(EC.presenceOf(tooltipText));
       expect(tooltipText.isDisplayed()).toBeTruthy();
       done();

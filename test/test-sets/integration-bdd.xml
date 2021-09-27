@@ -73,8 +73,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/sum*</exclude>
     <exclude>../programs/benchmarks/loops/eureka*</exclude>
     <exclude>../programs/benchmarks/loops/*string*</exclude>
-    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+sep-reducer.yml</exclude> <!-- flapping OOM/StackOverflow -->
-    <exclude>../programs/benchmarks/loop-invgen/id_build.i.p+sep-reducer.yml</exclude> <!-- flapping timeout/StackOverflow -->
-    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.v+lhb-reducer.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- only FALSE results due to missing multiplication support in BDD analysis -->
+    <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly OOM/StackOverflow -->
+    <exclude>../programs/benchmarks/loops-crafted-1/theatreSquare.yml</exclude> <!-- flapping OOM/StackOverflow -->
   </tasks>
 </benchmark>

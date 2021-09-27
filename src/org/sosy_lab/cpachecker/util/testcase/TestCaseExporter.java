@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.BiPredicates;
@@ -134,9 +134,7 @@ public class TestCaseExporter {
     return Joiner.on("\n").join(pValues);
   }
 
-  public void writeTestCaseFiles(
-      final CounterexampleInfo pCex,
-      Optional<SpecificationProperty> pSpec) {
+  public void writeTestCaseFiles(final CounterexampleInfo pCex, Optional<Property> pSpec) {
     // TODO check if this and openZipFS(), closeZipFS() are thread-safe
     if (areTestsEnabled()) {
       ARGPath targetPath = pCex.getTargetPath();
@@ -180,7 +178,7 @@ public class TestCaseExporter {
       final ARGPath pTargetPath,
       final CounterexampleInfo pCexInfo,
       final FormatType type,
-      final Optional<SpecificationProperty> pSpec) {
+      final Optional<Property> pSpec) {
     final ARGState rootState = pTargetPath.getFirstState();
     final Predicate<? super ARGState> relevantStates = Predicates.in(pTargetPath.getStateSet());
     final BiPredicate<ARGState, ARGState> relevantEdges =

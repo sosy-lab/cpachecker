@@ -217,7 +217,7 @@ public final class ValueAnalysisInterpolant
 
     PersistentMap<MemoryLocation, ValueAndType> weakenedAssignments = assignment;
     for (MemoryLocation current : assignment.keySet()) {
-      if (!toRetain.contains(current.getAsSimpleString())) {
+      if (!toRetain.contains(current.getExtendedQualifiedName())) {
         weakenedAssignments = weakenedAssignments.removeAndCopy(current);
       }
     }

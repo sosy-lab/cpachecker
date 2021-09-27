@@ -191,6 +191,7 @@ public class BAMARGStatistics extends ARGStatistics {
         cexSubgraphComputer.computeCounterexampleSubgraph(frontierStates, pMainReachedSet);
 
     ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
+    @SuppressWarnings("deprecation")
     TimerWrapper dummyTimer = new ThreadSafeTimerContainer("dummy").getNewTimer();
     BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
     UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
@@ -237,10 +238,10 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGState argState = (ARGState) pReached.getLastState();
     if (argState != null && argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
-      com.google.common.base.Optional<BackwardARGState> matchingState =
-          from(targets).firstMatch(t -> Objects.equals(t.getARGState(), argState));
+      Optional<BackwardARGState> matchingState =
+          targets.stream().filter(t -> Objects.equals(t.getARGState(), argState)).findFirst();
       if (cex.isPresent() && matchingState.isPresent()) {
-        matchingState.get().addCounterexampleInformation(cex.orElseThrow());
+        matchingState.orElseThrow().addCounterexampleInformation(cex.orElseThrow());
       }
     }
   }

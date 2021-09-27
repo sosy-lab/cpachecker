@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import com.google.common.base.Optional;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,20 +42,24 @@ public class JMethodCallEdge extends FunctionCallEdge {
     return (JMethodSummaryEdge) summaryEdge;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
+  public JMethodOrConstructorInvocation getFunctionCall() {
+    return (JMethodOrConstructorInvocation) functionCall;
+  }
+
+  @Override
+  public JMethodInvocationExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
+
   @Override
   public List<JExpression> getArguments() {
-    return (List<JExpression>) functionCall.getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
   public String getCode() {
     return functionCall.getFunctionCallExpression().toASTString();
-  }
-
-  @Override
-  public Optional<JMethodOrConstructorInvocation> getRawAST() {
-    return Optional.of((JMethodOrConstructorInvocation) functionCall);
   }
 
   @Override

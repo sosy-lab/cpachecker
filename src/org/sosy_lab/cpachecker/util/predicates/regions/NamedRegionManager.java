@@ -32,7 +32,6 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -236,10 +235,13 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {}
+  public void setVarOrder(ImmutableIntArray pOrder) {
+    delegate.setVarOrder(pOrder);
+  }
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void reorder(VariableOrderingStrategy strategy) {
+    delegate.reorder(strategy);
   }
 
   @Override
@@ -327,7 +329,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
     return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
   }
 }

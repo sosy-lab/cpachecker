@@ -429,6 +429,16 @@ class WebInterface:
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
+        if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
+            logging.warning(
+                "Using %s version %s, which is different than the requested version %s!",
+                self._tool_name,
+                self._revision,
+                revision,
+            )
+        else:
+            logging.info("Using %s version %s.", self._tool_name, self._revision)
+
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
         else:
@@ -482,14 +492,7 @@ class WebInterface:
     def _request_tool_revision(self, revision):
         path = "tool/version_string?revision=" + revision
         (resolved_svn_revision, _) = self._request("GET", path)
-        resolved_svn_revision = resolved_svn_revision.decode("UTF-8")
-        if ":HEAD" not in revision.upper() and revision is not resolved_svn_revision:
-            logging.warning(
-                "Resolved revision %s is different to specified revision %s",
-                resolved_svn_revision,
-                revision,
-            )
-        return resolved_svn_revision
+        return resolved_svn_revision.decode("UTF-8")
 
     def _request_tool_name(self):
         path = "tool/name"

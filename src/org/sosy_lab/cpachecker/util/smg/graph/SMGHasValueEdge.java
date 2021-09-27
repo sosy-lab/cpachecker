@@ -30,7 +30,7 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
    * @param pSizeInBits - The size of the type used in bits.
    * @param pOffset - The offset of the value. May not be negative!
    */
-  public SMGHasValueEdge(SMGValue pValue, BigInteger pSizeInBits, BigInteger pOffset) {
+  public SMGHasValueEdge(SMGValue pValue, BigInteger pOffset, BigInteger pSizeInBits) {
     value = pValue;
     sizeInBits = pSizeInBits;
     offset = pOffset;
@@ -52,7 +52,20 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   @Override
   public int compareTo(SMGHasValueEdge pArg0) {
-    return value.compareTo(pArg0.value);
+    int valueCompare = value.compareTo(pArg0.value);
+    if (valueCompare == 0) {
+      if (offset.compareTo(pArg0.offset) == 0) {
+        if (sizeInBits.compareTo(pArg0.sizeInBits) == 0) {
+          return 0;
+        } else {
+          return sizeInBits.compareTo(pArg0.sizeInBits);
+        }
+      } else {
+        return offset.compareTo(pArg0.offset);
+      }
+    } else {
+      return valueCompare;
+    }
   }
 
   @Override
@@ -73,5 +86,10 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
   @Override
   public int hashCode() {
     return super.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return value + " [" + offset + "; " + sizeInBits + ")";
   }
 }

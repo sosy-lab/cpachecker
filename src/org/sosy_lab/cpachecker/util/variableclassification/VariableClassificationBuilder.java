@@ -13,12 +13,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -30,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -123,10 +122,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   private final Dependencies dependencies = new Dependencies();
 
-  private Optional<Set<String>> relevantVariables = Optional.absent();
-  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.absent();
-  private Optional<Multimap<CCompositeType, String>> addressedFields = Optional.absent();
-  private Optional<Set<String>> addressedVariables = Optional.absent();
+  private @Nullable ImmutableSet<String> relevantVariables;
+  private @Nullable ImmutableMultimap<CCompositeType, String> relevantFields;
+  private @Nullable ImmutableMultimap<CCompositeType, String> addressedFields;
+  private @Nullable ImmutableSet<String> addressedVariables;
 
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
@@ -230,7 +229,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       dependencies.addVar(var);
     }
 
-    boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables.get(), nonIntAddVars).isEmpty();
+    boolean hasRelevantNonIntAddVars =
+        !Sets.intersection(relevantVariables, nonIntAddVars).isEmpty();
 
     stats.buildTimer.start();
     VariableClassification result =
@@ -240,18 +240,17 @@ public class VariableClassificationBuilder implements StatisticsProvider {
             intEqualVars,
             intAddVars,
             intOverflowVars,
-            relevantVariables.get(),
-            addressedVariables.get(),
-            relevantFields.get(),
-            addressedFields.get(),
+            relevantVariables,
+            addressedVariables,
+            relevantFields,
+            addressedFields,
             dependencies.partitions,
             intBoolPartitions,
             intEqualPartitions,
             intAddPartitions,
             dependencies.edgeToPartition,
             extractAssumedVariables(cfa.getAllNodes()),
-            extractAssignedVariables(cfa.getAllNodes()),
-            logger);
+            extractAssignedVariables(cfa.getAllNodes()));
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
@@ -274,9 +273,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         w.append("\n\nDEPENDENCIES\n\n");
         w.append(dependencies.toString());
         w.append("\n\nRELEVANT VARS\n\n");
-        w.append(relevantVariables.get().toString());
+        w.append(relevantVariables.toString());
         w.append("\n\nRELEVANT FIELDS\n\n");
-        w.append(relevantFields.get().toString());
+        w.append(relevantFields.toString());
         w.append("\n");
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
@@ -368,16 +367,19 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     final String prefix = "\nVC ";
     StringBuilder str = new StringBuilder("VariableClassification Statistics\n");
-    Joiner.on(prefix).appendTo(str, new String[] {
+    Joiner.on(prefix)
+        .appendTo(
+            str,
+            new String[] {
         "---------------------------------",
         "number of boolean vars:  " + numOfBooleans,
         "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
         "number of all vars:      " + allVars.size(),
-        "number of rel. vars:     " + relevantVariables.get().size(),
-        "number of addr. vars:    " + addressedVariables.get().size(),
-        "number of rel. fields:   " + relevantFields.get().size(),
-        "number of addr. fields:  " + addressedFields.get().size(),
+              "number of rel. vars:     " + relevantVariables.size(),
+              "number of addr. vars:    " + addressedVariables.size(),
+              "number of rel. fields:   " + relevantFields.size(),
+              "number of addr. fields:  " + addressedFields.size(),
         "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
         "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
         "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
@@ -389,7 +391,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   private int countNumberOfRelevantVars(Set<String> ofVars) {
-    return Sets.intersection(ofVars, relevantVariables.get()).size();
+    return Sets.intersection(ofVars, relevantVariables).size();
   }
 
   /** This function iterates over all edges of the cfa, collects all variables
@@ -405,12 +407,12 @@ public class VariableClassificationBuilder implements StatisticsProvider {
                 VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
-    addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
-    addressedFields = Optional.of(varFieldDependencies.computeAddressedFields());
+    addressedVariables = varFieldDependencies.computeAddressedVariables();
+    addressedFields = varFieldDependencies.computeAddressedFields();
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
                                                               varFieldDependencies.computeRelevantVariablesAndFields();
-    relevantVariables = Optional.of(relevant.getFirst());
-    relevantFields = Optional.of(relevant.getSecond());
+    relevantVariables = relevant.getFirst();
+    relevantFields = relevant.getSecond();
   }
 
   /**
@@ -510,7 +512,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     case FunctionReturnEdge: {
       Optional<CVariableDeclaration> returnVar = ((CFunctionReturnEdge)edge).getFunctionEntry().getReturnVariable();
       if (returnVar.isPresent()) {
-        String scopedVarName = returnVar.get().getQualifiedName();
+        String scopedVarName = returnVar.orElseThrow().getQualifiedName();
         dependencies.addVar(scopedVarName);
         Partition partition = dependencies.getPartitionForVar(scopedVarName);
         partition.addEdge(edge, 0);
@@ -523,7 +525,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
       CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
       if (returnStatement.asAssignment().isPresent()) {
-        handleAssignment(edge, returnStatement.asAssignment().get(), cfa);
+        handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
       }
       break;
     }
@@ -703,7 +705,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     CFunctionCall statement = func.getExpression();
     Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
     if (returnVar.isPresent()) {
-      String scopedRetVal = returnVar.get().getQualifiedName();
+      String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
       if (statement instanceof CFunctionCallAssignmentStatement) {
         // a=f();
         CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;

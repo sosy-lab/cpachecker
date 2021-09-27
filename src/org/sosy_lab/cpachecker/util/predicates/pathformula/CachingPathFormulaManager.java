@@ -40,8 +40,10 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
+  @SuppressWarnings("deprecation")
   public final ThreadSafeTimerContainer pathFormulaComputationTimer =
       new ThreadSafeTimerContainer(null);
+
   public LongAdder pathFormulaCacheHits = new LongAdder();
 
   public final PathFormulaManager delegate;

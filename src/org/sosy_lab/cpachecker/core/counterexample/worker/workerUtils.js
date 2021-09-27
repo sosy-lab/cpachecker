@@ -11,10 +11,10 @@ const dagreD3 = require("dagre-d3");
 
 // Use D3 zoom behavior to add pan event
 function addPanEvent(itemsToSelect) {
-  d3.selectAll(itemsToSelect).each(function (d) {
+  d3.selectAll(itemsToSelect).each(function addEvent() {
     const svg = d3.select(this);
     const svgGroup = d3.select(this.firstChild);
-    const zoom = d3.zoom().on("zoom", function (d) {
+    const zoom = d3.zoom().on("zoom", () => {
       svgGroup.attr("transform", d3.event.transform);
     });
     svg.call(zoom);
@@ -30,9 +30,7 @@ function addPanEvent(itemsToSelect) {
 function createGraph() {
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
-    .setDefaultEdgeLabel(function () {
-      return {};
-    });
+    .setDefaultEdgeLabel(() => ({}));
   return g;
 }
 
@@ -42,14 +40,10 @@ function showToolTipBox(e, displayInfo) {
   const offsetY = 0;
   const positionX = e.pageX;
   const positionY = e.pageY;
-  d3.select("#boxContent").html("<p>" + displayInfo + "</p>");
+  d3.select("#boxContent").html(`<p>${displayInfo}</p>`);
   d3.select("#infoBox")
-    .style("left", function () {
-      return positionX + offsetX + "px";
-    })
-    .style("top", function () {
-      return positionY + offsetY + "px";
-    })
+    .style("left", () => `${positionX + offsetX}px`)
+    .style("top", () => `${positionY + offsetY}px`)
     .style("visibility", "visible");
 }
 

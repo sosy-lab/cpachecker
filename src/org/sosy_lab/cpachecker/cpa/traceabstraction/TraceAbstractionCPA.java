@@ -9,16 +9,25 @@
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
-public class TraceAbstractionCPA extends AbstractCPA {
+public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TraceAbstractionCPA.class);
@@ -26,28 +35,71 @@ public class TraceAbstractionCPA extends AbstractCPA {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final TraceAbstractionPredicatesStorage predicatesStorage;
+  private final InterpolationSequenceStorage itpSequenceStorage;
 
-  private TraceAbstractionCPA(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    super("SEP", "SEP", null);
+  private final PredicateAbstractionManager predicateManager;
+
+  @SuppressWarnings("resource")
+  private TraceAbstractionCPA(
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+    super(pCpa);
+    if (!(pCpa instanceof PredicateCPA)) {
+      throw new InvalidConfigurationException(
+          "TraceAbstractionCPA is a wrapper CPA that requires the contained CPA to be an "
+              + "instance of PredicateCPA, but configured was a "
+              + pCpa.getClass().getSimpleName());
+    }
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    predicatesStorage = new TraceAbstractionPredicatesStorage();
+    itpSequenceStorage = new InterpolationSequenceStorage();
+
+    predicateManager = ((PredicateCPA) pCpa).getPredicateManager();
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return TraceAbstractionState.createInitState();
+    return TraceAbstractionState.createInitState(super.getInitialState(pNode, pPartition));
+  }
+
+  @SuppressWarnings("resource")
+  @Override
+  public TransferRelation getTransferRelation() {
+    PredicateCPA predicateCpa = (PredicateCPA) getWrappedCpa();
+
+    return new TraceAbstractionTransferRelation(
+        predicateCpa.getTransferRelation(),
+        predicateCpa.getSolver().getFormulaManager(),
+        predicateManager,
+        predicateCpa.getAbstractionManager(),
+        itpSequenceStorage,
+        logger,
+        shutdownNotifier);
+  }
+
+  InterpolationSequenceStorage getInterpolationSequenceStorage() {
+    return itpSequenceStorage;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return new TraceAbstractionTransferRelation(predicatesStorage, logger, shutdownNotifier);
+  public AbstractDomain getAbstractDomain() {
+    return new TraceAbstractionAbstractDomain(super.getAbstractDomain());
   }
 
-  TraceAbstractionPredicatesStorage getPredicatesStorage() {
-    return predicatesStorage;
+  @Override
+  public MergeOperator getMergeOperator() {
+    return new TraceAbstractionMergeOperator(super.getMergeOperator());
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    return new StopSepOperator(getAbstractDomain());
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new TraceAbstractionPrecisionAdjustment(super.getPrecisionAdjustment());
   }
 }

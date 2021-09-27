@@ -242,6 +242,9 @@ public class ReportGenerator {
                     argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      } catch (InterruptedException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not generate witness for witness view due to interruption");
       }
     }
   }
@@ -648,7 +651,7 @@ public class ReportGenerator {
 
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    for (AbstractState entry : reached.asCollection()) {
+    for (AbstractState entry : reached) {
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {

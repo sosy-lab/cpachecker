@@ -63,9 +63,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-/**
- * Wrapper for Eclipse CDT 7.0 and 8.* (internal version number since 5.2.*)
- */
+/** Wrapper for Eclipse CDT */
 class EclipseCParser implements CParser {
 
   private final ILanguage language;

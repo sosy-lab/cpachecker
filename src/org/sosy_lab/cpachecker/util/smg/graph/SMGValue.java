@@ -28,7 +28,7 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
    * Values can be nested inside SMGs. Basicly a value in a list is nesting level 0, while a value
    * in a list that is in a list is level 1 etc.
    */
-  private final int nestingLevel;
+  private int nestingLevel;
 
   /**
    * Creates a new, symbolic SMGValue with the entered nesting level.
@@ -42,6 +42,10 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   public static SMGValue of(int pNestingLevel) {
     return new SMGValue(pNestingLevel);
+  }
+
+  public static SMGValue of() {
+    return of(0);
   }
 
   @Override
@@ -79,5 +83,10 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   @Override
   public int hashCode() {
     return id;
+  }
+
+  @Override
+  public void increaseLevelBy(int pByX) {
+    nestingLevel += pByX;
   }
 }

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -133,7 +133,7 @@ public final class SMGPlotter {
   public static void debuggingPlot(
       UnmodifiableCLangSMG pSmg,
       String pId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
       throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
@@ -160,7 +160,7 @@ public final class SMGPlotter {
       UnmodifiableCLangSMG smg,
       String name,
       String location,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
@@ -325,7 +325,7 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(
-      SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      SMGValue value, PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String label = "#" + value.asDotId();
     String color = "red";
     if (value instanceof SMGKnownExpValue) {
@@ -344,7 +344,7 @@ public final class SMGPlotter {
   private static String neqRelationAsDot(
       SMGValue v1,
       SMGValue v2,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String toNodeStr, toNode;
     if (v2.isZero()) {
       final String newLabel = newNullLabel();
@@ -362,6 +362,6 @@ public final class SMGPlotter {
   }
 
   private String newLineWithOffset(String pLine) {
-    return  Strings.repeat(" ", offset) + pLine + "\n";
+    return " ".repeat(offset) + pLine + "\n";
   }
 }

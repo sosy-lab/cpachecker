@@ -9,9 +9,9 @@
 
 // Sample test case
 
-describe("true", function () {
+describe("true", () => {
   let a;
-  it("Should be true", function () {
+  it("Should be true", () => {
     a = true;
     expect(a).toBe(true);
   });

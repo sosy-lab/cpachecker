@@ -28,7 +28,7 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
 
   @Override
   public String toString() {
-    return getMemoryLocation().getAsSimpleString();
+    return getMemoryLocation().getExtendedQualifiedName();
   }
 
   @Override

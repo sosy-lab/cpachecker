@@ -82,12 +82,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -98,7 +98,8 @@ import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisito
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
+import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -276,7 +277,7 @@ class WitnessFactory implements EdgeAppender {
   private final Simplifier<Object> simplifier;
 
   private final SetMultimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
-  private final Multimap<String, Property> violatedProperties = HashMultimap.create();
+  private final Multimap<String, TargetInformation> violatedProperties = HashMultimap.create();
   private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments =
       new HashMap<>();
 
@@ -334,7 +335,8 @@ class WitnessFactory implements EdgeAppender {
       final CFAEdge pEdge,
       final Optional<Collection<ARGState>> pFromState,
       final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      final CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+      final CFAEdgeWithAdditionalInfo pAdditionalInfo)
+      throws InterruptedException {
 
     attemptSwitchToFunctionScope(pEdge);
     if (pFromState.isPresent()) {
@@ -396,7 +398,8 @@ class WitnessFactory implements EdgeAppender {
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      CFAEdgeWithAdditionalInfo pAdditionalInfo) {
+      CFAEdgeWithAdditionalInfo pAdditionalInfo)
+      throws InterruptedException {
     appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap, pAdditionalInfo);
   }
 
@@ -966,13 +969,15 @@ class WitnessFactory implements EdgeAppender {
           switch (functionName) {
             case ThreadingTransferRelation.THREAD_START:
               {
-                com.google.common.base.Optional<ARGState> possibleChild =
-                    from(pState.getChildren()).firstMatch(c -> pEdge == pState.getEdgeToChild(c));
+                Optional<ARGState> possibleChild =
+                    pState.getChildren().stream()
+                        .filter(c -> pEdge == pState.getEdgeToChild(c))
+                        .findFirst();
                 if (!possibleChild.isPresent()) {
                   // this can happen e.g. if the ARG was not discovered completely.
                   return Collections.singletonList(pResult);
                 }
-                ARGState child = possibleChild.get();
+                ARGState child = possibleChild.orElseThrow();
                 // search the new created thread-id
                 ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
                 for (String threadId : succThreadingState.getThreadIds()) {
@@ -1123,7 +1128,8 @@ class WitnessFactory implements EdgeAppender {
       final Predicate<? super ARGState> pIsCyclehead,
       final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
-      GraphBuilder pGraphBuilder) {
+      GraphBuilder pGraphBuilder)
+      throws InterruptedException {
 
     // reset information in case data structures where filled before:
     leavingEdges.clear();
@@ -1227,7 +1233,7 @@ class WitnessFactory implements EdgeAppender {
    * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
    * irrelevant information.
    */
-  private void mergeRepeatedEdges(final String entryStateNodeId) {
+  private void mergeRepeatedEdges(final String entryStateNodeId) throws InterruptedException {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
@@ -1361,8 +1367,7 @@ class WitnessFactory implements EdgeAppender {
     }
   }
 
-
-  private void setLoopHeadInvariantIfApplicable(String pTarget) {
+  private void setLoopHeadInvariantIfApplicable(String pTarget) throws InterruptedException {
     if (!ExpressionTrees.getTrue().equals(getStateInvariant(pTarget))) {
       return;
     }
@@ -1684,10 +1689,10 @@ class WitnessFactory implements EdgeAppender {
     return ImmutableSet.of();
   }
 
-  private Collection<Property> extractViolatedProperties(ARGState pState) {
-    List<Property> result = new ArrayList<>();
+  private Collection<TargetInformation> extractViolatedProperties(ARGState pState) {
+    List<TargetInformation> result = new ArrayList<>();
     if (pState.isTarget()) {
-      result.addAll(pState.getViolatedProperties());
+      result.addAll(pState.getTargetInformation());
     }
     return result;
   }
@@ -1732,6 +1737,12 @@ class WitnessFactory implements EdgeAppender {
       ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
       stateInvariants.put(pStateId, existingTree);
       return existingTree;
+    } else if (prev.equals(ExpressionTrees.getTrue())) {
+      stateInvariants.put(pStateId, other);
+      return other;
+    } else if (other.equals(ExpressionTrees.getTrue())) {
+      stateInvariants.put(pStateId, prev);
+      return prev;
     }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
@@ -1745,6 +1756,13 @@ class WitnessFactory implements EdgeAppender {
             .map(AbstractStates.toState(PredicateAbstractState.class))
             .filter(s -> s != null)
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
+      return true;
+    }
+    if (pFromState.isPresent()
+        && pFromState.orElseThrow().stream()
+        .map(AbstractStates.toState(ACSLState.class))
+        .filter(s -> s != null)
+        .anyMatch(ACSLState::hasAnnotations)) {
       return true;
     }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
@@ -1835,8 +1853,8 @@ class WitnessFactory implements EdgeAppender {
         }
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
-          if (pNode instanceof CLabelNode) {
-            CLabelNode node = (CLabelNode) pNode;
+          if (pNode instanceof CFALabelNode) {
+            CFALabelNode node = (CFALabelNode) pNode;
             for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;

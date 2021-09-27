@@ -138,6 +138,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     }
   }
 
+  @SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
   public static class PrecAdjustmentStatistics implements Statistics {
 
     final StatCounter abstractions = new StatCounter("Number of abstraction computations");
@@ -283,7 +284,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
           if (!liveVariables
               .orElseThrow()
-              .isVariableLive(variable.getAsSimpleString(), location.getLocationNode())) {
+              .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
             resultState.forget(variable);
           }
         }

@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigInteger;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -19,7 +22,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4)
  */
-public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
+public class SMGJoinTargetObjects extends SMGAbstractJoin {
 
   public SMGJoinTargetObjects(
       SMGJoinStatus pStatus,
@@ -45,8 +48,13 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
   public void joinTargetObjects(SMGValue pValue1,
       SMGValue pValue2,
       int pNestingLevelDiff) {
-    SMGPointsToEdge pToEdge1 = inputSMG1.getPTEdge(pValue1);
-    SMGPointsToEdge pToEdge2 = inputSMG2.getPTEdge(pValue2);
+    Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+    Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
+
+    checkArgument(edgeOptionalV1.isPresent() && edgeOptionalV2.isPresent());
+
+    SMGPointsToEdge pToEdge1 = edgeOptionalV1.orElseThrow();
+    SMGPointsToEdge pToEdge2 = edgeOptionalV2.orElseThrow();
 
     // step 1
     if (!checkCompatibility(pToEdge1, pToEdge2, pValue1, pValue2, pNestingLevelDiff)) {
@@ -78,6 +86,13 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
     }
     // step 7-11
     SMGObject newObject = createNewObject(pToEdge1.pointsTo(), pToEdge2.pointsTo());
+
+    destSMG = destSMG.copyAndAddObject(newObject);
+    if (!inputSMG1.isValid(pToEdge1.pointsTo())
+        && !isDLLS(pToEdge1.pointsTo())
+        && !inputSMG2.isValid(pToEdge2.pointsTo())) {
+      destSMG = destSMG.copyAndInvalidateObject(newObject);
+    }
     // add mappings step 12
     mapping1.addMapping(pToEdge1.pointsTo(), newObject);
     mapping2.addMapping(pToEdge2.pointsTo(), newObject);
@@ -128,7 +143,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
     if (isDLLS(obj1) || isDLLS(obj2)) {
       newObject = createDLLSCopyLabeling(obj1, obj2, level);
     } else {
-      newObject = SMGObject.of(level, obj1.getSize(), obj1.getOffset(), true);
+      newObject = SMGObject.of(level, obj1.getSize(), obj1.getOffset());
     }
     destSMG = destSMG.copyAndAddObject(newObject);
     // step 11
@@ -153,7 +168,6 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
     BigInteger prevOffset = null;
     BigInteger pSize = null;
     BigInteger pOffset = null;
-    boolean pValid = false;
     if (isDLLS(obj1)) {
       length1 = ((SMGDoublyLinkedListSegment) obj1).getMinLength();
       headOffset = ((SMGDoublyLinkedListSegment) obj1).getHeadOffset();
@@ -161,7 +175,6 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
       prevOffset = ((SMGDoublyLinkedListSegment) obj1).getPrevOffset();
       pSize = obj1.getSize();
       pOffset = obj1.getOffset();
-      pValid = obj1.isValid();
     }
     if (isDLLS(obj2)) {
       length2 = ((SMGDoublyLinkedListSegment) obj2).getMinLength();
@@ -171,14 +184,12 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
         prevOffset = ((SMGDoublyLinkedListSegment) obj2).getPrevOffset();
         pSize = obj2.getSize();
         pOffset = obj2.getOffset();
-        pValid = obj2.isValid();
       }
     }
     return new SMGDoublyLinkedListSegment(
         pNestingLevel,
         pSize,
         pOffset,
-        pValid,
         prevOffset,
         nextOffset,
         Integer.min(length1, length2),
@@ -213,7 +224,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoinValues {
 
     // step 4
     if (targetObject1.getClass().equals(targetObject2.getClass())
-        && pEdge1.targetSpecifier().equals(pEdge2.targetSpecifier())) {
+        && !pEdge1.targetSpecifier().equals(pEdge2.targetSpecifier())) {
       return true;
     }
     // step 5

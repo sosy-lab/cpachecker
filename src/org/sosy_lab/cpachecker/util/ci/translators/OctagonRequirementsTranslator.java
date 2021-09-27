@@ -29,7 +29,7 @@ public class OctagonRequirementsTranslator extends CartesianRequirementsTranslat
   protected List<String> getVarsInRequirements(OctagonState pRequirement) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation key : pRequirement.getVariablesWithBounds().keySet()) {
-      list.add(key.getAsSimpleString());
+      list.add(key.getExtendedQualifiedName());
     }
     return list;
   }
@@ -38,7 +38,7 @@ public class OctagonRequirementsTranslator extends CartesianRequirementsTranslat
   protected List<String> getVarsInRequirements(final OctagonState pRequirement, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (Entry<MemoryLocation, OctagonInterval> entry : pRequirement.getVariablesWithBounds().entrySet()) {
-      String var = entry.getKey().getAsSimpleString();
+      String var = entry.getKey().getExtendedQualifiedName();
       if (!entry.getValue().isEmpty() || pRequiredVars == null || pRequiredVars.contains(var)) {
         list.add(var);
       }
@@ -51,7 +51,7 @@ public class OctagonRequirementsTranslator extends CartesianRequirementsTranslat
       final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (Entry<MemoryLocation, OctagonInterval> entry : pRequirement.getVariablesWithBounds().entrySet()) {
-      String var = entry.getKey().getAsSimpleString();
+      String var = entry.getKey().getExtendedQualifiedName();
       if (!entry.getValue().isEmpty() || pRequiredVars == null || pRequiredVars.contains(var)) {
         list.add(getRequirement(getVarWithIndex(var, pIndices), entry.getValue()));
       }

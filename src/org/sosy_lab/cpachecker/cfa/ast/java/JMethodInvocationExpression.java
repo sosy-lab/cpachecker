@@ -65,8 +65,8 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<? extends JExpression> getParameterExpressions() {
-    return (List<? extends JExpression>) super.getParameterExpressions();
+  public List<JExpression> getParameterExpressions() {
+    return (List<JExpression>) super.getParameterExpressions();
   }
 
   @Override

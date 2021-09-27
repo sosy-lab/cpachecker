@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -28,6 +27,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -572,7 +572,7 @@ class ASTConverter {
 
     JExpression expr = convertExpressionWithoutSideEffects(s.getExpression());
 
-    return new JReturnStatement(getFileLocation(s), Optional.fromNullable(expr));
+    return new JReturnStatement(getFileLocation(s), Optional.ofNullable(expr));
   }
 
   /**
@@ -1430,19 +1430,19 @@ class ASTConverter {
     if (constructorOptional.isPresent()) {
       JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
       final JClassType jTypeFromConstructor =
-          createOrFindJClassTypeFromConstructor(constructorOptional.get());
+          createOrFindJClassTypeFromConstructor(constructorOptional.orElseThrow());
       JConstructorType constructorType =
           new JConstructorType(
               jTypeFromConstructor,
               getJTypesOfParameters(pCIC.arguments()),
-              constructorOptional.get().isVarArgs());
+              constructorOptional.orElseThrow().isVarArgs());
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
           constructorType,
           fullName,
           simpleName,
           createJParameterDeclarationsForArguments(pCIC.arguments()),
-          getVisibilityModifierForConstructor(constructorOptional.get()),
+          getVisibilityModifierForConstructor(constructorOptional.orElseThrow()),
           jTypeFromConstructor.isStrictFp(),
           declaringClass);
     }
@@ -1494,7 +1494,7 @@ class ASTConverter {
       jTypeOfSuperClass = typeOfObject;
     } else {
       final Set<JClassType> directSubClassesOfTypeObject = typeOfObject.getDirectSubClasses();
-      final java.util.Optional<JClassType> superClassInTypeOfObject =
+      final Optional<JClassType> superClassInTypeOfObject =
           directSubClassesOfTypeObject.stream()
               .filter(v -> v.getName().equals(superclass.getName()))
               .findFirst();
@@ -1562,7 +1562,7 @@ class ASTConverter {
         return Optional.of(importDeclaration);
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   private Optional<Constructor<?>> matchConstructor(
@@ -1574,19 +1574,21 @@ class ASTConverter {
       try {
         cls = Class.forName("java.lang." + pClassName);
       } catch (ClassNotFoundException pE) {
-        return Optional.absent();
+        return Optional.empty();
       }
     } else {
       try {
-        cls = Class.forName(matchingImportDeclaration.get().getName().getFullyQualifiedName());
+        cls =
+            Class.forName(
+                matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName());
       } catch (ClassNotFoundException pE) {
-        return Optional.absent();
+        return Optional.empty();
       }
     }
-    java.util.Optional<List<Class<?>>> argumentsAsClassArray =
+    Optional<List<Class<?>>> argumentsAsClassArray =
         convertArgumentListToClassList(pArguments, pImportDeclarations);
     if (argumentsAsClassArray.isEmpty()) {
-      return Optional.absent();
+      return Optional.empty();
     }
     for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
       boolean match = true;
@@ -1604,10 +1606,10 @@ class ASTConverter {
         return Optional.of(constructor);
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
-  private java.util.Optional<List<Class<?>>> convertArgumentListToClassList(
+  private Optional<List<Class<?>>> convertArgumentListToClassList(
       List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
     List<Class<?>> result = new ArrayList<>(pArguments.size());
     for (Object argument : pArguments) {
@@ -1617,25 +1619,26 @@ class ASTConverter {
         final JType simpleDeclarationType;
         if (argument instanceof ArrayAccess) {
           simpleDeclarationType =
-              ((JArrayType) optionalOfSimpleDeclaration.get().getType()).getElementType();
+              ((JArrayType) optionalOfSimpleDeclaration.orElseThrow().getType()).getElementType();
         } else {
-          simpleDeclarationType = optionalOfSimpleDeclaration.get().getType();
+          simpleDeclarationType = optionalOfSimpleDeclaration.orElseThrow().getType();
         }
         final Optional<Class<?>> classOfJType =
             getClassOfJType(simpleDeclarationType, pImportDeclarations);
-        result.add(classOfJType.get());
+        result.add(classOfJType.orElseThrow());
       } else if (argument instanceof Expression && !(argument instanceof InfixExpression)) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
         if (binding != null) {
           final JType jType = typeConverter.convert(binding);
-          result.add(getClassOfJType(jType, pImportDeclarations).get());
+          result.add(getClassOfJType(jType, pImportDeclarations).orElseThrow());
         } else {
           // TODO Need better solution for Method Invocations
-          return java.util.Optional.empty();
+          return Optional.empty();
         }
       } else if (argument instanceof InfixExpression) {
         JBinaryExpression expression = (JBinaryExpression) convert((InfixExpression) argument);
-        result.add(getClassOfJType(expression.getExpressionType(), pImportDeclarations).get());
+        result.add(
+            getClassOfJType(expression.getExpressionType(), pImportDeclarations).orElseThrow());
       } else {
         throw new AssertionError("Cannot find class of " + argument);
       }
@@ -1643,7 +1646,7 @@ class ASTConverter {
     if (pArguments.size() != result.size()) {
       throw new AssertionError("Error while converting arguments into array of classes.");
     }
-    return java.util.Optional.of(ImmutableList.copyOf(result));
+    return Optional.of(ImmutableList.copyOf(result));
   }
 
   private Optional<JSimpleDeclaration> getJSimpleDeclarationOfArgument(final Object pArgument) {
@@ -1660,7 +1663,7 @@ class ASTConverter {
     if (simpleDeclaration != null) {
       return Optional.of(simpleDeclaration);
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   @VisibleForTesting
@@ -1673,14 +1676,15 @@ class ASTConverter {
       final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
       Optional<ImportDeclaration> matchingImportDeclaration =
           getMatchingImportDeclaration(jTypeName, pImportDeclarations);
-      Optional<Class<?>> cls = Optional.absent();
+      Optional<Class<?>> cls = Optional.empty();
       if (matchingImportDeclaration.isPresent()) {
         try {
           cls =
               Optional.of(
-                  Class.forName(matchingImportDeclaration.get().getName().getFullyQualifiedName()));
+                  Class.forName(
+                      matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
         } catch (ClassNotFoundException pE) {
-          cls = Optional.absent();
+          cls = Optional.empty();
         }
       }
       if (!cls.isPresent()) {
@@ -1688,7 +1692,7 @@ class ASTConverter {
           cls = Optional.of(Class.forName(jTypeName));
 
         } catch (ClassNotFoundException pE) {
-          cls = Optional.absent();
+          cls = Optional.empty();
         }
       }
       if (!cls.isPresent()) {
@@ -1698,7 +1702,7 @@ class ASTConverter {
 
         } catch (ClassNotFoundException pE) {
 
-          cls = Optional.absent();
+          cls = Optional.empty();
         }
       }
 
@@ -1712,14 +1716,14 @@ class ASTConverter {
       Optional<Class<?>> typeOfArray =
           getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
       int dimensionsOfArray = ((JArrayType) pJType).getDimensions();
-      Class<?> array = Array.newInstance(typeOfArray.get(), 0).getClass();
+      Class<?> array = Array.newInstance(typeOfArray.orElseThrow(), 0).getClass();
       for (int i = 1; i < dimensionsOfArray; i++) {
         array = Array.newInstance(array, 0).getClass();
       }
       return Optional.of(array);
     }
 
-    return Optional.absent();
+    return Optional.empty();
   }
 
   @VisibleForTesting
@@ -1786,7 +1790,8 @@ class ASTConverter {
           getJSimpleDeclarationOfArgument(argument);
       if (simpleDeclarationOptional.isPresent()) {
         parameterList.add(
-            convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.get()).get());
+            convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.orElseThrow())
+                .orElseThrow());
       } else if (argument instanceof Expression) {
         final String name;
         final String qualifiedName;
@@ -2655,12 +2660,12 @@ class ASTConverter {
 
     JBasicType jBasicType;
     if (pOp1Type instanceof JClassType && basicTypeOp2 != null) {
-      jBasicType = unboxJClassType((JClassType) pOp1Type).orNull();
+      jBasicType = unboxJClassType((JClassType) pOp1Type).orElse(null);
       if (jBasicType == basicTypeOp2) {
         basicTypeOp1 = jBasicType;
       }
     } else if (pOp2Type instanceof JClassType && basicTypeOp1 != null) {
-      jBasicType = unboxJClassType((JClassType) pOp2Type).orNull();
+      jBasicType = unboxJClassType((JClassType) pOp2Type).orElse(null);
       if (jBasicType == basicTypeOp1) {
         basicTypeOp2 = jBasicType;
       }
@@ -2688,7 +2693,7 @@ class ASTConverter {
 
   @VisibleForTesting
   public static Optional<JBasicType> unboxJClassType(JClassType pJClassType) {
-    return Optional.fromNullable(unboxingMap.getOrDefault(pJClassType.getName(), null));
+    return Optional.ofNullable(unboxingMap.getOrDefault(pJClassType.getName(), null));
   }
 
   private boolean isNumericCompatible(JBasicType pType) {

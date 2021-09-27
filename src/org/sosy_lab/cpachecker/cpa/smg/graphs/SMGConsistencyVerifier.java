@@ -15,6 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -75,7 +76,8 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that NULL object has no value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
+    SMGEdgeHasValueFilterByObject filter =
+        SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
 
     if (!pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
@@ -112,7 +114,7 @@ final class SMGConsistencyVerifier {
         continue;
       }
       // Verify that the HasValue edge set for this invalid object is empty
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj);
+      SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(obj);
 
       if (!pSmg.getHVEdges(filter).isEmpty()) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
@@ -136,7 +138,7 @@ final class SMGConsistencyVerifier {
       LogManager pLogger, SMGObject pObject, UnmodifiableSMG pSmg) {
 
     // For all fields in the object, verify that sizeof(type)+field_offset < object_size
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
     for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
       if ((hvEdge.getOffset() + hvEdge.getSizeInBits()) > pObject.getSize()) {

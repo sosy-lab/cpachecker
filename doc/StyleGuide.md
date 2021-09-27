@@ -212,6 +212,7 @@ Avoid the following classes:
 | Avoid                          | Replacement          | Why? |
 |--------------------------------|----------------------|------|
 | com.google.common.base.Objects | java.util.Objects    | only necessary for older Java |
+| com.google.common.base.Optional| java.util.Optional   | only necessary for older Java, mix of types is confusing |
 | java.io.**PrintStream**        | BufferedOutputStream | Swallows IOExceptions, but use for CPAchecker's statistics is ok |
 | java.io.**PrintWriter**        | BufferedWriter       | Swallows IOExceptions |
 | java.util.Hashtable            | HashMap              | old and deprecated |
@@ -219,3 +220,8 @@ Avoid the following classes:
 | java.util.Stack                | Deque                | old and deprecated |
 | java.util.Vector               | ArrayList            | old and deprecated |
 | org.junit.**Assert**           | Truth.assertThat     | much better failure messages |
+
+For Guava's Optional, usage that is hidden inside fluent method chains is ok
+(Example: `FluentIterable.from(...).first().orNull()`)
+but using it as a type (for declaring variables etc.) is not
+as it introduces confusion with Java's Optional.

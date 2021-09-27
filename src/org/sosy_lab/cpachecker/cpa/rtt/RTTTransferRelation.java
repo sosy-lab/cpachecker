@@ -161,12 +161,12 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       throws UnrecognizedCodeException {
 
     if (cfaEdge.getExpression().isPresent()) {
-      JExpression expression = cfaEdge.getExpression().get();
+      JExpression expression = cfaEdge.getExpression().orElseThrow();
 
       RTTState newState = RTTState.copyOf(state);
       // In Case Of Class Instance Creation, return unique Object
       final String value;
-      if (cfaEdge.getRawAST().get() instanceof JObjectReferenceReturn) {
+      if (cfaEdge.getReturnStatement() instanceof JObjectReferenceReturn) {
         value = state.getClassObjectScope();
       } else {
         value = getExpressionValue(state, expression, functionName, cfaEdge);
@@ -370,7 +370,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       String uniqueObject =
           returnEdge
               .getExpression()
-              .get()
+              .orElseThrow()
               .accept(new FunctionExitValueVisitor(returnEdge, newState, calledFunctionName));
       newState.assignThisAndNewObjectScope(uniqueObject);
 
