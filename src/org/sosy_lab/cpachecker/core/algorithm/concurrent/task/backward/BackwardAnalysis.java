@@ -137,14 +137,30 @@ public class BackwardAnalysis implements Task {
     reached.add(entryState, precision);
 
     logManager.log(Level.FINE, "Starting BackwardAnalysis on ", target);
-    AlgorithmStatus status = algorithm.run(reached);
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-    for (final AbstractState state : reached.asCollection()) {
-      processReachedState(state);
-    }
+    do {
+      AlgorithmStatus newStatus = algorithm.run(reached);
+      status = status.update(newStatus);
+
+      for (final AbstractState reachedState : reached.asCollection()) {
+        processReachedState(reachedState);
+      }
+
+      reached.clear();
+      for (final AbstractState waitingState : reached.getWaitlist()) {
+        CFANode location = AbstractStates.extractLocation(waitingState);
+        assert location != null;
+
+        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+      }
+
+      shutdownNotifier.shutdownIfNecessary();
+    } while (!reached.getWaitlist().isEmpty());
+
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on ", target);
-    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    return status;
   }
 
   private CompositeState buildEntryState() throws InterruptedException {
