@@ -15,10 +15,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisContinuationRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class TaskManager {
@@ -106,6 +110,19 @@ public class TaskManager {
     BackwardAnalysisRequest task =
         new BackwardAnalysisRequest(
             pBlock, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa, this);
+
+    executor.requestJob(task);
+  }
+
+  public void spawnBackwardAnalysisContinuation(
+      final Block pBlock,
+      final ReachedSet pReachedSet,
+      final Algorithm pAlgorithm,
+      final BlockAwareCompositeCPA pCPA)
+      throws InterruptedException, InvalidConfigurationException, CPAException {
+    BackwardAnalysisContinuationRequest task =
+        new BackwardAnalysisContinuationRequest(
+            pBlock,pReachedSet, pAlgorithm, pCPA, this, logManager, shutdownNotifier);
 
     executor.requestJob(task);
   }

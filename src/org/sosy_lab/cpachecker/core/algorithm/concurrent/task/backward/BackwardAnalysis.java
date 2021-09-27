@@ -151,27 +151,29 @@ public class BackwardAnalysis implements Task {
     logManager.log(Level.FINE, "Starting BackwardAnalysis on ", target);
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-    do {
-      AlgorithmStatus newStatus = algorithm.run(reached);
-      status = status.update(newStatus);
-      
-      for (final AbstractState reachedState : reached.asCollection()) {
-        processReachedState(reachedState);
+    AlgorithmStatus newStatus = algorithm.run(reached);
+    status = status.update(newStatus);
+    
+    for (final AbstractState reachedState : reached.asCollection()) {
+      processReachedState(reachedState);
+    }
+
+    Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());          
+    reached.clear();
+    for (final AbstractState waitingState : waiting) {
+      CFANode location = AbstractStates.extractLocation(waitingState);
+      assert location != null;
+
+      if(location != target.getEntry() || location.isLoopStart()) {
+        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition())); 
       }
+    }
 
-      Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());          
-      reached.clear();
-      for (final AbstractState waitingState : waiting) {
-        CFANode location = AbstractStates.extractLocation(waitingState);
-        assert location != null;
+    shutdownNotifier.shutdownIfNecessary();
 
-        if(location != target.getEntry() || location.isLoopStart()) {
-          reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition())); 
-        }
-      }
-
-      shutdownNotifier.shutdownIfNecessary();
-    } while (!reached.getWaitlist().isEmpty());
+    if (!reached.getWaitlist().isEmpty()) {
+      taskManager.spawnBackwardAnalysisContinuation(target, reached, algorithm, cpa);
+    }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on ", target);
     return status;
