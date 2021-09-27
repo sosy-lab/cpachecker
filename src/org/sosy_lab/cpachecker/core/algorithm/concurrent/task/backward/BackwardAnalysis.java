@@ -13,7 +13,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.makeName;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -94,14 +97,14 @@ public class BackwardAnalysis implements Task {
 
   private void processReachedState(final AbstractState state)
       throws InterruptedException, CPAException, InvalidConfigurationException {
-    LocationState location = AbstractStates.extractStateByType(state, LocationState.class);
+    LocationState location = extractStateByType(state, LocationState.class);
     assert location != null;
 
     CFANode node = location.getLocationNode();
 
     if (location.getLocationNode() == target.getEntry()) {
       PredicateAbstractState predState =
-          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+          extractStateByType(state, PredicateAbstractState.class);
       assert predState != null;
 
       PathFormula condition;
@@ -156,17 +159,19 @@ public class BackwardAnalysis implements Task {
         processReachedState(reachedState);
       }
 
+      Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());          
       reached.clear();
-      for (final AbstractState waitingState : reached.getWaitlist()) {
+      for (final AbstractState waitingState : waiting) {
         CFANode location = AbstractStates.extractLocation(waitingState);
         assert location != null;
 
-        reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+        if(location != target.getEntry() || location.isLoopStart()) {
+          reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition())); 
+        }
       }
 
       shutdownNotifier.shutdownIfNecessary();
     } while (!reached.getWaitlist().isEmpty());
-
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on ", target);
     return status;
@@ -212,7 +217,7 @@ public class BackwardAnalysis implements Task {
     }
 
     PredicateAbstractState rawPredicateState =
-        AbstractStates.extractStateByType(rawInitialState, PredicateAbstractState.class);
+        extractStateByType(rawInitialState, PredicateAbstractState.class);
     assert rawPredicateState != null;
 
     return rawPredicateState;

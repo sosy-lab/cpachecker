@@ -80,17 +80,17 @@ public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, Wrap
 
   @Override
   public StopOperator getStopOperator() {
-    CompositeStopOperator defaultStop = cpa.getStopOperator();
-    if (direction == AnalysisDirection.FORWARD) {
-      return defaultStop;
-    } else {
-      return new BlockEntryReachedStopOperator(defaultStop, block);
-    }
+    return cpa.getStopOperator();
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return cpa.getPrecisionAdjustment();
+    if (direction == AnalysisDirection.FORWARD) {
+      return cpa.getPrecisionAdjustment();
+    } else {
+      return new BreakOnBlockEntryPrecisionAdjustment(cpa.getPrecisionAdjustment(), block);
+    }
+    
   }
 
   @Override
