@@ -2019,7 +2019,7 @@ cpa.predicate.bitsize = 32
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
 
-# abstraction always and only on explicitly computed abstraction nodes.
+# abstraction always and only on explicitly computed abstraction nodes
 cpa.predicate.blk.alwaysAndOnlyAtExplicitNodes = false
 
 # force abstractions at each branch node, regardless of threshold
@@ -2029,7 +2029,7 @@ cpa.predicate.blk.alwaysAtBranch = false
 # in the body), regardless of threshold
 cpa.predicate.blk.alwaysAtEntryFunctionHead = false
 
-# abstraction always at explicitly computed abstraction nodes.
+# abstraction always at explicitly computed abstraction nodes
 cpa.predicate.blk.alwaysAtExplicitNodes = false
 
 # force abstractions at each function call (node before entering the body),

@@ -44,8 +44,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ForwardAnalysis implements Task {
@@ -57,7 +59,9 @@ public class ForwardAnalysis implements Task {
   private final ReachedSet reached;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
-  private final FormulaManagerView formulaManager;
+  private final Solver solver;
+  private final FormulaManagerView fMgr;
+  private final BooleanFormulaManagerView bfMgr;
   private final PathFormulaManager pfMgr;
   private final TaskManager taskManager;
   private final LogManager logManager;
@@ -78,17 +82,18 @@ public class ForwardAnalysis implements Task {
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
     assert predCPA != null;
 
-    Solver solver = predCPA.getSolver();
-    formulaManager = solver.getFormulaManager();
+    solver = predCPA.getSolver();
+    fMgr = solver.getFormulaManager();
+    bfMgr = fMgr.getBooleanFormulaManager();
     pfMgr = predCPA.getPathFormulaManager();
     
     target = pTarget;
-    oldSummary = pOldSummary == null ? null : pOldSummary.getFor(formulaManager, pfMgr);
-    newSummary = pNewSummary == null ? null : pNewSummary.getFor(formulaManager, pfMgr);
+    oldSummary = pOldSummary == null ? null : pOldSummary.getFor(fMgr, pfMgr);
+    newSummary = pNewSummary == null ? null : pNewSummary.getFor(fMgr, pfMgr);
     expectedVersion = pExpectedVersion;
     predecessorSummaries =
         pPredecessorSummaries.stream()
-            .map(formula -> formula.getFor(formulaManager, pfMgr))
+            .map(formula -> formula.getFor(fMgr, pfMgr))
             .collect(ImmutableList.toImmutableList());
 
     reached = pReachedSet;
@@ -146,12 +151,11 @@ public class ForwardAnalysis implements Task {
       return false;
     }
     
-    return false;
-    // Todo: Rework Checks
-    // BooleanFormula addedContext = pfMgr.and(oldSummary, bfMgr.not(newSummary));
-    // BooleanFormula relevantChange = bfMgr.implication(cumPredSummary, addedContext);
-
-    // return solver.isUnsat(relevantChange);
+    BooleanFormula addedContext 
+        = bfMgr.and(oldSummary.getFormula(), bfMgr.not(newSummary.getFormula()));
+    BooleanFormula relevantChange = bfMgr.implication(cumPredSummary.getFormula(), addedContext);
+    
+    return solver.isUnsat(relevantChange);
   }
 
   private PathFormula buildCumulativePredecessorSummary() throws InterruptedException {
@@ -184,11 +188,11 @@ public class ForwardAnalysis implements Task {
     if (oldSummary == null || newSummary == null) {
       return false;
     }
-    
-    return false; 
-    // Todo: Re-add check
-    // BooleanFormula equivalence = bfMgr.equivalence(newSummary, oldSummary);
-    // return !solver.isUnsat(equivalence);
+
+    BooleanFormula newRaw = newSummary.getFormula();
+    BooleanFormula oldRaw = oldSummary.getFormula();
+    BooleanFormula equivalence = bfMgr.equivalence(newRaw, oldRaw);
+    return !solver.isUnsat(equivalence);
   }
 
   private CompositeState buildEntryState(final PathFormula cumPredSummary)
@@ -253,7 +257,7 @@ public class ForwardAnalysis implements Task {
       
       Block successor = target.getExits().get(exit);
       final ShareableBooleanFormula shareableFormula =
-          new ShareableBooleanFormula(formulaManager, exitFormula);
+          new ShareableBooleanFormula(fMgr, exitFormula);
 
       taskManager.spawnForwardAnalysis(target, expectedVersion, successor, shareableFormula);
     }
