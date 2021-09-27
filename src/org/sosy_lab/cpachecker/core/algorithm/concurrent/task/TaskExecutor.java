@@ -66,7 +66,7 @@ public final class TaskExecutor implements Runnable {
    * Prepare a new {@link TaskExecutor}. Actual execution does not start until {@link #start()} gets
    * called.
    *
-   * @param pThreads Requested number of threads for job execution
+   * @param pThreads    Requested number of threads for job execution
    * @param pLogManager {@link LogManager} used for log messages
    */
   public TaskExecutor(final int pThreads, final LogManager pLogManager) {
@@ -83,7 +83,9 @@ public final class TaskExecutor implements Runnable {
     return "Job Executor";
   }
 
-  /** Request the {@link TaskExecutor} to start executing requested jobs. */
+  /**
+   * Request the {@link TaskExecutor} to start executing requested jobs.
+   */
   public void start() {
     executorThread.start();
     new Thread(watchdog, "Completion Watchdog").start();

@@ -130,15 +130,15 @@ public class ForwardAnalysisRequest implements TaskRequest {
 
     newSummary =
         (pNewSummary == null)
-            ? new ShareableBooleanFormula(formulaManager, bfMgr.makeTrue())
-            : pNewSummary;
+        ? new ShareableBooleanFormula(formulaManager, bfMgr.makeTrue())
+        : pNewSummary;
   }
 
   /**
    * Increment version count of the block summary for {@code pBlock}.<br>
    * Used by {@link #finalize(Table, Map)}.
    *
-   * @param pBlock The block for which to update the summary version
+   * @param pBlock    The block for which to update the summary version
    * @param pVersions The global map of summary versions
    * @return The new summary version
    * @see #finalize(Table, Map)
@@ -265,9 +265,9 @@ public class ForwardAnalysisRequest implements TaskRequest {
    * Used by {@link #finalize(Table, Map)}.
    *
    * @param predSummaries The global map of block summaries
-   * @param versions The global map of block summary versions
+   * @param versions      The global map of block summary versions
    * @throws TaskInvalidatedException The task for which {@link #finalize(Table, Map)} called this
-   *     method has been invalidated (see documentation for {@link #finalize(Table, Map)}).
+   *                                  method has been invalidated (see documentation for {@link #finalize(Table, Map)}).
    * @see #finalize(Table, Map)
    */
   private void publishPredSummary(
@@ -275,8 +275,8 @@ public class ForwardAnalysisRequest implements TaskRequest {
       throws TaskInvalidatedException {
     assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
         : "Only the central thread "
-            + TaskExecutor.getThreadName()
-            + " may call publishPredSummary()";
+        + TaskExecutor.getThreadName()
+        + " may call publishPredSummary()";
 
     if (predecessor == null) {
       return;
