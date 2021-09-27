@@ -14,9 +14,11 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
 
@@ -57,6 +60,7 @@ public final class TaskExecutor implements Runnable {
 
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
   private final Map<Block, Integer> summaryVersion = Maps.newHashMap();
+  private final Set<CFANode> alreadyPropagated = new HashSet<>();
 
   /**
    * Prepare a new {@link TaskExecutor}. Actual execution does not start until {@link #start()} gets
@@ -124,7 +128,7 @@ public final class TaskExecutor implements Runnable {
     while (jobsPending.get() || !requestedJobs.isEmpty()) {
       try {
         TaskRequest job = requestedJobs.take();
-        Task task = job.finalize(summaries, summaryVersion);
+        Task task = job.finalize(summaries, summaryVersion, alreadyPropagated);
         Future<AlgorithmStatus> future = executor.submit(task);
         watchdog.await(future);
 

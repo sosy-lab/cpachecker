@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -25,6 +26,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
@@ -178,10 +180,8 @@ public class ForwardAnalysisRequest implements TaskRequest {
   }
 
   /**
-   * {@link #finalize(Table, Map)} executes in the context of the central scheduler thread and
-   * operates with exclusive and thread-safe access on the global maps of calculated block summaries
-   * and summary version counters. Each task type overwrites this method to implement global
-   * synchronization using these structures.
+   * {@inheritDoc}
+   * <hr/>
    *
    * <p>For {@link ForwardAnalysisRequest}, this method performs the following steps:
    *
@@ -192,24 +192,25 @@ public class ForwardAnalysisRequest implements TaskRequest {
    *       <em>b0</em> belongs to the set of predecessors of <em>b1</em>. This other analysis
    *       <em>t0</em> usually identified a new block summary <em>Q0</em> for <em>b0</em>. Because
    *       the tasks themselves don't gain access to the global synchronization structures, {@link
-   *       #finalize(Table, Map)} running for <em>t1</em> offers the first opportunity after the
-   *       completion of <em>t0</em> to access the global map of calculated summaries and publish
-   *       <em>Q0</em> to it. Before doing so, {@link #finalize(Table, Map)} running for <em>t1</em>
-   *       first checks the expected version of the summary for <em>b0</em> against the value found
-   *       in the global map of version counters. At the time the {@link ForwardAnalysisRequest}
-   *       <em>t1</em> got created by <em>t0</em>, <em>t0</em> provided <em>t1</em> with the version
-   *       applicable when <em>t0</em> was scheduled. If {@link #finalize(Table, Map)} for
-   *       <em>t1</em> still encounters the same version in the global map, the updated summary
-   *       <em>Q0</em> found by <em>t0</em> remains valid and must be published. If the version has
-   *       been increment further in the meantime, the calculation of a newer version for the block
-   *       summary of <em>b0</em> has been scheduled with a {@link ForwardAnalysisRequest}
-   *       <em>t2</em>. Furthermore, <em>t2</em> might even already have completed, and its result
-   *       might have been published to the global map of block summaries. In this case, {@link
-   *       #finalize(Table, Map)} for <em>t1</em> must not overwrite this value with its now
-   *       outdated version of <em>Q0</em>. Such task <em>t2</em> would also already have created a
-   *       new {@link ForwardAnalysisRequest} on <em>b1</em>, which makes the present task
-   *       <em>t1</em> redundant. In this case, the method throws a {@link TaskInvalidatedException}
-   *       and the {@link ForwardAnalysisRequest} shall be discarded.
+   *       #finalize(Table, Map, Table)} running for <em>t1</em> offers the first opportunity after
+   *       the completion of <em>t0</em> to access the global map of calculated summaries and
+   *       publish <em>Q0</em> to it. Before doing so, {@link #finalize(Table, Map, Table)} running
+   *       for <em>t1</em> first checks the expected version of the summary for <em>b0</em> against
+   *       the value found in the global map of version counters. At the time the
+   *       {@link ForwardAnalysisRequest} <em>t1</em> got created by <em>t0</em>, <em>t0</em>
+   *       provided <em>t1</em> with the version applicable when <em>t0</em> was scheduled. If
+   *       {@link #finalize(Table, Map, Table)} for <em>t1</em> still encounters the same version in
+   *       the global map, the updated summary <em>Q0</em> found by <em>t0</em> remains valid and
+   *       must be published. If the version has been increment further in the meantime, the
+   *       calculation of a newer version for the block summary of <em>b0</em> has been scheduled
+   *       with a {@link ForwardAnalysisRequest} <em>t2</em>. Furthermore, <em>t2</em> might even
+   *       already have completed, and its result might have been published to the global map of
+   *       block summaries. In this case, {@link #finalize(Table, Map, Table)} for <em>t1</em> must
+   *       not overwrite this value with its now outdated version of <em>Q0</em>. Such task
+   *       <em>t2</em> would also already have created a new {@link ForwardAnalysisRequest} on
+   *       <em>b1</em>, which makes the present task <em>t1</em> redundant. In this case, the method
+   *       throws a {@link TaskInvalidatedException} and the {@link ForwardAnalysisRequest} shall be
+   *       discarded.
    *   <li>Store the old predecessor summary whose update triggered the creation of the present
    *       task. As soon as the task actually executes, it uses the old value to check whether new
    *       and old formula actually differ. If they do not, it completes early and performs no new
@@ -221,17 +222,16 @@ public class ForwardAnalysisRequest implements TaskRequest {
    *       predecessor summary.
    * </ol>
    *
-   * @param pSummaries Global map of block summaries
-   * @param pSummaryVersions Global map of block summary versions
    * @return The immutable {@link ForwardAnalysis} which actually implements the {@link Task}.
-   * @see ForwardAnalysis
    * @throws TaskInvalidatedException The {@link ForwardAnalysisRequest} has become invalidated by a
-   *     more recent one and the {@link ForwardAnalysis} must not execute.
+   *                                  more recent one and the {@link ForwardAnalysis} must not execute.
+   * @see ForwardAnalysis
    */
   @Override
   public Task finalize(
       final Table<Block, Block, ShareableBooleanFormula> pSummaries,
-      final Map<Block, Integer> pSummaryVersions)
+      final Map<Block, Integer> pSummaryVersions,
+      final Set<CFANode> pAlreadyPropagated)
       throws TaskInvalidatedException {
     assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
         : "Only " + TaskExecutor.getThreadName() + " may call finalize()";

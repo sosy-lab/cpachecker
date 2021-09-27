@@ -12,6 +12,7 @@ import com.google.common.collect.Table;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -161,30 +162,35 @@ public class BackwardAnalysisRequest implements TaskRequest {
   }
 
   /**
-   * {@link #finalize(Table, Map)} executes in the context of the central scheduler thread and
-   * operates with exclusive and thread-safe access on the global map of calculated block summaries
-   * and summary version counters. Each task type overwrites this method to implement global
-   * synchronization using these structures.
-   *
+   * {@inheritDoc}
+   * <hr/>
    * <p>For {@link BackwardAnalysisRequest}, this method obtains and stores the block summary for
    * the inter-block edge along which the error condition enters the target block. As soon as the
    * task then actually executes, it first checks whether the conjunction of this summary and the
    * error condition is satisfiable. If this is not the case, the condition need not propagate
    * further and the {@link BackwardAnalysis} terminates early.
    *
-   * @param pSummaries Global map of block summaries
-   * @param pSummaryVersions Global map of block summary versions
    * @return The immutable {@link BackwardAnalysis} which actually implements the {@link Task}.
-   * @see BackwardAnalysis
    * @throws TaskInvalidatedException The {@link BackwardAnalysisRequest} has become invalidated by
-   *     a more recent one and the {@link BackwardAnalysis} must not execute.
+   *                                  a more recent one and the {@link BackwardAnalysis} must not
+   *                                  execute.
+   * @see BackwardAnalysis
    */
   @Override
   public Task finalize(
-      Table<Block, Block, ShareableBooleanFormula> pSummaries, Map<Block, Integer> pSummaryVersions)
+      Table<Block, Block, ShareableBooleanFormula> pSummaries, Map<Block, Integer> pSummaryVersions,
+      Set<CFANode> pAlreadyPropagated)
       throws TaskInvalidatedException {
     assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
         : "Only " + TaskExecutor.getThreadName() + " may call finalize() on task";
+
+    if (source == null) {
+      if (pAlreadyPropagated.contains(start)) {
+        throw new TaskInvalidatedException();
+      } else {
+        pAlreadyPropagated.add(start);
+      }
+    }
 
     ShareableBooleanFormula blockSummary = null;
     if (source != null) {
