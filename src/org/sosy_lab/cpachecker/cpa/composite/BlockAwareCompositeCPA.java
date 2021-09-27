@@ -37,13 +37,16 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix = "cpa.predicate")
+@Options
 public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, WrapperCPA {
   private final Block block;
   private final CompositeCPA cpa;
 
   @SuppressWarnings("FieldMayBeFinal")
-  @Option(secure = true, description = "Direction of the analysis?")
+  @Option(
+      secure = true,
+      name = "cpa.predicate.direction",
+      description = "Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
   private BlockAwareCompositeCPA(
