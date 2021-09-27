@@ -362,7 +362,7 @@ public class ValueAnalysisTransferRelation
       String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName);
+      MemoryLocation formalParamName = MemoryLocation.forLocalVariable(calledFunctionName, paramName);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -418,7 +418,7 @@ public class ValueAnalysisTransferRelation
     MemoryLocation functionReturnVar = null;
 
     if (optionalReturnVarDeclaration.isPresent()) {
-      functionReturnVar = MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
+      functionReturnVar = MemoryLocation.forDeclaration(optionalReturnVarDeclaration.get());
     }
 
     if (expression != null && functionReturnVar != null) {
@@ -449,7 +449,7 @@ public class ValueAnalysisTransferRelation
         functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
     if (returnVarName.isPresent()) {
-      functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
+      functionReturnVar = MemoryLocation.forDeclaration(returnVarName.get());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -503,8 +503,8 @@ public class ValueAnalysisTransferRelation
             notScopedField = (JIdExpression)op1;
             notScopedFieldValue = newValue;
           } else {
-            String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
-            memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
+            memLoc =
+                Optional.of(MemoryLocation.forDeclaration(((AIdExpression) op1).getDeclaration()));
           }
 
         } else if (op1 instanceof APointerExpression) {
@@ -734,9 +734,9 @@ public class ValueAnalysisTransferRelation
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.valueOf(varName);
+      memoryLocation = MemoryLocation.forIdentifier(varName);
     } else {
-      memoryLocation = MemoryLocation.valueOf(functionName, varName);
+      memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }
 
     if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
@@ -758,7 +758,7 @@ public class ValueAnalysisTransferRelation
         fieldNameAndInitialValue = Pair.of(varName, initialValue);
 
       } else if (missingInformationRightJExpression != null) {
-        missingInformationLeftJVariable = memoryLocation.getAsSimpleString();
+        missingInformationLeftJVariable = memoryLocation.getExtendedQualifiedName();
       }
     } else {
       // If variable not tracked, its Object is irrelevant
@@ -1011,9 +1011,9 @@ public class ValueAnalysisTransferRelation
     String varName = pIdExpression.getName();
 
     if (isGlobal(pIdExpression)) {
-      return MemoryLocation.valueOf(varName);
+      return MemoryLocation.parseExtendedQualifiedName(varName);
     } else {
-      return MemoryLocation.valueOf(functionName, varName);
+      return MemoryLocation.forLocalVariable(functionName, varName);
     }
   }
 
@@ -1077,7 +1077,7 @@ public class ValueAnalysisTransferRelation
       } else {
         missingInformationRightJExpression = (JRightHandSide) exp;
         if (!missingScopedFieldName) {
-          missingInformationLeftJVariable = assignedVar.getAsSimpleString();
+          missingInformationLeftJVariable = assignedVar.getExtendedQualifiedName();
         }
       }
     }
@@ -1128,15 +1128,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
-
-    long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
-
-    if (pStruct.isOnFunctionStack()) {
-      return MemoryLocation.valueOf(
-          pStruct.getFunctionName(), pStruct.getIdentifier(), baseOffset + pOffset);
-    } else {
-      return MemoryLocation.valueOf(pStruct.getIdentifier(), baseOffset + pOffset);
-    }
+    return pStruct.withAddedOffset(pOffset);
   }
 
   private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {
@@ -1168,7 +1160,7 @@ public class ValueAnalysisTransferRelation
       JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
 
       if (arrayDeclaration != null) {
-        MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
+        MemoryLocation idName = MemoryLocation.forDeclaration(arrayDeclaration);
 
         if (state.contains(idName)) {
           Value idValue = state.getValueFor(idName);
@@ -1267,7 +1259,7 @@ public class ValueAnalysisTransferRelation
     @Override
     public Value visit(JIdExpression idExp) {
 
-      MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
+      MemoryLocation varName = MemoryLocation.fromQualifiedName(handleIdExpression(idExp));
 
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);
@@ -1500,7 +1492,7 @@ public class ValueAnalysisTransferRelation
     Value value = pValue;
     MemoryLocation target = null;
     if (pLeftHandVariable != null) {
-      target = MemoryLocation.valueOf(pLeftHandVariable);
+      target = MemoryLocation.parseExtendedQualifiedName(pLeftHandVariable);
     }
     Type type = pTargetType;
     boolean shouldAssign = false;
@@ -1681,7 +1673,7 @@ public class ValueAnalysisTransferRelation
         return Collections.singleton(newElement);
       } else {
         if (missingInformationLeftJVariable != null) {
-          newElement.forget(MemoryLocation.valueOf(missingInformationLeftJVariable));
+          newElement.forget(MemoryLocation.parseExtendedQualifiedName(missingInformationLeftJVariable));
         }
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
@@ -1718,7 +1710,7 @@ public class ValueAnalysisTransferRelation
        newElement.assignConstant(scopedFieldName, value);
        return newElement;
      } else {
-       newElement.forget(MemoryLocation.valueOf(scopedFieldName));
+       newElement.forget(MemoryLocation.parseExtendedQualifiedName(scopedFieldName));
        return newElement;
      }
    } else {

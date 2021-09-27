@@ -20,7 +20,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
 public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
 
@@ -112,12 +112,12 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   }
 
   @Override
-  public boolean hasViolatedProperties() {
-    return delegate.hasViolatedProperties();
+  public boolean wasTargetReached() {
+    return delegate.wasTargetReached();
   }
 
   @Override
-  public Collection<Property> getViolatedProperties() {
-    return delegate.getViolatedProperties();
+  public Collection<TargetInformation> getTargetInformation() {
+    return delegate.getTargetInformation();
   }
 }

@@ -42,7 +42,7 @@ public class UnrolledReachedSet {
 
   public UnrolledReachedSet(
       Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCPA,
+      ConfigurableProgramAnalysis pCPA, // TODO get it from ReachedSet instead?
       Set<CFANode> pLoopHeads,
       ReachedSet pReachedSet,
       EnsureK pEnsureK) {

@@ -107,9 +107,9 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
           inputSMG2 = joinValues.getInputSMG2();
           destSMG = joinValues.getDestinationSMG();
           value = joinValues.getValue();
-          // add new edge to resulting SMG Step 3.5
-          SMGHasValueEdge newHVEdge =
-              new SMGHasValueEdge(joinValues.getValue(), edge1.getSizeInBits(), edge1.getOffset());
+      // add new edge to resulting SMG Step 3.5
+      SMGHasValueEdge newHVEdge =
+          new SMGHasValueEdge(joinValues.getValue(), edge1.getOffset(), edge1.getSizeInBits());
 
           destSMG = destSMG.copyAndAddHVEdge(newHVEdge, pNewObject);
         }

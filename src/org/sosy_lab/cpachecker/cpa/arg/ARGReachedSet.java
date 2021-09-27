@@ -521,26 +521,11 @@ public class ARGReachedSet {
   }
 
   /**
-   * This method should only be used with great caution! It removes all pending
-   * states from the waitlist, and therefore effectively prevents the analysis
-   * from continuing.
-   *
-   * Depending on the states contained in the reached set this can lead to unsound
-   * behaviour (e.g. no state in waitlist anymore, but an existing error was not found)
-   */
-  public void clearWaitlist() {
-    while (mReached.hasWaitingState()) {
-      mReached.popFromWaitlist();
-    }
-  }
-
-  /**
    * This method adds a state to the reached after splitting, but removes it from the waitlist.
    * The precision is taken from the original state. Only call this method if you are sure that
    * the state does not represent unreached concrete states, otherwise it will be unsound.
    */
   public void addForkedState(ARGState forkedState, ARGState originalState) {
-    mReached.add(forkedState, mReached.getPrecision(originalState));
-    mReached.removeOnlyFromWaitlist(forkedState);
+    mReached.addNoWaitlist(forkedState, mReached.getPrecision(originalState));
   }
 }

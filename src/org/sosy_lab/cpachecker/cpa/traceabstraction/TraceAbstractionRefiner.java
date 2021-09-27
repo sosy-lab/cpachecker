@@ -14,11 +14,10 @@ import static com.google.common.base.Verify.verifyNotNull;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Streams;
 import com.google.common.collect.UnmodifiableIterator;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -77,7 +76,7 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
   private final BooleanFormulaManagerView bFMgrView;
   private final PathFormulaManager pfmgr;
   private final PredicateAbstractionManager predAbsManager;
-  private final TraceAbstractionPredicatesStorage predicateStorage;
+  private final InterpolationSequenceStorage itpSequenceStorage;
 
   @SuppressWarnings("resource")
   private TraceAbstractionRefiner(
@@ -95,7 +94,7 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
     // given ARGPath and b) new predicates are stored in a (TraceAbstraction-)state
     // instead of the PredicatePrecision.
 
-    predicateStorage = pTaCpa.getPredicatesStorage();
+    itpSequenceStorage = pTaCpa.getInterpolationSequenceStorage();
 
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -194,8 +193,7 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
     Iterator<BooleanFormula> itpIterator = interpolants.iterator();
 
     ARGState previousState = null;
-    Multimap<String, AbstractionPredicate> functionPredicates =
-        MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
+    InterpolationSequence.Builder itpSequenceBuilder = new InterpolationSequence.Builder();
 
     while (stateIterator.hasNext() && itpIterator.hasNext()) {
       ARGState curState = stateIterator.next();
@@ -208,16 +206,26 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
       if (!bFMgrView.isTrue(curInterpolant)) {
         verifyNotNull(previousState);
         ImmutableSet<AbstractionPredicate> preds =
-            predAbsManager.getPredicatesForAtomsOf(curInterpolant);
+            // predAbsManager.getPredicatesForAtomsOf(curInterpolant);
+            ImmutableSet.of(predAbsManager.getPredicateFor(curInterpolant));
+        if (preds.size() > 1) {
+          Comparator<AbstractionPredicate> comparator =
+              (pred1, pred2) ->
+                  pred1
+                      .getSymbolicVariable()
+                      .toString()
+                      .compareTo(pred2.getSymbolicVariable().toString());
+          preds = preds.stream().sorted(comparator).collect(ImmutableSet.toImmutableSet());
+        }
         String functionName = AbstractStates.extractLocation(previousState).getFunctionName();
 
-        functionPredicates.putAll(functionName, preds);
+        itpSequenceBuilder.addFunctionPredicates(functionName, preds);
       }
 
       previousState = curState;
     }
 
-    predicateStorage.addFunctionPredicates(functionPredicates);
+    itpSequenceStorage.addItpSequence(itpSequenceBuilder.build());
 
     // Search the first ARG state in which the corresponding interpolant is no longer equal to
     // 'true'. This marks the root state that is taken for the refinement.
@@ -231,7 +239,10 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
     shutdownNotifier.shutdownIfNecessary();
     argUpdateTime.start();
     for (ARGState refinementRoot : ImmutableList.copyOf(originalState.getChildren())) {
-      pReached.removeSubtree(refinementRoot);
+      if (!refinementRoot.isDestroyed()) {
+        // This ARGState might have already been destroyed in a former iteration of this loop
+        pReached.removeSubtree(refinementRoot);
+      }
     }
     argUpdateTime.stop();
 

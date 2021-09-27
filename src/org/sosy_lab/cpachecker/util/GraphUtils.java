@@ -13,6 +13,8 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -30,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
@@ -113,10 +114,8 @@ public class GraphUtils {
   public static List<List<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, ReachedSet pReached) {
     Set<ARGState> filteredStates =
-        pReached.stream()
-            .map(x -> (ARGState) x)
-            .filter(x -> !pStates.contains(x))
-            .collect(Collectors.toCollection(HashSet::new));
+        new HashSet<>(Collections2.transform(pReached.asCollection(), s -> (ARGState) s));
+    filteredStates.removeAll(pStates);
     return retrieveSimpleCycles(pStates, filteredStates);
   }
 
@@ -138,7 +137,7 @@ public class GraphUtils {
   public static List<List<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, Set<ARGState> pExcludeStates) {
     Set<ARGState> blockedSet = new HashSet<>();
-    Map<ARGState, Set<ARGState>> blockedMap = new HashMap<>();
+    SetMultimap<ARGState, ARGState> blockedMap = HashMultimap.create();
     Deque<ARGState> stack = new ArrayDeque<>();
     List<List<ARGState>> allCycles = new ArrayList<>();
 
@@ -186,7 +185,7 @@ public class GraphUtils {
       ARGState pStartState,
       ARGState pCurrentState,
       Set<ARGState> pBlockedSet,
-      Map<ARGState, Set<ARGState>> pBlockedMap,
+      SetMultimap<ARGState, ARGState> pBlockedMap,
       Deque<ARGState> pStack,
       List<List<ARGState>> pAllCycles,
       Set<ARGState> pExcludeSet) {
@@ -224,8 +223,7 @@ public class GraphUtils {
       unblock(pCurrentState, pBlockedSet, pBlockedMap);
     } else {
       for (ARGState s : pCurrentState.getChildren()) {
-        Set<ARGState> blockedSet = pBlockedMap.computeIfAbsent(s, (key) -> new HashSet<>());
-        blockedSet.add(pCurrentState);
+        pBlockedMap.put(s, pCurrentState);
       }
     }
     pStack.pop();
@@ -234,18 +232,18 @@ public class GraphUtils {
   }
 
   private static void unblock(
-      ARGState pCurrentState, Set<ARGState> pBlockedSet, Map<ARGState, Set<ARGState>> pBlockedMap) {
+      ARGState pCurrentState,
+      Set<ARGState> pBlockedSet,
+      SetMultimap<ARGState, ARGState> pBlockedMap) {
     pBlockedSet.remove(pCurrentState);
-    if (pBlockedMap.get(pCurrentState) != null) {
-      pBlockedMap
-          .get(pCurrentState)
-          .forEach(
-              state -> {
-                if (pBlockedSet.contains(state)) {
-                  unblock(state, pBlockedSet, pBlockedMap);
-                }
-              });
-    }
+    pBlockedMap
+        .get(pCurrentState)
+        .forEach(
+            state -> {
+              if (pBlockedSet.contains(state)) {
+                unblock(state, pBlockedSet, pBlockedMap);
+              }
+            });
   }
 
   /**

@@ -283,7 +283,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     case MULTIPLY:
       case DIVIDE:
         MemoryLocation tempVarName =
-            MemoryLocation.valueOf(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+            MemoryLocation.forLocalVariable(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         COctagonCoefficientVisitor coeffVisitor =
             new COctagonCoefficientVisitor(pState, functionName);
@@ -449,7 +449,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
-          MemoryLocation.valueOf(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+          MemoryLocation.forLocalVariable(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
       List<OctagonState> tmpList = new ArrayList<>();
       for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsLeft) {
@@ -621,7 +621,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       Set<Pair<IOctagonCoefficients, OctagonState>> coeffsLeft = left.accept(coeffVisitor);
 
       MemoryLocation tempLeft =
-          MemoryLocation.valueOf(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
+          MemoryLocation.forLocalVariable(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
       temporaryVariableCounter++;
       Set<OctagonState> tmpSet = new HashSet<>();
       for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsLeft) {
@@ -648,7 +648,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
       // create the temp var name for the right side of the expression before the loop
       // so we have the same name everywhere for the variable
-      MemoryLocation tempRight = MemoryLocation.valueOf(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
+      MemoryLocation tempRight = MemoryLocation.forLocalVariable(functionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
       temporaryVariableCounter++;
       Set<OctagonState> tmpSet = new HashSet<>();
 
@@ -794,7 +794,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         && !(returnType instanceof CVoidType)) {
       state =
           state.declareVariable(
-              MemoryLocation.valueOf(
+              MemoryLocation.forLocalVariable(
                   calledFunctionName,
                   functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
@@ -809,7 +809,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
         continue;
       }
 
-      MemoryLocation nameOfParam = MemoryLocation.valueOf(calledFunctionName, paramNames.get(i));
+      MemoryLocation nameOfParam = MemoryLocation.forLocalVariable(calledFunctionName, paramNames.get(i));
       CType typeOfParam = parameters.get(i).getType();
 
       if (!precision.isTracking(nameOfParam, typeOfParam, functionEntryNode)
@@ -867,7 +867,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
       int returnVarIndex =
           state.getVariableIndexFor(
-              MemoryLocation.valueOf(
+              MemoryLocation.forLocalVariable(
                   calledFunctionName,
                   fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
 
@@ -898,19 +898,12 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       CVariableDeclaration declaration = (CVariableDeclaration) decl;
 
       // get the variable name in the declarator
-      MemoryLocation variableName;
+      MemoryLocation variableName = MemoryLocation.forDeclaration(declaration);
 
       // TODO check other types of variables later - just handle primitive
       // types for the moment
       // don't add pointeror struct variables to the list since we don't track them
       if (!isHandleAbleType(declaration.getType())) { return Collections.singleton(state); }
-
-      // make the fullyqualifiedname
-      if (!decl.isGlobal()) {
-        variableName = MemoryLocation.valueOf(functionName, declaration.getName());
-      } else {
-        variableName = MemoryLocation.valueOf(declaration.getName());
-      }
 
       if (!precision.isTracking(variableName, declaration.getType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state);
@@ -1038,9 +1031,9 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     }
 
     if (!isGlobal(left)) {
-      return MemoryLocation.valueOf(pFunctionName, variableName);
+      return MemoryLocation.forLocalVariable(pFunctionName, variableName);
     } else {
-      return MemoryLocation.valueOf(variableName);
+      return MemoryLocation.forIdentifier(variableName);
     }
 
   }
@@ -1059,7 +1052,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     }
 
     MemoryLocation tempVarName =
-        MemoryLocation.valueOf(
+        MemoryLocation.forLocalVariable(
             cfaEdge.getPredecessor().getFunctionName(),
             ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide()).getName());
 
@@ -1160,7 +1153,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case NOT_EQUALS: {
         Set<Pair<IOctagonCoefficients, OctagonState>> returnCoefficients = new HashSet<>();
             MemoryLocation tempVarLeft =
-                MemoryLocation.valueOf(
+                MemoryLocation.forLocalVariable(
                     visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_");
         temporaryVariableCounter++;
         BinaryOperator binOp = e.getOperator();
@@ -1282,7 +1275,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
               if (leftCoeffs.hasOnlyOneValue() || rightCoeffs.hasOnlyOneValue()) {
                     returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), rightVisitorState));
               } else {
-                MemoryLocation tempVarLeft = MemoryLocation.valueOf(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
+                MemoryLocation tempVarLeft = MemoryLocation.forLocalVariable(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
                 temporaryVariableCounter++;
                     rightVisitorState =
                         rightVisitorState.declareVariable(
@@ -1311,7 +1304,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
               if (rightCoeffs.hasOnlyOneValue()) {
                     returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), rightVisitorState));
               } else {
-                MemoryLocation tempVarRight = MemoryLocation.valueOf(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
+                MemoryLocation tempVarRight = MemoryLocation.forLocalVariable(visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
                 temporaryVariableCounter++;
                     rightVisitorState =
                         rightVisitorState.declareVariable(

@@ -70,13 +70,15 @@ public class PathExtractor implements Statistics {
   }
 
   /**
-   * This method returns an unsorted, non-empty collection of target states
-   * found during the analysis.
+   * This method returns an unsorted, non-empty collection of target states found during the
+   * analysis.
    *
    * @param pReached the set of reached states
    * @return the target states
+   * @throws InterruptedException as usual
    */
-  public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
+  public Collection<ARGState> getTargetStates(final ARGReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
 
     // extract target locations from and exclude those found to be feasible before,
     // e.g., when analysis.stopAfterError is set to false

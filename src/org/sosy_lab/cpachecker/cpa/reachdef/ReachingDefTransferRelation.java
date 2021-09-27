@@ -298,7 +298,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ImmutableSet<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
     return Collections3.transformedImmutableSetCopy(
-        pNode.getFunctionParameters(), x -> MemoryLocation.valueOf(x.getQualifiedName()));
+        pNode.getFunctionParameters(), x -> MemoryLocation.forDeclaration(x));
   }
 
   private ReachingDefState handleReturnStatement(
@@ -399,7 +399,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       CVariableDeclaration dec = (CVariableDeclaration) edge.getDeclaration();
       // If there is no initialization at the declaration,
       // we still keep the declaration as a non-deterministic, first definition.
-      MemoryLocation var = MemoryLocation.valueOf(dec.getQualifiedName());
+      MemoryLocation var = MemoryLocation.forDeclaration(dec);
       if (dec.isGlobal()) {
         return pState.addGlobalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
       } else {

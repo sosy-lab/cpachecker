@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -74,9 +75,18 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ProofSlicer {
+
+  private final ReachedSetFactory reachedSetFactory;
+
   private int numNotCovered;
 
-  public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
+  public ProofSlicer(LogManager pLogger) throws InvalidConfigurationException {
+    // TODO: Really always a standard reached set instead of user-specified configuration?
+    reachedSetFactory = new ReachedSetFactory(Configuration.defaultConfiguration(), pLogger);
+  }
+
+  public UnmodifiableReachedSet sliceProof(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa) {
     AbstractState first = pReached.getFirstState();
     if (first instanceof ARGState
         && AbstractStates.extractLocation(first) != null
@@ -90,8 +100,7 @@ public class ProofSlicer {
       computeRelevantVariablesPerState((ARGState) first, varMap);
 
       assert (numNotCovered == pReached.size());
-      return buildSlicedARG(varMap, pReached);
-
+      return buildSlicedARG(varMap, pReached, pCpa);
     }
 
     return pReached;
@@ -419,7 +428,9 @@ public class ProofSlicer {
   }
 
   private UnmodifiableReachedSet buildSlicedARG(
-      final Map<ARGState, Set<String>> pVarMap, final UnmodifiableReachedSet pReached) {
+      final Map<ARGState, Set<String>> pVarMap,
+      final UnmodifiableReachedSet pReached,
+      final ConfigurableProgramAnalysis pCpa) {
     Map<ARGState, ARGState> oldToSliced = Maps.newHashMapWithExpectedSize(pVarMap.size());
     ARGState root = (ARGState) pReached.getFirstState();
     assert (pVarMap.containsKey(root));
@@ -437,22 +448,14 @@ public class ProofSlicer {
       }
     }
 
-    ReachedSet returnReached;
-    try {
-      returnReached =
-          new ReachedSetFactory(
-                  Configuration.defaultConfiguration(), LogManager.createNullLogManager())
-              .create();
-      // add root
-      returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
-      // add remaining elements
-      for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-        if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
-          returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
-        }
+    ReachedSet returnReached = reachedSetFactory.create(pCpa);
+    // add root
+    returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
+    // add remaining elements
+    for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
+      if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
+        returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
       }
-    } catch (InvalidConfigurationException e) {
-      return pReached;
     }
     return returnReached;
   }

@@ -10,64 +10,59 @@ package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
-import java.io.Serializable;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-public class TraceAbstractionState implements AbstractState, Graphable, Serializable {
+class TraceAbstractionState extends AbstractSingleWrapperState implements Graphable {
 
-  private static final long serialVersionUID = -3454798281550882095L;
-
-  static TraceAbstractionState createInitState() {
-    return new TraceAbstractionState(ImmutableSet.of());
-  }
-
-  /** These are the predicates that hold in this state */
-  private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
-
-  private TraceAbstractionState(Multimap<String, AbstractionPredicate> pFunctionPredicates) {
-    this(pFunctionPredicates.entries());
-  }
-
-  private TraceAbstractionState(
-      Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates) {
-    // TODO: code is duplicated from PredicatePrecision; this needs to be refactored accordingly
-    Multimap<String, AbstractionPredicate> predMap =
-        MultimapBuilder.treeKeys().arrayListValues().build();
-    for (Map.Entry<String, AbstractionPredicate> entry : pFunctionPredicates) {
-      predMap.put(entry.getKey(), entry.getValue());
-    }
-    functionPredicates = ImmutableSetMultimap.copyOf(predMap);
-  }
-
-  ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
-    return functionPredicates;
+  /** Create a new 'TOP'-state with empty predicates. */
+  static TraceAbstractionState createInitState(AbstractState pAbstractState) {
+    return new TraceAbstractionState(pAbstractState, ImmutableMap.of());
   }
 
   /**
-   * Creates a new TraceAbstractionState that contains the union of predicates that already hold in
-   * this state as well as the newly given predicates.
+   * This map links {@link InterpolationSequence}-objects to predicates that currently hold in this
+   * state. Only entries with non-trivial predicates are contained (i.e., other than true and
+   * false).
    */
-  public TraceAbstractionState unionOf(
-      Iterable<Map.Entry<String, AbstractionPredicate>> newPredicates) {
-    if (Iterables.isEmpty(newPredicates)) {
+  private final ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> activePredicates;
+
+  TraceAbstractionState(
+      AbstractState pWrappedState,
+      Map<InterpolationSequence, IndexedAbstractionPredicate> pActivePredicates) {
+    super(pWrappedState);
+    activePredicates = ImmutableMap.copyOf(pActivePredicates);
+  }
+
+  boolean containsPredicates() {
+    return !activePredicates.isEmpty();
+  }
+
+  ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> getActivePredicates() {
+    return activePredicates;
+  }
+
+  TraceAbstractionState withWrappedState(AbstractState pWrappedState) {
+    if (pWrappedState == getWrappedState()) {
       return this;
     }
-    return new TraceAbstractionState(
-        Iterables.concat(getFunctionPredicates().entries(), newPredicates));
+    return new TraceAbstractionState(pWrappedState, getActivePredicates());
+  }
+
+  boolean isLessOrEqual(TraceAbstractionState pOther) {
+    // TODO: For now the states are only checked for equality.
+    // 'activePredicates' might need to be additionally checked for a lesser-relation.
+    return this.equals(pOther);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functionPredicates);
+    return Objects.hash(activePredicates);
   }
 
   @Override
@@ -79,35 +74,44 @@ public class TraceAbstractionState implements AbstractState, Graphable, Serializ
       return false;
     }
     TraceAbstractionState other = (TraceAbstractionState) obj;
-    return Objects.equals(functionPredicates, other.functionPredicates);
+    return Objects.equals(activePredicates, other.activePredicates);
   }
 
   @Override
   public String toString() {
-    if (functionPredicates.isEmpty()) {
-      return "_empty_preds_";
+    if (!containsPredicates()) {
+      return super.toString() + "\n_empty_preds_";
     }
 
-    return FluentIterable.from(functionPredicates.entries())
-        .transform(x -> x.getKey() + "=" + x.getValue())
+    return FluentIterable.from(activePredicates.entrySet())
+        .transform(x -> x.getKey() + ":" + x.getValue())
         .join(Joiner.on("; "));
   }
 
   @Override
   public String toDOTLabel() {
-    // TODO: remove graphable interface eventually
-    // (currently used for debugging)
-    if (functionPredicates.isEmpty()) {
-      return "_empty_state_";
+    StringBuilder sb = new StringBuilder();
+
+    AbstractState wrappedState = getWrappedState();
+    if (wrappedState instanceof Graphable) {
+      sb.append(((Graphable) wrappedState).toDOTLabel());
+      sb.append("\n");
     }
 
-    return FluentIterable.from(functionPredicates.entries())
-        .transform(x -> x.getKey() + "=" + x.getValue())
-        .join(Joiner.on("; "));
+    sb.append(
+        activePredicates
+            .values()
+            .stream()
+            .map(indexedPred -> indexedPred.getPredicate().getSymbolicAtom().toString())
+            .collect(Collectors.joining("\n")));
+    return sb.toString();
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    return false;
+    AbstractState wrappedState = getWrappedState();
+    return (wrappedState instanceof Graphable)
+        ? ((Graphable) wrappedState).shouldBeHighlighted()
+        : false;
   }
 }

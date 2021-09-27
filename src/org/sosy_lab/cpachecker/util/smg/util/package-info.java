@@ -7,4 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** This package contains utility classes for SMGs. */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.smg.util;

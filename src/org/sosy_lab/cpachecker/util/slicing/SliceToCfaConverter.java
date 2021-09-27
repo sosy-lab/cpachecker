@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -112,7 +112,7 @@ final class SliceToCfaConverter {
       assert iterator.hasNext() : "pInput must have one element for every parameter";
       T element = iterator.next();
 
-      MemoryLocation memoryLocation = MemoryLocation.valueOf(parameter.getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.forDeclaration(parameter);
 
       Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(declarationEdge);
       if (memoryLocations == null || memoryLocations.contains(memoryLocation)) {
@@ -140,7 +140,7 @@ final class SliceToCfaConverter {
         originalFunctionEntryNode.getReturnVariable();
 
     if (optRetVar.isPresent()) {
-      MemoryLocation memoryLocation = MemoryLocation.valueOf(optRetVar.get().getQualifiedName());
+      MemoryLocation memoryLocation = MemoryLocation.forDeclaration(optRetVar.get());
       Set<MemoryLocation> memoryLocations = relevantMemoryLocations.get(originalDeclarationEdge);
       if (memoryLocations != null && !memoryLocations.contains(memoryLocation)) {
         relevantReturnType = CVoidType.VOID;
@@ -179,10 +179,10 @@ final class SliceToCfaConverter {
       functionDeclaration = cloneFunctionDeclaration(functionDeclaration);
     }
 
-    if (pNode instanceof CLabelNode) {
+    if (pNode instanceof CFALabelNode) {
 
-      CLabelNode labelNode = (CLabelNode) pNode;
-      newNode = new CLabelNode(functionDeclaration, labelNode.getLabel());
+      CFALabelNode labelNode = (CFALabelNode) pNode;
+      newNode = new CFALabelNode(functionDeclaration, labelNode.getLabel());
 
     } else if (pNode instanceof CFATerminationNode) {
 
@@ -303,13 +303,12 @@ final class SliceToCfaConverter {
           (CFunctionCallAssignmentStatement) originalFunctionCall;
 
       if (optionalReturnVariable.isPresent()) {
-
-        String returnVariableName = optionalReturnVariable.orElseThrow().getQualifiedName();
         Set<MemoryLocation> memoryLocations =
             relevantMemoryLocations.get(originalFunctionReturnEdge);
 
         if (memoryLocations != null
-            && memoryLocations.contains(MemoryLocation.valueOf(returnVariableName))) {
+            && memoryLocations.contains(
+                MemoryLocation.forDeclaration(optionalReturnVariable.orElseThrow()))) {
 
           relevantFunctionCall =
               new CFunctionCallAssignmentStatement(
@@ -551,15 +550,13 @@ final class SliceToCfaConverter {
             originalMemoryLocations.computeIfAbsent(declarationEdge, key -> new HashSet<>());
 
         for (AParameterDeclaration parameter : entryNode.getFunctionParameters()) {
-          String qualifiedName = parameter.getQualifiedName();
-          memoryLocations.add(MemoryLocation.valueOf(qualifiedName));
+          memoryLocations.add(MemoryLocation.forDeclaration(parameter));
         }
 
         Optional<? extends AVariableDeclaration> optionalReturnVariable =
             entryNode.getReturnVariable();
         if (optionalReturnVariable.isPresent()) {
-          String qualifiedName = optionalReturnVariable.get().getQualifiedName();
-          memoryLocations.add(MemoryLocation.valueOf(qualifiedName));
+          memoryLocations.add(MemoryLocation.forDeclaration(optionalReturnVariable.get()));
         }
       }
     }

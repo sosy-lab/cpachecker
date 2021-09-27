@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
@@ -58,15 +57,19 @@ public class CFANode implements Comparable<CFANode>, Serializable {
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
 
-  /** This method provides a simple way to generate a function. */
-  @VisibleForTesting
-  public static CFANode newDummyCFANode(String dummyName) {
+  /** Create new CFA node for a dummy function (with a C type). Useful for testing etc. */
+  public static CFANode newDummyCFANode(String functionName) {
     return new CFANode(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             CFunctionType.NO_ARGS_VOID_FUNCTION,
-            dummyName,
+            functionName,
             ImmutableList.of()));
+  }
+
+  /** Create a new CFA node for a dummy function (with a C type). */
+  public static CFANode newDummyCFANode() {
+    return new CFANode(CFunctionDeclaration.DUMMY);
   }
 
   public CFANode(AFunctionDeclaration pFunction) {

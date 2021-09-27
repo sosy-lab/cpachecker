@@ -50,7 +50,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -531,7 +530,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     ConfigurableProgramAnalysis cpa = null;
     try {
-      AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+      AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
       CoreComponentsFactory localCoreComponents =
           new CoreComponentsFactory(
               pCurrentContext.getConfig(),
@@ -667,7 +666,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           aggregatePrecisionsForReuse(previousReachedSets, initialPrecision, pFMgr, pConfig);
     }
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(pCpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }
@@ -786,11 +785,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     predicates.addAll(pPredPrec.getLocalPredicates().values());
 
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
-    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
+    CFANode dummyNode = CFANode.newDummyCFANode();
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-          trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+          trackedVariables.put(dummyNode, MemoryLocation.parseExtendedQualifiedName(var));
       }
     }
 

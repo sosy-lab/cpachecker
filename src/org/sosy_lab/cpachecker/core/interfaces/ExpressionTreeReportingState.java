@@ -23,11 +23,10 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * Returns an ExpressionTree over-approximating the state.
    *
    * @param pFunctionScope the function scope as a function entry node.
-   * @param pLocation the formula should at least try to approximate variables referenced by entering edges.
-   *
+   * @param pLocation the formula should at least try to approximate variables referenced by
+   *     entering edges.
    * @return an ExpressionTree over-approximating the state.
    */
   ExpressionTree<Object> getFormulaApproximation(
-      FunctionEntryNode pFunctionScope, CFANode pLocation);
-
+      FunctionEntryNode pFunctionScope, CFANode pLocation) throws InterruptedException;
 }

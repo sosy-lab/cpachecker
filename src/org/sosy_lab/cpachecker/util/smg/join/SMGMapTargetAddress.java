@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -38,8 +40,12 @@ public class SMGMapTargetAddress extends SMGAbstractJoin {
 
   private void mapTargetAddress(SMGValue v1, SMGValue v2) {
     // Step 1
-    SMGPointsToEdge ptoEdge1 = inputSMG1.getPTEdge(v2);
-    SMGPointsToEdge pToEdge2 = inputSMG2.getPTEdge(v2);
+    Optional<SMGPointsToEdge> ptoEdgeOptional1 = inputSMG1.getPTEdge(v1);
+    Optional<SMGPointsToEdge> pToEdgeOptional2 = inputSMG2.getPTEdge(v2);
+
+    checkArgument(ptoEdgeOptional1.isPresent());
+
+    SMGPointsToEdge ptoEdge1 = ptoEdgeOptional1.orElseThrow();
     // Step 2
     SMGObject resSmgObject =
         ptoEdge1.pointsTo().isZero()
@@ -47,7 +53,9 @@ public class SMGMapTargetAddress extends SMGAbstractJoin {
             : mapping1.getMappedObject(ptoEdge1.pointsTo());
     // Step 3
     SMGTargetSpecifier tg =
-        isDLLS(ptoEdge1.pointsTo()) ? ptoEdge1.targetSpecifier() : pToEdge2.targetSpecifier();
+        isDLLS(ptoEdge1.pointsTo()) || pToEdgeOptional2.isEmpty()
+            ? ptoEdge1.targetSpecifier()
+            : pToEdgeOptional2.orElseThrow().targetSpecifier();
 
     // Step 4
     Optional<Map.Entry<SMGValue, SMGPointsToEdge>> matchingAddressOptional =
