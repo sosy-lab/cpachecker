@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
 import com.google.common.base.Preconditions;
 import java.util.stream.Stream;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -31,10 +33,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 public class CFAMutator {
   private final CFA cfa;
   private final CFAEdge originalEdge;
+  private final Configuration config;
+  private final LogManager logger;
 
-  public CFAMutator(CFA pCfa, CFAEdge pOriginalEdge) {
+  public CFAMutator(CFA pCfa, CFAEdge pOriginalEdge, Configuration pConfig, LogManager pLogger) {
     cfa = pCfa;
     originalEdge = pOriginalEdge;
+    config = pConfig;
+    logger = pLogger;
   }
 
   /** Returns a set of possible mutations for the given edge based on the edge type. */
@@ -69,7 +75,8 @@ public class CFAMutator {
     return ExpressionMutator.calcMutationsFor(originalAssumeEdge.getExpression(), cfa)
         .map(
             alternativeExpression -> {
-              final SimpleEdgeMutator edgeMutator = new SimpleEdgeMutator(cfa, originalAssumeEdge);
+              final SimpleEdgeMutator edgeMutator =
+                  new SimpleEdgeMutator(cfa, config, logger, originalAssumeEdge);
               return new SimpleMutation(
                   originalAssumeEdge,
                   edgeMutator.replaceExpressionInAssumeEdge(alternativeExpression),
@@ -83,7 +90,7 @@ public class CFAMutator {
         .map(
             newStatement -> {
               final SimpleEdgeMutator edgeMutator =
-                  new SimpleEdgeMutator(cfa, originalStatementEdge);
+                  new SimpleEdgeMutator(cfa, config, logger, originalStatementEdge);
 
               return new SimpleMutation(
                   originalStatementEdge,
@@ -116,7 +123,7 @@ public class CFAMutator {
             newFunctionCallStatement -> {
               CFunctionCall newFunctionCall = (CFunctionCall) newFunctionCallStatement;
               FunctionCallMutator functionCallMutator =
-                  new FunctionCallMutator(cfa, functionCallAggregate);
+                  new FunctionCallMutator(cfa, config, logger, functionCallAggregate);
               FunctionCallEdgeAggregate newFunctionCallEdgeAggregate =
                   functionCallMutator.replaceFunctionCall(newFunctionCall);
 
@@ -141,7 +148,7 @@ public class CFAMutator {
         .map(
             assignment -> {
               final SimpleEdgeMutator edgeMutator =
-                  new SimpleEdgeMutator(cfa, originalReturnStatementEdge);
+                  new SimpleEdgeMutator(cfa, config, logger, originalReturnStatementEdge);
 
               return new SimpleMutation(
                   originalReturnStatementEdge,

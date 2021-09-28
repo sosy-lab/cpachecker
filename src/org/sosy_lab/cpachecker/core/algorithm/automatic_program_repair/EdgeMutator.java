@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
-import com.google.common.collect.TreeMultimap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.MutableGraph;
 
 /**
  * This class provides functions to alter a given edge by one parameter. The functions return a new
@@ -21,35 +23,19 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 public abstract class EdgeMutator {
   private final CFA clonedCFA;
 
-  public EdgeMutator(CFA cfa) {
-    clonedCFA = cloneCFA(cfa);
+  public EdgeMutator(CFA cfa, Configuration config, LogManager logger) {
+    clonedCFA = cloneCFA(cfa, config, logger);
+  }
+
+  static CFA cloneCFA(CFA cfa, Configuration config, LogManager logger) {
+
+    MutableGraph<CFANode, CFAEdge> mutableGraph = CCfaTransformer.createMutableGraph(cfa);
+
+    return CCfaTransformer.createCfa(
+        config, logger, cfa, mutableGraph, (originalCfaEdge, originalAstNode) -> originalAstNode);
   }
 
   public CFA getClonedCFA() {
-    return clonedCFA;
-  }
-
-  /* TODO create deep copy */
-  static MutableCFA cloneCFA(CFA cfa) {
-    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
-
-    for (final String function : cfa.getAllFunctionNames()) {
-      nodes.putAll(
-          function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
-    }
-
-    MutableCFA clonedCFA =
-        new MutableCFA(
-            cfa.getMachineModel(),
-            cfa.getAllFunctions(),
-            nodes,
-            cfa.getMainFunction(),
-            cfa.getFileNames(),
-            cfa.getLanguage());
-
-    cfa.getLoopStructure().ifPresent(clonedCFA::setLoopStructure);
-    cfa.getLiveVariables().ifPresent(clonedCFA::setLiveVariables);
-
     return clonedCFA;
   }
 }

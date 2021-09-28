@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -21,8 +23,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 public class SimpleEdgeMutator extends EdgeMutator {
   CFAEdge edgeToMutate;
 
-  public SimpleEdgeMutator(CFA cfa, CFAEdge pOriginalEdge) {
-    super(cfa);
+  public SimpleEdgeMutator(
+      CFA cfa, Configuration config, LogManager logger, CFAEdge pOriginalEdge) {
+    super(cfa, config, logger);
     edgeToMutate = CorrespondingEdgeProvider.findCorrespondingEdge(pOriginalEdge, getClonedCFA());
   }
 

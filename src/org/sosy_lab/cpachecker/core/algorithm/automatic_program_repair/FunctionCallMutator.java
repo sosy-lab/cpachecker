@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -17,16 +19,23 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 public class FunctionCallMutator extends EdgeMutator {
   private final FunctionCallEdgeAggregate functionCallEdgeAggregate;
 
-  public FunctionCallMutator(CFA cfa, FunctionCallEdgeAggregate pFunctionCallEdgeAggregate) {
-    super(cfa);
+  public FunctionCallMutator(
+      CFA cfa,
+      Configuration config,
+      LogManager logger,
+      FunctionCallEdgeAggregate pFunctionCallEdgeAggregate) {
+    super(cfa, config, logger);
     functionCallEdgeAggregate =
         new FunctionCallEdgeAggregate(
-            (CFunctionSummaryEdge) CorrespondingEdgeProvider.findCorrespondingEdge(
-                pFunctionCallEdgeAggregate.getSummaryEdge(), getClonedCFA()),
-            (CFunctionCallEdge) CorrespondingEdgeProvider.findCorrespondingEdge(
-                pFunctionCallEdgeAggregate.getFunctionCallEdge(), getClonedCFA()),
-            (CFunctionReturnEdge) CorrespondingEdgeProvider.findCorrespondingEdge(
-                pFunctionCallEdgeAggregate.getFunctionReturnEdge(), getClonedCFA()));
+            (CFunctionSummaryEdge)
+                CorrespondingEdgeProvider.findCorrespondingEdge(
+                    pFunctionCallEdgeAggregate.getSummaryEdge(), getClonedCFA()),
+            (CFunctionCallEdge)
+                CorrespondingEdgeProvider.findCorrespondingEdge(
+                    pFunctionCallEdgeAggregate.getFunctionCallEdge(), getClonedCFA()),
+            (CFunctionReturnEdge)
+                CorrespondingEdgeProvider.findCorrespondingEdge(
+                    pFunctionCallEdgeAggregate.getFunctionReturnEdge(), getClonedCFA()));
   }
 
   public FunctionCallEdgeAggregate replaceFunctionCall(CFunctionCall newFunctionCall) {

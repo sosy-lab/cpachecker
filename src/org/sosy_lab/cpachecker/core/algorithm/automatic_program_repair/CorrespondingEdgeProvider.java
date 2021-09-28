@@ -39,7 +39,8 @@ public class CorrespondingEdgeProvider {
       }
     }
 
-    checkState(functionCallEdge != null, "CFunctionSummaryEdge without corresponding CFunctionCallEdge");
+    checkState(
+        functionCallEdge != null, "CFunctionSummaryEdge without corresponding CFunctionCallEdge");
 
     return functionCallEdge;
   }
@@ -59,7 +60,8 @@ public class CorrespondingEdgeProvider {
       }
     }
 
-    checkState(returnEdge != null, "CFunctionSummaryEdge without corresponding CFunctionReturnEdge.");
+    checkState(
+        returnEdge != null, "CFunctionSummaryEdge without corresponding CFunctionReturnEdge.");
 
     return returnEdge;
   }
@@ -76,7 +78,7 @@ public class CorrespondingEdgeProvider {
     FluentIterable<CFAEdge> edges = from(edgeCollectingVisitor.getVisitedEdges());
 
     for (CFAEdge currentEdge : edges) {
-      if (areEdgesEqual(originalEdge, currentEdge) ) {
+      if (areEdgesEqual(originalEdge, currentEdge)) {
         return currentEdge;
       }
     }
@@ -86,8 +88,6 @@ public class CorrespondingEdgeProvider {
 
   private static boolean areEdgesEqual(CFAEdge edge1, CFAEdge edge2) {
     return edge1.getFileLocation().equals(edge2.getFileLocation())
-        && edge1.getPredecessor().equals(edge2.getPredecessor())
-        && edge1.getSuccessor().equals(edge2.getSuccessor())
         && edge1.getCode().equals(edge2.getCode());
   }
 }

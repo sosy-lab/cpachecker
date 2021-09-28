@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
 import java.io.IOException;
@@ -20,6 +19,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -27,6 +28,7 @@ import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -65,6 +67,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, Statistics {
 
   private final FaultLocalizationWithTraceFormula algorithm;
+  private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
   private final Specification specification;
@@ -74,7 +77,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   private boolean fixFound = false;
 
   @Option(secure = true, required = true, description = "Config file of the internal analysis.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private AnnotatedValue<Path> internalAnalysisConfigFile;
 
   public AutomaticProgramRepair(
@@ -98,8 +101,10 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     }
 
     algorithm = (FaultLocalizationWithTraceFormula) pStoreAlgorithm;
-    cfa = pCfa;
+    config = pConfig;
     logger = pLogger;
+    cfa = pCfa;
+
     specification = pSpecification;
     shutdownNotifier = pShutdownNotifier;
     pConfig.inject(this);
@@ -134,16 +139,15 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     for (Fault fault : faultLocalizationInfo.getRankedList()) {
       for (FaultContribution faultContribution : fault) {
         CFAEdge edge = faultContribution.correspondingEdge();
-        CFAMutator cfaMutator = new CFAMutator(cfa, edge);
+        CFAMutator cfaMutator = new CFAMutator(cfa, edge, config, logger);
 
-        
         cfaMutator
             .calcPossibleMutations()
             .parallel()
             .filter(
                 (Mutation mutation) -> {
                   try {
-                    return rerun(mutation.getCFA()).hasViolatedProperties();
+                    return rerun(mutation.getCFA()).wasTargetReached();
                   } catch (InvalidConfigurationException e) {
                     logger.logUserException(Level.SEVERE, e, "Invalid configuration");
                     return false;
@@ -151,10 +155,12 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
                     logger.logUserException(Level.SEVERE, e, "IO failed");
                     return false;
                   } catch (InterruptedException | CPAException e) {
-                      // The exception can't be propagated here, because we're overwriting a method in which the
-                      // method signature cannot be changed. Thus, we have to throw an unchecked exceptions here.
-                      throw new AutomaticProgramRepairException(e.getMessage(), e);
-                    }
+                    // The exception can't be propagated here, because we're overwriting a method in
+                    // which the
+                    // method signature cannot be changed. Thus, we have to throw an unchecked
+                    // exceptions here.
+                    throw new AutomaticProgramRepairException(e.getMessage(), e);
+                  }
                 })
             .findAny()
             .ifPresent(
@@ -187,7 +193,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
-            internalAnalysisConfig, logger, shutdownNotifier, new AggregatedReachedSets());
+            internalAnalysisConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(mutatedCFA, specification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
@@ -232,7 +238,7 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
     Precision initialPrecision =
         cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }
@@ -244,10 +250,12 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(reachedSet)
+            StreamSupport.stream(reachedSet.spliterator(), false)
                 .filter(AbstractStates::isTargetState)
-                .filter(ARGState.class)
-                .transform(ARGState::getCounterexampleInformation));
+                .filter(ARGState.class::isInstance)
+                .map(ARGState.class::cast)
+                .map(ARGState::getCounterexampleInformation)
+                .collect(Collectors.toList()));
 
     // run algorithm for every error
     logger.log(Level.INFO, "Starting fault localization...");
@@ -279,7 +287,6 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
   public @Nullable String getName() {
     return getClass().getSimpleName();
   }
-
 
   private static class AutomaticProgramRepairException extends RuntimeException {
 
