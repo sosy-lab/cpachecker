@@ -35,6 +35,7 @@ public class SymbolicProgramConfiguration {
   private final PersistentMap<String, SMGObject> globalVariableMapping;
   private final PersistentStack<StackFrame> stackVariableMapping;
   private final PersistentSet<SMGObject> heapObjects;
+  private PersistentSet<SMGObject> externalObjectAllocation;
 
   private final PersistentMap<CValue, SMGValue> valueMapping;
 
@@ -43,10 +44,12 @@ public class SymbolicProgramConfiguration {
       PersistentMap<String, SMGObject> pGlobalVariableMapping,
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
+      PersistentSet<SMGObject> pExternalObjectAllocation,
       PersistentMap<CValue, SMGValue> pValueMapping) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
+    externalObjectAllocation = pExternalObjectAllocation;
     heapObjects = pHeapObjects;
     valueMapping = pValueMapping;
   }
@@ -57,12 +60,14 @@ public class SymbolicProgramConfiguration {
           PersistentMap<String, SMGObject> pGlobalVariableMapping,
           PersistentStack<StackFrame> pStackVariableMapping,
           PersistentSet<SMGObject> pHeapObjects,
+          PersistentSet<SMGObject> pExternalObjectAllocation,
           PersistentMap<CValue, SMGValue> pValueMapping) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
         pStackVariableMapping,
         pHeapObjects,
+        pExternalObjectAllocation,
         pValueMapping);
   }
 
@@ -71,6 +76,7 @@ public class SymbolicProgramConfiguration {
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
         PersistentStack.of(),
+        PersistentSet.of(),
         PersistentSet.of(),
         PathCopyingPersistentTreeMap.of());
   }
@@ -99,6 +105,7 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping.putAndCopy(pVarName, pNewObject),
         stackVariableMapping,
         heapObjects,
+        externalObjectAllocation,
         valueMapping);
   }
 
@@ -115,6 +122,7 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping,
         tmpStack.pushAndCopy(currentFrame),
         heapObjects,
+        externalObjectAllocation,
         valueMapping);
   }
 
@@ -125,6 +133,7 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping,
         stackVariableMapping.pushAndCopy(new StackFrame(pFunctionDefinition, model)),
         heapObjects,
+        externalObjectAllocation,
         valueMapping);
   }
 
@@ -137,7 +146,13 @@ public class SymbolicProgramConfiguration {
     PersistentMap<String, SMGObject> newGlobalsMap =
         globalVariableMapping.removeAndCopy(pIdentifier);
     SMG newSmg = smg.copyAndInvalidateObject(objToRemove.orElseThrow());
-    return of(newSmg, newGlobalsMap, stackVariableMapping, heapObjects, valueMapping);
+    return of(
+        newSmg,
+        newGlobalsMap,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping);
   }
 
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
@@ -155,7 +170,13 @@ public class SymbolicProgramConfiguration {
     PersistentStack<StackFrame> newStack =
         stackVariableMapping.replace(frame -> frame == frameOptional.orElseThrow(), newFrame);
     SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
-    return of(newSmg, globalVariableMapping, newStack, heapObjects, valueMapping);
+    return of(
+        newSmg,
+        globalVariableMapping,
+        newStack,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping);
   }
 
   /**
@@ -173,6 +194,7 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping,
         stackVariableMapping,
         heapObjects.addAndCopy(pObject),
+        externalObjectAllocation,
         valueMapping);
   }
 
@@ -191,7 +213,13 @@ public class SymbolicProgramConfiguration {
     for (SMGObject object : frame.getAllObjects()) {
       newSmg = smg.copyAndInvalidateObject(object);
     }
-    return of(newSmg, globalVariableMapping, newStack, heapObjects, valueMapping);
+    return of(
+        newSmg,
+        globalVariableMapping,
+        newStack,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping);
   }
 
   public SymbolicProgramConfiguration
@@ -215,7 +243,13 @@ public class SymbolicProgramConfiguration {
     for (SMGObject smgObject : unreachableObjects) {
       newHeapObjects = newHeapObjects.removeAndCopy(smgObject);
     }
-    return of(newSmg, globalVariableMapping, stackVariableMapping, newHeapObjects, valueMapping);
+    return of(
+        newSmg,
+        globalVariableMapping,
+        stackVariableMapping,
+        newHeapObjects,
+        externalObjectAllocation,
+        valueMapping);
   }
 
   public Optional<SMGObject> getReturnObjectForCurrentStackFrame() {
@@ -228,6 +262,7 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
+        externalObjectAllocation,
         valueMapping.putAndCopy(cValue, smgValue));
   }
 
@@ -237,6 +272,16 @@ public class SymbolicProgramConfiguration {
 
   public SymbolicProgramConfiguration copyAndCreateValue(CValue cValue) {
     return copyAndPutValue(cValue, SMGValue.of());
+  }
+
+  public SymbolicProgramConfiguration copyAndAddExternalObject(SMGObject pObject) {
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation.addAndCopy(pObject),
+        valueMapping);
   }
 
   public Optional<SMGObject>
@@ -254,6 +299,14 @@ public class SymbolicProgramConfiguration {
     }
     // no variable found
     return Optional.empty();
+  }
+
+  public boolean isObjectExternallyAllocated(SMGObject pObject) {
+    return externalObjectAllocation.contains(pObject);
+  }
+
+  public boolean isObjectValid(SMGObject pObject) {
+    return smg.isValid(pObject);
   }
 
 }
