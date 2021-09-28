@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -169,9 +170,14 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
     return null;
   }
 
+
   @Override
   public CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp) {
-    SMGObject object = pState.getPointsToTarget(value);
+    return readValue(pState, pState.getPointsToTarget(value), value, pExp);
+  }
+
+  public CValueAndSMGState
+      readValue(SMGState pState, SMGObject object, CValue value, CExpression pExpression) {
     if (value.isUnknown() || object.isZero()) {
       return CValueAndSMGState.ofUnknown(pState);
     }
@@ -181,18 +187,18 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
     // FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject =
         fieldOffset.compareTo(BigInteger.ZERO) < 0
-            || fieldOffset.add(getBitSizeof(pState, pExp)).compareTo(object.getSize()) > 0;
+            || fieldOffset.add(getBitSizeof(pState, pExpression)).compareTo(object.getSize()) > 0;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
       getLogger().log(
           Level.WARNING,
-          pExp.getFileLocation() + ":",
+          pExpression.getFileLocation() + ":",
           "Field "
               + "("
               + fieldOffset
               + ", "
-              + pExp.getExpressionType().toASTString("")
+              + pExpression.getExpressionType().toASTString("")
               + ")"
               + " does not fit object "
               + object
@@ -200,7 +206,7 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
 
       return CValueAndSMGState.ofUnknown(pState);
     }
-    CType type = TypeUtils.getRealExpressionType(pExp);
+    CType type = TypeUtils.getRealExpressionType(pExpression);
 
     return pState.readValue(
             object,
@@ -210,26 +216,46 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
 
   @Override
   public Collection<CValueAndSMGState>
-      getAddressOfField(SMGState pInitialSmgState, CExpression pFieldReference) {
+      getAddressOfField(SMGState pInitialSmgState, CFieldReference pExpression) {
+    CExpression fieldOwner = pExpression.getFieldOwner();
+    CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
+    return evaluateAddress(pInitialSmgState, fieldOwner).stream().map(addressAndState -> {
+      CValue addressCValue = addressAndState.getValue();
+      SMGState state = addressAndState.getState();
+      String fieldName = pExpression.getFieldName();
+      CValue fieldOffset = getFieldOffset(ownerType, fieldName);
+      if (fieldOffset.isUnknown() || addressCValue.isUnknown()) {
+        if (pExpression.isPointerDereference()) {
+          state = handleUnknownDereference(state).getState();
+        }
+        fieldOffset = fieldOffset.add(addressCValue);
+        return CValueAndSMGState.of(fieldOffset, state);
+      }
+
+      return CValueAndSMGState.ofUnknown(state);
+    }).collect(ImmutableSet.toImmutableSet());
+  }
+
+  private CValue getFieldOffset(CType pType, String pFieldName) {
+    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public CValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState) {
-    return null;
+    return CValueAndSMGState.ofUnknown(pInitialSmgState);
   }
 
   @Override
   public CValueAndSMGState
-      readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pIdExpression) {
-    // TODO Auto-generated method stub
-    return null;
+      readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pExpression) {
+    return readValue(pSmgState, pVariableObject, CValue.zero(), pExpression);
   }
 
   @Override
-  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand) {
-    // TODO Auto-generated method stub
-    return BigInteger.ZERO;
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pExpression) {
+    // TODO check why old implementation did not use machineModel
+    return getMachineModel().getSizeofInBits(pExpression.getExpressionType());
   }
 
 

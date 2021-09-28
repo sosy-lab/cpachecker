@@ -103,4 +103,18 @@ public class CValue implements Comparable<CValue> {
     return valueOf(newValue);
   }
 
+  public CValue add(CValue other) {
+    if (isUnknown() || other.isUnknown()) {
+      return CValue.unknownValue;
+    }
+    if (isZero()) {
+      return other;
+    }
+    if (other.isZero()) {
+      return this;
+    }
+
+    return valueOf(value.add(other.getExplicitValue()));
+  }
+
 }
