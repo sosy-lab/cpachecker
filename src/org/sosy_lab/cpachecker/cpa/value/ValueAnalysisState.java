@@ -14,7 +14,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -776,7 +775,7 @@ public final class ValueAnalysisState
   }
 
   private Set<MemoryLocation> getRelevantVariables(CFANode pLocation) {
-    Builder<MemoryLocation> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
     CExpressionVisitor<Set<String>, NoException> visitor =
         new VariablesCollectingVisitor(pLocation);
 
