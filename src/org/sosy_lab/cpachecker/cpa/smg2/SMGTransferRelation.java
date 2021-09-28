@@ -159,7 +159,6 @@ public class SMGTransferRelation
     return null;
   }
 
-  // Current SMGState is not fully persistent
   @Override
   protected void
       setInfo(AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
