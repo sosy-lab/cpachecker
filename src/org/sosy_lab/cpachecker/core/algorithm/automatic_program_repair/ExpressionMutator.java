@@ -48,7 +48,7 @@ public class ExpressionMutator {
       manualMutations = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
     } else if (originalExpression instanceof CUnaryExpression) {
       manualMutations = calcMutationsFor((CUnaryExpression) originalExpression, cfa);
-    } else if (originalExpression instanceof CIntegerLiteralExpression){
+    } else if (originalExpression instanceof CIntegerLiteralExpression) {
       manualMutations = calcMutationsFor((CIntegerLiteralExpression) originalExpression);
     }
 
@@ -71,9 +71,9 @@ public class ExpressionMutator {
       CIntegerLiteralExpression originalIntegerExpression) {
     return Stream.of(
         new CIntegerLiteralExpression(
-        originalIntegerExpression.getFileLocation(),
-        originalIntegerExpression.getExpressionType(),
-        originalIntegerExpression.getValue().add(BigInteger.valueOf(1))),
+            originalIntegerExpression.getFileLocation(),
+            originalIntegerExpression.getExpressionType(),
+            originalIntegerExpression.getValue().add(BigInteger.valueOf(1))),
         new CIntegerLiteralExpression(
             originalIntegerExpression.getFileLocation(),
             originalIntegerExpression.getExpressionType(),
@@ -85,9 +85,7 @@ public class ExpressionMutator {
         new CIntegerLiteralExpression(
             originalIntegerExpression.getFileLocation(),
             originalIntegerExpression.getExpressionType(),
-            originalIntegerExpression.getValue().subtract(BigInteger.valueOf(2)))
-
-    );
+            originalIntegerExpression.getValue().subtract(BigInteger.valueOf(2))));
   }
 
   private static Stream<CExpression> calcMutationsFor(
