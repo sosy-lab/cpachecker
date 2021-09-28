@@ -48,6 +48,10 @@ public class CValue implements Comparable<CValue> {
     return pObj instanceof CValue && value.equals(((CValue) pObj).value);
   }
 
+  public BigInteger getExplicitValue() {
+    return value;
+  }
+
   public boolean isUnknown() {
     return unknownValue == this;
   }
@@ -58,6 +62,45 @@ public class CValue implements Comparable<CValue> {
 
   public boolean isZero() {
     return BigInteger.ZERO.equals(value);
+  }
+
+  public CValue shiftRight(int shiftBy) {
+    if (isUnknown()|| isZero()) {
+      return this;
+    }
+    if (shiftBy < 0) {
+      return shiftLeft(-shiftBy);
+    }
+    return valueOf(value.shiftRight(shiftBy));
+  }
+
+  public CValue shiftLeft(int shiftBy) {
+    if (isUnknown() || isZero()) {
+      return this;
+    }
+    if (shiftBy < 0) {
+      return shiftRight(-shiftBy);
+    }
+    return valueOf(value.shiftRight(shiftBy));
+  }
+
+
+  public CValue clearBit(int n) {
+    if (isUnknown() || isZero()) {
+      return this;
+    }
+    return CValue.valueOf(getExplicitValue().clearBit(n));
+  }
+
+  public CValue concat(CValue pOverlappingBitsCValue) {
+    if (isUnknown()) {
+      return this;
+    } if (isZero()) {
+      return pOverlappingBitsCValue;
+    }
+    BigInteger otherValue = pOverlappingBitsCValue.getExplicitValue();
+    BigInteger newValue = value.shiftRight(otherValue.bitLength()).add(otherValue);
+    return valueOf(newValue);
   }
 
 }
