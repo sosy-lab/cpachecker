@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -36,5 +37,5 @@ public interface AddressEvaluator {
   public CValueAndSMGState
       readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pIdExpression);
 
-  public long getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
 }

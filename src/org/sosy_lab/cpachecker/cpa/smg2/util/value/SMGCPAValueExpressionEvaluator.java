@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import java.math.BigInteger;
 import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -27,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -168,7 +171,41 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
 
   @Override
   public CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp) {
-    return null;
+    SMGObject object = pState.getPointsToTarget(value);
+    if (value.isUnknown() || object.isZero()) {
+      return CValueAndSMGState.ofUnknown(pState);
+    }
+
+    BigInteger fieldOffset = value.getExplicitValue();
+
+    // FIXME Does not work with variable array length.
+    boolean doesNotFitIntoObject =
+        fieldOffset.compareTo(BigInteger.ZERO) < 0
+            || fieldOffset.add(getBitSizeof(pState, pExp)).compareTo(object.getSize()) > 0;
+
+    if (doesNotFitIntoObject) {
+      // Field does not fit size of declared Memory
+      getLogger().log(
+          Level.WARNING,
+          pExp.getFileLocation() + ":",
+          "Field "
+              + "("
+              + fieldOffset
+              + ", "
+              + pExp.getExpressionType().toASTString("")
+              + ")"
+              + " does not fit object "
+              + object
+              + ".");
+
+      return CValueAndSMGState.ofUnknown(pState);
+    }
+    CType type = TypeUtils.getRealExpressionType(pExp);
+
+    return pState.readValue(
+            object,
+            fieldOffset,
+        getMachineModel().getSizeofInBits(type));
   }
 
   @Override
@@ -190,9 +227,9 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
   }
 
   @Override
-  public long getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand) {
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand) {
     // TODO Auto-generated method stub
-    return 0;
+    return BigInteger.ZERO;
   }
 
 
