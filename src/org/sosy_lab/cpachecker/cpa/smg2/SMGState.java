@@ -343,4 +343,14 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return SMGObject.nullInstance();
   }
 
+  public CValueAndSMGState
+      readValue(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
+      SMGState newState = copyWithErrorInfo(heap, errorInfo.withObject(pObject)
+          .withErrorMessage(HAS_INVALID_READS));
+      return CValueAndSMGState.ofUnknown(newState);
+    }
+    return CValueAndSMGState.of(getHeap().readValue(pObject, pFieldOffset, pSizeofInBits), this);
+  }
+
 }
