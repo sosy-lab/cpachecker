@@ -86,4 +86,25 @@ public class InvariantStoreEntryLocation {
     hashCode = 31 * hashCode + function.hashCode();
     return hashCode;
   }
+
+  @Override
+  public String toString() {
+    return "InvariantStoreEntryLocation{"
+        + " fileName='"
+        + getFileName()
+        + "'"
+        + ", fileHash='"
+        + getFileHash()
+        + "'"
+        + ", line='"
+        + getLine()
+        + "'"
+        + ", column='"
+        + getColumn()
+        + "'"
+        + ", function='"
+        + getFunction()
+        + "'"
+        + "}";
+  }
 }

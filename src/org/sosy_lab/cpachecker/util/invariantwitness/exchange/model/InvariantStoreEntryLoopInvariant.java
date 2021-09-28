@@ -65,4 +65,19 @@ public class InvariantStoreEntryLoopInvariant {
     hashCode = 31 * hashCode + format.hashCode();
     return hashCode;
   }
+
+  @Override
+  public String toString() {
+    return "InvariantStoreEntryLoopInvariant{"
+        + " string='"
+        + getString()
+        + "'"
+        + ", type='"
+        + getType()
+        + "'"
+        + ", format='"
+        + getFormat()
+        + "'"
+        + "}";
+  }
 }

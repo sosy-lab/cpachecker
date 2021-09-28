@@ -139,8 +139,8 @@ class FromDiskEntryProvider implements AutoCloseable {
   }
 
   private synchronized void loadEntries(File entriesFile) throws IOException {
-    List<InvariantStoreEntry> entry = mapper.readValue(entriesFile, entryType);
-    loadedEntries.addAll(entry);
+    List<InvariantStoreEntry> entries = mapper.readValue(entriesFile, entryType);
+    loadedEntries.addAll(entries);
   }
 
   @Override

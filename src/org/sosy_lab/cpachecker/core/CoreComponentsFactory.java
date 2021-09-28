@@ -478,7 +478,9 @@ public class CoreComponentsFactory {
 
     } else if (useWitnessToInvariantAlgorithm) {
       try {
-        algorithm = new WitnessToInvariantWitnessAlgorithm(config, logger, shutdownNotifier, cfa);
+        algorithm =
+            new WitnessToInvariantWitnessAlgorithm(
+                config, logger, shutdownNotifier, cfa, specification);
       } catch (IOException e) {
         throw new CPAException("could not instantiate invariant witness writer", e);
       }

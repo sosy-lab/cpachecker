@@ -79,7 +79,8 @@ public class InvariantExportAlgorithm implements Algorithm {
     shutdownNotifier = pShutdownManager.getNotifier();
     invariantWitnessFactory = InvariantWitnessFactory.getFactory(pLogger, pCFA);
     try {
-      invariantWitnessWriter = InvariantWitnessWriter.getWriter(pConfig, pCFA, pLogger);
+      invariantWitnessWriter =
+          InvariantWitnessWriter.getWriter(pConfig, pCFA, pSpecification, pLogger);
     } catch (IOException e) {
       throw new CPAException("could not instantiate invariant witness writer", e);
     }

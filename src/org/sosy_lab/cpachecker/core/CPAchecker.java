@@ -162,11 +162,11 @@ public class CPAchecker {
   private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
 
   @Option(
-    secure = true,
-    name = "analysis.partitionInitialStates",
-    description =
-        "Partition the initial states based on the type of location they were created for (see 'initialStatesFor')"
-  )
+      secure = true,
+      name = "analysis.partitionInitialStates",
+      description =
+          "Partition the initial states based on the type of location they were created for (see"
+              + " 'initialStatesFor')")
   private boolean partitionInitialStates = false;
 
   @Option(
@@ -234,7 +234,8 @@ public class CPAchecker {
   static {
     String v = "(unknown version)";
     try {
-      URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
+      URL url =
+          CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
       if (url != null) {
         String content = Resources.toString(url, StandardCharsets.US_ASCII).trim();
         if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
@@ -275,21 +276,34 @@ public class CPAchecker {
   public static String getVersion(Configuration pConfig) {
     StringJoiner joiner = new StringJoiner(" / ");
     joiner.add("CPAchecker " + getPlainVersion());
-    try {
-      String analysisName = new ApproachNameInformation(pConfig).getApproachName();
+    String analysisName = getApproachName(pConfig);
       if (analysisName != null) {
         joiner.add(analysisName);
       }
-    } catch (InvalidConfigurationException e) {
-      // Injecting a non-required "secure" String option without restrictions on allowed values
-      // actually never fails, and avoiding a throws clause simplifies callers of this method.
-      throw new AssertionError(e);
-    }
     return joiner.toString();
   }
 
   public static String getPlainVersion() {
     return version;
+  }
+
+  /**
+   * Returns a string that represents the aproach that CPAchecker runs (typically the name of the
+   * properties file).
+   *
+   * <p>Result can be null if name can not be determined.
+   *
+   * @param pConfig current config
+   * @return approach name
+   */
+  public static String getApproachName(Configuration pConfig) {
+    try {
+      return new ApproachNameInformation(pConfig).getApproachName();
+    } catch (InvalidConfigurationException e) {
+      // Injecting a non-required "secure" String option without restrictions on allowed values
+      // actually never fails, and avoiding a throws clause simplifies callers of this method.
+      throw new AssertionError(e);
+    }
   }
 
   public static String getJavaInformation() {
@@ -427,9 +441,13 @@ public class CPAchecker {
       StringBuilder msg = new StringBuilder();
       msg.append("Please make sure that the code can be compiled by a compiler.\n");
       if (e.getLanguage() == Language.C) {
-        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+        msg.append(
+            "If the code was not preprocessed, please use a C preprocessor\n"
+                + "or specify the -preprocess command-line argument.\n");
       }
-      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
+      msg.append(
+          "If the error still occurs, please send this error message\n"
+              + "together with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
 
     } catch (ClassNotFoundException e) {
@@ -503,13 +521,19 @@ public class CPAchecker {
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();
     if (!unusedProperties.isEmpty()) {
-      logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-          Joiner.on("\n ").join(unusedProperties), "\n");
+      logger.log(
+          Level.WARNING,
+          "The following configuration options were specified but are not used:\n",
+          Joiner.on("\n ").join(unusedProperties),
+          "\n");
     }
     Set<String> deprecatedProperties = config.getDeprecatedProperties();
     if (!deprecatedProperties.isEmpty()) {
-      logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
-          Joiner.on("\n ").join(deprecatedProperties), "\n");
+      logger.log(
+          Level.WARNING,
+          "The following options are deprecated and will be removed in the future:\n",
+          Joiner.on("\n ").join(deprecatedProperties),
+          "\n");
     }
   }
 
@@ -566,7 +590,9 @@ public class CPAchecker {
     }
 
     if (!isSound) {
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+      logger.log(
+          Level.WARNING,
+          "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
 
@@ -652,7 +678,8 @@ public class CPAchecker {
 
     if (!pReached.hasWaitingState()
         && !initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET))) {
-      throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
+      throw new InvalidConfigurationException(
+          "Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(
           Level.FINE,

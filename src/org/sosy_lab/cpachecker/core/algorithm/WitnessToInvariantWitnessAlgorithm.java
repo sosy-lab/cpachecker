@@ -24,6 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
@@ -50,14 +51,18 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
    * @throws IOException If witness writer could not be instatiated
    */
   public WitnessToInvariantWitnessAlgorithm(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      Specification pSpecification)
       throws InvalidConfigurationException, IOException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;
     cfa = pCFA;
     shutdownNotifier = pShutdownNotifier;
-    invariantExporter = InvariantWitnessWriter.getWriter(pConfig, pCFA, pLogger);
+    invariantExporter = InvariantWitnessWriter.getWriter(pConfig, pCFA, pSpecification, pLogger);
   }
 
   @Override
