@@ -59,7 +59,7 @@ public class InvariantWitnessFactory {
     ImmutableSet.Builder<InvariantWitness> result = ImmutableSet.builder();
     if (effectiveLocations.isEmpty()) {
       logger.logf(
-          Level.FINER, "Could not determine a location for invariant %s, skipping.", invariant);
+          Level.FINEST, "Could not determine a location for invariant %s, skipping.", invariant);
     }
 
     for (FileLocation invariantLocation : effectiveLocations) {

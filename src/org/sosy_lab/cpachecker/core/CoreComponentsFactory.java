@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
+import java.io.IOException;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -476,7 +477,11 @@ public class CoreComponentsFactory {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
     } else if (useWitnessToInvariantAlgorithm) {
-      algorithm = new WitnessToInvariantWitnessAlgorithm(config, logger, shutdownNotifier, cfa);
+      try {
+        algorithm = new WitnessToInvariantWitnessAlgorithm(config, logger, shutdownNotifier, cfa);
+      } catch (IOException e) {
+        throw new CPAException("could not instantiate invariant witness writer", e);
+      }
     } else if (useInvariantExportAlgorithm) {
       algorithm =
           new InvariantExportAlgorithm(

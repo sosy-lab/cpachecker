@@ -99,7 +99,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessProvider;
+import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessGenerator;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -973,8 +973,12 @@ abstract class AbstractBMCAlgorithm
           AggregatedReachedSets pAggregatedReachedSets,
           TargetLocationProvider pTargetLocationProvider)
           throws InvalidConfigurationException, CPAException, InterruptedException {
-        return InvariantWitnessProvider.getInvariantGenerator(
-            pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
+        try {
+          return InvariantWitnessGenerator.getNewFromDiskInvariantGenerator(
+              pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
+        } catch (IOException e) {
+          throw new CPAException("Could not create from disk generator", e);
+        }
       }
     };
 

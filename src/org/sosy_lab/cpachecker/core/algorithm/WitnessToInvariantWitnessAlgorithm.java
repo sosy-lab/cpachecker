@@ -44,9 +44,14 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
   private final ShutdownNotifier shutdownNotifier;
   private final InvariantWitnessWriter invariantExporter;
 
+  /**
+   * Constructs a new instance of this class.
+   *
+   * @throws IOException If witness writer could not be instatiated
+   */
   public WitnessToInvariantWitnessAlgorithm(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, IOException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;

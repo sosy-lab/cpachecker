@@ -9,15 +9,14 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,29 +39,22 @@ public class InvariantStoreUtil {
    *
    * @param filePaths Paths of the file to process
    * @return Immutable map
-   * @throws IllegalArgumentException if the files can not be accessed.
+   * @throws IOException if the files can not be accessed.
    */
-  public static Map<String, List<Integer>> getLineOffsetsByFile(Collection<Path> filePaths) {
-    ImmutableMap.Builder<String, List<Integer>> result = ImmutableMap.builder();
+  public static ListMultimap<String, Integer> getLineOffsetsByFile(Collection<Path> filePaths)
+      throws IOException {
+    ImmutableListMultimap.Builder<String, Integer> result = ImmutableListMultimap.builder();
 
     for (Path filePath : filePaths) {
       if (Files.isRegularFile(filePath)) {
-        String fileContent;
-        try {
-          fileContent = Files.readString(filePath);
-        } catch (IOException pE) {
-          throw new IllegalArgumentException("Can not read source file", pE);
-        }
+        String fileContent = Files.readString(filePath);
 
         int currentOffset = 0;
-        ImmutableList.Builder<Integer> lineOffsetsBuilder = ImmutableList.builder();
         List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
         for (int lineNumber = 0; lineNumber < sourceLines.size(); lineNumber++) {
-          lineOffsetsBuilder.add(currentOffset);
+          result.put(filePath.toString(), currentOffset);
           currentOffset += sourceLines.get(lineNumber).length() + 1;
         }
-
-        result.put(filePath.toString(), lineOffsetsBuilder.build());
       }
     }
     return result.build();
