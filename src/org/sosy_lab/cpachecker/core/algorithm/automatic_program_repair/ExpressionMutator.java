@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.automatic_program_repair;
 
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -34,7 +36,8 @@ public class ExpressionMutator {
    * of the same CBasicType.
    */
   public static Stream<CExpression> calcMutationsFor(CExpression originalExpression, CFA cfa) {
-    Stream<CExpression> unaryOrBinaryExpressions = Stream.empty();
+    Stream<CExpression> manualMutations = Stream.empty();
+
     final Set<CExpression> expressions = ExpressionCollector.collectExpressions(cfa);
     final Map<CType, Set<CExpression>> expressionsSortedByType =
         groupExpressionsByType(expressions);
@@ -42,9 +45,11 @@ public class ExpressionMutator {
         groupExpressionsByBasicType(expressions);
 
     if (originalExpression instanceof CBinaryExpression) {
-      unaryOrBinaryExpressions = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
+      manualMutations = calcMutationsFor((CBinaryExpression) originalExpression, cfa);
     } else if (originalExpression instanceof CUnaryExpression) {
-      unaryOrBinaryExpressions = calcMutationsFor((CUnaryExpression) originalExpression, cfa);
+      manualMutations = calcMutationsFor((CUnaryExpression) originalExpression, cfa);
+    } else if (originalExpression instanceof CIntegerLiteralExpression){
+      manualMutations = calcMutationsFor((CIntegerLiteralExpression) originalExpression);
     }
 
     final CType type = originalExpression.getExpressionType();
@@ -57,9 +62,32 @@ public class ExpressionMutator {
     }
 
     return Stream.concat(
-        unaryOrBinaryExpressions,
+        manualMutations,
         sameTypeExpressionsSet.stream()
             .filter((CExpression expression) -> !originalExpression.equals(expression)));
+  }
+
+  private static Stream<CExpression> calcMutationsFor(
+      CIntegerLiteralExpression originalIntegerExpression) {
+    return Stream.of(
+        new CIntegerLiteralExpression(
+        originalIntegerExpression.getFileLocation(),
+        originalIntegerExpression.getExpressionType(),
+        originalIntegerExpression.getValue().add(BigInteger.valueOf(1))),
+        new CIntegerLiteralExpression(
+            originalIntegerExpression.getFileLocation(),
+            originalIntegerExpression.getExpressionType(),
+            originalIntegerExpression.getValue().add(BigInteger.valueOf(2))),
+        new CIntegerLiteralExpression(
+            originalIntegerExpression.getFileLocation(),
+            originalIntegerExpression.getExpressionType(),
+            originalIntegerExpression.getValue().subtract(BigInteger.valueOf(1))),
+        new CIntegerLiteralExpression(
+            originalIntegerExpression.getFileLocation(),
+            originalIntegerExpression.getExpressionType(),
+            originalIntegerExpression.getValue().subtract(BigInteger.valueOf(2)))
+
+    );
   }
 
   private static Stream<CExpression> calcMutationsFor(
