@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
@@ -118,7 +119,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
                 PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
                 resultStackMapping,
                 PersistentSet.of(),
-                PathCopyingPersistentTreeMap.of());
+                PersistentSet.of(),
+                PersistentBiMap.of());
   }
 
 
