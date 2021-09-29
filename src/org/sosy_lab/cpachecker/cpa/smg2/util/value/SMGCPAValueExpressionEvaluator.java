@@ -13,14 +13,9 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -34,63 +29,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CTypeAndCValue;
-import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 @SuppressWarnings("unused")
-public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisitor
+public class SMGCPAValueExpressionEvaluator
     implements AddressEvaluator {
 
+  private final LogManagerWithoutDuplicates logger;
+  private final MachineModel machineModel;
+
   public SMGCPAValueExpressionEvaluator(
-      String pFunctionName,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
-    super(pFunctionName, pMachineModel, pLogger);
-  }
-
-  @Override
-  protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCodeException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
-      throws UnrecognizedCodeException {
-    // TODO Auto-generated method stub
-    return null;
+    logger = pLogger;
+    machineModel = pMachineModel;
   }
 
 
-
-  @Override
-  protected Value evaluateCFieldReference(CFieldReference pLValue)
-      throws UnrecognizedCodeException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-      throws UnrecognizedCodeException {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-    return throwUnsupportedOperationException("visit(JClassLiteralExpression)");
-  }
-
-  @Override
-  protected Value evaluateJIdExpression(JIdExpression pVarName) {
-    return throwUnsupportedOperationException("evaluateJIdExpression");
-  }
 
   private Value throwUnsupportedOperationException(String methodNameString) {
     throw new AssertionError("The operation " + methodNameString + " is not yet supported.");
@@ -193,7 +150,7 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
-      getLogger().log(
+      logger.log(
           Level.WARNING,
           pExpression.getFileLocation() + ":",
           "Field "
@@ -213,7 +170,7 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
     return pState.readValue(
             object,
             fieldOffset,
-        getMachineModel().getSizeofInBits(type));
+        machineModel.getSizeofInBits(type));
   }
 
   @Override
@@ -271,7 +228,7 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
   private CTypeAndCValue getField(CCompositeType pOwnerType, String pFieldName) {
     CType resultType = pOwnerType;
 
-    BigInteger offset = getMachineModel().getFieldOffsetInBits(pOwnerType, pFieldName);
+    BigInteger offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName);
 
     for (CCompositeTypeMemberDeclaration typeMember : pOwnerType.getMembers()) {
       if (typeMember.getName().equals(pFieldName)) {
@@ -303,7 +260,7 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
   @Override
   public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pExpression) {
     // TODO check why old implementation did not use machineModel
-    return getMachineModel().getSizeofInBits(pExpression.getExpressionType());
+    return machineModel.getSizeofInBits(pExpression.getExpressionType());
   }
 
 

@@ -134,7 +134,7 @@ public class SMGTransferRelation
           throws CPATransferException {
     CExpression returnExp = pReturnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
     SMGCPAValueExpressionEvaluator valueExpressionVisitor =
-        new SMGCPAValueExpressionEvaluator(pReturnEdge.getDescription(), machineModel, logger);
+        new SMGCPAValueExpressionEvaluator(machineModel, logger);
     return valueExpressionVisitor.evaluateValues(pState, pReturnEdge, returnExp);
   }
 
