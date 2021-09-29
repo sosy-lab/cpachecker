@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -128,6 +129,10 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
     } catch (SolverException e) {
       logger.logUserException(Level.SEVERE, e, "Solver Failure");
+    } catch (AutomaticProgramRepairException e) {
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
+      throw new AssertionError(e);
     } finally {
       totalTime.stop();
     }
