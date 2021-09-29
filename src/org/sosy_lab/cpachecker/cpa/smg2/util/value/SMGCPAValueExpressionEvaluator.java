@@ -26,12 +26,14 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.CTypeAndCValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -223,12 +225,12 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
       CValue addressCValue = addressAndState.getValue();
       SMGState state = addressAndState.getState();
       String fieldName = pExpression.getFieldName();
-      CValue fieldOffset = getFieldOffset(ownerType, fieldName);
-      if (fieldOffset.isUnknown() || addressCValue.isUnknown()) {
+      CTypeAndCValue field = getField(ownerType, fieldName);
+      if (field.getValue().isUnknown() || addressCValue.isUnknown()) {
         if (pExpression.isPointerDereference()) {
           state = handleUnknownDereference(state).getState();
         }
-        fieldOffset = fieldOffset.add(addressCValue);
+        CValue fieldOffset = field.getValue().add(addressCValue);
         return CValueAndSMGState.of(fieldOffset, state);
       }
 
@@ -236,9 +238,55 @@ public class SMGCPAValueExpressionEvaluator extends AbstractExpressionValueVisit
     }).collect(ImmutableSet.toImmutableSet());
   }
 
-  private CValue getFieldOffset(CType pType, String pFieldName) {
-    // TODO Auto-generated method stub
-    return null;
+  private CTypeAndCValue getField(CType pType, String pFieldName) {
+
+    if (pType instanceof CElaboratedType) {
+
+      CType realType = ((CElaboratedType) pType).getRealType();
+
+      if (realType == null) {
+        return CTypeAndCValue.withUnknownValue(pType);
+      }
+
+      return getField(realType, pFieldName);
+    } else if (pType instanceof CCompositeType) {
+      return getField((CCompositeType) pType, pFieldName);
+    } else if (pType instanceof CPointerType) {
+
+      /*
+       * We do not explicitly transform x->b, so when we try to get the field b the ownerType of x
+       * is a pointer type.
+       */
+
+      CType type = ((CPointerType) pType).getType();
+
+      type = TypeUtils.getRealExpressionType(type);
+
+      return getField(type, pFieldName);
+    }
+
+    throw new AssertionError("Unknown CType found: " + pType);
+  }
+
+  private CTypeAndCValue getField(CCompositeType pOwnerType, String pFieldName) {
+    CType resultType = pOwnerType;
+
+    BigInteger offset = getMachineModel().getFieldOffsetInBits(pOwnerType, pFieldName);
+
+    for (CCompositeTypeMemberDeclaration typeMember : pOwnerType.getMembers()) {
+      if (typeMember.getName().equals(pFieldName)) {
+        resultType = typeMember.getType();
+      }
+    }
+
+    final CValue cValue;
+    if (!resultType.equals(pOwnerType)) {
+      cValue = CValue.valueOf(offset);
+      resultType = TypeUtils.getRealExpressionType(resultType);
+    } else {
+      cValue = CValue.getUnknownValue();
+    }
+    return CTypeAndCValue.of(resultType, cValue);
   }
 
   @Override
