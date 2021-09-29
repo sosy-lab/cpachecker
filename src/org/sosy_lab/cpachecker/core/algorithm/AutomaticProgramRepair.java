@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -255,12 +257,10 @@ public class AutomaticProgramRepair implements Algorithm, StatisticsProvider, St
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            StreamSupport.stream(reachedSet.spliterator(), false)
+            from(reachedSet)
                 .filter(AbstractStates::isTargetState)
-                .filter(ARGState.class::isInstance)
-                .map(ARGState.class::cast)
-                .map(ARGState::getCounterexampleInformation)
-                .collect(Collectors.toList()));
+                .filter(ARGState.class)
+                .transform(ARGState::getCounterexampleInformation));
 
     // run algorithm for every error
     logger.log(Level.INFO, "Starting fault localization...");
