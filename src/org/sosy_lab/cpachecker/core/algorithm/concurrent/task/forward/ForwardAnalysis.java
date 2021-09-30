@@ -41,13 +41,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -147,21 +145,7 @@ public class ForwardAnalysis extends Task {
     reached.add(entryState, precision);
 
     logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
-    do {
-      status = status.update(algorithm.run(reached));
-
-      for (final AbstractState waiting : reached.getWaitlist()) {
-        if (isTargetState(waiting)) {
-          reached.removeOnlyFromWaitlist(waiting);
-
-          final Pair<CompositeState, Precision> reset = resetAutomata((CompositeState) waiting);
-          assert reset.getFirst() != null && reset.getSecond() != null;
-
-          reached.add(reset.getFirst(), reset.getSecond());
-        }
-      }
-
-    } while (reached.hasWaitingState());
+    status = status.update(algorithm.run(reached));
 
     handleTargetStates();
     propagateThroughExits();
@@ -288,30 +272,5 @@ public class ForwardAnalysis extends Task {
       messageFactory.sendForwardAnalysisRequest(target, expectedVersion, successor,
           shareableFormula);
     }
-  }
-
-  private Pair<CompositeState, Precision> resetAutomata(final CompositeState state)
-      throws InterruptedException {
-    List<AbstractState> componentStates = new ArrayList<>();
-    for (final AbstractState wrappedState : state.getWrappedStates()) {
-      if (!(wrappedState instanceof AutomatonState)) {
-        componentStates.add(wrappedState);
-      }
-    }
-
-    CFANode location = extractLocation(state);
-    assert location != null;
-
-    CompositeState initialState =
-        (CompositeState) cpa.getInitialState(location, getDefaultPartition());
-
-    for (final AbstractState wrappedInitialState : initialState.getWrappedStates()) {
-      if (wrappedInitialState instanceof AutomatonState) {
-        componentStates.add(wrappedInitialState);
-      }
-    }
-
-    Precision precision = cpa.getInitialPrecision(location, getDefaultPartition());
-    return Pair.of(new CompositeState(componentStates), precision);
   }
 }

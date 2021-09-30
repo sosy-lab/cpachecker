@@ -121,10 +121,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
     if (AbstractStates.isTargetState(fullState)) {
       statistics.numTargetAbstractions.inc();
-
-      if (blk.shouldEndBlockOnTarget()) {
-        return true;
-      }
+      return true;
     }
     return false;
   }
