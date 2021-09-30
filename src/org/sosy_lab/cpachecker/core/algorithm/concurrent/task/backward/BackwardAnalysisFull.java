@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
+import static java.lang.Math.max;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.makeName;
@@ -167,18 +168,20 @@ public class BackwardAnalysisFull extends Task {
     SSAMapBuilder newSSABuilder = upperSSA.builder();
 
     for (final String name : lowerSSA.allVariables()) {
-      int indexBase = lowerSSA.getIndex(name);
+      int maxLowerIndex = lowerSSA.getIndex(name);
 
       if (upperSSA.containsVariable(name)) {
         int maxUpperIndex = upperSSA.getIndex(name);
-        int diff = indexBase - 1;
-
-        for (int index = 1; index <= maxUpperIndex; ++index) {
-          replacements.put(makeName(name, index), makeName(name, index + diff));
+        int maxIndex = max(maxLowerIndex, maxUpperIndex);
+        
+        replacements.put(makeName(name, maxUpperIndex), makeName(name, maxLowerIndex));
+        
+        for (int index = 1; index < maxUpperIndex; ++index) {
+          replacements.put(makeName(name, index), makeName(name, maxIndex + index));
         }
 
         final CType type = upperSSA.getType(name);
-        newSSABuilder = newSSABuilder.setIndex(name, type, maxUpperIndex + diff);
+        newSSABuilder = newSSABuilder.setIndex(name, type, maxLowerIndex + maxUpperIndex);
       }
     }
 
