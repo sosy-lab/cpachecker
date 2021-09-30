@@ -19,17 +19,18 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -37,50 +38,45 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class BackwardAnalysisContinuation implements Task {
+public class BackwardAnalysisCore extends Task {
   private final Block target;
   private final ReachedSet reached;
   private final Algorithm algorithm;
   private final BlockAwareCompositeCPA cpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
-  private final TaskManager taskManager;
-  private final LogManager logManager;
-  private final ShutdownNotifier shutdownNotifier;
 
-  BackwardAnalysisContinuation(
+  public BackwardAnalysisCore(
       final Block pBlock,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA,
-      final TaskManager pTaskManager,
+      final Solver pSolver,
+      final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
+    super(pMessageFactory, pLogManager, pShutdownNotifier);
+    
     cpa = pCPA;
-    PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
-    assert predicateCPA != null;
-
-    solver = predicateCPA.getSolver();
+    solver = pSolver;
     fMgr = solver.getFormulaManager();
     target = pBlock;
 
     reached = pReachedSet;
     algorithm = pAlgorithm;
-    taskManager = pTaskManager;
-    logManager = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
   }
-  
+
   @Override
-  public AlgorithmStatus call() throws Exception {
-    logManager.log(Level.FINE, "Continuing BackwardAnalysis on ", target);
+  protected void execute() throws Exception {
+    logManager.log(Level.FINE, "BackwardAnalysisFull on", target);
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     AlgorithmStatus newStatus = algorithm.run(reached);
     status = status.update(newStatus);
+    SubtaskResult result = SubtaskResult.create(Result.UNKNOWN, status);
 
     for (final AbstractState reachedState : reached.asCollection()) {
-      processReachedState(reachedState);
+      result = result.withResult(processReachedState(reachedState));
     }
 
     Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
@@ -96,20 +92,22 @@ public class BackwardAnalysisContinuation implements Task {
 
     shutdownNotifier.shutdownIfNecessary();
     if (!reached.getWaitlist().isEmpty()) {
-      taskManager.spawnBackwardAnalysisContinuation(target, reached, algorithm, cpa);
+      messageFactory.sendBackwardAnalysisContinuationRequest(target, reached, algorithm, cpa);
     }
 
-    logManager.log(Level.FINE, "Completed BackwardAnalysis on ", target);
-    return status;
+    logManager.log(Level.FINE, "Completed BackwardAnalysisFull on", target);
+    result = result.withStatus(status);
+    messageFactory.sendTaskCompletionMessage(this, result);    
   }
 
-  private void processReachedState(final AbstractState state)
+  private Result processReachedState(final AbstractState state)
       throws InterruptedException, CPAException, InvalidConfigurationException {
     LocationState location = extractStateByType(state, LocationState.class);
     assert location != null;
 
     CFANode node = location.getLocationNode();
 
+    Result result = Result.UNKNOWN;
     if (location.getLocationNode() == target.getEntry()) {
       PredicateAbstractState predState =
           extractStateByType(state, PredicateAbstractState.class);
@@ -126,7 +124,7 @@ public class BackwardAnalysisContinuation implements Task {
           new ShareableBooleanFormula(fMgr, condition);
 
       for (final Block predecessor : target.getPredecessors()) {
-        taskManager.spawnBackwardAnalysis(predecessor, node, target, shareableCondition);
+        messageFactory.sendBackwardAnalysisRequest(predecessor, node, target, shareableCondition);
       }
 
       if (target.getPredecessors().isEmpty()) {
@@ -134,6 +132,7 @@ public class BackwardAnalysisContinuation implements Task {
           if (solver.isUnsat(condition.getFormula())) {
             logManager.log(Level.INFO, "Verdict: Error condition unsatisfiable", condition);
           } else {
+            result = Result.FALSE;
             logManager.log(Level.INFO, "Verdict: Satisfiable error condition!", condition);
           }
         } catch (SolverException ignored) {
@@ -141,5 +140,7 @@ public class BackwardAnalysisContinuation implements Task {
         }
       }
     }
+
+    return result;
   }
 }

@@ -18,29 +18,29 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task}.
  * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis} implements
  * forward analysis and calculates block summaries, while
- * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.BackwardAnalysis} applies
+ * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.BackwardAnalysisFull} applies
  * a backward analysis and propagates an error condition towards program entry.
- * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager} provides an easy
+ * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory} provides an easy
  * interface to create actual instances of these classes and automatically submits them to a
- * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor} (with an instance of
+ * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler} (with an instance of
  * which it has to be initialized).
- * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskInvalidatedException} indicates
+ * {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException} indicates
  * that a task has become invalid and shall not be executed.
  *
  * <p>The usual workflow to deploy the classes of this package presents itself as follows:
  * <ol>
  *   <li>Create an instance of
- *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor}</li>
+ *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler}</li>
  *   <li>Create an instance of
- *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager} and supply it
- *        with the {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor}</li>
+ *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory} and supply it
+ *        with the {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler}</li>
  *   <li>Use public methods of
- *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager} to create and
+ *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory} to create and
  *        schedule initial tasks</li>
  *   <li>Start task execution with
- *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor#start()}</li>
+ *        {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler#start()}</li>
  *   <li>Wait for completion of the analysis with
- *   {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor#waitForCompletion()}
+ *   {@link org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler#waitForCompletion()}
  * </li>
  * </ol>
  */

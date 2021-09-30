@@ -6,6 +6,4 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
-
-public class TaskInvalidatedException extends Exception {}
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message;

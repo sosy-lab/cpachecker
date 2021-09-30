@@ -6,14 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
 import com.google.common.collect.Table;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -27,12 +25,11 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskInvalidatedException;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -45,11 +42,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "concurrent.task.backward")
 public class BackwardAnalysisRequest implements TaskRequest {
-  private static volatile Configuration backward = null;
+  private final Configuration backward;
+  
   private final Block target;
   private final Block source;
   private final CFANode start;
@@ -57,12 +54,11 @@ public class BackwardAnalysisRequest implements TaskRequest {
   private final Algorithm algorithm;
   private final ReachedSet reached;
   private final BlockAwareCompositeCPA cpa;
-  private final TaskManager taskManager;
+  private final MessageFactory messageFactory;
   private final LogManager logManager;
   private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fMgr;
   private final PathFormulaManager pfMgr;
-  private final Solver solver;
 
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Configuration file for backward analysis during concurrent analysis.")
@@ -78,26 +74,26 @@ public class BackwardAnalysisRequest implements TaskRequest {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCFA,
-      final TaskManager pTaskManager)
+      final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
-    loadBackwardConfig();
+    backward = BackwardAnalysisFull.getConfiguration(pLogger, configFile);
 
     target = pTarget;
     start = pStart;
     source = pSource;
-    taskManager = pTaskManager;
+    messageFactory = pMessageFactory;
     logManager = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
     CoreComponentsFactory factory =
         new CoreComponentsFactory(
-            backward, logManager, pShutdownNotifier, new AggregatedReachedSets());
-    reached = factory.createReachedSet();
+            backward, logManager, pShutdownNotifier, AggregatedReachedSets.empty());
 
     Specification emptySpec = Specification.alwaysSatisfied();
     CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, emptySpec);
-
+    reached = factory.createReachedSet(compositeCpa);
+    
     if (compositeCpa.retrieveWrappedCpa(PredicateCPA.class) == null) {
       throw new InvalidConfigurationException(
           "Backward analysis requires a composite CPA with predicateCPA as component CPA.");
@@ -124,8 +120,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
 
-    solver = predicateCPA.getSolver();
-    fMgr = solver.getFormulaManager();
+    fMgr = predicateCPA.getSolver().getFormulaManager();
     pfMgr = predicateCPA.getPathFormulaManager();
     
     if (pErrorCondition == null) {
@@ -136,33 +131,6 @@ public class BackwardAnalysisRequest implements TaskRequest {
     }
   }
 
-  private void loadBackwardConfig() throws InvalidConfigurationException {
-    if (backward == null) {
-      synchronized (BackwardAnalysisRequest.class) {
-        if (backward == null) {
-          if (configFile != null) {
-            try {
-              backward = Configuration.builder().loadFromFile(configFile).build();
-            } catch (IOException ignored) {
-              logManager.log(
-                  Level.SEVERE,
-                  "Failed to load file ",
-                  configFile,
-                  ". Using default configuration.");
-            }
-          }
-
-          if (backward == null) {
-            backward =
-                Configuration.builder()
-                    .loadFromResource(BackwardAnalysisRequest.class, "predicateBackward.properties")
-                    .build();
-          }
-        }
-      }
-    }
-  }
-
   /**
    * {@inheritDoc}
    * <hr/>
@@ -170,25 +138,25 @@ public class BackwardAnalysisRequest implements TaskRequest {
    * the inter-block edge along which the error condition enters the target block. As soon as the
    * task then actually executes, it first checks whether the conjunction of this summary and the
    * error condition is satisfiable. If this is not the case, the condition need not propagate
-   * further and the {@link BackwardAnalysis} terminates early.
+   * further and the {@link BackwardAnalysisFull} terminates early.
    *
-   * @return The immutable {@link BackwardAnalysis} which actually implements the {@link Task}.
-   * @throws TaskInvalidatedException The {@link BackwardAnalysisRequest} has become invalidated by
-   *                                  a more recent one and the {@link BackwardAnalysis} must not
+   * @return The immutable {@link BackwardAnalysisFull} which actually implements the {@link Task}.
+   * @throws RequestInvalidatedException The {@link BackwardAnalysisRequest} has become invalidated by
+   *                                  a more recent one and the {@link BackwardAnalysisFull} must not
    *                                  execute.
-   * @see BackwardAnalysis
+   * @see BackwardAnalysisFull
    */
   @Override
-  public Task finalize(
+  public Task process(
       Table<Block, Block, ShareableBooleanFormula> pSummaries, Map<Block, Integer> pSummaryVersions,
       Set<CFANode> pAlreadyPropagated)
-      throws TaskInvalidatedException {
-    assert Thread.currentThread().getName().equals(TaskExecutor.getThreadName())
-        : "Only " + TaskExecutor.getThreadName() + " may call finalize() on task";
+      throws RequestInvalidatedException {
+    assert Thread.currentThread().getName().equals(Scheduler.getThreadName())
+        : "Only " + Scheduler.getThreadName() + " may call finalize() on task";
 
     if (source == null) {
       if (pAlreadyPropagated.contains(start)) {
-        throw new TaskInvalidatedException();
+        throw new RequestInvalidatedException();
       } else {
         pAlreadyPropagated.add(start);
       }
@@ -204,7 +172,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
       blockSummary = new ShareableBooleanFormula(fMgr, emptyFormula);
     }
 
-    return new BackwardAnalysis(
+    return new BackwardAnalysisFull(
         target,
         start,
         errorCondition,
@@ -212,7 +180,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
         reached,
         algorithm,
         cpa,
-        taskManager,
+        messageFactory,
         logManager,
         shutdownNotifier);
   }

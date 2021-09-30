@@ -6,8 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message;
 
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -16,16 +17,20 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisContinuationRequest;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisRequest;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.BackwardAnalysisContinuationRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.BackwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.ForwardAnalysisRequest;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class TaskManager {
+public class MessageFactory {
   private final Configuration config;
 
   private final Specification specification;
@@ -36,35 +41,36 @@ public class TaskManager {
 
   private final CFA cfa;
 
-  private final TaskExecutor executor;
+  private final Scheduler executor;
 
-  private TaskManager(
+  private MessageFactory(
       final Configuration pConfig,
       final Specification pSpecification,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCFA,
-      final TaskExecutor pTaskExecutor) {
+      final Scheduler pScheduler) {
     config = pConfig;
     specification = pSpecification;
     logManager = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     cfa = pCFA;
-    executor = pTaskExecutor;
+    executor = pScheduler;
   }
 
   public static TaskManagerFactory factory() {
     return new TaskManagerFactory();
   }
 
-  public void spawnForwardAnalysis(
+  public void sendForwardAnalysisRequest(
       final Block pPredecessor,
       final int pPredecessorExpectedVersion,
       final Block pBlock,
       final ShareableBooleanFormula pNewPrecondition)
       throws InterruptedException, InvalidConfigurationException, CPAException {
 
-    ForwardAnalysisRequest task =
+    try {
+      Message request =
         new ForwardAnalysisRequest(
             pPredecessor,
             pBlock,
@@ -76,30 +82,37 @@ public class TaskManager {
             shutdownNotifier,
             cfa,
             this);
-
-    executor.requestJob(task);
+    
+      executor.sendMessage(request);
+    } catch(final AssertionError error) {
+      logManager.log(Level.SEVERE, "AssertionError:", error);
+    }
   }
 
-  public void spawnForwardAnalysis(final Block pBlock)
+  public void sendForwardAnalysisRequest(final Block pBlock)
       throws InterruptedException, InvalidConfigurationException, CPAException {
-    ForwardAnalysisRequest request =
-        new ForwardAnalysisRequest(
-            null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa, this);
-    executor.requestJob(request);
+    try {
+      Message message =
+          new ForwardAnalysisRequest(
+              null, pBlock, null, 0, config, specification, logManager, shutdownNotifier, cfa,
+              this);
+      executor.sendMessage(message);
+    } catch(final AssertionError error) {
+      logManager.log(Level.SEVERE, "AssertionError:", error);
+    }
   }
 
-  public void spawnBackwardAnalysis(final Block pBlock, final CFANode pStart)
+  public void sendBackwardAnalysisRequest(final Block pBlock, final CFANode pStart)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
-    BackwardAnalysisRequest task =
+    Message message =
         new BackwardAnalysisRequest(
             pBlock, pStart, null, null, config, logManager, shutdownNotifier, cfa, this);
-
-    executor.requestJob(task);
+    executor.sendMessage(message);
   }
 
-  public void spawnBackwardAnalysis(
+  public void sendBackwardAnalysisRequest(
       final Block pBlock,
       final CFANode pStart,
       final Block pSource,
@@ -107,24 +120,28 @@ public class TaskManager {
       throws InterruptedException, InvalidConfigurationException, CPAException {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
-    BackwardAnalysisRequest task =
+    Message message =
         new BackwardAnalysisRequest(
             pBlock, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa, this);
-
-    executor.requestJob(task);
+    executor.sendMessage(message);
   }
 
-  public void spawnBackwardAnalysisContinuation(
+  public void sendBackwardAnalysisContinuationRequest(
       final Block pBlock,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA)
       throws InterruptedException, InvalidConfigurationException, CPAException {
-    BackwardAnalysisContinuationRequest task =
+    Message message =
         new BackwardAnalysisContinuationRequest(
             pBlock,pReachedSet, pAlgorithm, pCPA, this, logManager, shutdownNotifier);
 
-    executor.requestJob(task);
+    executor.sendMessage(message);
+  }
+  
+  public void sendTaskCompletionMessage(final Task task, final SubtaskResult result) {
+    Message msg = new TaskCompletionMessage(result, task);
+    executor.sendMessage(msg);
   }
 
   public static class TaskManagerFactory {
@@ -133,7 +150,7 @@ public class TaskManager {
     private LogManager logManager = null;
     private ShutdownNotifier shutdownNotifier = null;
     private CFA cfa = null;
-    private TaskExecutor executor = null;
+    private Scheduler executor = null;
 
     public <T> TaskManagerFactory set(T pObject, Class<T> pClass)
         throws UnsupportedOperationException {
@@ -147,8 +164,8 @@ public class TaskManager {
         shutdownNotifier = (ShutdownNotifier) pObject;
       } else if (pClass == CFA.class) {
         cfa = (CFA) pObject;
-      } else if (pClass == TaskExecutor.class) {
-        executor = (TaskExecutor) pObject;
+      } else if (pClass == Scheduler.class) {
+        executor = (Scheduler) pObject;
       } else {
         final String message = "TaskFactory requires no object of type " + pClass;
         throw new UnsupportedOperationException(message);
@@ -157,8 +174,8 @@ public class TaskManager {
       return this;
     }
 
-    public TaskManager createInstance() {
-      return new TaskManager(config, specification, logManager, shutdownNotifier, cfa, executor);
+    public MessageFactory createInstance() {
+      return new MessageFactory(config, specification, logManager, shutdownNotifier, cfa, executor);
     }
   }
 }

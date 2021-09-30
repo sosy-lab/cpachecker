@@ -6,18 +6,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request;
 
 import com.google.common.collect.Table;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 
-public interface TaskRequest {
+public interface TaskRequest extends Message {
   /**
    * Preprocess the task before it gets scheduled. This method is invoked by the central scheduler
    * and runs within its thread. As such, all calls to {@link #finalize(Table, Map, Table)} across
@@ -35,18 +38,21 @@ public interface TaskRequest {
    * simple {@link Map}, while {@code pSummaries} requires a {@link Table}.
    *
    * <p>Similarily, the {@link Set} {@code pAlreadyPropagated} centrally stores whether the
-   * algorithm has already scheduled a {@link BackwardAnalysis} starting from a {@link CFANode}. It
+   * algorithm has already scheduled a {@link BackwardAnalysisFull} starting from a {@link CFANode}. It
    * can be used to prevent the repeated propagation of the same error condition, which would
    * otherwise occur if a refined {@link ForwardAnalysis} encounters the same target location as a
    * preceding one before.
    *
    * @param pSummaries         Latest block summaries
    * @param pSummaryVersions   Version counter for block summaries
-   * @param pAlreadyPropagated CFANodes from which a BackwardAnalysis has already emerged
+   * @param pAlreadyPropagated CFANodes from which a BackwardAnalysisFull has already emerged
    */
-  Task finalize(
+  Task process(
       final Table<Block, Block, ShareableBooleanFormula> pSummaries,
       final Map<Block, Integer> pSummaryVersions,
-      final Set<CFANode> pAlreadyPropagated)
-      throws TaskInvalidatedException;
+      final Set<CFANode> pAlreadyPropagated) throws RequestInvalidatedException;
+  
+  default void accept(final MessageProcessingVisitor visitor) {
+    visitor.visit(this);
+  }
 }

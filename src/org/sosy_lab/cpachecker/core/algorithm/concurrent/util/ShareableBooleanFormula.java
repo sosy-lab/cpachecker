@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.concurrent;
+package org.sosy_lab.cpachecker.core.algorithm.concurrent.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -18,8 +18,7 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.blockgraph.BlockGraph;
 import org.sosy_lab.cpachecker.cfa.blockgraph.builder.BlockGraphBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -84,20 +83,20 @@ public class ConcurrentAnalysis implements Algorithm {
           BlockGraphBuilder.create(shutdownNotifier).build(cfa.getMainFunction(), blk);
 
       final int processors = Runtime.getRuntime().availableProcessors();
-      TaskExecutor executor = new TaskExecutor(processors, logger);
+      Scheduler executor = new Scheduler(processors, logger, shutdownNotifier);
 
-      TaskManager taskManager =
-          TaskManager.factory()
+      MessageFactory messageFactory =
+          MessageFactory.factory()
               .set(config, Configuration.class)
               .set(specification, Specification.class)
               .set(logger, LogManager.class)
               .set(shutdownNotifier, ShutdownNotifier.class)
               .set(cfa, CFA.class)
-              .set(executor, TaskExecutor.class)
+              .set(executor, Scheduler.class)
               .createInstance();
 
       for (final Block block : graph.getBlocks()) {
-        taskManager.spawnForwardAnalysis(block);
+        messageFactory.sendForwardAnalysisRequest(block);
       }
 
       executor.start();

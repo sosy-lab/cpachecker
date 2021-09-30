@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
+import static org.sosy_lab.cpachecker.core.CPAcheckerResult.Result.UNKNOWN;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -16,21 +18,25 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.filterLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.TaskManager;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ConfigurationLoader;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -50,7 +56,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ForwardAnalysis implements Task {
+public class ForwardAnalysis extends Task {
+  private static volatile ConfigurationLoader configLoader = null;
+
   private final Block target;
   private final PathFormula newSummary;
   private final PathFormula oldSummary;
@@ -63,9 +71,6 @@ public class ForwardAnalysis implements Task {
   private final FormulaManagerView fMgr;
   private final BooleanFormulaManagerView bfMgr;
   private final PathFormulaManager pfMgr;
-  private final TaskManager taskManager;
-  private final LogManager logManager;
-  private final ShutdownNotifier shutdownNotifier;
 
   public ForwardAnalysis(
       final Block pTarget,
@@ -76,9 +81,11 @@ public class ForwardAnalysis implements Task {
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA,
-      final TaskManager pTaskManager,
+      final MessageFactory pMessageFactory,
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
+    super(pMessageFactory, pLogManager, pShutdownNotifier);
+    
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
     assert predCPA != null;
 
@@ -86,7 +93,7 @@ public class ForwardAnalysis implements Task {
     fMgr = solver.getFormulaManager();
     bfMgr = fMgr.getBooleanFormulaManager();
     pfMgr = predCPA.getPathFormulaManager();
-    
+
     target = pTarget;
     oldSummary = pOldSummary == null ? null : pOldSummary.getFor(fMgr, pfMgr);
     newSummary = pNewSummary == null ? null : pNewSummary.getFor(fMgr, pfMgr);
@@ -99,22 +106,38 @@ public class ForwardAnalysis implements Task {
     reached = pReachedSet;
     algorithm = pAlgorithm;
     cpa = pCPA;
-    taskManager = pTaskManager;
-    logManager = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
+  }
+
+  public static Configuration getConfiguration(
+      final LogManager pLogManager,
+      @Nullable final Path pConfigFile) throws InvalidConfigurationException {
+    if (configLoader == null) {
+      synchronized (ForwardAnalysis.class) {
+        if (configLoader == null) {
+          configLoader =
+              new ConfigurationLoader(ForwardAnalysis.class, "predicateForward.properties",
+                  pConfigFile, pLogManager);
+        }
+      }
+    }
+    return configLoader.getConfiguration();
   }
 
   @Override
-  public AlgorithmStatus call()
+  protected void execute()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+    AlgorithmStatus status = NO_PROPERTY_CHECKED;
+    SubtaskResult result = SubtaskResult.create(UNKNOWN, NO_PROPERTY_CHECKED);
+
     if (isSummaryUnchanged()) {
-      return status;
+      logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
+      messageFactory.sendTaskCompletionMessage(this, result);
     }
 
     PathFormula cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
-      return status;
+      logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
+      messageFactory.sendTaskCompletionMessage(this, result);
     }
 
     CompositeState entryState = buildEntryState(cumPredSummary);
@@ -142,7 +165,8 @@ public class ForwardAnalysis implements Task {
     propagateThroughExits();
 
     logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
-    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    result = SubtaskResult.create(UNKNOWN, status);
+    messageFactory.sendTaskCompletionMessage(this, result);
   }
 
   private boolean thereIsNoRelevantChange(final PathFormula cumPredSummary)
@@ -150,18 +174,18 @@ public class ForwardAnalysis implements Task {
     if (oldSummary == null || newSummary == null) {
       return false;
     }
-    
-    BooleanFormula addedContext 
+
+    BooleanFormula addedContext
         = bfMgr.and(oldSummary.getFormula(), bfMgr.not(newSummary.getFormula()));
     BooleanFormula relevantChange = bfMgr.implication(cumPredSummary.getFormula(), addedContext);
-    
+
     return solver.isUnsat(relevantChange);
   }
 
   private PathFormula buildCumulativePredecessorSummary() throws InterruptedException {
     PathFormula cumPredSummary = pfMgr.makeEmptyPathFormula();
-    for(final PathFormula formula : predecessorSummaries) {
-      cumPredSummary = pfMgr.makeOr(cumPredSummary, formula); 
+    for (final PathFormula formula : predecessorSummaries) {
+      cumPredSummary = pfMgr.makeOr(cumPredSummary, formula);
     }
 
     return cumPredSummary;
@@ -237,7 +261,7 @@ public class ForwardAnalysis implements Task {
 
       if (isTargetState(state)) {
         logManager.log(Level.FINE, "Target State:", state);
-        taskManager.spawnBackwardAnalysis(target, location);
+        messageFactory.sendBackwardAnalysisRequest(target, location);
       }
     }
   }
@@ -251,15 +275,16 @@ public class ForwardAnalysis implements Task {
         final PredicateAbstractState predState =
             extractStateByType(exitState, PredicateAbstractState.class);
         assert predState != null;
-        
+
         exitFormula = pfMgr.makeOr(exitFormula, predState.getPathFormula());
       }
-      
+
       Block successor = target.getExits().get(exit);
       final ShareableBooleanFormula shareableFormula =
           new ShareableBooleanFormula(fMgr, exitFormula);
 
-      taskManager.spawnForwardAnalysis(target, expectedVersion, successor, shareableFormula);
+      messageFactory.sendForwardAnalysisRequest(target, expectedVersion, successor,
+          shareableFormula);
     }
   }
 
