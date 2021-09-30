@@ -132,12 +132,14 @@ public class ForwardAnalysis extends Task {
     if (isSummaryUnchanged()) {
       logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
       messageFactory.sendTaskCompletionMessage(this, result);
+      return;
     }
 
     PathFormula cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
       logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
       messageFactory.sendTaskCompletionMessage(this, result);
+      return;
     }
 
     CompositeState entryState = buildEntryState(cumPredSummary);
