@@ -91,11 +91,11 @@ public class BackwardAnalysisCore extends Task {
     }
 
     shutdownNotifier.shutdownIfNecessary();
-    if (!reached.getWaitlist().isEmpty()) {
+    if (reached.hasWaitingState()) {
       messageFactory.sendBackwardAnalysisContinuationRequest(target, reached, algorithm, cpa);
     }
 
-    logManager.log(Level.FINE, "Completed BackwardAnalysisFull on", target);
+    logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
     result = result.withStatus(status);
     messageFactory.sendTaskCompletionMessage(this, result);    
   }
