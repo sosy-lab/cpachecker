@@ -61,7 +61,8 @@ public final class Scheduler implements Runnable {
   private final Map<Block, Integer> summaryVersion = Maps.newHashMap();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
   private int jobCount = 0;
-  private boolean complete = false;
+  private volatile boolean complete = false;
+  
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
    * called.
@@ -197,7 +198,6 @@ public final class Scheduler implements Runnable {
       try {
         Task newTask = pRequest.process(summaries, summaryVersion, alreadyPropagated);
         executor.submit(newTask);
-        logManager.log(Level.INFO, "Task submitted:", newTask);
         
         ++jobCount;
       } catch (final RequestInvalidatedException ignored) {
@@ -209,7 +209,6 @@ public final class Scheduler implements Runnable {
     }
 
     public void visit(final TaskCompletionMessage pCompletionMessage) {
-      logManager.log(Level.INFO, "Task completion for", pCompletionMessage.getTask(), "reported.");
       --jobCount;
 
       if (jobCount == 0 && messages.isEmpty()) {
