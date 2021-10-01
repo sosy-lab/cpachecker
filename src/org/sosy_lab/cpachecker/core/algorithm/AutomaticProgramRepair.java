@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -22,8 +21,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
