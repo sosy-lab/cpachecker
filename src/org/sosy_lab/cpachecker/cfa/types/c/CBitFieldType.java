@@ -68,6 +68,10 @@ public class CBitFieldType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
+    if (bitFieldSize == 0) {
+      // bit-field types are valid only in fields, and zero-width bit fields need to be anonymous
+      pDeclarator = "";
+    }
     return type.toASTString(pDeclarator) + " : " + bitFieldSize;
   }
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.appendables;
 
+import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
@@ -20,8 +21,6 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
     REASON(0),
     /** Provides a possible fix */
     FIX(1),
-    /** Hints and explanations for the user */
-    HINT(2),
     /** Information provided by the rankings */
     RANK_INFO(3);
 
@@ -33,7 +32,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
 
   protected double score;
   protected String description;
-  private InfoType type;
+  private final InfoType type;
 
   protected FaultInfo(InfoType pType) {
     type = pType;
@@ -62,10 +61,6 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
     return new FaultReason(InfoType.REASON, pDescription);
   }
 
-  public static Hint hint(String pDescription){
-    return new Hint(InfoType.HINT, pDescription);
-  }
-
   public double getScore(){
     return score;
   }
@@ -84,12 +79,9 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
    * @return Is this object smaller equal or greater than info
    */
   @Override
-  public int compareTo(FaultInfo info){
-    if(type.equals(info.type)){
-      return Double.compare(info.score, score);
-    } else {
-      return type.reportRank - info.type.reportRank;
-    }
+  public int compareTo(FaultInfo info) {
+    return Comparator.<FaultInfo>comparingInt(i -> i.type.reportRank)
+        .thenComparingDouble(i -> i.score).compare(this, info);
   }
 
   @Override

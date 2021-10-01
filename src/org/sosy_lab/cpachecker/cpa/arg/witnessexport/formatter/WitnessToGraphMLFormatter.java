@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
@@ -63,7 +63,7 @@ public class WitnessToGraphMLFormatter extends WitnessToOutputFormatter<Element>
     for (NodeFlag f : witness.getNodeFlags().get(pNodeId)) {
       doc.addDataElementChild(result, f.key, "true");
     }
-    for (Property violation : witness.getViolatedProperties().get(pNodeId)) {
+    for (TargetInformation violation : witness.getViolatedProperties().get(pNodeId)) {
       doc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
     }
     if (witness.hasQuasiInvariant(pNodeId)) {

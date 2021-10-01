@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpalien" timelimit="60 s" hardtimelimit="90 s" memlimit="1 GB" cpuCores="1">
   <option name="-noout"/>
@@ -6,24 +17,17 @@
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
-  <tasks name="cpalien-okay">
+  <tasks name="cpalien">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-CPAlien"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
-  </tasks>
-
-  <tasks name="cpalien-label-okay">
-    <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
-    <option name="-CPAlien-label"/>
-    <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
     <option name="-svcomp14"/>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <rundefinition/>
 </benchmark>

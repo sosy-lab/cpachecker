@@ -262,7 +262,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
           CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
           stmt = statementEdge.getStatement();
         } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          stmt = ((CFunctionCallEdge) pCfaEdge).getRawAST().get();
+          stmt = ((CFunctionCallEdge) pCfaEdge).getFunctionCall();
         } else {
           // Not sure what is it
           break;

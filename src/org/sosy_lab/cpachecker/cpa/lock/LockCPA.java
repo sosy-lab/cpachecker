@@ -39,12 +39,12 @@ public class LockCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider,
     ConfigurableProgramAnalysisTM {
 
-  public static enum LockAnalysisMode {
+  public enum LockAnalysisMode {
     RACE,
     DEADLOCK
   }
 
-  public static enum StopMode {
+  public enum StopMode {
     DEFAULT,
     EMPTYLOCKSET
   }

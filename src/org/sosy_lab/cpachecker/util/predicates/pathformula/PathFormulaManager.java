@@ -30,9 +30,28 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public interface PathFormulaManager {
 
+  /** Create a new path formula with the formula <code>true</code> and empty SSAMap etc. */
   PathFormula makeEmptyPathFormula();
 
-  PathFormula makeEmptyPathFormula(PathFormula oldFormula);
+  /**
+   * Create a new path formula with the formula <code>true</code> and SSAMap etc. taken from an
+   * existing path formula.
+   *
+   * <p>This is useful for creating a sequence of path formulas for a path when the new path formula
+   * (for the second part of the path) should start with the SSA indices from the old path formula
+   * such that both formulas can be conjuncted later on to represent the full path.
+   */
+  PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula oldFormula);
+
+  /**
+   * Create a new path formula with the formula <code>true</code> and the given SSAMap and
+   * PointerTargetSet.
+   *
+   * <p>In most cases {@link #makeEmptyPathFormulaWithContextFrom(PathFormula)} should be used
+   * instead, but this method may be useful in similar cases but where no PathFormula instance
+   * exists.
+   */
+  PathFormula makeEmptyPathFormulaWithContext(SSAMap ssaMap, PointerTargetSet pts);
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently from {@link
@@ -55,18 +74,21 @@ public interface PathFormulaManager {
 
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
-  /**
-   * Create a copy of a PathFormula but with the given SSAMap. Note that this is almost always the
-   * wrong method to call: if you need to use a specific SSAMap, you probably also need to use a
-   * specific PointerTargetSet! So better call {@link #makeNewPathFormula(PathFormula, SSAMap,
-   * PointerTargetSet)}.
-   */
-  @Deprecated
-  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
-
-  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
-
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
+
+  /**
+   * Create a conjunction of path formulas. The result has the conjunction of all formulas, the
+   * SSAMap and PointerTargetSet of the last list entry, and the sum of all lengths. If the list is
+   * empty, the result is equal to {@link #makeEmptyPathFormula()}).
+   *
+   * <p>WARNING: The input path formulas must already have matching SSA indices for this to make
+   * sense! The usual case to call this method is when you have a list of path formulas, where each
+   * path formula except the first was based on the result of a call to {@link
+   * #makeEmptyPathFormulaWithContextFrom(PathFormula)} with the previous path formula.
+   *
+   * <p>Note: This is not a commutative operation! The order of the list matters.
+   */
+  PathFormula makeConjunction(List<PathFormula> pathFormulas);
 
   /**
    * Takes a variable name and its type to create the corresponding formula out of it. The <code>

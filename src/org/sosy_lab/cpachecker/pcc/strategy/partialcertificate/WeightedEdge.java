@@ -46,9 +46,7 @@ public class WeightedEdge {
    */
   @Override
   public String toString() {
-    StringBuilder s = new StringBuilder();
-    s.append(startNode).append("--").append(weight).append("-->").append(endNode);
-    return s.toString();
+    return startNode + "--" + weight + "-->" + endNode;
   }
 
 }

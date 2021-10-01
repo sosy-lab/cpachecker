@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,7 +34,7 @@ public class PathPairIterator extends
   private final Set<List<Integer>> refinedStates = new HashSet<>();
   //private final BAMCPA bamCpa;
   private PathRestorator subgraphComputer;
-  private final Map<UsageInfo, PathIterator> targetToPathIterator;
+  private final IdentityHashMap<UsageInfo, PathIterator> targetToPathIterator;
   private final Set<UsageInfo> skippedUsages;
 
   //Statistics
@@ -47,8 +46,10 @@ public class PathPairIterator extends
   //private int numberOfrepeatedPaths = 0;
 
   // A state may be related to several usages due to expansion
-  private Map<AbstractState, List<ExtendedARGPath>> computedPathsForState = new IdentityHashMap<>();
-  private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
+  private IdentityHashMap<AbstractState, List<ExtendedARGPath>> computedPathsForState =
+      new IdentityHashMap<>();
+  private IdentityHashMap<UsageInfo, Iterator<ExtendedARGPath>> currentIterators =
+      new IdentityHashMap<>();
   // Not set, hash is changed
   private List<ExtendedARGPath> missedPaths = new ArrayList<>();
 

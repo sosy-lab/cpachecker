@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -191,7 +190,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
-            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, new AggregatedReachedSets());
+            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, AggregatedReachedSets.empty());
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 
@@ -297,18 +296,18 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     private AggregatedReachedSets runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
-      ReachedSet taskReached = reachedSetFactory.create();
-      taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
-          cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
+      ReachedSet taskReached =
+          reachedSetFactory.createAndInitialize(
+              cpa, pInitialLocation, StateSpacePartition.getDefaultPartition());
 
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
-          return new AggregatedReachedSets();
+          return AggregatedReachedSets.empty();
         }
       }
 
-      if (!taskReached.hasViolatedProperties()
+      if (!taskReached.wasTargetReached()
           && !from(taskReached).anyMatch(CPAInvariantGenerator::hasAssumption)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
@@ -320,11 +319,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       checkState(!taskReached.hasWaitingState());
       checkState(!taskReached.isEmpty());
-      return new AggregatedReachedSets(Collections.singleton(taskReached));
+      return AggregatedReachedSets.singleton(taskReached);
     }
   }
 
-  private static final boolean hasAssumption(AbstractState state) {
+  private static boolean hasAssumption(AbstractState state) {
     AssumptionStorageState assumption =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();

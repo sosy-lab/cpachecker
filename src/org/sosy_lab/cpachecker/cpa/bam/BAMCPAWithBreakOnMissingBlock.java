@@ -57,7 +57,7 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
     pConfig.inject(this);
 
     cache = new BAMCacheSynchronized(pConfig, getReducer(), pLogger);
-    data = new BAMDataManagerSynchronized(cache, reachedsetFactory, pLogger);
+    data = new BAMDataManagerSynchronized(this, cache, reachedsetFactory, pLogger);
   }
 
   @Override

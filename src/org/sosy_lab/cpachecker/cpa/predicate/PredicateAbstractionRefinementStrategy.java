@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -90,7 +90,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
-  private static enum PredicateSharing {
+
+  private enum PredicateSharing {
     GLOBAL,            // at all locations
     SCOPE,             // at all locations in the scope of the variable
     FUNCTION,          // at all locations in the respective function
@@ -115,7 +116,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   // advantages. We do not want to use ALL by default because this would disable lazy abstraction.
   private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.SUBGRAPH;
 
-  private static enum PredicateBasisStrategy {ALL, SUBGRAPH, TARGET, CUTPOINT}
+  private enum PredicateBasisStrategy {
+    ALL,
+    SUBGRAPH,
+    TARGET,
+    CUTPOINT
+  }
 
   @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
@@ -257,10 +263,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PathFormula blockFormula = predicateState.getAbstractionFormula().getBlockFormula();
 
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
-    CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-    int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
-
-    newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
+    for (CFANode loc : AbstractStates.extractLocations(interpolationPoint)) {
+      int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
+      newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
+    }
     predicateCreation.stop();
 
     return false;
@@ -268,12 +274,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   /**
    * Get the predicates out of an interpolant.
+   *
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  private final Collection<AbstractionPredicate> convertInterpolant(
-      final BooleanFormula pInterpolant, PathFormula blockFormula)
-      throws InterruptedException {
+  private Collection<AbstractionPredicate> convertInterpolant(
+      final BooleanFormula pInterpolant, PathFormula blockFormula) throws InterruptedException {
 
     BooleanFormula interpolant = pInterpolant;
 
@@ -375,17 +381,19 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   protected Pair<PredicatePrecision, ARGState> computeNewPrecision(
       ARGState pUnreachableState,
-      List<ARGState> pAffectedStates, ARGReachedSet pReached, boolean pRepeatedCounterexample)
+      List<ARGState> pAffectedStates,
+      ARGReachedSet pReached,
+      boolean pRepeatedCounterexample)
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location
-      CFANode loc = extractLocation(pUnreachableState);
-      PredicateAbstractState predicateState = getPredicateState(pUnreachableState);
-      if (predicateState.isAbstractionState()) {
-        int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
+      // or add "false" to each location of the combination of locations
+      for (CFANode loc : extractLocations(pUnreachableState)) {
+        int locInstance =
+            getPredicateState(pUnreachableState).getAbstractionLocationsOnPath().get(loc);
         newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
-        pAffectedStates.add(pUnreachableState);
       }
+      pAffectedStates.add(pUnreachableState);
     }
 
     // get previous precision

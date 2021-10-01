@@ -19,8 +19,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import com.google.common.base.Optional;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;

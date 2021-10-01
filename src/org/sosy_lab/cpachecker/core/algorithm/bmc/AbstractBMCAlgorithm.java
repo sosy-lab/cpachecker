@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,14 +113,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  protected static final boolean isStopState(AbstractState state) {
+  protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumptionState != null && assumptionState.isStop();
   }
 
   /** Filters out states that were detected as irrelevant for reachability */
-  protected static final boolean isRelevantForReachability(AbstractState state) {
+  protected static boolean isRelevantForReachability(AbstractState state) {
     return AbstractStates.extractStateByType(state, ReachabilityState.class)
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
@@ -143,18 +144,18 @@ abstract class AbstractBMCAlgorithm
   private InvariantGeneratorFactory invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
 
   @Option(
-    secure = true,
-    description =
-        "Controls how long the invariant generator is allowed to run before the k-induction procedure starts."
-  )
+      secure = true,
+      description =
+          "Controls how long the invariant generator is allowed to run before the k-induction"
+              + " procedure starts.")
   private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
       InvariantGeneratorHeadStartFactories.NONE;
 
   @Option(
-    secure = true,
-    description =
-        "k-induction configuration to be used as an invariant generator for k-induction (ki-ki(-ai))."
-  )
+      secure = true,
+      description =
+          "k-induction configuration to be used as an invariant generator for k-induction"
+              + " (ki-ki(-ai)).")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path invariantGeneratorConfig = null;
 
@@ -166,6 +167,13 @@ abstract class AbstractBMCAlgorithm
     description = "Use generalized counterexamples to induction as candidate invariants."
   )
   private boolean usePropertyDirection = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Try to simplify the structure of formulas for the sat check of BMC. "
+              + "The improvement depends on the underlying SMT solver.")
+  private boolean simplifyBooleanFormula = false;
 
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
@@ -249,7 +257,7 @@ abstract class AbstractBMCAlgorithm
       CPABuilder builder =
           new CPABuilder(
               pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
-      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, new AggregatedReachedSets());
+      stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
           CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
@@ -326,7 +334,10 @@ abstract class AbstractBMCAlgorithm
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
     if (!cfa.getLoopStructure().isPresent()) {
-      logger.log(Level.WARNING, "Could not use induction for proving program safety, loop structure of program could not be determined.");
+      logger.log(
+          Level.WARNING,
+          "Could not use induction for proving program safety, loop structure of program could not"
+              + " be determined.");
       return false;
     }
 
@@ -346,9 +357,7 @@ abstract class AbstractBMCAlgorithm
     Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
-        reachedSet.removeOnlyFromWaitlist(state);
-      }
+      reachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -369,7 +378,9 @@ abstract class AbstractBMCAlgorithm
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
-          logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
+          logger.log(
+              Level.WARNING,
+              "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
         }
         shutdownNotifier.shutdownIfNecessary();
@@ -603,6 +614,16 @@ abstract class AbstractBMCAlgorithm
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
+    if (simplifyBooleanFormula) {
+      BigInteger sizeBeforeSimplification = fmgr.countBooleanOperations(program);
+      program = fmgr.simplifyBooleanFormula(program);
+      BigInteger sizeAfterSimplification = fmgr.countBooleanOperations(program);
+      logger.logf(
+          Level.FINER,
+          "Formula was simplified from %s to %s boolean operations.",
+          sizeBeforeSimplification,
+          sizeAfterSimplification);
+    }
     logger.log(Level.INFO, "Starting satisfiability check...");
     stats.satCheck.start();
     pProver.push(program);

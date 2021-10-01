@@ -59,8 +59,10 @@ public class PointerStatistics implements Statistics {
   private final PointerTransferRelation transfer;
   private final PointerReducer reducer;
 
-  private static final MemoryLocation replLocSetTop = MemoryLocation.valueOf("_LOCATION_SET_TOP_");
-  private static final MemoryLocation replLocSetBot = MemoryLocation.valueOf("_LOCATION_SET_BOT_");
+  private static final MemoryLocation replLocSetTop =
+      MemoryLocation.forIdentifier("_LOCATION_SET_TOP_");
+  private static final MemoryLocation replLocSetBot =
+      MemoryLocation.forIdentifier("_LOCATION_SET_BOT_");
 
   PointerStatistics(boolean pNoOutput, Path pPath, TransferRelation tr, Reducer rd) {
     noOutput = pNoOutput;

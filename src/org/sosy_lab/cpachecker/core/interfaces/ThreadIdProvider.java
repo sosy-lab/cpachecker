@@ -19,14 +19,17 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.Optional;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public interface ThreadIdProvider extends AbstractState {
   public String getThreadIdForEdge(CFAEdge pEdge);
 
-  public Optional<Pair<String, String>>
-      getSpawnedThreadIdByEdge(CFAEdge pEdge, ThreadIdProvider successor);
+  public List<Pair<String, String>>
+      getSpawnedThreadIdByEdge(
+          CFAEdge pEdge,
+          ARGState pState);
 
 }

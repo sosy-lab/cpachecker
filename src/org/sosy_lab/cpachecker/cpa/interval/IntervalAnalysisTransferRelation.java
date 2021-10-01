@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -95,7 +95,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     IntervalAnalysisState newState = state;
     Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
-      newState = newState.removeInterval(retVar.get().getQualifiedName());
+      newState = newState.removeInterval(retVar.orElseThrow().getQualifiedName());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -103,12 +103,12 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)summaryExpr;
 
       // left hand side of the expression has to be a variable
-      if (state.contains(retVar.get().getQualifiedName())) {
+      if (state.contains(retVar.orElseThrow().getQualifiedName())) {
         newState =
             addInterval(
                 newState,
                 funcExp.getLeftHandSide(),
-                state.getInterval(retVar.get().getQualifiedName()));
+                state.getInterval(retVar.orElseThrow().getQualifiedName()));
       }
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -165,7 +165,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     // assign the value of the function return to a new variable
     if (returnEdge.asAssignment().isPresent()) {
-      CAssignment ass = returnEdge.asAssignment().get();
+      CAssignment ass = returnEdge.asAssignment().orElseThrow();
       newState =
           newState.addInterval(
               ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),

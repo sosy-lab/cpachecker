@@ -36,10 +36,10 @@ public class LocationIdentifierConverter {
   public static MemoryLocation toLocation(AbstractIdentifier id) {
     if (id instanceof LocalVariableIdentifier) {
       LocalVariableIdentifier lvid = (LocalVariableIdentifier) id;
-      return MemoryLocation.valueOf(lvid.getFunction(), lvid.getName());
+      return MemoryLocation.forLocalVariable(lvid.getFunction(), lvid.getName());
     } else if (id instanceof GlobalVariableIdentifier) {
       GlobalVariableIdentifier gvid = (GlobalVariableIdentifier) id;
-      return MemoryLocation.valueOf(gvid.getName());
+      return MemoryLocation.forIdentifier(gvid.getName());
     } else if (id instanceof StructureFieldIdentifier) {
       StructureFieldIdentifier stfid = (StructureFieldIdentifier) id;
       AbstractIdentifier owner = stfid.getOwner();
@@ -48,9 +48,9 @@ public class LocationIdentifierConverter {
         if (ownerType.contains("(")) {
           ownerType = ownerType.substring(ownerType.indexOf("(") + 1, ownerType.indexOf(")"));
         }
-        return MemoryLocation.valueOf(ownerType + "." + stfid.getName());
+        return MemoryLocation.forIdentifier(ownerType + "." + stfid.getName());
       } else {
-        return MemoryLocation.valueOf(stfid.toString());
+        return MemoryLocation.forIdentifier(stfid.toString());
       }
     } else if (id instanceof StructureIdentifier) {
       StructureIdentifier stid = (StructureIdentifier) id;
@@ -60,9 +60,9 @@ public class LocationIdentifierConverter {
         if (ownerType.contains("(")) {
           ownerType = ownerType.substring(ownerType.indexOf("(") + 1, ownerType.indexOf(")"));
         }
-        return MemoryLocation.valueOf(ownerType + "." + stid.getName());
+        return MemoryLocation.forIdentifier(ownerType + "." + stid.getName());
       } else {
-        return MemoryLocation.valueOf(stid.toString());
+        return MemoryLocation.forIdentifier(stid.toString());
       }
     } else if (id instanceof BinaryIdentifier) {
       BinaryIdentifier bid = (BinaryIdentifier) id;

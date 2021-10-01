@@ -20,7 +20,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -94,7 +93,7 @@ public abstract class ErrorTracePrinter {
 
   @Option(name = "falseUnsafesOutput", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
+  private Path outputFalseUnsafes = Path.of("FalseUnsafes");
 
   @Option(
     name = "filterMissedFiles",
@@ -165,7 +164,7 @@ public abstract class ErrorTracePrinter {
       FILTER_EMPTY_FILE_LOCATIONS =
           Predicates.and(
               FILTER_EMPTY_FILE_LOCATIONS,
-              e -> Files.exists(Paths.get(e.getFileLocation().getFileName())));
+              e -> Files.exists(e.getFileLocation().getFileName()));
     }
 
     subgraphComputer = t;
@@ -257,7 +256,7 @@ public abstract class ErrorTracePrinter {
             writer.append(createUniqueName(id) + "\n");
           }
         } catch (IOException e) {
-          logger.log(Level.SEVERE, e.getMessage());
+          logger.logUserException(Level.WARNING, e, "Could not write error trace");
         }
       }
     }

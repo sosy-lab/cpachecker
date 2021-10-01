@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
@@ -151,7 +152,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula makePreconditionForReturn(
-      final com.google.common.base.Optional<CAssignment> pAssgn,
+      final Optional<CAssignment> pAssgn,
       final CReturnStatementEdge pEdge,
       final BooleanFormula pPostcond,
       final String pFunction)
@@ -161,8 +162,12 @@ public class CtoWpConverter extends CtoFormulaConverter {
       // void return, i.e. no substitution needed
       return pPostcond;
     } else {
-      return makePreconditionForAssignement(pAssgn.get().getLeftHandSide(), pAssgn.get().getRightHandSide(),
-          pEdge, pPostcond, pFunction);
+      return makePreconditionForAssignement(
+          pAssgn.orElseThrow().getLeftHandSide(),
+          pAssgn.orElseThrow().getRightHandSide(),
+          pEdge,
+          pPostcond,
+          pFunction);
     }
   }
 
@@ -263,18 +268,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
       final String pFunction)
       throws UnrecognizedCodeException {
 
-
-    final var callStmt = pEdge.getRawAST().orNull();
-    if(callStmt == null){
-      throw new UnrecognizedCodeException("Unknown function call statement", pEdge);
-    }
-
-
-    final var callExpr = callStmt.getFunctionCallExpression();
-    if(callExpr == null){
-      throw new UnrecognizedCodeException("Unknown function call expression", pEdge, callStmt);
-    }
-
+    final CFunctionCallExpression callExpr = pEdge.getFunctionCallExpression();
 
     final var params = callExpr.getDeclaration().getParameters();
     final var paramsExprs = callExpr.getParameterExpressions();
@@ -326,7 +320,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
         throw new UnrecognizedCodeException("Void function used in assignment", pEdge, retExp);
       }
 
-      final var rhs = new CIdExpression(callExpr.getFileLocation(), retVarDecl.get());
+      final var rhs = new CIdExpression(callExpr.getFileLocation(), retVarDecl.orElseThrow());
       return makePreconditionForAssignement(callStmt.getLeftHandSide(), rhs, pEdge, pPostcond, callerFunction);
     } else {
       throw new UnrecognizedCodeException("Unknown function exit expression", pEdge, retExp);

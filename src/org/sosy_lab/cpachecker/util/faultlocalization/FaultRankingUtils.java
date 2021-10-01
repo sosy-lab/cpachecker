@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -44,6 +46,19 @@ public class FaultRankingUtils {
         }
       }
     };
+  }
+
+  public static ImmutableList<Fault> rank(FaultScoring scoring, Set<Fault> faults) {
+    scoring.balancedScore(faults);
+    List<Fault> rankedList = new ArrayList<>();
+    for (Fault fault : faults) {
+      FaultRankingUtils.assignScoreTo(fault);
+      for (FaultContribution faultContribution : fault) {
+        FaultRankingUtils.assignScoreTo(faultContribution);
+      }
+      rankedList.add(fault);
+    }
+    return ImmutableList.sortedCopyOf(rankedList);
   }
 
 

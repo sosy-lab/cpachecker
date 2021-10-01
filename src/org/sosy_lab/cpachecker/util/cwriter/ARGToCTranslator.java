@@ -118,7 +118,10 @@ public class ARGToCTranslator {
     RUNTIMEVERIFICATION,
     ASSERTFALSE,
     FRAMACPRAGMA,
-    VERIFIERERROR
+    VERIFIERERROR,
+    REACHASMEMSAFETY,
+    REACHASOVERFLOW,
+    REACHASTERMINATION,
   }
 
   public enum BlockTreatmentAtFunctionEnd {
@@ -557,7 +560,7 @@ public class ARGToCTranslator {
 
       if(returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
-        String retval = returnEdge.getExpression().get().toQualifiedASTString();
+        String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
         String returnVar;
 
         if (childElement.isCovered()) {
@@ -587,7 +590,7 @@ public class ARGToCTranslator {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
           CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
 
-          String retval = returnEdge.getExpression().get().toQualifiedASTString();
+          String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
 
           if (childElement.isCovered()) {
@@ -900,7 +903,13 @@ public class ARGToCTranslator {
           return null;
         }
       case VERIFIERERROR:
-        return new SimpleStatement(pEdgeToTarget, "__VERIFIER_error();");
+        return new SimpleStatement(pEdgeToTarget, "reach_error();");
+      case REACHASMEMSAFETY:
+        return new SimpleStatement("{int i =  *(int *)0;}");
+      case REACHASOVERFLOW:
+        return new SimpleStatement(pEdgeToTarget, "-INT_MIN;");
+      case REACHASTERMINATION:
+        return new SimpleStatement(pEdgeToTarget, "while (1) {}");
       default:
         // case NONE
         return null;

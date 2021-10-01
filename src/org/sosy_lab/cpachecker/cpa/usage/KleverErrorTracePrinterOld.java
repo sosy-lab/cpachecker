@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -84,7 +84,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
           from(firstPath)
               .get(0)
               .getFileLocation()
-              .getFileName();
+              .getFileName()
+              .toString();
 
       GraphMlBuilder builder =
           new GraphMlBuilder(
@@ -103,18 +104,15 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
       // builder.appendTo(w);
       IO.writeFile(
-          Paths.get(name.getAbsolutePath()),
+          Path.of(name.getAbsolutePath()),
           Charset.defaultCharset(),
           (Appender) a -> builder.appendTo(a));
       // w.close();
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (ParserConfigurationException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (DOMException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
-    } catch (InvalidConfigurationException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
+    } catch (IOException
+        | ParserConfigurationException
+        | DOMException
+        | InvalidConfigurationException e) {
+      logger.logfUserException(Level.WARNING, e, "Exception during printing unsafe %s", pId);
     }
   }
 
@@ -124,22 +122,15 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     List<CFAEdge> path = usage.getPath();
 
     Iterator<CFAEdge> iterator = getIterator(path);
+    CFAEdge warning =
+        Lists.reverse(path).stream()
+            .filter(e -> Objects.equals(e.getSuccessor(), usage.getCFANode()))
+            .filter(e -> e.toString().contains(pId.getName()))
+            .findFirst()
+            .orElse(null);
 
-    Optional<CFAEdge> warningEdge =
-        from(path)
-            .filter(
-                e ->
-                Objects.equals(e.getSuccessor(), usage.getCFANode())
-                        && e.toString().contains(pId.getName()))
-            .last();
-
-    CFAEdge warning;
-
-    if (warningEdge.isPresent()) {
-      warning = warningEdge.get();
-    } else {
+    if (warning == null) {
       logger.log(Level.WARNING, "Can not determine an unsafe edge");
-      warning = null;
     }
     Element result = null;
     Element lastWarningElement = null;
@@ -219,7 +210,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
     FileLocation location = pEdge.getFileLocation();
     assert (location != null) : "should be filtered";
-    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName());
+    builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName().toString());
     builder.addDataElementChild(
         result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));
     builder.addDataElementChild(result, KeyDef.OFFSET, Integer.toString(location.getNodeOffset()));

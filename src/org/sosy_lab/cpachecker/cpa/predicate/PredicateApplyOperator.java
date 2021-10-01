@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -119,7 +120,7 @@ public class PredicateApplyOperator implements ApplyOperator {
     } else {
       return name;
     }
-  };
+  }
 
   private class ExpressionTransformer
       implements CRightHandSideVisitor<Pair<CExpression, Boolean>, NoException> {
@@ -353,7 +354,7 @@ public class PredicateApplyOperator implements ApplyOperator {
       CIdExpression rhs;
 
       CFunctionSummaryEdge summary = ((CFunctionReturnEdge) edge).getSummaryEdge();
-      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
+      final Optional<CVariableDeclaration> returnVariableDeclaration =
           summary.getFunctionEntry().getReturnVariable();
 
       assert returnVariableDeclaration.isPresent();

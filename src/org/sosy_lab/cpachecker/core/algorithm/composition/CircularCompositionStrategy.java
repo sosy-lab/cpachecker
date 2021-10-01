@@ -107,13 +107,16 @@ public class CircularCompositionStrategy extends AlgorithmCompositionStrategy
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     // TODO Auto-generated method stub
-    pOut.println("Number of analyes per round: " + algorithmContexts.size());
+    pOut.println("Number of analyses per round: " + algorithmContexts.size());
     pOut.println("Number of completed rounds:  " + noOfRounds);
     pOut.println("Stopped in analysis:         " + inCycleCount);
 
-    for (int i = 1; i < algorithmContexts.size(); i++) {
+    for (int i = 0; i < algorithmContexts.size(); i++) {
       pOut.println(
-          "Time spent in analysis " + i + ":    " + algorithmContexts.get(i).getTotalTimeSpent());
+          "Time spent in analysis "
+              + (i + 1)
+              + ":    "
+              + algorithmContexts.get(i).getTotalTimeSpent().asSeconds());
     }
 
   }

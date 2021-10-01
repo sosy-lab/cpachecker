@@ -215,7 +215,7 @@ public class UsageContainer {
     StatInt refinedUsages = new StatInt(StatKind.SUM, "Total amount of refined usages");
     StatCounter failedUsages = new StatCounter("Total amount of failed usages");
 
-    final int generalUnrefinedSize = unrefinedIds.keySet().size();
+    final int generalUnrefinedSize = unrefinedIds.size();
     for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
       unrefinedUsages.setNextValue(uset.size());
       topUsagePoints.setNextValue(uset.getNumberOfTopUsagePoints());

@@ -47,7 +47,7 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
     return AbstractARGBasedRefiner.forARGBasedRefiner(
         new DelegatingARGBasedRefinerWithRefinementSelection(
             config,
-            new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
+            new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure(), logger),
             ValueAnalysisRefiner.create0(cpa),
             new ValueAnalysisPrefixProvider(logger, cfa, config, valueCpa.getShutdownNotifier()),
             PredicateRefiner.create0(cpa),
@@ -55,7 +55,6 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
                 config,
                 logger,
                 predicateCpa.getSolver(),
-                predicateCpa.getPathFormulaManager(),
                 predicateCpa.getShutdownNotifier())),
         cpa);
   }

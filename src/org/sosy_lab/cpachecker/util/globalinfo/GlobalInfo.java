@@ -27,13 +27,11 @@ public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
   private AutomatonInfo automatonInfo = new AutomatonInfo();
-  private ConfigurableProgramAnalysis cpa;
   private FormulaManagerView predicateFormulaManagerView;
   private FormulaManagerView assumptionFormulaManagerView;
   private AbstractionManager absManager;
   private ApronManager apronManager;
   private LogManager apronLogger;
-  private LogManager logger;
 
   private GlobalInfo() {
 
@@ -54,20 +52,7 @@ public class GlobalInfo {
     return Optional.ofNullable(cfaInfo);
   }
 
-  public void storeLogManager(LogManager pLogger) {
-    logger = Preconditions.checkNotNull(pLogger);
-  }
-
-  public LogManager getLogManager() {
-    return Preconditions.checkNotNull(logger, "LogManager should be set before");
-  }
-
-  public synchronized Optional<ConfigurableProgramAnalysis> getCPA() {
-    return Optional.ofNullable(cpa);
-  }
-
   public synchronized void setUpInfoFromCPA(ConfigurableProgramAnalysis pCpa) {
-    this.cpa = pCpa;
     absManager = null;
     apronManager = null;
     apronLogger = null;

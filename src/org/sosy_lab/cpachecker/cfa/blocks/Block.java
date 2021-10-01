@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;

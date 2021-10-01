@@ -163,10 +163,10 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
         if (matcher.find()) {
           String func = matcher.group(1);
           String id = matcher.group(2);
-          result.add(MemoryLocation.valueOf(func, id));
+          result.add(MemoryLocation.forLocalVariable(func, id));
         } else {
           // global identifier
-          result.add(MemoryLocation.valueOf(line));
+          result.add(MemoryLocation.forIdentifier(line));
         }
       }
       logger.log(Level.INFO, "Finished reading from file " + input);

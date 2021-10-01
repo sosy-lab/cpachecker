@@ -18,7 +18,7 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
-public class UsageState extends AbstractSingleWrapperState
+public class UsageState extends AbstractSerializableSingleWrapperState
     implements LatticeAbstractState<UsageState>, AbstractStateWithEdge, AliasInfoProvider {
   /* Boilerplate code to avoid serializing this class */
 

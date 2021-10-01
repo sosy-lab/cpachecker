@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -81,7 +80,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Option(description = "A path to precision", name = "precision", secure = true)
   @FileOption(Type.OUTPUT_FILE)
-  private Path outputFileName = Paths.get("localsave");
+  private Path outputFileName = Path.of("localsave");
 
   @Option(
     description = "bind arguments of functions with passed variables",

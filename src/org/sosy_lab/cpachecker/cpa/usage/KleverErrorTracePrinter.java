@@ -93,7 +93,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         nextThread++;
       }
       currentThread = nextThread;
-      usedThreadIds.add(Integer.valueOf(nextThread));
+      usedThreadIds.add(nextThread);
       return getCurrentThread();
     }
 
@@ -159,7 +159,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     int forkThread = 0;
 
     defaultSourcefileName =
-        firstEdge.getFileLocation().getFileName();
+        firstEdge.getFileLocation().getFileName().toString();
 
     String status;
 
@@ -229,14 +229,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
       printedUnsafes.inc();
 
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (ParserConfigurationException e) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
-    } catch (DOMException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
-    } catch (InvalidConfigurationException e1) {
-      logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
+    } catch (IOException
+        | ParserConfigurationException
+        | DOMException
+        | InvalidConfigurationException e) {
+      logger.logfUserException(Level.WARNING, e, "Exception during printing unsafe %s", pId);
     }
   }
 
@@ -372,7 +369,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         locations.isEmpty() ? null : Collections.max(locations, nodeOffsetComparator);
 
     if (min != null) {
-      builder.addDataElementChild(result, KeyDef.ORIGINFILE, min.getFileName());
+      builder.addDataElementChild(result, KeyDef.ORIGINFILE, min.getFileName().toString());
       builder.addDataElementChild(
           result,
           KeyDef.STARTLINE,

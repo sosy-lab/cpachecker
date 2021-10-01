@@ -1,11 +1,14 @@
-bitvectors/*_false-unreach-label.i
-bitvectors/*_true-unreach-label.i
-pointer_aliasing/*_false-unreach-label.i
-pointer_aliasing/*_true-unreach-label.i
-arrays/*_false-unreach-label.i
-arrays/*_true-unreach-label.i
-*_false-unreach-label.c
-*_true-unreach-label.c
-nested_operators/*_false-unreach-label.c
-nested_operators/*_true-unreach-label.c
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
+bitvectors/*.yml
+pointer_aliasing/*.yml
+arrays/*.yml
+*.yml
+nested_operators/*.yml
+builtin_overflow_functions/*.yml

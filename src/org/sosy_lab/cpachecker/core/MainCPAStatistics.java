@@ -26,7 +26,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -78,6 +77,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -92,12 +92,12 @@ class MainCPAStatistics implements Statistics {
   @Option(secure=true, name="reachedSet.file",
       description="print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reachedSetFile = Paths.get("reached.txt");
+  private Path reachedSetFile = Path.of("reached.txt");
 
   @Option(secure=true, name="reachedSet.dot",
       description="print reached set to graph file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
+  private Path reachedSetGraphDumpPath = Path.of("reached.dot");
 
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
@@ -128,7 +128,7 @@ class MainCPAStatistics implements Statistics {
 
   @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = Path.of("coverage.info");
 
   private final LogManager logger;
   private final Collection<Statistics> subStats;
@@ -305,6 +305,11 @@ class MainCPAStatistics implements Statistics {
               Level.WARNING,
               pE,
               "Interrupted while generating the invariant as an output program");
+        } catch (SolverException e) {
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Encountered solver problem while generating the invariant as an output program");
         }
       }
     }

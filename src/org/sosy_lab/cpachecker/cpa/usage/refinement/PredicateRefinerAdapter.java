@@ -77,7 +77,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     } catch (IllegalStateException e) {
       // msat_solver return -1 <=> unknown
       // consider its as true;
-      logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
+      logger.logUserException(Level.WARNING, e, "Solver exception");
       solverFailures.inc();
     } catch (RefinementFailedException e) {
       logger.log(Level.WARNING, "Path is repeated, BAM is looped");

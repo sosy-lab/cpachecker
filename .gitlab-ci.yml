@@ -12,10 +12,28 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
+<<<<<<< HEAD
   REFASTER_REPO_REVISION: 673d65a54133408a2936656271aa67b9aa4035fe
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.4.0
+=======
+  REFASTER_REPO_REVISION: 8b7f38e2afedf64b3cfa9592bbb8790b88f58352
+  # Needs to be synchronized with Error Prone version in lib/ivy.xml
+  REFASTER_VERSION: 2.9.0
+  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+>>>>>>> trunk
 
+.pip-cache: &pip-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".cache/pip"
+
+.node-cache: &node-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules"
 
 .binary_check: &binary_check
   stage: checks
@@ -41,6 +59,7 @@ configuration-checks:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
+<<<<<<< HEAD
 configuration-checks:jdk-14:
   <<: *configuration-checks
   dependencies:
@@ -50,13 +69,24 @@ configuration-checks:jdk-14:
     - build-dependencies
     - build:jdk-14
   image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+=======
+configuration-checks:jdk-16:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-16
+  needs:
+    - build-dependencies
+    - build:jdk-16
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-16
+>>>>>>> trunk
 
 
 configuration-documentation:
   <<: *binary_check
   script:
     - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
-    - "ant $ANT_PROPS_CHECKS build-documentation"
+    - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
@@ -105,6 +135,7 @@ python-unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
+<<<<<<< HEAD
 python-unit-tests:jdk-14:
   <<: *python-unit-tests
   dependencies:
@@ -114,11 +145,43 @@ python-unit-tests:jdk-14:
     - build-dependencies
     - build:jdk-14
   image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+=======
+python-unit-tests:jdk-16:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-16
+  needs:
+    - build-dependencies
+    - build:jdk-16
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-16
+>>>>>>> trunk
 
+
+javascript-build:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - npm run build
+    - git diff --stat --exit-code
+  artifacts:
+    paths:
+      -  src/org/sosy_lab/cpachecker/core/counterexample/build
+    when: on_failure
+  <<: *node-cache
 
 javascript-unit-tests:
   stage: checks
   dependencies: []
+<<<<<<< HEAD
+=======
+  needs: []
+>>>>>>> trunk
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -132,6 +195,19 @@ javascript-unit-tests:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
     when: always
+  <<: *node-cache
+
+javascript-eslint:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - npm run lint
+  <<: *node-cache
 
 
 build-docker:test:java-node:
@@ -140,7 +216,11 @@ build-docker:test:java-node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
     IMAGE: /test:java-node
 
+<<<<<<< HEAD
 build-docker:test:java-node:
+=======
+build-docker:test:node:
+>>>>>>> trunk
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
@@ -150,7 +230,11 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
+<<<<<<< HEAD
     IMAGE: ":1.9.1"
+=======
+    IMAGE: ":2.0"
+>>>>>>> trunk
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -168,7 +252,11 @@ javascript-e2e-tests:
     - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
+<<<<<<< HEAD
     - "./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
+=======
+    - "npx webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
+>>>>>>> trunk
   script:
     - npm run e2e-test
   cache:
@@ -191,17 +279,26 @@ check-format-python:
     - pip install black
   script:
     - black . --check --diff
+  <<: *pip-cache
 
 flake8:
   stage: checks
   dependencies: []
   needs: []
+<<<<<<< HEAD
   image: python
+=======
+  image: python:3.8
+>>>>>>> trunk
   before_script:
     - pip install 'isort<5' # workaround for https://github.com/gforcada/flake8-isort/issues/88
     - pip install flake8-awesome
   script:
     - flake8
+<<<<<<< HEAD
+=======
+  <<: *pip-cache
+>>>>>>> trunk
 
 
 build-tar:
@@ -241,7 +338,11 @@ unit-tests:jdk-11:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
+<<<<<<< HEAD
 unit-tests:jdk-14:
+=======
+unit-tests:jdk-16:
+>>>>>>> trunk
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -40,6 +39,6 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
       return false;
     }
     SMGSingleLinkedListCandidate other = (SMGSingleLinkedListCandidate) o;
-    return super.equals(other) && Objects.equals(nfoSize, other.nfoSize);
+    return super.equals(other) && nfoSize == other.nfoSize;
   }
 }

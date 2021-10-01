@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
+import org.sosy_lab.cpachecker.util.faultlocalization.InformationProvider;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceScoring;
@@ -77,7 +78,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class FaultLocalizationWithTraceFormula
     implements Algorithm, StatisticsProvider, Statistics {
 
-  enum AlgorithmTypes {
+  public enum AlgorithmTypes {
     UNSAT, MAXSAT, MAXORG, ERRINV
   }
 
@@ -103,8 +104,11 @@ public class FaultLocalizationWithTraceFormula
   private boolean disableFSTF = false;
 
   @Option(secure=true, name="maxsat.ban",
-      description="ban faults with certain variables")
-  private String ban = "";
+      description="Do not show faults that contain a certain variable. Use, e.g., 'main::x' to ban "
+          + "variable 'x' in the main function. Use, e.g., '::x' to ban all variables named 'x'. "
+          + "This is especially useful to filter specific faults if the first run results "
+          + "in many candidates. To add variables")
+  private List<String> ban = ImmutableList.of();
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
@@ -161,21 +165,39 @@ public class FaultLocalizationWithTraceFormula
   public void checkOptions () throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && disableFSTF) {
       throw new InvalidConfigurationException(
-          "The option flow-sensitive trace formula will be ignored since the error invariants"
-              + " algorithm is not selected");
+          "The option 'disableFSTF' (flow-sensitive trace formula) requires the error invariants"
+              + " algorithm");
     }
-    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
+    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isEmpty()) {
       throw new InvalidConfigurationException(
-          "The option ban will be ignored since the error invariants algorithm is not selected");
+          "The option 'ban' cannot be used together with the error invariants algorithm. Use MAX-SAT instead.");
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
-          "The option reduceselectors will be ignored since MAX-SAT is not selected");
+          "The option 'reduceselectors' requires the MAX-SAT algorithm");
     }
-    if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
+    if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
-          "The option ban will be ignored because it is not applicable on the error invariants"
+          "The option 'ban' is not applicable for the error invariants"
               + " algorithm");
+    }
+    if (!options.getDisable().isEmpty()) {
+      if (options.getDisable().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.disable' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x i.e., function::variable.");
+      }
+    }
+    if (!options.getIgnore().isEmpty()) {
+      if (options.getIgnore().stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'traceformula.ignore' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
+      }
+    }
+    if (!ban.isEmpty()) {
+      if (ban.stream().anyMatch(variable -> !Pattern.matches(".+::.+", variable))) {
+        throw new InvalidConfigurationException("The option 'faultlocalization.by_traceformula.ban' needs scoped variables."
+            + " Make sure to input the variables with their scope as prefix, e.g. main::x, i.e., function::variable.");
+      }
     }
   }
 
@@ -191,7 +213,6 @@ public class FaultLocalizationWithTraceFormula
                   .filter(AbstractStates::isTargetState)
                   .filter(ARGState.class)
                   .transform(ARGState::getCounterexampleInformation));
-
 
       // run algorithm for every error
       logger.log(Level.INFO, "Starting fault localization...");
@@ -235,14 +256,14 @@ public class FaultLocalizationWithTraceFormula
         return;
       }
 
-      //Find correct ranking and correct trace formula for the specified algorithm
+      //Find correct scoring and correct trace formula for the specified algorithm
       TraceFormula tf;
-      FaultScoring ranking;
+      FaultScoring scoring;
       switch(algorithmType){
         case MAXORG:
         case MAXSAT: {
           tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-          ranking =  FaultRankingUtils.concatHeuristics(
+          scoring =  FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new SetSizeScoring(),
               new OverallOccurrenceScoring(),
@@ -252,14 +273,14 @@ public class FaultLocalizationWithTraceFormula
         }
         case ERRINV: {
           tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristics(
+          scoring = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case UNSAT: {
           tf = new TraceFormula.DefaultTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristics(
+          scoring = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
@@ -283,19 +304,25 @@ public class FaultLocalizationWithTraceFormula
 
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
-      InformationProvider.propagatePreCondition(errorIndicators, tf, context.getSolver().getFormulaManager());
-      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+
+      FaultLocalizationInfo info =
+          new FaultLocalizationInfo(
+              errorIndicators,
+              scoring,
+              tf.getPrecondition(),
+              context.getSolver().getFormulaManager(),
+              pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        info.replaceHtmlWriter(new IntervalReportWriter());
-        info.sortIntended();
+        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
+        info.setSortIntended(true);
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
       logger.log(
           Level.INFO,
-          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
+          "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info);
 
     } catch (SolverException sE) {
       throw new CPAException(
@@ -310,9 +337,6 @@ public class FaultLocalizationWithTraceFormula
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
-    } finally{
-      context.getSolver().close();
-      context.getProver().close();
     }
   }
 
@@ -321,22 +345,15 @@ public class FaultLocalizationWithTraceFormula
    * @param pErrorIndicators result set
    */
   private void ban(Set<Fault> pErrorIndicators) {
-    List<String> banned = Splitter.on(",").splitToList(ban);
     Set<Fault> copy = new HashSet<>(pErrorIndicators);
     for (Fault errorIndicator : copy) {
       for (FaultContribution faultContribution : errorIndicator) {
         BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
-        for (String b: banned) {
-          if (b.contains("::")){
-            if (curr.toString().contains(b + "@")){
-              pErrorIndicators.remove(errorIndicator);
-              break;
-            }
-          } else {
-            if (curr.toString().contains("::"+b +"@")){
-              pErrorIndicators.remove(errorIndicator);
-              break;
-            }
+        for (String banned: ban) {
+          assert banned.contains("::");
+          if (curr.toString().contains(banned + "@")) {
+            pErrorIndicators.remove(errorIndicator);
+            break;
           }
         }
       }

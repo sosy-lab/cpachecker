@@ -108,36 +108,6 @@ class ValidationError(Exception):
         return self._msg
 
 
-class ExecutionResult(object):
-    """Results of a subprocess execution."""
-
-    def __init__(self, returncode, stdout, stderr):
-        """Create a new ExecutionResult with the given information about
-        the execution.
-
-        :param int returncode: Return code of the execution.
-        :param Optional[str] stdout: Output that the execution wrote to stdout,
-                if any.
-        :param Optionl[str] stderr: Output that the execution wrote to stderr,
-                if any.
-        """
-        self._returncode = returncode
-        self._stdout = stdout
-        self._stderr = stderr
-
-    @property
-    def returncode(self):
-        return self._returncode
-
-    @property
-    def stdout(self):
-        return self._stdout
-
-    @property
-    def stderr(self):
-        return self._stderr
-
-
 def get_cpachecker_version():
     """Return the CPAchecker version used."""
 
@@ -207,25 +177,48 @@ def create_parser():
         dest="specification_file",
         type=str,
         action="store",
+        required=True,
         help="specification file",
     )
 
     parser.add_argument(
-        "-witness", dest="witness_file", type=str, action="store", help="witness file"
+        "-witness",
+        dest="witness_file",
+        required=True,
+        type=str,
+        action="store",
+        help="witness file",
     )
 
-    parser.add_argument(
-        "file", type=str, nargs="?", help="file to validate witness for"
-    )
+    parser.add_argument("file", help="file to validate witness for")
 
     return parser
 
 
-def _parse_args(argv=sys.argv[1:]):
+def _determine_file_args(argv):
+    parameter_prefix = "-"
+    files = []
+    logging.debug(f"Determining file args from {argv}")
+    for fst, snd in zip(argv[:-1], argv[1:]):
+        if not fst.startswith(parameter_prefix) and not snd.startswith(
+            parameter_prefix
+        ):
+            files.append(snd)
+    logging.debug(f"Determined file args: {files}")
+    return files
+
+
+def _parse_args(argv):
     parser = create_parser()
-    args = parser.parse_known_args(argv[:-1])[0]
-    args_file = parser.parse_args([argv[-1]])  # Parse the file name
-    args.file = args_file.file
+    args, remainder = parser.parse_known_args(argv)
+    args.file = _determine_file_args(argv)
+    if not args.file:
+        raise ValueError("The following argument is required: program file")
+    if len(args.file) > 1:
+        raise ValueError(
+            "Too many values for argument: Only one program file supported"
+        )
+    args.file = args.file[0]
 
     return args
 
@@ -353,23 +346,19 @@ def execute(command, quiet=False):
 
     :param List[str] command: list of words that describe the command line.
     :param Bool quiet: whether to log the executed command line as INFO.
-    :return ExecutionResult: result object with information about the execution.
+    :return subprocess.CompletedProcess: information about the execution.
     """
     if not quiet:
         logging.info(" ".join(command))
-    p = subprocess.Popen(
+    return subprocess.run(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
     )
-    returncode = p.wait()
-    output = p.stdout.read()
-    err_output = p.stderr.read()
-    return ExecutionResult(returncode, output, err_output)
 
 
 def analyze_result(test_result, harness, specification):
     """Analyze the given test result and return its verdict.
 
-    :param ExecutionResult test_result: result of test execution
+    :param CompletedProcess test_result: result of test execution
     :param str harness: path to harness file
     :param Specification specification: specification to check result against
     :return: tuple of the verdict of the test execution and the violated property, if any.
@@ -589,8 +578,10 @@ def _execute_harnesses(
 statistics = []
 
 
-def run():
-    args = _parse_args()
+def run(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    args = _parse_args(argv)
     output_dir = args.output_path
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -621,9 +612,16 @@ def run():
                 result = ValidationResult(RESULT_UNK)
         finally:
             for i in os.listdir(harness_output_dir):
-                shutil.move(
-                    os.path.join(harness_output_dir, i), os.path.join(output_dir, i)
-                )
+                source = os.path.join(harness_output_dir, i)
+                target = os.path.join(output_dir, i)
+                try:
+                    shutil.copytree(
+                        source,
+                        target,
+                        dirs_exist_ok=True,
+                    )
+                except NotADirectoryError:
+                    shutil.move(source, target)
 
     if args.stats:
         print(os.linesep + "Statistics:")
@@ -651,3 +649,4 @@ if __name__ == "__main__":
     except ValidationError as e:
         logging.error(e.msg)
         print("Verification result: ERROR.")
+        sys.exit(1)

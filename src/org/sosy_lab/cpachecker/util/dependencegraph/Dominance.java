@@ -775,8 +775,6 @@ public final class Dominance {
      *
      * @param pNodes the set of nodes to get the iterated dominance frontier for.
      * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier.
-     * @throws IllegalArgumentException if {@code pNodes} contains a node that has no dominance
-     *     frontier (see {@link #getFrontier(Object) getFrontier}).
      * @throws NullPointerException if {@code pNodes} is {@code null}.
      * @throws IllegalArgumentException if {@code pNodes} contains a node that was not part of the
      *     original graph during graph traversal in {@link #createDomTree}.

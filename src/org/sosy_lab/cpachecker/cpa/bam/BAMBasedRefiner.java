@@ -71,7 +71,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final CounterexampleInfo performRefinementForPath(
+  protected CounterexampleInfo performRefinementForPath(
       ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
     checkArgument(!(pReached instanceof BAMReachedSet),
         "Wrapping of BAM-based refiners inside BAM-based refiners is not allowed.");
@@ -106,7 +106,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected final ARGPath computePath(
+  protected ARGPath computePath(
       ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
     assert BAMReachedSetValidator.validateData(

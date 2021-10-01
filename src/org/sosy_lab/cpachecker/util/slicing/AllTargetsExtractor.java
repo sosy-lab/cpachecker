@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -36,9 +37,6 @@ public class AllTargetsExtractor implements SlicingCriteriaExtractor {
     ImmutableSet<CFANode> targetLocations =
         targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pError);
 
-    return targetLocations
-        .stream()
-        .flatMap(x -> CFAUtils.allEnteringEdges(x).stream())
-        .collect(Collectors.toSet());
+    return from(targetLocations).transformAndConcat(CFAUtils::allEnteringEdges).toSet();
   }
 }

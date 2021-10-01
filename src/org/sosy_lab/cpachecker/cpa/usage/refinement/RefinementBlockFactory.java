@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 @Options(prefix = "cpa.usage.refinement")
 public class RefinementBlockFactory {
 
-  public static enum RefinementBlockTypes {
+  public enum RefinementBlockTypes {
     IdentifierIterator(currentInnerBlockType.SingleIdentifier),
     PointIterator(currentInnerBlockType.UsageInfoSet),
     UsageIterator(currentInnerBlockType.UsageInfo),
@@ -51,12 +51,12 @@ public class RefinementBlockFactory {
 
     public final currentInnerBlockType innerType;
 
-    private RefinementBlockTypes(currentInnerBlockType type) {
+    RefinementBlockTypes(currentInnerBlockType type) {
       innerType = type;
     }
   }
 
-  private static enum currentInnerBlockType {
+  private enum currentInnerBlockType {
     ExtendedARGPath,
     UsageInfoSet,
     SingleIdentifier,
@@ -72,7 +72,7 @@ public class RefinementBlockFactory {
       secure = true)
   List<RefinementBlockTypes> RefinementChain;
 
-  public static enum PathEquation {
+  public enum PathEquation {
     ARGStateId,
     CFANodeId;
   }

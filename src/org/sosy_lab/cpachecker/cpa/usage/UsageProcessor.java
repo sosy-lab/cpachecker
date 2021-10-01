@@ -79,7 +79,7 @@ public class UsageProcessor {
   private final VariableSkipper varSkipper;
 
   private Map<CFANode, Map<GeneralIdentifier, DataType>> precision;
-  private Map<CFAEdge, Collection<Pair<AbstractIdentifier, Access>>> usages;
+  private IdentityHashMap<CFAEdge, Collection<Pair<AbstractIdentifier, Access>>> usages;
 
   private final Collection<CFANode> uselessNodes;
   private Collection<SingleIdentifier> redundantIds;
@@ -226,7 +226,7 @@ public class UsageProcessor {
 
   private Collection<Pair<AbstractIdentifier, Access>>
       handleFunctionCall(AbstractState pChild, CFunctionCallEdge edge) {
-    CStatement statement = edge.getRawAST().get();
+    CStatement statement = edge.getFunctionCall();
 
     if (statement instanceof CFunctionCallAssignmentStatement) {
       /*

@@ -13,8 +13,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
@@ -43,7 +43,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -79,7 +78,8 @@ class JavaBDDRegionManager implements RegionManager {
   private final ReferenceQueue<JavaBDDRegion> referenceQueue =
       new ReferenceQueue<>();
   // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
-  private final Map<Reference<? extends JavaBDDRegion>, BDD> referenceMap = new IdentityHashMap<>();
+  private final IdentityHashMap<Reference<? extends JavaBDDRegion>, BDD> referenceMap =
+      new IdentityHashMap<>();
 
   @Option(secure = true, description = "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
   private double initTableRatio = 0.001;
@@ -320,7 +320,7 @@ class JavaBDDRegionManager implements RegionManager {
     return region;
   }
 
-  private BDD unwrap(Region region) {
+  private static BDD unwrap(Region region) {
     return ((JavaBDDRegion) region).getBDD();
   }
 
@@ -469,41 +469,42 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void reorder(VariableOrderingStrategy strategy) {
     switch (strategy) {
-      case FRAMEWORK_RANDOM:
+      case RANDOM:
         factory.reorder(BDDFactory.REORDER_RANDOM);
         break;
-      case FRAMEWORK_SIFT:
+      case SIFT:
         factory.reorder(BDDFactory.REORDER_SIFT);
         break;
-      case FRAMEWORK_SIFTITE:
+      case SIFTITE:
         factory.reorder(BDDFactory.REORDER_SIFTITE);
         break;
-      case FRAMEWORK_WIN2:
+      case WIN2:
         factory.reorder(BDDFactory.REORDER_WIN2);
         break;
-      case FRAMEWORK_WIN2ITE:
+      case WIN2ITE:
         factory.reorder(BDDFactory.REORDER_WIN2ITE);
         break;
-      case FRAMEWORK_WIN3:
+      case WIN3:
         factory.reorder(BDDFactory.REORDER_WIN3);
         break;
-      case FRAMEWORK_WIN3ITE:
+      case WIN3ITE:
         factory.reorder(BDDFactory.REORDER_WIN3ITE);
         break;
       default:
-        break;
+        throw new UnsupportedOperationException("Reorder strategy " + strategy + " not supported");
     }
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
-    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
+    checkArgument(pOldPredicates.size() == pNewPredicates.size());
     BDDPairing pairing = factory.makePair();
-    for (int i = 0; i < pOldPredicates.length; i++) {
-      pairing.set(unwrap(pOldPredicates[i]).var(), unwrap(pNewPredicates[i]).var());
-    }
+    Streams.forEachPair(
+        pOldPredicates.stream().map(JavaBDDRegionManager::unwrap),
+        pNewPredicates.stream().map(JavaBDDRegionManager::unwrap),
+        (r1, r2) -> pairing.set(r1.var(), r2.var()));
     return wrap(unwrap(pRegion).replace(pairing));
   }
 

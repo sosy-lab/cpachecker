@@ -21,7 +21,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -67,7 +66,7 @@ class PredicateCPAStatistics implements Statistics {
   @Option(secure=true, description="file for exporting final predicate map",
           name="predmap.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path predmapFile = Paths.get("predmap.txt");
+  private Path predmapFile = Path.of("predmap.txt");
 
   @Option(secure=true, description="export final loop invariants",
           name="invariants.export")
@@ -80,12 +79,12 @@ class PredicateCPAStatistics implements Statistics {
   @Option(secure=true, description="file for exporting final loop invariants",
           name="invariants.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path invariantsFile = Paths.get("invariants.txt");
+  private Path invariantsFile = Path.of("invariants.txt");
 
   @Option(secure=true, description="file for precision that consists of invariants.",
           name="invariants.precisionFile")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path invariantPrecisionsFile = Paths.get("invariantPrecs.txt");
+  private Path invariantPrecisionsFile = Path.of("invariantPrecs.txt");
 
   @Option(description="Export one abstraction formula for each abstraction state into a file?",
       name="abstractions.export")
@@ -93,7 +92,7 @@ class PredicateCPAStatistics implements Statistics {
   @Option(secure=true, description="file that consists of one abstraction formula for each abstraction state",
       name="abstractions.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path abstractionsFile = Paths.get("abstractions.txt");
+  private Path abstractionsFile = Path.of("abstractions.txt");
 
   private final LogManager logger;
 

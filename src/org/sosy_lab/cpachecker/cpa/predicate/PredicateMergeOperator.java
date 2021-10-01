@@ -294,7 +294,7 @@ public class PredicateMergeOperator implements MergeOperator {
         AbstractionFormula newAbstractionFormula =
             predAbsManager.makeOr(pState1.getAbstractionFormula(), pState2.getAbstractionFormula());
         PathFormula newPathFormula =
-            formulaManager.makeEmptyPathFormula(newAbstractionFormula.getBlockFormula());
+            formulaManager.makeEmptyPathFormulaWithContextFrom(newAbstractionFormula.getBlockFormula());
         merged =
             mkAbstractionState(
                 newPathFormula,

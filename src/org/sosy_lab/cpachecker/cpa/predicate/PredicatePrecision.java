@@ -54,7 +54,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     private final CFANode location;
     private final int instance;
 
-    LocationInstance(CFANode pLocation, int pInstance) {
+    public LocationInstance(CFANode pLocation, int pInstance) {
       location = checkNotNull(pLocation);
       checkArgument(pInstance >= 0, "Invalid LocationInstance with negative count %s", pInstance);
       instance = pInstance;
@@ -271,7 +271,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * These are the predicates that should be used at the n-th instance
    * of an abstraction location l in the current path.
    */
-  public final ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
+  public ImmutableSetMultimap<LocationInstance, AbstractionPredicate>
       getLocationInstancePredicates() {
     return mLocationInstancePredicates;
   }
@@ -279,21 +279,21 @@ public final class PredicatePrecision implements AdjustablePrecision {
   /**
    * Return a map view of the location-specific predicates of this precision.
    */
-  public final ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
+  public ImmutableSetMultimap<CFANode, AbstractionPredicate> getLocalPredicates() {
     return mLocalPredicates;
   }
 
   /**
    * Return a map view of the function-specific predicates of this precision.
    */
-  public final ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
+  public ImmutableSetMultimap<String, AbstractionPredicate> getFunctionPredicates() {
     return mFunctionPredicates;
   }
 
   /**
    * Return all global predicates in this precision.
    */
-  public final ImmutableSet<AbstractionPredicate> getGlobalPredicates() {
+  public ImmutableSet<AbstractionPredicate> getGlobalPredicates() {
     return mGlobalPredicates;
   }
 
@@ -306,14 +306,14 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * @param loc A CFA location.
    * @param locInstance How often this location has appeared in the current path.
    */
-  public final ImmutableSet<AbstractionPredicate> getPredicates(CFANode loc, int locInstance) {
+  public ImmutableSet<AbstractionPredicate> getPredicates(CFANode loc, int locInstance) {
     return getPredicates(new LocationInstance(loc, locInstance));
   }
 
   /**
    * Return all predicates for one specific location in this precision.
    */
-  public final ImmutableSet<AbstractionPredicate> getPredicates(LocationInstance locationInstance) {
+  public ImmutableSet<AbstractionPredicate> getPredicates(LocationInstance locationInstance) {
     ImmutableSet<AbstractionPredicate> result =
         getLocationInstancePredicates().get(locationInstance);
     if (result.isEmpty()) {

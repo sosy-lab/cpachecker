@@ -28,6 +28,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -233,9 +235,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         PathFormula impreciseFormula = imprecisePathFormulaManager.makeAnd(pathFormula, edge);
         // We need to update ssa even if we create empty formula
         PathFormula updatedFormula =
-            imprecisePathFormulaManager.makeNewPathFormula(
-                impreciseFormula,
-                preciseFormula.getSsa(),
+            impreciseFormula
+                .withContext(preciseFormula.getSsa(),
                 preciseFormula.getPointerTargetSet());
 
         return updatedFormula;
@@ -351,6 +352,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
+        if (lElement instanceof ThreadingState) {
+          element = strengthen(element, (ThreadingState) lElement);
+        }
+
         /*
          * Add additional assumptions from an automaton state.
          */
@@ -455,6 +460,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private PredicateAbstractState strengthen(
+      PredicateAbstractState pState, ThreadingState pThreadingState)
+      throws CPATransferException, InterruptedException {
+    FunctionCallEdge function = pThreadingState.getEntryFunction();
+    if (function == null) {
+      return pState;
+    }
+    PathFormula pathFormula = convertEdgeToPathFormula(pState.getPathFormula(), function);
+    return replacePathFormula(pState, pathFormula);
+  }
+
+  private PredicateAbstractState strengthen(
       PredicateAbstractState pElement, FormulaReportingState pFormulaReportingState) {
 
     BooleanFormula formula =
@@ -501,7 +517,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       // set abstraction to true (we don't know better)
       AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula);
 
-      PathFormula newPathFormula = precisePathFormulaManager.makeEmptyPathFormula(pathFormula);
+      PathFormula newPathFormula =
+          precisePathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
       // update abstraction locations map
       PersistentMap<CFANode, Integer> abstractionLocations = pElement.getAbstractionLocationsOnPath();
@@ -523,7 +540,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PathFormula pathFormula = computedPathFormulae.get(predicateElement);
     if (pathFormula == null) {
       pathFormula =
-          precisePathFormulaManager.makeEmptyPathFormula(predicateElement.getPathFormula());
+          precisePathFormulaManager
+              .makeEmptyPathFormulaWithContextFrom(predicateElement.getPathFormula());
     }
     boolean result = true;
 
@@ -651,7 +669,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
           // TODO merge pts?
           currentFormula =
-              new PathFormula(
+              PathFormula.createManually(
                   conjunction,
                   newSSA.build(),
                   oldFormula.getPointerTargetSet(),

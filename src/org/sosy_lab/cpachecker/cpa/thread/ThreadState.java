@@ -12,7 +12,9 @@ import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThread
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ThreadIdProvider;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
@@ -231,27 +234,27 @@ public class ThreadState
   }
 
   @Override
-  public java.util.Optional<Pair<String, String>>
-      getSpawnedThreadIdByEdge(CFAEdge pEdge, ThreadIdProvider pSuccessor) {
+  public List<Pair<String, String>>
+      getSpawnedThreadIdByEdge(CFAEdge pEdge, ARGState pState) {
 
     if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getSummaryEdge().getExpression();
       if (isThreadCreateFunction(fCall)) {
         CThreadCreateStatement tCall = (CThreadCreateStatement) fCall;
-        return java.util.Optional
-            .of(Pair.of(tCall.getVariableName(), pEdge.getSuccessor().getFunctionName()));
+        return Collections.singletonList(
+            Pair.of(tCall.getVariableName(), pEdge.getSuccessor().getFunctionName()));
       }
     }
     if (pEdge instanceof CFunctionSummaryStatementEdge) {
       CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pEdge).getFunctionCall();
       if (isThreadCreateFunction(functionCall)) {
         CThreadCreateStatement tCall = (CThreadCreateStatement) functionCall;
-        return java.util.Optional.of(
+        return Collections.singletonList(
             Pair.of(
                 tCall.getVariableName(),
                 ((CFunctionSummaryStatementEdge) pEdge).getFunctionName()));
       }
     }
-    return java.util.Optional.empty();
+    return Collections.emptyList();
   }
 }

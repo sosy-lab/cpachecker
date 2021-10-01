@@ -38,7 +38,7 @@ public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
       final ARGState start = current;
       // Note, getEdges does not work with branching
       partialPath = ARGUtils.getOnePathFromTo((x) -> x == start, next).getFullPath();
-      PathFormula partialFormula = pfmgr.makeEmptyPathFormula(previousPathFormula);
+      PathFormula partialFormula = pfmgr.makeEmptyPathFormulaWithContextFrom(previousPathFormula);
       for (CFAEdge edge : partialPath) {
         partialFormula = pfmgr.makeAnd(partialFormula, edge);
       }

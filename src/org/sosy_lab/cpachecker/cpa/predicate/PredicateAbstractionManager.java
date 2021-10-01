@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,7 +91,7 @@ public class PredicateAbstractionManager {
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
-  static enum AbstractionType {
+  enum AbstractionType {
     CARTESIAN,
     CARTESIAN_BY_WEAKENING,
     BOOLEAN,
@@ -206,12 +207,18 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> predicates)
       throws SolverException, InterruptedException {
 
+    @SuppressWarnings("deprecation") // just faking a PF to be able to reuse one of our methods
     PathFormula pf =
-        new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
+        PathFormula.createManually(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =
-        buildAbstraction(location, callstackInformation, emptyAbstraction, pf, predicates);
+        buildAbstraction(
+            Collections.singleton(location),
+            callstackInformation,
+            emptyAbstraction,
+            pf,
+            predicates);
 
     // fix block formula in result
     return new AbstractionFormula(
@@ -240,7 +247,7 @@ public class PredicateAbstractionManager {
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(
-      final CFANode location,
+      final Collection<CFANode> locations,
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
@@ -267,8 +274,11 @@ public class PredicateAbstractionManager {
 
     // Try to reuse stored abstractions
     if (options.getReuseAbstractionsFrom() != null && !abstractionReuseDisabledBecauseOfAmbiguity) {
+      // TODO we do not yet support multiple CFA nodes per abstraction here
+      // and choosing *one* location is best way for backwards compatibility.
       AbstractionFormula reused =
-          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
+          reuseAbstractionIfPossible(
+              abstractionFormula, pathFormula, primaryFormula, Iterables.getOnlyElement(locations));
       if (reused != null) {
         return reused;
       }
@@ -350,8 +360,11 @@ public class PredicateAbstractionManager {
 
     // add invariants to abstraction formula if available
     if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
-      BooleanFormula invariant = invariantSupplier.getInvariantFor(
-          location, callstackInformation, fmgr, pfmgr, pathFormula);
+      // TODO we do not yet support multiple CFA nodes per abstraction here
+      // and choosing *one* location is best way for backwards compatibility.
+      for (CFANode location : locations) {
+        BooleanFormula invariant = invariantSupplier.getInvariantFor(
+            location, callstackInformation, fmgr, pfmgr, pathFormula);
 
       if (!bfmgr.isTrue(invariant)) {
         AbstractionPredicate absPred = amgr.makePredicate(invariant);
@@ -359,6 +372,7 @@ public class PredicateAbstractionManager {
 
         // Calculate the set of predicates we still need to use for abstraction.
         Iterables.removeIf(remainingPredicates, equalTo(absPred));
+        }
       }
     }
 
@@ -921,13 +935,17 @@ public class PredicateAbstractionManager {
     Map<BooleanFormula, Region> info = infoBuilder.build();
     Set<BooleanFormula> toStateLemmas = info.keySet();
     Set<BooleanFormula> filteredLemmas;
+    @SuppressWarnings("deprecation")
+    // safe here because weakeningManager cares only about formula and SSAMap
+    PathFormula pf =
+        PathFormula.createManually(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0);
     cartesianAbstractionTimer.start();
     try {
       filteredLemmas =
           weakeningManager.findInductiveWeakeningForRCNF(
               SSAMap.emptySSAMap(),
               ImmutableSet.of(),
-              new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0),
+              pf,
               toStateLemmas);
     } finally {
       cartesianAbstractionTimer.stop();

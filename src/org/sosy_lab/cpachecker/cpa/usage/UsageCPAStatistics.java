@@ -144,7 +144,7 @@ public class UsageCPAStatistics implements Statistics {
         errPrinter.printErrorTraces(uReached);
         errPrinter.printStatistics(writer);
       } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
+        logger.logUserException(Level.WARNING, e, "Cannot create error trace printer");
       }
       printUnsafesTimer.stop();
     }

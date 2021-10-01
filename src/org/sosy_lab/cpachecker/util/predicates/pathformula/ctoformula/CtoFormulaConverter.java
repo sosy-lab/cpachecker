@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -278,6 +277,16 @@ public class CtoFormulaConverter {
   }
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
+    if (options.useHavocAbstraction()) {
+      if (var instanceof CVariableDeclaration) {
+        CVariableDeclaration vDecl = (CVariableDeclaration) var;
+        if (vDecl.isGlobal()) {
+          return false;
+        } else if (vDecl.getType() instanceof CPointerType) {
+          return false;
+        }
+      }
+    }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       boolean isRelevantVariable =
           var.getName().equals(RETURN_VARIABLE_NAME)
@@ -309,6 +318,22 @@ public class CtoFormulaConverter {
           return true;
         }
       }
+    }
+    if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
+      boolean isRelevantVariable =
+          var.getName().equals(RETURN_VARIABLE_NAME)
+              || variableClassification
+                  .orElseThrow()
+                  .getRelevantVariables()
+                  .contains(var.getQualifiedName());
+      if (options.overflowVariablesAreRelevant()) {
+        isRelevantVariable |=
+            variableClassification
+                .orElseThrow()
+                .getIntOverflowVars()
+                .contains(var.getQualifiedName());
+      }
+      return isRelevantVariable;
     }
     return false;
   }
@@ -379,7 +404,7 @@ public class CtoFormulaConverter {
    * @return the name of the expression
    */
   static String exprToVarName(AAstNode e, String function) {
-    return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
+    return (function + "::" + exprToVarNameUnscoped(e)).intern();
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
@@ -1012,7 +1037,11 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newPts, newLength);
+
+    @SuppressWarnings("deprecation")
+    // This is an intended use, CtoFormulaConverter just does not have access to the constructor
+    PathFormula result = PathFormula.createManually(newFormula, newSsa, newPts, newLength);
+    return result;
   }
 
   /**
@@ -1320,13 +1349,13 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
+      final Optional<CVariableDeclaration> returnVariableDeclaration =
           ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
-      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
-          returnVariableDeclaration.get());
+      final CIdExpression rhs =
+          new CIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.orElseThrow());
 
       return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
@@ -1425,18 +1454,29 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
-      final CReturnStatementEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCodeException, InterruptedException {
+  protected BooleanFormula makeReturn(
+      final Optional<CAssignment> assignment,
+      final CReturnStatementEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
       return bfmgr.makeTrue();
     } else {
 
-      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
-          edge, function, ssa, pts, constraints, errorConditions);
+      return makeAssignment(
+          assignment.orElseThrow().getLeftHandSide(),
+          assignment.orElseThrow().getRightHandSide(),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
   }
 
@@ -1814,8 +1854,6 @@ public class CtoFormulaConverter {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       result = "atomic operations";
-    } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
-      result = "builtin functions for arithmetic with overflow handling";
     }
 
     if (result != null && options.isAllowedUnsupportedFunction(functionName)) {

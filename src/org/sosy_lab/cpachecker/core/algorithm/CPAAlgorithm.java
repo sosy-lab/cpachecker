@@ -153,8 +153,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       if (mergeTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for merge operator:        " + mergeTimer);
       }
-      out.println("  Time for stop operator:           " + stopTimer);
-      out.println("  Time for adding to reached set:   " + addTimer);
+      out.println("  Time for stop operator:         " + stopTimer);
+      out.println("  Time for adding to reached set: " + addTimer);
 
     }
   }
@@ -222,16 +222,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownNotifier                   shutdownNotifier;
 
   private final AlgorithmStatus status;
-  private final ConfigurableProgramAnalysis cpa;
 
-  private CPAAlgorithm(
-      ConfigurableProgramAnalysis pCpa,
-      LogManager logger,
+  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {
 
-    cpa = pCpa;
     transferRelation = cpa.getTransferRelation();
     mergeOperator = cpa.getMergeOperator();
     stopOperator = cpa.getStopOperator();
@@ -249,7 +245,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       return run0(reachedSet);
     } finally {
       stats.stopAllTimers();
-      reachedSet.finalize(cpa);
       stats.updateReachedSetStatistics(reachedSet.getStatistics());
     }
   }
@@ -279,7 +274,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           // Prec operator requested break
           return status;
         }
-      } catch (Exception e) {
+      } catch (CPAException | InterruptedException e) {
         // re-add the old state to the waitlist, there might be unhandled successors left
         // that otherwise would be forgotten (which would be unsound)
         reachedSet.reAddToWaitlist(state);
@@ -299,9 +294,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
    * @return true if analysis should terminate, false if analysis should continue with next state
    */
   private boolean handleState(
-      final AbstractState state,
-      Precision precision,
-      final ReachedSet reachedSet)
+      final AbstractState state, final Precision precision, final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
     logger.log(Level.ALL, "Current state is", state, "with precision", precision);
 
@@ -425,7 +418,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             // because ARGCPA doesn't like states in toRemove to be in the reachedSet.
             reachedSet.removeAll(toRemove);
             reachedSet.addAll(toAdd);
-
           }
 
           if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {

@@ -241,7 +241,7 @@ public class ARGToDotWriter {
         builder.append(": \\l");
 
         for (CFAEdge edge : edges) {
-          builder.append(edge.getDescription().replaceAll("\n", " ").replace('"', '\''));
+          builder.append(edge.getDescription().replace('\n', ' ').replace('"', '\''));
           builder.append("\\l");
         }
 

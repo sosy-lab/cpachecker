@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -152,7 +153,7 @@ public class ValueAnalysisState
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Value value) {
-    addToConstantsMap(MemoryLocation.valueOf(variableName), value, null);
+    addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
   }
 
   private void addToConstantsMap(
@@ -456,7 +457,7 @@ public class ValueAnalysisState
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       MemoryLocation key = entry.getKey();
       sb.append(" <");
-      sb.append(key.getAsSimpleString());
+      sb.append(key.getExtendedQualifiedName());
       sb.append(" = ");
       sb.append(entry.getValue().getValue());
       sb.append(">\n");
@@ -492,11 +493,11 @@ public class ValueAnalysisState
 
     if (pProperty.startsWith("contains(")) {
       String varName = pProperty.substring("contains(".length(), pProperty.length() - 1);
-      return this.constantsMap.containsKey(MemoryLocation.valueOf(varName));
+      return this.constantsMap.containsKey(MemoryLocation.parseExtendedQualifiedName(varName));
     } else {
       List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
       if (parts.size() != 2) {
-        ValueAndType value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
+        ValueAndType value = this.constantsMap.get(MemoryLocation.parseExtendedQualifiedName(pProperty));
         if (value != null && value.getValue().isExplicitlyKnown()) {
           return value.getValue();
         } else {
@@ -519,7 +520,7 @@ public class ValueAnalysisState
           + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val = this.constantsMap.get(MemoryLocation.valueOf(parts.get(0)));
+      ValueAndType val = this.constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
       if (val == null) {
         return false;
       }
@@ -563,7 +564,7 @@ public class ValueAnalysisState
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
 
-        MemoryLocation varName = MemoryLocation.valueOf(
+        MemoryLocation varName = MemoryLocation.parseExtendedQualifiedName(
             statement.substring("deletevalues(".length(), statement.length() - 1));
 
         if (contains(varName)) {
@@ -629,7 +630,7 @@ public class ValueAnalysisState
           if (simpleType.getType().isIntegerType()) {
             int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
             BitvectorFormula var =
-                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
+                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getExtendedQualifiedName());
 
             Number value = num.getNumber();
             final BitvectorFormula val;
@@ -651,7 +652,7 @@ public class ValueAnalysisState
             default:
               throw new AssertionError("Unsupported floating point type: " + simpleType);
             }
-            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
+            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getExtendedQualifiedName(), fpType);
             FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
             result.add(floatFMGR.equalWithFPSemantics(var, val));
           } else {
@@ -742,7 +743,7 @@ public class ValueAnalysisState
         rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
-          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getExtendedQualifiedName())) {
         /*assert (!rebuildState.contains(trackedVar)) :
                 "calling function should not contain return-variable of called function: " + trackedVar;*/
         if (this.contains(trackedVar)) {
@@ -779,7 +780,11 @@ public class ValueAnalysisState
     List<ExpressionTree<Object>> result = new ArrayList<>();
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      NumericValue num = entry.getValue().getValue().asNumericValue();
+      Value valueOfEntry = entry.getValue().getValue();
+      if(valueOfEntry instanceof EnumConstantValue){
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
@@ -810,7 +815,7 @@ public class ValueAnalysisState
                     cType,
                     id,
                     id,
-                    memoryLocation.getAsSimpleString(),
+                    memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
             CExpression val = null;
@@ -838,7 +843,7 @@ public class ValueAnalysisState
                   break;
                 }
               }
-              if(val == null) {
+              if (val == null) {
                 val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
               }
             } else {

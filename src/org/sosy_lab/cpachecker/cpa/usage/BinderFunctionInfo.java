@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -57,7 +58,7 @@ public class BinderFunctionInfo {
     try {
       String line = pConfig.getProperty(name + ".pInfo");
       Preconditions.checkNotNull(line);
-      line = line.replaceAll("\\s", "");
+      line = CharMatcher.whitespace().removeFrom(line);
 
       parameterInfo =
           from(Splitter.on(",").splitToList(line))
@@ -70,7 +71,7 @@ public class BinderFunctionInfo {
       if (line != null) {
         List<String> options;
         List<String> pOption;
-        line = line.replaceAll("\\s", "");
+        line = CharMatcher.whitespace().removeFrom(line);
         options = Splitter.on(",").splitToList(line);
         assert options.size() == 2;
         LinkerInfo[] lInfo = new LinkerInfo[2];

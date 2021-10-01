@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Encapsulates a {@link CParser} instance and processes all files first
@@ -28,15 +28,6 @@ class CParserWithPreprocessor implements CParser {
   public CParserWithPreprocessor(CParser pRealParser, CPreprocessor pPreprocessor) {
     realParser = pRealParser;
     preprocessor = pPreprocessor;
-  }
-
-  @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, InterruptedException {
-    String programCode = preprocessor.preprocess(pFilename);
-    if (programCode.isEmpty()) {
-      throw new CParserException("Preprocessor returned empty program");
-    }
-    return realParser.parseString(pFilename, programCode);
   }
 
   @Override
@@ -57,16 +48,17 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
+  public ParseResult parseFiles(List<String> pFilenames)
       throws CParserException, InterruptedException {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
-      String programCode = preprocessor.preprocess(f);
+      Path path = Path.of(f);
+      String programCode = preprocessor.preprocess(path);
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(new FileContentToParse(f, programCode));
+      programs.add(new FileContentToParse(path, programCode));
     }
     return realParser.parseString(programs, new CSourceOriginMapping());
   }

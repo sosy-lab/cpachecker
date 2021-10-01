@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.EnvironmentActionEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable, AbstractStateWithEdge {
+public class ARGState extends AbstractSerializableSingleWrapperState
+      implements Comparable<ARGState>, Graphable, Splitable, AbstractStateWithEdge {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -345,7 +345,6 @@ public class ARGState extends AbstractSingleWrapperState
    */
   public FluentIterable<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    // return Sets.newHashSet(Traverser.forGraph(ARGState::getSuccessors).breadthFirst(this));
     return from(Traverser.forGraph(ARGState::getSuccessors).breadthFirst(this));
   }
 

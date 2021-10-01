@@ -9,15 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.ObjectOutputStream;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -30,21 +28,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
-
-  private static final long serialVersionUID = 1L;
 
   private boolean usagesExtracted = false;
 
-  public static class RaceProperty implements Property {
+  public static class RaceProperty implements TargetInformation {
     @Override
     public String toString() {
       return "Race condition";
     }
   }
 
-  private static final ImmutableSet<Property> RACE_PROPERTY = ImmutableSet.of(new RaceProperty());
+  private static final ImmutableSet<TargetInformation> RACE_PROPERTY =
+      ImmutableSet.of(new RaceProperty());
 
   private final LogManager logger;
   private final UsageConfiguration usageConfig;
@@ -53,11 +49,18 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private final UsageContainer container;
 
   public UsageReachedSet(
+      ConfigurableProgramAnalysis pCpa,
       WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
-    super(waitlistFactory);
+    super(pCpa, waitlistFactory);
     logger = pLogger;
     container = new UsageContainer(pConfig, logger);
     usageConfig = pConfig;
+    BAMCPA bamCPA = CPAs.retrieveCPA(pCpa, BAMCPA.class);
+    if (bamCPA != null) {
+      UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
+      uCpa.getStats().setBAMCPA(bamCPA);
+    }
+    extractor = new ConcurrentUsageExtractor(pCpa, logger, container, usageConfig);
   }
 
   @Override
@@ -83,7 +86,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public boolean hasViolatedProperties() {
+  public boolean wasTargetReached() {
     if (!usagesExtracted) {
       extractor.extractUsages(getFirstState());
       usagesExtracted = true;
@@ -92,8 +95,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   @Override
-  public Set<Property> getViolatedProperties() {
-    if (hasViolatedProperties()) {
+  public Set<TargetInformation> getTargetInformation() {
+    if (wasTargetReached()) {
       return RACE_PROPERTY;
     } else {
       return ImmutableSet.of();
@@ -106,20 +109,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   public Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> getUnsafes() {
     return container.getStableUnsafes();
-  }
-
-  private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
-    throw new UnsupportedOperationException("cannot serialize Logger");
-  }
-
-  @Override
-  public void finalize(ConfigurableProgramAnalysis pCpa) {
-    BAMCPA bamCPA = CPAs.retrieveCPA(pCpa, BAMCPA.class);
-    if (bamCPA != null) {
-      UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
-      uCpa.getStats().setBAMCPA(bamCPA);
-    }
-    extractor = new ConcurrentUsageExtractor(pCpa, logger, container, usageConfig);
   }
 
   public void printStatistics(StatisticsWriter pWriter) {

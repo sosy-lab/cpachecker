@@ -229,7 +229,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
   /**
    * the enumeration defining the different scopes for which to track individual thresholds
    */
-  private static enum Scope {
+  private enum Scope {
     STATE,
     PATH,
     PROGRAM

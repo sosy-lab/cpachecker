@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-
 public interface AbstractLockEffect {
   public void effect(AbstractLockStateBuilder builder);
 

@@ -40,8 +40,10 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
+  @SuppressWarnings("deprecation")
   public final ThreadSafeTimerContainer pathFormulaComputationTimer =
       new ThreadSafeTimerContainer(null);
+
   public LongAdder pathFormulaCacheHits = new LongAdder();
 
   public final PathFormulaManager delegate;
@@ -135,20 +137,30 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
+    return delegate.makeConjunction(pPathFormulas);
+  }
+
+  @Override
   public PathFormula makeEmptyPathFormula() {
     return emptyFormula;
   }
 
   @Override
-  public PathFormula makeEmptyPathFormula(PathFormula pOldFormula) {
+  public PathFormula makeEmptyPathFormulaWithContextFrom(PathFormula pOldFormula) {
     PathFormula result = emptyFormulaCache.get(pOldFormula);
     if (result == null) {
-      result = delegate.makeEmptyPathFormula(pOldFormula);
+      result = delegate.makeEmptyPathFormulaWithContextFrom(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
     } else {
       pathFormulaCacheHits.increment();
     }
     return result;
+  }
+
+  @Override
+  public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
+    return delegate.makeEmptyPathFormulaWithContext(pSsaMap, pPts);
   }
 
   @Override
@@ -175,12 +187,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
     return delegate.makeAnd(pPathFormula, pAssumption);
-  }
-
-  @Override
-  @Deprecated
-  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM) {
-    return delegate.makeNewPathFormula(pOldFormula, pM);
   }
 
   @Override
@@ -250,11 +256,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
     return delegate.addBitwiseAxiomsIfNeeded(pMainFormula, pExtractionFormula);
-  }
-
-  @Override
-  public PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts) {
-    return delegate.makeNewPathFormula(pOldFormula, pM, pPts);
   }
 
   @Override
