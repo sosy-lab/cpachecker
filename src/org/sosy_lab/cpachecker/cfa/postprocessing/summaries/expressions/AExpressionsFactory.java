@@ -61,8 +61,8 @@ public class AExpressionsFactory {
     return null;
   }
 
-  public AExpressionsFactory from(AIntegerLiteralExpression pIterations) {
-    this.currentExpression = pIterations;
+  public AExpressionsFactory from(AExpression expr) {
+    this.currentExpression = expr;
     return this;
   }
 
@@ -135,6 +135,20 @@ public class AExpressionsFactory {
       return this.arithmeticExpression(
           JIntegerLiteralExpression.createDummyLiteral(pI),
           JBinaryExpression.BinaryOperator.MULTIPLY);
+    } else {
+      return null;
+    }
+  }
+
+  public AExpressionsFactory divide(Integer pI) {
+    if (this.expressionLanguage == ExpressionType.C) {
+      return this.arithmeticExpression(
+          CIntegerLiteralExpression.createDummyLiteral(pI, CNumericTypes.INT),
+          CBinaryExpression.BinaryOperator.DIVIDE);
+    } else if (this.expressionLanguage == ExpressionType.JAVA) {
+      return this.arithmeticExpression(
+          JIntegerLiteralExpression.createDummyLiteral(pI),
+          JBinaryExpression.BinaryOperator.DIVIDE);
     } else {
       return null;
     }

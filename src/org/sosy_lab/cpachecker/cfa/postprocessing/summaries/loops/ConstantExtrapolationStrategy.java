@@ -15,7 +15,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyInterface;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AExpressionsFactory.ExpressionType;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.AggregateConstantsVisitor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.expressions.LoopVariableDeltaVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -252,18 +250,14 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
    * @param loopBoundExpression the expression of the loop while (EXPR) { something; }
    * @param loopStructure The loop structure which is being summarized
    */
-  public Optional<AIntegerLiteralExpression> loopIterations(
-      AExpression loopBoundExpression, Loop loopStructure) {
+  public Optional<AExpression> loopIterations(AExpression loopBoundExpression, Loop loopStructure) {
     // This expression is the amount of iterations given in symbols
     try {
-      Optional<AIntegerLiteralExpression> iterationsMaybe = Optional.empty();
+      Optional<AExpression> iterationsMaybe = Optional.empty();
       // TODO For now it only works for c programs
       if (loopBoundExpression instanceof CBinaryExpression) {
         LoopVariableDeltaVisitor<Exception> variableVisitor =
             new LoopVariableDeltaVisitor<>(loopStructure, true);
-        AggregateConstantsVisitor<Exception> constantsVisitor =
-            new AggregateConstantsVisitor<>(
-                Optional.of(loopStructure.getLoopIncDecVariables()), true);
 
         CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
         CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
@@ -271,13 +265,8 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
 
         Optional<Integer> operand1variableDelta = operand1.accept(variableVisitor);
         Optional<Integer> operand2variableDelta = operand2.accept(variableVisitor);
-        Optional<Integer> operand1Constants = operand1.accept(constantsVisitor);
-        Optional<Integer> operand2Constants = operand2.accept(constantsVisitor);
 
-        if (operand1variableDelta.isPresent()
-            && operand2variableDelta.isPresent()
-            && operand1Constants.isPresent()
-            && operand2Constants.isPresent()) {
+        if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
 
           switch (operator) {
             case EQUALS:
@@ -295,46 +284,62 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
               break;
             case GREATER_EQUAL:
               if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
-                Integer iterationsAmnt =
-                    (operand1Constants.get() - operand2Constants.get())
-                            / -(operand1variableDelta.get() - operand2variableDelta.get())
-                        + 1;
                 iterationsMaybe =
-                    Optional.of(this.getExpressionFactory().from(iterationsAmnt, ExpressionType.C));
+                    Optional.of(
+                        (AExpression)
+                            this.getExpressionFactory()
+                                .from(operand1)
+                                .arithmeticExpression(
+                                    operand2, CBinaryExpression.BinaryOperator.MINUS)
+                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                                .build());
               }
               break;
             case GREATER_THAN:
               if (operand1variableDelta.get() - operand2variableDelta.get() < 0) {
-                Integer iterationsAmnt =
-                    (operand1Constants.get() - operand2Constants.get())
-                        / -(operand1variableDelta.get() - operand2variableDelta.get());
                 iterationsMaybe =
-                    Optional.of(this.getExpressionFactory().from(iterationsAmnt, ExpressionType.C));
+                    Optional.of(
+                        (AExpression)
+                            this.getExpressionFactory()
+                                .from(operand1)
+                                .arithmeticExpression(
+                                    operand2, CBinaryExpression.BinaryOperator.MINUS)
+                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                                .add(1)
+                                .build());
               }
               break;
             case LESS_EQUAL:
               if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
-                Integer iterationsAmnt =
-                    (operand2Constants.get() - operand1Constants.get())
-                            / -(operand2variableDelta.get() - operand1variableDelta.get())
-                        + 1;
                 iterationsMaybe =
-                    Optional.of(this.getExpressionFactory().from(iterationsAmnt, ExpressionType.C));
+                    Optional.of(
+                        (AExpression)
+                            this.getExpressionFactory()
+                                .from(operand2)
+                                .arithmeticExpression(
+                                    operand1, CBinaryExpression.BinaryOperator.MINUS)
+                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                                .build());
               }
               break;
             case LESS_THAN:
               if (operand2variableDelta.get() - operand1variableDelta.get() < 0) {
                 iterationsMaybe =
                     Optional.of(
-                        this.getExpressionFactory()
-                            .from(
-                                (operand2Constants.get() - operand1Constants.get()),
-                                ExpressionType.C));
+                        (AExpression)
+                            this.getExpressionFactory()
+                                .from(operand2)
+                                .arithmeticExpression(
+                                    operand1, CBinaryExpression.BinaryOperator.MINUS)
+                                .divide(operand2variableDelta.get() - operand1variableDelta.get())
+                                .add(1)
+                                .build());
               }
               break;
             case NOT_EQUALS:
-              // Should iterate at most once if the Deltas are non zero
-              // If the deltas are zero and the integer is zero this loop would not terminate
+              // Should iterate at most once if the Deltas are zero
+              // If the deltas are non zero and the integer is zero this loop could terminate, but
+              // it is not known when this could happen
               // TODO: What do we do if the loop does not terminate?
               // TODO: this can be improved if the value of the variables is known.
               if (operand1variableDelta.get() - operand2variableDelta.get() == 0) {
@@ -357,7 +362,7 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
   }
 
   private Optional<GhostCFA> summarizeLoop(
-      AIntegerLiteralExpression pIterations,
+      AExpression pIterations,
       AExpression pLoopBoundExpression,
       Loop pLoopStructure,
       CFANode pBeforeWhile) {
@@ -491,17 +496,13 @@ public class ConstantExtrapolationStrategy extends AbstractLoopExtrapolationStra
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.get();
 
-    Optional<AIntegerLiteralExpression> iterationsMaybe =
-        this.loopIterations(loopBoundExpression, loopStructure);
+    Optional<AExpression> iterationsMaybe = this.loopIterations(loopBoundExpression, loopStructure);
 
     if (iterationsMaybe.isEmpty()) {
       return Optional.empty();
     }
 
-    AIntegerLiteralExpression iterations = iterationsMaybe.get();
-    if (iterations.getValue().intValue() < 0) {
-      return Optional.empty();
-    }
+    AExpression iterations = iterationsMaybe.get();
 
     Optional<GhostCFA> summarizedLoopMaybe =
         summarizeLoop(iterations, loopBoundExpression, loopStructure, beforeWhile);
