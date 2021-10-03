@@ -209,6 +209,7 @@ public class BackwardAnalysisFull extends Task {
       logManager.log(Level.INFO, "Verdict: Swallowed error condition: ",
           errorCondition.getFormula());
       messageFactory.sendTaskCompletionMessage(this, result);
+      return;
     }
 
     BlockAwareCompositeState entryState = buildEntryState();
