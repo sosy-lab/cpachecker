@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayList;
@@ -112,13 +113,11 @@ public class BackwardAnalysisCore extends Task {
 
   private Result processReachedState(final AbstractState state)
       throws InterruptedException, CPAException, InvalidConfigurationException {
-    LocationState location = extractStateByType(state, LocationState.class);
+    CFANode location = extractLocation(state);
     assert location != null;
 
-    CFANode node = location.getLocationNode();
-
     Result result = Result.UNKNOWN;
-    if (location.getLocationNode() == target.getEntry()) {
+    if (location == target.getEntry()) {
       PredicateAbstractState predState =
           extractStateByType(state, PredicateAbstractState.class);
       assert predState != null;
@@ -134,7 +133,8 @@ public class BackwardAnalysisCore extends Task {
           new ShareableBooleanFormula(fMgr, condition);
 
       for (final Block predecessor : target.getPredecessors()) {
-        messageFactory.sendBackwardAnalysisRequest(predecessor, node, target, shareableCondition);
+        messageFactory.sendBackwardAnalysisRequest(
+            predecessor, location, target, shareableCondition);
       }
 
       if (target.getPredecessors().isEmpty()) {
