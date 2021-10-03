@@ -59,7 +59,7 @@ public class BackwardAnalysisCore extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pMessageFactory, pLogManager, pShutdownNotifier);
-    
+
     cpa = pCPA;
     solver = pSolver;
     fMgr = solver.getFormulaManager();
@@ -81,14 +81,14 @@ public class BackwardAnalysisCore extends Task {
     for (final AbstractState reachedState : reached.asCollection()) {
       result = result.withResult(processReachedState(reachedState));
     }
-
+    
     Collection<AbstractState> waiting = new ArrayList<>(reached.getWaitlist());
     reached.clear();
     for (final AbstractState waitingState : waiting) {
       CFANode location = AbstractStates.extractLocation(waitingState);
       assert location != null;
 
-      if(location != target.getEntry() || location.isLoopStart()) {
+      if (location != target.getEntry()) {
         reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
       } else if (location.isLoopStart()) {
         assert waitingState instanceof CompositeState;
@@ -108,7 +108,7 @@ public class BackwardAnalysisCore extends Task {
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
     result = result.withStatus(status);
-    messageFactory.sendTaskCompletionMessage(this, result);    
+    messageFactory.sendTaskCompletionMessage(this, result);
   }
 
   private Result processReachedState(final AbstractState state)
