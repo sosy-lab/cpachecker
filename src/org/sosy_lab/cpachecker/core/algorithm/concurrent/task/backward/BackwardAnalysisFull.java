@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
 import static java.lang.Math.max;
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.makeName;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -109,7 +111,7 @@ public class BackwardAnalysisFull extends Task {
     return configLoader.getConfiguration();
   }
 
-  private CompositeState buildEntryState() throws InterruptedException {
+  private BlockAwareCompositeState buildEntryState() throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState();
 
     List<AbstractState> componentStates = new ArrayList<>();
@@ -129,7 +131,7 @@ public class BackwardAnalysisFull extends Task {
       componentStates.add(componentState);
     }
 
-    return new CompositeState(componentStates);
+    return BlockAwareCompositeState.create(new CompositeState(componentStates), target, BACKWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState() throws InterruptedException {
@@ -209,7 +211,7 @@ public class BackwardAnalysisFull extends Task {
       messageFactory.sendTaskCompletionMessage(this, result);
     }
 
-    CompositeState entryState = buildEntryState();
+    BlockAwareCompositeState entryState = buildEntryState();
     Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
 

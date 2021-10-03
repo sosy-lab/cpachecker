@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -28,8 +29,9 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFo
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareAnalysisContinuationState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -87,6 +89,14 @@ public class BackwardAnalysisCore extends Task {
 
       if(location != target.getEntry() || location.isLoopStart()) {
         reached.add(waitingState, cpa.getInitialPrecision(location, getDefaultPartition()));
+      } else if (location.isLoopStart()) {
+        assert waitingState instanceof CompositeState;
+
+        CompositeState blockAwareState = (CompositeState) waitingState;
+        BlockAwareAnalysisContinuationState newStart =
+            BlockAwareAnalysisContinuationState.create(
+                blockAwareState.getWrappedStates(), target, BACKWARD);
+        reached.add(newStart, cpa.getInitialPrecision(location, getDefaultPartition()));
       }
     }
 

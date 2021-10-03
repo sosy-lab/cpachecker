@@ -11,6 +11,7 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -47,7 +48,7 @@ public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, Wrap
       secure = true,
       name = "cpa.predicate.direction",
       description = "Direction of the analysis?")
-  private AnalysisDirection direction = AnalysisDirection.FORWARD;
+  private AnalysisDirection direction = FORWARD;
 
   private BlockAwareCompositeCPA(
       final Block pBlock, final CompositeCPA pCPA, final Configuration pConfig)
@@ -85,12 +86,7 @@ public class BlockAwareCompositeCPA implements ConfigurableProgramAnalysis, Wrap
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    if (direction == AnalysisDirection.FORWARD) {
-      return cpa.getPrecisionAdjustment();
-    } else {
-      return new BreakOnBlockEntryPrecisionAdjustment(cpa.getPrecisionAdjustment(), block);
-    }
-    
+    return new BlockAwarePrecisionAdjustment(cpa.getPrecisionAdjustment(), block, direction);
   }
 
   @Override

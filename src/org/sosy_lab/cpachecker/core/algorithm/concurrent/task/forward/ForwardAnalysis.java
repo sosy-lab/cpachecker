@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
 import static org.sosy_lab.cpachecker.core.CPAcheckerResult.Result.UNKNOWN;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
@@ -40,8 +41,11 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
+import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -140,13 +144,15 @@ public class ForwardAnalysis extends Task {
       return;
     }
 
-    CompositeState entryState = buildEntryState(cumPredSummary);
+    BlockAwareCompositeState entryState = buildEntryState(cumPredSummary);
     Precision precision = cpa.getInitialPrecision(target.getEntry(), getDefaultPartition());
     reached.add(entryState, precision);
 
     logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
-    status = status.update(algorithm.run(reached));
-
+    do {
+      status = status.update(algorithm.run(reached));
+    } while(reached.hasWaitingState());
+    
     handleTargetStates();
     propagateThroughExits();
 
@@ -205,7 +211,7 @@ public class ForwardAnalysis extends Task {
     return !solver.isUnsat(equivalence);
   }
 
-  private CompositeState buildEntryState(final PathFormula cumPredSummary)
+  private BlockAwareCompositeState buildEntryState(final PathFormula cumPredSummary)
       throws InterruptedException {
     PredicateAbstractState predicateEntryState = buildPredicateEntryState(cumPredSummary);
 
@@ -226,7 +232,7 @@ public class ForwardAnalysis extends Task {
       componentStates.add(componentState);
     }
 
-    return new CompositeState(componentStates);
+    return BlockAwareCompositeState.create(new CompositeState(componentStates), target, FORWARD);
   }
 
   private PredicateAbstractState buildPredicateEntryState(final PathFormula cumPredSummary)
@@ -245,11 +251,28 @@ public class ForwardAnalysis extends Task {
       CFANode location = extractLocation(state);
       assert location != null;
 
-      if (isTargetState(state)) {
+      if (isTargetState(state) && targetIsError(state)) {
         logManager.log(Level.FINE, "Target State:", state);
         messageFactory.sendBackwardAnalysisRequest(target, location);
       }
     }
+  }
+
+  private boolean targetIsError(final AbstractState state) {
+    assert state instanceof CompositeState;
+    CompositeState compositeState = (CompositeState) state;
+
+    boolean foundError = false;
+    for (final AbstractState componentState : compositeState.getWrappedStates()) {
+      if (componentState instanceof Targetable) {
+        Targetable targetableState = (Targetable) componentState;
+        if (targetableState.isTarget() && targetableState instanceof AutomatonState) {
+          foundError = true;
+        }
+      }
+    }
+
+    return foundError;
   }
 
   private void propagateThroughExits()

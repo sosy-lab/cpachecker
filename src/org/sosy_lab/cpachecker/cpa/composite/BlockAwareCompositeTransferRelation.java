@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,8 +40,10 @@ public class BlockAwareCompositeTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<CompositeState> getAbstractSuccessors(AbstractState state, Precision precision)
-      throws CPATransferException, InterruptedException {
+  public Collection<BlockAwareCompositeState> getAbstractSuccessors(
+      AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
+    assert state instanceof BlockAwareCompositeState;
+
     Collection<CompositeState> successors;
 
     LocationState locState = extractStateByType(state, LocationState.class);
@@ -57,7 +60,11 @@ public class BlockAwareCompositeTransferRelation implements TransferRelation {
       }
     }
 
-    return successors;
+    return successors.stream()
+        .map(
+            successor ->
+                new BlockAwareCompositeState(successor.getWrappedStates(), block, direction))
+        .collect(Collectors.toList());
   }
 
   private boolean remainsWithinBlock(final CFAEdge edge) {
