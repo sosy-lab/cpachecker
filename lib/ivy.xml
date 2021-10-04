@@ -115,6 +115,13 @@ SPDX-License-Identifier: Apache-2.0
              Library for parsing strings and files in 'Hanoi Omega-Automata' (HOA) format. -->
         <dependency org="jhoafparser" name="jhoafparser" rev="1.1.1" conf="runtime->runtime"/>
 
+        <!-- Apache Commons IO
+              Library of utilities that assist with developing IO functionality.
+              See https://commons.apache.org/proper/commons-io/ -->
+        <dependency org="commons-io" name="commons-io" rev="2.11.0"
+                    conf="runtime->default; contrib->sources"/>
+
+
         <!-- Truth
              Library for writing literal assertions. -->
         <dependency org="com.google.truth" name="truth" rev="1.1.3"
