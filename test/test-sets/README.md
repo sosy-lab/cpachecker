@@ -16,7 +16,7 @@ We bundle BenchExec and provide it as `scripts/benchmark.py`,
 also cf. [doc/Benchmark.md](../../doc/Benchmark.md).
 
 The definition files assume that the directory `c`
-of the [SV-Benchmarks repository](https://github.com/sosy-lab/sv-benchmarks/tree/master/c)
+of the [SV-Benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c)
 is checked out in the directory `../programs/benchmarks`
 (i.e., `test/programs/benchmarks` from the project root).
 
