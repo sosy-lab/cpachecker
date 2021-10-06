@@ -185,10 +185,15 @@ public class AssumeVisitor extends ExpressionValueVisitor {
           return offset1 <= offset2;
       case LESS_THAN:
           return offset1 < offset2;
+        case EQUALS:
+          return offset1 == offset2;
+        case NOT_EQUALS:
+          return offset1 != offset2;
       default:
         throw new AssertionError("Impossible case thrown");
       }
-
+    } else if (pOp == BinaryOperator.NOT_EQUALS) {
+      return true;
     }
     return false;
   }
@@ -248,37 +253,36 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       default:
         throw new AssertionError("Impossible case thrown");
       }
-
-        if (isPointerOp1 && isPointerOp2) {
-          isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
-          isFalse = !isTrue;
-        } else if (isPointerOp1 && !pV2.isUnknown()) {
-          SMGKnownExpValue explicit2 = pNewState.getExplicit(pV2);
-          if (explicit2 != null) {
-            isTrue =
-                comparePointer(
-                    (SMGKnownAddressValue) pV1,
-                    SMGKnownAddressValue.valueOf(
-                        (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
-                    pOp);
-            isFalse = !isTrue;
-          }
-        } else if (isPointerOp2 && !pV1.isUnknown()) {
-          SMGKnownExpValue explicit1 = pNewState.getExplicit(pV1);
-            if (explicit1 != null) {
-            isTrue =
-                comparePointer(
-                    SMGKnownAddressValue.valueOf(
-                        (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
-                    (SMGKnownAddressValue) pV2,
-                    pOp);
-              isFalse = !isTrue;
-            }
-        }
       break;
     default:
-      throw new AssertionError(
-          "Binary Relation with non-relational operator: " + pOp.toString());
+        throw new AssertionError("Binary Relation with non-relational operator: " + pOp);
+    }
+
+    if (isPointerOp1 && isPointerOp2) {
+      isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
+      isFalse = !isTrue;
+    } else if (isPointerOp1 && !pV2.isUnknown()) {
+      SMGKnownExpValue explicit2 = pNewState.getExplicit(pV2);
+      if (explicit2 != null) {
+        isTrue =
+            comparePointer(
+                (SMGKnownAddressValue) pV1,
+                SMGKnownAddressValue.valueOf(
+                    (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
+                pOp);
+        isFalse = !isTrue;
+      }
+    } else if (isPointerOp2 && !pV1.isUnknown()) {
+      SMGKnownExpValue explicit1 = pNewState.getExplicit(pV1);
+      if (explicit1 != null) {
+        isTrue =
+            comparePointer(
+                SMGKnownAddressValue.valueOf(
+                    (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
+                (SMGKnownAddressValue) pV2,
+                pOp);
+        isFalse = !isTrue;
+      }
     }
 
     BinaryRelationResult relationResult = new BinaryRelationResult(isTrue, isFalse, impliesEqWhenFalse, impliesNeqWhenFalse, impliesEqWhenTrue, impliesNeqWhenTrue, pV1, pV2);
