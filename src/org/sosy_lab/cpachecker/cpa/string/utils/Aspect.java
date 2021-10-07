@@ -8,35 +8,55 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
-import org.sosy_lab.cpachecker.util.Pair;
 
-public class Aspect {
+public class Aspect<T> {
 
-  private Pair<DomainType, String> domainAndValue;
+  private AbstractStringDomain<?> domain;
+  // t as a string
+  private String value;
+  private T t;
 
-  public Aspect(DomainType pType, String pValue) {
-    domainAndValue = Pair.of(pType, pValue);
+  public Aspect(AbstractStringDomain<T> pDomain, T pT) {
+    domain = pDomain;
+    t = pT;
+    value = pT.toString();
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof Aspect)) {
-      return false;
-    }
-    Aspect asp = (Aspect) obj;
-    return asp.domainAndValue.getFirst() == this.domainAndValue.getFirst()
-        && asp.domainAndValue.getSecond() == this.domainAndValue.getSecond();
+  public String getValueAsString() {
+    return t.toString();
+  }
+
+  public AbstractStringDomain<?> getDomain() {
+    return domain;
+  }
+
+  public T getValue() {
+    return t;
+  }
+
+  public DomainType getDomainType() {
+    return domain.getType();
   }
 
   @Override
   public String toString() {
-    return "(" + domainAndValue.getFirst().toString() + "," + domainAndValue.getSecond() + ")";
+    // return "(" + domain.toString() + "," + value + ")";
+    return "(" + getDomainType().toString() + "," + value + ")";
   }
 
-  @Override
-  public int hashCode() {
-    return super.hashCode();
+  public static class UnknownAspect extends Aspect<Object> {
+
+    private final static UnknownAspect instance = new UnknownAspect();
+
+    private UnknownAspect() {
+      super(null, null);
+    }
+
+    public static UnknownAspect getInstance() {
+      return instance;
+    }
   }
 
 }

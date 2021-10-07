@@ -8,29 +8,35 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+//rename to JSVarRepresenter?
 public class JVariableIdentifier {
+
 
   private final Type type;
   private final String varIdentifier;
   private final @Nullable String functionName;
   private final boolean isGlobal;
   private final MemoryLocation memLoc;
+  private List<Aspect> aspects;
 
   public JVariableIdentifier(Type pType, MemoryLocation pMemLoc) {
     memLoc = pMemLoc;
     type = pType;
     varIdentifier = memLoc.getIdentifier();
     functionName = memLoc.getFunctionName();
-    if (pMemLoc.getFunctionName().isEmpty()) {
-      isGlobal = true;
-    } else {
-      isGlobal = false;
-    }
+    isGlobal = functionName.isEmpty();
+    aspects = ImmutableList.of();
+  }
 
+  public JVariableIdentifier addAspects(List<Aspect> pList) {
+    aspects = ImmutableList.copyOf(pList);
+    return this;
   }
 
   public MemoryLocation getMemLoc() {
@@ -101,5 +107,17 @@ public class JVariableIdentifier {
   public String toString() {
     return "ID:" + varIdentifier // + "," + isGlobal
     ;
+  }
+
+  public static class NotJSVar extends JVariableIdentifier {
+    private final static NotJSVar instance = new NotJSVar();
+
+    private NotJSVar() {
+      super(null, null);
+    }
+
+    public static NotJSVar getInstance() {
+      return instance;
+    }
   }
 }

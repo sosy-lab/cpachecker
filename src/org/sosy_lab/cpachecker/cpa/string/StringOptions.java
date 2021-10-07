@@ -9,13 +9,18 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
 
 
@@ -31,7 +36,10 @@ public class StringOptions {
   @Option(description = "Look if these Strings are Part of a String", name = "containset")
   private List<String> containset = new ArrayList<>();
 
-  @Option(secure = true, name = "stringset", description = "Compare these Strings ")
+  @Option(
+    secure = true,
+    name = "stringset",
+    description = "Compare these Strings for StringSetDomain")
   private ImmutableList<String> stringSet = ImmutableList.of();
 
   @Option(
@@ -39,20 +47,55 @@ public class StringOptions {
     name = "domains",
     values = {"PrefixDomain"},
     description = "which domains to use in StringCPA")
-  private ImmutableList<String> domainList = ImmutableList.copyOf(Arrays.asList("PrefixDomain"));
-  private ImmutableList<AbstractStringDomain> domains;
+  private ImmutableList<String> domainList =
+      ImmutableList
+          .copyOf(Arrays.asList("PrefixDomain", "SuffixDomain", "LengthDomain", "CharSetDomain"));
 
-  public StringOptions(Configuration config) throws InvalidConfigurationException {
-    domains = generateDomains(domainList);
+  private ImmutableList<AbstractStringDomain<?>> domains;
+  private LogManager logger;
+
+  public StringOptions(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
+    domains = generateDomains(domainList);
   }
 
-  // TODO get different domains
-  private ImmutableList<AbstractStringDomain> generateDomains(ImmutableList<String> domainList) {
-    // return ImmutableList.of(new PrefixDomain(this));
-    return null;
+  private ImmutableList<AbstractStringDomain<?>>
+      generateDomains(ImmutableList<String> pDomainList) {
+    Builder<AbstractStringDomain<?>> builder = new Builder<>();
+
+    for (String domainName : pDomainList) {
+      try {
+        Class<?> clazz = Class.forName(addPath(domainName));
+        Constructor<?> constructor =
+            clazz.getConstructor(StringOptions.class);
+        AbstractStringDomain<?> instance = (AbstractStringDomain<?>) constructor.newInstance(this);
+        builder.add(instance);
+      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+          | InvocationTargetException | NoSuchMethodException | SecurityException
+          | ClassNotFoundException e) {
+        logger.log(
+            Level.FINE,
+            domainName
+                + " is not an existing Domain or was  implemented incorrectly! Please refer to package-info in folder domain for more information.");
+      }
+    }
+    return builder.build();
   }
 
+  private String addPath(String domainName) {
+    return "org.sosy_lab.cpachecker.cpa.string.domains." + domainName;
+  }
+
+  /*
+   * Add the string Literals in a program to the List of Strings in StringSetDomain
+   */
+  public void addStringToGivenSet(String str) {
+    Builder<String> builder = new Builder<>();
+    builder.addAll(stringSet).add(str);
+    stringSet = builder.build();
+  }
   public int getPrefixLength() {
     return prefixLength;
   }
@@ -73,7 +116,7 @@ public class StringOptions {
     return domainList;
   }
 
-  public ImmutableList<AbstractStringDomain> getDomains() {
+  public ImmutableList<AbstractStringDomain<?>> getDomains() {
     return domains;
   }
 

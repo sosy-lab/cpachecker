@@ -14,6 +14,10 @@ public enum DomainType {
   LENGTH,
   CONTAINS,
   STRING_SET,
-  CHAR_SET
+  CHAR_SET;
 
+  public boolean isLessOrEqual(DomainType obj) {
+    // Hierarchy?
+    return this == obj;
+  }
 }

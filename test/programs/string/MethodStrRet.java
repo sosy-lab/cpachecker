@@ -6,15 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class StringTest {
+public class MethodStrRet {
 
-  public static void main() {
-    int e=5;
-    String a = "hello";
-    String b = " World!";
-    String c = a + b;
-    String d = a;
-    d=b;
-    assert c.equals("hello World!");
+  static String Foo(String s) {
+    return s;
   }
+
+  public static void main(String[] args) {
+    String iron = "man";
+    String he = Foo(iron);
+    iron = Foo("captain");
+  }
+
 }

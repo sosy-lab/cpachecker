@@ -6,15 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class StringTest {
-
-  public static void main() {
-    int e=5;
-    String a = "hello";
-    String b = " World!";
-    String c = a + b;
-    String d = a;
-    d=b;
-    assert c.equals("hello World!");
+public class PrefixSuffix {
+  public static void main(String[] args) {
+    String pref = "suffix";
+    String suff = "prefix";
+    assert pref.substring(0, 3).equals("suf");
+    assert suff.substring(4, 6).equals("fix");
+    return;
   }
+
 }

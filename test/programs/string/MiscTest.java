@@ -6,15 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class StringTest {
-
-  public static void main() {
-    int e=5;
-    String a = "hello";
-    String b = " World!";
-    String c = a + b;
-    String d = a;
-    d=b;
-    assert c.equals("hello World!");
+public class MiscTest {
+  public static void main(String[] args) {
+    String a = "Hello";
+    String b = "Final";
+    String c = b + a;
+    assert a.length() == 5;
+    assert c.equals(b + a);
+    return;
   }
 }

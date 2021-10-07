@@ -1,15 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
-import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
-import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
 import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -18,22 +15,26 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   private StringOptions options;
   private ImmutableMap<JVariableIdentifier, ValueAndAspects> stringsAndAspects;
+  private ImmutableList<JVariableIdentifier> stringVars;
+  // public StringState(Map<JVariableIdentifier, String> pStringMap, StringOptions pOptions) {
+  // options = pOptions;
+  // Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+  // for (JVariableIdentifier jid : pStringMap.keySet()) {
+  // if (HelperMethods.isString(jid.getType())) { // Doublecheck to be 100% sure
+  // String value = pStringMap.get(jid);
+  // ValueAndAspects vaa = new ValueAndAspects(value, storeAllAspects(value));
+  // builder.put(jid, vaa);
+  // }
+  // }
+  // stringsAndAspects = ImmutableMap.copyOf(builder.build());
+  // }
 
-  public StringState(Map<JVariableIdentifier, String> pStringMap, StringOptions pOptions) {
+  public StringState(List<JVariableIdentifier> pStringVars, StringOptions pOptions) {
     options = pOptions;
-    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
-    for (JVariableIdentifier jid : pStringMap.keySet()) {
-      if (HelperMethods.isString(jid.getType())) { // Doublecheck to be 100% sure
-        String value = pStringMap.get(jid);
-        ValueAndAspects vaa = new ValueAndAspects(value, storeAllAspects(value));
-        builder.put(jid, vaa);
-        // stringsAndAspects.put(jid, vaa);
-      }
-    }
-    stringsAndAspects = ImmutableMap.copyOf(builder.build());
+    stringVars = ImmutableList.copyOf(pStringVars);
   }
 
-  private StringState(
+  public StringState(
       ImmutableMap<JVariableIdentifier, ValueAndAspects> pStringMap,
       StringOptions pOptions) {
     options = pOptions;
@@ -49,46 +50,55 @@ public class StringState implements LatticeAbstractState<StringState> {
     return new StringState(state);
   }
 
-  public StringState updateVariable(JVariableIdentifier jid, ValueAndAspects updateValue) {
-    return updateVariable(jid, updateValue.getValue());
-  }
+  // public StringState updateVariable(JVariableIdentifier jid, ValueAndAspects updateValue) {
+  // return updateVariable(jid, updateValue.getValue());
+  // }
 
-  public StringState updateVariable(JVariableIdentifier pJid, String updateValue) {
-    // StringState state = copyOf(this);
-    ValueAndAspects svaa = new ValueAndAspects(updateValue, storeAllAspects(updateValue));
+  // Update doesn't create a new state
+  public StringState updateVariable(JVariableIdentifier pJid, ValueAndAspects vaa) {
+    // ValueAndAspects svaa = new ValueAndAspects(updateValue, storeAllAspects(updateValue));
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
     for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
       if (!jid.equals(pJid)) {
         builder.put(jid, stringsAndAspects.get(jid));
       }
     }
-
-    // state.stringsAndAspects.remove(jid);
-    builder.put(pJid, svaa);
-    // state.stringsAndAspects.put(pJid, svaa);
-    return new StringState(builder.build(), options);
+    stringsAndAspects = ImmutableMap.copyOf(builder.put(pJid, vaa).build());
+    // return new StringState(builder.build(), options);
+    return this;
   }
 
   public StringState addVariable(JVariableIdentifier jid) {
-    return updateVariable(jid, "");
+    return addVariable(jid, null);
   }
 
-  public StringState addVariable(JVariableIdentifier jid, String pValue) {
-    return updateVariable(jid, pValue);
+  public StringState addVariable(JVariableIdentifier jid, ValueAndAspects vaa) {
+    // return updateVariable(jid, vaa);
+    Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
+    builder.putAll(stringsAndAspects);
+    builder.put(jid, vaa);
+    return new StringState(builder.build(), options);
   }
 
-  private List<Aspect> storeAllAspects(String pVal) {
-    ArrayList<Aspect> aspects = new ArrayList<>(options.getDomains().size());
-    for (AbstractStringDomain a : options.getDomains()) {
-      aspects.add(a.toAdd(pVal));
-    }
-    return aspects;
-  }
+  // private List<Aspect> storeAllAspects(String pVal) {
+  // ArrayList<Aspect> aspects = new ArrayList<>(options.getDomains().size());
+  // for (AbstractStringDomain a : options.getDomains()) {
+  // aspects.add(a.toAdd(pVal));
+  // }
+  // return aspects;
+  // }
 
   public Map<JVariableIdentifier, ValueAndAspects> getStringsAndAspects() {
     return stringsAndAspects;
   }
 
+  /*
+   * (non-Javadoc)
+   *
+   * @see
+   * org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#join(org.sosy_lab.cpachecker.core.
+   * defaults.LatticeAbstractState)
+   */
   @Override
   public StringState join(StringState pOther) throws CPAException, InterruptedException {
     if (isLessOrEqual(pOther)) {
@@ -103,8 +113,6 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   private ImmutableMap<JVariableIdentifier, ValueAndAspects>
       joinMapsNoDups(Map<JVariableIdentifier, ValueAndAspects> pStringMap) {
-    // HashMap<JVariableIdentifier, ValueAndAspects> result =
-    // (HashMap<JVariableIdentifier, ValueAndAspects>) this.stringsAndAspects;
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
     builder.putAll(stringsAndAspects);
     for (JVariableIdentifier jid : pStringMap.keySet()) {
@@ -115,15 +123,24 @@ public class StringState implements LatticeAbstractState<StringState> {
     return builder.build();
   }
 
+  /*
+   * (non-Javadoc)
+   *
+   * @see org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState#isLessOrEqual(org.sosy_lab.
+   * cpachecker.core.defaults.LatticeAbstractState)
+   */
   @Override
   public boolean isLessOrEqual(StringState pOther) throws CPAException, InterruptedException {
-    if (!(this.stringsAndAspects.size() != pOther.stringsAndAspects.size())) {
+    if (this.stringsAndAspects.size() < pOther.stringsAndAspects.size()) {
       return false;
-    } else {
-      for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
-        if (!pOther.stringsAndAspects.containsKey(jid)) {
-          return false;
-        }
+    }
+    for (java.util.Map.Entry<JVariableIdentifier, ValueAndAspects> otherEntry : pOther.stringsAndAspects
+        .entrySet()) {
+      ValueAndAspects otherVaa = otherEntry.getValue();
+      JVariableIdentifier jid = otherEntry.getKey();
+      ValueAndAspects vaa = this.stringsAndAspects.get(jid);
+      if (vaa == null || !vaa.isLessOrEqual(otherVaa)) {
+        return false;
       }
     }
     return true;
@@ -153,7 +170,6 @@ public class StringState implements LatticeAbstractState<StringState> {
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
     for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
       if (!jid.getMemLoc().isOnFunctionStack(funcname)) {
-        // state.stringsAndAspects.remove(jid);
         builder.put(jid, stringsAndAspects.get(jid));
       }
     }
@@ -161,11 +177,9 @@ public class StringState implements LatticeAbstractState<StringState> {
   }
 
   public StringState clearAllLocalVariables() {
-    // StringState state = copyOf(this);
     Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
     for (JVariableIdentifier jid : stringsAndAspects.keySet()) {
       if (!jid.isGlobal()) {
-        // state.stringsAndAspects.remove(jid);
         builder.put(jid, stringsAndAspects.get(jid));
       }
     }
@@ -180,5 +194,20 @@ public class StringState implements LatticeAbstractState<StringState> {
     }
     builder.append("} ");
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof StringState) {
+      // imprecise equals, doesn't care about contents of strings
+      return this.stringsAndAspects.size() == ((StringState) obj).stringsAndAspects.size();
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    // TODO Auto-generated method stub
+    return super.hashCode();
   }
 }

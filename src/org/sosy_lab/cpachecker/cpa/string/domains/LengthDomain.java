@@ -14,18 +14,16 @@ import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 /*
  * Tracks the Length of String
  */
-public class LengthDomain implements AbstractStringDomain {
+public class LengthDomain implements AbstractStringDomain<Integer> {
 
   private static final DomainType TYPE = DomainType.LENGTH;
-  // private final StringOptions options;
 
-  private LengthDomain(StringOptions pOptions) {
-    // options = pOptions;
+  public LengthDomain(@SuppressWarnings("unused") StringOptions pOptions) {
   }
 
   @Override
-  public Aspect toAdd(String pVariable) {
-    return new Aspect(TYPE, String.valueOf(pVariable.length()));
+  public Aspect<Integer> addNewAspectOfThisDomain(String pVariable) {
+    return new Aspect<>(this, pVariable.length());
   }
 
   @Override
@@ -34,8 +32,24 @@ public class LengthDomain implements AbstractStringDomain {
   }
 
   @Override
-  public AbstractStringDomain createInstance(StringOptions pOptions) {
-    return new LengthDomain(pOptions);
+  public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
+    if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      int len1 = (int) p1.getValue();
+      int len2 = (int) p2.getValue();
+      return len1 >= len2;
+    }
+    return false;
+  }
+
+  @Override
+  public Aspect<Integer> combineAspectsOfSameDom(Aspect<?> pFirst, Aspect<?> pSecond) {
+    // TODO Auto-generated method stub
+    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
+      int len1 = (int) pFirst.getValue();
+      int len2 = (int) pSecond.getValue();
+      return new Aspect<>(this, len1 + len2);
+    }
+    return null;
   }
 
 }

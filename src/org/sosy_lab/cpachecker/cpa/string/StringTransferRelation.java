@@ -13,20 +13,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.Configuration;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
@@ -48,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.string.utils.HelperMethods;
 import org.sosy_lab.cpachecker.cpa.string.utils.JVariableIdentifier;
 import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -55,7 +52,6 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
 // extends ForwardingTransferRelation<StringState, StringState, Precision>
 {
 
-  private Configuration config;
   private StringOptions options;
   private List<JVariableIdentifier> variables;
   private String funcName;
@@ -64,11 +60,10 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
   private JVariableVisitor jVis;
   private LogManager logger;
 
-  public StringTransferRelation(LogManager pLogger) {
+  public StringTransferRelation(LogManager pLogger, StringOptions pOptions) {
     logger = pLogger;
+    this.options = pOptions;
     variables = new LinkedList<>();
-    jValVis = new JStringValueVisitor();
-    jVarNameVis = new JVariableVisitor();
   }
 
   @Override
@@ -77,14 +72,11 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
           throws CPATransferException, InterruptedException {
     StringState state = StringState.copyOf((StringState) pState);
     StringState successor = null;
-    jValVis = new JStringValueVisitor();
+    jValVis = new JStringValueVisitor(options);
     jVarNameVis = new JVariableVisitor();
     // jVis = new JVariableVisitor();
     funcName = pCfaEdge.getPredecessor().getFunctionName();
-    // Ask if interface
-    // if (!(pCfaEdge instanceof JEdge)) {
-    // return ImmutableSet.of();
-    // }
+
     switch (pCfaEdge.getEdgeType()) {
       case DeclarationEdge:
         if (pCfaEdge instanceof JDeclarationEdge) {
@@ -122,6 +114,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
                   fnkCall.getArguments(),
                   succ.getFunctionParameters(),
                   calledFunctionName,
+                  succ,
                   state);
         }
         break;
@@ -148,7 +141,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
         break;
 
       default:
-        // logger.log(Level.SEVERE, "No such edge existing");
+        logger.log(Level.SEVERE, "No such edge existing");
     }
     if (successor != null) {
       return Collections.singleton(successor);
@@ -162,10 +155,27 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
   private StringState handleJMethodCallEdge(
       JMethodCallEdge pFnkCall,
       List<JExpression> pArguments,
-      List<? extends AParameterDeclaration> pList,
+      List<? extends AParameterDeclaration> parameters,
       String pCalledFunctionName,
-      StringState pState) {
+      FunctionEntryNode pSucc, StringState pState) {
     // TODO Auto-generated method stub
+    if(pSucc.getReturnVariable().isPresent()) {
+      AVariableDeclaration decl= pSucc.getReturnVariable().get();
+      pState = handleJDeclaration((JDeclaration) decl, pState);
+    }
+    for (int i = 0; i < parameters.size(); i++) {
+
+      JExpression exp = pArguments.get(i);
+
+      if (HelperMethods.isString(exp.getExpressionType())) {
+      AParameterDeclaration param = parameters.get(i);
+        MemoryLocation formalParamName =
+            MemoryLocation.forLocalVariable(pCalledFunctionName, param.getName());
+        JVariableIdentifier jid = new JVariableIdentifier(param.getType(), formalParamName);
+        ValueAndAspects value = exp.accept(jValVis);
+        pState.updateVariable(jid, value);
+      }
+    }
     return pState;
   }
 
@@ -176,12 +186,19 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
       String pCallerFunctionName,
       StringState pState) {
     // TODO Auto-generated method stub
+
     return pState;
   }
 
   private StringState
-      handleJReturnStatementEdge(JReturnStatementEdge pReturnEdge, StringState pState) {
+      handleJReturnStatementEdge(JReturnStatementEdge pEdge, StringState pState) {
     // TODO Auto-generated method stub
+    // Optional<JExpression> expOpt = pEdge.getExpression();
+    // if (expOpt.isPresent()) {
+    // if (HelperMethods.isString(expOpt.get().getExpressionType())) {
+    //
+    // }
+    // }
     return pState;
   }
 
@@ -193,7 +210,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
   private StringState handleBlankEdge(BlankEdge pCfaEdge, StringState pState) {
     if (pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
       StringState state = StringState.copyOf(pState);
-      // state.clearAFunction(funcName);
+      state.clearAFunction(funcName);
       return state;
     }
     return pState;
@@ -209,62 +226,35 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
         return pState.updateVariable(jid, vaa);
         }
     }
-    if (pJStat instanceof JExpressionStatement) {
-    }
-    if (pJStat instanceof JMethodInvocationStatement) {
-      JMethodInvocationExpression jmexp =
-          ((JMethodInvocationStatement) pJStat).getFunctionCallExpression();
-      for (JExpression exp : jmexp.getParameterExpressions()) {
-        if (HelperMethods.isString(exp.getExpressionType())) {
-          // JVariableIdentifier jid = exp.accept(jVarNameVis);
-          // TODO value ?
-          // pState.addVariable(jid);
-        }
-      }
-    }
     return pState;
   }
 
-  private @Nullable StringState handleJDeclaration(JDeclaration pJDecl, StringState pState) {
+  private StringState handleJDeclaration(JDeclaration pJDecl, StringState pState) {
     if (!(pJDecl instanceof JVariableDeclaration) || !(HelperMethods.isString(pJDecl.getType()))) {
       return pState;
     }
     JVariableDeclaration jDecl = (JVariableDeclaration) pJDecl;
     JVariableIdentifier jid =
         new JVariableIdentifier(jDecl.getType(), MemoryLocation.forDeclaration(jDecl));
-    variables.add(jid);
     JInitializer init = (JInitializer) jDecl.getInitializer();
-    String value = getInitialValue(init, pState);
+    ValueAndAspects value = getInitialValue(init);
+    variables.add(jid);
     return pState.addVariable(jid, value);
   }
 
-  private String getInitialValue(JInitializer pJ, StringState state) {
+  private ValueAndAspects getInitialValue(JInitializer pJ) {
     if (pJ instanceof JInitializerExpression) {
       JExpression init = ((JInitializerExpression) pJ).getExpression();
-      String value = init.accept(jValVis).getValue();
-      // // ((JInitializerExpression) pJ).getExpression().toQualifiedASTString();
-      // Optional<JVariableIdentifier> inMap = state.isVariableInMap(value);
-      // if (inMap.isPresent()) {
-      // value = state.getStringsAndAspects().get(inMap.get()).getValue();
-      // }
+      ValueAndAspects value = init.accept(jValVis);
       return value;
     }
-    return "";
+    return UnknownValueAndAspects.getInstance();
   }
 
-  private @Nullable StringState handleJAssumption(boolean truthAssumption, StringState pState) {
+  private StringState handleJAssumption(boolean truthAssumption, StringState pState) {
     if (truthAssumption) {
       return pState;
     }
-    return pState;
-  }
-
-  private String calcValueForAssigBin(JLeftHandSide jL, JRightHandSide jR, StringState state) {
-    String val = jR.toASTString();
-    Optional<JVariableIdentifier> inMap = state.isVariableInMap(val);
-    if (inMap.isPresent()) {
-      val = state.getStringsAndAspects().get(inMap.get()).getValue();
-    }
-    return "";
+    return null;
   }
 }

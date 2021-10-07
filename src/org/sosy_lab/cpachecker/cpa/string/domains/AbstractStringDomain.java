@@ -8,14 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.string.domains;
 
-import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
-public interface AbstractStringDomain {
+public interface AbstractStringDomain<T> {
 
-  public Aspect toAdd(String pVariable);
+  public Aspect<T> addNewAspectOfThisDomain(String pVariable);
 
   public DomainType getType();
 
-  public AbstractStringDomain createInstance(StringOptions options);
+  public boolean isLessOrEqual(Aspect<?> first, Aspect<?> second);
+
+  public Aspect<T> combineAspectsOfSameDom(Aspect<?> first, Aspect<?> second);
+
+
 }

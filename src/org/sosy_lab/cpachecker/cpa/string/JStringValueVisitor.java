@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.string;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -35,32 +37,42 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cpa.string.domains.AbstractStringDomain;
+import org.sosy_lab.cpachecker.cpa.string.domains.StringSetDomain;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects;
+import org.sosy_lab.cpachecker.cpa.string.utils.ValueAndAspects.UnknownValueAndAspects;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-//All methods which just return null are methods that shouldnt be reached -> will be changed
+//All methods which just return null are methods that shouldn't be reached
+//We can expect that only string-variable are used in the visitor (because of check in TR
 public class JStringValueVisitor
     implements JRightHandSideVisitor<ValueAndAspects, NoException> {
 
+  private final ImmutableList<AbstractStringDomain<?>> domains;
+  private StringOptions options;
+
+  public JStringValueVisitor(StringOptions pOptions) {
+    domains = ImmutableList.copyOf(pOptions.getDomains());
+    options = pOptions;
+  }
   @Override
   public ValueAndAspects visit(JMethodInvocationExpression pE)
       throws NoException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public ValueAndAspects visit(JClassInstanceCreation pE)
       throws NoException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public ValueAndAspects visit(JArraySubscriptExpression pAArraySubscriptExpression)
+  public ValueAndAspects visit(JArraySubscriptExpression pE)
       throws NoException {
-    // TODO Auto-generated method stub
-    return null;
+    return pE.getSubscriptExpression().accept(this);
   }
 
   @Override
@@ -72,32 +84,53 @@ public class JStringValueVisitor
         return ((JInitializerExpression) init).getExpression().accept(this);
       }
     }
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   // Convert to String?
   @Override
   public ValueAndAspects visit(JCharLiteralExpression pE)
       throws NoException {
-    return null;
+    // return new ValueAndAspects(String.valueOf(pE.getCharacter()));
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
   public ValueAndAspects visit(JStringLiteralExpression pE)
       throws NoException {
-    return new ValueAndAspects(pE.getValue());
+    Builder<Aspect<?>> builder = new Builder<>();
+    String val = pE.getValue();
+    for (AbstractStringDomain<?> dom : domains) {
+      if (dom instanceof StringSetDomain) {
+        options.addStringToGivenSet(val);
+      }
+      builder.add(dom.addNewAspectOfThisDomain(val));
+    }
+    return new ValueAndAspects(builder.build());
   }
 
   @Override
   public ValueAndAspects visit(JBinaryExpression pE) throws NoException {
     if (pE.getOperator().equals(BinaryOperator.STRING_CONCATENATION)) {
-      StringBuilder build = new StringBuilder();
-      ValueAndAspects vaa1 = pE.getOperand1().accept(this);
-      ValueAndAspects vaa2 = pE.getOperand2().accept(this);
-      if (vaa1 != null && vaa2 != null) {
-        build.append(vaa1.getValue());
-        build.append(vaa2.getValue());
-        return new ValueAndAspects(build.toString());
+      return calcAspectsForBinOp(pE.getOperand1(), pE.getOperand2());
+    }
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
+  }
+
+  private ValueAndAspects calcAspectsForBinOp(JExpression op1, JExpression op2) {
+    ValueAndAspects vaa1 = op1.accept(this);
+    ValueAndAspects vaa2 = op2.accept(this);
+    if (vaa1 != null && vaa2 != null) {
+      if (!(vaa1 instanceof UnknownValueAndAspects) && !(vaa2 instanceof UnknownValueAndAspects)) {
+        Builder<Aspect<?>> builder = new Builder<>();
+        for (int i = 0; i < domains.size(); i++) {
+          AbstractStringDomain<?> a = domains.get(i);
+          builder
+              .add(a.combineAspectsOfSameDom(vaa1.getAspects().get(i), vaa2.getAspects().get(i)));
+        }
+        return new ValueAndAspects(builder.build());
+      } else {
+        return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
       }
     }
     return null;
@@ -112,26 +145,25 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JIntegerLiteralExpression pJIntegerLiteralExpression)
       throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
   public ValueAndAspects visit(JBooleanLiteralExpression pJBooleanLiteralExpression)
       throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
   public ValueAndAspects visit(JFloatLiteralExpression pJFloatLiteralExpression)
       throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
   public ValueAndAspects visit(JArrayCreationExpression pJArrayCreationExpression)
       throws NoException {
-    // TODO Auto-generated method stub
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
@@ -143,33 +175,31 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JArrayLengthExpression pJArrayLengthExpression)
       throws NoException {
-    // TODO Auto-generated method stub
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
-  public ValueAndAspects visit(JVariableRunTimeType pJThisRunTimeType) throws NoException {
-    // TODO Auto-generated method stub
-    return null;
+  public ValueAndAspects visit(JVariableRunTimeType pE) throws NoException {
+    return pE.getReferencedVariable().accept(this);
   }
 
   @Override
-  public ValueAndAspects visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
+  public ValueAndAspects visit(JRunTimeTypeEqualsType pE)
       throws NoException {
-    // TODO Auto-generated method stub
-    return null;
+    return pE.getRunTimeTypeExpression().accept(this);
+
   }
 
   @Override
   public ValueAndAspects visit(JNullLiteralExpression pJNullLiteralExpression)
       throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
   public ValueAndAspects visit(JEnumConstantExpression pJEnumConstantExpression)
       throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
@@ -180,12 +210,13 @@ public class JStringValueVisitor
 
   @Override
   public ValueAndAspects visit(JThisExpression pThisExpression) throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
   @Override
   public ValueAndAspects visit(JClassLiteralExpression pJClassLiteralExpression)
       throws NoException {
-    return null;
+    return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
+
 }

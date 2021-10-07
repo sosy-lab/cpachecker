@@ -8,44 +8,57 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
-import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.cpachecker.cpa.string.domains.DomainType;
 
 public class ValueAndAspects {
 
-  private String value;
-  private List<Aspect> aspects;
+  // private String value;
+  private List<Aspect<?>> aspects;
 
-  public ValueAndAspects(String pValue, List<Aspect> pAspects) {
-    value = pValue;
+  public ValueAndAspects(List<Aspect<?>> pAspects) {
+    // value = pValue;
     aspects = pAspects;
   }
 
-  public ValueAndAspects(String pValue) {
-    value = pValue;
-    aspects = new ArrayList<>();
-  }
-
-  public void addAspect(Aspect pAdd) {
-    if (!aspects.contains(pAdd)) {
-      aspects.add(pAdd);
-    }
-  }
-
-  public boolean emptyValue() {
-    return value.isEmpty();
+  public ValueAndAspects newValue(List<Aspect<?>> pAspects) {
+    aspects = pAspects;
+    return this;
   }
 
   public int getAspectAmount() {
     return aspects.size();
   }
 
-  public String getValue() {
-    return value;
+  public List<Aspect<?>> getAspects() {
+    return aspects;
   }
 
-  public ValueAndAspects newValue(String pUpdateValue) {
-    return new ValueAndAspects(pUpdateValue);
+  public boolean isLessOrEqual(ValueAndAspects pOther) {
+    List<Aspect<?>> otherList = pOther.aspects;
+    if (aspects.size() < otherList.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < otherList.size(); i++) {
+      Aspect<?> a = aspects.get(i);
+      Aspect<?> other = otherList.get(i);
+
+      // if not in same order or missing aspects.
+      if (!other.getDomainType().equals(a.getDomainType())) {
+        DomainType type = other.getDomainType();
+        for (Aspect<?> temp : aspects) {
+          if (temp.getDomainType().equals(type)) {
+            a = temp;
+            break;
+          }
+        }
+      }
+      if (!a.getDomain().isLessOrEqual(a, other)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -53,15 +66,14 @@ public class ValueAndAspects {
     if (!(obj instanceof ValueAndAspects)) {
       return false;
     }
-    ValueAndAspects svaa = (ValueAndAspects) obj;
-    if ((svaa.aspects.size() != this.aspects.size()) || svaa.value != this.value) {
+    ValueAndAspects vaa = (ValueAndAspects) obj;
+    if ((vaa.aspects.size() != this.aspects.size()) // || svaa.value != this.value
+    ) {
       return false;
     }
-    for (Aspect a : this.aspects) {
-      for (Aspect b : svaa.aspects) {
-        if (!a.equals(b)) {
-          return false;
-        }
+    for (Aspect<?> a : this.aspects) {
+      if (!vaa.aspects.contains(a)) {
+        return false;
       }
     }
     return true;
@@ -69,11 +81,10 @@ public class ValueAndAspects {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder("(" + value// + ", Domains:"
-    );
-    // for (Aspect a : aspects) {
-    // builder.append(a.toString() + ",");
-    // }
+    StringBuilder builder = new StringBuilder("(Domains:");
+    for (Aspect<?> a : aspects) {
+      builder.append(a.toString() + ",");
+    }
     builder.append(")");
     return builder.toString();
   }
@@ -83,14 +94,15 @@ public class ValueAndAspects {
     return super.hashCode();
   }
 
-  public class UnknownValueAndAspects {
-    private final UnknownValueAndAspects instance = new UnknownValueAndAspects();
+  public static class UnknownValueAndAspects extends ValueAndAspects {
+
+    private final static UnknownValueAndAspects instance = new UnknownValueAndAspects();
+
     private UnknownValueAndAspects() {
-      value = "";
-      aspects = new ArrayList<>();
+      super(List.of());
     }
 
-    public UnknownValueAndAspects getInstance() {
+    public static UnknownValueAndAspects getInstance() {
       return instance;
     }
 

@@ -6,15 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-public class StringTest {
+public class Loop {
 
-  public static void main() {
-    int e=5;
-    String a = "hello";
-    String b = " World!";
-    String c = a + b;
-    String d = a;
-    d=b;
-    assert c.equals("hello World!");
+  public static void main(String[] args) {
+    String a = "foo";
+    for (int i = 0; i < 20; i++) {
+      a += "bar";
+    }
+    assert a.length() == 63;
+    return;
   }
+
 }

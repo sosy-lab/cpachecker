@@ -11,30 +11,23 @@ package org.sosy_lab.cpachecker.cpa.string.domains;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
 
-//@Options(prefix = "string.cpa")
-public class SuffixDomain implements AbstractStringDomain {
+public class SuffixDomain implements AbstractStringDomain<String> {
 
-  // @Option(
-  // secure = true,
-  // name = "suffixlength",
-  // description = "which suffixlength shall be tracked")
-  // private int suffixLength = 3;
+
   private int suffixLength;
   private static final DomainType TYPE = DomainType.SUFFIX;
-  // private final StringOptions options;
 
-  private SuffixDomain(StringOptions pOptions) {
-    // options = pOptions;
+  public SuffixDomain(StringOptions pOptions) {
     suffixLength = pOptions.getSuffixLength();
   }
 
   @Override
-  public Aspect toAdd(String pVariable) {
+  public Aspect<String> addNewAspectOfThisDomain(String pVariable) {
     int len = pVariable.length();
     if (len < suffixLength) {
-      return new Aspect(TYPE, pVariable);
+      return new Aspect<>(this, pVariable);
     }
-    return new Aspect(TYPE, pVariable.substring(len - suffixLength, len));
+    return new Aspect<>(this, pVariable.substring(len - suffixLength, len));
   }
 
   @Override
@@ -43,8 +36,36 @@ public class SuffixDomain implements AbstractStringDomain {
   }
 
   @Override
-  public AbstractStringDomain createInstance(StringOptions pOptions) {
-    return new SuffixDomain(pOptions);
+  public boolean isLessOrEqual(Aspect<?> pFirst, Aspect<?> pSecond) {
+    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
+      String val1 = (String) pFirst.getValue();
+      String val2 = (String) pSecond.getValue();
+    if (val1.length() == val2.length()) {
+      return val1.equals(val2);
+    }
+    if (val1.length() < val2.length()) {
+      return val1.equals(val2.substring(val1.length() - suffixLength, suffixLength));
+    }
   }
+    return false;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Aspect<String> combineAspectsOfSameDom(Aspect<?> pFirst, Aspect<?> pSecond) {
+    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
+      int p2Len = ((String) pSecond.getValue()).length();
+      if (suffixLength < p2Len) {
+        return (Aspect<String>) pFirst;
+      } else {
+        String res =
+            ((String) pFirst.getValue()).substring(0, suffixLength - p2Len)
+                + ((String) pSecond.getValue());
+        return new Aspect<>(this, res);
+      }
+    }
+    return null;
+  }
+
 
 }
