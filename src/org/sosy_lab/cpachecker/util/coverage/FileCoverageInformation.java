@@ -69,7 +69,7 @@ class FileCoverageInformation {
         result.append(delimiter + entry.getKey() + " = {");
         prettyFormatInfoString(entry.getValue(), result);
         result.append("}");
-        delimiter = ", ";
+        delimiter = "; ";
       }
     }
     return result.toString();

@@ -111,7 +111,7 @@ public class AdditionalInfoExtractor {
         }
       }
 
-      valueMessage = String.join(", ", getValueMessages(smgState));
+      valueMessage = String.join("; ", getValueMessages(smgState));
       invalidChain = toCheck;
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
