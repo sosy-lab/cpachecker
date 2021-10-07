@@ -79,7 +79,7 @@ public class AdditionalInfoExtractor {
       if (!valueMessage.isEmpty()) {
         edgeWithAdditionalInfo.addInfo(
             SMGConvertingTags.READ_VALUES,
-            SMGAdditionalInfo.of(valueMessage, Level.INFO));
+            SMGAdditionalInfo.of(valueMessage, Level.NOTE));
       }
 
       boolean hasChange = false;
