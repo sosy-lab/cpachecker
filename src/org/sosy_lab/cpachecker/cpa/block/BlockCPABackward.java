@@ -21,20 +21,21 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.ForwardBlockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.BackwardBlockTransferRelation;
 
-public class BlockCPA extends AbstractCPA {
+public class BlockCPABackward extends AbstractCPA {
 
   private final BlockStateFactory factory;
   private CFANode startNode;
 
-  public BlockCPA(BlockStateFactory pStateFactory) {
-    super("join", "sep", new ForwardBlockTransferRelation(pStateFactory));
+  public BlockCPABackward(BlockStateFactory pStateFactory) {
+    super("join", "sep", new BackwardBlockTransferRelation(pStateFactory));
     factory = pStateFactory;
   }
 
   public void init(BlockNode pBlockNode) {
     startNode = pBlockNode.getStartNode();
+    factory.setStartNode(startNode);
     TransferRelation relation = getTransferRelation();
     checkState(relation instanceof BlockTransferRelation, "Expected %s but got %s",
         BlockTransferRelation.class, relation.getClass());
@@ -42,17 +43,17 @@ public class BlockCPA extends AbstractCPA {
   }
 
   public static CPAFactory factory() {
-    return new BlockCPAFactory(AnalysisDirection.FORWARD);
+    return new BlockCPAFactory(AnalysisDirection.BACKWARD);
   }
 
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    return factory.getState(startNode);
+    return factory.getState(node);
   }
 
   public static BlockCPA create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new BlockCPA(new BlockStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig));
+    return new BlockCPA(new BlockStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
   }
 }

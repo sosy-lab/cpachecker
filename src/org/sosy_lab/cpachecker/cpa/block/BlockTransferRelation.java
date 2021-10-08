@@ -20,25 +20,23 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
-import org.sosy_lab.cpachecker.cpa.location.LocationTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class BlockTransferRelation extends LocationTransferRelation {
+public abstract class BlockTransferRelation implements TransferRelation {
 
-  private ImmutableSet<CFAEdge> edges;
-  private ImmutableSet<CFANode> nodes;
-  private LocationStateFactory factory;
+  protected ImmutableSet<CFAEdge> edges;
+  protected ImmutableSet<CFANode> nodes;
+  protected BlockStateFactory factory;
 
   /**
    * This transfer relation produces successors iff an edge between two nodes exists in the CFA
    * and it is part of the block
    * @param pFactory factory for location states
    */
-  public BlockTransferRelation(LocationStateFactory pFactory) {
-    super(pFactory);
+  public BlockTransferRelation(BlockStateFactory pFactory) {
     factory = pFactory;
   }
 
@@ -60,24 +58,76 @@ public class BlockTransferRelation extends LocationTransferRelation {
     return setBuilder.build();
   }
 
-  @Override
-  public Collection<LocationState> getAbstractSuccessorsForEdge(
-      AbstractState element, Precision prec, CFAEdge cfaEdge) {
-    checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
-    CFANode node = ((LocationState) element).getLocationNode();
+  public abstract Collection<BlockState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision prec, CFAEdge cfaEdge);
 
-    if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)), edges).contains(cfaEdge)) {
-      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+  public abstract Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
+      throws CPATransferException;
+
+  static class ForwardBlockTransferRelation extends BlockTransferRelation {
+
+    /**
+     * This transfer relation produces successors iff an edge between two nodes exists in the CFA
+     * and it is part of the block
+     *
+     * @param pFactory factory for location states
+     */
+    public ForwardBlockTransferRelation(BlockStateFactory pFactory) {
+      super(pFactory);
     }
 
-    return ImmutableSet.of();
+    @Override
+    public Collection<BlockState> getAbstractSuccessorsForEdge(
+        AbstractState element, Precision prec, CFAEdge cfaEdge) {
+      checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
+      CFANode node = ((BlockState) element).getLocationNode();
+
+      if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)), edges).contains(cfaEdge)) {
+        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      }
+
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
+      checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
+      CFANode node = ((LocationState) element).getLocationNode();
+      return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
+    }
   }
 
-  @Override
-  public Collection<LocationState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
-    checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
-    CFANode node = ((LocationState) element).getLocationNode();
-    return CFAUtils.successorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
+  static class BackwardBlockTransferRelation extends BlockTransferRelation {
+
+    /**
+     * This transfer relation produces successors iff an edge between two nodes exists in the CFA
+     * and it is part of the block
+     *
+     * @param pFactory factory for location states
+     */
+    public BackwardBlockTransferRelation(BlockStateFactory pFactory) {
+      super(pFactory);
+    }
+
+    @Override
+    public Collection<BlockState> getAbstractSuccessorsForEdge(
+        AbstractState element, Precision prec, CFAEdge cfaEdge) {
+      checkNotNull(edges, "init method must be called before starting the analysis (edges == null)");
+      CFANode node = ((LocationState) element).getLocationNode();
+
+      if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)), edges).contains(cfaEdge)) {
+        return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
+      }
+
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec) throws CPATransferException {
+      checkNotNull(nodes, "init method must be called before starting the analysis (nodes == null)");
+      CFANode node = ((LocationState) element).getLocationNode();
+      return CFAUtils.predecessorsOf(node).filter(n -> nodes.contains(n)).transform(n -> factory.getState(n)).toList();
+    }
   }
 
 }
