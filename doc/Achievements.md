@@ -27,8 +27,9 @@ Note: If you have further bugs in real-world software that were found with CPAch
 please report them here.
 
 CPAchecker is used to verify Linux kernel drivers
-by the [Linux Driver Verification project](http://linuxtesting.org/ldv).
-The following fixes to the Linux kernel were all developed by the LDV project
+by the [Linux Driver Verification project](http://linuxtesting.org/ldv)
+and [Klever](https://forge.ispras.ru/projects/klever).
+The following fixes to the Linux kernel were all developed by LDV/Klever
 for bugs found with CPAchecker:
 
 - 2021-10-02: [`hwmon: (w83793) Fix NULL pointer dereference by removing unnecessary structur...`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd4d747ef05addab887dc8ff0d6ab9860bbcd783)
