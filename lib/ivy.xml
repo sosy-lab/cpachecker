@@ -165,7 +165,7 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.11.0" conf="runtime->runtime-without-gpl; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.10.1" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case:
@@ -177,7 +177,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-10-08-r997cd7c355" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-10-05-rf6ece58d9b" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Batik library for creating svg-images -->
         <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
