@@ -11,10 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -41,11 +45,16 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
 public abstract class WorkerAnalysis {
 
@@ -180,6 +189,34 @@ public abstract class WorkerAnalysis {
     return status;
   }
 
+  public static BooleanFormula uninstantiate(PathFormula pPathFormula, FormulaManagerView fmgr) {
+    Map<String, Integer> variableToIndex = new HashMap<>();
+    SSAMap ssaMap = pPathFormula.getSsa();
+    for (String variable : ssaMap.allVariables()) {
+      variableToIndex.put(variable, ssaMap.getIndex(variable));
+    }
+    Map<String, Formula> variableToFormula = fmgr.extractVariables(pPathFormula.getFormula());
+    Map<Formula, Formula> substitutions = new HashMap<>();
+    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
+      String name = stringFormulaEntry.getKey();
+      Formula formula = stringFormulaEntry.getValue();
+      List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
+      if (nameAndIndex.size() < 2) {
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
+        continue;
+      }
+      name = nameAndIndex.get(0);
+      int index = Integer.parseInt(nameAndIndex.get(1));
+      int highestIndex = ssaMap.getIndex(name);
+      if (index != highestIndex) {
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name + "." + index));
+      } else {
+        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
+      }
+    }
+    return fmgr.substitute(pPathFormula.getFormula(), substitutions);
+  }
+
   public abstract Message analyze(BooleanFormula condition)
       throws CPAException, InterruptedException;
 
@@ -219,25 +256,23 @@ public abstract class WorkerAnalysis {
       reachedSet.add(new ARGState(actualStartState, null), emptyPrecision);
       status = algorithm.run(reachedSet);
       ImmutableSet<ARGState> finalStates = ARGUtils.getFinalStates(reachedSet);
-      BooleanFormula preconditionForNextBlock = bmgr.makeFalse();
+      List<BooleanFormula> formulas = new ArrayList<>();
       if (!finalStates.isEmpty()) {
         for (ARGState l : finalStates) {
           CompositeState compositeState = (CompositeState) l.getWrappedState();
           for (AbstractState wrappedState : compositeState.getWrappedStates()) {
             if (wrappedState instanceof PredicateAbstractState) {
               PredicateAbstractState predicateAbstractState = (PredicateAbstractState) wrappedState;
-              preconditionForNextBlock = bmgr.or(preconditionForNextBlock,
-                  predicateAbstractState.getPathFormula().getFormula());
+              formulas.add(uninstantiate(predicateAbstractState.getPathFormula(), fmgr));
               break;
             }
           }
         }
       } else {
         logger.log(Level.WARNING, "The reached set does not contain any states: " + reachedSet);
-        preconditionForNextBlock = bmgr.makeTrue();
+        formulas.add(bmgr.makeTrue());
       }
-      return new Message(MessageType.PRECONDITION, block,
-          fmgr.dumpArbitraryFormula(preconditionForNextBlock));
+      return new Message(MessageType.PRECONDITION, block, fmgr.dumpArbitraryFormula(bmgr.or(formulas)));
     }
   }
 
