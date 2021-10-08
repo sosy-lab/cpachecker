@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.components;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -19,8 +22,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.cut.BlockOperatorCutter;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Dispatcher;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerClient;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket.WorkerSocketFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -57,16 +64,38 @@ public class ComponentAnalysis implements Algorithm {
         // empty program
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
-      Dispatcher dispatcher = new Dispatcher(logger);
+      WorkerSocketFactory factory = new WorkerSocketFactory();
+      BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
+      WorkerSocket mainSocket = factory.makeSocket(logger,  messages, "localhost", 8090);
+      new Thread(() -> {
+        try {
+          mainSocket.startServer();
+        } catch (IOException pE) {
+          logger.log(Level.SEVERE, pE);
+        }
+      }).start();
       Set<Worker> workers = new HashSet<>();
+      int port = 8091;
       for (BlockNode node : tree.getDistinctNodes()) {
         Worker worker =
-            dispatcher.registerNodeAndGetWorker(node, logger, cfa, specification, configuration,
-                shutdownManager);
+            Worker.registerNodeAndGetWorker(node, logger, cfa, specification, configuration,
+                shutdownManager, factory, "localhost", port++);
         workers.add(worker);
       }
-      workers.forEach(runner -> new Thread(runner).start());
-      dispatcher.start();
+      for (Worker worker : workers) {
+        for (InetSocketAddress address : factory.getAddresses()) {
+          worker.addClient(new WorkerClient(address.getAddress().getHostAddress(), address.getPort()));
+        }
+        new Thread(worker).start();
+      }
+
+      while (true) {
+        Message m = messages.take();
+        if (m.getType() == MessageType.FINISHED) {
+          break;
+        }
+      }
+
       logger.log(Level.INFO, "Block analysis finished.");
       return workers.stream().map(Worker::getStatus).reduce(AlgorithmStatus::update).orElseThrow();
     } catch (InvalidConfigurationException | IOException pE) {

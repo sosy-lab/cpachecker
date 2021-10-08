@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.tree;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -25,6 +26,8 @@ public class BlockNode {
   private final Set<BlockNode> predecessors;
   private final Set<BlockNode> successors;
 
+  private final String id;
+
   /**
    * Represents a sub graph of the CFA beginning at <code>pStartNode</code> and ending at <code>
    * pLastNode</code>.
@@ -34,7 +37,7 @@ public class BlockNode {
    * @param pNodesInBlock all nodes that are part of the sub graph including the root node and the
    *     last node.
    */
-  public BlockNode(
+  private BlockNode(
       @NonNull CFANode pStartNode,
       @NonNull CFANode pLastNode,
       @NonNull Set<CFANode> pNodesInBlock) {
@@ -56,9 +59,18 @@ public class BlockNode {
     successors = new HashSet<>();
 
     nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
+    id = generateUniqueId(startNode, lastNode, nodesInBlock);
   }
 
-  public void linkSuccessor(BlockNode node) {
+  private static String generateUniqueId(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
+    StringBuilder id = new StringBuilder("N" + pStartNode.getNodeNumber() + "-");
+    for(CFANode n: pNodesInBlock) {
+      id.append("N").append(n.getNodeNumber()).append("-");
+    }
+    return id.append("N").append(pEndNode.getNodeNumber()).toString();
+  }
+
+  private void linkSuccessor(BlockNode node) {
     addSuccessors(node);
     node.addPredecessors(this);
   }
@@ -72,11 +84,11 @@ public class BlockNode {
   }
 
   public Set<BlockNode> getPredecessors() {
-    return predecessors;
+    return ImmutableSet.copyOf(predecessors);
   }
 
   public Set<BlockNode> getSuccessors() {
-    return successors;
+    return ImmutableSet.copyOf(successors);
   }
 
   public CFANode getStartNode() {
@@ -88,23 +100,21 @@ public class BlockNode {
   }
 
   public Set<CFANode> getNodesInBlock() {
-    return nodesInBlock;
+    return ImmutableSet.copyOf(nodesInBlock);
   }
 
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof BlockNode) {
-      BlockNode blockNode = (BlockNode) pO;
-      return startNode.equals(blockNode.startNode)
-          && lastNode.equals(blockNode.lastNode)
-          && nodesInBlock.equals(blockNode.nodesInBlock);
+    if (!(pO instanceof BlockNode)) {
+      return false;
     }
-    return false;
+    BlockNode blockNode = (BlockNode) pO;
+    return id.equals(blockNode.id);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(startNode, lastNode, nodesInBlock);
+    return Objects.hash(id);
   }
 
   @Override
@@ -117,5 +127,21 @@ public class BlockNode {
         + ", nodesInBlock="
         + nodesInBlock
         + '}';
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public static class BlockNodeFactory {
+
+    public BlockNode makeBlock(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
+      return new BlockNode(pStartNode, pEndNode, pNodesInBlock);
+    }
+
+    public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
+      pNode.linkSuccessor(pNodeSuccessor);
+    }
+
   }
 }

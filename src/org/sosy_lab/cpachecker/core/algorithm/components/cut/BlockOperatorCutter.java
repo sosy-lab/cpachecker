@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.components.cut;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -23,6 +22,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode.BlockNodeFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -42,8 +42,10 @@ public class BlockOperatorCutter implements CFACutter {
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
+    BlockNodeFactory nodeFactory = new BlockNodeFactory();
+
     // create the root node of the tree consisting of the entry node only
-    BlockNode root = new BlockNode(startNode, startNode, ImmutableSet.of(startNode));
+    BlockNode root = nodeFactory.makeBlock(startNode, startNode, ImmutableSet.of(startNode));
 
     // the stack stores all block ends (i.e., operator.isBlockEnd(node) == true)
     ArrayDeque<CFANode> blockEnds = new ArrayDeque<>();
@@ -95,22 +97,22 @@ public class BlockOperatorCutter implements CFACutter {
           // block.
           blockEnds.push(successorOfCurrNode);
           BlockNode childBlockNode =
-              new BlockNode(lastCFANode, successorOfCurrNode, nodeEntry.getSeen());
+              nodeFactory.makeBlock(lastCFANode, successorOfCurrNode, nodeEntry.getSeen());
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
           lastNodeMap
               .get(lastCFANode)
-              .forEach(contained -> contained.linkSuccessor(childBlockNode));
+              .forEach(contained -> nodeFactory.linkSuccessor(contained, childBlockNode));
           // every previous block that starts with the current end node is now linked to the new
           // BlockNode
           startNodeMap
               .get(successorOfCurrNode)
-              .forEach(contained -> childBlockNode.linkSuccessor(contained));
+              .forEach(contained -> nodeFactory.linkSuccessor(childBlockNode, contained));
 
           // current BlockNode is stored nowhere -> link to self if start and end are equal.
           if (childBlockNode.getStartNode().equals(childBlockNode.getLastNode())) {
-            childBlockNode.linkSuccessor(childBlockNode);
+            nodeFactory.linkSuccessor(childBlockNode, childBlockNode);
           }
           // successorOfCurrNode is the lastNode of childBlockNode
           // note that other BlockNodes can have successorOfCurrNode as their last nodes.

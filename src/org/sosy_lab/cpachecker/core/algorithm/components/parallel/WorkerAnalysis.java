@@ -75,8 +75,6 @@ public abstract class WorkerAnalysis {
 
   protected AlgorithmStatus status;
 
-  protected int executionsCounter;
-
   public WorkerAnalysis(
       LogManager pLogger,
       BlockNode pBlock,
@@ -258,7 +256,6 @@ public abstract class WorkerAnalysis {
 
     @Override
     public Message analyze(ARGState pStartState) throws CPAException, InterruptedException {
-      executionsCounter++;
       reachedSet.clear();
       reachedSet.add(pStartState, emptyPrecision);
       status = algorithm.run(reachedSet);
@@ -284,7 +281,7 @@ public abstract class WorkerAnalysis {
         logger.log(Level.WARNING, "The reached set does not contain any states: " + reachedSet);
         formulas.add(bmgr.makeTrue());
       }
-      return new Message(MessageType.PRECONDITION, block, fmgr.dumpArbitraryFormula(bmgr.or(formulas)));
+      return new Message(MessageType.PRECONDITION, block.getId(), block.getLastNode().getNodeNumber(), fmgr.dumpArbitraryFormula(bmgr.or(formulas)));
     }
   }
 
@@ -305,7 +302,7 @@ public abstract class WorkerAnalysis {
     public Message analyze(ARGState pStartState) throws CPAException, InterruptedException {
       reachedSet.clear();
       reachedSet.add(pStartState, emptyPrecision);
-      return new Message(MessageType.POSTCONDITION, block,
+      return new Message(MessageType.POSTCONDITION, block.getId(), block.getStartNode().getNodeNumber(),
           fmgr.dumpArbitraryFormula(bmgr.makeTrue()));
     }
   }
