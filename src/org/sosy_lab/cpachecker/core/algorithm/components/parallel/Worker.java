@@ -19,6 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
@@ -66,10 +67,24 @@ public class Worker implements Runnable {
     postConditionUpdates = new ConcurrentHashMap<>();
     preConditionUpdates = new ConcurrentHashMap<>();
 
+    // TODO figure out correct and relative path
+    Configuration backward = Configuration.builder()
+        .loadFromFile(
+            "/home/matket/SosyLab/cpachecker/config/includes/predicateAnalysisBackward.properties")
+        .clearOption("analysis.initialStatesFor")
+        .setOption("analysis.initialStatesFor", "TARGET")
+        .setOption("CompositeCPA.cpas",
+            "cpa.block.BlockCPABackward, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.predicate.PredicateCPA")
+        .setOption("backwardSpecification", "../specification/MainEntry.spc")
+        .setOption("specification", "../specification/MainEntry.spc")
+        .build();
+
+    backwardAnalysis = new BackwardAnalysis(pLogger, pBlock, pCFA, pSpecification,
+        backward,
+        pShutdownManager);
     forwardAnalysis = new ForwardAnalysis(pLogger, pBlock, pCFA, pSpecification, pConfiguration,
-        pShutdownManager);
-    backwardAnalysis = new BackwardAnalysis(pLogger, pBlock, pCFA, pSpecification, pConfiguration,
-        pShutdownManager);
+        pShutdownManager, backwardAnalysis);
+
     status = forwardAnalysis.getStatus();
 
     lastPreConditionMessage = Optional.empty();
@@ -130,17 +145,25 @@ public class Worker implements Runnable {
 
   // return post condition
   private Message forwardAnalysis() throws CPAException, InterruptedException {
-    Message message = forwardAnalysis.analyze(getPreCondition(forwardAnalysis.getFmgr()));
+    Message message = forwardAnalysis.analyze(forwardAnalysis.getStartState(getPreCondition(forwardAnalysis.getFmgr())));
     status = forwardAnalysis.getStatus();
-    lastPreConditionMessage = Optional.of(message);
+    if (message.getType() == MessageType.PRECONDITION) {
+      lastPreConditionMessage = Optional.of(message);
+    } else if (message.getType() == MessageType.POSTCONDITION) {
+      lastPostConditionMessage = Optional.of(message);
+    }
     return message;
   }
 
   // return pre condition
   private Message backwardAnalysis() throws CPAException, InterruptedException {
-    Message message = backwardAnalysis.analyze(getPostCondition(backwardAnalysis.getFmgr()));
+    Message message = backwardAnalysis.analyze(null);
     status = backwardAnalysis.getStatus();
-    lastPostConditionMessage = Optional.of(message);
+    if (message.getType() == MessageType.PRECONDITION) {
+      lastPreConditionMessage = Optional.of(message);
+    } else if (message.getType() == MessageType.POSTCONDITION) {
+      lastPostConditionMessage = Optional.of(message);
+    }
     return message;
   }
 

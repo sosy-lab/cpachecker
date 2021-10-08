@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -44,17 +46,16 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
 public abstract class WorkerAnalysis {
 
@@ -73,6 +74,8 @@ public abstract class WorkerAnalysis {
   protected final LogManager logger;
 
   protected AlgorithmStatus status;
+
+  protected int executionsCounter;
 
   public WorkerAnalysis(
       LogManager pLogger,
@@ -190,11 +193,7 @@ public abstract class WorkerAnalysis {
   }
 
   public static BooleanFormula uninstantiate(PathFormula pPathFormula, FormulaManagerView fmgr) {
-    Map<String, Integer> variableToIndex = new HashMap<>();
     SSAMap ssaMap = pPathFormula.getSsa();
-    for (String variable : ssaMap.allVariables()) {
-      variableToIndex.put(variable, ssaMap.getIndex(variable));
-    }
     Map<String, Formula> variableToFormula = fmgr.extractVariables(pPathFormula.getFormula());
     Map<Formula, Formula> substitutions = new HashMap<>();
     for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
@@ -217,11 +216,12 @@ public abstract class WorkerAnalysis {
     return fmgr.substitute(pPathFormula.getFormula(), substitutions);
   }
 
-  public abstract Message analyze(BooleanFormula condition)
+  public abstract Message analyze(ARGState pStartState)
       throws CPAException, InterruptedException;
 
-
   public static class ForwardAnalysis extends WorkerAnalysis {
+
+    private final BackwardAnalysis backwardAnalysis;
 
     public ForwardAnalysis(
         LogManager pLogger,
@@ -229,19 +229,20 @@ public abstract class WorkerAnalysis {
         CFA pCFA,
         Specification pSpecification,
         Configuration pConfiguration,
-        ShutdownManager pShutdownManager)
+        ShutdownManager pShutdownManager,
+        BackwardAnalysis pBackwardAnalysis)
         throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
+      backwardAnalysis = pBackwardAnalysis;
     }
 
-    @Override
-    public Message analyze(BooleanFormula condition) throws CPAException, InterruptedException {
+    public ARGState getStartState(BooleanFormula condition) {
       PredicateAbstractState firstPredicateState =
           getStatesFromCompositeState(startState, PredicateAbstractState.class).stream().findFirst()
               .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
       firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
           pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(),
-              fmgr.uninstantiate(condition)),
+              condition),
           firstPredicateState);
       List<AbstractState> states = new ArrayList<>();
       for (AbstractState wrappedState : startState.getWrappedStates()) {
@@ -252,9 +253,20 @@ public abstract class WorkerAnalysis {
         }
       }
       CompositeState actualStartState = new CompositeState(states);
+      return new ARGState(actualStartState, null);
+    }
+
+    @Override
+    public Message analyze(ARGState pStartState) throws CPAException, InterruptedException {
+      executionsCounter++;
       reachedSet.clear();
-      reachedSet.add(new ARGState(actualStartState, null), emptyPrecision);
+      reachedSet.add(pStartState, emptyPrecision);
       status = algorithm.run(reachedSet);
+      Optional<ARGState> targetState = from(reachedSet).filter(AbstractStates::isTargetState)
+          .filter(ARGState.class).first();
+      if (targetState.isPresent()) {
+        return backwardAnalysis.analyze(targetState.get());
+      }
       ImmutableSet<ARGState> finalStates = ARGUtils.getFinalStates(reachedSet);
       List<BooleanFormula> formulas = new ArrayList<>();
       if (!finalStates.isEmpty()) {
@@ -290,7 +302,9 @@ public abstract class WorkerAnalysis {
     }
 
     @Override
-    public Message analyze(BooleanFormula condition) throws CPAException, InterruptedException {
+    public Message analyze(ARGState pStartState) throws CPAException, InterruptedException {
+      reachedSet.clear();
+      reachedSet.add(pStartState, emptyPrecision);
       return new Message(MessageType.POSTCONDITION, block,
           fmgr.dumpArbitraryFormula(bmgr.makeTrue()));
     }
