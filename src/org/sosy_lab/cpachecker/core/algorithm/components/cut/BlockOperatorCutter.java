@@ -76,10 +76,10 @@ public class BlockOperatorCutter implements CFACutter {
         coveredBlockEnds.add(lastCFANode);
       }
       // add all successors of lastCFANode to toSearch.
-      // additionally we want to store any node that is between start -> end of a BlockNode
+      // additionally, we want to store any node that is between start -> end of a BlockNode
       // so we use the class Entry to track the current node and the nodes in between.
       final CFANode currentRootNode = lastCFANode;
-      toSearch.addAll(FluentIterable.from(CFAUtils.successorsOf(lastCFANode)).transform(succ ->
+      toSearch.addAll(CFAUtils.successorsOf(lastCFANode).transform(succ ->
           new Entry(succ, new LinkedHashSet<>(ImmutableList.of(currentRootNode, succ)))).toList());
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
@@ -120,10 +120,8 @@ public class BlockOperatorCutter implements CFACutter {
           // if successorOfCurrNode is not a block end, all successors must be added to the block
           for (CFANode successor : CFAUtils.successorsOf(successorOfCurrNode)) {
             Set<CFANode> seen = new LinkedHashSet<>(nodeEntry.getSeen());
-            if (!seen.contains(successor)) {
-              seen.add(successor);
-              toSearch.add(new Entry(successor, seen));
-            }
+            seen.add(successor);
+            toSearch.add(new Entry(successor, seen));
           }
         }
       }
