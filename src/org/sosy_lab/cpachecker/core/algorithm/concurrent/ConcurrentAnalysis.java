@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
+
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -106,13 +108,14 @@ public class ConcurrentAnalysis implements Algorithm {
       if(error.isPresent()) {
         reachedSet.addNoWaitlist(error.get().getState(), error.get().getPrecision());
       }
-      
-      return AlgorithmStatus.SOUND_AND_PRECISE;
+
+      status = status.update(executor.getStatus());
     } catch (InvalidConfigurationException exception) {
-      logger.log(Level.SEVERE, "Invalid configuration:", exception);
+      logger.log(Level.SEVERE, "Invalid configuration:", exception.getMessage());
+      status = NO_PROPERTY_CHECKED;
     }
 
     logger.log(Level.INFO, "Stopping concurrent analysis ...");
-    return status.update(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    return status;
   }
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -49,6 +50,8 @@ public class BackwardAnalysisCore extends Task {
   private final Solver solver;
   private final FormulaManagerView fMgr;
 
+  private AlgorithmStatus status = SOUND_AND_PRECISE;
+  
   public BackwardAnalysisCore(
       final Block pBlock,
       final ReachedSet pReachedSet,
@@ -75,7 +78,8 @@ public class BackwardAnalysisCore extends Task {
   protected void execute() throws Exception {
     logManager.log(Level.FINE, "BackwardAnalysisFull on", target);
     
-    AlgorithmStatus newStatus = algorithm.run(reached);
+    AlgorithmStatus newStatus = algorithm.run(reached); 
+    status = status.update(newStatus);
 
     for (final AbstractState reachedState : reached.asCollection()) {
       processReachedState(reachedState);
@@ -106,7 +110,7 @@ public class BackwardAnalysisCore extends Task {
     }
 
     logManager.log(Level.FINE, "Completed BackwardAnalysis on", target);
-    messageFactory.sendTaskCompletionMessage(this);
+    messageFactory.sendTaskCompletionMessage(this, status);
   }
 
   private void processReachedState(final AbstractState state)
@@ -140,7 +144,7 @@ public class BackwardAnalysisCore extends Task {
             logManager.log(Level.INFO, "Verdict: Error condition unsatisfiable", condition);
           } else {
             logManager.log(Level.INFO, "Verdict: Satisfiable error condition!", condition);
-            messageFactory.sendErrorReachedProgramEntryMessage(origin);
+            messageFactory.sendErrorReachedProgramEntryMessage(origin, status);
           }
         } catch (SolverException ignored) {
           logManager.log(Level.WARNING, "Unhandled Solver Exception!");

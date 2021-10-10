@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.UNSOUND_AND_PRECISE;
+
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -37,10 +40,10 @@ public abstract class Task implements Runnable {
       execute();
     } catch (final InterruptedException exception) {
       logManager.log(Level.INFO, "Task aborted due to shutdown request:", this);
-      messageFactory.sendTaskCompletionMessage(this);
+      messageFactory.sendTaskCompletionMessage(this, SOUND_AND_PRECISE);
     } catch (final Throwable object) {
       logManager.log(Level.WARNING, "Unexpected throwable:", object);
-      messageFactory.sendTaskCompletionMessage(this);
+      messageFactory.sendTaskCompletionMessage(this, UNSOUND_AND_PRECISE);
     } 
   }
 

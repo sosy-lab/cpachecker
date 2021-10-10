@@ -77,7 +77,7 @@ public class ForwardAnalysisRequest implements TaskRequest {
       final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
-    forward = ForwardAnalysis.getConfiguration(pLogger, configFile);
+    forward = ForwardAnalysis.getConfiguration(pLogger, configFile, pConfig);
     
     predecessor = pPredecessor;
     block = pBlock;

@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
-import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -73,6 +73,8 @@ public class ForwardAnalysis extends Task {
   private final BooleanFormulaManagerView bfMgr;
   private final PathFormulaManager pfMgr;
 
+  private AlgorithmStatus status = SOUND_AND_PRECISE;
+
   public ForwardAnalysis(
       final Block pTarget,
       @Nullable final ShareableBooleanFormula pOldSummary,
@@ -86,7 +88,7 @@ public class ForwardAnalysis extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pMessageFactory, pLogManager, pShutdownNotifier);
-    
+
     PredicateCPA predCPA = pCPA.retrieveWrappedCpa(PredicateCPA.class);
     assert predCPA != null;
 
@@ -127,18 +129,17 @@ public class ForwardAnalysis extends Task {
   @Override
   protected void execute()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-    AlgorithmStatus status = NO_PROPERTY_CHECKED;
 
     if (isSummaryUnchanged()) {
       logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
-      messageFactory.sendTaskCompletionMessage(this);
+      messageFactory.sendTaskCompletionMessage(this, status);
       return;
     }
 
     PathFormula cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
       logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
-      messageFactory.sendTaskCompletionMessage(this);
+      messageFactory.sendTaskCompletionMessage(this, status);
       return;
     }
 
@@ -149,14 +150,16 @@ public class ForwardAnalysis extends Task {
     logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
     do {
       shutdownNotifier.shutdownIfNecessary();
-      status = status.update(algorithm.run(reached));
-    } while(reached.hasWaitingState());
-    
+
+      AlgorithmStatus newStatus = algorithm.run(reached);
+      status = status.update(newStatus);
+    } while (reached.hasWaitingState());
+
     handleTargetStates();
     propagateThroughExits();
 
     logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
-    messageFactory.sendTaskCompletionMessage(this);
+    messageFactory.sendTaskCompletionMessage(this, status);
   }
 
   private boolean thereIsNoRelevantChange(final PathFormula cumPredSummary)
@@ -254,7 +257,7 @@ public class ForwardAnalysis extends Task {
 
       if (isTargetState(state) && targetIsError(state)) {
         logManager.log(Level.FINE, "Target State:", state);
-        
+
         ErrorOrigin origin = ErrorOrigin.create(state, reached.getPrecision(state));
         messageFactory.sendBackwardAnalysisRequest(target, location, origin);
       }
@@ -299,7 +302,7 @@ public class ForwardAnalysis extends Task {
           shareableFormula);
     }
   }
-  
+
   public String toString() {
     return "ForwardAnalysis on block with entry location " + target.getEntry();
   }

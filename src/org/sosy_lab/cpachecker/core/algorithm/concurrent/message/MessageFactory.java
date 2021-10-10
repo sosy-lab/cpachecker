@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
@@ -142,13 +143,13 @@ public class MessageFactory {
     executor.sendMessage(message);
   }
   
-  public void sendTaskCompletionMessage(final Task task) {
-    Message msg = new TaskCompletionMessage(task);
+  public void sendTaskCompletionMessage(final Task task, final AlgorithmStatus pStatus) {
+    Message msg = new TaskCompletionMessage(task, pStatus);
     executor.sendMessage(msg);
   }
 
-  public void sendErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin) {
-    Message msg = new ErrorReachedProgramEntryMessage(pOrigin);
+  public void sendErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin, final AlgorithmStatus pStatus) {
+    Message msg = new ErrorReachedProgramEntryMessage(pOrigin, pStatus);
     executor.sendMessage(msg);
   }
 

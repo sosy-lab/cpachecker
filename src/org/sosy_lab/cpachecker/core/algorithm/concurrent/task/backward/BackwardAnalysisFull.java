@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward;
 
 import static java.lang.Math.max;
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.makeName;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ConfigurationLoader;
@@ -65,6 +67,7 @@ public class BackwardAnalysisFull extends Task {
   private final BlockAwareCompositeCPA cpa;
   private final Solver solver;
   private final FormulaManagerView fMgr;
+  private final AlgorithmStatus status = SOUND_AND_PRECISE;
 
   public BackwardAnalysisFull(
       final Block pBlock,
@@ -79,7 +82,7 @@ public class BackwardAnalysisFull extends Task {
       final LogManager pLogManager,
       final ShutdownNotifier pShutdownNotifier) {
     super(pMessageFactory, pLogManager, pShutdownNotifier);
-    
+
     cpa = pCPA;
     PredicateCPA predicateCPA = cpa.retrieveWrappedCpa(PredicateCPA.class);
     assert predicateCPA != null;
@@ -176,9 +179,9 @@ public class BackwardAnalysisFull extends Task {
       if (upperSSA.containsVariable(name)) {
         int maxUpperIndex = upperSSA.getIndex(name);
         int maxIndex = max(maxLowerIndex, maxUpperIndex);
-        
+
         replacements.put(makeName(name, maxUpperIndex), makeName(name, maxLowerIndex));
-        
+
         for (int index = 1; index < maxUpperIndex; ++index) {
           replacements.put(makeName(name, index), makeName(name, maxIndex + index));
         }
@@ -199,15 +202,15 @@ public class BackwardAnalysisFull extends Task {
     PathFormula result = pfMgr.makeEmptyPathFormula();
     return result.withFormula(targetRaw).withContext(newSSA, upper.getPointerTargetSet());
   }
-  
+
   @Override
-  protected void execute() throws Exception {    
+  protected void execute() throws Exception {
     PathFormula condition = stitchIndicesTogether(blockSummary, errorCondition);
     BooleanFormula reachable = fMgr.makeAnd(blockSummary.getFormula(), condition.getFormula());
     if (solver.isUnsat(reachable)) {
       logManager.log(Level.INFO, "Verdict: Swallowed error condition: ",
           errorCondition.getFormula());
-      messageFactory.sendTaskCompletionMessage(this);
+      messageFactory.sendTaskCompletionMessage(this, status);
       return;
     }
 
@@ -216,7 +219,8 @@ public class BackwardAnalysisFull extends Task {
     reached.add(entryState, precision);
 
     shutdownNotifier.shutdownIfNecessary();
-    new BackwardAnalysisCore(target, reached, origin, algorithm, cpa, solver, messageFactory, logManager,
+    new BackwardAnalysisCore(target, reached, origin, algorithm, cpa, solver, messageFactory,
+        logManager,
         shutdownNotifier).run();
   }
 

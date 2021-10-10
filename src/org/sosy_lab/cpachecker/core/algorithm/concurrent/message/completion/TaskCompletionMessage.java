@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion;
 
 
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
@@ -16,8 +17,11 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 public class TaskCompletionMessage implements Message {  
   private final Task task;
   
-  public TaskCompletionMessage(final Task pTask) {
+  private final AlgorithmStatus status;
+  
+  public TaskCompletionMessage(final Task pTask, final AlgorithmStatus pStatus) {
     task = pTask;
+    status = pStatus;
   }
   
   @Override
@@ -27,5 +31,9 @@ public class TaskCompletionMessage implements Message {
   
   public Task getTask() {
     return task;
+  }
+  
+  public AlgorithmStatus getStatus() {
+    return status;
   }
 }

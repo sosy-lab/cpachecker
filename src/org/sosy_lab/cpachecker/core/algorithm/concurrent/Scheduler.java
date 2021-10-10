@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.SOUND_AND_PRECISE;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Maps;
@@ -69,7 +70,7 @@ public final class Scheduler implements Runnable {
   private int jobCount = 0;
   private volatile boolean complete = false;
   private volatile Optional<ErrorOrigin> target = Optional.empty();
-  private volatile AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+  private volatile AlgorithmStatus status = SOUND_AND_PRECISE;
   
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
@@ -106,10 +107,6 @@ public final class Scheduler implements Runnable {
   /**
    * Suspend the thread which calls this method until {@link Scheduler} has completed all
    * requested jobs.
-   * 
-   * @return A pair which contains (a) the overall AlgorithmStatus of the analysis, and (b) an 
-   *         optional which is empty if the analysis did not find a reachable target state, or 
-   *         contains such state otherwise. 
    */
   public Optional<ErrorOrigin> waitForCompletion() {
     Thread currentThread = Thread.currentThread();
@@ -247,6 +244,7 @@ public final class Scheduler implements Runnable {
 
     public void visit(final TaskCompletionMessage pMessage) {
       --jobCount;
+      status = status.update(pMessage.getStatus());
       
       if (jobCount == 0 && messages.isEmpty()) {
         logManager.log(Level.INFO, "All tasks completed.");
@@ -257,7 +255,13 @@ public final class Scheduler implements Runnable {
 
     public void visit(final ErrorReachedProgramEntryMessage pMessage) {
       target = Optional.of(pMessage.getOrigin());
+      status = status.update(pMessage.getStatus());
       errorReachedProgramEntry();
     }
+  }
+  
+  public AlgorithmStatus getStatus() {
+    assert complete : "Scheduler only reports status after analysis completion";
+    return status;
   }
 }

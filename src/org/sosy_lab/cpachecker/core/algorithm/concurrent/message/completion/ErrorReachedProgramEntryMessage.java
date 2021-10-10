@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion;
 
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
@@ -7,8 +8,17 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 public class ErrorReachedProgramEntryMessage implements Message {
   private final ErrorOrigin origin;
   
-  public ErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin) {
+  /*
+   * ErrorReachedProgramEntryMessage independently publishes the AlgorithmStatus of the 
+   * corresponding BackwardAnalysis. After sending the ErrorReachedProgramEntryMessage, this task 
+   * might get aborted before emitting the TaskCompletionMessage which would otherwise propagate 
+   * its status.
+   */
+  private final AlgorithmStatus status;
+  
+  public ErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin, final AlgorithmStatus pStatus) {
     origin = pOrigin;
+    status = pStatus;
   }
   
   @Override
@@ -18,5 +28,9 @@ public class ErrorReachedProgramEntryMessage implements Message {
   
   public ErrorOrigin getOrigin() {
     return origin;
+  }
+  
+  public AlgorithmStatus getStatus() {
+    return status;
   }
 }
