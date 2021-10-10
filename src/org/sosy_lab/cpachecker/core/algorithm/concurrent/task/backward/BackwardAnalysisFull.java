@@ -219,4 +219,8 @@ public class BackwardAnalysisFull extends Task {
     new BackwardAnalysisCore(target, reached, origin, algorithm, cpa, solver, messageFactory, logManager,
         shutdownNotifier).run();
   }
+
+  public String toString() {
+    return "BackwardAnalysisFull on block with entry location " + target.getEntry();
+  }
 }

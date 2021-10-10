@@ -299,4 +299,8 @@ public class ForwardAnalysis extends Task {
           shareableFormula);
     }
   }
+  
+  public String toString() {
+    return "ForwardAnalysis on block with entry location " + target.getEntry();
+  }
 }

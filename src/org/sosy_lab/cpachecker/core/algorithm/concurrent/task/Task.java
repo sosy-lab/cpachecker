@@ -35,12 +35,17 @@ public abstract class Task implements Runnable {
   public final void run() {
     try {
       execute();
+    } catch (final InterruptedException exception) {
+      logManager.log(Level.INFO, "Task aborted due to shutdown request:", this);
+      messageFactory.sendTaskCompletionMessage(this);
     } catch (final Throwable object) {
       logManager.log(Level.WARNING, "Unexpected throwable:", object);
-      
       messageFactory.sendTaskCompletionMessage(this);
-    }
+    } 
   }
 
   protected abstract void execute() throws Exception;
+  
+  @Override
+  public abstract String toString();
 }
