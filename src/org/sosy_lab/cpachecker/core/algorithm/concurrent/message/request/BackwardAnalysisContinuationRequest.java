@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisCore;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
 public class BackwardAnalysisContinuationRequest implements TaskRequest {
   final Block block;
+  final ErrorOrigin origin;
   final ReachedSet reachedSet;
   final Algorithm algorithm;
   final BlockAwareCompositeCPA cpa;
@@ -35,6 +37,7 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
       
   public BackwardAnalysisContinuationRequest(
       final Block pBlock,
+      final ErrorOrigin pOrigin,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA,
@@ -43,6 +46,7 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
       final ShutdownNotifier pShutdownNotifier
   ) {
     block = pBlock;
+    origin = pOrigin;
     reachedSet = pReachedSet;
     algorithm = pAlgorithm;
     cpa = pCPA;
@@ -60,7 +64,7 @@ public class BackwardAnalysisContinuationRequest implements TaskRequest {
     assert predicateCPA != null;
     
     return new BackwardAnalysisCore(
-        block, reachedSet, algorithm, cpa, predicateCPA.getSolver(), messageFactory, logManager, shutdownNotifier
+        block, reachedSet, origin, algorithm, cpa, predicateCPA.getSolver(), messageFactory, logManager, shutdownNotifier
     );
   }
 }

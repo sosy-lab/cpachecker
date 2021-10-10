@@ -18,20 +18,24 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.RequestInvalidatedException;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.TaskRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 
 /**
@@ -53,15 +57,19 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFo
 public final class Scheduler implements Runnable {
   private final LinkedBlockingQueue<Message> messages = new LinkedBlockingQueue<>();
   private final ExecutorService executor;
-  private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
   private final LogManager logManager;
   private final Collection<Thread> waitingForCompletion = new LinkedList<>();
   private final Thread schedulerThread = new Thread(this, Scheduler.getThreadName());
+  
   private final Table<Block, Block, ShareableBooleanFormula> summaries = HashBasedTable.create();
   private final Map<Block, Integer> summaryVersion = Maps.newHashMap();
   private final Set<CFANode> alreadyPropagated = new HashSet<>();
+  
   private int jobCount = 0;
   private volatile boolean complete = false;
+  private volatile Optional<ErrorOrigin> target = Optional.empty();
+  private volatile AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
   
   /**
    * Prepare a new {@link Scheduler}. Actual execution does not start until {@link #start()} gets
@@ -73,10 +81,10 @@ public final class Scheduler implements Runnable {
   public Scheduler(
       final int pThreads,
       final LogManager pLogManager,
-      final ShutdownNotifier pShutdownNotifier) {
+      final ShutdownManager pShutdownManager) {
     executor = Executors.newFixedThreadPool(pThreads);
     logManager = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownManager;
   }
 
   /**
@@ -98,8 +106,12 @@ public final class Scheduler implements Runnable {
   /**
    * Suspend the thread which calls this method until {@link Scheduler} has completed all
    * requested jobs.
+   * 
+   * @return A pair which contains (a) the overall AlgorithmStatus of the analysis, and (b) an 
+   *         optional which is empty if the analysis did not find a reachable target state, or 
+   *         contains such state otherwise. 
    */
-  public void waitForCompletion() {
+  public Optional<ErrorOrigin> waitForCompletion() {
     Thread currentThread = Thread.currentThread();
     waitingForCompletion.add(currentThread);
 
@@ -109,11 +121,13 @@ public final class Scheduler implements Runnable {
           currentThread.wait();
         }
       } catch (final InterruptedException exception) {
-        if (shutdownNotifier.shouldShutdown()) {
-          return;
+        if (shutdownManager.getNotifier().shouldShutdown()) {
+          return target;
         }
       }
     }
+    
+    return target;
   }
 
   /**
@@ -128,12 +142,12 @@ public final class Scheduler implements Runnable {
      *    elements to the queue, or
      * b) some new jobs have been requested for execution.
      */
-    while (jobCount > 0 || !messages.isEmpty()) {
+    while (!complete && (jobCount > 0 || !messages.isEmpty())) {
       try {
         Message message = messages.take();
         message.accept(new MessageProcessingVisitor());
       } catch (final InterruptedException ignored) {
-        if (shutdownNotifier.shouldShutdown()) {
+        if (shutdownManager.getNotifier().shouldShutdown()) {
           return;
         }
       }
@@ -149,7 +163,14 @@ public final class Scheduler implements Runnable {
    */
   private void shutdown() {
     assert messages.isEmpty();
-    assert jobCount == 0;
+    
+    /*
+     * During regular shutdown, 'jobCount' must equal 0 (because this triggers the shutdown).
+     * If shutdown has been requested because an error reached the program entry, then 'jobCount' 
+     * might be different from 0. In this case however, 'errorReachedProgramEntry()' already set 
+     * 'complete' to 'false'.
+     */
+    assert jobCount == 0 || complete;
 
     /*
      * The method shutdown() gets called after all jobs have completed.
@@ -178,7 +199,12 @@ public final class Scheduler implements Runnable {
    */
   public void sendMessage(final Message pMessage) {
     checkNotNull(pMessage);
-
+    
+    /* Best-effort early-return. */
+    if(complete) {
+      return;
+    }
+    
     boolean success = false;
 
     while (!success) {
@@ -186,17 +212,28 @@ public final class Scheduler implements Runnable {
         messages.put(pMessage);
         success = true;
       } catch (InterruptedException ignored) {
-        if (shutdownNotifier.shouldShutdown()) {
+        if (shutdownManager.getNotifier().shouldShutdown()) {
           return;
         }
       }
     }
   }
+  
+  private void errorReachedProgramEntry() {
+    shutdownManager.requestShutdown("Error reached program entry");
+    
+    executor.shutdownNow();
+    messages.clear();
+    jobCount = 0;
+    complete = true;
+    
+    shutdown();
+  }
 
   public class MessageProcessingVisitor {
-    public void visit(final TaskRequest pRequest) {
+    public void visit(final TaskRequest pMessage) {
       try {
-        Task newTask = pRequest.process(summaries, summaryVersion, alreadyPropagated);
+        Task newTask = pMessage.process(summaries, summaryVersion, alreadyPropagated);
         executor.submit(newTask);
         
         ++jobCount;
@@ -208,14 +245,19 @@ public final class Scheduler implements Runnable {
       }
     }
 
-    public void visit(final TaskCompletionMessage pCompletionMessage) {
+    public void visit(final TaskCompletionMessage pMessage) {
       --jobCount;
-
+      
       if (jobCount == 0 && messages.isEmpty()) {
         logManager.log(Level.INFO, "All tasks completed.");
         schedulerThread.interrupt();
         shutdown();
       }
+    }
+
+    public void visit(final ErrorReachedProgramEntryMessage pMessage) {
+      target = Optional.of(pMessage.getOrigin());
+      errorReachedProgramEntry();
     }
   }
 }

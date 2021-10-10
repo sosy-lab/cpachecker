@@ -8,14 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task;
 
-import static org.sosy_lab.cpachecker.core.CPAcheckerResult.Result.UNKNOWN;
-
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 
 /**
  * {@link Task} provides a common base for all classes which implement subtasks of concurrent
@@ -42,8 +38,7 @@ public abstract class Task implements Runnable {
     } catch (final Throwable object) {
       logManager.log(Level.WARNING, "Unexpected throwable:", object);
       
-      SubtaskResult result = SubtaskResult.create(UNKNOWN, AlgorithmStatus.UNSOUND_AND_IMPRECISE);
-      messageFactory.sendTaskCompletionMessage(this, result);
+      messageFactory.sendTaskCompletionMessage(this);
     }
   }
 

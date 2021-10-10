@@ -28,14 +28,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ConfigurationLoader;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,6 +55,7 @@ public class BackwardAnalysisFull extends Task {
   private static volatile ConfigurationLoader configLoader = null;
 
   private final Block target;
+  private final ErrorOrigin origin;
   private final CFANode start;
   private final PathFormula errorCondition;
   private final PathFormula blockSummary;
@@ -69,6 +68,7 @@ public class BackwardAnalysisFull extends Task {
 
   public BackwardAnalysisFull(
       final Block pBlock,
+      final ErrorOrigin pOrigin,
       final CFANode pStart,
       final ShareableBooleanFormula pErrorCondition,
       final ShareableBooleanFormula pBlockSummary,
@@ -89,6 +89,7 @@ public class BackwardAnalysisFull extends Task {
 
     target = pBlock;
     start = pStart;
+    origin = pOrigin;
     errorCondition = pErrorCondition.getFor(fMgr, pfMgr);
     blockSummary = pBlockSummary.getFor(fMgr, pfMgr);
 
@@ -200,15 +201,13 @@ public class BackwardAnalysisFull extends Task {
   }
   
   @Override
-  protected void execute() throws Exception {
-    SubtaskResult result = SubtaskResult.create(Result.UNKNOWN, AlgorithmStatus.SOUND_AND_PRECISE);
-    
+  protected void execute() throws Exception {    
     PathFormula condition = stitchIndicesTogether(blockSummary, errorCondition);
     BooleanFormula reachable = fMgr.makeAnd(blockSummary.getFormula(), condition.getFormula());
     if (solver.isUnsat(reachable)) {
       logManager.log(Level.INFO, "Verdict: Swallowed error condition: ",
           errorCondition.getFormula());
-      messageFactory.sendTaskCompletionMessage(this, result);
+      messageFactory.sendTaskCompletionMessage(this);
       return;
     }
 
@@ -216,7 +215,8 @@ public class BackwardAnalysisFull extends Task {
     Precision precision = cpa.getInitialPrecision(start, getDefaultPartition());
     reached.add(entryState, precision);
 
-    new BackwardAnalysisCore(target, reached, algorithm, cpa, solver, messageFactory, logManager,
+    shutdownNotifier.shutdownIfNecessary();
+    new BackwardAnalysisCore(target, reached, origin, algorithm, cpa, solver, messageFactory, logManager,
         shutdownNotifier).run();
   }
 }

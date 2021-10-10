@@ -1,4 +1,4 @@
-// This file is part of CPAchecker,
+// This file is part of qAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent;
 
+import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -19,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.BlockGraph;
 import org.sosy_lab.cpachecker.cfa.blockgraph.builder.BlockGraphBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -32,15 +35,14 @@ public class ConcurrentAnalysis implements Algorithm {
 
   @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final CFA cfa;
-
-  @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
-  private final ShutdownNotifier shutdownNotifier;
-
+  
   @SuppressWarnings({"FieldCanBeLocal", "UnusedVariable"})
   private final Configuration config;
 
   private final Specification specification;
 
+  private final ShutdownManager shutdownManager;
+  
   private ConcurrentAnalysis(
       final Algorithm pAlgorithm,
       final CFA pCFA,
@@ -51,7 +53,7 @@ public class ConcurrentAnalysis implements Algorithm {
     algorithm = pAlgorithm;
     cfa = pCFA;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
     config = pConfig;
     specification = pSpecification;
   }
@@ -80,17 +82,17 @@ public class ConcurrentAnalysis implements Algorithm {
       blk.setCFA(cfa);
 
       BlockGraph graph =
-          BlockGraphBuilder.create(shutdownNotifier).build(cfa.getMainFunction(), blk);
+          BlockGraphBuilder.create(shutdownManager.getNotifier()).build(cfa.getMainFunction(), blk);
 
       final int processors = Runtime.getRuntime().availableProcessors();
-      Scheduler executor = new Scheduler(processors, logger, shutdownNotifier);
+      Scheduler executor = new Scheduler(processors, logger, shutdownManager);
 
       MessageFactory messageFactory =
           MessageFactory.factory()
               .set(config, Configuration.class)
               .set(specification, Specification.class)
               .set(logger, LogManager.class)
-              .set(shutdownNotifier, ShutdownNotifier.class)
+              .set(shutdownManager.getNotifier(), ShutdownNotifier.class)
               .set(cfa, CFA.class)
               .set(executor, Scheduler.class)
               .createInstance();
@@ -100,7 +102,12 @@ public class ConcurrentAnalysis implements Algorithm {
       }
 
       executor.start();
-      executor.waitForCompletion();
+      Optional<ErrorOrigin> error = executor.waitForCompletion();
+      if(error.isPresent()) {
+        reachedSet.addNoWaitlist(error.get().getState(), error.get().getPrecision());
+      }
+      
+      return AlgorithmStatus.SOUND_AND_PRECISE;
     } catch (InvalidConfigurationException exception) {
       logger.log(Level.SEVERE, "Invalid configuration:", exception);
     }

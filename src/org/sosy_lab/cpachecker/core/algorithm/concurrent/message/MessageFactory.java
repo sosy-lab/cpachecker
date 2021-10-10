@@ -18,13 +18,14 @@ import org.sosy_lab.cpachecker.cfa.blockgraph.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.ErrorReachedProgramEntryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion.TaskCompletionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.BackwardAnalysisContinuationRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.BackwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.request.ForwardAnalysisRequest;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
@@ -102,13 +103,13 @@ public class MessageFactory {
     }
   }
 
-  public void sendBackwardAnalysisRequest(final Block pBlock, final CFANode pStart)
+  public void sendBackwardAnalysisRequest(final Block pBlock, final CFANode pStart, final ErrorOrigin pOrigin)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
     Message message =
         new BackwardAnalysisRequest(
-            pBlock, pStart, null, null, config, logManager, shutdownNotifier, cfa, this);
+            pBlock, pOrigin, pStart, null, null, config, logManager, shutdownNotifier, cfa, this);
     executor.sendMessage(message);
   }
 
@@ -116,31 +117,38 @@ public class MessageFactory {
       final Block pBlock,
       final CFANode pStart,
       final Block pSource,
+      final ErrorOrigin pOrigin,
       final ShareableBooleanFormula pCondition)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     assert pBlock.contains(pStart) : "Block must contain analysis start location";
 
     Message message =
         new BackwardAnalysisRequest(
-            pBlock, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa, this);
+            pBlock, pOrigin, pStart, pSource, pCondition, config, logManager, shutdownNotifier, cfa, this);
     executor.sendMessage(message);
   }
 
   public void sendBackwardAnalysisContinuationRequest(
       final Block pBlock,
+      final ErrorOrigin pOrigin,
       final ReachedSet pReachedSet,
       final Algorithm pAlgorithm,
       final BlockAwareCompositeCPA pCPA)
       throws InterruptedException, InvalidConfigurationException, CPAException {
     Message message =
         new BackwardAnalysisContinuationRequest(
-            pBlock,pReachedSet, pAlgorithm, pCPA, this, logManager, shutdownNotifier);
+            pBlock, pOrigin, pReachedSet, pAlgorithm, pCPA, this, logManager, shutdownNotifier);
 
     executor.sendMessage(message);
   }
   
-  public void sendTaskCompletionMessage(final Task task, final SubtaskResult result) {
-    Message msg = new TaskCompletionMessage(result, task);
+  public void sendTaskCompletionMessage(final Task task) {
+    Message msg = new TaskCompletionMessage(task);
+    executor.sendMessage(msg);
+  }
+
+  public void sendErrorReachedProgramEntryMessage(final ErrorOrigin pOrigin) {
+    Message msg = new ErrorReachedProgramEntryMessage(pOrigin);
     executor.sendMessage(msg);
   }
 

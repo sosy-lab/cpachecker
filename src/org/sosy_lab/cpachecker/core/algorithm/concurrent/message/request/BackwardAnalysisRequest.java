@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -49,6 +50,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
   
   private final Block target;
   private final Block source;
+  private final ErrorOrigin origin;
   private final CFANode start;
   private final ShareableBooleanFormula errorCondition;
   private final Algorithm algorithm;
@@ -59,7 +61,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
   private final ShutdownNotifier shutdownNotifier;
   private final FormulaManagerView fMgr;
   private final PathFormulaManager pfMgr;
-
+  
   @SuppressWarnings("FieldMayBeFinal")
   @Option(description = "Configuration file for backward analysis during concurrent analysis.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -67,6 +69,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
 
   public BackwardAnalysisRequest(
       final Block pTarget,
+      final ErrorOrigin pOrigin,
       final CFANode pStart,
       @Nullable final Block pSource,
       @Nullable final ShareableBooleanFormula pErrorCondition,
@@ -80,6 +83,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
     backward = BackwardAnalysisFull.getConfiguration(pLogger, configFile);
 
     target = pTarget;
+    origin = pOrigin;
     start = pStart;
     source = pSource;
     messageFactory = pMessageFactory;
@@ -155,10 +159,11 @@ public class BackwardAnalysisRequest implements TaskRequest {
         : "Only " + Scheduler.getThreadName() + " may call finalize() on task";
 
     if (source == null) {
-      if (pAlreadyPropagated.contains(start)) {
+      CFANode location = origin.getLocation();
+      if (pAlreadyPropagated.contains(location)) {
         throw new RequestInvalidatedException();
       } else {
-        pAlreadyPropagated.add(start);
+        pAlreadyPropagated.add(location);
       }
     }
 
@@ -174,6 +179,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
 
     return new BackwardAnalysisFull(
         target,
+        origin,
         start,
         errorCondition,
         blockSummary,

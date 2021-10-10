@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward;
 
 import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
-import static org.sosy_lab.cpachecker.core.CPAcheckerResult.Result.UNKNOWN;
 import static org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus.NO_PROPERTY_CHECKED;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
@@ -36,8 +35,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ConfigurationLoader;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ErrorOrigin;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -129,18 +128,17 @@ public class ForwardAnalysis extends Task {
   protected void execute()
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     AlgorithmStatus status = NO_PROPERTY_CHECKED;
-    SubtaskResult result = SubtaskResult.create(UNKNOWN, NO_PROPERTY_CHECKED);
 
     if (isSummaryUnchanged()) {
       logManager.log(Level.INFO, "Summary unchanged, refined analysis aborted.");
-      messageFactory.sendTaskCompletionMessage(this, result);
+      messageFactory.sendTaskCompletionMessage(this);
       return;
     }
 
     PathFormula cumPredSummary = buildCumulativePredecessorSummary();
     if (thereIsNoRelevantChange(cumPredSummary)) {
       logManager.log(Level.INFO, "No relevant change on summary, refined analysis aborted.");
-      messageFactory.sendTaskCompletionMessage(this, result);
+      messageFactory.sendTaskCompletionMessage(this);
       return;
     }
 
@@ -150,6 +148,7 @@ public class ForwardAnalysis extends Task {
 
     logManager.log(Level.FINE, "Starting ForwardAnalysis on ", target);
     do {
+      shutdownNotifier.shutdownIfNecessary();
       status = status.update(algorithm.run(reached));
     } while(reached.hasWaitingState());
     
@@ -157,8 +156,7 @@ public class ForwardAnalysis extends Task {
     propagateThroughExits();
 
     logManager.log(Level.FINE, "Completed ForwardAnalysis on ", target);
-    result = SubtaskResult.create(UNKNOWN, status);
-    messageFactory.sendTaskCompletionMessage(this, result);
+    messageFactory.sendTaskCompletionMessage(this);
   }
 
   private boolean thereIsNoRelevantChange(final PathFormula cumPredSummary)
@@ -171,6 +169,7 @@ public class ForwardAnalysis extends Task {
         = bfMgr.and(oldSummary.getFormula(), bfMgr.not(newSummary.getFormula()));
     BooleanFormula relevantChange = bfMgr.implication(cumPredSummary.getFormula(), addedContext);
 
+    shutdownNotifier.shutdownIfNecessary();
     return solver.isUnsat(relevantChange);
   }
 
@@ -208,6 +207,8 @@ public class ForwardAnalysis extends Task {
     BooleanFormula newRaw = newSummary.getFormula();
     BooleanFormula oldRaw = oldSummary.getFormula();
     BooleanFormula equivalence = bfMgr.equivalence(newRaw, oldRaw);
+
+    shutdownNotifier.shutdownIfNecessary();
     return !solver.isUnsat(equivalence);
   }
 
@@ -253,7 +254,9 @@ public class ForwardAnalysis extends Task {
 
       if (isTargetState(state) && targetIsError(state)) {
         logManager.log(Level.FINE, "Target State:", state);
-        messageFactory.sendBackwardAnalysisRequest(target, location);
+        
+        ErrorOrigin origin = ErrorOrigin.create(state, reached.getPrecision(state));
+        messageFactory.sendBackwardAnalysisRequest(target, location, origin);
       }
     }
   }

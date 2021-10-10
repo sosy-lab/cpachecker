@@ -12,25 +12,17 @@ package org.sosy_lab.cpachecker.core.algorithm.concurrent.message.completion;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.Scheduler.MessageProcessingVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.Message;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
-import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.SubtaskResult;
 
-public class TaskCompletionMessage implements Message {
-  private final SubtaskResult result;
-  
+public class TaskCompletionMessage implements Message {  
   private final Task task;
   
-  public TaskCompletionMessage(final SubtaskResult pResult, final Task pTask) {
-    result = pResult;  
+  public TaskCompletionMessage(final Task pTask) {
     task = pTask;
   }
   
   @Override
   public void accept(MessageProcessingVisitor visitor) {
     visitor.visit(this);
-  }
-  
-  public SubtaskResult getResult() {
-    return result;
   }
   
   public Task getTask() {
