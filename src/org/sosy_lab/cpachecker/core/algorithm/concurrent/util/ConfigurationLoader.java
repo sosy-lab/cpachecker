@@ -133,25 +133,25 @@ public class ConfigurationLoader {
 
   @Options
   private static class RequiredOptions {
-    @Option(name = "cpa", description = "cpa.composite.CompositeCPA")
+    @Option(name = "cpa", description = "duplicate for verification")
     public String cpa;
 
-    @Option(name = "CompositeCPA.cpas", description = "Required CPAs")
+    @Option(name = "CompositeCPA.cpas", description = "duplicate for verification")
     public List<String> cpas;
 
-    @Option(name = "cpa.predicate.direction", description = "Analysis direction")
+    @Option(name = "cpa.predicate.direction", description = "duplicate for verification")
     public AnalysisDirection direction = FORWARD;
 
-    @Option(name = "cpa.predicate.handlePointerAliasing", description = "Handle Pointer Aliasing")
+    @Option(name = "cpa.predicate.handlePointerAliasing", description = "duplicate for verification")
     public boolean handlePointerAliasing = true;
 
-    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "")
+    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "duplicate for verification")
     public boolean alwaysAtFunctions = true;
 
-    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "")
+    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "duplicate for verification")
     public boolean alwaysAtLoops = true;
 
-    @Option(name = "cpa.predicate.blk.alwaysAtTarget", description = "")
+    @Option(name = "cpa.predicate.blk.alwaysAtTarget", description = "duplicate for verification")
     public boolean alwaysAtTarget = true;
   }
 }
