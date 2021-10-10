@@ -26,12 +26,12 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 
-@Options(prefix = "analysis.algorithm.concurrentTaskPartitioning")
+@Options(prefix = "concurrent.task.config")
 public class ConfigurationLoader {
-  @Option(secure = true, description 
-      = "Check provided configurations of ForwardAnalysis and BackwardAnalysis regarding a set of " 
+  @Option(secure = true, description =
+        "Check provided configurations of ForwardAnalysis and BackwardAnalysis regarding a set of " 
       + "properties required for a successful analysis.")
-  private boolean checkTaskConfigs = true;
+  private boolean verify = true;
 
   private Configuration configuration = null;
 
@@ -69,7 +69,7 @@ public class ConfigurationLoader {
       final Class<? extends Task> task,
       final Configuration pConfiguration)
       throws InvalidConfigurationException {
-    if(!checkTaskConfigs) {
+    if(!verify) {
       return;
     }
     
