@@ -8,23 +8,41 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.concurrent.util;
 
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.BACKWARD;
+import static org.sosy_lab.cpachecker.core.AnalysisDirection.FORWARD;
+
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.backward.BackwardAnalysisFull;
+import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 
+@Options(prefix = "analysis.algorithm.concurrentTaskPartitioning")
 public class ConfigurationLoader {
+  @Option(secure = true, description 
+      = "Check provided configurations of ForwardAnalysis and BackwardAnalysis regarding a set of " 
+      + "properties required for a successful analysis.")
+  private boolean checkTaskConfigs = true;
+
   private Configuration configuration = null;
 
   public ConfigurationLoader(
-      final Class<? extends Task> defaultContext, 
+      final Configuration analysisConfiguration, 
+      final Class<? extends Task> pTask,
       final String defaultConfigurationName,
       @Nullable final Path customConfigFile,
       final LogManager pLogManager) throws InvalidConfigurationException {
+    analysisConfiguration.inject(this);
+    
     if (customConfigFile != null) {
       try {
         configuration = Configuration.builder().loadFromFile(customConfigFile).build();
@@ -40,12 +58,100 @@ public class ConfigurationLoader {
     if (configuration == null) {
       configuration =
           Configuration.builder()
-              .loadFromResource(defaultContext, defaultConfigurationName)
+              .loadFromResource(pTask, defaultConfigurationName)
               .build();
+    }
+
+    checkConfigurationValidity(pTask, configuration);
+  }
+
+  private void checkConfigurationValidity(
+      final Class<? extends Task> task,
+      final Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    if(!checkTaskConfigs) {
+      return;
+    }
+    
+    RequiredOptions options = new RequiredOptions();
+    pConfiguration.inject(options);
+
+    if (!options.cpa.endsWith("CompositeCPA")) {
+      throw new InvalidConfigurationException(
+          "Concurrent analysis requires cpa.composite.CompositeCPA as top-level CPA for both ForwardAnalysis and BackwardAnalysis!");
+    }
+
+    if (!options.cpas.contains("cpa.predicate.PredicateCPA")) {
+      throw new InvalidConfigurationException(
+          "Concurrent analysis requires cpa.predicate.PredicateCPA as component CPA for both ForwardAnalysis and BackwardAnalysis!");
+    }
+
+    if (task == ForwardAnalysis.class) {
+      if (!options.cpas.contains("cpa.location.LocationCPA")) {
+        throw new InvalidConfigurationException(
+            "ForwardAnalysis configuration requires cpa.location.LocationCPA as component CPA!");
+      }
+      if (options.direction != FORWARD) {
+        throw new InvalidConfigurationException(
+            "ForwardAnalysis configuration requires cpa.predicate.direction=FORWARD!");
+      }
+    } else if (task == BackwardAnalysisFull.class) {
+      if (!options.cpas.contains("cpa.location.LocationCPABackwards")) {
+        throw new InvalidConfigurationException(
+            "BackwardAnalysis configuration requires cpa.location.LocationCPABackwards as component CPA!");
+      }
+      if (options.direction != BACKWARD) {
+        throw new InvalidConfigurationException(
+            "BackwardAnalysis configuration requires cpa.predicate.direction=BACKWARD!");
+      }
+    }
+
+    if (options.handlePointerAliasing) {
+      throw new InvalidConfigurationException(
+          "Concurrent analysis requires cpa.predicate.handlePointerAliasing=false for both ForwardAnalysis and BackwardAnalysis!");
+    }
+
+    if (options.alwaysAtFunctions) {
+      throw new InvalidConfigurationException(
+          "Concurrent analysis requires cpa.predicate.blk.alwaysAtFunctions=false for both ForwardAnalysis and BackwardAnalysis!");
+    }
+
+    if (options.alwaysAtTarget) {
+      throw new InvalidConfigurationException(
+          "Concurrent analysis requires cpa.predicate.blk.alwaysAtTarget=false for both ForwardAnalysis and BackwardAnalysis!");
+    }
+
+    if (options.alwaysAtLoops) {
+      throw new InvalidConfigurationException(
+          "Concurrent analysis requires cpa.predicate.blk.alwaysAtLoops=false for both ForwardAnalysis and BackwardAnalysis!");
     }
   }
 
-  public Configuration getConfiguration() {
+  public Configuration getConfiguration() throws InvalidConfigurationException {
     return configuration;
+  }
+
+  @Options
+  private static class RequiredOptions {
+    @Option(name = "cpa", description = "cpa.composite.CompositeCPA")
+    public String cpa;
+
+    @Option(name = "CompositeCPA.cpas", description = "Required CPAs")
+    public List<String> cpas;
+
+    @Option(name = "cpa.predicate.direction", description = "Analysis direction")
+    public AnalysisDirection direction = FORWARD;
+
+    @Option(name = "cpa.predicate.handlePointerAliasing", description = "Handle Pointer Aliasing")
+    public boolean handlePointerAliasing = true;
+
+    @Option(name = "cpa.predicate.blk.alwaysAtFunctions", description = "")
+    public boolean alwaysAtFunctions = true;
+
+    @Option(name = "cpa.predicate.blk.alwaysAtLoops", description = "")
+    public boolean alwaysAtLoops = true;
+
+    @Option(name = "cpa.predicate.blk.alwaysAtTarget", description = "")
+    public boolean alwaysAtTarget = true;
   }
 }

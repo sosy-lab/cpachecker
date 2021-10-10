@@ -102,12 +102,14 @@ public class BackwardAnalysisFull extends Task {
 
   public static Configuration getConfiguration(
       final LogManager pLogManager,
-      @Nullable final Path pConfigFile) throws InvalidConfigurationException {
+      @Nullable final Path pConfigFile, final Configuration pAnalysisConfiguration)
+      throws InvalidConfigurationException {
     if (configLoader == null) {
       synchronized (BackwardAnalysisFull.class) {
         if (configLoader == null) {
           configLoader =
-              new ConfigurationLoader(BackwardAnalysisFull.class, "predicateBackward.properties",
+              new ConfigurationLoader(pAnalysisConfiguration, BackwardAnalysisFull.class,
+                  "predicateBackward.properties",
                   pConfigFile, pLogManager);
         }
       }

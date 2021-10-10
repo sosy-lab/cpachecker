@@ -113,12 +113,14 @@ public class ForwardAnalysis extends Task {
 
   public static Configuration getConfiguration(
       final LogManager pLogManager,
-      @Nullable final Path pConfigFile) throws InvalidConfigurationException {
+      @Nullable final Path pConfigFile, final Configuration pAnalysisConfiguration)
+      throws InvalidConfigurationException {
     if (configLoader == null) {
       synchronized (ForwardAnalysis.class) {
         if (configLoader == null) {
           configLoader =
-              new ConfigurationLoader(ForwardAnalysis.class, "predicateForward.properties",
+              new ConfigurationLoader(pAnalysisConfiguration, ForwardAnalysis.class,
+                  "predicateForward.properties",
                   pConfigFile, pLogManager);
         }
       }

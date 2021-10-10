@@ -80,7 +80,7 @@ public class BackwardAnalysisRequest implements TaskRequest {
       final MessageFactory pMessageFactory)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
-    backward = BackwardAnalysisFull.getConfiguration(pLogger, configFile);
+    backward = BackwardAnalysisFull.getConfiguration(pLogger, configFile, pConfig);
 
     target = pTarget;
     origin = pOrigin;
