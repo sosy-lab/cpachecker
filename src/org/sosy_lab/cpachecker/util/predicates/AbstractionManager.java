@@ -386,7 +386,8 @@ public final class AbstractionManager {
 
     public AbstractionPredicatesMBean() {
       super(
-          "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates",
+          "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates," +
+                "thread=" + Thread.currentThread().getName(),
           logger);
     }
 
