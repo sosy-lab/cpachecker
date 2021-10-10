@@ -32,12 +32,13 @@ import org.sosy_lab.cpachecker.core.algorithm.concurrent.message.MessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.Task;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.task.forward.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.concurrent.util.ShareableBooleanFormula;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.composite.BlockAwareCompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -92,15 +93,6 @@ public class ForwardAnalysisRequest implements TaskRequest {
 
     CompositeCPA compositeCpa = (CompositeCPA) factory.createCPA(pCFA, pSpecification);
     reached = factory.createReachedSet(compositeCpa);
-    
-    if (compositeCpa.retrieveWrappedCpa(PredicateCPA.class) == null) {
-      throw new InvalidConfigurationException(
-          "Forward analysis requires a composite CPA with predicateCPA as component CPA.");
-    }
-    if (compositeCpa.retrieveWrappedCpa(LocationCPA.class) == null) {
-      throw new InvalidConfigurationException(
-          "Forward analysis requires a composite CPA with locationCPA as component CPA.");
-    }
 
     cpa =
         (BlockAwareCompositeCPA)
