@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +19,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.MutableCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.MutableGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ArrayAbstraction {
@@ -150,6 +148,10 @@ public class ArrayAbstraction {
     return CFANode.newDummyCFANode("dummy-successor");
   }
 
+  private static CFANode copyNode(CFANode pNode) {
+    return new CFANode(pNode.getFunction());
+  }
+
   private static BlankEdge createBlankEdge(String pDescription) {
     return new BlankEdge(
         "", FileLocation.DUMMY, createDummyPredecessor(), createDummySuccessor(), pDescription);
@@ -179,75 +181,39 @@ public class ArrayAbstraction {
   }
 
   private static void replaceLoopWithBranching(
-      MutableGraph<CFANode, CFAEdge> pMutableGraph,
+      MutableCfaNetwork pGraph,
       ImmutableSet<TransformableArray> pTransformableArrays,
       TransformableLoop pTransformableLoop) {
 
-    MutableGraph.Node<CFANode, CFAEdge> loopNode =
-        pMutableGraph.getNode(pTransformableLoop.getLoopCfaNode()).orElseThrow();
+    var initEdge = MutableCfaNetwork.wrap(pTransformableLoop.getInitLoopIndexCfaEdge());
+    var updateEdge = MutableCfaNetwork.wrap(pTransformableLoop.getUpdateLoopIndexCfaEdge());
+    var continueEdge = MutableCfaNetwork.wrap(pTransformableLoop.getEnterLoopCfaEdge());
+    var breakEdge = MutableCfaNetwork.wrap(pTransformableLoop.getExitLoopCfaEdge());
 
-    MutableGraph.Edge<CFANode, CFAEdge> initEdge = null;
-    MutableGraph.Edge<CFANode, CFAEdge> updateEdge = null;
-    MutableGraph.Edge<CFANode, CFAEdge> continueEdge = null;
-    MutableGraph.Edge<CFANode, CFAEdge> breakEdge = null;
+    CFANode outerBeforeLoop = pGraph.incidentNodes(initEdge).nodeU();
+    CFANode outerAfterLoop = pGraph.incidentNodes(breakEdge).nodeV();
+    CFANode loopBodyFirst = pGraph.incidentNodes(continueEdge).nodeV();
+    CFANode loopBodyLast = pGraph.incidentNodes(updateEdge).nodeU();
 
-    for (MutableGraph.Edge<CFANode, CFAEdge> edge :
-        Iterables.concat(
-            pMutableGraph.iterateEntering(loopNode), pMutableGraph.iterateLeaving(loopNode))) {
-      CFAEdge oldCfaEdge = edge.getWrappedEdge();
+    pGraph.removeEdge(initEdge);
+    pGraph.removeEdge(updateEdge);
+    pGraph.removeEdge(continueEdge);
+    pGraph.removeEdge(breakEdge);
 
-      // skip blank edges, required for while loops
-      if (oldCfaEdge.getEdgeType() == CFAEdgeType.BlankEdge
-          && oldCfaEdge.getPredecessor().getNumEnteringEdges() == 1) {
-        oldCfaEdge = oldCfaEdge.getPredecessor().getEnteringEdge(0);
-      }
+    var enterUnrolledLoopEdge = MutableCfaNetwork.wrap(createBlankEdge("enter-loop-body"));
+    pGraph.addEdge(outerBeforeLoop, loopBodyFirst, enterUnrolledLoopEdge);
 
-      if (oldCfaEdge.equals(pTransformableLoop.getInitLoopIndexCfaEdge())) {
-        initEdge = edge;
-      } else if (oldCfaEdge.equals(pTransformableLoop.getUpdateLoopIndexCfaEdge())) {
-        updateEdge = edge;
-      } else if (oldCfaEdge.equals(pTransformableLoop.getEnterLoopCfaEdge())) {
-        continueEdge = edge;
-      } else if (oldCfaEdge.equals(pTransformableLoop.getExitLoopCfaEdge())) {
-        breakEdge = edge;
-      }
-    }
-
-    assert initEdge != null && breakEdge != null && continueEdge != null && updateEdge != null;
-
-    MutableGraph.Node<CFANode, CFAEdge> outerBeforeLoop = initEdge.getPredecessorOrElseThrow();
-    MutableGraph.Node<CFANode, CFAEdge> outerAfterLoop = breakEdge.getSuccessorOrElseThrow();
-    MutableGraph.Node<CFANode, CFAEdge> loopBodyFirst = continueEdge.getSuccessorOrElseThrow();
-    MutableGraph.Node<CFANode, CFAEdge> loopBodyLast = updateEdge.getPredecessorOrElseThrow();
-
-    pMutableGraph.detachBoth(initEdge);
-    pMutableGraph.detachBoth(updateEdge);
-    pMutableGraph.detachBoth(continueEdge);
-    pMutableGraph.detachBoth(breakEdge);
-
-    MutableGraph.Edge<CFANode, CFAEdge> enterUnrolledLoopEdge =
-        pMutableGraph.wrapEdge(createBlankEdge("enter-loop-body"));
-    pMutableGraph.attachLeaving(outerBeforeLoop, enterUnrolledLoopEdge);
-    pMutableGraph.attachEntering(loopBodyFirst, enterUnrolledLoopEdge);
-
-    MutableGraph.Edge<CFANode, CFAEdge> exitUnrolledLoopEdge =
-        pMutableGraph.wrapEdge(createBlankEdge("exit-loop-body"));
-    pMutableGraph.attachLeaving(loopBodyLast, exitUnrolledLoopEdge);
-    pMutableGraph.attachEntering(outerAfterLoop, exitUnrolledLoopEdge);
+    var exitUnrolledLoopEdge = MutableCfaNetwork.wrap(createBlankEdge("exit-loop-body"));
+    pGraph.addEdge(loopBodyLast, outerAfterLoop, exitUnrolledLoopEdge);
 
     for (CExpression conditionExpression :
         getConditionExpressions(pTransformableArrays, pTransformableLoop)) {
 
-      pMutableGraph.insertSuccessor(
-          outerBeforeLoop,
-          pMutableGraph.wrapEdge(createAssumeEdge(conditionExpression, true)),
-          pMutableGraph.wrapNode(outerBeforeLoop.getWrappedNode()));
+      var enterBodyEdge = MutableCfaNetwork.wrap(createAssumeEdge(conditionExpression, true));
+      pGraph.insertSuccessor(outerBeforeLoop, copyNode(outerBeforeLoop), enterBodyEdge);
 
-      MutableGraph.Edge<CFANode, CFAEdge> skipLoopBody =
-          pMutableGraph.wrapEdge(createAssumeEdge(conditionExpression, false));
-
-      pMutableGraph.attachLeaving(outerBeforeLoop, skipLoopBody);
-      pMutableGraph.attachEntering(outerAfterLoop, skipLoopBody);
+      var skipBodyEdge = MutableCfaNetwork.wrap(createAssumeEdge(conditionExpression, false));
+      pGraph.addEdge(outerBeforeLoop, outerAfterLoop, skipBodyEdge);
     }
   }
 
@@ -288,7 +254,7 @@ public class ArrayAbstraction {
 
     ImmutableSet<TransformableLoop> transformableLoops =
         TransformableLoop.getTransformableLoops(pCfa);
-    MutableGraph<CFANode, CFAEdge> mutableGraph = CCfaTransformer.createMutableGraph(pCfa);
+    MutableCfaNetwork graph = MutableCfaNetwork.of(pCfa);
     VariableGenerator variableGenerator = new VariableGenerator("__nondet_variable_");
     ArrayOperationReplacementMap arrayOperationReplacementMap = new ArrayOperationReplacementMap();
 
@@ -303,14 +269,8 @@ public class ArrayAbstraction {
 
       String functionName = transformableLoop.getLoopCfaNode().getFunctionName();
 
-      MutableGraph.Node<CFANode, CFAEdge> firstLoopBodyNode =
-          mutableGraph
-              .getNode(transformableLoop.getEnterLoopCfaEdge().getSuccessor())
-              .orElseThrow();
-      MutableGraph.Node<CFANode, CFAEdge> lastLoopBodyNode =
-          mutableGraph
-              .getNode(transformableLoop.getUpdateLoopIndexCfaEdge().getPredecessor())
-              .orElseThrow();
+      CFANode firstLoopBodyNode = transformableLoop.getEnterLoopCfaEdge().getSuccessor();
+      CFANode lastLoopBodyNode = transformableLoop.getUpdateLoopIndexCfaEdge().getPredecessor();
 
       for (CIdExpression loopDef : loopDefs) {
 
@@ -321,52 +281,41 @@ public class ArrayAbstraction {
           CIdExpression loopIndexIdExpression = transformableLoop.getLoopIndexExpression();
           CIdExpression arrayIndexWitnessIdExpression =
               createIndexCIdExpression(transformableArray);
-          CFAEdge indexAssignCfaEdge =
-              createAssignEdge(loopIndexIdExpression, arrayIndexWitnessIdExpression);
-          MutableGraph.Edge<CFANode, CFAEdge> indexAssignEdge =
-              mutableGraph.wrapEdge(indexAssignCfaEdge);
-
-          mutableGraph.insertSuccessor(
-              firstLoopBodyNode,
-              indexAssignEdge,
-              mutableGraph.wrapNode(firstLoopBodyNode.getWrappedNode()));
+          var indexAssignEdge =
+              MutableCfaNetwork.wrap(
+                  createAssignEdge(loopIndexIdExpression, arrayIndexWitnessIdExpression));
+          graph.insertSuccessor(firstLoopBodyNode, copyNode(firstLoopBodyNode), indexAssignEdge);
         }
 
         CType type = loopDef.getExpressionType();
         String nondetVariableName = variableGenerator.createNewVariableName();
-        CFAEdge nondetVariableCfaEdge =
-            VariableGenerator.createNondetVariableEdge(
-                type, nondetVariableName, Optional.of(functionName));
         CIdExpression nondetVariableIdExpression =
             createCIdExpression(
                 type, MemoryLocation.forLocalVariable(functionName, nondetVariableName));
-        CFAEdge assignNondetVariableCfaEdge = createAssignEdge(loopDef, nondetVariableIdExpression);
 
-        MutableGraph.Edge<CFANode, CFAEdge> assignNondetVariableEdgeStart =
-            mutableGraph.wrapEdge(assignNondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            firstLoopBodyNode,
-            assignNondetVariableEdgeStart,
-            mutableGraph.wrapNode(firstLoopBodyNode.getWrappedNode()));
-        MutableGraph.Edge<CFANode, CFAEdge> nondetVariableEdgeStart =
-            mutableGraph.wrapEdge(nondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            firstLoopBodyNode,
-            nondetVariableEdgeStart,
-            mutableGraph.wrapNode(firstLoopBodyNode.getWrappedNode()));
+        var assignNondetVariableEdgeStart =
+            MutableCfaNetwork.wrap(createAssignEdge(loopDef, nondetVariableIdExpression));
+        graph.insertSuccessor(
+            firstLoopBodyNode, copyNode(firstLoopBodyNode), assignNondetVariableEdgeStart);
 
-        MutableGraph.Edge<CFANode, CFAEdge> assignNondetVariableEdgeEnd =
-            mutableGraph.wrapEdge(assignNondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            lastLoopBodyNode,
-            assignNondetVariableEdgeEnd,
-            mutableGraph.wrapNode(lastLoopBodyNode.getWrappedNode()));
-        MutableGraph.Edge<CFANode, CFAEdge> nondetVariableEdgeEnd =
-            mutableGraph.wrapEdge(nondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            lastLoopBodyNode,
-            nondetVariableEdgeEnd,
-            mutableGraph.wrapNode(lastLoopBodyNode.getWrappedNode()));
+        var nondetVariableEdgeStart =
+            MutableCfaNetwork.wrap(
+                VariableGenerator.createNondetVariableEdge(
+                    type, nondetVariableName, Optional.of(functionName)));
+        graph.insertSuccessor(
+            firstLoopBodyNode, copyNode(firstLoopBodyNode), nondetVariableEdgeStart);
+
+        var assignNondetVariableEdgeEnd =
+            MutableCfaNetwork.wrap(createAssignEdge(loopDef, nondetVariableIdExpression));
+        graph.insertPredecessor(
+            copyNode(lastLoopBodyNode), lastLoopBodyNode, assignNondetVariableEdgeEnd);
+
+        var nondetVariableEdgeEnd =
+            MutableCfaNetwork.wrap(
+                VariableGenerator.createNondetVariableEdge(
+                    type, nondetVariableName, Optional.of(functionName)));
+        graph.insertPredecessor(
+            copyNode(lastLoopBodyNode), lastLoopBodyNode, nondetVariableEdgeEnd);
       }
 
       for (CFAEdge edge : transformableLoop.getLoopEdges()) {
@@ -409,14 +358,14 @@ public class ArrayAbstraction {
         }
       }
 
-      replaceLoopWithBranching(mutableGraph, transformableArrays, transformableLoop);
+      replaceLoopWithBranching(graph, transformableArrays, transformableLoop);
     }
 
     return CCfaTransformer.createCfa(
         pConfiguration,
         pLogger,
         pCfa,
-        mutableGraph,
+        graph,
         (originalCfaEdge, originalAstNode) ->
             originalAstNode.accept(
                 arrayOperationReplacementMap.getAstTransformer(originalCfaEdge)));
