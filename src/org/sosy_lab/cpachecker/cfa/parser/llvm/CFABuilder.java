@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -75,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -257,7 +257,7 @@ public class CFABuilder {
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
       NavigableMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
-      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
+      CFALabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
       // basic block
@@ -309,9 +309,9 @@ public class CFABuilder {
    *
    * <p>Add a label created for every basic block to a mapping passed as an argument.
    *
-   * @return the entry basic block (as a CLabelNode).
+   * @return the entry basic block (as a {@link CFALabelNode}).
    */
-  private CLabelNode iterateOverBasicBlocks(
+  private CFALabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
       final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
@@ -321,10 +321,10 @@ public class CFABuilder {
       return null;
     }
 
-    CLabelNode entryBB = null;
+    CFALabelNode entryBB = null;
     for (BasicBlock block : pFunction) {
       // process this basic block
-      CLabelNode label = new CLabelNode(pEntryNode.getFunction(), getBBName(block));
+      CFALabelNode label = new CFALabelNode(pEntryNode.getFunction(), getBBName(block));
       addNode(pEntryNode.getFunctionName(), label);
       if (entryBB == null) {
         entryBB = label;
@@ -372,7 +372,7 @@ public class CFABuilder {
         continue;
       } else if (succNum == 1) {
         BasicBlock succ = terminatorInst.getSuccessor(0);
-        CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        CFALabelNode label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
 
         addEdge(new BlankEdge("(goto)", FileLocation.DUMMY, brNode, label, "(goto)"));
         continue;
@@ -381,7 +381,7 @@ public class CFABuilder {
         CExpression conditionForElse = getBranchConditionForElse(terminatorInst, pFileName);
 
         BasicBlock succ = terminatorInst.getSuccessor(0);
-        CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        CFALabelNode label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
         addEdge(
             new CAssumeEdge(
                 conditionForElse.toASTString(),
@@ -392,7 +392,7 @@ public class CFABuilder {
                 false));
 
         succ = terminatorInst.getSuccessor(1);
-        label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
+        label = (CFALabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
         addEdge(
             new CAssumeEdge(
                 conditionForElse.toASTString(),
@@ -409,13 +409,13 @@ public class CFABuilder {
         CType compType = typeConverter.getCType(compValue.typeOf());
         CExpression comparisonLhs = getAssignedIdExpression(compValue, compType, pFileName);
         BasicBlock defaultBlock = terminatorInst.getSuccessor(0);
-        CLabelNode defaultLabel =
-            (CLabelNode) pBasicBlocks.get(defaultBlock.hashCode()).getEntryNode();
+        CFALabelNode defaultLabel =
+            (CFALabelNode) pBasicBlocks.get(defaultBlock.hashCode()).getEntryNode();
 
         CFANode currNode = brNode;
         for (int i = 1; i < succNum; i++) {
-          CLabelNode label =
-              (CLabelNode)
+          CFALabelNode label =
+              (CFALabelNode)
                   pBasicBlocks.get(terminatorInst.getSuccessor(i).hashCode()).getEntryNode();
           Value caseValue = terminatorInst.getOperand(2 * i);
           CExpression comparisonRhs = (CExpression) getConstant(caseValue, pFileName);

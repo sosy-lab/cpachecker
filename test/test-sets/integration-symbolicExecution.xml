@@ -44,7 +44,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/float-benchs/zonotope*</exclude> <!-- mostly timeouts or close to timeout -->
     <exclude>../programs/benchmarks/float-benchs/inv_Newton-*</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/float-benchs/sin_interpolated_smallrange-*</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/float-benchs/sin_interpolated_smallrange*</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2.yml</exclude> <!-- flapping timeout / unknown -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
@@ -62,6 +62,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loop-acceleration/diamond_1-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/trex*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-crafted/*</exclude> <!-- mostly timeouts -->

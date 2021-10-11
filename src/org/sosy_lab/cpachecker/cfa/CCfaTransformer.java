@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -53,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -117,7 +117,7 @@ public final class CCfaTransformer {
 
     return createCfa(pConfiguration, pLogger, pCfa, mutableGraph, pSubstitutionFunction);
   }
-  
+
   private static final class CfaBuilder {
 
     private final MutableCfaNetwork graph;
@@ -149,8 +149,8 @@ public final class CCfaTransformer {
         return newNode;
       }
 
-      if (pOldNode instanceof CLabelNode) {
-        newNode = nodeTransformer.transformCLabelNode((CLabelNode) pOldNode);
+      if (pOldNode instanceof CFALabelNode) {
+        newNode = nodeTransformer.transformCfaLabelNode((CFALabelNode) pOldNode);
       } else if (pOldNode instanceof CFunctionEntryNode) {
         CFunctionEntryNode oldEntryNode = (CFunctionEntryNode) pOldNode;
         CFANode oldExitNode = oldEntryNode.getExitNode();
@@ -224,7 +224,7 @@ public final class CCfaTransformer {
               newSummaryEdge.getExpression(),
               newSummaryEdge);
         }
-        
+
       }
 
       throw new IllegalStateException(

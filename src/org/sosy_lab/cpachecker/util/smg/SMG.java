@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedMap;
@@ -391,8 +392,7 @@ public class SMG {
    * Read a value of an object in the field specified by offset and size. This returns a read
    * re-interpretation of the field, which means it returns either the symbolic value that is
    * present, 0 if the field is covered with nullified blocks or an unknown value. This is not
-   * guaranteed to be completely accurate! TODO: Do we have to check for nullified blocks even if a
-   * value is defined?
+   * guaranteed to be completely accurate!
    *
    * @param object The object from which is to be read.
    * @param offset The offset from which on the field in the object is to be read.
@@ -402,11 +402,15 @@ public class SMG {
    */
   public SMGandValue readValue(SMGObject object, BigInteger offset, BigInteger sizeInBits) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
-    assert (offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(offset.add(sizeInBits).compareTo(object.getSize()) <= 0);
 
     // let v := H(o, of, t)
     // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
-    // Check if multiple edges may exists for the same offset and size!
+    // Check if multiple edges may exists for the same offset and size! -> There should never be
+    // multiple edges for the exact same offset/size
+    // TODO: We only check for the exact matches to offset + size, what if one reads
+    // a field that is completely covered by a value field? I guess this is meant this way, but we
+    // should discuss it nevertheless.
     Predicate<SMGHasValueEdge> filterByOffsetAndSize =
         o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
     Optional<SMGHasValueEdge> maybeValue =
@@ -449,7 +453,7 @@ public class SMG {
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
-    assert (offsetPlusSize.compareTo(object.getSize()) <= 0);
+    Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
 
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
@@ -569,6 +573,9 @@ public class SMG {
   private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
     NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap =
         getZeroValueEdgesForObject(object, offset, size);
+    if (nullEdgesRangeMap.isEmpty()) {
+      return false;
+    }
     // We start at the first value equalling zero in the object itself. To not read potentially
     // invalid memory, the first SMGHasValueEdge has to equal the offset, while only a single offset
     // + size in the map(=HasValueEdges) has to equal the offset + size of the field to be read.
@@ -586,7 +593,7 @@ public class SMG {
       if (currentMax.compareTo(entry.getKey()) < 0) {
         return false;
       }
-      currentMax = currentMax.max(entry.getValue().add(currentMax));
+      currentMax = currentMax.max(entry.getValue().add(entry.getKey()));
       // If there are no gaps,
       // the max encountered has to be == offset + size at some point.
       if (currentMax.compareTo(offsetPlusSize) >= 0) {
@@ -626,6 +633,27 @@ public class SMG {
                 SMGHasValueEdge::getOffset,
                 SMGHasValueEdge::getSizeInBits,
                 BigInteger::max));
+  }
+
+  /**
+   * Returns all edges overlapping a defined chunk of memory sorted by the edges' offset.
+   *
+   * @param pObject - the SMGRegion there the memory chunk is located
+   * @param pFieldOffset - the start offset of the memory chunk
+   * @param pSizeofInBits - the size of the memory chunk
+   * @return all edges with: edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize ||
+   *         edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+   */
+  public Collection<SMGHasValueEdge>
+      getOverlappingEdges(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    return getHasValueEdgesByPredicate(pObject, edge -> {
+      // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
+      return (edge.getOffset().compareTo(pFieldOffset) <= 0
+          && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
+          // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+          || (edge.getOffset().compareTo(pFieldOffset) > 0
+              && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
+    }).toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
   }
 
   /**

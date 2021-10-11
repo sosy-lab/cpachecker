@@ -82,7 +82,8 @@ parser code {:
       CFAWithACSLAnnotations newCFA = new CFAWithACSLAnnotations(pCfa);
 
       for (String filename : files) {
-      ACSLScanner scanner = new ACSLScanner(new FileReader(filename, StandardCharsets.UTF_8));
+      ACSLScanner scanner =
+          new ACSLScanner(new FileReader(filename, StandardCharsets.UTF_8), logger);
       ImmutableList<FileLocation> orderedLocs =
           ImmutableList.sortedCopyOf(
               Comparator.comparingInt(FileLocation::getNodeOffset),
@@ -97,6 +98,13 @@ parser code {:
         Map<ACSLAnnotation, FileLocation> annotationLocations = new HashMap<>();
         for (int i = 0; i < orderedLocs.size(); i++) {
           ACSLAnnotation currentAnnotation = annotations.get(i);
+          if (currentAnnotation instanceof InvalidAnnotation) {
+            skipped++;
+            continue;
+          }
+          if (currentAnnotation.getCompletenessPredicate().equals(ACSLPredicate.getFalse())) {
+            logger.log(Level.INFO, "Encountered annotation with unsatisfied completeness predicate");
+          }
           FileLocation currentAnnotationLocation = orderedLocs.get(i);
           annotationLocations.put(currentAnnotation, currentAnnotationLocation);
           if (parser.shouldSkip(currentAnnotation, currentAnnotationLocation)) {
@@ -117,7 +125,7 @@ parser code {:
             }
           }
         }
-        logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
+        logger.logf(Level.INFO, "Skipped %d of %d annotations", skipped, annotations.size());
         adjustAnnotationLocations(
             initialEdges, newCFA, filename, blockStructure, annotationLocations);
         checkBehaviors(newCFA, blockStructure);
@@ -422,6 +430,8 @@ terminal COMPLETE_BEHAVIORS, DISJOINT_BEHAVIORS;
 terminal OLD;
 terminal RETVAL;
 terminal FORALL, EXISTS;
+terminal ANNOTATION_END;
+terminal SYNTAXERROR;
 
 non terminal List<ACSLAnnotation> annotations;
 non terminal ACSLAnnotation annotation;
@@ -471,13 +481,13 @@ precedence left TIMES, DIVIDE, MOD;
 precedence right NEG, BNEG, UPLUS, UMINUS, STAR, AMPERSAND, RPAREN;
 precedence right LBRACKET;
 
-annotations ::= annotations:as annotation:a {: assert !a.getCompletenessPredicate().equals(ACSLPredicate.getFalse());
-                                               as.add(a); RESULT = as; :}
+annotations ::= annotations:as annotation:a {: as.add(a); RESULT = as; :}
             | /* nothing */                 {: RESULT = new ArrayList<>(); :};
 annotation ::= fcontract:f {: RESULT = f; :}
             | scontract:s           {:  RESULT = s; :}
             | loopannotation:l {: RESULT = l; :}
-            | assertion:a {: RESULT = a; :};
+            | assertion:a {: RESULT = a; :}
+            | SYNTAXERROR {: RESULT = new InvalidAnnotation(); :};
 assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI PRED_START                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
             | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
                                                                                         for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }

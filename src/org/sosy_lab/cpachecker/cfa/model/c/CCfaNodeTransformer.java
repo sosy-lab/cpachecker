@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.model.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -46,8 +47,9 @@ public interface CCfaNodeTransformer {
         }
 
         @Override
-        public CFANode transformCLabelNode(CLabelNode pOriginalCLabelNode) {
-          return new CLabelNode(pOriginalCLabelNode.getFunction(), pOriginalCLabelNode.getLabel());
+        public CFANode transformCfaLabelNode(CFALabelNode pOriginalCfaLabelNode) {
+          return new CFALabelNode(
+              pOriginalCfaLabelNode.getFunction(), pOriginalCfaLabelNode.getLabel());
         }
       };
 
@@ -60,5 +62,5 @@ public interface CCfaNodeTransformer {
   CFunctionEntryNode transformCFunctionEntryNode(
       CFunctionEntryNode pOriginalCFunctionEntryNode, FunctionExitNode pNewFunctionExitNode);
 
-  CFANode transformCLabelNode(CLabelNode pOriginalCLabelNode);
+  CFANode transformCfaLabelNode(CFALabelNode pOriginalCfaLabelNode);
 }

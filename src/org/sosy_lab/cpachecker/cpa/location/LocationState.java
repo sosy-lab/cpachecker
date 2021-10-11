@@ -22,10 +22,10 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -130,8 +130,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       case "functionname":
         return this.locationNode.getFunctionName().equals(parts.get(1));
       case "label":
-        return this.locationNode instanceof CLabelNode
-            ? ((CLabelNode) this.locationNode).getLabel().equals(parts.get(1))
+        return this.locationNode instanceof CFALabelNode
+            ? ((CFALabelNode) this.locationNode).getLabel().equals(parts.get(1))
             : false;
       case "nodenumber":
         try {

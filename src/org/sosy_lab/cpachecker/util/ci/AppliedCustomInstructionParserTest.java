@@ -30,8 +30,8 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -44,7 +44,7 @@ public class AppliedCustomInstructionParserTest {
 
   private CFA cfa;
   private AppliedCustomInstructionParser aciParser;
-  private List<CLabelNode> labelNodes;
+  private List<CFALabelNode> labelNodes;
 
   @Before
   public void init() throws ParserException, InterruptedException {
@@ -140,7 +140,7 @@ public class AppliedCustomInstructionParserTest {
     CustomInstruction ci = aciParser.readCustomInstruction("ci");
     CFANode expectedStart = null;
     Collection<CFANode> expectedEnds = new ArrayList<>(2);
-    for(CLabelNode n: labelNodes){
+    for (CFALabelNode n : labelNodes) {
       if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("ci")) {
         expectedStart = n;
       }
@@ -166,7 +166,7 @@ public class AppliedCustomInstructionParserTest {
     ci = aciParser.readCustomInstruction("main");
     expectedStart = null;
     expectedEnds = new ArrayList<>(1);
-    for(CLabelNode n: labelNodes){
+    for (CFALabelNode n : labelNodes) {
       if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
         expectedStart = n;
       }
@@ -186,11 +186,11 @@ public class AppliedCustomInstructionParserTest {
     Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
   }
 
-  private List<CLabelNode> getLabelNodes(CFA pCfa) {
-    List<CLabelNode> result = new ArrayList<>();
+  private List<CFALabelNode> getLabelNodes(CFA pCfa) {
+    List<CFALabelNode> result = new ArrayList<>();
     for (CFANode n : pCfa.getAllNodes()) {
-      if(n instanceof CLabelNode){
-        result.add((CLabelNode) n);
+      if (n instanceof CFALabelNode) {
+        result.add((CFALabelNode) n);
       }
     }
     return result;

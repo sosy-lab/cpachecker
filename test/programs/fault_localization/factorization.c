@@ -9,7 +9,7 @@
 extern int __VERIFIER_nondet_int();
 
 int isPrime(int n){
-	for(int i = 2; i <= n/2 + 1; i++){
+	for(int i = 2; i <= n/2 + 1; i++){ // FIX: i < n/2 + 1 or i <= n/2
 		if(n % i == 0) return 0;	
 	}
 	return 1;
@@ -24,15 +24,14 @@ int main(){
 		goto EXIT;
 	}
 
-	int test = 1;
-
-	for(int i = 1; i < number; i++){
+	for(int i = 2; i < number; i++){
 		if (number % i == 0 && isPrime(i)) {
-			test = test * i;
+			number = number / i;
+			i--;
 		}
 	}
 
-	if(test != number) {
+	if(number == 1) {
 		goto ERROR;	
 	}
 
