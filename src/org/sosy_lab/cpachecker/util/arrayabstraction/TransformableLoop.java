@@ -165,9 +165,6 @@ public final class TransformableLoop {
         Set<MemoryLocation> defs = new HashSet<>(edgeDefUseData.getDefs());
         defs.removeAll(arrayMemoryLocations);
 
-        Set<MemoryLocation> uses = new HashSet<>(edgeDefUseData.getUses());
-        uses.removeAll(arrayMemoryLocations);
-
         if (!defs.isEmpty() || !edgeDefUseData.getPointeeDefs().isEmpty()) {
           return false;
         }
