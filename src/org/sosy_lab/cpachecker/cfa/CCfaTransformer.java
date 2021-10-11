@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
@@ -20,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -74,11 +75,11 @@ public final class CCfaTransformer {
       MutableCfaNetwork pMutableCfaNetwork,
       BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitution) {
 
-    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
-    Objects.requireNonNull(pLogger, "pLogger must not be null");
-    Objects.requireNonNull(pOriginalCfa, "pOriginalCfa must not be null");
-    Objects.requireNonNull(pMutableCfaNetwork, "pMutableGraph must not be null");
-    Objects.requireNonNull(pAstNodeSubstitution, "pAstNodeSubstitution must not be null");
+    checkNotNull(pConfiguration);
+    checkNotNull(pLogger);
+    checkNotNull(pOriginalCfa);
+    checkNotNull(pMutableCfaNetwork);
+    checkNotNull(pAstNodeSubstitution);
 
     CfaBuilder cfaBuilder =
         new CfaBuilder(pMutableCfaNetwork, CCfaNodeTransformer.DEFAULT, pAstNodeSubstitution);
@@ -107,10 +108,10 @@ public final class CCfaTransformer {
       CFA pCfa,
       BiFunction<CFAEdge, CAstNode, CAstNode> pSubstitutionFunction) {
 
-    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
-    Objects.requireNonNull(pLogger, "pLogger must not be null");
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
-    Objects.requireNonNull(pSubstitutionFunction, "pSubstitutionFunction must not be null");
+    checkNotNull(pConfiguration);
+    checkNotNull(pLogger);
+    checkNotNull(pCfa);
+    checkNotNull(pSubstitutionFunction);
 
     MutableCfaNetwork mutableGraph = MutableCfaNetwork.of(pCfa);
 

@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -81,7 +82,7 @@ public final class TransformableLoop {
    */
   public static ImmutableSet<TransformableLoop> getTransformableLoops(CFA pCfa) {
 
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
+    checkNotNull(pCfa);
 
     ImmutableSet.Builder<TransformableLoop> transformableLoops = ImmutableSet.builder();
 

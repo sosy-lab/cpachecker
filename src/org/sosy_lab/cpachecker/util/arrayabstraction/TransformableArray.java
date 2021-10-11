@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
@@ -142,8 +144,6 @@ public final class TransformableArray {
    */
   public static ImmutableSet<TransformableArray> getTransformableArrays(CFA pCfa) {
 
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
-
     Map<MemoryLocation, TransformableArray.Builder> builders = new HashMap<>();
 
     for (CFANode node : pCfa.getAllNodes()) {
@@ -193,7 +193,7 @@ public final class TransformableArray {
    */
   public static ImmutableSet<ArrayOperation> getArrayOperations(CFAEdge pEdge) {
 
-    Objects.requireNonNull(pEdge, "pEdge must not be null");
+    checkNotNull(pEdge);
 
     if (pEdge instanceof CFunctionSummaryEdge) {
       return getArrayOperations(((CFunctionSummaryEdge) pEdge).getExpression());
@@ -217,8 +217,6 @@ public final class TransformableArray {
    * @return all array operations for the specified AST-node
    */
   public static ImmutableSet<ArrayOperation> getArrayOperations(CAstNode pCAstNode) {
-
-    Objects.requireNonNull(pCAstNode, "pCAstNode must not be null");
 
     ImmutableSet.Builder<ArrayOperation> builder = ImmutableSet.builder();
 

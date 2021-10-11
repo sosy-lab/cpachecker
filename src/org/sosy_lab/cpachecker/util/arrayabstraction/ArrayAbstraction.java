@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -239,9 +240,9 @@ public class ArrayAbstraction {
 
   public static CFA transformCfa(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
 
-    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
-    Objects.requireNonNull(pLogger, "pLogger must not be null");
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
+    checkNotNull(pConfiguration);
+    checkNotNull(pLogger);
+    checkNotNull(pCfa);
 
     ImmutableSet<TransformableArray> transformableArrays =
         TransformableArray.getTransformableArrays(pCfa);
