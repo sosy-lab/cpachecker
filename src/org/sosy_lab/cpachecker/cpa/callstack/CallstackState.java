@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -48,12 +45,12 @@ public class CallstackState
 
   public CallstackState(
       @Nullable CallstackState pPreviousElement,
-      @NonNull String pFunction,
-      @NonNull CFANode pCallerNode) {
+      @Nullable String pFunction,
+      @Nullable CFANode pCallerNode) {
 
     previousState = pPreviousElement;
-    currentFunction = checkNotNull(pFunction);
-    callerNode = checkNotNull(pCallerNode);
+    currentFunction = pFunction;
+    callerNode = pCallerNode;
 
     if (pPreviousElement == null) {
       depth = 1;

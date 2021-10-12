@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
-public class AutomatonPrecision implements Precision {
+public class AutomatonPrecision implements AdjustablePrecision {
 
   private final Automaton automaton;
   private boolean enabled;
@@ -45,5 +45,20 @@ public class AutomatonPrecision implements Precision {
 
   public Automaton getAutomaton() {
     return automaton;
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
+    return this;
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
+    return this;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return true;
   }
 }
