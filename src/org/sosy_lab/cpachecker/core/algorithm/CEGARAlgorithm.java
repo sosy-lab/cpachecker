@@ -150,6 +150,7 @@ public class CEGARAlgorithm
      * too much time, so, limit refinement iterations and remove at least some infeasible paths
      */
     @Option(
+      secure = true,
       name = "maxIterations",
       description = "Max number of refinement iterations, -1 for no limit"
     )

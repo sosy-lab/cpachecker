@@ -879,8 +879,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     CType declarationType = typeHandler.getSimplifiedType(declaration);
 
-    if (!isRelevantVariable(declaration) &&
-        !isAddressedVariable(declaration)) {
+    if (!isRelevantVariable(declaration)) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeTrue();
@@ -939,6 +938,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         pts,
         constraints,
         errorConditions);
+
+    if (isAbstractedVariable(declaration)) {
+      // It is important to have abstracted variable after declareSharedBase!
+      // That is why it is extracted from isRelevant
+      logDebug("Abstracted from variable ", declarationEdge);
+      return bfmgr.makeTrue();
+    }
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
@@ -1298,7 +1304,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+  public int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
       // Types of pointer-target variables in SSAMap need special treatment (cf. above).
       pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();

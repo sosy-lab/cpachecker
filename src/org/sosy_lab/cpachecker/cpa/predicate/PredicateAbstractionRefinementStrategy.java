@@ -243,7 +243,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   @Override
   protected final void startRefinementOfPath() {
-    checkState(newPredicates == null);
+    // Can not check newPredicates == null,
+    // As there are problems with repeated counterexamples, and there is no call of finishRefinement
+    // checkState(newPredicates == null);
     // needs to be a fully deterministic data structure,
     // thus a Multimap based on a LinkedHashMap
     // (we iterate over the keys)
@@ -377,7 +379,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     argUpdate.stop();
   }
 
-  private Pair<PredicatePrecision, ARGState> computeNewPrecision(
+  protected Pair<PredicatePrecision, ARGState> computeNewPrecision(
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
@@ -585,6 +587,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
           }
         }
       }
+    }
+
+    // evil hack
+    ARGState tmpState = firstInterpolationPoint;
+    if (tmpState.getParents().size() == 1) {
+      return Iterables.getOnlyElement(tmpState.getParents());
     }
     return firstInterpolationPoint;
   }

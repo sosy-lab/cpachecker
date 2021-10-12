@@ -392,6 +392,9 @@ public class ARGReachedSet {
     for (ARGState ae : elements) {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
+          if (parent.getAppliedFrom() != null) {
+            parent = parent.getAppliedFrom().getFirst();
+          }
           toWaitlist.add(parent);
         }
       }
@@ -517,6 +520,20 @@ public class ARGReachedSet {
     public ForwardingARGReachedSet(ARGReachedSet pReached) {
       super(pReached.mReached);
       delegate = pReached;
+    }
+  }
+
+  /**
+   * This method should only be used with great caution! It removes all pending
+   * states from the waitlist, and therefore effectively prevents the analysis
+   * from continuing.
+   *
+   * Depending on the states contained in the reached set this can lead to unsound
+   * behaviour (e.g. no state in waitlist anymore, but an existing error was not found)
+   */
+  public void clearWaitlist() {
+    while (mReached.hasWaitingState()) {
+      mReached.popFromWaitlist();
     }
   }
 

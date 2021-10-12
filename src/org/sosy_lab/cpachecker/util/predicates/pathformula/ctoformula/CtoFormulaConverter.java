@@ -277,16 +277,6 @@ public class CtoFormulaConverter {
   }
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
-    if (options.useHavocAbstraction()) {
-      if (var instanceof CVariableDeclaration) {
-        CVariableDeclaration vDecl = (CVariableDeclaration) var;
-        if (vDecl.isGlobal()) {
-          return false;
-        } else if (vDecl.getType() instanceof CPointerType) {
-          return false;
-        }
-      }
-    }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       boolean isRelevantVariable =
           var.getName().equals(RETURN_VARIABLE_NAME)
@@ -301,8 +291,29 @@ public class CtoFormulaConverter {
                 .getIntOverflowVars()
                 .contains(var.getQualifiedName());
       }
+      isRelevantVariable |= isAddressedVariable(var);
       return isRelevantVariable;
     }
+    return true;
+  }
+
+  protected final boolean isAbstractedVariable(final CSimpleDeclaration var) {
+    // Variable which is relevant in general, but currently we abstracted from its value
+    if (options.useHavocAbstraction()) {
+      if (var instanceof CVariableDeclaration) {
+        CVariableDeclaration vDecl = (CVariableDeclaration) var;
+        if (vDecl.isGlobal()) {
+          return true;
+        } else if (vDecl.getType() instanceof CPointerType) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  protected boolean isAddressedVariable(@SuppressWarnings("unused") CSimpleDeclaration pVar) {
+    // dummy
     return true;
   }
 
@@ -371,7 +382,7 @@ public class CtoFormulaConverter {
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+  public int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
@@ -1200,7 +1211,7 @@ public class CtoFormulaConverter {
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
-    if (!isRelevantVariable(decl)) {
+    if (!isRelevantVariable(decl) || isAbstractedVariable(decl)) {
       logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
           decl.getFileLocation(), decl.toASTString());
       return bfmgr.makeTrue();
@@ -1848,4 +1859,12 @@ public class CtoFormulaConverter {
    * @param out - output stream
    */
   public void printStatistics(PrintStream out) {}
+
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
+
+  public Optional<VariableClassification> getVariableClassification() {
+    return variableClassification;
+  }
 }

@@ -276,4 +276,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormulaBuilder createNewPathFormulaBuilder() {
     return delegate.createNewPathFormulaBuilder();
   }
+
+  @Override
+  public PathFormula resetSharedVariables(PathFormula pPathFormula) {
+    return delegate.resetSharedVariables(pPathFormula);
+  }
 }

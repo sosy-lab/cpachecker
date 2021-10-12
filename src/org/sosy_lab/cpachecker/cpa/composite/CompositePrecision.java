@@ -141,11 +141,11 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       checkArgument(
           currentPrecision instanceof AdjustablePrecision,
           "Precision %s does not support adjusting precision",
-          currentPrecision);
+          currentPrecision.getClass());
       checkArgument(
           adjustedPrecision instanceof AdjustablePrecision,
           "Precision %s does not support adjusting precision",
-          adjustedPrecision);
+          adjustedPrecision.getClass());
 
       Precision newPrecision =
               adjustFunction.apply(

@@ -9,7 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -25,8 +29,10 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,40 +43,67 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.RegionBasedIdentifierCreator;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-@Options
+@Options(prefix = "cpa.usage")
 public class UsageCPA extends AbstractSingleWrapperCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM, ConfigurableProgramAnalysisTM,
+    StatisticsProvider {
 
   private final StopOperator stopOperator;
   private final MergeOperator mergeOperator;
-  private final TransferRelation transferRelation;
+  private final UsageTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
-  private final Reducer reducer;
+  private final ShutdownNotifier shutdownNotifier;
   private final UsageCPAStatistics statistics;
   private final CFA cfa;
+  private final Configuration config;
   private final LogManager logger;
+  private final Map<CFANode, Map<GeneralIdentifier, DataType>> localMap;
+  private final UsageProcessor usageProcessor;
+  private final IdentifierCreator creator;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UsageCPA.class);
   }
 
-  @Option(description = "A path to precision", name = "precision.path", secure = true)
+  @Option(
+    description = "use sound regions as identifiers",
+    secure = true)
+  private boolean useSoundRegions = false;
+
+  @Option(description = "A path to precision", name = "precision", secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private Path outputFileName = Path.of("localsave");
 
+  @Option(
+    description = "bind arguments of functions with passed variables",
+    secure = true)
+  private boolean bindArgsFunctions = false;
+
+  @Option(
+    description = "do not use initial variable in analysis if found an alias for it",
+    secure = true)
+  private boolean filterAliases = true;
+
   private UsageCPA(
-      ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig)
+      ConfigurableProgramAnalysis pCpa,
+      CFA pCfa,
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger,
+      Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+    config = pConfig;
     this.cfa = pCfa;
-    this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
-    this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
-
     LockCPA lockCPA = CPAs.retrieveCPA(this, LockCPA.class);
     this.statistics =
         new UsageCPAStatistics(
@@ -78,16 +111,39 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pLogger,
             pCfa,
             lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
-    this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
-    if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
-      reducer = new UsageReducer(wrappedReducer);
-    } else {
-      reducer = null;
-    }
+    this.stopOperator = new UsageStopOperator(pCpa.getStopOperator(), statistics);
+    this.mergeOperator =
+        new UsageMergeOperator(pCpa.getMergeOperator(), statistics, bindArgsFunctions);
+
+    this.precisionAdjustment =
+        new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment(), statistics);
     logger = pLogger;
+    Optional<VariableClassification> varClassification = pCfa.getVarClassification();
+    if (useSoundRegions) {
+      creator = new RegionBasedIdentifierCreator(varClassification);
+    } else {
+      creator = new IdentifierCreator();
+    }
     this.transferRelation =
-        new UsageTransferRelation(pCpa.getTransferRelation(), pConfig, pLogger, statistics);
+        new UsageTransferRelation(
+            pCpa.getTransferRelation(),
+            pConfig,
+            pLogger,
+            statistics,
+            creator,
+            bindArgsFunctions);
+
+    PresisionParser parser = new PresisionParser(cfa, logger);
+    localMap = parser.parse(outputFileName);
+    usageProcessor =
+        new UsageProcessor(
+            pConfig,
+            logger,
+            localMap,
+            transferRelation.getBinderFunctionInfo(),
+            creator);
+
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -118,14 +174,13 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
       throws InterruptedException {
-    PresisionParser parser = new PresisionParser(cfa, logger);
-    return UsagePrecision.create(
-        this.getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
+    return getWrappedCpa().getInitialPrecision(pNode, p);
   }
 
   @Override
-  public Reducer getReducer() {
-    return reducer;
+  public Reducer getReducer() throws InvalidConfigurationException {
+    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa()).getReducer();
+    return new UsageReducer(wrappedReducer);
   }
 
   @Override
@@ -145,7 +200,12 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
+    if (filterAliases) {
+      return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
+    } else {
+      return UsageStateConservative
+          .createInitialState(getWrappedCpa().getInitialState(pNode, pPartition));
+    }
   }
 
   @Override
@@ -153,5 +213,23 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     ConfigurableProgramAnalysis cpa = getWrappedCpa();
     assert cpa instanceof ConfigurableProgramAnalysisWithBAM;
     ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(pPartitioning);
+  }
+
+  public UsageProcessor getUsageProcessor() {
+    return usageProcessor;
+  }
+
+  public ShutdownNotifier getNotifier() {
+    return shutdownNotifier;
+  }
+
+  public Configuration getConfig() {
+    return config;
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new UsageApplyOperator(
+        ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getApplyOperator());
   }
 }

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,8 +63,8 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   }
 
-  private transient CFANode locationNode;
-  private boolean followFunctionCalls;
+  protected transient CFANode locationNode;
+  protected boolean followFunctionCalls;
 
   LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;

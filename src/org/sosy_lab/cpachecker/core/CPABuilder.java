@@ -195,9 +195,10 @@ public class CPABuilder {
 
     ImmutableList<ConfigurableProgramAnalysis> allCpas = CPAs.asIterable(cpa).toList();
     verify(allCpas.containsAll(cpas), "CPAs for automata missing from final CPA tree");
-    verify(
+    // We inherit CPA inside the other without config (RCUSearch)
+    /*verify(
         allCpas.size() == allCpaConfigs.size() + cpas.size() - placeholderCount,
-        "Number of CPAs in final CPA tree does not match configured CPAs");
+        "Number of CPAs in final CPA tree does not match configured CPAs");*/
 
     return cpa;
   }

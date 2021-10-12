@@ -29,10 +29,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.defaults.TrivialApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,15 +45,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix = "cpa.composite")
 public final class CompositeCPA
-    implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+    implements StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker, ConfigurableProgramAnalysisTM {
 
   @Option(
       secure = true,
@@ -337,5 +342,18 @@ public final class CompositeCPA
     }
 
     return true;
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    ImmutableList.Builder<ApplyOperator> wrappedOperators = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (cpa instanceof ConfigurableProgramAnalysisTM) {
+        wrappedOperators.add(((ConfigurableProgramAnalysisTM) cpa).getApplyOperator());
+      } else {
+        wrappedOperators.add(TrivialApplyOperator.getInstance());
+      }
+    }
+    return new CompositeApplyOperator(wrappedOperators.build());
   }
 }

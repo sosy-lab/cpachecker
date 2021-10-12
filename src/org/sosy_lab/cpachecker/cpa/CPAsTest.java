@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.slab.SLABCPA;
 import org.sosy_lab.cpachecker.cpa.slab.SLABPredicateWrappingCPA;
 import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
+import org.sosy_lab.cpachecker.cpa.threadmodular.ThreadModularCPA;
 import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -98,6 +99,7 @@ public class CPAsTest {
     cpas.remove(CacheCPA.class);
     cpas.remove(DCACPA.class);
     cpas.remove(UsageCPA.class);
+    cpas.remove(ThreadModularCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);

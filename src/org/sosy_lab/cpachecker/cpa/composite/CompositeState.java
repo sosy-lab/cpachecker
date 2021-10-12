@@ -22,7 +22,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -32,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 
 public class CompositeState
     implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable,
-        Graphable, Splitable {
+    Graphable, Splitable, AbstractStateWithEdge {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
   private transient Object partitionKey; // lazily initialized
@@ -279,5 +281,40 @@ public class CompositeState
     }
     CompositeState newState = new CompositeState(newWrappedStates);
     return newState;
+  }
+
+  @Override
+  public boolean hasEmptyEffect() {
+    for (AbstractState state : states) {
+      if (state instanceof AbstractStateWithEdge) {
+        boolean res = ((AbstractStateWithEdge) state).hasEmptyEffect();
+        if (!res) {
+          return false;
+        }
+      } else {
+        // means CPA does nothing, so it has empty effect
+      }
+    }
+    return true;
+  }
+
+  @Override
+  public AbstractEdge getAbstractEdge() {
+    throw new UnsupportedOperationException("Not yet implemented");
+  }
+
+  @Override
+  public boolean isProjection() {
+
+    for (AbstractState state : states) {
+      if (state instanceof AbstractStateWithEdge) {
+        boolean res = ((AbstractStateWithEdge) state).isProjection();
+        if (res) {
+          // Some CPA can not differ projection from applied states
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

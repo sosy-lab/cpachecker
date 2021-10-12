@@ -22,6 +22,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -573,7 +574,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
           succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
-            succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
+            succ =
+                new ARGState(Iterables.getOnlyElement(locFac.getState(leave.getSuccessor())), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
             waitlist.push(leave.getSuccessor());
           }
@@ -592,7 +594,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          succFun =
+              new ARGState(Iterables.getOnlyElement(locFac.getState(leave.getSuccessor())), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
@@ -631,7 +634,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 assert (newContext.getSecond() == null);
               }
               if (succFun == null) {
-                succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
+                succFun =
+                    new ARGState(
+                        Iterables.getOnlyElement(locFac.getState(leaveFun.getSuccessor())),
+                        null);
                 if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                   contextToARGState.put(newContext, succFun);
                   waitlistFun.push(newContext);

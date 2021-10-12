@@ -82,7 +82,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-public final class ValueAnalysisState
+public class ValueAnalysisState
     implements AbstractQueryableState, FormulaReportingState, ExpressionTreeReportingState,
         ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
         LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {
@@ -130,7 +130,7 @@ public final class ValueAnalysisState
     hashCode = constantsMap.hashCode();
   }
 
-  private ValueAnalysisState(ValueAnalysisState state) {
+  protected ValueAnalysisState(ValueAnalysisState state) {
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
@@ -138,7 +138,12 @@ public final class ValueAnalysisState
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state);
+    if (state.getClass() == ValueAnalysisStateWithEdge.class) {
+      ValueAnalysisStateWithEdge edgeState = (ValueAnalysisStateWithEdge) state;
+      return new ValueAnalysisStateWithEdge(edgeState, edgeState.getAbstractEdge());
+    } else {
+      return new ValueAnalysisState(state);
+    }
   }
 
   /**
@@ -430,7 +435,7 @@ public final class ValueAnalysisState
       return false;
     }
 
-    if (!getClass().equals(other.getClass())) {
+    if (!(other instanceof ValueAnalysisState)) {
       return false;
     }
 

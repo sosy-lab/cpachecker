@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
@@ -22,38 +23,42 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.GenericLockEffectWithId;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
+import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
 
 public final class LockState extends AbstractLockState {
 
-  @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
-  public static class LockTreeNode extends TreeSet<LockIdentifier> implements CompatibleNode {
+  public static class LockTreeNode implements CompatibleNode {
 
-    private static final long serialVersionUID = 5757759799394605077L;
+    private final Set<LockIdentifier> locks;
 
-    public LockTreeNode(Set<LockIdentifier> locks) {
-      super(locks);
+    public LockTreeNode(Set<LockIdentifier> pLocks) {
+      locks = pLocks;
+    }
+
+    public LockTreeNode(LockTreeNode pNode) {
+      this(pNode.locks);
     }
 
     @Override
     public boolean isCompatibleWith(CompatibleState pState) {
       Preconditions.checkArgument(pState instanceof LockTreeNode);
-      return Sets.intersection(this, (LockTreeNode) pState).isEmpty();
+      return Sets.intersection(this.locks, ((LockTreeNode) pState).locks).isEmpty();
     }
 
     @Override
     public int compareTo(CompatibleState pArg0) {
       Preconditions.checkArgument(pArg0 instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pArg0;
-      int result = size() - o.size();
+      int result = locks.size() - o.locks.size();
       if (result != 0) {
         return result;
       }
-      Iterator<LockIdentifier> lockIterator = iterator();
-      Iterator<LockIdentifier> lockIterator2 = o.iterator();
+      Iterator<LockIdentifier> lockIterator = locks.iterator();
+      Iterator<LockIdentifier> lockIterator2 = o.locks.iterator();
       while (lockIterator.hasNext()) {
         result = lockIterator.next().compareTo(lockIterator2.next());
         if (result != 0) {
@@ -69,16 +74,66 @@ public final class LockState extends AbstractLockState {
       LockTreeNode o = (LockTreeNode) pNode;
 
       // empty locks do not cover all others (special case
-      if (this.isEmpty()) {
-        return o.isEmpty();
+      if (this.locks.isEmpty()) {
+        return o.locks.isEmpty();
       } else {
-        return o.containsAll(this);
+        return o.locks.containsAll(this.locks);
       }
     }
 
     @Override
     public boolean hasEmptyLockSet() {
-      return isEmpty();
+      return locks.isEmpty();
+    }
+
+    @Override
+    public Delta<CompatibleNode> getDeltaBetween(CompatibleNode pOther) {
+      LockTreeNode pState = (LockTreeNode) pOther;
+      // TODO more deterministic
+      if (locks.isEmpty()) {
+        return new LockNodeDelta(pState);
+      }
+      LockTreeNode diff = new LockTreeNode(ImmutableSet.of());
+      for (LockIdentifier lock : pState.locks) {
+        if (!locks.contains(lock)) {
+          diff.locks.add(lock);
+        }
+      }
+      return new LockNodeDelta(diff);
+    }
+
+    public int getSize() {
+      return locks.size();
+    }
+
+    public boolean isEmpty() {
+      return locks.isEmpty();
+    }
+
+    public boolean addAll(LockTreeNode pNode) {
+      return locks.addAll(pNode.locks);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(locks);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || !(obj instanceof LockTreeNode)) {
+        return false;
+      }
+      LockTreeNode other = (LockTreeNode) obj;
+      return Objects.equals(locks, other.locks);
+    }
+
+    @Override
+    public String toString() {
+      return locks.toString();
     }
   }
 
@@ -344,11 +399,11 @@ public final class LockState extends AbstractLockState {
   }
 
   @Override
-  public Multiset<LockEffect> getDifference(AbstractLockState pOther) {
+  public Multiset<LockEffectWithId> getDifference(AbstractLockState pOther) {
     // Return the effect, which shows, what should we do to transform from this state to the other
     LockState other = (LockState) pOther;
 
-    Multiset<LockEffect> result = HashMultiset.create();
+    Multiset<LockEffectWithId> result = HashMultiset.create();
     Set<LockIdentifier> processedLocks = new TreeSet<>();
 
     for (Entry<LockIdentifier, Integer> entry : locks.entrySet()) {
@@ -357,7 +412,7 @@ public final class LockState extends AbstractLockState {
       int otherCounter = other.locks.getOrDefault(lockId, 0);
       if (thisCounter > otherCounter) {
         for (int i = 0; i < thisCounter - otherCounter; i++) {
-          result.add(ReleaseLockEffect.createEffectForId(lockId));
+          result.add(GenericLockEffectWithId.RELEASE.applyToTarget(lockId));
         }
       } else if (thisCounter < otherCounter) {
         for (int i = 0; i < otherCounter - thisCounter; i++) {
@@ -375,11 +430,6 @@ public final class LockState extends AbstractLockState {
       }
     }
     return result;
-  }
-
-  @Override
-  public CompatibleState prepareToStore() {
-    return this;
   }
 
   @Override

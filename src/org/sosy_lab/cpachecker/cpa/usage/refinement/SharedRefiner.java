@@ -40,12 +40,12 @@ public class SharedRefiner extends GenericSinglePathRefiner {
 
   @Override
   protected RefinementResult call(ExtendedARGPath pPath) throws CPAException, InterruptedException {
-    RefinementResult result = RefinementResult.createUnknown();
+    RefinementResult result = RefinementResult.createTrue();
     List<CFAEdge> edges  = pPath.getFullPath();
     SingletonPrecision emptyPrecision = SingletonPrecision.getInstance();
 
     LocalState lastState = AbstractStates.extractStateByType(pPath.getLastState(), LocalState.class);
-    LocalState initialState = LocalState.createInitialLocalState(lastState);
+    LocalState initialState = lastState.createInitialLocalState();
 
     Collection<LocalState> successors = Collections.singleton(initialState);
     UsageInfo sharedUsage = pPath.getUsageInfo();
@@ -61,9 +61,6 @@ public class SharedRefiner extends GenericSinglePathRefiner {
         if (usageState.getType(usageId) == LocalState.DataType.LOCAL) {
           result = RefinementResult.createFalse();
           numOfFalseResults.inc();
-        } else {
-
-          result = RefinementResult.createTrue();
         }
         break;
       } else {
@@ -76,7 +73,6 @@ public class SharedRefiner extends GenericSinglePathRefiner {
         } else {
           //Strange situation
           counter.inc();
-          result = RefinementResult.createUnknown();
           break;
         }
       }

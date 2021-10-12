@@ -35,8 +35,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -83,12 +86,75 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     if (locState == null) {
       getAbstractSuccessors(compositeState, compositePrecision, results);
     } else {
-      for (CFAEdge edge : locState.getOutgoingEdges()) {
-        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+      if (locState instanceof AbstractStateWithEdge) {
+        AbstractEdge edge = ((AbstractStateWithEdge) locState).getAbstractEdge();
+        if (edge instanceof WrapperCFAEdge) {
+          getAbstractSuccessorForEdge(
+              compositeState,
+              compositePrecision,
+              ((WrapperCFAEdge) edge).getCFAEdge(),
+              results);
+        } else {
+          getAbstractSuccessorForAbstractEdge(compositeState, compositePrecision, results);
+        }
+      } else {
+        for (CFAEdge edge : locState.getOutgoingEdges()) {
+          getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+        }
       }
     }
 
     return results;
+  }
+
+  private void getAbstractSuccessorForAbstractEdge(
+      CompositeState pCompositeState,
+      CompositePrecision pCompositePrecision,
+      Collection<CompositeState> pResults)
+      throws CPATransferException, InterruptedException {
+    int resultCount = 1;
+    List<AbstractState> componentElements = pCompositeState.getWrappedStates();
+    checkArgument(
+        componentElements.size() == size,
+        "State with wrong number of component states given");
+    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
+
+    // first, call all the post operators
+    for (int i = 0; i < size; i++) {
+      TransferRelation lCurrentTransfer = transferRelations.get(i);
+      AbstractState lCurrentElement = componentElements.get(i);
+      Precision lCurrentPrecision = pCompositePrecision.get(i);
+
+      Collection<? extends AbstractState> componentSuccessors;
+      if (lCurrentElement instanceof AbstractStateWithEdge) {
+        componentSuccessors =
+            lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision);
+      } else {
+        // Means inner CPA does not change its state by transfer
+        componentSuccessors = Collections.singleton(lCurrentElement);
+      }
+      resultCount *= componentSuccessors.size();
+
+      if (resultCount == 0) {
+        // shortcut
+        break;
+      }
+
+      allComponentsSuccessors.add(componentSuccessors);
+    }
+
+    for (List<AbstractState> successor : createCartesianProduct(
+        allComponentsSuccessors,
+        resultCount)) {
+
+      Collection<List<AbstractState>> lResultingElements =
+          callStrengthen(successor, pCompositePrecision, null);
+
+      // finally, create a CompositeState for each result of strengthen
+      for (List<AbstractState> lList : lResultingElements) {
+        pResults.add(new CompositeState(lList));
+      }
+    }
   }
 
   private void getAbstractSuccessors(

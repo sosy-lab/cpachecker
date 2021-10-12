@@ -9,14 +9,9 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier
     implements GeneralIdentifier {
-
-  public GeneralGlobalVariableIdentifier(String pNm, CType type, int pDereference) {
-    super(pNm, type, pDereference);
-  }
 
   public GeneralGlobalVariableIdentifier(String pNm, int pDereference) {
     super(pNm, null, pDereference);
@@ -48,6 +43,6 @@ public final class GeneralGlobalVariableIdentifier extends GlobalVariableIdentif
 
   @Override
   public GeneralGlobalVariableIdentifier cloneWithDereference(int deref) {
-    return new GeneralGlobalVariableIdentifier(name, type, deref);
+    return new GeneralGlobalVariableIdentifier(name, deref);
   }
 }

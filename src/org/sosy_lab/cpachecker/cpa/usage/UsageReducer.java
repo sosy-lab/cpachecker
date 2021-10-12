@@ -30,7 +30,8 @@ public class UsageReducer implements Reducer {
     UsageState funElement = (UsageState) pExpandedElement;
     AbstractState red =
         wrappedReducer.getVariableReducedState(funElement.getWrappedState(), pContext, pLocation);
-    return funElement.reduce(red);
+    // return funElement.reduced(red, pLocation.getFunction().getName());
+    return funElement.copy(red);
   }
 
   @Override
@@ -39,64 +40,36 @@ public class UsageReducer implements Reducer {
       throws InterruptedException {
     UsageState funRootState = (UsageState) pRootElement;
     UsageState funReducedState = (UsageState) pReducedElement;
-    AbstractState exp;
-    // if (!funReducedState.isExitState()) {
-    exp =
-        wrappedReducer.getVariableExpandedState(
-            funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
-    /*} else {
-      //Predicate analysis can not expand a random state - only abstract ones,
-      // and Exitable one can occur at any moment
-      exp = funReducedState.getWrappedState();
-    }*/
-    UsageState result = funRootState.copy(exp);
-    result.joinContainerFrom(funReducedState);
-    // if (funReducedState.isExitState()) {
-    result.asExitable();
-    // }
-    return result;
+    AbstractState exp =
+          wrappedReducer.getVariableExpandedState(
+              funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
+
+    // return funRootState
+    // .expanded(exp, funReducedState, pReducedContext.getCallNode().getFunction().getName());
+    return funRootState.copy(exp);
   }
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     UsageState funElement = (UsageState) pElementKey;
-    UsagePrecision precision = (UsagePrecision) pPrecisionKey;
-    return wrappedReducer.getHashCodeForState(
-        funElement.getWrappedState(), precision.getWrappedPrecision());
+    return wrappedReducer.getHashCodeForState(funElement.getWrappedState(), pPrecisionKey);
   }
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
-    UsagePrecision newPrecision =
-        ((UsagePrecision) pPrecision)
-            .copy(
-                wrappedReducer.getVariableReducedPrecision(
-                    ((UsagePrecision) pPrecision).getWrappedPrecision(), pContext));
-    return newPrecision;
+    return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
   }
 
   @Override
   public Precision getVariableExpandedPrecision(
       Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    UsagePrecision redPrecision = (UsagePrecision) reducedPrecision;
-    UsagePrecision newPrecision =
-        ((UsagePrecision) rootPrecision)
-            .copy(
-                wrappedReducer.getVariableExpandedPrecision(
-                    ((UsagePrecision) rootPrecision).getWrappedPrecision(),
-                    rootContext,
-                    redPrecision.getWrappedPrecision()));
-    return newPrecision;
+    return wrappedReducer.getVariableExpandedPrecision(
+        rootPrecision, rootContext, reducedPrecision);
   }
 
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    UsagePrecision first = (UsagePrecision) pPrecision;
-    UsagePrecision second = (UsagePrecision) pOtherPrecision;
-    int wrapperDifference =
-        wrappedReducer.measurePrecisionDifference(
-            first.getWrappedPrecision(), second.getWrappedPrecision());
-    return wrapperDifference + Math.abs(first.getTotalRecords() - second.getTotalRecords());
+    return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
   @Override

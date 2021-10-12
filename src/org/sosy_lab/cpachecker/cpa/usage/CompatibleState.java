@@ -8,19 +8,16 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public interface CompatibleState extends Comparable<CompatibleState> {
+public interface CompatibleState extends Comparable<CompatibleState>, AbstractState {
 
   default boolean isCompatibleWith(@SuppressWarnings("unused") CompatibleState state) {
     return true;
   }
 
-  default CompatibleState prepareToStore() {
-    return this;
-  }
-
-  CompatibleNode getCompatibleNode();
+  public CompatibleNode getCompatibleNode();
 
   default boolean isRelevantFor(@SuppressWarnings("unused") SingleIdentifier id) {
     return true;

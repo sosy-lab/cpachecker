@@ -107,6 +107,12 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
           argElement.removeFromARG();
           return true;
         } else {
+          for (ARGState argParent : argElement.getParents()) {
+            if (argParent.getAppliedFrom() != null) {
+              argElement.removeFromARG();
+              break;
+            }
+          }
           // if this option is true, we always return false here on purpose
           return !keepCoveredStatesInReached;
         }

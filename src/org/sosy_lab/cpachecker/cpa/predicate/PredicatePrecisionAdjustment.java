@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,6 +53,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final TimerWrapper totalPrecTime;
   private final TimerWrapper computingAbstractionTime;
 
+  private Predicate<AbstractState> externalAbstractionCheck = null;
+
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
       FormulaManagerView pFmgr,
@@ -85,21 +88,29 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     totalPrecTime.start();
     try {
-      PredicateAbstractState element = (PredicateAbstractState)pElement;
+      if (pElement instanceof PredicateAbstractState) {
+        PredicateAbstractState element = (PredicateAbstractState) pElement;
 
-      // default number of locations is 1, for concurrent programs we can have multiple locations.
-      // if any location wants to abstract, we compute the abstraction
-      final Collection<CFANode> locations =
-          ImmutableList.copyOf(AbstractStates.extractLocations(fullState));
-      for (CFANode location : locations) {
-        if (shouldComputeAbstraction(fullState, location, element)) {
-          PredicatePrecision precision = (PredicatePrecision) pPrecision;
-          return computeAbstraction(element, precision, locations, fullState);
+        // default number of locations is 1, for concurrent programs we can have multiple locations.
+        // if any location wants to abstract, we compute the abstraction
+        final Collection<CFANode> locations =
+            ImmutableList.copyOf(AbstractStates.extractLocations(fullState));
+        for (CFANode location : locations) {
+          if (shouldComputeAbstraction(fullState, location, element)) {
+            PredicatePrecision precision = (PredicatePrecision) pPrecision;
+            return computeAbstraction(element, precision, locations, fullState);
+          }
         }
-      }
 
-        return Optional.of(PrecisionAdjustmentResult.create(
-            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+        return Optional.of(
+            PrecisionAdjustmentResult
+                .create(element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+      } else {
+        // Predicate Projection
+        return Optional.of(
+            PrecisionAdjustmentResult
+                .create(pElement, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+      }
 
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
@@ -115,6 +126,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
     if (predicateState instanceof InfeasibleDummyState) {
       return false;
+    }
+    if (externalAbstractionCheck != null && externalAbstractionCheck.test(fullState)) {
+      return true;
     }
     if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
       return true;
@@ -216,5 +230,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             element.getPreviousAbstractionState());
     return Optional.of(PrecisionAdjustmentResult.create(
         state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+  }
+
+  void setExternalAbstractionCheck(Predicate<AbstractState> pPredicate) {
+    externalAbstractionCheck = pPredicate;
   }
 }

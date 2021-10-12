@@ -8,32 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import com.google.common.base.CharMatcher;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
 public class LockIdentifier implements Comparable<LockIdentifier> {
-
-  public enum LockType {
-    MUTEX,
-    GLOBAL_LOCK,
-    LOCAL_LOCK,
-    SPINLOCK;
-
-    public String toASTString() {
-      return name().toLowerCase();
-    }
-  }
-
-  private static Set<LockIdentifier> createdIds;
+  private final static Set<LockIdentifier> createdIds = new HashSet<>();
 
   private final String name;
-  private final LockType type;
 
-  LockIdentifier(String pName, LockType pType) {
+  LockIdentifier(String pName) {
     name = pName;
-    type = pType;
   }
 
   public static LockIdentifier of(String name) {
@@ -41,21 +26,14 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
   }
 
   public static LockIdentifier of(String name, String var) {
-    return LockIdentifier.of(name, var, LockType.GLOBAL_LOCK);
-  }
-
-  public static LockIdentifier of(String name, String var, LockType type) {
-    if (createdIds == null) {
-      createdIds = new HashSet<>();
-    }
     LockIdentifier newId;
     if (var.isEmpty()) {
-      newId = new LockIdentifier(name, type);
+      newId = new LockIdentifier(name);
     } else {
-      String varName = getCleanName(var);
-      newId = new LockIdentifierWithVariable(name, varName, type);
+      newId = new LockIdentifierWithVariable(name, var);
     }
 
+    // Equals after because of some updates of varName
     for (LockIdentifier id : createdIds) {
       if (id.equals(newId)) {
         return id;
@@ -70,19 +48,9 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     return name;
   }
 
-  private static String getCleanName(String originName) {
-    if (originName != null) {
-      String newName = CharMatcher.anyOf("()").removeFrom(originName);
-      newName = newName.replaceAll("___\\d*", "");
-      return newName;
-    } else {
-      return null;
-    }
-  }
-
   @Override
   public int hashCode() {
-    return Objects.hash(name, type);
+    return Objects.hash(name);
   }
 
   @Override
@@ -92,11 +60,11 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (!(obj instanceof LockIdentifier)) {
       return false;
     }
     LockIdentifier other = (LockIdentifier) obj;
-    return Objects.equals(name, other.name) && Objects.equals(type, other.type);
+    return Objects.equals(name, other.name);
   }
 
   @Override

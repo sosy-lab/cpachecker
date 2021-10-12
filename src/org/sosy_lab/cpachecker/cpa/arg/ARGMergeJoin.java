@@ -86,6 +86,16 @@ public class ARGMergeJoin implements MergeOperator {
     // ARGElement1 will only be removed from ARG if stop(e1, reached) returns true.
     // So we can't actually remove it now, but we need to remember this later.
     argElement1.setMergedWith(mergedElement);
+
+    // Do not add projections from state1, as we may not remove it and the relations become
+    // inconsistent: mergedState will have projectedFrom state1, which projects into projection1,
+    // not into merged state
+    if (argElement1.getProjectedFrom() != null) {
+      for (ARGState initialState : argElement1.getProjectedFrom()) {
+        initialState.addProjection(mergedElement);
+      }
+    }
+
     return mergedElement;
   }
 }

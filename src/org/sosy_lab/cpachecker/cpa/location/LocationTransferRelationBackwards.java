@@ -9,13 +9,18 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -37,7 +42,7 @@ public class LocationTransferRelationBackwards implements TransferRelation {
     CFANode predLocation = predState.getLocationNode();
 
     if (CFAUtils.allEnteringEdges(predLocation).contains(cfaEdge)) {
-      return Collections.singleton(factory.getState(cfaEdge.getPredecessor()));
+      return factory.getState(cfaEdge.getPredecessor());
     }
 
     return ImmutableSet.of();
@@ -49,12 +54,24 @@ public class LocationTransferRelationBackwards implements TransferRelation {
 
     CFANode predLocation = ((LocationState)state).getLocationNode();
 
-    List<LocationState> allSuccessors = new ArrayList<>(predLocation.getNumEnteringEdges());
+    if (state instanceof AbstractStateWithEdge) {
+      AbstractEdge edge = ((AbstractStateWithEdge) state).getAbstractEdge();
+      if (edge instanceof WrapperCFAEdge) {
+        return getAbstractSuccessorsForEdge(state, prec, ((WrapperCFAEdge) edge).getCFAEdge());
+      } else if (edge instanceof EmptyEdge) {
+        return Collections.singleton((LocationState) state);
+      } else {
+        throw new UnsupportedOperationException(
+            edge.getClass() + " edges are not supported in LocationCPA");
+      }
+    } else {
+      List<LocationState> allSuccessors = new ArrayList<>(predLocation.getNumEnteringEdges());
 
-    for (CFANode predecessor : CFAUtils.predecessorsOf(predLocation)) {
-      allSuccessors.add(factory.getState(predecessor));
+      for (CFANode predecessor : CFAUtils.predecessorsOf(predLocation)) {
+        allSuccessors.addAll(factory.getState(predecessor));
+      }
+
+      return ImmutableList.copyOf(allSuccessors);
     }
-
-    return allSuccessors;
   }
 }

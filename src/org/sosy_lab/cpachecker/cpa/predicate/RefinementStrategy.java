@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -233,4 +234,8 @@ public abstract class RefinementStrategy {
       ARGReachedSet reached,
       List<ARGState> abstractionStatesTrace,
       boolean repeatedCounterexample) throws CPAException, InterruptedException;
+
+  public List<ARGState> filterAbstractionStates(ARGPath pPath) {
+    return PredicateCPARefiner.filterAbstractionStates(pPath);
+  }
 }

@@ -18,11 +18,18 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.defaults.NoEdge;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge.BackwardsLocationStateWithEdge;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 @Options(prefix = "cpa.location")
 public class LocationStateFactory {
@@ -40,40 +47,53 @@ public class LocationStateFactory {
   )
   private boolean followFunctionCalls = true;
 
+  @Option(secure = true, description = "Use special states with edges")
+  private boolean enableStatesWithEdges = false;
+
   public LocationStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
     locationType = checkNotNull(pLocationType);
 
-    ImmutableSortedSet<CFANode> allNodes;
-    Collection<CFANode> tmpNodes = pCfa.getAllNodes();
-    if (tmpNodes instanceof ImmutableSortedSet) {
-      allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
-    } else {
-      allNodes = ImmutableSortedSet.copyOf(tmpNodes);
-    }
+    if (!enableStatesWithEdges) {
+      ImmutableSortedSet<CFANode> allNodes;
+      Collection<CFANode> tmpNodes = pCfa.getAllNodes();
+      if (tmpNodes instanceof ImmutableSortedSet) {
+        allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
+      } else {
+        allNodes = ImmutableSortedSet.copyOf(tmpNodes);
+      }
 
-    int maxNodeNumber = allNodes.last().getNodeNumber();
-    states = new LocationState[maxNodeNumber + 1];
-    for (CFANode node : allNodes) {
-      LocationState state = createLocationState(node);
-      states[node.getNodeNumber()] = state;
+      int maxNodeNumber = allNodes.last().getNodeNumber();
+      states = new LocationState[maxNodeNumber + 1];
+      for (CFANode node : allNodes) {
+        LocationState state = createLocationState(node);
+        states[node.getNodeNumber()] = state;
+      }
+    } else {
+      states = new LocationState[0];
     }
   }
 
-  public LocationState getState(CFANode node) {
+  public Collection<LocationState> getState(CFANode node) {
     int nodeNumber = checkNotNull(node).getNodeNumber();
 
-    if (nodeNumber >= 0 && nodeNumber < states.length) {
-      return Preconditions.checkNotNull(
-          states[nodeNumber],
-          "LocationState for CFANode %s in function %s requested,"
-              + " but this node is not part of the current CFA.",
-          node,
-          node.getFunctionName());
-
+    if (enableStatesWithEdges) {
+      return createLocationStateWithEdges(node);
     } else {
-      return createLocationState(node);
+      if (nodeNumber >= 0 && nodeNumber < states.length) {
+        LocationState result =
+            Preconditions.checkNotNull(
+                states[nodeNumber],
+                "LocationState for CFANode %s in function %s requested,"
+                    + " but this node is not part of the current CFA.",
+                node,
+                node.getFunctionName());
+        return Collections.singleton(result);
+
+      } else {
+        return Collections.singleton(createLocationState(node));
+      }
     }
   }
 
@@ -81,5 +101,39 @@ public class LocationStateFactory {
     return locationType == AnalysisDirection.BACKWARD
         ? new BackwardsLocationState(node, followFunctionCalls)
         : new LocationState(node, followFunctionCalls);
+  }
+
+  private Collection<LocationState> createLocationStateWithEdges(CFANode node) {
+    List<LocationState> result;
+    if (locationType == AnalysisDirection.BACKWARD) {
+      result = new ArrayList<>(node.getNumEnteringEdges());
+      for (int i = 0; i< node.getNumEnteringEdges(); i++) {
+        CFAEdge edge = node.getEnteringEdge(i);
+        result.add(
+            new BackwardsLocationStateWithEdge(
+                node,
+                followFunctionCalls,
+                new WrapperCFAEdge(edge)));
+      }
+      if (result.isEmpty()) {
+        result.add(
+            new BackwardsLocationStateWithEdge(node, followFunctionCalls, NoEdge.getInstance()));
+      }
+    } else {
+      result = new ArrayList<>(node.getNumLeavingEdges());
+      for (int i = 0; i< node.getNumLeavingEdges(); i++) {
+        CFAEdge edge = node.getLeavingEdge(i);
+        result.add(
+            new LocationStateWithEdge(
+                node,
+                followFunctionCalls,
+                new WrapperCFAEdge(edge)));
+      }
+      if (result.isEmpty()) {
+        result.add(new LocationStateWithEdge(node, followFunctionCalls, NoEdge.getInstance()));
+      }
+
+    }
+    return result;
   }
 }

@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
+import org.sosy_lab.cpachecker.cpa.thread.ThreadState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import java.util.Collections;
@@ -82,7 +84,18 @@ class CompositeMergeAgreeOperator implements MergeOperator {
       Precision prec      = precIter.next();
       StopOperator stopOp = stopIter.next();
 
-      AbstractState mergedState = mergeOp.merge(absSuccessorState, absReachedState, prec);
+      AbstractState mergedState;
+
+      if (absSuccessorState instanceof ThreadState
+          || absReachedState instanceof AbstractLockState) {
+        if (absReachedState.equals(absSuccessorState)) {
+          mergedState = absReachedState;
+        } else {
+          return reachedState;
+        }
+      } else {
+        mergedState = mergeOp.merge(absSuccessorState, absReachedState, prec);
+      }
 
       // Check if 'mergedState' also covers 'absSuccessorState', i.e., if 'mergeOp' performed a join.
       // By definition of MergeOperator, we know it covers 'absReachedState'.

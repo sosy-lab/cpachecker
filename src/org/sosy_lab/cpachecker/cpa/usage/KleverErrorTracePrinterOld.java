@@ -66,7 +66,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   }
 
   @Override
-  protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
+  protected void printUnsafe(
+      SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair, boolean refined) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
     List<CFAEdge> firstPath, secondPath;
@@ -74,14 +75,13 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     firstPath = getPath(firstUsage);
     secondPath = getPath(secondUsage);
 
-    if (firstPath == null || secondPath == null) {
+    if (firstPath.isEmpty() || secondPath.isEmpty()) {
       return;
     }
     try {
       File name = new File("output/witness." + createUniqueName(pId) + ".graphml");
       String defaultSourcefileName =
           from(firstPath)
-              .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
               .getFileName()
@@ -121,8 +121,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
-    Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
-
+    Iterator<CFAEdge> iterator = getIterator(path);
     CFAEdge warning =
         Lists.reverse(path).stream()
             .filter(e -> Objects.equals(e.getSuccessor(), usage.getCFANode()))
@@ -132,6 +131,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
 
     if (warning == null) {
       logger.log(Level.WARNING, "Can not determine an unsafe edge");
+      warning = null;
     }
     Element result = null;
     Element lastWarningElement = null;

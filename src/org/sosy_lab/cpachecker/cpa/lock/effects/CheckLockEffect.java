@@ -12,13 +12,13 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
-public final class CheckLockEffect extends LockEffect {
+public final class CheckLockEffect extends LockEffectWithId {
 
   //Temporary usage until we will exactly know the parameters
   private final static CheckLockEffect instance = new CheckLockEffect();
 
-  final boolean isTruth;
-  final int p;
+  private final boolean isTruth;
+  private final int p;
 
   private CheckLockEffect(int t, boolean truth, LockIdentifier id) {
     super(id);
@@ -50,7 +50,7 @@ public final class CheckLockEffect extends LockEffect {
   }
 
   @Override
-  public CheckLockEffect cloneWithTarget(LockIdentifier id) {
+  public CheckLockEffect applyToTarget(LockIdentifier id) {
     return createEffectForId(this.p, this.isTruth, id);
   }
 

@@ -9,70 +9,89 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.usage.storage.ConcurrentUsageExtractor;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class UsageReachedSet extends PartitionedReachedSet {
 
+  private boolean usagesExtracted = false;
+
+  public static class RaceProperty implements TargetInformation {
+    @Override
+    public String toString() {
+      return "Race condition";
+    }
+  }
+
   private static final ImmutableSet<TargetInformation> RACE_PROPERTY =
-      SimpleTargetInformation.singleton("Race condition");
+      ImmutableSet.of(new RaceProperty());
 
-  private final UsageConfiguration config;
   private final LogManager logger;
-  private final UnsafeDetector unsafeDetector;
+  private final UsageConfiguration usageConfig;
+  private ConcurrentUsageExtractor extractor = null;
 
-  private UsageContainer container = null;
+  private final UsageContainer container;
 
   public UsageReachedSet(
       ConfigurableProgramAnalysis pCpa,
-      WaitlistFactory waitlistFactory,
-      UsageConfiguration pConfig,
-      LogManager pLogger) {
+      WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
     super(pCpa, waitlistFactory);
-    config = pConfig;
     logger = pLogger;
-    unsafeDetector = new UnsafeDetector(pConfig);
+    container = new UsageContainer(pConfig, logger);
+    usageConfig = pConfig;
+    BAMCPA bamCPA = CPAs.retrieveCPA(pCpa, BAMCPA.class);
+    if (bamCPA != null) {
+      UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
+      uCpa.getStats().setBAMCPA(bamCPA);
+    }
+    extractor = new ConcurrentUsageExtractor(pCpa, logger, container, usageConfig);
   }
 
   @Override
   public void remove(AbstractState pState) {
     super.remove(pState);
-    if (container != null) {
-      UsageState ustate = UsageState.get(pState);
-      container.removeState(ustate);
-    }
+    UsageState ustate = UsageState.get(pState);
+    container.removeState(ustate);
   }
 
   @Override
   public void add(AbstractState pState, Precision pPrecision) {
     super.add(pState, pPrecision);
 
-    UsageState USstate = AbstractStates.extractStateByType(pState, UsageState.class);
-    USstate.saveUnsafesInContainerIfNecessary(pState);
+    /*UsageState USstate = UsageState.get(pState);
+    USstate.saveUnsafesInContainerIfNecessary(pState);*/
   }
 
   @Override
   public void clear() {
-    if (container != null) {
-      container.resetUnrefinedUnsafes();
-    }
+    container.resetUnrefinedUnsafes();
+    usagesExtracted = false;
     super.clear();
   }
 
   @Override
   public boolean wasTargetReached() {
-    return getUsageContainer().getTotalUnsafeSize() > 0;
+    if (!usagesExtracted) {
+      extractor.extractUsages(getFirstState());
+      usagesExtracted = true;
+    }
+    return container.hasUnsafes();
   }
 
   @Override
@@ -85,12 +104,19 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   public UsageContainer getUsageContainer() {
-    if (container == null) {
-      container = new UsageContainer(config, logger, unsafeDetector);
-    }
-    // TODO lastState = null
-    UsageState lastState = UsageState.get(getLastState());
-    container.initContainerIfNecessary(lastState.getFunctionContainer());
     return container;
   }
+
+  public Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> getUnsafes() {
+    return container.getStableUnsafes();
+  }
+
+  public void printStatistics(StatisticsWriter pWriter) {
+    extractor.printStatistics(pWriter);
+  }
+
+  public BAMDataManager getBAMDataManager() {
+    return extractor.getManager();
+  }
+
 }

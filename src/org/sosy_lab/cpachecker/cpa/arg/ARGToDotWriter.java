@@ -177,6 +177,26 @@ public class ARGToDotWriter {
         }
       }
 
+      for (ARGState applied : currentElement.getAppliedTo()) {
+        if (displayedElements.apply(applied)) {
+          edges.append(currentElement.getStateId());
+          edges.append(" -> ");
+          edges.append(applied.getStateId());
+          edges.append(" [style=\"dashed\" weight=\"0\" label=\"applied to\"]\n");
+          worklist.add(applied);
+        }
+      }
+
+      for (ARGState projection : currentElement.getProjectedTo()) {
+        if (projection != null && displayedElements.apply(projection)) {
+          edges.append(currentElement.getStateId());
+          edges.append(" -> ");
+          edges.append(projection.getStateId());
+          edges.append(" [style=\"dashed\" weight=\"0\" label=\"projected to\"]\n");
+          worklist.add(projection);
+        }
+      }
+
       for (ARGState child : successorFunction.apply(currentElement)) {
         edges.append(determineEdge(highlightEdge, currentElement, child));
         worklist.add(child);

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.Iterables;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -39,6 +40,6 @@ public class LocationCPABackwards extends AbstractCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return stateFactory.getState(pNode);
+    return Iterables.getOnlyElement(stateFactory.getState(pNode));
   }
 }

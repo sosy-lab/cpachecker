@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -100,8 +101,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -1307,79 +1310,106 @@ public class ValueAnalysisTransferRelation
     toStrengthen.add((ValueAnalysisState) pElement);
     result.add((ValueAnalysisState) pElement);
 
-    for (AbstractState ae : pElements) {
-      if (ae instanceof RTTState) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((RTTState)ae, pCfaEdge);
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
+    if (pCfaEdge != null) {
+      for (AbstractState ae : pElements) {
+        if (ae instanceof RTTState) {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            Collection<ValueAnalysisState> ret = strengthen((RTTState) ae, pCfaEdge);
+            if (ret == null) {
+              result.add(stateToStrengthen);
+            } else {
+              result.addAll(ret);
+            }
           }
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
-          result.addAll(
-              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof ThreadingState) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof ConstraintsState) {
-        result.clear();
-
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<ValueAnalysisState> ret =
-              constraintsStrengthenOperator.strengthen((ValueAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
-
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        } else if (ae instanceof AbstractStateWithAssumptions) {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+            result.addAll(
+                strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
           }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        } else if (ae instanceof ThreadingState) {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        } else if (ae instanceof ConstraintsState) {
+          result.clear();
+
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            Collection<ValueAnalysisState> ret =
+                constraintsStrengthenOperator
+                    .strengthen((ValueAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
+
+            if (ret == null) {
+              result.add(stateToStrengthen);
+            } else {
+              result.addAll(ret);
+            }
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        } else if (ae instanceof ConstraintsState) {
+          result.clear();
+
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            Collection<ValueAnalysisState> ret =
+                constraintsStrengthenOperator
+                    .strengthen((ValueAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
+
+            if (ret == null) {
+              result.add(stateToStrengthen);
+            } else {
+              result.addAll(ret);
+            }
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        } else if (ae instanceof PointerState) {
+
+          CFAEdge edge = pCfaEdge;
+
+          ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+          ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
+          Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
+          String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
+          PointerState pointerState = (PointerState) ae;
+
+          result.clear();
+
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            ValueAnalysisState newState =
+                strengthenWithPointerInformation(
+                    stateToStrengthen,
+                    pointerState,
+                    rightHandSide,
+                    leftHandType,
+                    leftHandSide,
+                    leftHandVariable,
+                    UnknownValue.getInstance());
+
+            newState = handleModf(rightHandSide, pointerState, newState);
+
+            result.add(newState);
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
         }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof PointerState) {
 
-        CFAEdge edge = pCfaEdge;
-
-        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
-        ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
-        Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
-        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
-        PointerState pointerState = (PointerState) ae;
-
-        result.clear();
-
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          ValueAnalysisState newState =
-              strengthenWithPointerInformation(stateToStrengthen, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
-
-          newState = handleModf(rightHandSide, pointerState, newState);
-
-          result.add(newState);
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
       }
-
     }
 
     // Do post processing
@@ -1755,5 +1785,34 @@ public class ValueAnalysisTransferRelation
 
   private ExpressionValueVisitor getVisitor() {
     return getVisitor(state, functionName);
+  }
+
+  @Override
+  public Collection<? extends AbstractState>
+      getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+    assert pState instanceof ValueAnalysisStateWithEdge;
+    AbstractEdge edge = ((ValueAnalysisStateWithEdge) pState).getAbstractEdge();
+
+    // Cannot use copyOf as it creates ValueAnalysisState with edge
+    ValueAnalysisState result = new ValueAnalysisState((ValueAnalysisState) pState);
+
+    if (edge == EmptyEdge.getInstance()) {
+      // Just return a normal state without edge
+    } else {
+      ValueAnalysisInformation diff = ((ValueAbstractEdge) edge).getDifference();
+
+      Map<MemoryLocation, ValueAndType> values = diff.getAssignments();
+      for (Entry<MemoryLocation, ValueAndType> entry : values.entrySet()) {
+        MemoryLocation mem = entry.getKey();
+        ValueAndType val = entry.getValue();
+        if (val.getValue() != UnknownValue.getInstance()) {
+          result.assignConstant(mem, val.getValue(), val.getType());
+        } else {
+          result.forget(mem);
+        }
+      }
+    }
+    return Collections.singleton(result);
   }
 }

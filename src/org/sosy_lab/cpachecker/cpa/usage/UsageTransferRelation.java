@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -29,43 +30,36 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
-import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
 
 @Options(prefix = "cpa.usage")
 public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation {
@@ -90,20 +84,21 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private Set<String> abortFunctions = ImmutableSet.of();
 
   private final CallstackTransferRelation callstackTransfer;
-  private final VariableSkipper varSkipper;
 
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
+  private final IdentifierCreator creator;
 
   private final LogManager logger;
 
-  private UsageState newState;
-  private UsagePrecision precision;
+  private final boolean bindArgsFunctions;
 
   public UsageTransferRelation(
       TransferRelation pWrappedTransfer,
       Configuration config,
       LogManager pLogger,
-      UsageCPAStatistics s)
+      UsageCPAStatistics s,
+      IdentifierCreator c,
+      boolean bindArgs)
       throws InvalidConfigurationException {
     super(pWrappedTransfer);
     config.inject(this, UsageTransferRelation.class);
@@ -126,9 +121,9 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     binderFunctionInfo = binderFunctionInfoBuilder.build();
 
     // BindedFunctions should not be analysed
-    skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
-
-    varSkipper = new VariableSkipper(config);
+    skippedfunctions = new TreeSet<>(Sets.union(skippedfunctions, binderFunctions));
+    creator = c;
+    bindArgsFunctions = bindArgs;
   }
 
   @Override
@@ -137,16 +132,58 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       throws InterruptedException, CPATransferException {
 
     Collection<AbstractState> results;
-    assert (pPrecision instanceof UsagePrecision);
 
+    statistics.transferRelationTimer.start();
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
+
+    AbstractStateWithLocations locState =
+        extractStateByType(pElement, AbstractStateWithLocations.class);
+
+    if (locState instanceof AbstractStateWithEdge) {
+      AbstractEdge edge = ((AbstractStateWithEdge) locState).getAbstractEdge();
+      if (edge instanceof WrapperCFAEdge) {
+        results.addAll(
+            getAbstractSuccessorsForEdge(
+                pElement,
+                pPrecision,
+                ((WrapperCFAEdge) edge).getCFAEdge()));
+      } else {
+        results.addAll(getAbstractSuccessorForAbstractEdge(pElement, pPrecision));
+      }
+    } else {
+      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
+        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+        results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
+      }
+    }
 
     for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
       CFAEdge edge = node.getLeavingEdge(edgeIdx);
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
     }
+
+    statistics.transferRelationTimer.stop();
     return results;
+  }
+
+  private Collection<? extends AbstractState>
+      getAbstractSuccessorForAbstractEdge(AbstractState pElement, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+
+    UsageState oldState = (UsageState) pElement;
+    AbstractState oldWrappedState = oldState.getWrappedState();
+    statistics.innerAnalysisTimer.start();
+    Collection<? extends AbstractState> newWrappedStates =
+        transferRelation.getAbstractSuccessors(oldWrappedState, pPrecision);
+    statistics.innerAnalysisTimer.stop();
+
+    Collection<AbstractState> result = new ArrayList<>();
+    for (AbstractState newWrappedState : newWrappedStates) {
+      UsageState newState = oldState.copy(newWrappedState);
+      result.add(newState);
+    }
+    return result;
   }
 
   @Override
@@ -154,53 +191,50 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
-    statistics.transferRelationTimer.start();
-    Collection<AbstractState> result = new ArrayList<>();
+    statistics.transferForEdgeTimer.start();
 
     UsageState oldState = (UsageState) pState;
 
-    /*if (oldState.isExitState()) {
-      statistics.transferRelationTimer.stop();
-      return Collections.emptySet();
-    }*/
-
+    statistics.checkForSkipTimer.start();
     CFAEdge currentEdge = changeIfNeccessary(pCfaEdge);
+    statistics.checkForSkipTimer.stop();
 
-    AbstractState oldWrappedState = oldState.getWrappedState();
-    newState = oldState.copy();
-    precision = (UsagePrecision) pPrecision;
-    statistics.usagePreparationTimer.start();
-    handleEdge(currentEdge);
-    statistics.usagePreparationTimer.stop();
+    if (currentEdge == null) {
+      // Abort function
+      statistics.transferForEdgeTimer.stop();
+      return ImmutableSet.of();
+    }
 
     statistics.innerAnalysisTimer.start();
     Collection<? extends AbstractState> newWrappedStates =
-        transferRelation.getAbstractSuccessorsForEdge(
-            oldWrappedState, precision.getWrappedPrecision(), currentEdge);
+        transferRelation
+            .getAbstractSuccessorsForEdge(oldState.getWrappedState(), pPrecision, currentEdge);
     statistics.innerAnalysisTimer.stop();
 
-    // Do not know why, but replacing the loop into lambda greatly decreases the speed
-    for (AbstractState newWrappedState : newWrappedStates) {
-      result.add(newState.copy(newWrappedState));
-    }
+    statistics.bindingTimer.start();
+    creator.setCurrentFunction(getCurrentFunction(oldState));
+    // Function in creator could be changed after handleFunctionCallExpression call
+
+    Collection<? extends AbstractState> result =
+        handleEdge(currentEdge, newWrappedStates, oldState);
+    statistics.bindingTimer.stop();
 
     if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
-    newState = null;
-    precision = null;
-    statistics.transferRelationTimer.stop();
-    return result;
+    statistics.transferForEdgeTimer.stop();
+    return ImmutableList.copyOf(result);
   }
 
   private CFAEdge changeIfNeccessary(CFAEdge pCfaEdge) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       String functionName = pCfaEdge.getSuccessor().getFunctionName();
-      if (skippedfunctions.contains(functionName)) {
+
+      if (abortFunctions.contains(functionName)) {
+        return null;
+      } else if (skippedfunctions.contains(functionName)) {
         CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
-        Preconditions.checkNotNull(
-            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
-        logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
+        logger.log(Level.FINEST, functionName + " will be skipped");
         callstackTransfer.enableRecursiveContext();
         return newEdge;
       }
@@ -208,37 +242,88 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     return pCfaEdge;
   }
 
-  private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
+
+  private Collection<? extends AbstractState>
+      handleEdge(
+          CFAEdge pCfaEdge,
+          Collection<? extends AbstractState> newWrappedStates,
+          UsageState oldState)
+          throws CPATransferException {
+
+    Collection<AbstractState> result = new ArrayList<>();
 
     switch (pCfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        {
-          CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          handleDeclaration(declEdge);
-          break;
-        }
-
-        // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
-        {
-          CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-          handleStatement(statementEdge.getStatement());
-          break;
-        }
-
-      case AssumeEdge:
-        {
-          visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
-          break;
-        }
-
       case FunctionCallEdge:
         {
-          handleFunctionCall((CFunctionCallEdge) pCfaEdge);
+
+        CStatement stmt;
+        if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+          CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+          stmt = statementEdge.getStatement();
+        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          stmt = ((CFunctionCallEdge) pCfaEdge).getFunctionCall();
+        } else {
+          // Not sure what is it
           break;
         }
 
-      case FunctionReturnEdge:
+        Collection<Pair<AbstractIdentifier, AbstractIdentifier>> newLinks = ImmutableSet.of();
+
+        if (stmt instanceof CFunctionCallAssignmentStatement) {
+          // assignment like "a = b" or "a = foo()"
+          CAssignment assignment = (CAssignment) stmt;
+          CFunctionCallExpression right =
+              ((CFunctionCallAssignmentStatement) stmt).getRightHandSide();
+          CExpression left = assignment.getLeftHandSide();
+          newLinks =
+              handleFunctionCallExpression(
+                  left,
+                  right,
+                  (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge && bindArgsFunctions));
+        } else if (stmt instanceof CFunctionCallStatement) {
+          /*
+           * Body of the function called in StatementEdge will not be analyzed and thus there is no
+           * need binding its local variables with its arguments.
+           */
+          newLinks =
+              handleFunctionCallExpression(
+                  null,
+                  ((CFunctionCallStatement) stmt).getFunctionCallExpression(),
+                  (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge && bindArgsFunctions));
+        }
+
+        // Do not know why, but replacing the loop into lambda greatly decreases the speed
+        for (AbstractState newWrappedState : newWrappedStates) {
+          UsageState newState = oldState.copy(newWrappedState);
+
+          if (!newLinks.isEmpty()) {
+            newState = newState.put(newLinks);
+          }
+
+          result.add(newState);
+        }
+        return ImmutableList.copyOf(result);
+      }
+
+      case FunctionReturnEdge: {
+        // Data race detection in recursive calls does not work because of this optimisation
+        CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) pCfaEdge;
+        String functionName =
+            returnEdge.getSummaryEdge()
+                .getExpression()
+                .getFunctionCallExpression()
+                .getDeclaration()
+                .getName();
+        for (AbstractState newWrappedState : newWrappedStates) {
+          UsageState newState = oldState.copy(newWrappedState);
+          result.add(newState.removeInternalLinks(functionName));
+        }
+        return ImmutableList.copyOf(result);
+      }
+
+      case AssumeEdge:
+      case DeclarationEdge:
       case ReturnStatementEdge:
       case BlankEdge:
       case CallToReturnEdge:
@@ -249,219 +334,64 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
     }
+    for (AbstractState newWrappedState : newWrappedStates) {
+      result.add(oldState.copy(newWrappedState));
+    }
+    return ImmutableList.copyOf(result);
   }
 
-  private void handleFunctionCall(CFunctionCallEdge edge) throws HandleCodeException {
-    CFunctionCall statement = edge.getFunctionCall();
-
-    if (statement instanceof CFunctionCallAssignmentStatement) {
-      /*
-       * a = f(b)
-       */
-      CFunctionCallExpression right =
-          ((CFunctionCallAssignmentStatement) statement).getRightHandSide();
-      CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
-
-      visitStatement(variable, Access.WRITE);
-      // expression - only name of function
-      handleFunctionCallExpression(variable, right);
-
-    } else if (statement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          null, ((CFunctionCallStatement) statement).getFunctionCallExpression());
-
-    } else {
-      throw new HandleCodeException("No function found");
-    }
-  }
-
-  private void handleDeclaration(CDeclarationEdge declEdge) {
-
-    if (declEdge.getDeclaration().getClass() != CVariableDeclaration.class) {
-      // not a variable declaration
-      return;
-    }
-    CVariableDeclaration decl = (CVariableDeclaration) declEdge.getDeclaration();
-
-    if (decl.isGlobal()) {
-      return;
-    }
-
-    CInitializer init = decl.getInitializer();
-
-    if (init == null) {
-      // no assignment
-      return;
-    }
-
-    if (init instanceof CInitializerExpression) {
-      CExpression initExpression = ((CInitializerExpression) init).getExpression();
-      // Use EdgeType assignment for initializer expression to avoid mistakes related to expressions
-      // "int CPACHECKER_TMP_0 = global;"
-      visitStatement(initExpression, Access.READ);
-
-      // We do not add usage for currently declared variable
-      // It can not cause a race
-    }
-  }
-
-  private void handleFunctionCallExpression(
-      final CExpression left, final CFunctionCallExpression fcExpression) {
+  private Collection<Pair<AbstractIdentifier, AbstractIdentifier>> handleFunctionCallExpression(
+      final CExpression left,
+      final CFunctionCallExpression fcExpression,
+      boolean bindArgs) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
+
     if (binderFunctionInfo.containsKey(functionCallName)) {
-      BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
-      List<CExpression> params = fcExpression.getParameterExpressions();
+      BinderFunctionInfo bInfo = binderFunctionInfo.get(functionCallName);
 
-      linkVariables(left, params, currentInfo);
+      if (bInfo.shouldBeLinked()) {
+        List<CExpression> params = fcExpression.getParameterExpressions();
+        // Sometimes these functions are used not only for linkings.
+        // For example, getListElement also deletes element.
+        // So, if we can't link (no left side), we skip it
 
-      AbstractIdentifier id;
-
-      for (int i = 0; i < params.size(); i++) {
-        id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction());
-        id = newState.getLinksIfNecessary(id);
-        UsageInfo usage =
-            UsageInfo.createUsageInfo(
-                currentInfo.getBindedAccess(i),
-                newState,
-                id);
-        addUsageIfNeccessary(usage);
+        return bInfo.constructIdentifiers(left, params, creator);
       }
-
-    } else if (abortFunctions.contains(functionCallName)) {
-      newState.asExitable();
-    } else {
-      fcExpression.getParameterExpressions().forEach(p -> visitStatement(p, Access.READ));
     }
-  }
 
-  private void handleStatement(final CStatement pStatement) throws HandleCodeException {
-
-    if (pStatement instanceof CAssignment) {
-      // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment) pStatement;
-      CExpression left = assignment.getLeftHandSide();
-      CRightHandSide right = assignment.getRightHandSide();
-
-      visitStatement(left, Access.WRITE);
-
-      if (right instanceof CExpression) {
-        visitStatement((CExpression) right, Access.READ);
-
-      } else if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(left, (CFunctionCallExpression) right);
-
+    if (bindArgs) {
+      if (fcExpression.getDeclaration() == null) {
+        logger.log(Level.FINE, "No declaration.");
       } else {
-        throw new HandleCodeException(
-            "Unrecognised type of right side of assignment: " + assignment.toASTString());
-      }
+        Collection<Pair<AbstractIdentifier, AbstractIdentifier>> newLinks = new ArrayList<>();
+        for (int i = 0; i < fcExpression.getDeclaration().getParameters().size(); i++) {
+          if (i >= fcExpression.getParameterExpressions().size()) {
+            logger.log(Level.FINE, "More parameters in declaration than in expression.");
+            break;
+          }
 
-    } else if (pStatement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          null, ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
-
-    } else if (pStatement instanceof CExpressionStatement) {
-      visitStatement(((CExpressionStatement) pStatement).getExpression(), Access.WRITE);
-
-    } else {
-      throw new HandleCodeException("Unrecognized statement: " + pStatement.toASTString());
-    }
-  }
-
-  private void linkVariables(
-      final CExpression left, final List<CExpression> params, final BinderFunctionInfo bInfo) {
-
-    if (bInfo.shouldBeLinked()) {
-      // Sometimes these functions are used not only for linkings.
-      // For example, sdlGetFirst also deletes element.
-      // So, if we can't link (no left side), we skip it
-      AbstractIdentifier idIn, idFrom;
-      idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
-      idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
-      if (idIn == null || idFrom == null) {
-        return;
-      }
-      if (newState.containsLinks(idFrom)) {
-        idFrom = newState.getLinksIfNecessary(idFrom);
-      }
-      logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
-      newState.put(idIn, idFrom);
-    }
-  }
-
-  private void visitStatement(final CExpression expression, final Access access) {
-    ExpressionHandler handler = new ExpressionHandler(access, getCurrentFunction());
-    expression.accept(handler);
-
-    for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
-      AbstractIdentifier id = pair.getFirst();
-      id = newState.getLinksIfNecessary(id);
-      UsageInfo usage =
-          UsageInfo.createUsageInfo(
-              pair.getSecond(),
-              newState,
-              id);
-      addUsageIfNeccessary(usage);
-    }
-  }
-
-  private void addUsageIfNeccessary(UsageInfo usage) {
-    // Precise information, using results of shared analysis
-    if (!usage.isRelevant()) {
-      return;
-    }
-
-    SingleIdentifier singleId = usage.getId();
-
-    CFANode node = AbstractStates.extractLocation(newState);
-    Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
-
-    if (localInfo != null) {
-      GeneralIdentifier gId = singleId.getGeneralId();
-      if (localInfo.get(gId) == DataType.LOCAL) {
-        logger.log(
-            Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
-        return;
-      } else {
-        FluentIterable<GeneralIdentifier> composedIds =
-            from(singleId.getComposedIdentifiers())
-                .filter(SingleIdentifier.class)
-                .transform(SingleIdentifier::getGeneralId);
-
-        boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
-        boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
-        if (isLocal && !isGlobal) {
-          logger.log(
-              Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
-          return;
+          CSimpleDeclaration exprIn = fcExpression.getDeclaration().getParameters().get(i);
+          CExpression exprFrom = fcExpression.getParameterExpressions().get(i);
+          if (exprFrom.getExpressionType() instanceof CPointerType) {
+            AbstractIdentifier idIn, idFrom;
+            idFrom = creator.createIdentifier(exprFrom, 0);
+            creator.setCurrentFunction(fcExpression.getFunctionNameExpression().toString());
+            idIn = creator.createIdentifier(exprIn, 0);
+            newLinks.add(Pair.of(idIn, idFrom));
+          }
         }
+        return ImmutableSet.copyOf(newLinks);
       }
     }
-
-    if (varSkipper.shouldBeSkipped(singleId, usage.getCFANode().getFunctionName())) {
-      return;
-    }
-
-    if (singleId instanceof LocalVariableIdentifier && singleId.getDereference() <= 0) {
-      // we don't save in statistics ordinary local variables
-      return;
-    }
-    if (singleId instanceof StructureIdentifier
-        && !singleId.isGlobal()
-        && !singleId.isDereferenced()) {
-      // skips such cases, as 'a.b'
-      return;
-    }
-    if (singleId instanceof StructureIdentifier) {
-      singleId = ((StructureIdentifier) singleId).toStructureFieldIdentifier();
-    }
-
-    logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");
-
-    newState.addUsage(singleId, usage);
+    return ImmutableSet.of();
   }
 
-  private String getCurrentFunction() {
+  private String getCurrentFunction(UsageState newState) {
     return AbstractStates.extractStateByType(newState, CallstackState.class).getCurrentFunction();
+  }
+
+  Map<String, BinderFunctionInfo> getBinderFunctionInfo() {
+    return binderFunctionInfo;
   }
 }

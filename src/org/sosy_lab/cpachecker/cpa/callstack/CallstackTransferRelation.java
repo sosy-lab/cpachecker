@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -28,14 +30,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
@@ -179,8 +184,9 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Normal function call case
-    for (FunctionEntryNode node : CFAUtils.successorsOf(pState.getCallNode()).filter(FunctionEntryNode.class)) {
-      if (node.getFunctionName().equals(pState.getCurrentFunction())) {
+    for (int i = 0; i < callNode.getNumLeavingEdges(); i++) {
+      CFANode node = callNode.getLeavingEdge(i).getSuccessor();
+      if (node instanceof FunctionEntryNode && node.getFunctionName().equals(function)) {
         return false;
       }
     }
@@ -317,5 +323,45 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   public void disableRecursiveContext() {
     isRecursiveContext = false;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+
+    for (AbstractStateWithEdge stateWithEdge : from(otherStates)
+        .filter(AbstractStateWithEdge.class)) {
+      AbstractEdge aEdge = stateWithEdge.getAbstractEdge();
+      if (aEdge instanceof WrapperCFAEdge) {
+        CFAEdge edge = ((WrapperCFAEdge) aEdge).getCFAEdge();
+        if (!rightEdge((CallstackState) state, edge)) {
+          return ImmutableSet.of();
+        }
+      }
+    }
+    return Collections.singleton(state);
+  }
+
+  private boolean rightEdge(CallstackState pState, CFAEdge pEdge) {
+
+    if (pEdge instanceof CFunctionReturnEdge) {
+      if (!isWildcardState(pState, AnalysisDirection.FORWARD)) {
+        final CFANode succ = pEdge.getSuccessor();
+        final CFANode callNode = succ.getEnteringSummaryEdge().getPredecessor();
+        if (!callNode.equals(pState.getCallNode())) {
+          // this is not the right return edge
+          return false;
+        }
+      }
+    } else if (pEdge instanceof CFunctionSummaryStatementEdge) {
+      if (!shouldGoByFunctionSummaryStatement(pState, (CFunctionSummaryStatementEdge) pEdge)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

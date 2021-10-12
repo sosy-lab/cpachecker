@@ -9,19 +9,12 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class GeneralStructureFieldIdentifier extends StructureFieldIdentifier
     implements GeneralIdentifier {
 
   public GeneralStructureFieldIdentifier(String pNm, int pDereference) {
-    super(pNm, /*"",*/ null, pDereference, null);
-  }
-
-  public GeneralStructureFieldIdentifier(
-      String pNm, /*String fType,*/ CType type, int pDereference, AbstractIdentifier own) {
-    super(pNm, /*fType,*/ type, pDereference, own);
-    assert (type != null) : "Creating GeneralStructureFieldIdentifier with null field";
+    super(pNm, null, pDereference, null);
   }
 
   @Override
@@ -47,6 +40,6 @@ public final class GeneralStructureFieldIdentifier extends StructureFieldIdentif
 
   @Override
   public GeneralStructureFieldIdentifier cloneWithDereference(int deref) {
-    return new GeneralStructureFieldIdentifier(name, /* fieldType,*/ type, deref, owner);
+    return new GeneralStructureFieldIdentifier(name, deref);
   }
 }

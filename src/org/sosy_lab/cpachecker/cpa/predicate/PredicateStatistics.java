@@ -56,6 +56,10 @@ public class PredicateStatistics {
       new ThreadSafeTimerContainer("Time for strengthen sat checks");
   final ThreadSafeTimerContainer abstractionCheckTimer =
       new ThreadSafeTimerContainer("Time for abstraction checks");
+  final ThreadSafeTimerContainer relevanceTimer =
+      new ThreadSafeTimerContainer("Time for relevance calculation");
+  final ThreadSafeTimerContainer environmentTimer =
+      new ThreadSafeTimerContainer("Time for all environment actions");
   final StatCounter numSatChecksFalse = new StatCounter("Times sat checks was 'false'");
   final StatCounter numStrengthenChecksFalse =
       new StatCounter("Times strengthen sat check was 'false'");

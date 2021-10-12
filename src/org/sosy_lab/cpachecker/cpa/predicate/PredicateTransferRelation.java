@@ -13,9 +13,15 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkInf
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
@@ -24,22 +30,30 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.WrapperCFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractEdge.FormulaDescription;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
@@ -54,7 +68,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
-  private final PathFormulaManager pathFormulaManager;
+  private final PathFormulaManager precisePathFormulaManager;
+  private final PathFormulaManager imprecisePathFormulaManager;
 
   private final BlockOperator blk;
   private final FormulaManagerView fmgr;
@@ -69,19 +84,23 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final TimerWrapper strengthenTimer;
   private final TimerWrapper strengthenCheckTimer;
   private final TimerWrapper abstractionCheckTimer;
+  private final TimerWrapper environmentTimer;
+  private final TimerWrapper relevanceTimer;
 
   public PredicateTransferRelation(
       LogManager pLogger,
       AnalysisDirection pDirection,
       FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr,
+      PathFormulaManager preciseFmgr,
+      PathFormulaManager impreciseFmgr,
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateStatistics pStatistics,
       PredicateCpaOptions pOptions) {
     logger = pLogger;
     formulaManager = pPredAbsManager;
-    pathFormulaManager = pPfmgr;
+    precisePathFormulaManager = preciseFmgr;
+    imprecisePathFormulaManager = impreciseFmgr;
     fmgr = pFmgr;
     blk = pBlk;
     direction = pDirection;
@@ -94,6 +113,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenTimer = statistics.strengthenTimer.getNewTimer();
     strengthenCheckTimer = statistics.strengthenCheckTimer.getNewTimer();
     abstractionCheckTimer = statistics.abstractionCheckTimer.getNewTimer();
+    environmentTimer = statistics.environmentTimer.getNewTimer();
+    relevanceTimer = statistics.relevanceTimer.getNewTimer();
   }
 
   @Override
@@ -112,7 +133,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
 
       // calculate strongest post
-      PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
+      PathFormula pathFormula =
+          convertEdgeToPathFormula(element.getPathFormula(), edge, (PredicatePrecision) pPrecision);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // Check whether we should do a SAT check.s
@@ -197,11 +219,37 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
    * @param edge  The edge to analyze.
    * @return  The new pathFormula.
    */
-  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException, InterruptedException {
+  private PathFormula
+      convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge, PredicatePrecision precision)
+          throws CPATransferException, InterruptedException {
+    pathFormulaTimer.start();
+    try {
+      PathFormula preciseFormula = precisePathFormulaManager.makeAnd(pathFormula, edge);
+
+      if (imprecisePathFormulaManager == null
+          || precision.getNodesWithCompleteFormulas().contains(edge.getPredecessor())) {
+        // compute new pathFormula with the operation on the edge
+        return preciseFormula;
+      } else {
+        PathFormula impreciseFormula = imprecisePathFormulaManager.makeAnd(pathFormula, edge);
+        // We need to update ssa even if we create empty formula
+        PathFormula updatedFormula =
+            impreciseFormula
+                .withContext(preciseFormula.getSsa(), preciseFormula.getPointerTargetSet());
+
+        return updatedFormula;
+      }
+    } finally {
+      pathFormulaTimer.stop();
+    }
+  }
+
+  private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge)
+      throws CPATransferException, InterruptedException {
     pathFormulaTimer.start();
     try {
       // compute new pathFormula with the operation on the edge
-      return pathFormulaManager.makeAnd(pathFormula, edge);
+      return precisePathFormulaManager.makeAnd(pathFormula, edge);
     } finally {
       pathFormulaTimer.stop();
     }
@@ -352,10 +400,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PathFormula pf = pElement.getPathFormula();
 
     if (options.assumptionStrengtheningSatCheck()) {
-      PathFormula f = pathFormulaManager.makeFormulaForPath(Collections.singletonList(pEdge));
+      PathFormula f = precisePathFormulaManager.makeFormulaForPath(Collections.singletonList(pEdge));
       for (CExpression assumption :
           from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
-        f = pathFormulaManager.makeAnd(f, assumption);
+        f = precisePathFormulaManager.makeAnd(f, assumption);
       }
       AbstractionFormula dummy = formulaManager.makeTrueAbstractionFormula(f);
       if (formulaManager.unsat(dummy, f)) {
@@ -378,7 +426,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       pathFormulaTimer.start();
       try {
         // compute new pathFormula with the operation on the edge
-        pf = pathFormulaManager.makeAnd(pf, assumption);
+        pf = precisePathFormulaManager.makeAnd(pf, assumption);
       } finally {
         pathFormulaTimer.stop();
       }
@@ -402,7 +450,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     String asmpt = pElement2.getAssumptionAsString().toString();
 
-    PathFormula pf = pathFormulaManager.makeAnd(pElement.getPathFormula(), fmgr.parse(asmpt));
+    PathFormula pf = precisePathFormulaManager.makeAnd(pElement.getPathFormula(), fmgr.parse(asmpt));
 
     return replacePathFormula(pElement, pf);
   }
@@ -430,7 +478,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
 
     PathFormula previousPathFormula = pElement.getPathFormula();
-    PathFormula newPathFormula = pathFormulaManager.makeAnd(previousPathFormula, formula);
+    PathFormula newPathFormula = precisePathFormulaManager.makeAnd(previousPathFormula, formula);
 
     return replacePathFormula(pElement, newPathFormula);
   }
@@ -465,7 +513,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       // set abstraction to true (we don't know better)
       AbstractionFormula abs = formulaManager.makeTrueAbstractionFormula(pathFormula);
 
-      PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
+      PathFormula newPathFormula = precisePathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
       // update abstraction locations map
       PersistentMap<CFANode, Integer> abstractionLocations = pElement.getAbstractionLocationsOnPath();
@@ -486,7 +534,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PredicateAbstractState predicateElement = (PredicateAbstractState) pElement;
     PathFormula pathFormula = computedPathFormulae.get(predicateElement);
     if (pathFormula == null) {
-      pathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(predicateElement.getPathFormula());
+      pathFormula = precisePathFormulaManager.makeEmptyPathFormulaWithContextFrom(predicateElement.getPathFormula());
     }
     boolean result = true;
 
@@ -523,7 +571,9 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         PathFormula computedPathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
         PathFormula mergeWithPathFormula = computedPathFormulae.get(successor);
         if (mergeWithPathFormula != null) {
-          computedPathFormulae.put(successor, pathFormulaManager.makeOr(mergeWithPathFormula, computedPathFormula));
+          computedPathFormulae.put(
+              successor,
+              precisePathFormulaManager.makeOr(mergeWithPathFormula, computedPathFormula));
         } else {
           computedPathFormulae.put(successor, computedPathFormula);
         }
@@ -531,5 +581,176 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     }
 
     return result;
+  }
+
+  @Override
+  public Collection<? extends AbstractState>
+      getAbstractSuccessors(AbstractState pElement, Precision pPrecision)
+          throws CPATransferException, InterruptedException {
+
+    AbstractStateWithEdge state = (AbstractStateWithEdge) pElement;
+    AbstractEdge edge = state.getAbstractEdge();
+    if (edge instanceof WrapperCFAEdge) {
+      return getAbstractSuccessorsForEdge(
+          pElement,
+          pPrecision,
+          ((WrapperCFAEdge) edge).getCFAEdge());
+    } else if (edge == EmptyEdge.getInstance()) {
+      // Empty environment action
+      // Need to omit edge part, so return the same state, but without edge
+      PredicateAbstractState predecessor = (PredicateAbstractState) pElement;
+
+      PredicateAbstractState newState =
+          PredicateAbstractState
+              .mkAbstractionState(
+                  predecessor.getPathFormula(),
+                  predecessor.getAbstractionFormula(),
+                  predecessor.getAbstractionLocationsOnPath());
+      return Collections.singleton(newState);
+    } else if (edge instanceof PredicateAbstractEdge) {
+      environmentTimer.start();
+      PredicateAbstractState predecessor = (PredicateAbstractState) pElement;
+
+      PathFormula oldFormula = predecessor.getPathFormula();
+      AbstractionFormula oldAbstraction = predecessor.getAbstractionFormula();
+      PersistentMap<CFANode, Integer> abstractionLocations =
+          predecessor.getAbstractionLocationsOnPath();
+
+      PathFormula currentFormula = oldFormula;
+      BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+
+      if (bfmgr.isTrue(oldAbstraction.asFormula())) {
+        // Do not delete! There may be value effects, and then the composite optimization will not
+        // work
+        // Just do nothing to return the same state without edge
+
+      } else if (edge == PredicateAbstractEdge.getHavocEdgeInstance()) {
+        currentFormula = precisePathFormulaManager.resetSharedVariables(oldFormula);
+      } else {
+
+        Collection<FormulaDescription> envActions = ((PredicateAbstractEdge) edge).getFormulas();
+        Collection<FormulaDescription> relevantActions =
+            getRelevantFormulas(envActions, oldAbstraction, oldFormula);
+
+        if (!relevantActions.isEmpty()) {
+          BooleanFormula disjunction = null;
+          Map<String, CType> types = new TreeMap<>();
+
+          for (FormulaDescription f : relevantActions) {
+            disjunction =
+                disjunction == null ? f.getFormula() : fmgr.makeOr(f.getFormula(), disjunction);
+            types.putAll(f.getInfo());
+          }
+
+          Collection<String> varsAndUFs = fmgr.extractFunctionNames(disjunction);
+          Map<String, String> updateVariables = new TreeMap<>();
+          SSAMapBuilder newSSA = oldFormula.getSsa().builder();
+
+          for (String oldVar : varsAndUFs) {
+            String newVar =
+                computeNewIndex(oldVar, newSSA, types);
+            if (!oldVar.equals(newVar)) {
+              updateVariables.put(oldVar, newVar);
+            }
+          }
+
+          BooleanFormula newFormula =
+              fmgr.renameFreeVariablesAndUFs(disjunction, s -> updateVariables.getOrDefault(s, s));
+
+          BooleanFormula conjunction =
+              bfmgr.and(oldFormula.getFormula(), newFormula);
+
+          @SuppressWarnings("deprecation")
+          // Strange, but direct assignment to currentFormula does not work
+          PathFormula tmpFormula =
+              PathFormula.createManually(
+                  conjunction,
+                  newSSA.build(),
+                  oldFormula.getPointerTargetSet(),
+                  oldFormula.getLength() + 1);
+
+          currentFormula = tmpFormula;
+
+        }
+      }
+
+      environmentTimer.stop();
+      // Need to omit edge part, so return the same state, but without edge
+      // Thus even without change we need to create a new state (without edge)
+
+      PredicateAbstractState newState =
+          PredicateAbstractState
+              .mkNonAbstractionState(currentFormula, oldAbstraction, abstractionLocations);
+      return Collections.singleton(newState);
+    } else {
+      throw new CPATransferException("Unsupported edge: " + edge.getClass());
+    }
+  }
+
+  private Collection<FormulaDescription> getRelevantFormulas(
+      Collection<FormulaDescription> pInitialFormulas,
+      AbstractionFormula pOldAbstraction,
+      PathFormula pOldFormula) {
+
+    if (options.applyRelevantEffects()) {
+      relevanceTimer.start();
+
+      Set<String> absVars = fmgr.extractFunctionNames(pOldAbstraction.asFormula());
+      Set<String> pathVars =
+          fmgr.extractFunctionNames(fmgr.uninstantiate(pOldFormula.getFormula()));
+
+      List<FormulaDescription> result = new ArrayList<>();
+      for (FormulaDescription envFormula : pInitialFormulas) {
+        Set<String> envVars = envFormula.getInfo().keySet();
+
+        if (!Sets.intersection(envVars, Sets.union(absVars, pathVars)).isEmpty()) {
+          result.add(envFormula);
+        }
+      }
+
+      relevanceTimer.stop();
+      return result;
+    } else {
+      return pInitialFormulas;
+    }
+  }
+
+  private String computeNewIndex(
+      String pOldVar,
+      SSAMapBuilder pNewSsa,
+      Map<String, CType> envSsa) {
+
+    Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(pOldVar);
+    String varName = parsed.getFirst();
+    OptionalInt optIndex = parsed.getSecond();
+    if (optIndex.isPresent()) {
+      int oldIndex = optIndex.getAsInt();
+      int newId;
+
+      if (pNewSsa.getType(varName) == null) {
+        CType type = envSsa.get(varName);
+        assert type != null;
+        pNewSsa.setIndex(varName, type, 1);
+      }
+
+      if (oldIndex != 1) {
+        // changedValue
+        // Vars are sorted, so we already get less index first
+        newId = pNewSsa.makeFreshIndex(varName);
+      } else {
+        newId = pNewSsa.getIndex(varName);
+        if (newId == -1) {
+          // Means we have no information about the variable, mostly for var__ENV, get a fresh index
+          // Need to set the index manually
+          newId = pNewSsa.makeFreshIndex(varName);
+        }
+      }
+      String newName = FormulaManagerView.makeName(varName, newId);
+      return newName;
+
+    } else {
+      // Without index, nothing to rename
+      return pOldVar;
+    }
   }
 }

@@ -8,80 +8,67 @@
 
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThreadCreateFunction;
+
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.TreeMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ThreadIdProvider;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
+import org.sosy_lab.cpachecker.cpa.usage.storage.Delta;
+import org.sosy_lab.cpachecker.util.Pair;
 
-public class ThreadState implements LatticeAbstractState<ThreadState>, CompatibleNode {
-
+public class ThreadState
+    implements LatticeAbstractState<ThreadState>, CompatibleNode, ThreadIdProvider {
   public enum ThreadStatus {
     PARENT_THREAD,
     CREATED_THREAD,
     SELF_PARALLEL_THREAD;
   }
 
-  public static class SimpleThreadState extends ThreadState {
-
-    public SimpleThreadState(
-        Map<String, ThreadStatus> Tset,
-        ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-        List<ThreadLabel> pOrder) {
-      super(Tset, Rset, pOrder);
-    }
-
-    @Override
-    public boolean isCompatibleWith(CompatibleState state) {
-      return !Objects.equals(this.getThreadSet(), ((ThreadState) state).getThreadSet());
-    }
-
-    @Override
-    public ThreadState prepareToStore() {
-      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), ImmutableList.of());
-    }
-
-    public static ThreadState emptyState() {
-      return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
-    }
-  }
-
-  private final Map<String, ThreadStatus> threadSet;
+  protected final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
-  private final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
-  private final List<ThreadLabel> order;
+  protected final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
+  protected final String currentThread;
 
-  public ThreadState(
+  protected final static String mainThread = "main";
+
+  protected ThreadState(
+      String pCurrent,
       Map<String, ThreadStatus> Tset,
-      ImmutableMap<ThreadLabel, ThreadStatus> Rset,
-      List<ThreadLabel> pOrder) {
+      ImmutableMap<ThreadLabel, ThreadStatus> Rset) {
     threadSet = Tset;
     removedSet = Rset;
-    order = ImmutableList.copyOf(pOrder);
+    currentThread = pCurrent;
   }
 
   @Override
-  public final int hashCode() {
+  public int hashCode() {
     return Objects.hash(removedSet, threadSet);
   }
 
   @Override
-  // refactoring would be better, but currently safe for the existing subclass
-  @SuppressWarnings("EqualsGetClass")
-  public final boolean equals(Object obj) {
+  public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (!(obj instanceof ThreadState)) {
       return false;
     }
     ThreadState other = (ThreadState) obj;
@@ -96,6 +83,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
     if (result != 0) {
       return result;
+    }
+
+    if (threadSet == other.threadSet) {
+      return 0;
     }
 
     Iterator<Entry<String, ThreadStatus>> thisIterator = this.threadSet.entrySet().iterator();
@@ -132,7 +123,14 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
       if (other.threadSet.containsKey(l)) {
         ThreadStatus otherL = other.threadSet.get(l);
-        if ((s == ThreadStatus.SELF_PARALLEL_THREAD && otherL != ThreadStatus.CREATED_THREAD)
+
+        /*
+         * In case of self-parallel we need to consider it to be parallel with any other to support
+         * such strange cases: pthread_create(&t, func1); pthread_create(&t, func2);
+         */
+
+        if (s == ThreadStatus.SELF_PARALLEL_THREAD
+            || otherL == ThreadStatus.SELF_PARALLEL_THREAD
             || (s == ThreadStatus.PARENT_THREAD && otherL != ThreadStatus.PARENT_THREAD)
             || (s == ThreadStatus.CREATED_THREAD && otherL == ThreadStatus.PARENT_THREAD)) {
           return true;
@@ -142,23 +140,17 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     return false;
   }
 
-  @Override
-  public ThreadState prepareToStore() {
-    return new ThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
-  }
-
   public static ThreadState emptyState() {
-    return new ThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
+    return new ThreadState(mainThread, ImmutableMap.of(), ImmutableMap.of());
   }
 
   @Override
   public String toString() {
-    // Info method, in difficult cases may be wrong
-    return Lists.reverse(order).stream()
-        .filter(l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
-        .findFirst()
-        .map(ThreadLabel::getName)
-        .orElse("");
+    return getCurrentThread() + ":" + getThreadSet();
+  }
+
+  protected String getCurrentThread() {
+    return currentThread;
   }
 
   @Override
@@ -178,11 +170,20 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     if (b && pOther.threadSet == threadSet) {
       return true;
     }
-    b &= pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
-    return b;
+    if (threadSet == pOther.threadSet) {
+      return true;
+    }
+    if (threadSet.size() > pOther.threadSet.size()) {
+      return false;
+    }
+    return pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
   }
 
-  Map<String, ThreadStatus> getThreadSet() {
+  public boolean hasEmptyEffect() {
+    return true;
+  }
+
+  public Map<String, ThreadStatus> getThreadSet() {
     return threadSet;
   }
 
@@ -190,12 +191,70 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     return removedSet;
   }
 
-  List<ThreadLabel> getOrder() {
-    return order;
-  }
-
   int getThreadSize() {
     // Only for statistics
     return threadSet.size();
+  }
+
+  @Override
+  public String getThreadIdForEdge(CFAEdge pEdge) {
+    return this.toString();
+  }
+
+  public ThreadState copyWith(String pCurrent, Map<String, ThreadStatus> tSet) {
+    return new ThreadState(pCurrent, tSet, this.removedSet);
+  }
+
+  public ThreadState copyWith(Map<String, ThreadStatus> tSet) {
+    return copyWith(this.currentThread, tSet);
+  }
+
+  @Override
+  public Delta<CompatibleNode> getDeltaBetween(CompatibleNode pOther) {
+    ThreadState pState = (ThreadState) pOther;
+    Map<String, ThreadStatus> expanded = pState.getThreadSet();
+    Map<String, ThreadStatus> newSet;
+
+    if (threadSet.isEmpty()) {
+      newSet = expanded;
+    } else {
+      newSet = new TreeMap<>();
+      for (Entry<String, ThreadStatus> entry : expanded.entrySet()) {
+        if (threadSet.containsKey(entry.getKey())) {
+          if (!threadSet.get(entry.getKey()).equals(entry.getValue())) {
+            throw new UnsupportedOperationException(
+                "Statuses for thread " + entry.getKey() + " differs");
+          }
+        } else {
+          newSet.put(entry.getKey(), entry.getValue());
+        }
+      }
+    }
+    return new ThreadDelta(newSet);
+  }
+
+  @Override
+  public List<Pair<String, String>>
+      getSpawnedThreadIdByEdge(CFAEdge pEdge, ARGState pState) {
+
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getSummaryEdge().getExpression();
+      if (isThreadCreateFunction(fCall)) {
+        CThreadCreateStatement tCall = (CThreadCreateStatement) fCall;
+        return Collections.singletonList(
+            Pair.of(tCall.getVariableName(), pEdge.getSuccessor().getFunctionName()));
+      }
+    }
+    if (pEdge instanceof CFunctionSummaryStatementEdge) {
+      CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pEdge).getFunctionCall();
+      if (isThreadCreateFunction(functionCall)) {
+        CThreadCreateStatement tCall = (CThreadCreateStatement) functionCall;
+        return Collections.singletonList(
+            Pair.of(
+                tCall.getVariableName(),
+                ((CFunctionSummaryStatementEdge) pEdge).getFunctionName()));
+      }
+    }
+    return Collections.emptyList();
   }
 }

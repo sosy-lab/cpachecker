@@ -12,6 +12,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -24,9 +25,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
+  private final UsageCPAStatistics stats;
 
-  public UsagePrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+  public UsagePrecisionAdjustment(
+      PrecisionAdjustment pWrappedPrecAdjustment,
+      UsageCPAStatistics pStats) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
+    stats = pStats;
   }
 
   @Override
@@ -38,6 +43,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
       AbstractState fullState)
       throws CPAException, InterruptedException {
 
+    stats.precTimer.start();
     Preconditions.checkArgument(pElement instanceof UsageState);
     UsageState element = (UsageState) pElement;
 
@@ -47,17 +53,16 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractState oldElement = element.getWrappedState();
 
-    Precision oldWrappedPrecision = ((UsagePrecision) oldPrecision).getWrappedPrecision();
-
     Optional<PrecisionAdjustmentResult> optionalUnwrappedResult =
         wrappedPrecAdjustment.prec(
             oldElement,
-            oldWrappedPrecision,
+            oldPrecision,
             elements,
             Functions.compose((state) -> ((UsageState) state).getWrappedState(), stateProjection),
             fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {
+      stats.precTimer.stop();
       return Optional.empty();
     }
 
@@ -67,15 +72,15 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
     Precision newPrecision = unwrappedResult.precision();
     Action action = unwrappedResult.action();
 
-    if ((oldElement == newElement) && (oldWrappedPrecision == newPrecision)) {
+    if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
+      stats.precTimer.stop();
       return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
     }
 
     UsageState resultElement = element.copy(newElement);
 
-    return Optional.of(
-        PrecisionAdjustmentResult.create(
-            resultElement, ((UsagePrecision) oldPrecision).copy(newPrecision), action));
+    stats.precTimer.stop();
+    return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
   }
 }

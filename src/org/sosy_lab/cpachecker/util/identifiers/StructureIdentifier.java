@@ -12,11 +12,12 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
 public class StructureIdentifier extends SingleIdentifier {
-  protected AbstractIdentifier owner;
+  protected final AbstractIdentifier owner;
 
   public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference);
@@ -78,12 +79,19 @@ public class StructureIdentifier extends SingleIdentifier {
 
   @Override
   public GeneralIdentifier getGeneralId() {
-    return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
+    return new GeneralStructureFieldIdentifier(name, dereference);
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
     if (owner instanceof SingleIdentifier) {
-      return new StructureFieldIdentifier(name, ((SingleIdentifier) owner).type, dereference, null);
+      // a.b and c->b should refer to the same structure field identifier, so, remove dereferences.
+      CType ownerType = ((SingleIdentifier) owner).type;
+      int ownerDereference = owner.getDereference();
+      while (ownerDereference > 0 && ownerType instanceof CPointerType) {
+        ownerDereference--;
+        ownerType = ((CPointerType) ownerType).getType();
+      }
+      return new StructureFieldIdentifier(name, ownerType, dereference, null);
     } else {
       return new StructureFieldIdentifier(name, type, dereference, null);
     }
@@ -94,5 +102,27 @@ public class StructureIdentifier extends SingleIdentifier {
     Set<AbstractIdentifier> result = Sets.newHashSet(owner);
     result.addAll(owner.getComposedIdentifiers());
     return result;
+  }
+
+  @Override
+  public int compareTo(AbstractIdentifier pO) {
+    if (pO instanceof GlobalVariableIdentifier
+        || pO instanceof LocalVariableIdentifier
+        || (!(this instanceof StructureFieldIdentifier)
+            && pO instanceof StructureFieldIdentifier)) {
+      return -1;
+    } else if (pO instanceof StructureIdentifier) {
+      int s = super.compareTo(pO);
+      if (s != 0) {
+        return s;
+      }
+      if (owner == null) {
+        assert (((StructureIdentifier) pO).getOwner() == null);
+        return 0;
+      }
+      return owner.compareTo(((StructureIdentifier) pO).getOwner());
+    } else {
+      return 1;
+    }
   }
 }

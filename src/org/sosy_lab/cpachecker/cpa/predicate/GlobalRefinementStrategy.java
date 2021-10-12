@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Collection;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public abstract class GlobalRefinementStrategy extends RefinementStrategy {
@@ -21,4 +23,10 @@ public abstract class GlobalRefinementStrategy extends RefinementStrategy {
   public abstract void updatePrecisionAndARG() throws InterruptedException;
 
   public abstract void resetGlobalRefinement();
+
+  public abstract Collection<CFANode> getAllAffectedNodes();
+
+  public abstract Collection<CFANode> getNodesWithUniquePredicates();
+
+  public abstract int getSizeOfPrecision();
 }

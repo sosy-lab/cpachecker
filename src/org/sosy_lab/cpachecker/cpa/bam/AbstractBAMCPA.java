@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -36,6 +37,10 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.TimedReducer.ReducerStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerCPA;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.bam")
@@ -52,7 +57,10 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   @Option(secure = true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportBlocksPath = Path.of("block_cfa.dot");
+  private Path exportBlocksPath = Paths.get("block_cfa.dot");
+
+  @Option(secure = true, description = "export reached set")
+  private boolean exportReachedSet = true;
 
   @Option(secure = true,
       description = "This flag determines which precisions should be updated during refinement. "
@@ -137,7 +145,13 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException, CPAException {
-    final BlockPartitioningBuilder blockBuilder = new BlockPartitioningBuilder();
+
+    LockCPA cpa = retrieveWrappedCpa(LockCPA.class);
+    PointerCPA pcpa = retrieveWrappedCpa(PointerCPA.class);
+    final BlockPartitioningBuilder blockBuilder =
+        new BlockPartitioningBuilder(
+            cpa == null ? null : (LockTransferRelation) cpa.getTransferRelation(),
+            pcpa == null ? null : (PointerTransferRelation) pcpa.getTransferRelation());
     PartitioningHeuristic heuristic = blockHeuristic.create(logger, pCfa, pConfig);
     BlockPartitioning partitioning = heuristic.buildPartitioning(blockBuilder);
     if (exportBlocksPath != null) {
@@ -182,7 +196,9 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
         : "exporting ARGs should only be done at this place, when using BAM.";
     pStatsCollection.add(stats);
     pStatsCollection.add(argStats);
-    pStatsCollection.add(exporter);
+    if (exportReachedSet) {
+      pStatsCollection.add(exporter);
+    }
     pStatsCollection.add(getData().getCache());
     super.collectStatistics(pStatsCollection);
   }

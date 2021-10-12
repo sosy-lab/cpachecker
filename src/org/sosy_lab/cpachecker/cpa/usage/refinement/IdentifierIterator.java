@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
@@ -58,9 +59,14 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   private class Stats implements Statistics {
 
+    private final StatTimer innerRefinementTimer = new StatTimer("Time for inner refinement");
+    private final StatTimer precisionTimer = new StatTimer("Time for precision operations");
+    private final StatTimer finishingTimer = new StatTimer("Time for final operations");
+
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+      writer.put(innerRefinementTimer).put(precisionTimer).put(finishingTimer);
       IdentifierIterator.this.printStatistics(writer);
     }
 
@@ -92,6 +98,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       secure = true)
   private boolean hideFilteredUnsafes = false;
 
+  private final boolean disableAllCaching;
+
+  private final Stats stats;
   private final BAMTransferRelation transfer;
 
   int i = 0;
@@ -101,14 +110,18 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   private final Map<SingleIdentifier, AdjustablePrecision> precisionMap = new HashMap<>();
 
   public IdentifierIterator(ConfigurableRefinementBlock<SingleIdentifier> pWrapper, Configuration config,
-      ConfigurableProgramAnalysis pCpa, BAMTransferRelation pTransfer) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pCpa,
+      BAMTransferRelation pTransfer,
+      boolean pDisableCaching)
+      throws InvalidConfigurationException {
     super(pWrapper);
     config.inject(this);
     cpa = pCpa;
     UsageCPA uCpa = CPAs.retrieveCPA(pCpa, UsageCPA.class);
-    uCpa.getStats().setBAMCPA((BAMCPA) cpa);
     logger = uCpa.getLogger();
     transfer = pTransfer;
+    stats = new Stats();
+    disableAllCaching = pDisableCaching;
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -116,18 +129,26 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    BAMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
+    UsageCPA usageCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(UsageCPA.class);
+    if (usageCpa == null) {
+      throw new InvalidConfigurationException(UsageCPA.class.getSimpleName() + " needs a UsageCPA");
     }
 
-    return new RefinementBlockFactory(pCpa, predicateCpa.getConfiguration()).create();
+    return new RefinementBlockFactory(pCpa, usageCpa.getConfig())
+        .create();
   }
 
   @Override
   public RefinementResult performBlockRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
 
-    UsageReachedSet uReached = (UsageReachedSet) pReached;
+    UsageReachedSet uReached;
+    if (pReached instanceof UsageReachedSet) {
+      uReached = (UsageReachedSet) pReached;
+    } else if (pReached instanceof ForwardingReachedSet) {
+      uReached = (UsageReachedSet) ((ForwardingReachedSet) pReached).getDelegate();
+    } else {
+      throw new UnsupportedOperationException("UsageRefiner requires UsageReachedSet");
+    }
     UsageContainer container = uReached.getUsageContainer();
     Set<SingleIdentifier> processedUnsafes = new HashSet<>();
 
@@ -146,25 +167,35 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     boolean isPrecisionChanged = false;
     AbstractState firstState = pReached.getFirstState();
     AdjustablePrecision finalPrecision = (AdjustablePrecision) pReached.getPrecision(firstState);
+    AdjustablePrecision initialPrecision =
+        (AdjustablePrecision) cpa.getInitialPrecision(
+            AbstractStates.extractLocation(firstState),
+            StateSpacePartition.getDefaultPartition());
 
     while (iterator.hasNext()) {
       SingleIdentifier currentId = iterator.next();
 
+      stats.innerRefinementTimer.start();
       RefinementResult result = wrappedRefiner.performBlockRefinement(currentId);
+      stats.innerRefinementTimer.stop();
       newPrecisionFound |= result.isFalse();
 
-      AdjustablePrecision info = result.getPrecision();
+      Collection<AdjustablePrecision> info = result.getPrecisions();
 
       if (!info.isEmpty()) {
-        AdjustablePrecision updatedPrecision;
-        if (precisionMap.containsKey(currentId)) {
-          updatedPrecision = precisionMap.get(currentId).add(info);
-        } else {
-          updatedPrecision = info;
+        stats.precisionTimer.start();
+        AdjustablePrecision updatedPrecision =
+            precisionMap.getOrDefault(currentId, initialPrecision);
+
+        for (AdjustablePrecision p : info) {
+          updatedPrecision = updatedPrecision.add(p);
         }
+
+        assert !updatedPrecision.isEmpty() : "Updated precision is expected to be not empty";
         precisionMap.put(currentId, updatedPrecision);
         finalPrecision = finalPrecision.add(updatedPrecision);
         isPrecisionChanged = true;
+        stats.precisionTimer.stop();
       }
 
       if (result.isTrue()) {
@@ -191,11 +222,16 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       lastTrueUnsafes = newTrueUnsafeSize;
     }
     if (newPrecisionFound) {
-      BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
-      assert bamcpa != null;
-      bamcpa.clearAllCaches();
-      //ARGState.clearIdGenerator();
-      if (totalARGCleaning) {
+      stats.finishingTimer.start();
+      if (disableAllCaching) {
+        BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
+        if (bamcpa != null) {
+          bamcpa.clearAllCaches();
+        }
+      }
+      // ARGState.clearIdGenerator();
+      // Note the following clean should be done always independently from option disableAllCaching
+      if (totalARGCleaning && transfer != null) {
         transfer.cleanCaches();
       } else {
         /* MultipleARGSubtreeRemover subtreesRemover = transfer.getMultipleARGSubtreeRemover();
@@ -219,7 +255,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       //TODO should we signal about removed ids?
 
       sendFinishSignal();
+      stats.finishingTimer.stop();
     }
+    logger.log(Level.INFO, container.getUnsafeStatus());
     //pStat.UnsafeCheck.stopIfRunning();
     if (newPrecisionFound) {
       return RefinementResult.createTrue();
@@ -235,7 +273,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(new Stats());
+    statsCollection.add(stats);
     super.collectStatistics(statsCollection);
   }
 

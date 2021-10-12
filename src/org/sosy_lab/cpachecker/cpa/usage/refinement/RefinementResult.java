@@ -9,9 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -19,13 +22,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class RefinementResult {
   public enum RefinementStatus {
     TRUE,
-    FALSE,
-    UNKNOWN
+    FALSE
   }
   private final Map<Class<? extends RefinementInterface>, Object> auxiliaryInfo = new HashMap<>();
   private final Pair<UsageInfo, UsageInfo> trueRace;
-  //Currently only predicate one
-  private PredicatePrecision precision;
+  // Currently only predicate one, but in general case we may add other ones
+  private Collection<AdjustablePrecision> precisions;
   RefinementStatus status;
 
   private RefinementResult(RefinementStatus rStatus, UsageInfo firstUsage, UsageInfo secondUsage) {
@@ -38,11 +40,12 @@ public class RefinementResult {
       //Other results
       trueRace = null;
     }
-    precision = PredicatePrecision.empty();
+    precisions = new ArrayList<>();
   }
 
   public void addInfo(Class<? extends RefinementInterface> caller, Object info) {
     //Now used only for transferring precision
+    assert !auxiliaryInfo.containsKey(caller);
     auxiliaryInfo.put(caller, info);
   }
 
@@ -58,10 +61,6 @@ public class RefinementResult {
     return status == RefinementStatus.FALSE;
   }
 
-  public boolean isUnknown() {
-    return status == RefinementStatus.UNKNOWN;
-  }
-
   public static RefinementResult createTrue(ExtendedARGPath firstPath, ExtendedARGPath secondPath) {
 
     UsageInfo firstUsage = firstPath.getUsageInfo();
@@ -70,8 +69,9 @@ public class RefinementResult {
     if (firstUsage == secondUsage) {
       secondUsage = secondUsage.copy();
     }
-    firstUsage.setRefinedPath(firstPath.getInnerEdges());
-    secondUsage.setRefinedPath(secondPath.getInnerEdges());
+    // Full path, as inner edges does not contain thread effects
+    firstUsage.setRefinedPath(firstPath.getFullPath());
+    secondUsage.setRefinedPath(secondPath.getFullPath());
     return new RefinementResult(RefinementStatus.TRUE, firstUsage, secondUsage);
   }
 
@@ -84,21 +84,25 @@ public class RefinementResult {
     return new RefinementResult(RefinementStatus.FALSE, null, null);
   }
 
-  public static RefinementResult createUnknown() {
-    return new RefinementResult(RefinementStatus.UNKNOWN, null, null);
-  }
-
   public Pair<UsageInfo, UsageInfo> getTrueRace() {
     Preconditions.checkArgument(status == RefinementStatus.TRUE);
     return trueRace;
   }
 
-  public void addPrecision(PredicatePrecision p) {
-    precision = precision.mergeWith(p);
+  public void addPrecision(AdjustablePrecision p) {
+    if (!p.isEmpty()) {
+      precisions.add(p);
+    }
   }
 
-  public PredicatePrecision getPrecision() {
-    return precision;
+  public void addPrecisions(Iterable<AdjustablePrecision> pList) {
+    for (AdjustablePrecision p : pList) {
+      addPrecision(p);
+    }
+  }
+
+  public Collection<AdjustablePrecision> getPrecisions() {
+    return ImmutableList.copyOf(precisions);
   }
 
   @Override

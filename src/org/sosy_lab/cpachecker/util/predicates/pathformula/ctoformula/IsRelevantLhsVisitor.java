@@ -57,7 +57,8 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, NoExceptio
 
   @Override
   public Boolean visit(final CIdExpression e) {
-    return conv.isRelevantVariable(e.getDeclaration());
+    return conv.isRelevantVariable(e.getDeclaration())
+        && !conv.isAbstractedVariable(e.getDeclaration());
   }
 
   @Override

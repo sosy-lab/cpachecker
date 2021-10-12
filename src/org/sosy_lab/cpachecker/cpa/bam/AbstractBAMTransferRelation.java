@@ -278,6 +278,9 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     for (AbstractState exitState : exitStates) { // blocks without an exit are never added to the cache
       data.registerInitialState(initialState, exitState, reached);
     }
+    if (exitStates.isEmpty()) {
+      data.registerInitialState(initialState, reached);
+    }
   }
 
   protected boolean isCacheHit(

@@ -12,14 +12,19 @@ import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -28,14 +33,26 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
+@Options(prefix = "cpa.thread")
 public class ThreadCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider,
+    ConfigurableProgramAnalysisTM {
+
+  public enum ThreadMode {
+    SIMPLE,
+    ENVIRONMENT,
+    BASE;
+  }
+
+  @Option(secure = true, description = "Use specific mode for thread analysis")
+  private ThreadMode mode = ThreadMode.BASE;
+
+  @Option(secure = true, description = "Use aggressive reduction mode")
+  private boolean useAggressiveReduction = false;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);
   }
-
-  private final ThreadReducer reducer;
 
   public ThreadCPA(Configuration pConfig) throws InvalidConfigurationException {
     super(
@@ -43,7 +60,7 @@ public class ThreadCPA extends AbstractCPA
         "sep",
         DelegateAbstractDomain.<ThreadState>getInstance(),
         new ThreadTransferRelation(pConfig));
-    reducer = new ThreadReducer();
+    pConfig.inject(this);
   }
 
   @Override
@@ -54,7 +71,16 @@ public class ThreadCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(pNode);
-    return ThreadState.emptyState();
+    switch (mode) {
+      case SIMPLE:
+        return SimpleThreadState.emptyState();
+      case ENVIRONMENT:
+        return ThreadTMState.emptyState();
+      case BASE:
+        return ThreadState.emptyState();
+      default:
+        throw new UnsupportedOperationException("Unexpected thread analysis mode: " + mode);
+    }
   }
 
   @Override
@@ -64,11 +90,25 @@ public class ThreadCPA extends AbstractCPA
 
   @Override
   public Reducer getReducer() {
-    return reducer;
+    if (useAggressiveReduction) {
+      return new AgressiveThreadReducer();
+    } else {
+      return NoOpReducer.getInstance();
+    }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(((ThreadTransferRelation) getTransferRelation()).getStatistics());
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    switch (mode) {
+      case ENVIRONMENT:
+        return new ThreadTMApplyOperator();
+      default:
+        return new ThreadApplyOperator();
+    }
   }
 }

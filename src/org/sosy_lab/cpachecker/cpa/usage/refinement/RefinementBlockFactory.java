@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.base.Function;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -21,14 +23,18 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
+import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
+import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage.refinement")
 public class RefinementBlockFactory {
 
   public enum RefinementBlockTypes {
@@ -36,10 +42,12 @@ public class RefinementBlockFactory {
     PointIterator(currentInnerBlockType.UsageInfoSet),
     UsageIterator(currentInnerBlockType.UsageInfo),
     PathIterator(currentInnerBlockType.ExtendedARGPath),
+    SinglePathIterator(currentInnerBlockType.ExtendedARGPath),
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
-    CallstackFilter(currentInnerBlockType.ExtendedARGPath),
-    ProbeFilter(currentInnerBlockType.ExtendedARGPath),
-    SharedRefiner(currentInnerBlockType.ExtendedARGPath);
+    ImprecisePredicateRefiner(currentInnerBlockType.ExtendedARGPath),
+    ThreadModularRefiner(currentInnerBlockType.ExtendedARGPath),
+    SharedRefiner(currentInnerBlockType.ExtendedARGPath),
+    LockRefiner(currentInnerBlockType.ExtendedARGPath);
 
     public final currentInnerBlockType innerType;
 
@@ -72,7 +80,22 @@ public class RefinementBlockFactory {
   @Option(name = "pathEquality", description = "The way how to identify two paths as equal")
   PathEquation pathEquation = PathEquation.CFANodeId;
 
-  public RefinementBlockFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig) throws InvalidConfigurationException {
+  // Strange, but this option is much more better in true (even by time consumption)
+  @Option(description = "Disable all caching into all internal refinement blocks", secure = true)
+  private boolean disableAllCaching = false;
+
+  @Option(
+    description = "Refine any inconsistency of lock states or just incompatible pairs",
+    secure = true)
+  private boolean refineOnlyIncompatiblePairs = false;
+
+  @Option(description = "Limit for unique iterations of iterators", secure = true)
+  private int iterationLimit = Integer.MAX_VALUE;
+
+  public RefinementBlockFactory(
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     cpa = pCpa;
     config = pConfig;
     pConfig.inject(this);
@@ -83,10 +106,35 @@ public class RefinementBlockFactory {
     BAMCPA bamCpa = CPAs.retrieveCPA(cpa, BAMCPA.class);
     UsageCPA usCPA = CPAs.retrieveCPA(cpa, UsageCPA.class);
     LogManager logger = usCPA.getLogger();
+    ShutdownNotifier notifier = usCPA.getNotifier();
 
     //Tricky way to create the chain, but it is difficult to dynamically know the parameter types
     RefinementInterface currentBlock = new RefinementPairStub();
     currentInnerBlockType currentBlockType = currentInnerBlockType.ExtendedARGPath;
+
+    Function<ARGState, Integer> idExtractor;
+
+    switch (pathEquation) {
+      case ARGStateId:
+        idExtractor = ARGState::getStateId;
+        break;
+
+      case CFANodeId:
+        idExtractor = s -> AbstractStates.extractLocation(s).getNodeNumber();
+        break;
+
+      default:
+        throw new InvalidConfigurationException("Unexpexted type " + pathEquation);
+
+    }
+
+    PathRestorator computer;
+    if (bamCpa != null) {
+      computer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
+    } else {
+      computer = new ARGPathRestorator(idExtractor);
+    }
+    PredicateRefinerAdapterFactory factory = new PredicateRefinerAdapterFactory(cpa, logger);
 
     for (int i = RefinementChain.size() - 1; i >= 0; i--) {
 
@@ -99,18 +147,24 @@ public class RefinementBlockFactory {
                     (ConfigurableRefinementBlock<SingleIdentifier>) currentBlock,
                     config,
                     cpa,
-                    bamCpa.getTransferRelation());
+                    bamCpa == null ? null : bamCpa.getTransferRelation(),
+                    disableAllCaching);
             currentBlockType = currentInnerBlockType.ReachedSet;
             break;
 
           case PointIterator:
-            currentBlock = new PointIterator((ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock);
+            currentBlock =
+                new PointIterator(
+                    (ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock,
+                    notifier);
             currentBlockType = currentInnerBlockType.SingleIdentifier;
             break;
 
           case UsageIterator:
             currentBlock = new UsagePairIterator((ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock,
-                logger);
+                    logger,
+                    notifier,
+                    iterationLimit);
             currentBlockType = currentInnerBlockType.UsageInfoSet;
             break;
 
@@ -118,33 +172,65 @@ public class RefinementBlockFactory {
             currentBlock =
                 new PathPairIterator(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
-                        currentBlock,
-                    bamCpa,
-                    pathEquation);
+                    currentBlock,
+                    computer,
+                    idExtractor,
+                    notifier,
+                    iterationLimit);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
+          case SinglePathIterator:
+            currentBlock =
+                new PathPairIterator(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    computer,
+                    idExtractor,
+                    notifier,
+                    1);
+            currentBlockType = currentInnerBlockType.UsageInfo;
+            break;
+
+          case ImprecisePredicateRefiner:
+            currentBlock =
+                factory.createImpreciseRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock);
+            break;
+
           case PredicateRefiner:
-            currentBlock = new PredicateRefinerAdapter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                cpa, logger);
+            currentBlock =
+                factory.createPlainRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock);
             break;
 
-          case CallstackFilter:
-            currentBlock = new CallstackFilter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                config);
-            break;
-
-          case ProbeFilter:
-            currentBlock = new ProbeFilter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                config);
+          case ThreadModularRefiner:
+            currentBlock =
+                factory.createThreadModularRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock);
             break;
 
           case SharedRefiner:
             //LocalCPA CPAForSharedRefiner = CPAs.retrieveCPA(cpa, LocalCPA.class);
             //assert(CPAForSharedRefiner != null);
-            LocalTransferRelation RelationForSharedRefiner = new LocalTransferRelation(config);
+            LocalTransferRelation RelationForSharedRefiner =
+                new LocalTransferRelation(config, logger);
 
             currentBlock = new SharedRefiner((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock, RelationForSharedRefiner);
+
+            break;
+
+          case LockRefiner:
+            LockCPA lCPA = CPAs.retrieveCPA(cpa, LockCPA.class);
+            LockTransferRelation lockTransfer =
+                (LockTransferRelation) lCPA.getTransferRelation();
+            LockReducer lReducer = (LockReducer) lCPA.getReducer();
+
+            currentBlock =
+                new LockRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    lockTransfer,
+                    lReducer,
+                    refineOnlyIncompatiblePairs);
 
             break;
 

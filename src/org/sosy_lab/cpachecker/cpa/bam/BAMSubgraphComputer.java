@@ -310,7 +310,7 @@ public class BAMSubgraphComputer {
    * <p>TODO we could replace the BackwardARGState completely by a normal ARGState, we just keep it
    * for debugging.
    */
-  static class BackwardARGState extends ARGState {
+  public static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
 

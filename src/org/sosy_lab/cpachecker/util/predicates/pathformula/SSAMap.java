@@ -116,6 +116,13 @@ public final class SSAMap implements Serializable {
       return varTypes.get(name);
     }
 
+    public int makeFreshIndex(String name) {
+      CType type = getType(name);
+      int idx = getFreshIndex(name);
+      setIndex(name, type, idx);
+      return idx;
+    }
+
     @SuppressWarnings("CheckReturnValue")
     public SSAMapBuilder setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);

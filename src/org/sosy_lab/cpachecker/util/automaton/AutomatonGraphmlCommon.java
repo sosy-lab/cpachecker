@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.thread.ThreadTransferRelation.isThreadCreateFunction;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -165,6 +167,8 @@ public class AutomatonGraphmlCommon {
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
     WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
     INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string"),
+    VAR_DECLARATION("declaration", ElementType.GRAPH, "declaration", "string"),
+    REFINEMENT_STATUS("refinement-status", ElementType.GRAPH, "refinement-status", "string"),
 
     // KeyDefs for extended witness format:
     NOTE("note", ElementType.EDGE, "note", "string"),
@@ -333,10 +337,33 @@ public class AutomatonGraphmlCommon {
     return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
   }
 
+  public static class RaceGraphMlBuilder extends GraphMlBuilder {
+    public RaceGraphMlBuilder(
+        WitnessType pGraphType,
+        String pDefaultSourceFileName,
+        CFA pCfa,
+        VerificationTaskMetaData pVerificationTaskMetaData,
+        String pIdentifier,
+        String pStatus)
+        throws ParserConfigurationException, DOMException, IOException {
+      super(pGraphType, pDefaultSourceFileName, pCfa, pVerificationTaskMetaData);
+      Element result = createDataElement(KeyDef.VAR_DECLARATION, pIdentifier);
+      result.setAttribute("compare", "true");
+      result.setAttribute("associate", "false");
+      result.setAttribute("klever-attrs", "true");
+      graph.appendChild(result);
+      result = createDataElement(KeyDef.REFINEMENT_STATUS, pStatus);
+      result.setAttribute("compare", "true");
+      result.setAttribute("associate", "false");
+      result.setAttribute("klever-attrs", "true");
+      graph.appendChild(result);
+    }
+  }
+
   public static class GraphMlBuilder {
 
     private final Document doc;
-    private final Element graph;
+    protected final Element graph;
     private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
     private final Map<KeyDef, Node> keyDefsToAppend = new EnumMap<>(KeyDef.class);
 
@@ -423,7 +450,7 @@ public class AutomatonGraphmlCommon {
       return doc.createElement(tag.toString());
     }
 
-    private Element createDataElement(final KeyDef key, final String value) {
+    protected Element createDataElement(final KeyDef key, final String value) {
       defineKey(key);
       Element result = createElement(GraphMLTag.DATA);
       result.setAttribute("key", key.id);
@@ -564,7 +591,12 @@ public class AutomatonGraphmlCommon {
         }
       }
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
-      return true;
+      CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) edge).getFunctionCall();
+      if (isThreadCreateFunction(functionCall)) {
+        return false;
+      } else {
+        return true;
+      }
     } else if (edge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) edge;
       AStatement statement = statementEdge.getStatement();
@@ -1060,7 +1092,7 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
-  private static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
+  public static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
     Iterator<CFAEdge> startEdges = CFAUtils.leavingEdges(pEntryNode).iterator();
     if (!startEdges.hasNext()) {
       return false;
@@ -1090,7 +1122,7 @@ public class AutomatonGraphmlCommon {
             .anyMatch(e -> e.getDescription().equals("while"));
   }
 
-  private static boolean treatAsTrivialAssume(CFAEdge pEdge) {
+  public static boolean treatAsTrivialAssume(CFAEdge pEdge) {
     CFANode pred = pEdge.getPredecessor();
     if (pred.getNumLeavingEdges() != 1) {
       return false;

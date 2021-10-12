@@ -35,6 +35,18 @@ public final class UsageConfiguration {
       secure = true)
   private String intLockName = null;
 
+  @Option(
+    name = "processCoveredUsages",
+    description = "Should we process the same blocks with covered sets of locks",
+    secure = true)
+  private boolean processCoveredUsages = true;
+
+  @Option(
+    name = "useConcurrentExtraction",
+    description = "Use several threads for usage extraction",
+    secure = true)
+  private boolean useConcurrentExtraction = true;
+
   public UsageConfiguration(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -53,5 +65,13 @@ public final class UsageConfiguration {
 
   String getIntLockName() {
     return intLockName;
+  }
+
+  public boolean getProcessCoveredUsages() {
+    return processCoveredUsages;
+  }
+
+  public boolean useConcurrentExtraction() {
+    return useConcurrentExtraction;
   }
 }

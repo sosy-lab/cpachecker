@@ -358,6 +358,9 @@ analysis.programNames = []
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
+# use thread-modular wrapper to support thread-modular approach
+analysis.reachedSet.useThreadModularWrapper = false
+
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
 
@@ -466,6 +469,10 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# use thread-modular ordering: thread transitions first, then environment
+# transitions
+analysis.traversal.useThreadModularOrdering = false
 
 # perform a weighted random selection based on the branching depth
 analysis.traversal.weightedBranches = false
@@ -825,8 +832,11 @@ cfa.simplifyConstExpressions = true
 # rightHandSide
 cfa.simplifyPointerExpressions = false
 
+# Add assumptions about successfull thread create
+cfa.threads.addAssumptions = true
+
 # A name of thread_create function
-cfa.threads.threadCreate = "pthread_create"
+cfa.threads.threadCreate = {"pthread_create"}
 
 # A name of thread_join function
 cfa.threads.threadJoin = "pthread_join"
@@ -1392,6 +1402,9 @@ cpa.bam.doPrecisionRefinementForMostInnerBlock = true
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
+# export reached set
+cpa.bam.exportReachedSet = true
+
 # If enabled, the reached set cache is analysed for each cache miss to find
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
@@ -1743,11 +1756,17 @@ cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 cpa.local.allocateFunctionPattern = {}
 cpa.local.allocatefunctions = {}
 
+# remove information from outer functions
+cpa.local.cleanFunctionStacks = true
+
 # functions, which do not change sharedness of parameters
 cpa.local.conservativefunctions = {}
 
 # variables, which are always local
 cpa.local.localvariables = {}
+
+# Use special states with edges
+cpa.location.enableStatesWithEdges = false
 
 # With this option enabled, function calls that occur in the CFA are
 # followed. By disabling this option one can traverse a function without
@@ -1760,6 +1779,9 @@ cpa.lock.analysisMode = RACE
 
 #  annotated functions, which are known to works right
 cpa.lock.annotate = no default value
+
+# Consider or not lock guards
+cpa.lock.considerLockGuards = true
 
 # contains all lock names
 cpa.lock.lockinfo = {}
@@ -1779,6 +1801,7 @@ cpa.lock.reduceUselessLocks = false
 cpa.lock.refinement = false
 
 # stop path exploration if a lock limit is reached
+cpa.lock.stopAfterLockLimit = true
 cpa.lock.stopAfterLockLimit = false
 
 # Consider or not special cases with empty lock sets
@@ -1915,6 +1938,16 @@ cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
 
+# whether the resulting Points-To map needs to be printed into file
+cpa.pointer2.noOutput = true
+
+# name of a file containing information on pointer relations
+cpa.pointer2.precisionFile = "TrackedPointers"
+
+# whether to use the fake locations during analysis (more precise, but also
+# slower)
+cpa.pointer2.useFakeLocs = false
+
 # which merge operator to use for PointerACPA
 cpa.pointerA.merge = "JOIN"
   allowed values: [SEP, JOIN]
@@ -1980,6 +2013,9 @@ cpa.predicate.abstraction.simplify = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
 
+# Merge only effects with equal abstractions.
+cpa.predicate.abstractionLattice = false
+
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
 
@@ -1997,6 +2033,12 @@ cpa.predicate.addRangeConstraintsForNondet = false
 # can produce wrong results.
 cpa.predicate.allowedUnsupportedFunctions = {}
 
+# apply only if state is not true (relevant)
+cpa.predicate.applyOptimization = true
+
+# Apply only relevant effects.
+cpa.predicate.applyRelevantEffects = false
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -2008,6 +2050,10 @@ cpa.predicate.bam.usePrecisionReduction = true
 
 # The bitsize is used to encode integers as bitvectors.
 cpa.predicate.bitsize = 32
+
+# force abstractions at each branch node after assume edges, regardless of
+# threshold
+cpa.predicate.blk.alwaysAfterAssume = false
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
@@ -2084,6 +2130,9 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# do not consider abstraction from inference objects
+cpa.predicate.emptyAbstraction = false
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
@@ -2142,6 +2191,9 @@ cpa.predicate.handlePointerAliasing = true
 # of the char array with the contents of the string literal instead of just
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
+
+# reset shared variables values
+cpa.predicate.havocAbstraction2 = false
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced with Integer or Rational.
@@ -2219,6 +2271,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # analysis, however, the found invariants may also be better for loops as
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
+
+# Join effects into undefs or just combine assignments.
+cpa.predicate.joinEffectsIntoUndefs = true
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -2334,6 +2389,9 @@ cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
+# Path checking takes a lot of time, sometimes we need a quick result
+cpa.predicate.refinement.checkPath = true
+
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
@@ -2404,6 +2462,9 @@ cpa.predicate.refinement.newtonrefinement.liveVariables = true
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
+# use paths to effects
+cpa.predicate.refinement.performThreadEffectRefinement = false
+
 # Which predicates should be used as basis for the new precision that will be
 # attached to the refined part of the ARG:
 # ALL: Collect predicates from the complete ARG.
@@ -2416,6 +2477,9 @@ cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
+
+# recompute block formula from ARG path edges
+cpa.predicate.refinement.recomputeBlockFormulas = false
 
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
@@ -2579,6 +2643,9 @@ cpa.predicate.useConstraintOptimization = true
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
 
+# use a precise path formula manager together with imprecise
+cpa.predicate.useImpreciseFormulaManager = false
+
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
 # regions will be used for pointer analysis. BnB regions are based not only
 # on type, but also on structure field names. If the field is not accessed by
@@ -2600,6 +2667,9 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
 
+# Use undefined assignments (havoc abstraction)
+cpa.predicate.useUndefFunctions = true
+
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
 
@@ -2612,6 +2682,40 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # respective constructor. Every parameter value is finished with ",". The
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
+
+# Name of a function responsible for assignment to RCU pointers
+cpa.rcucpa.assign = "ldv_rcu_assign_pointer"
+
+# Name of a function responsible for dereferences of RCU pointers
+cpa.rcucpa.deref = "ldv_rcu_dereference"
+
+# Name of a function marking a call to a fictional read lock of RCU pointer
+cpa.rcucpa.fictReadLock = "ldv_rlock_rcu"
+
+# Name of a function marking a call to a fictional read unlock of RCU pointer
+cpa.rcucpa.fictReadUnlock = "ldv_runlock_rcu"
+
+# Name of a function marking a call to a fictional write lock of RCU pointer
+cpa.rcucpa.fictWriteLock = "ldv_wlock_rcu"
+
+# Name of a function marking a call to a fictional write unlock of RCU
+# pointer
+cpa.rcucpa.fictWriteUnlock = "ldv_wunlock_rcu"
+
+# Name of a file containing RCU pointers
+cpa.rcucpa.rcuPointersFile = "RCUPointers"
+
+# Name of a function responsible for acquiring the RCU read lock
+cpa.rcucpa.readLock = "ldv_rcu_read_lock"
+
+# Name of a function responsible for releasing the RCU read lock
+cpa.rcucpa.readUnlock = "ldv_rcu_read_unlock"
+
+# Name of a function responsible for the handling of a grace period
+cpa.rcucpa.sync = "ldv_synchronize_rcu"
+
+# name of a file to hold information about RCU pointers and their aliases
+cpa.rcusearch.output = "RCUPointers"
 
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions)
@@ -2983,8 +3087,9 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
-# Simple thread analysis from theory paper
-cpa.thread.simpleMode = false
+# Use specific mode for thread analysis
+cpa.thread.mode = BASE
+  enum:     [SIMPLE, ENVIRONMENT, BASE]
 
 # The case when the same thread is created several times we do not support.We
 # may skip or fail in this case.
@@ -2993,6 +3098,9 @@ cpa.thread.skipTheSameThread = false
 # The case when the same thread is created several times we do not support.We
 # may try to support it with self-parallelizm.
 cpa.thread.supportSelfCreation = false
+
+# Use aggressive reduction mode
+cpa.thread.useAggressiveReduction = false
 
 # allow assignments of a new thread to the same left-hand-side as an existing
 # thread.
@@ -3019,6 +3127,14 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# Instead of updating precision and arg we say that the refinement was not
+# successful after N times of refining. A real error state is not necessary
+# to be found. Use 0 for unlimited refinements (default).
+cpa.threadmodular.refinement.stopAfterNRefinements = 0
+
+# apply projections only if the state is relevant
+cpa.threadmodular.relevanceOptimization = true
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
@@ -3033,9 +3149,15 @@ cpa.uninitvars.stop = "sep"
 # functions, which stops analysis
 cpa.usage.abortfunctions = {}
 
+# bind arguments of functions with passed variables
+cpa.usage.bindArgsFunctions = false
+
 # functions, which are used to bind variables (like list elements are binded
 # to list variable)
 cpa.usage.binderFunctions = {}
+
+# a list of functions, which do not produce notes
+cpa.usage.disableNotesFor = {}
 
 # export counterexample core as text file
 cpa.usage.export.witnessTemplate = "witness.%s.graphml"
@@ -3043,8 +3165,14 @@ cpa.usage.export.witnessTemplate = "witness.%s.graphml"
 # path to write results
 cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 
+# do not use initial variable in analysis if found an alias for it
+cpa.usage.filterAliases = true
+
 # if a file do not exist, do not include the corresponding edge
-cpa.usage.filterMissedFiles = true
+cpa.usage.filterMissedFiles = false
+
+# filter unsafes, which are too similar
+cpa.usage.filterSimilarUnsafes = false
 
 # filtered unsafes, which can not be removed using precision, may be hidden
 cpa.usage.hideFilteredUnsafes = false
@@ -3057,14 +3185,16 @@ cpa.usage.output = "unsafe_rawdata"
 
 # all variables should be printed to the one file or to the different
 cpa.usage.outputType = KLEVER
-  enum:     [ETV, KLEVER, KLEVER_OLD]
+  enum:     [ETV, KLEVER, KLEVER3, KLEVER_OLD]
 
-# The way how to identify two paths as equal
-cpa.usage.pathEquality = CFANodeId
-  enum:     [ARGStateId, CFANodeId]
+# A path to precision
+cpa.usage.precision = "localsave"
 
 # The value of marked unsafes, after which the precision should be cleaned
 cpa.usage.precisionReset = Integer.MAX_VALUE
+
+# print unsafes with empty lock states
+cpa.usage.printEmptyLockStates = true
 
 # print all unsafe cases in report
 cpa.usage.printFalseUnsafes = false
@@ -3075,8 +3205,24 @@ cpa.usage.printOnlyTrueUnsafes = false
 # print found unsafes in case of unknown verdict
 cpa.usage.printUnsafesIfUnknown = true
 
+# Should we process the same blocks with covered sets of locks
+cpa.usage.processCoveredUsages = true
+
+# Disable all caching into all internal refinement blocks
+cpa.usage.refinement.disableAllCaching = false
+
+# Limit for unique iterations of iterators
+cpa.usage.refinement.iterationLimit = Integer.MAX_VALUE
+
+# The way how to identify two paths as equal
+cpa.usage.refinement.pathEquality = CFANodeId
+  enum:     [ARGStateId, CFANodeId]
+
+# Refine any inconsistency of lock states or just incompatible pairs
+cpa.usage.refinement.refineOnlyIncompatiblePairs = false
+
 # The order of refinement blocks
-cpa.usage.refinementChain = no default value
+cpa.usage.refinement.refinementChain = no default value
 
 # use single file for output or dump every error trace to its own file
 cpa.usage.singleFileOutput = false
@@ -3114,6 +3260,12 @@ cpa.usage.unsafedetector.intLock = no default value
 # defines what is unsafe
 cpa.usage.unsafedetector.unsafeMode = RACE
   enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
+
+# Use several threads for usage extraction
+cpa.usage.useConcurrentExtraction = true
+
+# use sound regions as identifiers
+cpa.usage.useSoundRegions = false
 
 # functions, which are marked as write access
 cpa.usage.writeAccessFunctions = {}
@@ -3197,7 +3349,7 @@ cpa.value.interpolation.manageCallstack = true
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP, JOIN, TRANSITIONSJOIN, TRANSITIONSSEP]
 
 # Assume that variables used only in a boolean context are either zero or
 # one.
@@ -3965,7 +4117,6 @@ pixelgraphic.export.xPadding = 2
 pixelgraphic.export.yPadding = 2
 
 # A path to a precision output
-# A path to precision
 precision.path = "localsave"
 
 # whether to track relevant variables only at the exact program location

@@ -17,8 +17,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier.LockType;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
@@ -44,7 +43,7 @@ public abstract class AbstractLockState
   public abstract Object getHashCodeForState();
 
   public int getCounter(String lockName, String varName) {
-    LockIdentifier lock = LockIdentifier.of(lockName, varName, LockType.GLOBAL_LOCK);
+    LockIdentifier lock = LockIdentifier.of(lockName, varName);
     return getCounter(lock);
   }
 
@@ -67,7 +66,7 @@ public abstract class AbstractLockState
 
   public abstract AbstractLockStateBuilder builder();
 
-  public abstract Multiset<LockEffect> getDifference(AbstractLockState other);
+  public abstract Multiset<LockEffectWithId> getDifference(AbstractLockState other);
 
   @Override
   public boolean isLessOrEqual(AbstractLockState other) {
@@ -82,9 +81,5 @@ public abstract class AbstractLockState
   @Override
   public AbstractLockState join(AbstractLockState pOther) {
     throw new UnsupportedOperationException("Operation join isn't supported for LockStatisticsCPA");
-  }
-
-  protected AbstractLockState getRestoredState() {
-    return toRestore;
   }
 }

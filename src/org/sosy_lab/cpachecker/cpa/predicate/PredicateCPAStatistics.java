@@ -380,6 +380,9 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Time for unsat checks:             " + statistics.satCheckTimer + " (Calls: " + statistics.satCheckTimer.getNumberOfIntervals() + ")");
     }
     out.println();
+    put(out, 0, statistics.environmentTimer);
+    put(out, 1, statistics.relevanceTimer);
+    out.println();
     pfmgr.printStatistics(out);
     out.println();
     rmgr.printStatistics(out);

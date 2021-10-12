@@ -39,7 +39,10 @@ public class PointerState implements AbstractState {
   /**
    * The points-to map of the state.
    */
-  private final PersistentSortedMap<MemoryLocation, LocationSet> pointsToMap;
+  private PersistentSortedMap<MemoryLocation, LocationSet> pointsToMap;
+
+  // Lazy initialization
+  private ImmutableSet<MemoryLocation> knownLocations = null;
 
   /**
    * Creates a new pointer state with an empty initial points-to map.
@@ -68,6 +71,9 @@ public class PointerState implements AbstractState {
    */
   public PointerState addPointsToInformation(MemoryLocation pSource, MemoryLocation pTarget) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
+    if (previousPointsToSet == LocationSetTop.INSTANCE) {
+      return this;
+    }
     LocationSet newPointsToSet = previousPointsToSet.addElement(pTarget);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
   }
@@ -83,6 +89,9 @@ public class PointerState implements AbstractState {
    */
   public PointerState addPointsToInformation(MemoryLocation pSource, Iterable<MemoryLocation> pTargets) {
     LocationSet previousPointsToSet = getPointsToSet(pSource);
+    if (previousPointsToSet == LocationSetTop.INSTANCE) {
+      return this;
+    }
     LocationSet newPointsToSet = previousPointsToSet.addElements(pTargets);
     return new PointerState(pointsToMap.putAndCopy(pSource, newPointsToSet));
   }
@@ -104,7 +113,12 @@ public class PointerState implements AbstractState {
       return new PointerState(pointsToMap.putAndCopy(pSource, LocationSetTop.INSTANCE));
     }
     LocationSet previousPointsToSet = getPointsToSet(pSource);
-    return new PointerState(pointsToMap.putAndCopy(pSource, previousPointsToSet.addElements(pTargets)));
+    LocationSet newSet = previousPointsToSet.addElements(pTargets);
+    if (newSet == previousPointsToSet) {
+      // Including top
+      return this;
+    }
+    return new PointerState(pointsToMap.putAndCopy(pSource, newSet));
   }
 
   /**
@@ -190,7 +204,18 @@ public class PointerState implements AbstractState {
    * @return all locations known to the state.
    */
   public Set<MemoryLocation> getKnownLocations() {
-    return ImmutableSet.copyOf(Iterables.concat(pointsToMap.keySet(), FluentIterable.from(pointsToMap.values()).transformAndConcat(new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
+
+    if (knownLocations != null) {
+      return knownLocations;
+    }
+    knownLocations =
+        ImmutableSet
+            .copyOf(
+        Iterables.concat(
+            pointsToMap.keySet(),
+            FluentIterable.from(pointsToMap.values())
+                .transformAndConcat(
+                    new Function<LocationSet, Iterable<? extends MemoryLocation>>() {
 
       @Override
       public Iterable<? extends MemoryLocation> apply(LocationSet pArg0) {
@@ -201,6 +226,11 @@ public class PointerState implements AbstractState {
       }
 
     })));
+    return knownLocations;
+  }
+
+  public boolean isKnownLocation(MemoryLocation pLoc) {
+    return getKnownLocations().contains(pLoc);
   }
 
   /**
@@ -218,7 +248,14 @@ public class PointerState implements AbstractState {
       return true;
     }
     if (pO instanceof PointerState) {
-      return pointsToMap.equals(((PointerState) pO).pointsToMap);
+      PointerState other = ((PointerState) pO);
+      if (pointsToMap == other.pointsToMap) {
+        return true;
+      }
+      if (pointsToMap.equals(other.pointsToMap)) {
+        pointsToMap = other.pointsToMap;
+        return true;
+      }
     }
     return false;
   }
@@ -233,4 +270,19 @@ public class PointerState implements AbstractState {
     return pointsToMap.toString();
   }
 
+  public PointerState forget(MemoryLocation pPtr) {
+    return new PointerState(pointsToMap.removeAndCopy(pPtr));
+  }
+
+  public Set<MemoryLocation> getTrackedMemoryLocations() {
+    return pointsToMap.keySet();
+  }
+
+  public static boolean isFictionalPointer(MemoryLocation ptr) {
+    return ptr.getIdentifier().contains("##");
+  }
+
+  public int getSize() {
+    return pointsToMap.size();
+  }
 }

@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffectWithId;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
 
 public class LockPrecision implements AdjustablePrecision {
@@ -58,7 +58,7 @@ public class LockPrecision implements AdjustablePrecision {
 
     for (AbstractLockEffect e : pEffects) {
       if (!(e instanceof AcquireLockEffect || e instanceof SetLockEffect)
-          || ids.contains(((LockEffect) e).getAffectedLock())) {
+          || ids.contains(((LockEffectWithId) e).getAffectedLock())) {
         filteredEffects.add(e);
       }
     }

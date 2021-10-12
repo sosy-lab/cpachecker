@@ -15,9 +15,9 @@ import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 @SuppressWarnings("EqualsGetClass") // should be refactored
 public abstract class SingleIdentifier implements AbstractIdentifier {
 
-  protected String name;
-  protected CType type;
-  protected int dereference;
+  protected final String name;
+  protected final CType type;
+  protected final int dereference;
 
   protected SingleIdentifier(String nm, CType tp, int deref) {
     name = nm;

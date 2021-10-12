@@ -8,42 +8,35 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
-import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateAbstractionRefinementStrategy;
-import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionGlobalRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
@@ -53,132 +46,65 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
 
-  private final Map<Set<CFAEdge>, PredicatePrecision> falseCache = new HashMap<>();
-  private final Map<Set<CFAEdge>, PredicatePrecision> falseCacheForCurrentIteration = new HashMap<>();
-  //private final Multimap<SingleIdentifier, Set<CFAEdge>> idCached = LinkedHashMultimap.create();
-  private final Set<Set<CFAEdge>> trueCache = new HashSet<>();
-
-  private final Set<Set<CFAEdge>> potentialLoopTraces = new HashSet<>();
-  //Statistics
+  // Statistics
+  private StatTimer externalRefinement = new StatTimer("Time for predicate refinement");
   private StatCounter solverFailures = new StatCounter("Solver failures");
-  private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
-  private StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
+  // Number of refined and repeated paths are calculated in generic refiner
   private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
-  public PredicateRefinerAdapter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
-      ConfigurableProgramAnalysis pCpa, LogManager pLogger) throws InvalidConfigurationException {
+  public PredicateRefinerAdapter(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
+      LogManager pLogger,
+      UsageStatisticsRefinementStrategy pStrategy,
+      ARGBasedRefiner pRefiner) {
     super(wrapper);
-
-    if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
-    }
-
-    @SuppressWarnings("resource")
-    BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
-    }
-
     logger = pLogger;
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
-
-    BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
-
-    strategy =
-        new UsageStatisticsRefinementStrategy(
-            predicateCpa.getConfiguration(),
-            logger,
-            predicateCpa.getSolver(),
-            predicateCpa.getPredicateManager());
-
-    refiner = new PredicateCPARefinerFactory(pCpa)
-        .setBlockFormulaStrategy(blockFormulaStrategy)
-        .create(strategy);
+    strategy = pStrategy;
+    refiner = pRefiner;
   }
 
   @Override
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
-    RefinementResult result;
+    RefinementResult result = RefinementResult.createTrue();
 
-    Set<CFAEdge> currentPath = new HashSet<>(pInput.getInnerEdges());
+    strategy.initializeGlobalRefinement();
+    CounterexampleInfo cex = null;
 
-    if (trueCache.contains(currentPath)) {
-      //Somewhen we have already refined this path as true
-      result = RefinementResult.createTrue();
-    } else {
-      Set<CFAEdge> edgeSet = new HashSet<>(currentPath);
-      if (falseCache.containsKey(edgeSet)) {
-        PredicatePrecision previousPreds = falseCache.get(edgeSet);
-        Precision currentPrecision = getCurrentPrecision();
-        PredicatePrecision currentPreds = Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class);
-
-        if (previousPreds.calculateDifferenceTo(currentPreds) == 0) {
-          if (potentialLoopTraces.contains(edgeSet)) {
-            //Second time, we obtain it
-            numberOfrepeatedPaths.inc();
-            logger.log(Level.WARNING, "Path is repeated, BAM is looped");
-            pInput.getUsageInfo().setAsLooped();
-            result = RefinementResult.createTrue();
-            potentialLoopTraces.remove(edgeSet);
-          } else {
-            result = performPredicateRefinement(pInput);
-            logger.log(Level.WARNING, "Path is repeated, hope BAM can handle it itself");
-            //BAM can refine with updated predicate refiner, congratulate him.
-            numberOfBAMupdates.inc();
-            potentialLoopTraces.add(edgeSet);
-          }
-        } else {
-          //rerefine it to obtain new states
-          logger.log(Level.WARNING, "Path is repeated, but predicates are missed");
-          result = performPredicateRefinement(pInput);
-          //We expect the same result
-          //but in case of loop the transformation path -> set is not correct, so, there can be a true result
-          //assert result.isFalse() : "Current result is " + result;
-        }
-        //pInput.failureFlag = true;
-      } else {
-        if (falseCacheForCurrentIteration.containsKey(edgeSet)) {
-          //We refined it for other usage
-          //just return the result;
-          result = RefinementResult.createFalse();
-        } else {
-          /*if (!totalARGCleaning) {
-            subtreesRemover.addStateForRemoving((ARGState)target.getKeyState());
-            for (ARGState state : strategy.lastAffectedStates) {
-              subtreesRemover.addStateForRemoving(state);
-            }
-          }*/
-          result = performPredicateRefinement(pInput);
-        }
-      }
-    }
-    return result;
-  }
-
-  private RefinementResult performPredicateRefinement(ExtendedARGPath path) throws CPAException, InterruptedException {
-    RefinementResult result;
+    externalRefinement.start();
     try {
-      numberOfrefinedPaths.inc();
-      CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, path);
-      Set<CFAEdge> edgeSet = new HashSet<>(path.getInnerEdges());
-
-      if (!cex.isSpurious()) {
-        trueCache.add(edgeSet);
-        result = RefinementResult.createTrue();
-      } else {
-        result = RefinementResult.createFalse();
-        result.addInfo(PredicateRefinerAdapter.class, getLastAffectedStates());
-        result.addPrecision(getLastPrecision());
-        falseCacheForCurrentIteration.put(edgeSet, getLastPrecision());
-      }
+      cex = refiner.performRefinementForPath(ARGReached, pInput);
 
     } catch (IllegalStateException e) {
       // msat_solver return -1 <=> unknown
       // consider its as true;
       logger.logUserException(Level.WARNING, e, "Solver exception");
       solverFailures.inc();
-      result = RefinementResult.createUnknown();
+    } catch (RefinementFailedException e) {
+      logger.log(Level.WARNING, "Path is repeated, BAM is looped");
+      pInput.getUsageInfo().setAsLooped();
+    } catch (AssertionError e) {
+      // Sometimes the assertion is inside the solver
+      logger.log(Level.WARNING, "Assertion error in the solver: " + e.getMessage());
+      pInput.getUsageInfo().setAsLooped();
+    } finally {
+      externalRefinement.stop();
     }
+
+    if (cex != null && cex.isSpurious()) {
+      result = RefinementResult.createFalse();
+      List<ARGState> affectedStates = strategy.getLastAffectedStates();
+      if (!affectedStates.isEmpty()) {
+        // it may be, if there are no valuable interpolants: ..., true, false, ...
+        result.addInfo(PredicateRefinerAdapter.class, affectedStates);
+        PredicatePrecision lastPrecision = strategy.getNewPrecision();
+        assert (lastPrecision != null);
+        assert (!lastPrecision.isEmpty());
+        result.addPrecision(lastPrecision);
+      }
+    }
+
+    // We update the precision later
+    strategy.resetGlobalRefinement();
     return result;
   }
 
@@ -195,25 +121,16 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   @Override
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      //false cache may contain other precision
-      //It happens if we clean it for other Id and rerefine it now
-      //Just replace old precision
-      falseCacheForCurrentIteration.forEach(falseCache::put);
-      falseCacheForCurrentIteration.clear();
       ARGReached = null;
-      strategy.lastAffectedStates.clear();
-      strategy.lastAddedPrecision = null;
+      strategy.resetGlobalRefinement();
     }
   }
 
   @Override
   protected void printAdditionalStatistics(StatisticsWriter pOut) {
-    pOut.beginLevel()
-        .put(numberOfrefinedPaths)
-        .put(numberOfrepeatedPaths)
+    pOut.put(externalRefinement)
         .put(solverFailures)
-        .put(numberOfBAMupdates)
-        .put("Size of false cache", falseCache.size());
+        .put(numberOfBAMupdates);
   }
 
   @Override
@@ -224,31 +141,23 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     super.collectStatistics(pStats);
   }
 
-  private List<ARGState> getLastAffectedStates() {
-    return strategy.lastAffectedStates;
-  }
-
-  private PredicatePrecision getLastPrecision() {
-    return strategy.lastAddedPrecision;
-  }
-
-  private Precision getCurrentPrecision() {
-    return ARGReached.asReachedSet().getPrecision(ARGReached.asReachedSet().getFirstState());
-  }
-
   private void updateReachedSet(ReachedSet pReached) {
     ARGReached = new ARGReachedSet(pReached);
   }
 
-  protected static class UsageStatisticsRefinementStrategy extends BAMPredicateAbstractionRefinementStrategy {
+  public static class UsageStatisticsRefinementStrategy
+      extends PredicateAbstractionGlobalRefinementStrategy {
 
-    private List<ARGState> lastAffectedStates = new ArrayList<>();
-    private PredicatePrecision lastAddedPrecision;
+    private List<ARGState> affectedStates = new ArrayList<>();
+    private Function<ARGState, ARGState> transformer;
 
-    public UsageStatisticsRefinementStrategy(final Configuration config, final LogManager logger,
+    public UsageStatisticsRefinementStrategy(
+        final Configuration config,
+        final LogManager logger,
         final Solver pSolver,
-        final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
-      super(config, logger, pSolver, pPredAbsMgr);
+        final PredicateAbstractionManager pPredAbsMgr, Function<ARGState, ARGState> pTransformer) throws InvalidConfigurationException {
+      super(config, logger, pPredAbsMgr, pSolver);
+      transformer = pTransformer;
     }
 
     @Override
@@ -260,23 +169,54 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
             boolean pRepeatedCounterexample)
         throws CPAException, InterruptedException {
 
-      super.finishRefinementOfPath(pUnreachableState, pAffectedStates, pReached, abstractionStatesTrace, pRepeatedCounterexample);
+      super.finishRefinementOfPath(
+          pUnreachableState,
+          pAffectedStates,
+          pReached,
+          abstractionStatesTrace,
+          pRepeatedCounterexample);
 
-      lastAffectedStates.clear();
-      lastAffectedStates.addAll(pAffectedStates);
+        from(pAffectedStates)
+          .transform(transformer)
+          .forEach(affectedStates::add);
+    }
+
+    public PredicatePrecision getNewPrecision() {
+      PredicatePrecision newPrecision = PredicatePrecision.empty();
+      return newPrecision.addLocalPredicates(newPredicates.entries());
     }
 
     @Override
-    protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
-      PredicatePrecision newPrecision = super.addPredicatesToPrecision(basePrecision);
-      lastAddedPrecision = (PredicatePrecision) newPrecision.subtract(basePrecision);
-      return newPrecision;
+    public void resetGlobalRefinement() {
+      super.resetGlobalRefinement();
+      affectedStates.clear();
     }
 
     @Override
-    protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot, ARGReachedSet pReached) throws InterruptedException {
-      //Do not update ARG for race analysis
+    protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
+        throws InterruptedException {
+      // Do not update ARG for race analysis
+    }
+
+    @Override
+    public List<ARGState> filterAbstractionStates(ARGPath pPath) {
+      List<ARGState> result =
+          from(pPath.asStatesList())
+              .skip(1)
+              .filter(PredicateAbstractState::containsAbstractionState)
+              .toList();
+
+      if (pPath.getLastState() != result.get(result.size() - 1)) {
+        List<ARGState> newResult = new ArrayList<>(result);
+        newResult.add(pPath.getLastState());
+        return ImmutableList.copyOf(newResult);
+      }
+
+      return result;
+    }
+
+    public List<ARGState> getLastAffectedStates() {
+      return ImmutableList.copyOf(affectedStates);
     }
   }
-
 }

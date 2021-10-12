@@ -56,7 +56,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * they all need to be refined.
  */
 @Options(prefix = "cpa.predicate")
-class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
+public class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrategy {
 
   @Option(
     secure = true,
@@ -77,7 +77,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   private boolean atomicPredicates = false;
 
   protected final LogManager logger;
-  private final FormulaManagerView fmgr;
+  protected final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
 
@@ -85,7 +85,9 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
   private StatTimer precisionUpdate = new StatTimer(StatKind.SUM, "Precision update");
   private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
 
-  private ListMultimap<CFANode, AbstractionPredicate> newPredicates;
+  protected ListMultimap<CFANode, AbstractionPredicate> newPredicates;
+  private List<CFANode> uniqueNodes;
+
   private ARGReachedSet reached;
   private ARGState refinementRoot;
 
@@ -117,6 +119,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     // thus a Multimap based on a LinkedHashMap
     // (we iterate over the keys)
     newPredicates = MultimapBuilder.linkedHashKeys().arrayListValues().build();
+    uniqueNodes = new ArrayList<>();
   }
 
   @Override
@@ -150,6 +153,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     reached = null;
     refinementRoot = null;
     newPredicates = null;
+    uniqueNodes = null;
   }
 
   @Override
@@ -158,6 +162,7 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     reached = null;
     refinementRoot = null;
     newPredicates = null;
+    uniqueNodes = null;
   }
 
   protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot)
@@ -227,7 +232,12 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
     predicateCreation.start();
-    newPredicates.putAll(extractLocation(pState), convertInterpolant(pInterpolant));
+    CFANode node = extractLocation(pState);
+    Collection<AbstractionPredicate> predicates = convertInterpolant(pInterpolant);
+    if (!newPredicates.values().containsAll(predicates)) {
+      uniqueNodes.add(node);
+    }
+    newPredicates.putAll(node, predicates);
     predicateCreation.stop();
 
     return false;
@@ -336,5 +346,20 @@ class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinementStrat
         }
       }
     }
+  }
+
+  @Override
+  public Collection<CFANode> getAllAffectedNodes() {
+    return newPredicates.keySet();
+  }
+
+  @Override
+  public Collection<CFANode> getNodesWithUniquePredicates() {
+    return uniqueNodes;
+  }
+
+  @Override
+  public int getSizeOfPrecision() {
+    return newPredicates.entries().size();
   }
 }

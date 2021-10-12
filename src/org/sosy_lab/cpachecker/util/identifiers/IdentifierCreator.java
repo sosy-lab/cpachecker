@@ -16,37 +16,49 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentifier, NoException> {
   protected int dereference;
   protected String function;
 
+  public IdentifierCreator() {
+  }
+
   public IdentifierCreator(String func) {
+    this();
+    setCurrentFunction(func);
+  }
+
+  public void setCurrentFunction(String func) {
     function = func;
   }
 
-  public static AbstractIdentifier createIdentifier(
-      CSimpleDeclaration decl, String function, int dereference) {
+  public AbstractIdentifier createIdentifier(CSimpleDeclaration decl, int pDereference) {
     Preconditions.checkNotNull(decl);
+    dereference = pDereference;
     String name = decl.getName();
     CType type = decl.getType();
 
-    if (decl instanceof CDeclaration) {
+    if (decl instanceof CVariableDeclaration) {
       if (((CDeclaration) decl).isGlobal()) {
         return new GlobalVariableIdentifier(name, type, dereference);
       } else {
         return new LocalVariableIdentifier(name, type, function, dereference);
       }
+    } else if (decl instanceof CFunctionDeclaration) {
+      return new FunctionIdentifier(name, type, dereference);
     } else if (decl instanceof CParameterDeclaration) {
       return new LocalVariableIdentifier(name, type, function, dereference);
     } else if (decl instanceof CEnumerator) {
@@ -78,7 +90,8 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     resultId1 = expression.getOperand1().accept(this);
     dereference = 0;
     resultId2 = expression.getOperand2().accept(this);
-    result = new BinaryIdentifier(resultId1, resultId2, oldDereference);
+    // to get rid of the offset in 'a + 1' and 'a[1]' expressions
+    result = getMainPart(new BinaryIdentifier(resultId1, resultId2, oldDereference));
     dereference = oldDereference;
     return result;
   }
@@ -111,7 +124,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       return new LocalVariableIdentifier(
           expression.getName(), expression.getExpressionType(), function, dereference);
     } else {
-      return createIdentifier(decl, function, dereference);
+      return createIdentifier(decl, dereference);
     }
   }
 
@@ -178,5 +191,9 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   @Override
   protected AbstractIdentifier visitDefault(CExpression pExp) {
     return new ConstantIdentifier(pExp.toASTString(), dereference);
+  }
+
+  public IdentifierCreator copy() {
+    return new IdentifierCreator();
   }
 }

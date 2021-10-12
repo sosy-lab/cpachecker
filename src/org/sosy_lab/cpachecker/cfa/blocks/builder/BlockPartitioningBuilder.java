@@ -29,8 +29,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Helper class can build a <code>BlockPartitioning</code> from a partition of a program's CFA into blocks.
@@ -40,12 +48,24 @@ public class BlockPartitioningBuilder {
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
   protected final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
+  protected final Map<CFANode, Set<LockIdentifier>> locks = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
+  protected final Map<CFANode, Set<MemoryLocation>> knownMemoryLocations = new HashMap<>();
 
-  public BlockPartitioningBuilder() {}
+  protected final LockTransferRelation lTransfer;
+  protected final PointerTransferRelation pTransfer;
+
+  public BlockPartitioningBuilder() {
+    this(null, null);
+  }
+
+  public BlockPartitioningBuilder(LockTransferRelation t, PointerTransferRelation p) {
+    lTransfer = t;
+    pTransfer = p;
+  }
 
   public BlockPartitioning build(CFA cfa) {
 
@@ -61,6 +81,8 @@ public class BlockPartitioningBuilder {
       functions.put(head, body);
       referencedVariables.put(head, collectReferencedVariables(body));
       innerFunctionCalls.put(head, collectInnerFunctionCalls(body));
+      locks.put(head, collectInnerLocks(body));
+      knownMemoryLocations.put(head, collectMemoryLocations(body));
     }
 
     // then get directly called functions and sum up all indirectly called functions
@@ -79,12 +101,19 @@ public class BlockPartitioningBuilder {
       // we collect nodes and variables from all inner function calls
       Collection<Iterable<ReferencedVariable>> variables = new ArrayList<>();
       Collection<Iterable<CFANode>> blockNodes = new ArrayList<>();
+      Collection<Iterable<LockIdentifier>> blockLocks = new ArrayList<>();
+      Collection<Iterable<MemoryLocation>> blockMemory = new ArrayList<>();
       Set<CFANode> directNodes = blockNodesMap.get(callNode);
       blockNodes.add(directNodes);
       variables.add(referencedVariablesMap.get(callNode));
+      // TODO How it is possible to miss a key?
+      blockLocks.add(locks.getOrDefault(callNode, ImmutableSet.of()));
+      blockMemory.add(knownMemoryLocations.getOrDefault(callNode, ImmutableSet.of()));
       for (FunctionEntryNode calledFunction : blockFunctionCalls.get(callNode)) {
         blockNodes.add(functions.get(calledFunction));
         variables.add(referencedVariables.get(calledFunction));
+        blockLocks.add(locks.getOrDefault(calledFunction, ImmutableSet.of()));
+        blockMemory.add(knownMemoryLocations.getOrDefault(calledFunction, ImmutableSet.of()));
       }
 
       blocks.add(
@@ -92,7 +121,9 @@ public class BlockPartitioningBuilder {
               Iterables.concat(variables),
               entry.getValue(),
               returnNodesMap.get(callNode),
-              Iterables.concat(blockNodes)));
+              Iterables.concat(blockNodes),
+              Iterables.concat(blockLocks),
+              Iterables.concat(blockMemory)));
     }
 
     return new BlockPartitioning(blocks, cfa.getMainFunction());
@@ -160,6 +191,44 @@ public class BlockPartitioningBuilder {
     for (CFANode node : pNodes) {
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
         result.add(((CFunctionCallEdge)e).getSuccessor());
+      }
+    }
+    return result.build();
+  }
+
+  private Set<LockIdentifier> collectInnerLocks(Set<CFANode> pNodes) {
+    ImmutableSet.Builder<LockIdentifier> result = ImmutableSet.builder();
+    if (lTransfer == null) {
+      return ImmutableSet.of();
+    }
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge e = node.getLeavingEdge(i);
+        result.addAll(lTransfer.getAffectedLocks(e));
+      }
+    }
+    return result.build();
+  }
+
+  private Set<MemoryLocation> collectMemoryLocations(Set<CFANode> pNodes) {
+    if (pTransfer == null) {
+      return ImmutableSet.of();
+    }
+    ImmutableSet.Builder<MemoryLocation> result = ImmutableSet.builder();
+    PointerState fstate = PointerState.INITIAL_STATE;
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); ++i) {
+        CFAEdge e = node.getLeavingEdge(i);
+        try {
+          for (AbstractState state : pTransfer
+              .getAbstractSuccessorsForEdge(fstate, SingletonPrecision.getInstance(), e)) {
+            result.addAll(((PointerState) state).getKnownLocations());
+          }
+        } catch (CPATransferException pE) {
+          continue;
+        } catch (InterruptedException pE) {
+          continue;
+        }
       }
     }
     return result.build();

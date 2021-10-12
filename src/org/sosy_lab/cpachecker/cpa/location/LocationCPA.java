@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
@@ -20,21 +21,26 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class LocationCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
+    implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA, StatisticsProvider,
+    ConfigurableProgramAnalysisTM {
 
   private final LocationStateFactory stateFactory;
 
   private LocationCPA(LocationStateFactory pStateFactory) {
-    super("sep", "sep", new LocationTransferRelation(pStateFactory));
+    super("sep", "sep", new LocationTransferRelation(pStateFactory, new LocationStatistics()));
     stateFactory = pStateFactory;
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
@@ -54,7 +60,7 @@ public class LocationCPA extends AbstractCPA
 
   @Override
   public LocationState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return stateFactory.getState(pNode);
+    return Iterables.getOnlyElement(stateFactory.getState(pNode));
   }
 
   @Override
@@ -66,5 +72,15 @@ public class LocationCPA extends AbstractCPA
                 .getAbstractSuccessorsForEdge(
                     pElement, SingletonPrecision.getInstance(), pCfaEdge));
     return successors.equals(actualSuccessors);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(((LocationTransferRelation) getTransferRelation()).getStatistics());
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new LocationApplyOperator();
   }
 }

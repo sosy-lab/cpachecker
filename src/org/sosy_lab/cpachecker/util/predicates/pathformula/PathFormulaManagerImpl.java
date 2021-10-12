@@ -18,6 +18,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,11 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -281,6 +284,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula resetSharedVariables(PathFormula pPathFormula) {
+    SSAMap oldSSA = pPathFormula.getSsa();
+    PointerTargetSet oldPts = pPathFormula.getPointerTargetSet();
+    SSAMapBuilder ssaBuilder = oldSSA.builder();
+
+    for (String var : oldSSA.allVariables()) {
+      if (var.contains("::")) {
+        // local variable
+      } else {
+        converter.makeFreshIndex(var, oldSSA.getType(var), ssaBuilder);
+      }
+    }
+    return pPathFormula.withContext(ssaBuilder.build(), oldPts);
+  }
+
+  @Override
   public PathFormula makeConjunction(List<PathFormula> pPathFormulas) {
     if (pPathFormulas.isEmpty()) {
       return makeEmptyPathFormula();
@@ -441,9 +460,39 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
 
-        FluentIterable<CFAEdge> outgoingEdges =
-            from(childrenOnPath).transform(pathElement::getEdgeToChild);
+        boolean threadModularShift =
+            AbstractStates.extractStateByType(
+                pathElement,
+                LocationStateWithEdge.class) != null;
+
+        ARGState branchingElement = null;
+        FluentIterable<CFAEdge> outgoingEdges;
+
+        // check if both children represent same CFA node (assume edges shifted)
+        // we have to do it before checking if outgoingEdges are assume edges
+
+        if (threadModularShift) {
+          // extracting correct assume edges
+          outgoingEdges = prepareThreadModularShiftedEdges(childrenOnPath);
+
+          if (outgoingEdges.isEmpty()) {
+            continue;
+          }
+
+          for (ARGState child : childrenOnPath) {
+            CFAEdge currentEdge = child.getEdgeToChild(Iterables.get(child.getChildren(), 0));
+            if (((AssumeEdge) currentEdge).getTruthAssumption()) {
+              branchingElement = child;
+            }
+          }
+        } else {
+          outgoingEdges = from(childrenOnPath).transform(pathElement::getEdgeToChild);
+          branchingElement = pathElement;
+        }
+
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+          // maybe we have to check if any of the grandchildren is a target state if branching is
+          // shifted
           if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
@@ -472,14 +521,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
 
-        Pair<ARGState,CFAEdge> key = Pair.of(pathElement, positiveEdge);
+        Pair<ARGState, CFAEdge> key = Pair.of(branchingElement, positiveEdge);
         PathFormula pf = parentFormulasOnPath.get(key);
 
         if(pf == null) {
           // create formula by edge, be sure to use the correct SSA indices!
           // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
           // it is used without PredicateCPA as well.
-          PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+          PredicateAbstractState pe =
+              AbstractStates.extractStateByType(branchingElement, PredicateAbstractState.class);
           if (pe == null) {
             logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
             return bfmgr.makeTrue();
@@ -494,6 +544,29 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     return bfmgr.and(branchingFormula);
+  }
+
+  private FluentIterable<CFAEdge>
+      prepareThreadModularShiftedEdges(final ImmutableSet<ARGState> childrenOnPath) {
+    Set<CFAEdge> edges = new HashSet<>();
+    for (ARGState child : childrenOnPath) {
+      if (child.getAppliedFrom() != null) {
+        // We do not need branching formula for applied effects
+        return FluentIterable.of();
+      }
+      for (ARGState grandchild : child.getChildren()) {
+        CFAEdge currentEdge = child.getEdgeToChild(grandchild);
+        if (currentEdge != null) {
+          if (currentEdge instanceof CFunctionCallEdge) {
+            // We do not need branching formula for a function entry point
+            // The branching on function calls is possible in thread modular case, due to shift
+            return FluentIterable.of();
+          }
+          edges.add(currentEdge);
+        }
+      }
+    }
+    return from(edges);
   }
 
   /**

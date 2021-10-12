@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.NavigableSet;
-import java.util.Set;
+import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cpa.lock.DeadLockState.DeadLockTreeNode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -39,16 +39,6 @@ public class UnsafeDetector {
     return isUnsafe((UnrefinedUsagePointSet)set);
   }
 
-  public boolean isUnsafe(Set<UsageInfo> set) {
-    return isUnsafe(preparePointSet(set));
-  }
-
-  private UnrefinedUsagePointSet preparePointSet(Set<UsageInfo> set) {
-    UnrefinedUsagePointSet tmpSet = new UnrefinedUsagePointSet();
-    set.forEach(tmpSet::add);
-    return tmpSet;
-  }
-
   private boolean isUnsafe(UnrefinedUsagePointSet set) {
     return isUnsafe(set.getTopUsages());
   }
@@ -69,13 +59,9 @@ public class UnsafeDetector {
     }
   }
 
-  public Pair<UsagePoint, UsagePoint> getUnsafePointPair(UnrefinedUsagePointSet set) {
-    return getUnsafePair(set.getTopUsages());
-  }
-
-  private boolean isUnsafe(NavigableSet<UsagePoint> points) {
+  private boolean isUnsafe(SortedSet<UsagePoint> points) {
     for (UsagePoint point1 : points) {
-      for (UsagePoint point2 : points.tailSet(point1)) {
+      for (UsagePoint point2 : points) {
         if (isUnsafePair(point1, point2)) {
           return true;
         }
@@ -86,29 +72,41 @@ public class UnsafeDetector {
 
   private Pair<UsagePoint, UsagePoint> getUnsafePair(NavigableSet<UsagePoint> set) {
 
+    Pair<UsagePoint, UsagePoint> unsafePair = null;
+
     for (UsagePoint point1 : set) {
-      for (UsagePoint point2 : set.tailSet(point1)) {
-        if (point1.equals(point2)) {
-          /* There can be an unsafe even with only one usage,
-           * but at first we find two different usages
-           */
-          continue;
-        }
+      // Operation is not commutative, not to optimize
+      for (UsagePoint point2 : set) {
         if (isUnsafePair(point1, point2)) {
-          return Pair.of(point1, point2);
+          Pair<UsagePoint, UsagePoint> newUnsafePair = Pair.of(point1, point2);
+          if (unsafePair == null || compare(newUnsafePair, unsafePair) < 0) {
+            unsafePair = newUnsafePair;
+          }
         }
       }
     }
-    // Now we find an unsafe only from one usage
-    if (!config.ignoreEmptyLockset()) {
-      for (UsagePoint point : set) {
-        if (isUnsafePair(point, point)) {
-          return Pair.of(point, point);
-        }
-      }
+    // If we can not find an unsafe here, fail
+    return unsafePair;
+  }
+
+  private int compare(Pair<UsagePoint, UsagePoint> pair1, Pair<UsagePoint, UsagePoint> pair2) {
+    int result = 0;
+    UsagePoint point1 = pair1.getFirst();
+    UsagePoint point2 = pair1.getSecond();
+    UsagePoint oPoint1 = pair2.getFirst();
+    UsagePoint oPoint2 = pair2.getSecond();
+
+    boolean isEmpty = point1.isEmpty() && point2.isEmpty();
+    boolean otherIsEmpty = oPoint1.isEmpty() && oPoint2.isEmpty();
+    if (isEmpty && !otherIsEmpty) {
+      return 1;
     }
-    //If we can not find an unsafe here, fail
-    return null;
+    if (!isEmpty && otherIsEmpty) {
+      return -1;
+    }
+    result += point1.compareTo(oPoint1);
+    result += point2.compareTo(oPoint2);
+    return result;
   }
 
   public boolean isUnsafePair(UsagePoint point1, UsagePoint point2) {
@@ -124,7 +122,7 @@ public class UnsafeDetector {
           return isDeadlockCircular(point1, point2);
 
         default:
-          throw new AssertionError("Unknown mode: " + config.getUnsafeMode());
+          throw new UnsupportedOperationException("Unknown mode: " + config.getUnsafeMode());
       }
     }
     return false;

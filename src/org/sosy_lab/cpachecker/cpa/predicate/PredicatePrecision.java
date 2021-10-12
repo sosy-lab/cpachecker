@@ -111,10 +111,15 @@ public final class PredicatePrecision implements AdjustablePrecision {
   private final ImmutableSetMultimap<CFANode, AbstractionPredicate> mLocalPredicates;
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
+  private final ImmutableSet<CFANode> completeFormulas;
 
   private static final PredicatePrecision EMPTY =
       new PredicatePrecision(
-          ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
+          ImmutableList.of(),
+          ImmutableList.of(),
+          ImmutableList.of(),
+          ImmutableList.of(),
+          ImmutableList.of());
 
   public PredicatePrecision(
       Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
@@ -122,17 +127,33 @@ public final class PredicatePrecision implements AdjustablePrecision {
       Multimap<String, AbstractionPredicate> pFunctionPredicates,
       Iterable<AbstractionPredicate> pGlobalPredicates) {
     this(
+        pLocationInstancePredicates,
+        pLocalPredicates,
+        pFunctionPredicates,
+        pGlobalPredicates,
+        ImmutableSet.of());
+  }
+
+  public PredicatePrecision(
+      Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
+      Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
+      Multimap<String, AbstractionPredicate> pFunctionPredicates,
+      Iterable<AbstractionPredicate> pGlobalPredicates,
+      Iterable<CFANode> completeFormulas) {
+    this(
         pLocationInstancePredicates.entries(),
         pLocalPredicates.entries(),
         pFunctionPredicates.entries(),
-        pGlobalPredicates);
+        pGlobalPredicates,
+        completeFormulas);
   }
 
   private PredicatePrecision(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> pLocationInstancePredicates,
       Iterable<Map.Entry<CFANode, AbstractionPredicate>> pLocalPredicates,
       Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates,
-      Iterable<AbstractionPredicate> pGlobalPredicates) {
+      Iterable<AbstractionPredicate> pGlobalPredicates,
+      Iterable<CFANode> pCompleteFormulas) {
     // We want the precision to have
     // - no duplicate predicates,
     // - deterministic order, and
@@ -155,6 +176,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
     // and makes mergeWith() and the various addSomethingPredicates() methods more efficient.
 
     mGlobalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
+
+    completeFormulas = ImmutableSet.copyOf(pCompleteFormulas);
 
     Multimap<String, AbstractionPredicate> functionPredicates =
         MultimapBuilder.treeKeys().arrayListValues().build();
@@ -211,7 +234,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         from(precisions).transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
-        from(precisions).transformAndConcat(prec -> prec.getGlobalPredicates()));
+        from(precisions).transformAndConcat(prec -> prec.getGlobalPredicates()),
+        from(precisions).transformAndConcat(prec -> prec.getNodesWithCompleteFormulas()));
   }
 
   /**
@@ -273,6 +297,10 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return mGlobalPredicates;
   }
 
+  public final ImmutableSet<CFANode> getNodesWithCompleteFormulas() {
+    return completeFormulas;
+  }
+
   /**
    * Return all predicates for one specific location in this precision.
    * @param loc A CFA location.
@@ -325,7 +353,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getLocationInstancePredicates().entries(),
         getLocalPredicates().entries(),
         Iterables.concat(getFunctionPredicates().entries(), newPredicates),
-        getGlobalPredicates());
+        getGlobalPredicates(),
+        getNodesWithCompleteFormulas());
   }
 
   /**
@@ -341,7 +370,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getLocationInstancePredicates().entries(),
         Iterables.concat(getLocalPredicates().entries(), newPredicates),
         getFunctionPredicates().entries(),
-        getGlobalPredicates());
+        getGlobalPredicates(),
+        getNodesWithCompleteFormulas());
   }
 
   /**
@@ -357,7 +387,17 @@ public final class PredicatePrecision implements AdjustablePrecision {
         Iterables.concat(getLocationInstancePredicates().entries(), newPredicates),
         getLocalPredicates().entries(),
         getFunctionPredicates().entries(),
-        getGlobalPredicates());
+        getGlobalPredicates(),
+        getNodesWithCompleteFormulas());
+  }
+
+  public PredicatePrecision addNodesWithCompleteFormulas(Collection<CFANode> newNodes) {
+    return new PredicatePrecision(
+        getLocationInstancePredicates(),
+        getLocalPredicates(),
+        getFunctionPredicates(),
+        getGlobalPredicates(),
+        Iterables.concat(getNodesWithCompleteFormulas(), newNodes));
   }
 
   /**
@@ -377,7 +417,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
             prec.getLocationInstancePredicates().entries()),
         Iterables.concat(getLocalPredicates().entries(), prec.getLocalPredicates().entries()),
         Iterables.concat(getFunctionPredicates().entries(), prec.getFunctionPredicates().entries()),
-        Iterables.concat(getGlobalPredicates(), prec.getGlobalPredicates()));
+        Iterables.concat(getGlobalPredicates(), prec.getGlobalPredicates()),
+        Iterables.concat(getNodesWithCompleteFormulas(), prec.getNodesWithCompleteFormulas()));
   }
 
   /**
@@ -490,6 +531,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
         Sets.difference(mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
         Sets.difference(mLocalPredicates.entries(), other.getLocalPredicates().entries()),
         Sets.difference(mFunctionPredicates.entries(), other.getFunctionPredicates().entries()),
-        Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()));
+        Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()),
+        Sets.difference(this.getNodesWithCompleteFormulas(), other.getNodesWithCompleteFormulas()));
   }
 }

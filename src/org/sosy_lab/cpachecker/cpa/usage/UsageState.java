@@ -12,145 +12,234 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer;
-import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
-import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
-import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
-public final class UsageState extends AbstractSerializableSingleWrapperState
-    implements LatticeAbstractState<UsageState> {
+public class UsageState extends AbstractSerializableSingleWrapperState
+    implements LatticeAbstractState<UsageState>, AbstractStateWithEdge, AliasInfoProvider {
+  /* Boilerplate code to avoid serializing this class */
 
   private static final long serialVersionUID = -898577877284268426L;
-  private TemporaryUsageStorage recentUsages;
-  // private boolean isStorageCloned;
-  private final FunctionContainer functionContainer;
-  private final transient StateStatistics stats;
+  protected final transient StateStatistics stats;
 
-  private boolean isExitState;
-  private boolean isStorageDumped;
+  protected transient ImmutableMap<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
 
-  private transient PersistentSortedMap<AbstractIdentifier, AbstractIdentifier>
-      variableBindingRelation;
-
-  private UsageState(
+  // Don't use constructors in order for UsageStateConservative to work properly.
+  // Use 'createState' method instead.
+  protected UsageState(
       final AbstractState pWrappedElement,
-      final PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
-      final TemporaryUsageStorage pRecentUsages,
-      final FunctionContainer pFuncContainer,
-      final StateStatistics pStats,
-      boolean exit) {
+      final ImmutableMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
+      final StateStatistics pStats) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
-    recentUsages = pRecentUsages;
-    functionContainer = pFuncContainer;
     stats = pStats;
-    isExitState = exit;
-    isStorageDumped = false;
+    pStats.statCounter.setNextValue(variableBindingRelation.size());
   }
 
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
-    FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(
         pWrappedElement,
-        PathCopyingPersistentTreeMap.of(),
-        new TemporaryUsageStorage(),
-        initialContainer,
-        new StateStatistics(initialContainer.getStatistics()),
-        false);
+        ImmutableMap.of(),
+        new StateStatistics());
   }
 
-  private UsageState(final AbstractState pWrappedElement, final UsageState state) {
-    this(
-        pWrappedElement,
-        state.variableBindingRelation,
-        state.recentUsages,
-        state.functionContainer,
-        state.stats,
-        state.isExitState);
-  }
-
-  public boolean containsLinks(final AbstractIdentifier id) {
-    /* Special contains!
-     *  if we have *b, map also contains **b, ***b and so on.
-     *  So, if we get **b, having (*b, c), we give *c
-     */
-    return from(Identifiers.getDereferencedIdentifiers(id))
-        .anyMatch(variableBindingRelation::containsKey);
-  }
-
-  public void put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
-    if (!id1.equals(id2)) {
-      variableBindingRelation = variableBindingRelation.putAndCopy(id1, id2);
-    }
-  }
-
-  public AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
-
-    if (!containsLinks(id)) {
-      return id;
-    }
-    /* Special get!
-     * If we get **b, having (*b, c), we give *c
-     */
-    Optional<AbstractIdentifier> linkedId =
-        Identifiers.getDereferencedIdentifiers(id).stream()
-            .filter(variableBindingRelation::containsKey)
-            .findFirst();
-
-    if (linkedId.isPresent()) {
-      AbstractIdentifier pointsFrom = linkedId.orElseThrow();
-      int delta = id.getDereference() - pointsFrom.getDereference();
-      AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
-      AbstractIdentifier pointsTo =
-          initialId.cloneWithDereference(initialId.getDereference() + delta);
-      if (this.containsLinks(pointsTo)) {
-        pointsTo = getLinksIfNecessary(pointsTo);
+  public UsageState removeInternalLinks(final String functionName) {
+    boolean noRemove = true;
+    ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
+    for (Entry<AbstractIdentifier, AbstractIdentifier> entry : variableBindingRelation.entrySet()) {
+      AbstractIdentifier key = entry.getKey();
+      if (key instanceof LocalVariableIdentifier
+          && ((LocalVariableIdentifier) key).getFunction().equals(functionName)) {
+        noRemove = false;
+      } else {
+        builder.put(entry);
       }
-      return pointsTo;
+    }
+    if (noRemove) {
+      return this;
+    }
+    return createState(this.getWrappedState(), builder.build(), stats);
+  }
+
+  public UsageState put(Collection<Pair<AbstractIdentifier, AbstractIdentifier>> newLinks) {
+    ImmutableMap<AbstractIdentifier, AbstractIdentifier> newMap = variableBindingRelation;
+
+    for (Pair<AbstractIdentifier, AbstractIdentifier> pair : newLinks) {
+      newMap = put(pair, newMap);
     }
 
-    return null;
+    if (newMap == variableBindingRelation) {
+      return this;
+    } else {
+      return createState(this.getWrappedState(), newMap, stats);
+    }
   }
 
-  public UsageState copy() {
-    return copy(this.getWrappedState());
-  }
+  private ImmutableMap<AbstractIdentifier, AbstractIdentifier> put(
+      Pair<AbstractIdentifier, AbstractIdentifier> pair,
+      ImmutableMap<AbstractIdentifier, AbstractIdentifier> newMap) {
 
-  public UsageState copy(final AbstractState pWrappedState) {
-    UsageState result = new UsageState(pWrappedState, this);
-    if (isStorageDumped) {
-      result.recentUsages = new TemporaryUsageStorage();
-      functionContainer.registerTemporaryContainer(result.recentUsages);
+    AbstractIdentifier id1 = pair.getFirst();
+    AbstractIdentifier id2 = getLinksIfNecessary(pair.getSecond());
+    ImmutableMap<AbstractIdentifier, AbstractIdentifier> result = newMap;
+
+    if (!id1.equals(id2)) {
+      AbstractIdentifier newId1 = id1.cloneWithDereference(0);
+      AbstractIdentifier newId2 =
+          id2.cloneWithDereference(id2.getDereference() - id1.getDereference());
+      ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
+      boolean new_entry = true;
+
+      // If there was already an entry with same first AbstractIdentifier in
+      // variableBindingRelation,
+      // change it.
+      for (Entry<AbstractIdentifier, AbstractIdentifier> entry : newMap.entrySet()) {
+        AbstractIdentifier key = entry.getKey();
+        if (key.equals(newId1)) {
+          if (entry.getValue().equals(newId2)) {
+            // Nothing changed
+            return result;
+          }
+          // Can not remove from builder, so have to go through a map manually
+          builder.put(newId1, newId2);
+          new_entry = false;
+        } else {
+          builder.put(entry);
+        }
+      }
+      // If this is an entry with new first AbstractIdentifier, add it.
+      if (new_entry) {
+        builder.put(newId1, newId2);
+      }
+      result = builder.build();
     }
     return result;
   }
+
+  private AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
+    /* Special get!
+     * If we get **b, having (*b, c), we give *c
+     */
+    AbstractIdentifier newId = id.cloneWithDereference(0);
+    AbstractIdentifier returnIdentifier;
+    if (variableBindingRelation.containsKey(newId)) {
+      AbstractIdentifier initialId = variableBindingRelation.get(newId);
+      AbstractIdentifier pointsTo =
+          initialId.cloneWithDereference(initialId.getDereference() + id.getDereference());
+      if (newId.compareTo(initialId.cloneWithDereference(0)) != 0) {
+        returnIdentifier = getLinksIfNecessary(pointsTo);
+      } else {
+        returnIdentifier = pointsTo;
+      }
+    } else {
+      returnIdentifier = id;
+    }
+
+    if (returnIdentifier instanceof StructureIdentifier) {
+      StructureIdentifier rid = (StructureIdentifier) returnIdentifier;
+      AbstractIdentifier newOwner = getLinksIfNecessary(rid.getOwner());
+      if (newOwner.compareTo(rid.getOwner()) != 0) {
+        returnIdentifier =
+            new StructureIdentifier(rid.getName(), rid.getType(), rid.getDereference(), newOwner);
+      }
+    }
+    return returnIdentifier;
+  }
+
+  public UsageState copy(final AbstractState pWrappedState) {
+    return new UsageState(pWrappedState, this.variableBindingRelation, this.stats);
+  }
+
+  protected UsageState createState(
+      final AbstractState pWrappedState,
+      final ImmutableMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
+      final StateStatistics pStats) {
+    return new UsageState(pWrappedState, pVarBind, pStats);
+  }
+
+  public UsageState reduced(final AbstractState pWrappedState, final String func) {
+    stats.reduceExpandTimer.start();
+
+    UsageState result = copy(pWrappedState);
+
+    ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
+    boolean newMap = false;
+    for (Entry<AbstractIdentifier, AbstractIdentifier> entry : variableBindingRelation.entrySet()) {
+      AbstractIdentifier key = entry.getKey();
+      if (key.isGlobal()) {
+        builder.put(entry);
+      } else if (key instanceof LocalVariableIdentifier
+          && ((LocalVariableIdentifier) key).getFunction().equals(func)) {
+        builder.put(entry);
+      } else {
+        newMap = true;
+      }
+    }
+    if (newMap) {
+      result.variableBindingRelation = builder.build();
+    }
+
+    stats.reducedBindungs
+        .setNextValue(variableBindingRelation.size() - result.variableBindingRelation.size());
+    stats.reduceExpandTimer.stop();
+    return result;
+  }
+
+  public UsageState
+      expanded(final AbstractState pWrappedState, final UsageState state, final String func) {
+    stats.reduceExpandTimer.start();
+
+    UsageState result = copy(pWrappedState);
+    boolean newMap = false;
+
+    ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
+    builder.putAll(state.variableBindingRelation);
+    for (Entry<AbstractIdentifier, AbstractIdentifier> entry : variableBindingRelation.entrySet()) {
+      AbstractIdentifier key = entry.getKey();
+
+      /*
+       * This code assumes that keys in variableBindingRelation are only AbstractIdentifiers of
+       * global variables and local variables of current function. If they are, the following
+       * condition guarantees absence of multiple entries with same key in builder.
+       */
+      if (key instanceof LocalVariableIdentifier
+          && !((LocalVariableIdentifier) key).getFunction().equals(func)) {
+        builder.put(entry);
+        newMap = true;
+      }
+    }
+    if (newMap) {
+      result.variableBindingRelation = builder.build();
+    }
+
+    stats.reduceExpandTimer.stop();
+    return result;
+   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
-    result = prime * result + Objects.hashCode(recentUsages);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -160,12 +249,12 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (!(obj instanceof UsageState)) {
       return false;
     }
     UsageState other = (UsageState) obj;
-    return Objects.equals(variableBindingRelation, other.variableBindingRelation)
-        && Objects.equals(recentUsages, other.recentUsages)
+    return
+        Objects.equals(variableBindingRelation, other.variableBindingRelation)
         && getWrappedState().equals(other.getWrappedState());
   }
 
@@ -199,136 +288,33 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
       return false;
     }
 
-    // in case of true, we need to copy usages
-    /*for (SingleIdentifier id : this.recentUsages.keySet()) {
-      for (UsageInfo usage : this.recentUsages.get(id)) {
-        other.addUsage(id, usage);
-      }
-    }*/
-    if (!this.recentUsages.isSubsetOf(other.recentUsages)) {
-      stats.lessTimer.stop();
-      return false;
-    }
     stats.lessTimer.stop();
     return true;
-  }
-
-  public void addUsage(final SingleIdentifier id, final UsageInfo usage) {
-    recentUsages.add(id, usage);
-  }
-
-  public void joinContainerFrom(final UsageState reducedState) {
-    stats.joinTimer.start();
-    functionContainer.join(reducedState.functionContainer);
-    stats.joinTimer.stop();
-    // Free useless memory
-    reducedState.functionContainer.clearStorages();
-  }
-
-  public void joinRecentUsagesFrom(final UsageState pState) {
-    stats.joinTimer.start();
-    recentUsages.copyUsagesFrom(pState.recentUsages);
-    stats.joinTimer.stop();
-    for (Entry<AbstractIdentifier, AbstractIdentifier> entry :
-        pState.variableBindingRelation.entrySet()) {
-      variableBindingRelation =
-          variableBindingRelation.putAndCopy(entry.getKey(), entry.getValue());
-    }
-  }
-
-  public UsageState reduce(final AbstractState wrappedState) {
-    LockState rootLockState = AbstractStates.extractStateByType(this, LockState.class);
-    LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
-    Multiset<LockEffect> difference;
-    if (rootLockState == null || reducedLockState == null) {
-      // No LockCPA
-      difference = HashMultiset.create();
-    } else {
-      difference = reducedLockState.getDifference(rootLockState);
-    }
-
-    return new UsageState(
-        wrappedState,
-        PathCopyingPersistentTreeMap.of(),
-        recentUsages.copy(),
-        functionContainer.clone(difference),
-        this.stats,
-        this.isExitState);
-  }
-
-  public void saveUnsafesInContainerIfNecessary(AbstractState abstractState) {
-    ARGState argState = AbstractStates.extractStateByType(abstractState, ARGState.class);
-    PredicateAbstractState state =
-        AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
-    if (state == null || (!state.getAbstractionFormula().isFalse() && state.isAbstractionState())) {
-      recentUsages.setKeyState(argState);
-      stats.addRecentUsagesTimer.start();
-      functionContainer.join(recentUsages);
-      stats.addRecentUsagesTimer.stop();
-      isStorageDumped = true;
-    }
-  }
-
-  public FunctionContainer getFunctionContainer() {
-    return functionContainer;
-  }
-
-  public void asExitable() {
-    // return new UsageExitableState(this);
-    isExitState = true;
   }
 
   public StateStatistics getStatistics() {
     return stats;
   }
 
-  /*@Override
-  public boolean isExitState() {
-    return isExitState;
-  }*/
-
-  /*public class UsageExitableState extends UsageState {
-
-    private static final long serialVersionUID = 1957118246209506994L;
-
-    private UsageExitableState(AbstractState pWrappedElement, UsageState state) {
-      super(pWrappedElement, state);
-    }
-
-    public UsageExitableState(UsageState state) {
-      this(state.getWrappedState(), state);
-    }
-
-    @Override
-    public UsageExitableState clone(final AbstractState wrapped) {
-      return new UsageExitableState(wrapped, this);
-    }
-
-    @Override
-    public UsageExitableState reduce(final AbstractState wrapped) {
-      return new UsageExitableState(wrapped, this);
-    }
-
-    public boolean isExitable() {
-      return true;
-    }
-  }*/
-
   public static class StateStatistics {
     private StatTimer joinTimer = new StatTimer("Time for joining");
     private StatTimer lessTimer = new StatTimer("Time for cover check");
-    private StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
+    private StatInt statCounter =
+        new StatInt(StatKind.SUM, "Sum of variableBindingRelation's sizes");
 
-    private final StorageStatistics storageStats;
+    private StatTimer reduceExpandTimer = new StatTimer("Time for reducing and expanding");
+    private StatInt reducedBindungs =
+        new StatInt(StatKind.AVG, "Average variableBindingRelation's sizes reducing");
 
-    public StateStatistics(StorageStatistics stats) {
-      storageStats = Objects.requireNonNull(stats);
-    }
+    public StateStatistics() {}
 
     public void printStatistics(StatisticsWriter out) {
-      out.spacer().put(joinTimer).put(addRecentUsagesTimer).put(lessTimer);
-
-      storageStats.printStatistics(out);
+      out.spacer()
+          .put(joinTimer)
+          .put(lessTimer)
+          .put(statCounter)
+          .put(reduceExpandTimer)
+          .put(reducedBindungs);
     }
   }
 
@@ -336,19 +322,73 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     return AbstractStates.extractStateByType(state, UsageState.class);
   }
 
+
   @Override
-  public UsageState join(UsageState pOther) {
-    throw new UnsupportedOperationException(
-        "Join is not supported for usage states, use merge operator");
+  public Set<AbstractIdentifier> getAllPossibleAliases(AbstractIdentifier id) {
+    AbstractIdentifier newId = getLinksIfNecessary(id);
+    if (newId != id) {
+      return ImmutableSet.of(newId);
+    } else {
+      return ImmutableSet.of();
+    }
   }
 
-  Object readResolve() {
-    return new UsageState(
+  @Override
+  public void filterAliases(AbstractIdentifier pIdentifier, Collection<AbstractIdentifier> pSet) {
+    AbstractIdentifier newId = getLinksIfNecessary(pIdentifier);
+    if (newId != pIdentifier) {
+      pSet.remove(pIdentifier);
+    }
+  }
+
+  @Override
+  public UsageState join(UsageState pOther) {
+    stats.joinTimer.start();
+
+    ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> newRelation =
+        ImmutableMap.builder();
+    newRelation.putAll(variableBindingRelation);
+
+    for (Entry<AbstractIdentifier, AbstractIdentifier> entry : pOther.variableBindingRelation
+        .entrySet()) {
+
+      if (variableBindingRelation.containsKey(entry.getKey())) {
+        if (!variableBindingRelation.get(entry.getKey()).equals(entry.getValue())) {
+          throw new UnsupportedOperationException(
+              "Joining states with the same variable binded to the different variables is not supported yet");
+        }
+      } else {
+        newRelation.put(entry.getKey(), entry.getValue());
+      }
+    }
+    stats.joinTimer.stop();
+    return createState(this.getWrappedState(), newRelation.build(), stats);
+  }
+
+  protected Object readResolve() {
+    return createState(
         getWrappedState(),
-        PathCopyingPersistentTreeMap.of(),
-        this.recentUsages,
-        this.functionContainer,
-        new StateStatistics(this.functionContainer.getStatistics()),
-        this.isExitState);
+        ImmutableMap.of(),
+        new StateStatistics());
+  }
+
+  @Override
+  public AbstractEdge getAbstractEdge() {
+    return ((AbstractStateWithEdge) getWrappedState()).getAbstractEdge();
+  }
+
+  @Override
+  public boolean hasEmptyEffect() {
+    return ((AbstractStateWithEdge) getWrappedState()).hasEmptyEffect();
+  }
+
+  @Override
+  public boolean isProjection() {
+    AbstractState wrapped = getWrappedState();
+    if (wrapped instanceof AbstractStateWithEdge) {
+      return ((AbstractStateWithEdge) wrapped).isProjection();
+    } else {
+      return false;
+    }
   }
 }

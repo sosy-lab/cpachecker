@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateWithEdge;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.GraphUtils;
@@ -511,14 +512,26 @@ public class ARGUtils {
         ARGState falseChild = null;
 
           Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          if (Iterables.any(
+
+        // assume edges can be shifted, check for that
+        boolean threadModularShift =
+              AbstractStates
+                  .extractStateByType(currentElement, LocationStateWithEdge.class) != null;
+
+          if (!threadModularShift && Iterables.any(
               locs, loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class)))) {
           throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
         }
 
         for (ARGState currentChild : childrenInArg) {
-          CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
+          ARGState branchingParent = threadModularShift ? currentChild : currentElement;
+          ARGState branchingChild =
+              threadModularShift ? Iterables.get(currentChild.getChildren(), 0) : currentChild;
+          CFAEdge branchingEdge = branchingParent.getEdgeToChild(branchingChild);
+          CFAEdge currentEdge =
+              threadModularShift ? currentElement.getEdgeToChild(currentChild) : branchingEdge;
+
+          if (((AssumeEdge) branchingEdge).getTruthAssumption()) {
             trueEdge = currentEdge;
             trueChild = currentChild;
           } else {
@@ -658,7 +671,8 @@ public class ARGUtils {
       for (ARGState parent : e.getParents()) {
         assert parent.getChildren().contains(e)
             : "Reference from parent to child is missing in ARG";
-        assert pReached.contains(parent) : "Referenced parent is missing in reached";
+        assert pReached.contains(parent)
+            || parent.getAppliedFrom() != null : "Referenced parent is missing in reached";
       }
 
       for (ARGState child : e.getChildren()) {
@@ -674,6 +688,7 @@ public class ARGUtils {
         if (!pReached.contains(child)) {
           assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
               || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+              || child.getAppliedFrom() != null
               : "Referenced child is missing in reached set.";
         }
       }

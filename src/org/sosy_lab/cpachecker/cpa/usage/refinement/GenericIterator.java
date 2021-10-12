@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -21,13 +24,15 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   private StatTimer totalTimer = new StatTimer("Time for generic iterator");
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
-  PredicatePrecision completePrecision;
+  Iterable<AdjustablePrecision> completePrecisions;
+  private final ShutdownNotifier shutdownNotifier;
 
   // Some iterations may be postponed to the end (complicated ones)
   List<O> postponedIterations = new ArrayList<>();
 
-  protected GenericIterator(ConfigurableRefinementBlock<O> pWrapper) {
+  protected GenericIterator(ConfigurableRefinementBlock<O> pWrapper, ShutdownNotifier pNotifier) {
     super(pWrapper);
+    shutdownNotifier = pNotifier;
   }
 
   @Override
@@ -36,12 +41,13 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     O iteration;
 
     totalTimer.start();
-    completePrecision = PredicatePrecision.empty();
+    completePrecisions = ImmutableSet.of();
     RefinementResult result = RefinementResult.createFalse();
     init(pInput);
 
     try {
       while ((iteration = getNext(pInput)) != null) {
+        shutdownNotifier.shutdownIfNecessary();
         result = iterate(iteration);
         if (result.isTrue()) {
           return result;
@@ -49,18 +55,21 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       }
       //Check postponed iterations
       for (O i : postponedIterations) {
+        shutdownNotifier.shutdownIfNecessary();
         result = iterate(i);
         if (result.isTrue()) {
           return result;
         }
       }
-      result.addPrecision(completePrecision);
+      result.addPrecisions(completePrecisions);
       return result;
     } finally {
       finish(pInput, result);
+      completePrecisions = ImmutableSet.of();
       sendFinishSignal();
       postponedIterations.clear();
       totalTimer.stop();
+      shutdownNotifier.shutdownIfNecessary();
     }
   }
 
@@ -70,14 +79,11 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
 
     if (result.isTrue()) {
       //Finish iteration, the race is found
-      result.addPrecision(completePrecision);
+      result.addPrecisions(completePrecisions);
       return result;
     }
 
-    PredicatePrecision precision = result.getPrecision();
-    if (precision != null) {
-      completePrecision = completePrecision.mergeWith(precision);
-    }
+    completePrecisions = Iterables.concat(completePrecisions, result.getPrecisions());
 
     finishIteration(iteration, result);
     return result;

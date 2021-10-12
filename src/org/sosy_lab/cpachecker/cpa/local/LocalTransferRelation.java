@@ -12,14 +12,17 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -33,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -90,9 +94,23 @@ public class LocalTransferRelation
 
   private final Map<String, Integer> allocateInfo;
 
-  public LocalTransferRelation(Configuration config) throws InvalidConfigurationException {
+  private final LocalStatistics stats;
+
+  public LocalTransferRelation(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
     allocateInfo = from(allocate).toMap(f -> getNumOrDefault(config, f));
+    stats = new LocalStatistics(config, pLogger);
+  }
+
+  public LocalStatistics getStatistics() {
+    return stats;
+  }
+
+  @Override
+  protected Collection<LocalState> postProcessing(@Nullable LocalState successor, CFAEdge edge) {
+    stats.registerState(successor, edge.getSuccessor());
+    return super.postProcessing(successor, edge);
   }
 
   @SuppressWarnings("deprecation")
@@ -188,7 +206,7 @@ public class LocalTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> parameterTypes,
       String calledFunctionName) {
-    LocalState newState = LocalState.createNextLocalState(state);
+    LocalState newState = state.createNextLocalState();
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
@@ -213,6 +231,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
+
     LocalState newState = state.copy();
     if (statement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
@@ -229,7 +248,8 @@ public class LocalTransferRelation
       CInitializer init = ((CVariableDeclaration) decl).getInitializer();
 
       int deref = findDereference(decl.getType());
-      AbstractIdentifier id = IdentifierCreator.createIdentifier(decl, getFunctionName(), 0);
+      IdentifierCreator idCreator = new IdentifierCreator(getFunctionName());
+      AbstractIdentifier id = idCreator.createIdentifier(decl, 0);
       CType type = decl.getType();
       if (type instanceof CComplexType) {
         if (type instanceof CElaboratedType) {
@@ -272,12 +292,12 @@ public class LocalTransferRelation
 
     } else if (isConservativeFunction) {
 
-      List<CExpression> parameters = right.getParameterExpressions();
       // Usually it looks like 'priv = netdev_priv(dev)'
       // Other cases will be handled if they appear
-      CExpression targetParam = parameters.get(0);
+      CParameterDeclaration decl = right.getDeclaration().getParameters().get(0);
       // TODO How it works with *a = f(b) ?
-      AbstractIdentifier paramId = createId(targetParam, dereference);
+      LocalVariableIdentifier paramId =
+          new LocalVariableIdentifier(decl.getName(), decl.getType(), funcName, dereference);
       alias(pSuccessor, leftId, paramId);
       return true;
     }
@@ -400,6 +420,8 @@ public class LocalTransferRelation
   }
 
   private DataType getMemoryType(AbstractIdentifier id) {
+    // Use state-field, as it is not updated properly at return edges and we need to extract the
+    // value of an inner variable
     DataType type = state.getType(id);
     if (type == null) {
       if (id instanceof ConstantIdentifier) {

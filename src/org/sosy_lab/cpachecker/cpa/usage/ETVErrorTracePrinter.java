@@ -14,8 +14,8 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -87,7 +87,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   }
 
   @Override
-  protected void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pPair) {
+  protected void printUnsafe(
+      SingleIdentifier id, Pair<UsageInfo, UsageInfo> pPair, boolean refined) {
     File name = new File("output/ErrorPath." + createUniqueName(id) + ".txt");
     Writer writer;
     try {
@@ -108,9 +109,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       }
       writer.append(id.getDereference() + "\n");
       writer.append(id.getType().toASTString(id.getName()) + "\n");
-      // if (isTrueUnsafe) {
-      //  writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0" + "\n");
-      // }
+      if (refined) {
+        writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0" + "\n");
+      }
       // writer.append("Line 0:     N0 -{/*Number of usage points:" +
       // uinfo.getNumberOfTopUsagePoints() + "*/}-> N0" + "\n");
       // writer.append("Line 0:     N0 -{/*Number of usages      :" + uinfo.size() + "*/}-> N0" +
@@ -122,6 +123,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       if (!singleFileOutput) {
         writer.close();
       }
+      printedUnsafes.inc();
     } catch (IOException e) {
       logger.logfUserException(Level.WARNING, e, "I/O error while printing unsafe %s", id);
     }
@@ -138,16 +140,12 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     if (usage.isLooped()) {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
     }
-    List<CFAEdge> path = getPath(usage);
-    if (path == null) {
-      return;
-    }
     int callstackDepth = 1;
     /*
      * We must use iterator to be sure, when is the end of the list.
      * I tried to check the edge, it is the last, but it can be repeated during the sequence
      */
-    Iterator<CFAEdge> iterator = path.iterator();
+    Iterator<CFAEdge> iterator = getPathIterator(usage);
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
       if (edge == null || edge instanceof CDeclarationEdge) {
@@ -168,7 +166,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         callstackDepth--;
       }
       String caption = getNoteFor(edge);
-      if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
+      if (caption != null && !caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       } else if (Objects.equals(edge.getSuccessor(), usage.getCFANode())
@@ -181,6 +179,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       writer.append("Line 0:     N0 -{return;}-> N0\n");
     }
     writer.write("\n");
+
+    logger.log(Level.ALL, "Print usage: ", usage);
   }
 
   private void printCountStatistics(

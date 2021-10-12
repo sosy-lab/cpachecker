@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -51,6 +52,12 @@ public class PredicateCPARefinerFactory {
   )
   private boolean performInitialStaticRefinement = false;
 
+  @Option(secure = true, description = "use paths to effects")
+  private boolean performThreadEffectRefinement = false;
+
+  @Option(secure = true, description = "recompute block formula from ARG path edges")
+  private boolean recomputeBlockFormulas = false;
+
   private final PredicateCPA predicateCpa;
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
@@ -66,6 +73,13 @@ public class PredicateCPARefinerFactory {
       throws InvalidConfigurationException {
     predicateCpa = CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
+  }
+
+  public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    predicateCpa =
+        CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
+    pConfig.inject(this);
   }
 
   /**
@@ -98,13 +112,18 @@ public class PredicateCPARefinerFactory {
     return this;
   }
 
+  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy)
+      throws InvalidConfigurationException {
+    return create(pRefinementStrategy, predicateCpa.getPathFormulaManager());
+  }
+
   /**
    * Create a {@link PredicateCPARefiner}.
    * This factory can be reused afterwards.
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
    */
-  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy)
+  public ARGBasedRefiner create(RefinementStrategy pRefinementStrategy, PathFormulaManager pfmgr)
       throws InvalidConfigurationException {
     checkNotNull(pRefinementStrategy);
 
@@ -112,7 +131,6 @@ public class PredicateCPARefinerFactory {
     LogManager logger = predicateCpa.getLogger();
     ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
     Solver solver = predicateCpa.getSolver();
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
     CFA cfa = predicateCpa.getCfa();
     MachineModel machineModel = cfa.getMachineModel();
@@ -147,9 +165,44 @@ public class PredicateCPARefinerFactory {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
         bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
+      } else if (recomputeBlockFormulas) {
+        bfs = new RecomputeBlockFormulaStrategy(pfmgr);
       } else {
         bfs = new BlockFormulaStrategy();
       }
+    }
+
+    if (performThreadEffectRefinement) {
+      // TODO
+      bfs = new ThreadEffectBlockFormulaStrategy(solver.getFormulaManager(), pfmgr);
+
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder = configBuilder.copyFrom(config);
+      // We can not use checking paths, as the path contains two parts: to target state and to an
+      // effect. So, the full path will contain interleaving, which causes problems
+      configBuilder.setOption("cpa.predicate.refinement.checkPath", "false");
+      Configuration newConfig = configBuilder.build();
+
+      GlobalRefinementStrategy strategy =
+          new ThreadEffectRefinementStrategy(
+              newConfig,
+              logger,
+              predicateCpa.getPredicateManager(),
+              solver);
+      return
+          new PredicateThreadEffectRefiner(
+              newConfig,
+              logger,
+              loopStructure,
+              bfs,
+              solver,
+              pfmgr,
+              interpolationManager,
+              pathChecker,
+              prefixProvider,
+              prefixSelector,
+              invariantsManager,
+              strategy);
     }
 
     ARGBasedRefiner refiner =
@@ -183,6 +236,15 @@ public class PredicateCPARefinerFactory {
               refiner);
     }
 
+    return refiner;
+  }
+
+  public ARGBasedRefiner createGlobalRefiner(RefinementStrategy pStrategy)
+      throws InvalidConfigurationException {
+    boolean store = recomputeBlockFormulas;
+    recomputeBlockFormulas = true;
+    ARGBasedRefiner refiner = create(pStrategy);
+    recomputeBlockFormulas = store;
     return refiner;
   }
 }

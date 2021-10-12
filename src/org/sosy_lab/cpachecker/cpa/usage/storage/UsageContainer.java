@@ -11,31 +11,23 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -45,249 +37,126 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class UsageContainer {
   private final NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
   private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
-  private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> failedIds;
+
+  private Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> stableUnsafes = new TreeMap<>();
 
   private final UnsafeDetector detector;
 
-  private final Set<SingleIdentifier> falseUnsafes;
+  private Set<SingleIdentifier> falseUnsafes;
+  private Set<SingleIdentifier> initialUnsafes;
 
-  private final Set<SingleIdentifier> processedUnsafes = new HashSet<>();
-  //Only for statistics
-  private Set<SingleIdentifier> initialSet = null;
-  private int initialUsages;
+  // Only for statistics
+  private int initialUsages = 0;
 
   private final LogManager logger;
-  private final UsageConfiguration config;
 
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
-  private final StatTimer copyTimer = new StatTimer("Time for filling global container");
-  private final StatTimer emptyEffectsTimer = new StatTimer("Time for coping usages");
+  private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
+  private final StatTimer searchingInCachesTimer = new StatTimer("Time for searching in caches");
+  private final StatTimer addingToSetTimer = new StatTimer("Time for adding to usage point set");
+  private final StatCounter sharedVariables =
+      new StatCounter("Number of detected shared variables");
 
-  int unsafeUsages = -1;
-  int totalIds = 0;
+  private boolean usagesCalculated = false;
+  private boolean oneTotalIteration = false;
 
-  public UsageContainer(UsageConfiguration config, LogManager l, UnsafeDetector unsafeDetector) {
-    this(
-        new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeSet<SingleIdentifier>(),
-        l,
-        config,
-        unsafeDetector);
+  public UsageContainer(UsageConfiguration pConfig, LogManager l) {
+    unrefinedIds = new ConcurrentSkipListMap<>();
+    refinedIds = new TreeMap<>();
+    falseUnsafes = new TreeSet<>();
+    logger = l;
+    detector = new UnsafeDetector(pConfig);
   }
 
-  private UsageContainer(
-      NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
-      NavigableMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
-      NavigableMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
-      Set<SingleIdentifier> pFalseUnsafes,
-      LogManager pLogger,
-      UsageConfiguration pConfig,
-      UnsafeDetector pDetector) {
-    unrefinedIds = pUnrefinedStat;
-    refinedIds = pRefinedStat;
-    failedIds = failedStat;
-    falseUnsafes = pFalseUnsafes;
-    logger = pLogger;
-    config = pConfig;
-    detector = pDetector;
-  }
-
-  public void initContainerIfNecessary(FunctionContainer storage) {
-    if (unsafeUsages == -1) {
-      copyTimer.start();
-      Set<Pair<FunctionContainer, Multiset<LockEffect>>> processedContainers = new HashSet<>();
-      Deque<Pair<FunctionContainer, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
-      Pair<FunctionContainer, Multiset<LockEffect>> first = Pair.of(storage, HashMultiset.create());
-      waitlist.add(first);
-
-      while (!waitlist.isEmpty()) {
-        Pair<FunctionContainer, Multiset<LockEffect>> currentPair = waitlist.pollFirst();
-
-        if (!processedContainers.contains(currentPair)) {
-          FunctionContainer currentContainer = currentPair.getFirst();
-          Multiset<LockEffect> currentEffects = currentPair.getSecond();
-
-          Multiset<LockEffect> newEffects = HashMultiset.create();
-          newEffects.addAll(currentEffects);
-          newEffects.addAll(currentContainer.getLockEffects());
-
-          copyUsages(currentContainer, newEffects);
-          processedContainers.add(currentPair);
-
-          if (newEffects.equals(currentEffects)) {
-            newEffects = currentEffects;
-          }
-          for (FunctionContainer container : currentContainer.getContainers()) {
-            waitlist.add(Pair.of(container, newEffects));
-          }
-        }
-      }
-
-      calculateUnsafesIfNecessary();
-      copyTimer.stop();
+  public void add(UsageInfo pUsage) {
+    SingleIdentifier id = pUsage.getId();
+    if (id instanceof StructureIdentifier) {
+      id = ((StructureIdentifier) id).toStructureFieldIdentifier();
     }
-  }
-
-  public void forceAddNewUsages(TemporaryUsageStorage storage) {
-    //This is a case of 'abort'-functions
-    assert (unsafeUsages == -1);
-    copyUsages(storage);
-  }
-
-  private void copyUsages(AbstractUsageStorage storage) {
-    emptyEffectsTimer.start();
-    for (Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : storage.entrySet()) {
-      SingleIdentifier id = entry.getKey();
-
-      if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
-        continue;
-      }
-      UnrefinedUsagePointSet uset = getSet(id);
-
-      for (UsageInfo uinfo : entry.getValue()) {
-        if (uinfo.getKeyState() != null) {
-          uset.add(uinfo);
-        }
-      }
-    }
-    emptyEffectsTimer.stop();
-  }
-
-  private void copyUsages(FunctionContainer storage, Multiset<LockEffect> currentEffects) {
-    if (currentEffects.isEmpty()) {
-      copyUsages(storage);
-    } else {
-      Map<LockState, LockState> reduceToExpand = new HashMap<>();
-
-      for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : storage.entrySet()) {
-        SingleIdentifier id = entry.getKey();
-
-        if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
-          continue;
-        }
-        UnrefinedUsagePointSet uset = getSet(id);
-
-        LockState locks, expandedLocks;
-        for (UsageInfo uinfo : entry.getValue()) {
-          if (uinfo.getKeyState() == null) {
-            // TODO what should we do?
-            continue;
-          }
-          locks = (LockState) uinfo.getLockState();
-          if (reduceToExpand.containsKey(locks)) {
-            expandedLocks = reduceToExpand.get(locks);
-          } else {
-            LockStateBuilder builder = locks.builder();
-            currentEffects.forEach(e -> e.effect(builder));
-            expandedLocks = builder.build();
-            reduceToExpand.put(locks, expandedLocks);
-          }
-          uset.add(uinfo.expand(expandedLocks));
-        }
-      }
-    }
-  }
-
-  private UnrefinedUsagePointSet getSet(SingleIdentifier id) {
-    assert (!falseUnsafes.contains(id) || !refinedIds.containsKey(id));
 
     UnrefinedUsagePointSet uset;
+
+    // searchingInCachesTimer.start();
+    if (oneTotalIteration && !unrefinedIds.containsKey(id)) {
+      // searchingInCachesTimer.stop();
+      return;
+    }
+
     if (!unrefinedIds.containsKey(id)) {
       uset = new UnrefinedUsagePointSet();
-      unrefinedIds.put(id, uset);
+      // It is possible, that someone place the set after check
+      UnrefinedUsagePointSet present = unrefinedIds.putIfAbsent(id, uset);
+      if (present != null) {
+        uset = present;
+      }
     } else {
       uset = unrefinedIds.get(id);
     }
-    return uset;
+    // searchingInCachesTimer.stop();
+
+    // addingToSetTimer.start();
+    uset.add(pUsage);
+    // addingToSetTimer.stop();
   }
 
   private void calculateUnsafesIfNecessary() {
-    if (unsafeUsages == -1) {
-      processedUnsafes.clear();
-      unsafeUsages = 0;
-      Set<SingleIdentifier> toDelete = new HashSet<>();
+    if (!usagesCalculated) {
+      unsafeDetectionTimer.start();
+      usagesCalculated = true;
 
-      for (Entry<SingleIdentifier, UnrefinedUsagePointSet> entry : unrefinedIds.entrySet()) {
+      Iterator<Entry<SingleIdentifier, UnrefinedUsagePointSet>> iterator =
+          unrefinedIds.entrySet().iterator();
+      while (iterator.hasNext()) {
+        Entry<SingleIdentifier, UnrefinedUsagePointSet> entry = iterator.next();
         UnrefinedUsagePointSet tmpList = entry.getValue();
         if (detector.isUnsafe(tmpList)) {
-          unsafeUsages += tmpList.size();
+          if (!oneTotalIteration) {
+            initialUsages += tmpList.size();
+          }
         } else {
-          SingleIdentifier id = entry.getKey();
-          toDelete.add(id);
-          falseUnsafes.add(id);
+          if (!oneTotalIteration) {
+            sharedVariables.inc();
+          }
+          iterator.remove();
         }
       }
-      toDelete.forEach(this::removeIdFromCaches);
 
-      refinedIds.forEach((id, list) -> unsafeUsages += list.size());
-
-      if (initialSet == null) {
-        assert refinedIds.isEmpty();
-        initialSet = new HashSet<>(unrefinedIds.keySet());
-        initialUsages = unsafeUsages;
+      if (!oneTotalIteration) {
+        initialUnsafes = new TreeSet<>(unrefinedIds.keySet());
+      } else {
+        falseUnsafes = new TreeSet<>(initialUnsafes);
+        falseUnsafes.removeAll(unrefinedIds.keySet());
+        falseUnsafes.removeAll(refinedIds.keySet());
       }
-    }
-  }
 
-  private void removeIdFromCaches(SingleIdentifier id) {
-    unrefinedIds.remove(id);
-    processedUnsafes.add(id);
+      unsafeDetectionTimer.stop();
+    }
   }
 
   public Set<SingleIdentifier> getFalseUnsafes() {
-    Set<SingleIdentifier> currentUnsafes = getAllUnsafes();
-    return Sets.difference(initialSet, currentUnsafes);
-  }
-
-  private Set<SingleIdentifier> getAllUnsafes() {
-    calculateUnsafesIfNecessary();
-    Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
-    result.addAll(refinedIds.keySet());
-    result.addAll(failedIds.keySet());
-    return result;
+    return falseUnsafes;
   }
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
-    if (config.printOnlyTrueUnsafes()) {
-      return getTrueUnsafeIterator();
-    } else {
-      return getAllUnsafes().iterator();
-    }
-  }
-
-  public Iterator<SingleIdentifier> getUnrefinedUnsafeIterator() {
-    //New set to avoid concurrent modification exception
-    return getKeySetIterator(unrefinedIds);
-  }
-
-  private Iterator<SingleIdentifier> getTrueUnsafeIterator() {
-    //New set to avoid concurrent modification exception
-    return getKeySetIterator(refinedIds);
-  }
-
-  private Iterator<SingleIdentifier> getKeySetIterator(
-      NavigableMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
-    Set<SingleIdentifier> result = new TreeSet<>(map.keySet());
+    calculateUnsafesIfNecessary();
+    Set<SingleIdentifier> result = new TreeSet<>(refinedIds.keySet());
+    result.addAll(unrefinedIds.keySet());
     return result.iterator();
   }
 
-  public int getUnsafeSize() {
-    calculateUnsafesIfNecessary();
-    if (config.printOnlyTrueUnsafes()) {
-      return refinedIds.size();
-    } else {
-      return getTotalUnsafeSize();
-    }
+  public Iterator<SingleIdentifier> getUnrefinedUnsafeIterator() {
+    // New set to avoid concurrent modification exception
+    Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
+    return result.iterator();
   }
 
   public int getTotalUnsafeSize() {
-    return unrefinedIds.size() + refinedIds.size() + failedIds.size();
+    calculateUnsafesIfNecessary();
+    return unrefinedIds.size() + refinedIds.size();
   }
 
   public int getProcessedUnsafeSize() {
-    return refinedIds.size() + failedIds.size();
+    return refinedIds.size();
   }
 
   public UnsafeDetector getUnsafeDetector() {
@@ -296,9 +165,9 @@ public class UsageContainer {
 
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
-    unsafeUsages = -1;
-    unrefinedIds.values()
-      .forEach(UnrefinedUsagePointSet::reset);
+    usagesCalculated = false;
+    oneTotalIteration = true;
+    unrefinedIds.forEach((k, v) -> v.reset());
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }
@@ -311,16 +180,14 @@ public class UsageContainer {
   public AbstractUsagePointSet getUsages(SingleIdentifier id) {
     if (unrefinedIds.containsKey(id)) {
       return unrefinedIds.get(id);
-    } else if (refinedIds.containsKey(id)){
-      return refinedIds.get(id);
     } else {
-      return failedIds.get(id);
+      return refinedIds.get(id);
     }
   }
 
   public void setAsFalseUnsafe(SingleIdentifier id) {
     falseUnsafes.add(id);
-    removeIdFromCaches(id);
+    unrefinedIds.remove(id);
   }
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
@@ -330,17 +197,15 @@ public class UsageContainer {
         "Refinement is successful, but the unsafe is absent for identifier %s",
         id);
 
-    setAsRefined(id, result.getTrueRace().getFirst(), result.getTrueRace().getSecond());
-  }
+    UsageInfo firstUsage = result.getTrueRace().getFirst();
+    UsageInfo secondUsage = result.getTrueRace().getSecond();
 
-  public void setAsRefined(SingleIdentifier id, UsageInfo firstUsage, UsageInfo secondUsage) {
     RefinedUsagePointSet rSet = RefinedUsagePointSet.create(firstUsage, secondUsage);
-    if (firstUsage.isLooped() || secondUsage.isLooped()) {
-      failedIds.put(id, rSet);
-    } else {
-      refinedIds.put(id, rSet);
-    }
-    removeIdFromCaches(id);
+    refinedIds.put(id, rSet);
+    unrefinedIds.remove(id);
+    // We need to update it here, as we may finish this iteration (even without timeout) and output
+    // the old value
+    stableUnsafes.put(id, Pair.of(firstUsage, secondUsage));
   }
 
   public void printUsagesStatistics(StatisticsWriter out) {
@@ -356,24 +221,31 @@ public class UsageContainer {
       topUsagePoints.setNextValue(uset.getNumberOfTopUsagePoints());
     }
 
-    final int generalRefinedSize = refinedIds.size();
-    refinedIds.forEach(
-        (id, rset) -> refinedUsages.setNextValue(rset.size()));
+    int generalRefinedSize = 0;
+    int generalFailedSize = 0;
 
-    final int generalFailedSize = failedIds.size();
-    for (RefinedUsagePointSet uset : failedIds.values()) {
+    for (RefinedUsagePointSet uset : refinedIds.values()) {
       Pair<UsageInfo, UsageInfo> pair = uset.getUnsafePair();
-      if (pair.getFirst().isLooped()) {
+      UsageInfo firstUsage = pair.getFirst();
+      UsageInfo secondUsage = pair.getSecond();
+
+      if (firstUsage.isLooped()) {
+        failedUsages.inc();
+        generalFailedSize++;
+      }
+      if (secondUsage.isLooped() && !firstUsage.equals(secondUsage)) {
         failedUsages.inc();
       }
-      if (pair.getSecond().isLooped() && !pair.getFirst().equals(pair.getSecond())) {
-        failedUsages.inc();
+      if (!firstUsage.isLooped() && !secondUsage.isLooped()) {
+        generalRefinedSize++;
+        refinedUsages.setNextValue(uset.size());
       }
     }
 
     out.spacer()
+        .put(sharedVariables)
         .put("Total amount of unsafes", unsafeSize)
-        .put("Initial amount of unsafes (before refinement)", initialSet.size())
+        .put("Initial amount of unsafes (before refinement)", unsafeSize + falseUnsafes.size())
         .put("Initial amount of usages (before refinement)", initialUsages)
         .put("Initial amount of refined false unsafes", falseUnsafes.size())
         .put("Total amount of unrefined unsafes", generalUnrefinedSize)
@@ -384,11 +256,47 @@ public class UsageContainer {
         .put("Total amount of failed unsafes", generalFailedSize)
         .put(failedUsages)
         .put(resetTimer)
-        .put(copyTimer)
-        .put(emptyEffectsTimer);
+        .put(unsafeDetectionTimer)
+        .put(searchingInCachesTimer)
+        .put(addingToSetTimer);
   }
 
-  public Set<SingleIdentifier> getProcessedUnsafes() {
-    return processedUnsafes;
+  public String getUnsafeStatus() {
+    return unrefinedIds.size()
+        + " unrefined, "
+        + refinedIds.size()
+        + " refined; "
+        + falseUnsafes.size()
+        + " false unsafes";
+  }
+
+  public Set<SingleIdentifier> getNotInterestingUnsafes() {
+    return new TreeSet<>(Sets.union(falseUnsafes, refinedIds.keySet()));
+  }
+
+  private void saveStableUnsafes() {
+    calculateUnsafesIfNecessary();
+
+    stableUnsafes.clear();
+    addUnsafesFrom(refinedIds);
+    addUnsafesFrom(unrefinedIds);
+  }
+
+  private void addUnsafesFrom(
+      NavigableMap<SingleIdentifier, ? extends AbstractUsagePointSet> storage) {
+
+    for (Entry<SingleIdentifier, ? extends AbstractUsagePointSet> entry : storage.entrySet()) {
+      Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(entry.getValue());
+      stableUnsafes.put(entry.getKey(), tmpPair);
+    }
+  }
+
+  public boolean hasUnsafes() {
+    saveStableUnsafes();
+    return !stableUnsafes.isEmpty();
+  }
+
+  public Map<SingleIdentifier, Pair<UsageInfo, UsageInfo>> getStableUnsafes() {
+    return stableUnsafes;
   }
 }

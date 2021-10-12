@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,6 +41,9 @@ public class PresisionParser {
   }
 
   public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
+    if (file == null) {
+      return ImmutableMap.of();
+    }
     Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new HashMap<>();
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
     cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
@@ -59,7 +63,7 @@ public class PresisionParser {
           // Get node number
           String nodeId = matcher.group().substring(1);
           node = idToNodeMap.get(Integer.parseInt(nodeId));
-          info = new HashMap<>();
+          info = new TreeMap<>();
         } else if (!line.isEmpty()) {
           if (info == null) {
             logger.log(

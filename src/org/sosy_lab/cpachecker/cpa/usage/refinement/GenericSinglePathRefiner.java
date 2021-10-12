@@ -9,8 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -42,13 +43,15 @@ public abstract class GenericSinglePathRefiner extends
       if (result.isFalse()) {
         return result;
       }
-      PredicatePrecision completePrecision = result.getPrecision();
+      Iterable<AdjustablePrecision> completePrecisions = result.getPrecisions();
       result = refinePath(secondPath);
-      completePrecision = completePrecision.mergeWith(result.getPrecision());
       if (!result.isFalse()) {
+        completePrecisions = Iterables.concat(completePrecisions, result.getPrecisions());
         result = wrappedRefiner.performBlockRefinement(pInput);
       }
-      result.addPrecision(completePrecision);
+
+      // Do not need add any precision if the result is confirmed
+      result.addPrecisions(completePrecisions);
       return result;
     } finally {
       totalTimer.stop();
@@ -67,7 +70,7 @@ public abstract class GenericSinglePathRefiner extends
 
     numberOfRefinements.inc();
     RefinementResult result = call(path);
-    if (result.isTrue() || result.isUnknown()) {
+    if (result.isTrue()) {
       path.setAsTrueBy(this);
       return result;
     } else {

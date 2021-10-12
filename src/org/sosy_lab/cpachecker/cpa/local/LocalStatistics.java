@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.local;
 
 import com.google.common.io.MoreFiles;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -26,10 +27,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix = "precision")
 public class LocalStatistics implements Statistics {
@@ -38,6 +37,8 @@ public class LocalStatistics implements Statistics {
   private Path outputFileName = Path.of("localsave");
 
   private final LogManager logger;
+  // Due to problems with BAM, fill the map during the analysis
+  private final Map<CFANode, LocalState> reachedStatistics = new TreeMap<>();
 
   public LocalStatistics(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -45,36 +46,34 @@ public class LocalStatistics implements Statistics {
     pConfig.inject(this);
   }
 
+  void registerState(LocalState pState, CFANode node) {
+    if (!reachedStatistics.containsKey(node)) {
+      reachedStatistics.put(node, pState);
+    } else {
+      LocalState previousState = reachedStatistics.get(node);
+      reachedStatistics.put(node, previousState.join(pState));
+    }
+  }
+
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (pReached.size() <= 2) {
-      // evil hack: means we are called from general statistics collector
-      // wait until BAM provides its handmade reached set
-      return;
-    }
     try {
-      Map<CFANode, LocalState> reachedStatistics = new TreeMap<>();
       // As the analysis is used as preanalysis the output directory may not be created
       MoreFiles.createParentDirectories(outputFileName);
       try (Writer writer = Files.newBufferedWriter(outputFileName, Charset.defaultCharset())) {
         logger.log(Level.FINE, "Write precision to " + outputFileName);
-        for (AbstractState state : pReached) {
-          CFANode node = AbstractStates.extractLocation(state);
-          LocalState lState = AbstractStates.extractStateByType(state, LocalState.class);
-          if (!reachedStatistics.containsKey(node)) {
-            reachedStatistics.put(node, lState);
-          } else {
-            LocalState previousState = reachedStatistics.get(node);
-            reachedStatistics.put(node, previousState.join(lState));
-          }
-        }
         for (Map.Entry<CFANode, LocalState> entry : reachedStatistics.entrySet()) {
           writer.append(entry.getKey() + "\n");
           writer.append(entry.getValue().toLog() + "\n");
         }
       }
+    } catch (FileNotFoundException e) {
+      logger.log(
+          Level.SEVERE,
+          "Cannot open file " + outputFileName + " for output result of shared analysis");
+      return;
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write LOCALCPA precision");
+      logger.logUserException(Level.WARNING, e, "Could not write LocalCPA precision");
       return;
     }
   }

@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ApplyOperator;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -68,7 +70,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM,
         StatisticsProvider,
         ProofCheckerCPA,
-        ConfigurableProgramAnalysisWithConcreteCex {
+    ConfigurableProgramAnalysisWithConcreteCex, ConfigurableProgramAnalysisTM {
 
   private enum UnknownValueStrategy {
     /** This strategy discards all unknown values from the value analysis state */
@@ -81,7 +83,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     INTRODUCE_SYMBOLIC,
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "TRANSITIONSJOIN", "TRANSITIONSSEP"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
@@ -261,7 +263,13 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return buildMergeOperator(mergeType);
+    if (mergeType.equals("TRANSITIONSJOIN")) {
+      return new ValueMergeForTransitions(true);
+    } else if (mergeType.equals("TRANSITIONSSEP")) {
+      return new ValueMergeForTransitions(false);
+    } else {
+      return buildMergeOperator(mergeType);
+    }
   }
 
   @Override
@@ -344,5 +352,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
     return errorPathAllocator.allocateAssignmentsToPath(pPath);
+  }
+
+  @Override
+  public ApplyOperator getApplyOperator() {
+    return new ValueAnalysisApplyOperator();
   }
 }

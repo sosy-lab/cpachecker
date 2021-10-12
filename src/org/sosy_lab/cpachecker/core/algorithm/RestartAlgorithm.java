@@ -89,8 +89,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       return "Restart Algorithm";
     }
 
-    private void printIntermediateStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
+    private void printIntermediateStatistics(
+        PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
       String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
       out.println(text);

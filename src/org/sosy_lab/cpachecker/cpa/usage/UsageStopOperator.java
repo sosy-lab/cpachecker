@@ -18,9 +18,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class UsageStopOperator implements StopOperator {
 
   private final StopOperator wrappedStop;
+  private final UsageCPAStatistics stats;
 
-  UsageStopOperator(StopOperator pWrappedStop) {
+  UsageStopOperator(StopOperator pWrappedStop, UsageCPAStatistics pStats) {
     wrappedStop = pWrappedStop;
+    stats = pStats;
   }
 
   @Override
@@ -29,23 +31,29 @@ public class UsageStopOperator implements StopOperator {
       throws CPAException, InterruptedException {
 
     UsageState usageState = (UsageState) pState;
-    UsagePrecision usagePrecision = (UsagePrecision) pPrecision;
 
+    stats.stopTimer.start();
     for (AbstractState reached : pReached) {
       UsageState reachedUsageState = (UsageState) reached;
+      stats.usageStopTimer.start();
       boolean result = usageState.isLessOrEqual(reachedUsageState);
+      stats.usageStopTimer.stop();
       if (!result) {
         continue;
       }
+      stats.innerStopTimer.start();
       result =
           wrappedStop.stop(
               usageState.getWrappedState(),
               Collections.singleton(reachedUsageState.getWrappedState()),
-              usagePrecision.getWrappedPrecision());
+              pPrecision);
+      stats.innerStopTimer.stop();
       if (result) {
+        stats.stopTimer.stop();
         return true;
       }
     }
+    stats.stopTimer.stop();
     return false;
   }
 }

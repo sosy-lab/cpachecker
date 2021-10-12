@@ -19,6 +19,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -33,6 +35,7 @@ public class UsageCPAStatistics implements Statistics {
   public enum OutputFileType {
     ETV,
     KLEVER,
+    KLEVER3,
     KLEVER_OLD
   }
 
@@ -65,9 +68,15 @@ public class UsageCPAStatistics implements Statistics {
   private BAMMultipleCEXSubgraphComputer computer;
 
   final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
-  final StatTimer usagePreparationTimer = new StatTimer("Time for usage transfer");
+  final StatTimer transferForEdgeTimer = new StatTimer("Time for transfer for edge");
+  final StatTimer bindingTimer = new StatTimer("Time for binding computation");
+  final StatTimer checkForSkipTimer = new StatTimer("Time for checking edge for skip");
   final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
-  final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
+  final StatTimer stopTimer = new StatTimer("Time for stop operator");
+  final StatTimer innerStopTimer = new StatTimer("Time for inner stop operators");
+  final StatTimer usageStopTimer = new StatTimer("Time for usage stop operator");
+  final StatTimer precTimer = new StatTimer("Time for prec operator");
+  final StatTimer mergeTimer = new StatTimer("Time for merge operator");
   private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
   // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
@@ -89,14 +98,36 @@ public class UsageCPAStatistics implements Statistics {
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer)
-          .put(usagePreparationTimer)
+        .beginLevel()
+        .put(transferForEdgeTimer)
+        .beginLevel()
+        .put(checkForSkipTimer)
+          .put(bindingTimer)
           .put(innerAnalysisTimer)
-        .put(extractStatesTimer);
+        .endLevel()
+        .endLevel()
+        .put(precTimer)
+        .put(mergeTimer)
+        .put(stopTimer)
+        .beginLevel()
+        .put(usageStopTimer)
+        .put(innerStopTimer)
+        .endLevel();
+
+    ReachedSet reachedSet = (ReachedSet) reached;
+    while (reachedSet instanceof ForwardingReachedSet) {
+      // Twice Forwarding -> ThreadModular -> Usage
+      reachedSet = ((ForwardingReachedSet) reachedSet).getDelegate();
+    }
+    UsageReachedSet uReached = (UsageReachedSet) reachedSet;
 
     if (printUnsafesInCaseOfUnknown || result != Result.UNKNOWN) {
       printUnsafesTimer.start();
       try {
         switch (outputFileType) {
+          case KLEVER3:
+            errPrinter = new Klever3ErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            break;
           case KLEVER:
             errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
             break;
@@ -110,7 +141,7 @@ public class UsageCPAStatistics implements Statistics {
           default:
             throw new UnsupportedOperationException("Unknown type " + outputFileType);
         }
-        errPrinter.printErrorTraces(reached);
+        errPrinter.printErrorTraces(uReached);
         errPrinter.printStatistics(writer);
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Cannot create error trace printer");
@@ -120,6 +151,7 @@ public class UsageCPAStatistics implements Statistics {
 
     printStatisticsTimer.start();
     UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
+    uReached.printStatistics(writer);
     writer.put(printUnsafesTimer);
     printStatisticsTimer.stop();
     writer.put(printStatisticsTimer);
