@@ -483,10 +483,10 @@ precedence right LBRACKET;
 
 annotations ::= annotations:as annotation:a {: as.add(a); RESULT = as; :}
             | /* nothing */                 {: RESULT = new ArrayList<>(); :};
-annotation ::= fcontract:f {: RESULT = f; :}
-            | scontract:s           {:  RESULT = s; :}
-            | loopannotation:l {: RESULT = l; :}
-            | assertion:a {: RESULT = a; :}
+annotation ::= fcontract:f ANNOTATION_END     {: RESULT = f; :}
+            | scontract:s ANNOTATION_END      {: RESULT = s; :}
+            | loopannotation:l ANNOTATION_END {: RESULT = l; :}
+            | assertion:a ANNOTATION_END      {: RESULT = a; :}
             | SYNTAXERROR {: RESULT = new InvalidAnnotation(); :};
 assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI PRED_START                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
             | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
