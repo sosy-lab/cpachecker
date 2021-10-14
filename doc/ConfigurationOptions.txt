@@ -3019,6 +3019,11 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# The max amount of refinements for the trace abstraction algorithm. Setting
+# it to 0 leads to an analysis of the ARG without executing any refinements.
+# This is used for debugging purposes.
+cpa.traceabstraction.refinementStrategy.maxRefinementIterations = -1
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
