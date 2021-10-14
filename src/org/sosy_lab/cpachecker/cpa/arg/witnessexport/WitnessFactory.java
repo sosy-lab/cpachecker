@@ -1737,12 +1737,6 @@ class WitnessFactory implements EdgeAppender {
       ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
       stateInvariants.put(pStateId, existingTree);
       return existingTree;
-    } else if (prev.equals(ExpressionTrees.getTrue())) {
-      stateInvariants.put(pStateId, other);
-      return other;
-    } else if (other.equals(ExpressionTrees.getTrue())) {
-      stateInvariants.put(pStateId, prev);
-      return prev;
     }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
