@@ -40,7 +40,7 @@ public class ToCodeFormulaVisitor
             Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
             ExpressionTree<String>> {
 
-  private static final CSimpleType[] TYPES = new CSimpleType[] {
+  private static final CSimpleType[] TYPES = {
     CNumericTypes.SIGNED_CHAR,
     CNumericTypes.UNSIGNED_CHAR,
     CNumericTypes.SHORT_INT,
@@ -51,7 +51,8 @@ public class ToCodeFormulaVisitor
     CNumericTypes.LONG_INT,
     CNumericTypes.UNSIGNED_LONG_INT,
     CNumericTypes.LONG_LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_LONG_INT};
+    CNumericTypes.UNSIGNED_LONG_LONG_INT
+  };
 
   /**
    * The formula evaluation visitor used to evaluate compound state invariants

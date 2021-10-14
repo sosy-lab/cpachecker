@@ -14,7 +14,6 @@ import static com.google.common.truth.Truth.assertThat;
 import java.math.BigInteger;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -26,8 +25,8 @@ public class FunctionBodyTest {
     return new CAssumeEdge(
         "",
         FileLocation.DUMMY,
-        new CFANode(CFunctionDeclaration.DUMMY),
-        new CFANode(CFunctionDeclaration.DUMMY),
+        CFANode.newDummyCFANode(),
+        CFANode.newDummyCFANode(),
         new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
         true);
   }

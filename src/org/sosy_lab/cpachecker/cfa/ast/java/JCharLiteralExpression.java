@@ -12,9 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/**
- * This class represents the character literal AST node type.
- */
+/** This class represents the character literal AST node type. */
 public final class JCharLiteralExpression extends ACharLiteralExpression
     implements JLiteralExpression {
 

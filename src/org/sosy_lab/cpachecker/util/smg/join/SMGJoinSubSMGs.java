@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGJoinException;
@@ -20,7 +19,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.2)
  */
-public class SMGJoinSubSMGs extends SMGAbstractJoinValues {
+public class SMGJoinSubSMGs extends SMGAbstractJoin {
 
 
 
@@ -63,60 +62,57 @@ public class SMGJoinSubSMGs extends SMGAbstractJoinValues {
    */
   private void
       joinValues(SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject, int nestingLevelDiff) {
-    Set<SMGHasValueEdge> smg1Edges = inputSMG1.getEdges(pObj1);
 
-    smg1Edges.forEach(edge1 -> {
-      // find edge in obj2 with same offset. After performing join fields there must exist such
-      // edges.
-      SMGHasValueEdge edge2 =
-          inputSMG2.getHasValueEdgeByOffset(pObj2, edge1.getOffset())
-              .orElseThrow(
-                  () -> new SMGJoinException(
-                      pObj2 + " misses edge with offset " + edge1.getOffset()));
+    for(SMGHasValueEdge edge1 : inputSMG1.getEdges(pObj1)){
+          // find edge in obj2 with same offset. After performing join fields there must exist such
+          // edges.
+          SMGHasValueEdge edge2 =
+              inputSMG2
+                  .getHasValueEdgeByPredicate(pObj2, o -> o.getOffset().equals(edge1.getOffset()))
+                  .orElseThrow(
+                      () ->
+                          new SMGJoinException(
+                              pObj2 + " misses edge with offset " + edge1.getOffset()));
 
-      SMGValue value1 = edge1.hasValue();
-      SMGValue value2 = edge2.hasValue();
-      int newNestingLevelDiff = updateNestinglevelDiff(pObj1, edge1, nestingLevelDiff, 1);
-      newNestingLevelDiff = updateNestinglevelDiff(pObj2, edge2, newNestingLevelDiff, -1);
+          SMGValue value1 = edge1.hasValue();
+          SMGValue value2 = edge2.hasValue();
+          int newNestingLevelDiff = updateNestinglevelDiff(pObj1, edge1, nestingLevelDiff, 1);
+          newNestingLevelDiff = updateNestinglevelDiff(pObj2, edge2, newNestingLevelDiff, -1);
 
-      SMGJoinValues joinValues =
-          new SMGJoinValues(
-              status,
-              inputSMG1,
-              inputSMG2,
-              destSMG,
-              mapping1,
-              mapping2,
-              value1,
-              value2,
-              newNestingLevelDiff);
+          SMGJoinValues joinValues =
+              new SMGJoinValues(
+                  status,
+                  inputSMG1,
+                  inputSMG2,
+                  destSMG,
+                  mapping1,
+                  mapping2,
+                  value1,
+                  value2,
+                  newNestingLevelDiff);
 
-      status = joinValues.getStatus();
+          status = joinValues.getStatus();
 
-      /*
-       * If the join of the values is not defined and can't be recovered through abstraction, the
-       * join fails.
-       */
-      // Step 3.4
-      if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
-        status = SMGJoinStatus.INCOMPARABLE;
-        return;
-      }
-      // set result Step 4
-      inputSMG1 = joinValues.getInputSMG1();
-      inputSMG2 = joinValues.getInputSMG2();
-      destSMG = joinValues.getDestinationSMG();
-      value = joinValues.getValue();
+          /*
+           * If the join of the values is not defined and can't be recovered through abstraction, the
+           * join fails.
+           */
+          // Step 3.4
+          if (!joinValues.isDefined() && !joinValues.isRecoverableFailur()) {
+            status = SMGJoinStatus.INCOMPARABLE;
+            return;
+          }
+          // set result Step 4
+          inputSMG1 = joinValues.getInputSMG1();
+          inputSMG2 = joinValues.getInputSMG2();
+          destSMG = joinValues.getDestinationSMG();
+          value = joinValues.getValue();
       // add new edge to resulting SMG Step 3.5
       SMGHasValueEdge newHVEdge =
-          new SMGHasValueEdge(
-              joinValues.getValue(),
-              edge1.getSizeInBits(),
-              edge1.getOffset());
+          new SMGHasValueEdge(joinValues.getValue(), edge1.getOffset(), edge1.getSizeInBits());
 
-      destSMG = destSMG.copyAndAddHVEdge(newHVEdge, pNewObject);
-    });
-
+          destSMG = destSMG.copyAndAddHVEdge(newHVEdge, pNewObject);
+        }
   }
 
   /**

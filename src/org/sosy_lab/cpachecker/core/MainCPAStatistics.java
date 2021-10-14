@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -301,6 +302,11 @@ class MainCPAStatistics implements Statistics {
               Level.WARNING,
               pE,
               "Interrupted while generating the invariant as an output program");
+        } catch (SolverException e) {
+          logger.logUserException(
+              Level.WARNING,
+              e,
+              "Encountered solver problem while generating the invariant as an output program");
         }
       }
     }

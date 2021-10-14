@@ -77,7 +77,7 @@ public class PartialCPABuilder {
     logger.log(Level.FINEST, "Create CPA instance");
 
     return new CPABuilder(singleConfig, logger, shutdown, pFactory)
-        .buildCPAs(cfa, specification, new AggregatedReachedSets());
+        .buildCPAs(cfa, specification, AggregatedReachedSets.empty());
  }
 
 

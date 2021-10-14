@@ -12,9 +12,9 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 63e1622e768e849dacea5705881fd1e5054bbb82
+  REFASTER_REPO_REVISION: 8b7f38e2afedf64b3cfa9592bbb8790b88f58352
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.7.1
+  REFASTER_VERSION: 2.9.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
 
 .pip-cache: &pip-cache
@@ -174,7 +174,6 @@ javascript-eslint:
     - npm install
   script:
     - npm run lint
-  allow_failure: true
   <<: *node-cache
 
 
@@ -243,7 +242,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - pip install flake8-awesome
+    - "pip install 'flake8<4' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache
@@ -268,6 +267,8 @@ build-tar:
 deploy-docker:
   stage: deploy
   dependencies:
+    - build-tar
+  needs:
     - build-tar
   extends: .build-docker
   variables:

@@ -452,11 +452,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
     Optional<CVariableDeclaration> returnVariable =
-        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable().toJavaUtil();
+        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
 
     if (returnVariable.isPresent()) {
-      String variableName = returnVariable.orElseThrow().getQualifiedName();
-      return Optional.of(MemoryLocation.valueOf(variableName));
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.orElseThrow()));
     } else {
       return Optional.empty();
     }
@@ -586,7 +585,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     for (int index = 0; index < Math.min(params.size(), expressions.size()); index++) {
 
       EdgeDefUseData argDefUseData = defUseExtractor.extract(expressions.get(index));
-      MemoryLocation paramMemLoc = MemoryLocation.valueOf(params.get(index).getQualifiedName());
+      MemoryLocation paramMemLoc = MemoryLocation.forDeclaration(params.get(index));
       Optional<MemoryLocation> paramVariable = Optional.of(paramMemLoc);
 
       if (argDefUseData.getUses().contains(pCause)) {
@@ -932,7 +931,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       StringBuilder sb = new StringBuilder();
 
       if (pNode.getType() != NodeType.STATEMENT) {
-        
+
         sb.append(pNode.getType());
         sb.append(" of ");
 

@@ -10,10 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 
-/**
- * Interface of classes that represent java statements.
- *
- */
+/** Interface of classes that represent java statements. */
 @SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface JStatement extends AStatement, JAstNode {
 

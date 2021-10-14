@@ -582,7 +582,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
   }
 
-  public static interface ConditionAdjuster {
+  public interface ConditionAdjuster {
 
     boolean adjustConditions();
 
@@ -592,7 +592,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   }
 
-  private static interface ValueIncreasingAdjuster extends ConditionAdjuster {
+  private interface ValueIncreasingAdjuster extends ConditionAdjuster {
 
     int getInc();
 

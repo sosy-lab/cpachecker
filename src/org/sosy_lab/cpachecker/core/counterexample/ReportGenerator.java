@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.util.logging.Level.WARNING;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -241,6 +242,9 @@ public class ReportGenerator {
                     argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      } catch (InterruptedException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not generate witness for witness view due to interruption");
       }
     }
   }
@@ -464,7 +468,8 @@ public class ReportGenerator {
                     + "</td><td>"
                     + htmlEscaper().escape(splitLineAnotherValue.get(0))
                     + "</td><td>"
-                    + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]", ""))
+                    + htmlEscaper()
+                        .escape(CharMatcher.anyOf("()").removeFrom(splitLineAnotherValue.get(1)))
                     + "</td></tr>\n";
             writer.write(line);
           } else {
@@ -589,7 +594,7 @@ public class ReportGenerator {
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(1)));
           writer.write("</td><td>");
-          writer.write(htmlEscaper().escape(splitLine.get(2)).replaceAll(":", "<br>"));
+          writer.write(htmlEscaper().escape(splitLine.get(2)).replace(":", "<br>"));
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(3)));
 
@@ -646,7 +651,7 @@ public class ReportGenerator {
 
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    for (AbstractState entry : reached.asCollection()) {
+    for (AbstractState entry : reached) {
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
@@ -832,9 +837,9 @@ public class ReportGenerator {
   // Similar to the getEdgeText method in DOTBuilder2
   private static String getEdgeText(CFAEdge edge) {
     return edge.getDescription()
-        .replaceAll("\\\"", "\\\\\\\"")
-        .replaceAll("\n", " ")
+        .replace("\"", "\\\"")
+        .replace('\n', ' ')
         .replaceAll("\\s+", " ")
-        .replaceAll(" ;", ";");
+        .replace(" ;", ";");
   }
 }

@@ -8,18 +8,20 @@
 
 package org.sosy_lab.cpachecker.util.smg.join;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
  * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.3)
  */
-public class SMGJoinValues extends SMGAbstractJoinValues {
+public class SMGJoinValues extends SMGAbstractJoin {
 
   public SMGJoinValues(
       SMGJoinStatus pStatus,
@@ -58,13 +60,13 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
       return;
     }
 
-    SMGPointsToEdge edgeV1 = inputSMG1.getPTEdge(pValue1);
-    SMGPointsToEdge edgeV2 = inputSMG2.getPTEdge(pValue2);
+    Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+    Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
 
-    if (isNullPointer(edgeV1) && isNullPointer(edgeV2)) {
+    if (edgeOptionalV1.isEmpty() && edgeOptionalV2.isEmpty()) {
       // no value is pointer value Algorithm 5 Step 3
       joinNonPointerValues(pValue1, pValue2, pNestingLevelDiff);
-    } else if (isNullPointer(edgeV1) || isNullPointer(edgeV2)) {
+    } else if (edgeOptionalV1.isEmpty() || edgeOptionalV2.isEmpty()) {
       // one value is pointer Algorithm 5 Step 4
       setBottomState();
     } else {
@@ -101,15 +103,20 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
        setBottomState();
        return;
      }
-     if(!joinTargetObjects.isRecoverable()) {
+     if(!joinTargetObjects.isRecoverableFailur()) {
        copyJoinState(joinTargetObjects);
        return;
      }
 
      // step 6
-     SMGObject obj1 = inputSMG1.getPTEdge(pValue1).pointsTo();
-     SMGObject obj2 = inputSMG2.getPTEdge(pValue2).pointsTo();
-     // step 7
+     Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
+     Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
+
+     checkArgument(edgeOptionalV1.isPresent() && edgeOptionalV2.isPresent());
+
+     SMGObject obj1 = edgeOptionalV1.orElseThrow().pointsTo();
+     SMGObject obj2 = edgeOptionalV2.orElseThrow().pointsTo();
+     // step 7 left insert and join
      if (obj1 instanceof SMGDoublyLinkedListSegment) {
        SMGInsertLeftDlsAndJoin jDlsAndJoin =
            new SMGInsertLeftDlsAndJoin(
@@ -126,28 +133,29 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
              setBottomState();
              return;
            }
-           if (!jDlsAndJoin.isRecoverable()) {
+           if (!jDlsAndJoin.isRecoverableFailur()) {
              copyJoinState(joinTargetObjects);
              return;
            }
      }
-     // step 8
+     // step 8 right insert and join
      if (obj2 instanceof SMGDoublyLinkedListSegment) {
-       SMGInsertRightDlsAndJoin jDlsAndJoin =
-           new SMGInsertRightDlsAndJoin(
+       // THIS NEEDS TO BE DOUBLE CHECKED!! (The paper misses info on RightJoin)
+       SMGInsertLeftDlsAndJoin jrightDlsAndJoin =
+           new SMGInsertLeftDlsAndJoin(
                status,
-               inputSMG1,
                inputSMG2,
+               inputSMG1,
                destSMG,
-               mapping1,
                mapping2,
-               pValue1,
+               mapping1,
                pValue2,
+               pValue1,
                pNestingLevelDiff);
-       if (!jDlsAndJoin.isDefined() || jDlsAndJoin.isRecoverable()) {
+       if (!jrightDlsAndJoin.isDefined() || jrightDlsAndJoin.isRecoverableFailur()) {
          status = SMGJoinStatus.INCOMPARABLE;
-         isDefined = jDlsAndJoin.isDefined;
-         isRecoverable = jDlsAndJoin.isRecoverable;
+         isDefined = jrightDlsAndJoin.isDefined;
+         isRecoverableFailure = jrightDlsAndJoin.isRecoverableFailure;
          return;
        }
        copyJoinState(joinTargetObjects);
@@ -174,7 +182,7 @@ public class SMGJoinValues extends SMGAbstractJoinValues {
     // compute new level step 3-2
     int newLevel = Integer.max(pValue1.getNestingLevel() , pValue2.getNestingLevel());
     // Step 3-6 return pValue1 - this is considered as typo
-    value = SMGSymbolicValue.of(newLevel);
+    value = SMGValue.of(newLevel);
     // add mappings step 3-3
     mapping1.addMapping(pValue1, value);
     mapping2.addMapping(pValue2, value);

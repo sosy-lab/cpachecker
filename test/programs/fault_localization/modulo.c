@@ -14,8 +14,8 @@ int generateNumberDiv3(int seed){
 	do{
 		old = seed;
 		seed++;
-	} while (old%3 != 0);
-	return seed;
+	} while (old%3 != 0); // FIX: seed % 3 != 0 or old % 3 != 2 OR
+	return seed;          // seed - 1
 }
 
 int main(){

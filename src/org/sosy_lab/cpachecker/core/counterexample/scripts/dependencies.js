@@ -45,7 +45,7 @@ checker.init(
       licenseText: "",
     },
   },
-  function (err, packages) {
+  (err, packages) => {
     if (err) {
       console.log(err);
       process.exit(1);
@@ -85,9 +85,9 @@ checker.init(
 
         // For dependencies that have no license file but only a readme,
         // we remove the readme part until the start of the license section.
-        ["\n## License\n", "\n## **License**\n"].forEach(
-          (prefix) => (license = stripUpTo(license, prefix))
-        );
+        ["\n## License\n", "\n## **License**\n"].forEach((prefix) => {
+          license = stripUpTo(license, prefix);
+        });
 
         // Many license texts differ only in a small header.
         // Because we show the copyright and the license name separately anyway,
@@ -107,10 +107,12 @@ checker.init(
           "========================================",
           "BSD License",
           "For React software",
-          "# " + dependency.name,
+          `# ${dependency.name}`,
           // plus each sentence of copyright
           ...dependency.copyright.split(/(\.)\.?[ *]/),
-        ].forEach((prefix) => (license = stripPrefix(license, prefix)));
+        ].forEach((prefix) => {
+          license = stripPrefix(license, prefix);
+        });
 
         // Furthermore, some license texts differ only in whitespace and
         // punctuation, so for deduplication, we normalize this.
@@ -127,7 +129,7 @@ checker.init(
 
           // count variants per license
           if (dependency.licenses in licenseCounts) {
-            licenseCounts[dependency.licenses]++;
+            licenseCounts[dependency.licenses] += 1;
           } else {
             licenseCounts[dependency.licenses] = 1;
           }
@@ -139,11 +141,11 @@ checker.init(
           repository: dependency.repository,
           copyright: dependency.copyright,
           licenses: dependency.licenses,
-          licenseId: licenseId,
+          licenseId,
         });
       });
       const dependencyData = JSON.stringify({
-        dependencies: dependencies,
+        dependencies,
         licenses: licenseTexts,
       });
 
@@ -161,17 +163,17 @@ checker.init(
           fs.writeFile(
             "./build_tmp/dependencies.json",
             dependencyData,
-            (err) => {
-              if (err) {
-                console.log(err);
+            (error) => {
+              if (error) {
+                console.log(error);
                 process.exit(1);
               }
             }
           );
         },
-        (err) => {
-          if (err) {
-            console.log(err);
+        (error) => {
+          if (error) {
+            console.log(error);
             process.exit(1);
           }
         }

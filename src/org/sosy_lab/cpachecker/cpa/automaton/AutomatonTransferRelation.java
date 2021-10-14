@@ -222,9 +222,9 @@ public class AutomatonTransferRelation implements TransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            final String desc = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
-            AutomatonSafetyProperty prop =
-                new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
+            final String desc = Strings.nullToEmpty(t.getTargetInformation(exprArgs));
+            AutomatonTargetInformation prop =
+                new AutomatonTargetInformation(state.getOwningAutomaton(), t, desc);
 
             AutomatonState errorState =
                 AutomatonState.automatonStateFactory(
@@ -266,10 +266,10 @@ public class AutomatonTransferRelation implements TransferRelation {
         t.executeActions(exprArgs);
         actionTime.stop();
 
-        AutomatonSafetyProperty violatedProperty = null;
+        AutomatonTargetInformation targetInformation = null;
         if (t.getFollowState().isTarget()) {
-          final String desc = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
-          violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
+          final String desc = Strings.nullToEmpty(t.getTargetInformation(exprArgs));
+          targetInformation = new AutomatonTargetInformation(state.getOwningAutomaton(), t, desc);
         }
 
         logger.log(Level.ALL, "Replace variables in automata assumptions");
@@ -285,7 +285,7 @@ public class AutomatonTransferRelation implements TransferRelation {
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),
-                violatedProperty,
+                targetInformation,
                 state.isTreatingErrorsAsTarget());
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {

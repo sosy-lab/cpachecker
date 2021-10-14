@@ -640,13 +640,13 @@ public class SMGBuiltins {
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
               SMGValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-              int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
-              int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
-              int availableSource = sourceSize - sourceRangeOffset;
+              long sourceRangeOffset = sourceObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long availableSource = sourceSize - sourceRangeOffset;
 
-              int targetRangeOffset = targetObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
-              int targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
-              int availableTarget = targetSize - targetRangeOffset;
+              long targetRangeOffset = targetObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
                 if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {
@@ -872,8 +872,8 @@ public class SMGBuiltins {
 
       // read explicit values
       // explicit values are necessary to calculate difference between char ascii codes
-      SMGExplicitValue expFirstValue = state.getExplicit((SMGKnownSymbolicValue) symFirstValue);
-      SMGExplicitValue expSecondValue = state.getExplicit((SMGKnownSymbolicValue) symSecondValue);
+      SMGExplicitValue expFirstValue = state.getExplicit(symFirstValue);
+      SMGExplicitValue expSecondValue = state.getExplicit(symSecondValue);
 
       if (!allValuesAreDefined(expFirstValue, expSecondValue)) {
         // in case evaluation for explicit values compare symbolic values

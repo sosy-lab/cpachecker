@@ -67,7 +67,7 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public OctagonNumericValue add(OctagonNumericValue pVal) {
-    return pVal.add(value.longValue());
+    return pVal.add(value);
   }
 
   @Override

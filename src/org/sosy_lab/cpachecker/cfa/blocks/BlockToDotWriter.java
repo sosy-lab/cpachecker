@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -175,14 +176,7 @@ public class BlockToDotWriter {
     sb.append(" -> ");
     sb.append(edge.getSuccessor().getNodeNumber());
     sb.append(" [label=\"");
-
-    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-    //future updates of dotty may make this obsolete.
-    sb.append(edge.getDescription()
-            .replaceAll("\\Q\\\"\\E", "\\ \"")
-            .replaceAll("\\\"", "\\\\\\\"")
-            .replaceAll("\n", " "));
-
+    sb.append(DOTBuilder.escapeGraphvizLabel(edge.getDescription(), " "));
     sb.append("\"");
     if (edge instanceof FunctionSummaryEdge) {
       sb.append(" style=\"dotted\" arrowhead=\"empty\"");

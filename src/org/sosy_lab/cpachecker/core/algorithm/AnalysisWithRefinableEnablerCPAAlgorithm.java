@@ -191,7 +191,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!allowLazyRefinement) {
       restartFromScratchAfterRefinement(pReachedSet);
     } else {
-      if (pReachedSet.hasViolatedProperties()) {
+      if (pReachedSet.wasTargetReached()) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null);
       }
     }

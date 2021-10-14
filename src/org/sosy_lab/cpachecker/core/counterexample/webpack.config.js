@@ -10,6 +10,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const path = require("path");
+
 const devFolder = "development_data/";
 const vendorFolder = "vendor/";
 const buildTmpFolder = "build_tmp/";
@@ -20,15 +21,15 @@ module.exports = {
   output: {
     filename: "bundle.js",
     chunkFilename: "[name].js",
-    path: path.join(__dirname + "/build"),
+    path: path.join(`${__dirname}/build`),
   },
   devServer: {
     compress: true,
     open: true,
     port: 8080,
     historyApiFallback: {
-      index: devFolder + "index.html",
-    }
+      index: `${devFolder}index.html`,
+    },
   },
   plugins: [
     new MiniCssExtractPlugin({
@@ -52,7 +53,7 @@ module.exports = {
             },
           },
         ],
-      }
+      },
     ],
   },
   optimization: {
@@ -70,15 +71,15 @@ module.exports = {
       new CssMinimizerPlugin({
         minimizerOptions: {
           preset: [
-            'default',
+            "default",
             {
               discardComments: {
-                removeAll: true
+                removeAll: true,
               },
             },
           ],
         },
-      })
+      }),
     ],
     runtimeChunk: false,
     splitChunks: {
@@ -101,14 +102,14 @@ module.exports = {
   },
   resolve: {
     alias: {
-      devData: path.resolve(__dirname, devFolder + "data.json"),
-      d3: path.resolve(__dirname, vendorFolder + "d3.min.js"),
-      "dagre-d3": path.resolve(__dirname, vendorFolder + "dagre-d3.min.js"),
+      devData: path.resolve(__dirname, `${devFolder}data.json`),
+      d3: path.resolve(__dirname, `${vendorFolder}d3.min.js`),
+      "dagre-d3": path.resolve(__dirname, `${vendorFolder}dagre-d3.min.js`),
       dependencies: path.resolve(
         __dirname,
-        buildTmpFolder + "dependencies.json"
+        `${buildTmpFolder}dependencies.json`
       ),
-      workerData: path.resolve(__dirname, buildTmpFolder + "workerData.js"),
-    }
-  }
+      workerData: path.resolve(__dirname, `${buildTmpFolder}workerData.js`),
+    },
+  },
 };
