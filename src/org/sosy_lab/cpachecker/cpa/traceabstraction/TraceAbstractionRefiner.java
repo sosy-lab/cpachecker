@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -217,9 +218,11 @@ public class TraceAbstractionRefiner implements ARGBasedRefiner {
                       .compareTo(pred2.getSymbolicVariable().toString());
           preds = preds.stream().sorted(comparator).collect(ImmutableSet.toImmutableSet());
         }
-        String functionName = AbstractStates.extractLocation(previousState).getFunctionName();
 
-        itpSequenceBuilder.addFunctionPredicates(functionName, preds);
+        // The TraceAbstraction makes only use of local- and function predicates only for now.
+        // The value 0 in the LocationInstance object is thus only a placeholder value.
+        itpSequenceBuilder.addPredicates(
+            new LocationInstance(AbstractStates.extractLocation(previousState), 0), preds);
       }
 
       previousState = curState;

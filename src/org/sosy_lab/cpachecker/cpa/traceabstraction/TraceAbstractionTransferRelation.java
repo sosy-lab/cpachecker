@@ -174,8 +174,7 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
 
       IndexedAbstractionPredicate curPreds = entry.getValue();
 
-      Optional<IndexedAbstractionPredicate> nextPreds =
-          currentItpSequence.getNext(locInstance, curPreds);
+      Optional<IndexedAbstractionPredicate> nextPreds = currentItpSequence.getNext(curPreds);
 
       ImmutableList<IndexedAbstractionPredicate> precondition =
           nextPreds.isEmpty()
