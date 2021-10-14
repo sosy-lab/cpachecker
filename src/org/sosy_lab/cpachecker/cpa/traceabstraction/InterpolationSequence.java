@@ -33,7 +33,7 @@ class InterpolationSequence {
 
   static class Builder {
 
-    private final UniqueIdGenerator id_generator;
+    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final Multimap<String, IndexedAbstractionPredicate> functionPredicates;
     private final Set<IndexedAbstractionPredicate> globalPredicates;
@@ -46,8 +46,6 @@ class InterpolationSequence {
      * the ordering in which they first appear in the respective collection.
      */
     Builder() {
-      id_generator = new UniqueIdGenerator();
-
       // To achieve the ordering a tree-structure for the collections are used.
       // The predicates are numerically indexed once they are put into the collection.
       functionPredicates = MultimapBuilder.linkedHashKeys().treeSetValues().build();
@@ -65,7 +63,7 @@ class InterpolationSequence {
           // this specific key-value pair is now added for the first time.
           functionPredicates.put(
               pFunctionName,
-              new IndexedAbstractionPredicate(id_generator.getFreshId(), abstractionPredicate));
+              new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), abstractionPredicate));
         }
       }
       return this;
@@ -74,7 +72,7 @@ class InterpolationSequence {
     Builder addGlobalPredicate(AbstractionPredicate pGlobalPredicate) {
       if (globalPredCache.add(pGlobalPredicate)) {
         globalPredicates.add(
-            new IndexedAbstractionPredicate(id_generator.getFreshId(), pGlobalPredicate));
+            new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), pGlobalPredicate));
       }
       return this;
     }
