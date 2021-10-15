@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 /*
  * Tracks if the string contains elements of a given set
@@ -48,10 +49,10 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
 
   @SuppressWarnings("unchecked")
   @Override
-  public boolean isLessOrEqual(Aspect<?> pFirst, Aspect<?> pSecond) {
-    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
-      List<String> l1 = (List<String>) pFirst.getValue();
-      List<String> l2 = (List<String>) pSecond.getValue();
+  public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
+    if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      List<String> l1 = (List<String>) p1.getValue();
+      List<String> l2 = (List<String>) p2.getValue();
 
       if (l1.size() < l2.size()) {
         return false;
@@ -63,18 +64,24 @@ public class ContainsDomain implements AbstractStringDomain<List<String>> {
 
   @SuppressWarnings("unchecked") // Safe
   @Override
-  public Aspect<List<String>> combineAspectsOfSameDom(Aspect<?> pFirst, Aspect<?> pSecond) {
-    if (isLessOrEqual(pFirst, pSecond)) {
-      return (Aspect<List<String>>) pSecond;
+  public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
+    if (p1 instanceof UnknownAspect) {
+      return p2;
     }
-    if (isLessOrEqual(pSecond, pFirst)) {
-      return (Aspect<List<String>>) pFirst;
+    if (p2 instanceof UnknownAspect) {
+      return p1;
+    }
+    if (isLessOrEqual(p1, p2)) {
+      return p2;
+    }
+    if (isLessOrEqual(p2, p1)) {
+      return p1;
     }
 
     // Shouldnt be reached.. but lets be safe
-    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
-      List<String> l1 = (List<String>) pFirst.getValue();
-      List<String> l2 = (List<String>) pSecond.getValue();
+    if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      List<String> l1 = (List<String>) p1.getValue();
+      List<String> l2 = (List<String>) p2.getValue();
       return join(l1, l2);
     }
     return null;

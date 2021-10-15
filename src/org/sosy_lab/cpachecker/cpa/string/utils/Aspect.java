@@ -46,7 +46,7 @@ public class Aspect<T> {
     return "(" + getDomainType().toString() + "," + value + ")";
   }
 
-  public static class UnknownAspect extends Aspect<Object> {
+  public static class UnknownAspect extends Aspect<Void> {
 
     private final static UnknownAspect instance = new UnknownAspect();
 

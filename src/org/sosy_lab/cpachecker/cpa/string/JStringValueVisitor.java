@@ -112,12 +112,12 @@ public class JStringValueVisitor
   @Override
   public ValueAndAspects visit(JBinaryExpression pE) throws NoException {
     if (pE.getOperator().equals(BinaryOperator.STRING_CONCATENATION)) {
-      return calcAspectsForBinOp(pE.getOperand1(), pE.getOperand2());
+      return calcAspectsForStringConcat(pE.getOperand1(), pE.getOperand2());
     }
     return new ValueAndAspects(ImmutableList.of(UnknownAspect.getInstance()));
   }
 
-  private ValueAndAspects calcAspectsForBinOp(JExpression op1, JExpression op2) {
+  private ValueAndAspects calcAspectsForStringConcat(JExpression op1, JExpression op2) {
     ValueAndAspects vaa1 = op1.accept(this);
     ValueAndAspects vaa2 = op2.accept(this);
     if (vaa1 != null && vaa2 != null) {
@@ -126,7 +126,7 @@ public class JStringValueVisitor
         for (int i = 0; i < domains.size(); i++) {
           AbstractStringDomain<?> a = domains.get(i);
           builder
-              .add(a.combineAspectsOfSameDom(vaa1.getAspects().get(i), vaa2.getAspects().get(i)));
+              .add(a.combineAspectsForStringConcat(vaa1.getAspects().get(i), vaa2.getAspects().get(i)));
         }
         return new ValueAndAspects(builder.build());
       } else {

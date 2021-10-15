@@ -45,6 +45,7 @@ public class StringCPA extends AbstractCPA {
   private String stopType = "SEP";
 
   private Configuration config;
+  @SuppressWarnings("unused")
   private final StringTransferRelation transfer;
   private StringOptions options;
   private final LogManager logger;

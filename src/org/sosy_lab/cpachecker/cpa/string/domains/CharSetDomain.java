@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 /*
  * Tracks the characters in the string
@@ -43,17 +44,23 @@ public class CharSetDomain implements AbstractStringDomain<char[]> {
   }
 
   @Override
-  public boolean isLessOrEqual(Aspect<?> pFirst, Aspect<?> pSecond) {
-    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
-      List<Character> firstChars = toCharacterList((char[]) pFirst.getValue());
-      List<Character> scndChars = toCharacterList((char[]) pSecond.getValue());
+  public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
+    if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      List<Character> firstChars = toCharacterList((char[]) p1.getValue());
+      List<Character> scndChars = toCharacterList((char[]) p2.getValue());
       return scndChars.containsAll(firstChars);
     }
     return false;
   }
 
   @Override
-  public Aspect<char[]> combineAspectsOfSameDom(Aspect<?> p1, Aspect<?> p2) {
+  public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
+    if (p1 instanceof UnknownAspect) {
+      return p2;
+    }
+    if (p2 instanceof UnknownAspect) {
+      return p1;
+    }
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
       StringBuilder builder = new StringBuilder();
       builder.append(p1.getValue());

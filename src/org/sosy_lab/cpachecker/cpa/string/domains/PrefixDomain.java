@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.string.domains;
 
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 public class PrefixDomain implements AbstractStringDomain<String> {
 
@@ -52,11 +53,14 @@ public class PrefixDomain implements AbstractStringDomain<String> {
   // Safe, because check via TYPE
   @SuppressWarnings("unchecked")
   @Override
-  public Aspect<String> combineAspectsOfSameDom(Aspect<?> p1, Aspect<?> p2) {
+  public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
+    if (p1 instanceof UnknownAspect || p2 instanceof UnknownAspect) {
+      return p1;
+    }
     if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
       int p1Len = ((String) p1.getValue()).length();
       if (prefixLength < p1Len) {
-        return (Aspect<String>) p1;
+        return p1;
       } else {
         String res = p1 + ((String) p2.getValue()).substring(0, prefixLength - p1Len);
         return new Aspect<>(this, res);

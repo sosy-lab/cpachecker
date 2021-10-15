@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.string.domains;
 
 import org.sosy_lab.cpachecker.cpa.string.StringOptions;
 import org.sosy_lab.cpachecker.cpa.string.utils.Aspect;
+import org.sosy_lab.cpachecker.cpa.string.utils.Aspect.UnknownAspect;
 
 public class SuffixDomain implements AbstractStringDomain<String> {
 
@@ -36,10 +37,10 @@ public class SuffixDomain implements AbstractStringDomain<String> {
   }
 
   @Override
-  public boolean isLessOrEqual(Aspect<?> pFirst, Aspect<?> pSecond) {
-    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
-      String val1 = (String) pFirst.getValue();
-      String val2 = (String) pSecond.getValue();
+  public boolean isLessOrEqual(Aspect<?> p1, Aspect<?> p2) {
+    if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      String val1 = (String) p1.getValue();
+      String val2 = (String) p2.getValue();
     if (val1.length() == val2.length()) {
       return val1.equals(val2);
     }
@@ -52,15 +53,17 @@ public class SuffixDomain implements AbstractStringDomain<String> {
 
   @SuppressWarnings("unchecked")
   @Override
-  public Aspect<String> combineAspectsOfSameDom(Aspect<?> pFirst, Aspect<?> pSecond) {
-    if (pFirst.getDomainType().equals(TYPE) && pSecond.getDomainType().equals(TYPE)) {
-      int p2Len = ((String) pSecond.getValue()).length();
+  public Aspect<?> combineAspectsForStringConcat(Aspect<?> p1, Aspect<?> p2) {
+    if (p1 instanceof UnknownAspect || p2 instanceof UnknownAspect) {
+      return p2;
+    }
+    if (p1.getDomainType().equals(TYPE) && p2.getDomainType().equals(TYPE)) {
+      int p2Len = ((String) p2.getValue()).length();
       if (suffixLength < p2Len) {
-        return (Aspect<String>) pFirst;
+        return p1;
       } else {
         String res =
-            ((String) pFirst.getValue()).substring(0, suffixLength - p2Len)
-                + ((String) pSecond.getValue());
+            ((String) p1.getValue()).substring(0, suffixLength - p2Len) + ((String) p2.getValue());
         return new Aspect<>(this, res);
       }
     }

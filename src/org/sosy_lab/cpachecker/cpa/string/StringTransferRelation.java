@@ -13,8 +13,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
@@ -23,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
@@ -57,7 +60,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
   private String funcName;
   private JStringValueVisitor jValVis;
   private JVariableVisitor jVarNameVis;
-  private JVariableVisitor jVis;
+  // private JVariableVisitor jVis;
   private LogManager logger;
 
   public StringTransferRelation(LogManager pLogger, StringOptions pOptions) {
@@ -110,7 +113,7 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
           final String calledFunctionName = succ.getFunctionName();
           successor =
               handleJMethodCallEdge(
-                  fnkCall,
+                  // fnkCall,
                   fnkCall.getArguments(),
                   succ.getFunctionParameters(),
                   calledFunctionName,
@@ -121,22 +124,22 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
 
       case FunctionReturnEdge:
         if (pCfaEdge instanceof JMethodReturnEdge) {
-          final String callerFunctionName = pCfaEdge.getSuccessor().getFunctionName();
+          // final String callerFunctionName = pCfaEdge.getSuccessor().getFunctionName();
           final JMethodReturnEdge fnkReturnEdge = (JMethodReturnEdge) pCfaEdge;
           final JMethodSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
           successor =
               handleJMethodReturnEdge(
                   fnkReturnEdge,
-                  summaryEdge,
+                  // summaryEdge,
                   summaryEdge.getExpression(),
-                  callerFunctionName,
+                  // callerFunctionName,
                   state);
         }
         break;
       case ReturnStatementEdge:
         if (pCfaEdge instanceof JReturnStatementEdge) {
-          final JReturnStatementEdge returnEdge = (JReturnStatementEdge) pCfaEdge;
-          successor = handleJReturnStatementEdge(returnEdge, state);
+          // final JReturnStatementEdge returnEdge = (JReturnStatementEdge) pCfaEdge;
+          successor = handleJReturnStatementEdge(/* returnEdge, */ state);
         }
         break;
 
@@ -152,8 +155,9 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
     }
   }
 
+  // f(x)", that calls "f(int a)
   private StringState handleJMethodCallEdge(
-      JMethodCallEdge pFnkCall,
+      // JMethodCallEdge pFnkCall,
       List<JExpression> pArguments,
       List<? extends AParameterDeclaration> parameters,
       String pCalledFunctionName,
@@ -179,31 +183,55 @@ public class StringTransferRelation extends SingleEdgeTransferRelation
     return pState;
   }
 
+  // y=f(x)
   private StringState handleJMethodReturnEdge(
       JMethodReturnEdge pFnkReturnEdge,
-      JMethodSummaryEdge pSummaryEdge,
-      JMethodOrConstructorInvocation pExpression,
-      String pCallerFunctionName,
+      // JMethodSummaryEdge pSummaryEdge,
+      JMethodOrConstructorInvocation expSummary,
+      // String pCallerFunctionName,
       StringState pState) {
-    // TODO Auto-generated method stub
+    Optional<? extends AVariableDeclaration> returnVarName =
+        pFnkReturnEdge.getFunctionEntry().getReturnVariable();
+    JVariableIdentifier retJid = null;
+    if (returnVarName.isPresent()) {
+      if (HelperMethods.isString(returnVarName.get().getType())) {
+        retJid =
+            new JVariableIdentifier(
+                returnVarName.get().getType(),
+                MemoryLocation.forDeclaration(returnVarName.get()));
+      }
+    }
+    if (expSummary instanceof JMethodInvocationAssignmentStatement) {
+      JMethodInvocationAssignmentStatement assignExp =
+          ((JMethodInvocationAssignmentStatement) expSummary);
+      AExpression op1 = assignExp.getLeftHandSide();
 
+      ValueAndAspects newValue = null;
+      boolean valueExists = returnVarName.isPresent() && pState.contains(retJid);
+      if (valueExists) {
+        newValue = pState.getVaa(retJid);
+      }
+      Optional<JVariableIdentifier> jid = Optional.empty();
+      if (op1 instanceof JLeftHandSide) {
+        jid = Optional.of(jVarNameVis.visit((JLeftHandSide) op1));
+      }
+      if (jid.isPresent()) {
+        return pState.updateVariable(jid.get(), newValue);
+      }
+    }
     return pState;
   }
 
+  // "return (x)"
+  // not needed.
   private StringState
-      handleJReturnStatementEdge(JReturnStatementEdge pEdge, StringState pState) {
-    // TODO Auto-generated method stub
-    // Optional<JExpression> expOpt = pEdge.getExpression();
-    // if (expOpt.isPresent()) {
-    // if (HelperMethods.isString(expOpt.get().getExpressionType())) {
-    //
-    // }
-    // }
+      handleJReturnStatementEdge(StringState pState) {
     return pState;
   }
 
-  private StringState handleJMethodSummaryEdge(JMethodSummaryEdge pCfaEdge, StringState pState) {
+  private StringState handleJMethodSummaryEdge(JMethodSummaryEdge summaryEdge, StringState pState) {
     // TODO Auto-generated method stub
+
     return pState;
   }
 

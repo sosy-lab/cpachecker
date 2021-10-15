@@ -41,6 +41,10 @@ public class JVariableVisitor implements //JExpressionVisitor<JVariableIdentifie
     return new JVariableIdentifier(decl.getType(),MemoryLocation.forDeclaration(decl));
   }
 
+  public JVariableIdentifier visit(JLeftHandSide pOp1) {
+    return pOp1.accept(this);
+  }
+
 //  @Override
 //  public JVariableIdentifier visit(JExpressionAssignmentStatement pAExpressionAssignmentStatement)
 //      throws NoException {

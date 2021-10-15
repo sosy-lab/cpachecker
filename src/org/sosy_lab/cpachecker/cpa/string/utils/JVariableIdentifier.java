@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.string.utils;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -23,7 +21,6 @@ public class JVariableIdentifier {
   private final @Nullable String functionName;
   private final boolean isGlobal;
   private final MemoryLocation memLoc;
-  private List<Aspect> aspects;
 
   public JVariableIdentifier(Type pType, MemoryLocation pMemLoc) {
     memLoc = pMemLoc;
@@ -31,12 +28,6 @@ public class JVariableIdentifier {
     varIdentifier = memLoc.getIdentifier();
     functionName = memLoc.getFunctionName();
     isGlobal = functionName.isEmpty();
-    aspects = ImmutableList.of();
-  }
-
-  public JVariableIdentifier addAspects(List<Aspect> pList) {
-    aspects = ImmutableList.copyOf(pList);
-    return this;
   }
 
   public MemoryLocation getMemLoc() {

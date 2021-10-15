@@ -1,9 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.string;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -15,7 +15,7 @@ public class StringState implements LatticeAbstractState<StringState> {
 
   private StringOptions options;
   private ImmutableMap<JVariableIdentifier, ValueAndAspects> stringsAndAspects;
-  private ImmutableList<JVariableIdentifier> stringVars;
+  // private ImmutableList<JVariableIdentifier> stringVars;
   // public StringState(Map<JVariableIdentifier, String> pStringMap, StringOptions pOptions) {
   // options = pOptions;
   // Builder<JVariableIdentifier, ValueAndAspects> builder = new Builder<>();
@@ -29,10 +29,10 @@ public class StringState implements LatticeAbstractState<StringState> {
   // stringsAndAspects = ImmutableMap.copyOf(builder.build());
   // }
 
-  public StringState(List<JVariableIdentifier> pStringVars, StringOptions pOptions) {
-    options = pOptions;
-    stringVars = ImmutableList.copyOf(pStringVars);
-  }
+  // public StringState(List<JVariableIdentifier> pStringVars, StringOptions pOptions) {
+  // options = pOptions;
+  // stringVars = ImmutableList.copyOf(pStringVars);
+  // }
 
   public StringState(
       ImmutableMap<JVariableIdentifier, ValueAndAspects> pStringMap,
@@ -155,6 +155,17 @@ public class StringState implements LatticeAbstractState<StringState> {
     return Optional.empty();
   }
 
+  public ValueAndAspects getVaa(JVariableIdentifier jid) {
+    return checkNotNull(stringsAndAspects.get(jid));
+  }
+
+  public boolean contains(JVariableIdentifier jid) {
+    return stringsAndAspects.containsKey(jid);
+  }
+
+  public boolean contains(ValueAndAspects vaa) {
+    return stringsAndAspects.containsValue(vaa);
+  }
   // Not needed atm
   // public StringState clearAVariable(JVariableIdentifier jid) {
   //// StringState state = copyOf(this);
