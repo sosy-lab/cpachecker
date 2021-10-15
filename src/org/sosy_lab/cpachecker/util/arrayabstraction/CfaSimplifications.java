@@ -11,11 +11,14 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -33,13 +36,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 final class CfaSimplifications {
 
@@ -221,6 +228,128 @@ final class CfaSimplifications {
             ArrayAccessSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode));
   }
 
+  static CFA simplifyIncDecLoopEdges(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+
+    MutableCfaNetwork graph = MutableCfaNetwork.of(pCfa);
+    Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
+
+    VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
+
+    for (TransformableLoop loop : TransformableLoop.getTransformableLoops(pCfa)) {
+      for (CFAEdge innerLoopEdge : loop.getInnerLoopEdges()) {
+        Optional<TransformableLoop.IncDecEdge> optIncDecEdge =
+            TransformableLoop.createIncDecEdge(innerLoopEdge);
+        if (optIncDecEdge.isPresent()) {
+          TransformableLoop.IncDecEdge incDecEdge = optIncDecEdge.orElseThrow();
+          CSimpleDeclaration declaration = incDecEdge.getDeclaration();
+
+          if (declaration.equals(loop.getIndexVariable())) {
+            continue;
+          }
+
+          if (loop.hasOutgoingUses(declaration)) {
+            continue;
+          }
+
+          String qualifiedName = declaration.getQualifiedName();
+          if (variableClassification.getAddressedVariables().contains(qualifiedName)) {
+            continue;
+          }
+
+          if (loop.countInnerLoopDefs(declaration) > 1) {
+            continue;
+          }
+
+          if (incDecEdge.getOperator() != BinaryOperator.PLUS) {
+            continue;
+          }
+
+          CFAEdge updateIndexEdge = loop.getUpdateIndexEdge();
+          CIdExpression indexIdExpression =
+              new CIdExpression(innerLoopEdge.getFileLocation(), loop.getIndexVariable());
+
+          ImmutableSet<CFAEdge> indexDominated = loop.getDominatedInnerLoopEdges(updateIndexEdge);
+          ImmutableSet<CFAEdge> indexPostDominated =
+              loop.getPostDominatedInnerLoopEdges(updateIndexEdge);
+
+          ImmutableSet<CFAEdge> dominated = loop.getDominatedInnerLoopEdges(innerLoopEdge);
+          ImmutableSet<CFAEdge> postDominated = loop.getPostDominatedInnerLoopEdges(innerLoopEdge);
+
+          for (CFAEdge edge : Iterables.concat(dominated, postDominated)) {
+            int indexPlus = 0;
+            if (indexDominated.contains(edge) && postDominated.contains(edge)) {
+              indexPlus = -1;
+            } else if (indexPostDominated.contains(edge) && dominated.contains(edge)) {
+              indexPlus = 1;
+            }
+
+            CIntegerLiteralExpression indexPlusExpression =
+                new CIntegerLiteralExpression(
+                    edge.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(indexPlus));
+
+            CIntegerLiteralExpression stepExpression =
+                new CIntegerLiteralExpression(
+                    edge.getFileLocation(), CNumericTypes.INT, incDecEdge.getConstant());
+
+            CBinaryExpression indexBinaryExpression =
+                new CBinaryExpression(
+                    edge.getFileLocation(),
+                    declaration.getType(),
+                    declaration.getType(),
+                    indexIdExpression,
+                    indexPlusExpression,
+                    BinaryOperator.PLUS);
+
+            CBinaryExpression stepIndexResultExpression =
+                new CBinaryExpression(
+                    edge.getFileLocation(),
+                    declaration.getType(),
+                    declaration.getType(),
+                    indexBinaryExpression,
+                    stepExpression,
+                    BinaryOperator.MULTIPLY);
+
+            CIdExpression startValueExpression =
+                new CIdExpression(edge.getFileLocation(), declaration);
+            CBinaryExpression substituteExpression =
+                new CBinaryExpression(
+                    edge.getFileLocation(),
+                    declaration.getType(),
+                    declaration.getType(),
+                    startValueExpression,
+                    stepIndexResultExpression,
+                    BinaryOperator.PLUS);
+
+            Map<CSimpleDeclaration, CExpression> declarationSubstitution =
+                substitution.computeIfAbsent(edge, key -> new HashMap<>());
+            declarationSubstitution.put(declaration, substituteExpression);
+          }
+
+          var endpoints = graph.incidentNodes(innerLoopEdge);
+          graph.removeEdge(innerLoopEdge);
+
+          BlankEdge placeholderEdge =
+              new BlankEdge(
+                  "",
+                  innerLoopEdge.getFileLocation(),
+                  innerLoopEdge.getPredecessor(),
+                  innerLoopEdge.getSuccessor(),
+                  "");
+          graph.addEdge(endpoints, placeholderEdge);
+        }
+      }
+    }
+
+    return CCfaTransformer.createCfa(
+        pConfiguration,
+        pLogger,
+        pCfa,
+        graph,
+        (edge, originalAstNode) ->
+            IdExpressionSubstitutingCAstNodeVisitor.substitute(
+                substitution, edge, originalAstNode));
+  }
+
   private static final class ArrayAccessSubstitutingCAstNodeVisitor
       extends AbstractTransformingCAstNodeVisitor<NoException> {
 
@@ -264,6 +393,48 @@ final class CfaSimplifications {
       }
 
       return super.visit(pCPointerExpression);
+    }
+  }
+
+  private static final class IdExpressionSubstitutingCAstNodeVisitor
+      extends AbstractTransformingCAstNodeVisitor<NoException> {
+
+    private final Map<CSimpleDeclaration, CExpression> substitution;
+
+    public IdExpressionSubstitutingCAstNodeVisitor(
+        Map<CSimpleDeclaration, CExpression> pSubstitution) {
+      substitution = pSubstitution;
+    }
+
+    private static CAstNode substitute(
+        Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> pSubstitution,
+        CFAEdge pEdge,
+        CAstNode pOriginalAstNode) {
+
+      Map<CSimpleDeclaration, CExpression> declarationSubstitution = pSubstitution.get(pEdge);
+
+      if (declarationSubstitution != null) {
+
+        IdExpressionSubstitutingCAstNodeVisitor transformingVisitor =
+            new IdExpressionSubstitutingCAstNodeVisitor(declarationSubstitution);
+
+        return pOriginalAstNode.accept(transformingVisitor);
+      }
+
+      return pOriginalAstNode;
+    }
+
+    @Override
+    public CAstNode visit(CIdExpression pCIdExpression) throws NoException {
+
+      CSimpleDeclaration declaration = pCIdExpression.getDeclaration();
+      CExpression substitute = substitution.get(declaration);
+
+      if (substitute != null) {
+        return substitute;
+      }
+
+      return super.visit(pCIdExpression);
     }
   }
 }
