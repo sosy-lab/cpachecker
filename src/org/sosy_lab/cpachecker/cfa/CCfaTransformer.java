@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -47,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeVisitor;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -81,8 +81,7 @@ public final class CCfaTransformer {
     checkNotNull(pMutableCfaNetwork);
     checkNotNull(pAstNodeSubstitution);
 
-    CfaBuilder cfaBuilder =
-        new CfaBuilder(pMutableCfaNetwork, CCfaNodeTransformer.DEFAULT, pAstNodeSubstitution);
+    CfaBuilder cfaBuilder = new CfaBuilder(pMutableCfaNetwork, pAstNodeSubstitution);
 
     return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
   }
@@ -122,7 +121,6 @@ public final class CCfaTransformer {
 
     private final MutableCfaNetwork graph;
 
-    private final CCfaNodeTransformer nodeTransformer;
     private final BiFunction<CFAEdge, CAstNode, CAstNode> astNodeSubstitutionFunction;
 
     private final Map<CFANode, CFANode> oldNodeToNewNode;
@@ -130,16 +128,46 @@ public final class CCfaTransformer {
 
     private CfaBuilder(
         MutableCfaNetwork pMutableCfaNetwork,
-        CCfaNodeTransformer pNodeTransformer,
         BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitutionFunction) {
 
       graph = pMutableCfaNetwork;
 
-      nodeTransformer = pNodeTransformer;
       astNodeSubstitutionFunction = pAstNodeSubstitutionFunction;
 
       oldNodeToNewNode = new HashMap<>();
       oldEdgeToNewEdge = new HashMap<>();
+    }
+
+    private CFALabelNode newCfaLabelNode(CFALabelNode pOldNode) {
+      return new CFALabelNode(pOldNode.getFunction(), pOldNode.getLabel());
+    }
+
+    private CFunctionEntryNode newCFunctionEntryNode(CFunctionEntryNode pOldNode) {
+
+      CFANode oldExitNode = pOldNode.getExitNode();
+      FunctionExitNode newExitNode = (FunctionExitNode) toNew(oldExitNode);
+
+      CFunctionEntryNode newEntryNode =
+          new CFunctionEntryNode(
+              pOldNode.getFileLocation(),
+              (CFunctionDeclaration) pOldNode.getFunction(),
+              newExitNode,
+              pOldNode.getReturnVariable());
+      newExitNode.setEntryNode(newEntryNode);
+
+      return newEntryNode;
+    }
+
+    private FunctionExitNode newFunctionExitNode(FunctionExitNode pOldNode) {
+      return new FunctionExitNode(pOldNode.getFunction());
+    }
+
+    private CFATerminationNode newCfaTerminationNode(CFATerminationNode pOldNode) {
+      return new CFATerminationNode(pOldNode.getFunction());
+    }
+
+    private CFANode newCfaNode(CFANode pOldNode) {
+      return new CFANode(pOldNode.getFunction());
     }
 
     private CFANode toNew(CFANode pOldNode) {
@@ -150,20 +178,15 @@ public final class CCfaTransformer {
       }
 
       if (pOldNode instanceof CFALabelNode) {
-        newNode = nodeTransformer.transformCfaLabelNode((CFALabelNode) pOldNode);
+        newNode = newCfaLabelNode((CFALabelNode) pOldNode);
       } else if (pOldNode instanceof CFunctionEntryNode) {
-        CFunctionEntryNode oldEntryNode = (CFunctionEntryNode) pOldNode;
-        CFANode oldExitNode = oldEntryNode.getExitNode();
-        FunctionExitNode newExitNode = (FunctionExitNode) toNew(oldExitNode);
-        newNode =
-            nodeTransformer.transformCFunctionEntryNode((CFunctionEntryNode) pOldNode, newExitNode);
-        newExitNode.setEntryNode((CFunctionEntryNode) newNode);
+        newNode = newCFunctionEntryNode((CFunctionEntryNode) pOldNode);
       } else if (pOldNode instanceof FunctionExitNode) {
-        newNode = nodeTransformer.transformFunctionExitNode((FunctionExitNode) pOldNode);
+        newNode = newFunctionExitNode((FunctionExitNode) pOldNode);
       } else if (pOldNode instanceof CFATerminationNode) {
-        newNode = nodeTransformer.transformCfaTerminationNode((CFATerminationNode) pOldNode);
+        newNode = newCfaTerminationNode((CFATerminationNode) pOldNode);
       } else {
-        newNode = nodeTransformer.transformCfaNode(pOldNode);
+        newNode = newCfaNode(pOldNode);
       }
 
       oldNodeToNewNode.put(pOldNode, newNode);
