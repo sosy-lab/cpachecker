@@ -8,402 +8,710 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
+import org.sosy_lab.cpachecker.util.dependencegraph.DominanceUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-/** Represents a loop in a program that can be transformed/abstracted. */
 public final class TransformableLoop {
 
-  private final CFANode loopCfaNode;
-  private final CIdExpression loopIndexExpression;
-  private final CExpression loopIndexInitExpression;
+  private final LoopStructure.Loop loop;
+  private final CFANode loopNode;
 
-  private final CFAEdge initLoopIndexCfaEdge;
-  private final CStatementEdge updateLoopIndexCfaEdge;
-  private final CAssumeEdge enterLoopCfaEdge;
-  private final CAssumeEdge exitLoopCfaEdge;
+  private final CSimpleDeclaration indexVariable;
+  private final CFAEdge initializeIndexEdge;
+  private final CFAEdge updateIndexEdge;
 
-  private final ImmutableSet<CFAEdge> loopEdges;
-
-  private TransformableLoop(
-      CFANode pLoopCfaNode,
-      CIdExpression pLoopIndexExpression,
-      CExpression pLoopIndexInitExpression,
-      CFAEdge pInitLoopIndexCfaEdge,
-      CStatementEdge pUpdateLoopIndexCfaEdge,
-      CAssumeEdge pEnterLoopCfaEdge,
-      CAssumeEdge pExitLoopCfaEdge,
-      ImmutableSet<CFAEdge> pLoopEdges) {
-
-    loopCfaNode = pLoopCfaNode;
-    loopIndexExpression = pLoopIndexExpression;
-    loopIndexInitExpression = pLoopIndexInitExpression;
-    initLoopIndexCfaEdge = pInitLoopIndexCfaEdge;
-    updateLoopIndexCfaEdge = pUpdateLoopIndexCfaEdge;
-    enterLoopCfaEdge = pEnterLoopCfaEdge;
-    exitLoopCfaEdge = pExitLoopCfaEdge;
-    loopEdges = pLoopEdges;
+  public TransformableLoop(
+      Loop pLoop,
+      CFANode pLoopNode,
+      CSimpleDeclaration pIndexVariable,
+      CFAEdge pInitializeIndexEdge,
+      CFAEdge pUpdateIndexEdge) {
+    loop = pLoop;
+    loopNode = pLoopNode;
+    indexVariable = pIndexVariable;
+    initializeIndexEdge = pInitializeIndexEdge;
+    updateIndexEdge = pUpdateIndexEdge;
   }
 
-  /**
-   * Returns all transformable loops in the specified CFA.
-   *
-   * @param pCfa the CFA to find transformable loops in
-   * @return all transformable loops in the specified CFA
-   * @throws NullPointerException if {@code pCfa == null}
-   */
+  public CFANode getLoopNode() {
+    return loopNode;
+  }
+
+  public CSimpleDeclaration getIndexVariable() {
+    return indexVariable;
+  }
+
+  public CFAEdge getInitializeIndexEdge() {
+    return initializeIndexEdge;
+  }
+
+  public CFAEdge getUpdateIndexEdge() {
+    return updateIndexEdge;
+  }
+
+  public ImmutableSet<CFAEdge> getInnerLoopEdges() {
+    return loop.getInnerLoopEdges();
+  }
+
+  public CFAEdge getIncomingEdge() {
+    return loop.getIncomingEdges().stream().findAny().orElseThrow();
+  }
+
+  public CFAEdge getOutgoingEdge() {
+    return loop.getOutgoingEdges().stream().findAny().orElseThrow();
+  }
+
+  private static ImmutableSet<CFAEdge> getDominatedInnerLoopEdges(
+      CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
+
+    checkArgument(pLoop.getLoopNodes().contains(pLoopStart));
+    checkArgument(pLoop.getInnerLoopEdges().contains(pEdge));
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+
+    CFANode startNode = pEdge.getSuccessor();
+    Dominance.DomTree<CFANode> domTree =
+        DominanceUtils.createFunctionDomTree(startNode, ImmutableSet.of(pLoopStart));
+    int startId = domTree.getId(startNode);
+    for (int id = 0; id < domTree.getNodeCount(); id++) {
+      if (id == startId || domTree.isAncestorOf(startId, id)) {
+        builder.addAll(CFAUtils.leavingEdges(domTree.getNode(id)));
+      }
+    }
+
+    return builder.build();
+  }
+
+  private static ImmutableSet<CFAEdge> getPostDominatedInnerLoopEdges(
+      CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
+
+    checkArgument(pLoop.getLoopNodes().contains(pLoopStart));
+    checkArgument(pLoop.getInnerLoopEdges().contains(pEdge));
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+
+    CFANode startNode = pEdge.getPredecessor();
+    Dominance.DomTree<CFANode> postDomTree =
+        DominanceUtils.createFunctionPostDomTree(startNode, ImmutableSet.of(pLoopStart));
+    int startId = postDomTree.getId(startNode);
+    for (int id = 0; id < postDomTree.getNodeCount(); id++) {
+      if (id == startId || postDomTree.isAncestorOf(startId, id)) {
+        builder.addAll(CFAUtils.enteringEdges(postDomTree.getNode(id)));
+      }
+    }
+
+    return builder.build();
+  }
+
+  private static boolean isExecutedEveryIteration(
+      CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopNode) {
+
+    Set<CFAEdge> dominatedEdges = new HashSet<>();
+    dominatedEdges.add(pEdge);
+    dominatedEdges.addAll(getDominatedInnerLoopEdges(pEdge, pLoop, pLoopNode));
+    dominatedEdges.addAll(getPostDominatedInnerLoopEdges(pEdge, pLoop, pLoopNode));
+
+    return Sets.difference(pLoop.getInnerLoopEdges(), dominatedEdges).isEmpty();
+  }
+
+  private static ImmutableSet<CFAEdge> getIncomingDefs(
+      CFAEdge pIncomingEdge, CSimpleDeclaration pVariableDeclaration) {
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+
+    MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pVariableDeclaration);
+    EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
+    CFAEdge incomingEdge = pIncomingEdge;
+
+    if (extractor.extract(incomingEdge).getDefs().contains(memoryLocation)) {
+      builder.add(incomingEdge);
+    }
+
+    CFATraversal.dfs()
+        .backwards()
+        .traverseOnce(
+            incomingEdge.getPredecessor(),
+            new CFAVisitor() {
+
+              @Override
+              public TraversalProcess visitEdge(CFAEdge pEdge) {
+
+                if (extractor.extract(pEdge).getDefs().contains(memoryLocation)) {
+                  builder.add(pEdge);
+
+                  return TraversalProcess.SKIP;
+                }
+
+                return TraversalProcess.CONTINUE;
+              }
+
+              @Override
+              public TraversalProcess visitNode(CFANode pNode) {
+                return TraversalProcess.CONTINUE;
+              }
+            });
+
+    return builder.build();
+  }
+
+  private static ImmutableSet<CFAEdge> getOutgoingUses(
+      CFAEdge pOutgoingEdge, CSimpleDeclaration pVariableDeclaration) {
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+
+    MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pVariableDeclaration);
+    EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
+    CFAEdge outgoingEdge = pOutgoingEdge;
+
+    CFATraversal.dfs()
+        .traverseOnce(
+            outgoingEdge.getSuccessor(),
+            new CFAVisitor() {
+
+              @Override
+              public TraversalProcess visitEdge(CFAEdge pEdge) {
+
+                EdgeDefUseData edgeDefUseData = extractor.extract(pEdge);
+
+                if (edgeDefUseData.getUses().contains(memoryLocation)) {
+                  builder.add(pEdge);
+                }
+
+                if (edgeDefUseData.getDefs().contains(memoryLocation)) {
+                  return TraversalProcess.SKIP;
+                }
+
+                return TraversalProcess.CONTINUE;
+              }
+
+              @Override
+              public TraversalProcess visitNode(CFANode pNode) {
+                return TraversalProcess.CONTINUE;
+              }
+            });
+
+    return builder.build();
+  }
+
+  private static int countInnerLoopDefs(LoopStructure.Loop pLoop, CSimpleDeclaration pDeclaration) {
+
+    MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pDeclaration);
+    EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
+
+    int count = 0;
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+      if (extractor.extract(edge).getDefs().contains(memoryLocation)) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  private static boolean isConstantExpression(CExpression pExpression) {
+
+    CExpressionVisitor<Boolean, NoException> expressionVisitor =
+        new CExpressionVisitor<>() {
+
+          @Override
+          public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CFieldReference pIastFieldReference) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CIdExpression pIastIdExpression) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CPointerExpression pPointerExpression) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CComplexCastExpression pComplexCastExpression) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CBinaryExpression pIastBinaryExpression) {
+
+            CExpression operand1 = pIastBinaryExpression.getOperand1();
+            CExpression operand2 = pIastBinaryExpression.getOperand2();
+
+            return operand1.accept(this) && operand2.accept(this);
+          }
+
+          @Override
+          public Boolean visit(CCastExpression pIastCastExpression) {
+            return pIastCastExpression.getOperand().accept(this);
+          }
+
+          @Override
+          public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) {
+            return true;
+          }
+
+          @Override
+          public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
+            return true;
+          }
+
+          @Override
+          public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
+            return true;
+          }
+
+          @Override
+          public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CTypeIdExpression pIastTypeIdExpression) {
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CUnaryExpression pIastUnaryExpression) {
+
+            if (pIastUnaryExpression.getOperator() == UnaryOperator.MINUS) {
+              return pIastUnaryExpression.getOperand().accept(this);
+            }
+
+            return false;
+          }
+
+          @Override
+          public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression) {
+            return true;
+          }
+
+          @Override
+          public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
+            return false;
+          }
+        };
+
+    return pExpression.accept(expressionVisitor);
+  }
+
+  private static Optional<TransformableLoop> of(CFA pCfa, LoopStructure.Loop pLoop) {
+
+    if (pLoop.getIncomingEdges().size() != 1 || pLoop.getOutgoingEdges().size() != 1) {
+      return Optional.empty();
+    }
+
+    CFAEdge incomingEdge = pLoop.getIncomingEdges().stream().findAny().orElseThrow();
+    CFAEdge outgoingEdge = pLoop.getOutgoingEdges().stream().findAny().orElseThrow();
+
+    if (!incomingEdge.getSuccessor().equals(outgoingEdge.getPredecessor())) {
+      return Optional.empty();
+    }
+
+    CFANode loopNode = incomingEdge.getSuccessor();
+
+    for (CFANode node : pLoop.getLoopNodes()) {
+      if (!node.equals(loopNode) && node.isLoopStart()) {
+        return Optional.empty();
+      }
+    }
+
+    Optional<LoopConditionEdge> optLoopConditionEdge = createLoopConditionEdge(outgoingEdge);
+    if (optLoopConditionEdge.isEmpty()) {
+      return Optional.empty();
+    }
+
+    CSimpleDeclaration loopIndexDeclaration = optLoopConditionEdge.orElseThrow().getDeclaration();
+    MemoryLocation loopIndexMemoryLocation = MemoryLocation.forDeclaration(loopIndexDeclaration);
+
+    CFAEdge updateIndexEdge = null;
+    EdgeDefUseData.Extractor defUseExtractor = EdgeDefUseData.createExtractor(false);
+    ImmutableSet<CFAEdge> innerLoopEdges = pLoop.getInnerLoopEdges();
+    for (CFAEdge innerLoopEdge : innerLoopEdges) {
+
+      EdgeDefUseData edgeDefUseData = defUseExtractor.extract(innerLoopEdge);
+      if (!edgeDefUseData.getDefs().contains(loopIndexMemoryLocation)) {
+        continue;
+      }
+
+      Optional<IncDecEdge> optIncDecEdge = createIncDecEdge(innerLoopEdge);
+      if (optIncDecEdge.isEmpty()) {
+        continue;
+      }
+
+      IncDecEdge incDecEdge = optIncDecEdge.orElseThrow();
+      assert incDecEdge.getDeclaration().equals(loopIndexDeclaration);
+
+      if (!isExecutedEveryIteration(innerLoopEdge, pLoop, loopNode)) {
+        continue;
+      }
+
+      updateIndexEdge = innerLoopEdge;
+      break;
+    }
+
+    VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
+    if (variableClassification
+        .getAddressedVariables()
+        .contains(loopIndexDeclaration.getQualifiedName())) {
+      return Optional.empty();
+    }
+
+    if (updateIndexEdge == null) {
+      return Optional.empty();
+    }
+
+    if (!getOutgoingUses(outgoingEdge, loopIndexDeclaration).isEmpty()) {
+      return Optional.empty();
+    }
+
+    ImmutableSet<CFAEdge> incomingDefs = getIncomingDefs(incomingEdge, loopIndexDeclaration);
+    if (incomingDefs.size() != 1) {
+      return Optional.empty();
+    }
+
+    CFAEdge indexDefEdge = incomingDefs.stream().findAny().orElseThrow();
+    Optional<ConstantAssignEdge> optConstantAssignEdge = createConstantAssignEdge(indexDefEdge);
+    if (optConstantAssignEdge.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        new TransformableLoop(
+            pLoop, loopNode, loopIndexDeclaration, indexDefEdge, updateIndexEdge));
+  }
+
+  /** Returns all transformable loops in the specified CFA. */
   public static ImmutableSet<TransformableLoop> getTransformableLoops(CFA pCfa) {
 
-    checkNotNull(pCfa);
-
     ImmutableSet.Builder<TransformableLoop> transformableLoops = ImmutableSet.builder();
+    LoopStructure loopStructure = pCfa.getLoopStructure().orElseThrow();
 
-    for (CFANode node : pCfa.getAllNodes()) {
-      if (node.isLoopStart()) {
-
-        TransformableLoop.Builder builder = new TransformableLoop.Builder();
-        if (builder.initialize(node)) {
-          transformableLoops.add(builder.build());
-        }
+    for (LoopStructure.Loop loop : loopStructure.getAllLoops()) {
+      Optional<TransformableLoop> optTransformableLoop = TransformableLoop.of(pCfa, loop);
+      if (optTransformableLoop.isPresent()) {
+        transformableLoops.add(optTransformableLoop.orElseThrow());
       }
     }
 
     return transformableLoops.build();
   }
 
-  public CFANode getLoopCfaNode() {
-    return loopCfaNode;
-  }
+  private static Optional<SimpleAssignEdge> createSimpleAssignEdge(CFAEdge pEdge) {
 
-  public CIdExpression getLoopIndexExpression() {
-    return loopIndexExpression;
-  }
+    if (pEdge instanceof CDeclarationEdge) {
 
-  public MemoryLocation getLoopIndexMemoryLocation() {
-    return MemoryLocation.forDeclaration(loopIndexExpression.getDeclaration());
-  }
+      CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
+      CDeclaration declaration = declarationEdge.getDeclaration();
 
-  public CExpression getLoopIndexInitExpression() {
-    return loopIndexInitExpression;
-  }
-
-  public CFAEdge getInitLoopIndexCfaEdge() {
-    return initLoopIndexCfaEdge;
-  }
-
-  public CStatementEdge getUpdateLoopIndexCfaEdge() {
-    return updateLoopIndexCfaEdge;
-  }
-
-  public CAssumeEdge getEnterLoopCfaEdge() {
-    return enterLoopCfaEdge;
-  }
-
-  public CAssumeEdge getExitLoopCfaEdge() {
-    return exitLoopCfaEdge;
-  }
-
-  public ImmutableSet<CFAEdge> getLoopEdges() {
-    return loopEdges;
-  }
-
-  public boolean areLoopIterationsIndependent() {
-
-    EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
-    MemoryLocation indexMemoryLocation =
-        MemoryLocation.forDeclaration(loopIndexExpression.getDeclaration());
-
-    for (CFAEdge edge : loopEdges) {
-      if (!edge.equals(updateLoopIndexCfaEdge)) {
-
-        EdgeDefUseData edgeDefUseData = defUseDataExtractor.extract(edge);
-        Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
-
-        for (TransformableArray.ArrayOperation arrayOperation :
-            TransformableArray.getArrayOperations(edge)) {
-
-          CExpression operationIndexExpression = arrayOperation.getIndexExpression();
-
-          if (!(operationIndexExpression instanceof CIdExpression)
-              || !MemoryLocation.forDeclaration(
-                      ((CIdExpression) operationIndexExpression).getDeclaration())
-                  .equals(indexMemoryLocation)) {
-            return false;
-          }
-
-          arrayMemoryLocations.add(arrayOperation.getArrayMemoryLocation());
-        }
-
-        Set<MemoryLocation> defs = new HashSet<>(edgeDefUseData.getDefs());
-        defs.removeAll(arrayMemoryLocations);
-
-        if (!defs.isEmpty() || !edgeDefUseData.getPointeeDefs().isEmpty()) {
-          return false;
+      if (declaration instanceof CVariableDeclaration) {
+        CInitializer initializer = ((CVariableDeclaration) declaration).getInitializer();
+        if (initializer instanceof CInitializerExpression) {
+          CExpression expression = ((CInitializerExpression) initializer).getExpression();
+          return Optional.of(new SimpleAssignEdge(declaration, expression));
         }
       }
     }
 
-    return true;
+    if (pEdge instanceof CStatementEdge) {
+
+      CStatementEdge statementEdge = (CStatementEdge) pEdge;
+      CStatement statement = statementEdge.getStatement();
+
+      if (statement instanceof CExpressionAssignmentStatement) {
+
+        CExpressionAssignmentStatement assignmentStatement =
+            (CExpressionAssignmentStatement) statement;
+
+        CLeftHandSide lhs = assignmentStatement.getLeftHandSide();
+
+        if (lhs instanceof CIdExpression) {
+
+          CIdExpression lhsIdExpression = (CIdExpression) lhs;
+          CSimpleDeclaration variableDeclaration = lhsIdExpression.getDeclaration();
+          CExpression rhs = assignmentStatement.getRightHandSide();
+
+          return Optional.of(new SimpleAssignEdge(variableDeclaration, rhs));
+        }
+      }
+    }
+
+    return Optional.empty();
   }
 
-  private static final class Builder {
+  private static Optional<LoopConditionEdge> createLoopConditionEdge(CFAEdge pEdge) {
 
-    private CFANode node;
+    if (pEdge instanceof CAssumeEdge) {
 
-    private CIdExpression indexCIdExpression = null;
-    private CExpression loopIndexInitExpression = null;
+      CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
+      CExpression expression = assumeEdge.getExpression();
 
-    private CFAEdge initLoopIndexCfaEdge = null;
-    private CStatementEdge updateLoopIndexCfaEdge = null;
-    private CAssumeEdge enterLoopCfaEdge = null;
-    private CAssumeEdge exitLoopCfaEdge = null;
+      if (expression instanceof CBinaryExpression) {
 
-    private boolean initStatementEdges() {
+        CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+        CExpression operand1 = binaryExpression.getOperand1();
+        CExpression operand2 = binaryExpression.getOperand2();
+        BinaryOperator operator = binaryExpression.getOperator();
 
-      for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(node)) {
+        if (operator == BinaryOperator.LESS_THAN
+            || operator == BinaryOperator.GREATER_THAN
+            || operator == BinaryOperator.LESS_EQUAL
+            || operator == BinaryOperator.GREATER_EQUAL) {
 
-        // skip blank edges, required for while loops
-        if (enteringEdge.getEdgeType() == CFAEdgeType.BlankEdge
-            && enteringEdge.getPredecessor().getNumEnteringEdges() == 1) {
-          enteringEdge = enteringEdge.getPredecessor().getEnteringEdge(0);
-        }
+          if (operand1 instanceof CIdExpression && isConstantExpression(operand2)) {
 
-        if (enteringEdge instanceof CDeclarationEdge) {
-          CDeclarationEdge declarationEdge = (CDeclarationEdge) enteringEdge;
-          CDeclaration declaration = declarationEdge.getDeclaration();
-
-          // handle LHS
-          if (indexCIdExpression != null) {
-
-            MemoryLocation lhsMemoryLocation =
-                MemoryLocation.forDeclaration(declaration);
-            MemoryLocation indexMemoryLocation =
-                MemoryLocation.forDeclaration(indexCIdExpression.getDeclaration());
-
-            if (!lhsMemoryLocation.equals(indexMemoryLocation)) {
-              return false;
-            }
-          }
-
-          // handle RHS
-          if (declaration instanceof CVariableDeclaration) {
-            CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-            CInitializer initializer = variableDeclaration.getInitializer();
-
-            if (initializer instanceof CInitializerExpression) {
-              CExpression initExpression = ((CInitializerExpression) initializer).getExpression();
-
-              if (initExpression instanceof CIntegerLiteralExpression
-                  && initLoopIndexCfaEdge == null) {
-
-                initLoopIndexCfaEdge = declarationEdge;
-                loopIndexInitExpression = initExpression;
-              }
-            }
-          }
-        }
-
-        if (enteringEdge instanceof CStatementEdge) {
-
-          CStatementEdge statementEdge = (CStatementEdge) enteringEdge;
-          CStatement statement = statementEdge.getStatement();
-
-          if (statement instanceof CExpressionAssignmentStatement) {
-
-            CExpressionAssignmentStatement assignmentStatement =
-                (CExpressionAssignmentStatement) statement;
-
-            // handle LHS
-            CLeftHandSide lhs = assignmentStatement.getLeftHandSide();
-            if (lhs instanceof CIdExpression) {
-
-              CIdExpression lhsIdExpression = (CIdExpression) lhs;
-
-              if (indexCIdExpression == null) {
-                indexCIdExpression = (CIdExpression) lhs;
-              } else {
-
-                MemoryLocation lhsMemoryLocation =
-                    MemoryLocation.forDeclaration(lhsIdExpression.getDeclaration());
-                MemoryLocation indexMemoryLocation =
-                    MemoryLocation.forDeclaration(indexCIdExpression.getDeclaration());
-
-                if (!lhsMemoryLocation.equals(indexMemoryLocation)) {
-                  return false;
-                }
-              }
-            } else {
-              return false;
-            }
-
-            // handle RHS
-            CExpression rhs = assignmentStatement.getRightHandSide();
-            if (rhs instanceof CIntegerLiteralExpression && initLoopIndexCfaEdge == null) {
-
-              initLoopIndexCfaEdge = statementEdge;
-              loopIndexInitExpression = rhs;
-
-            } else if (rhs instanceof CBinaryExpression && updateLoopIndexCfaEdge == null) {
-
-              CBinaryExpression rhsBinary = (CBinaryExpression) rhs;
-              CExpression sndOperand = rhsBinary.getOperand2();
-              CBinaryExpression.BinaryOperator operator = rhsBinary.getOperator();
-
-              if (operator.equals(CBinaryExpression.BinaryOperator.PLUS)
-                  || operator.equals(CBinaryExpression.BinaryOperator.MINUS)) {
-
-                if (!rhsBinary.getOperand1().equals(lhs)) {
-                  return false;
-                }
-
-                if (!(sndOperand instanceof CIntegerLiteralExpression)) {
-                  return false;
-                }
-
-                BigInteger stepValue = ((CIntegerLiteralExpression) sndOperand).getValue();
-
-                if (stepValue.equals(BigInteger.ONE)) {
-                  updateLoopIndexCfaEdge = statementEdge;
-                } else {
-                  return false;
-                }
-              }
-            } else {
-              return false;
-            }
-          } else {
-            return false;
+            CSimpleDeclaration variableDeclaration = ((CIdExpression) operand1).getDeclaration();
+            return Optional.of(
+                new LoopConditionEdge(pEdge, variableDeclaration, operand2, operator));
           }
         }
       }
-
-      return indexCIdExpression != null
-          && initLoopIndexCfaEdge != null
-          && updateLoopIndexCfaEdge != null;
     }
 
-    private boolean initAssumeEdges() {
+    return Optional.empty();
+  }
 
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node)) {
-        if (leavingEdge instanceof CAssumeEdge) {
+  public static Optional<IncDecEdge> createIncDecEdge(CFAEdge pEdge) {
 
-          CAssumeEdge assumeEdge = (CAssumeEdge) leavingEdge;
-          CExpression expression = assumeEdge.getExpression();
+    Optional<SimpleAssignEdge> optSimpleAssignEdge = createSimpleAssignEdge(pEdge);
 
-          if (expression instanceof CBinaryExpression) {
+    if (optSimpleAssignEdge.isPresent()) {
 
-            CBinaryExpression binaryExpression = (CBinaryExpression) expression;
-            CExpression fstOperand = binaryExpression.getOperand1();
+      SimpleAssignEdge simpleAssignEdge = optSimpleAssignEdge.orElseThrow();
+      CExpression expression = simpleAssignEdge.getExpression();
 
-            if (!(fstOperand instanceof CIdExpression)) {
-              return false;
+      if (expression instanceof CBinaryExpression) {
+
+        CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+        CExpression operand1 = binaryExpression.getOperand1();
+        CExpression operand2 = binaryExpression.getOperand2();
+        BinaryOperator operator = binaryExpression.getOperator();
+
+        if (operator == BinaryOperator.PLUS || operator == BinaryOperator.MINUS) {
+          if (operand1 instanceof CIdExpression && operand2 instanceof CIntegerLiteralExpression) {
+
+            CSimpleDeclaration simpleDeclaration = ((CIdExpression) operand1).getDeclaration();
+            BigInteger stepValue = ((CIntegerLiteralExpression) operand2).getValue();
+
+            if (simpleDeclaration.equals(simpleAssignEdge.getVariableDeclaration())) {
+              return Optional.of(new IncDecEdge(pEdge, simpleDeclaration, stepValue, operator));
             }
-
-            CIdExpression fstOperandIdExpression = (CIdExpression) fstOperand;
-            MemoryLocation fstOperandMemoryLocation =
-                MemoryLocation.forDeclaration(fstOperandIdExpression.getDeclaration());
-            MemoryLocation indexMemoryLocation =
-                MemoryLocation.forDeclaration(indexCIdExpression.getDeclaration());
-
-            if (!fstOperandMemoryLocation.equals(indexMemoryLocation)) {
-              return false;
-            }
-
-            CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
-
-            if (operator.equals(CBinaryExpression.BinaryOperator.LESS_THAN)
-                || operator.equals(CBinaryExpression.BinaryOperator.GREATER_THAN)
-                || operator.equals(CBinaryExpression.BinaryOperator.LESS_EQUAL)
-                || operator.equals(CBinaryExpression.BinaryOperator.GREATER_EQUAL)) {
-
-              if (assumeEdge.getTruthAssumption() && enterLoopCfaEdge == null) {
-                enterLoopCfaEdge = assumeEdge;
-              } else if (!assumeEdge.getTruthAssumption() && exitLoopCfaEdge == null) {
-                exitLoopCfaEdge = assumeEdge;
-              } else {
-                return false;
-              }
-            }
-          } else {
-            return false;
           }
-        } else {
-          return false;
         }
       }
-
-      return enterLoopCfaEdge != null && exitLoopCfaEdge != null;
     }
 
-    private boolean initialize(CFANode pNode) {
+    return Optional.empty();
+  }
 
-      node = pNode;
+  private static Optional<ConstantAssignEdge> createConstantAssignEdge(CFAEdge pEdge) {
 
-      return initStatementEdges() && initAssumeEdges();
+    Optional<SimpleAssignEdge> optSimpleAssignEdge = createSimpleAssignEdge(pEdge);
+
+    if (optSimpleAssignEdge.isPresent()) {
+
+      SimpleAssignEdge simpleAssignEdge = optSimpleAssignEdge.orElseThrow();
+      CExpression expression = simpleAssignEdge.getExpression();
+
+      if (expression instanceof CIntegerLiteralExpression) {
+        BigInteger value = ((CIntegerLiteralExpression) expression).getValue();
+        CSimpleDeclaration variableDeclaration = simpleAssignEdge.getVariableDeclaration();
+        return Optional.of(new ConstantAssignEdge(pEdge, variableDeclaration, value));
+      }
     }
 
-    private TransformableLoop build() {
+    return Optional.empty();
+  }
 
-      CFAEdge skipEdge = exitLoopCfaEdge;
-      Set<CFAEdge> visitedEdges = new HashSet<>();
+  public ImmutableSet<CFAEdge> getDominatedInnerLoopEdges(CFAEdge pEdge) {
+    return getDominatedInnerLoopEdges(pEdge, loop, loopNode);
+  }
 
-      CFATraversal.dfs()
-          .ignoreFunctionCalls()
-          .traverseOnce(
-              node,
-              new CFAVisitor() {
+  public ImmutableSet<CFAEdge> getPostDominatedInnerLoopEdges(CFAEdge pEdge) {
+    return getPostDominatedInnerLoopEdges(pEdge, loop, loopNode);
+  }
 
-                @Override
-                public TraversalProcess visitEdge(CFAEdge pEdge) {
+  public boolean isExecutedEveryIteration(CFAEdge pEdge) {
+    return isExecutedEveryIteration(pEdge, loop, loopNode);
+  }
 
-                  visitedEdges.add(pEdge);
+  public boolean hasOutgoingUses(CSimpleDeclaration pDeclaration) {
+    return !getOutgoingUses(getOutgoingEdge(), pDeclaration).isEmpty();
+  }
 
-                  return pEdge.equals(skipEdge) ? TraversalProcess.SKIP : TraversalProcess.CONTINUE;
-                }
+  public int countInnerLoopDefs(CSimpleDeclaration pDeclaration) {
+    return countInnerLoopDefs(loop, pDeclaration);
+  }
 
-                @Override
-                public TraversalProcess visitNode(CFANode pNode) {
-                  return TraversalProcess.CONTINUE;
-                }
-              });
+  private static class SimpleAssignEdge {
 
-      return new TransformableLoop(
-          node,
-          indexCIdExpression,
-          loopIndexInitExpression,
-          initLoopIndexCfaEdge,
-          updateLoopIndexCfaEdge,
-          enterLoopCfaEdge,
-          exitLoopCfaEdge,
-          ImmutableSet.copyOf(visitedEdges));
+    private final CSimpleDeclaration variableDeclaration;
+    private final CExpression expression;
+
+    private SimpleAssignEdge(CSimpleDeclaration pVariableDeclaration, CExpression pExpression) {
+      variableDeclaration = pVariableDeclaration;
+      expression = pExpression;
+    }
+
+    private CSimpleDeclaration getVariableDeclaration() {
+      return variableDeclaration;
+    }
+
+    private CExpression getExpression() {
+      return expression;
+    }
+  }
+
+  public static final class ConstantAssignEdge {
+
+    private final CFAEdge edge;
+    private final CSimpleDeclaration variableDeclaration;
+    private final BigInteger constant;
+
+    private ConstantAssignEdge(
+        CFAEdge pEdge, CSimpleDeclaration pVariableDeclaration, BigInteger pConstant) {
+      edge = pEdge;
+      variableDeclaration = pVariableDeclaration;
+      constant = pConstant;
+    }
+
+    public CFAEdge getEdge() {
+      return edge;
+    }
+
+    public CSimpleDeclaration getVariableDeclaration() {
+      return variableDeclaration;
+    }
+
+    public BigInteger getConstant() {
+      return constant;
+    }
+  }
+
+  public static final class IncDecEdge {
+
+    private final CFAEdge edge;
+    private final CSimpleDeclaration declaration;
+    private final BigInteger constant;
+    private final BinaryOperator operator;
+
+    public IncDecEdge(
+        CFAEdge pEdge,
+        CSimpleDeclaration pDeclaration,
+        BigInteger pConstant,
+        BinaryOperator pOperator) {
+      edge = pEdge;
+      declaration = pDeclaration;
+      constant = pConstant;
+      operator = pOperator;
+    }
+
+    public CFAEdge getEdge() {
+      return edge;
+    }
+
+    public CSimpleDeclaration getDeclaration() {
+      return declaration;
+    }
+
+    public BigInteger getConstant() {
+      return constant;
+    }
+
+    public BinaryOperator getOperator() {
+      return operator;
+    }
+  }
+
+  public static final class LoopConditionEdge {
+
+    private final CFAEdge edge;
+    private final CSimpleDeclaration declaration;
+    private final CExpression expression;
+    private final BinaryOperator operator;
+
+    private LoopConditionEdge(
+        CFAEdge pEdge,
+        CSimpleDeclaration pDeclaration,
+        CExpression pExpression,
+        BinaryOperator pOperator) {
+      edge = pEdge;
+      declaration = pDeclaration;
+      expression = pExpression;
+      operator = pOperator;
+    }
+
+    public CFAEdge getEdge() {
+      return edge;
+    }
+
+    public CSimpleDeclaration getDeclaration() {
+      return declaration;
+    }
+
+    public CExpression getExpression() {
+      return expression;
+    }
+
+    public BinaryOperator getOperator() {
+      return operator;
     }
   }
 }
