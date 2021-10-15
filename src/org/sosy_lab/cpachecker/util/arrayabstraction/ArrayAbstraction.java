@@ -241,8 +241,12 @@ public class ArrayAbstraction {
     checkNotNull(pLogger);
     checkNotNull(pCfa);
 
+    CFA simplifiedCfa =
+        CfaSimplifications.simplifyArrayAccesses(
+            pConfiguration, pLogger, pCfa, new VariableGenerator("__array_access_variable_"));
+
     ImmutableSet<TransformableArray> transformableArrays =
-        TransformableArray.getTransformableArrays(pCfa);
+        TransformableArray.getTransformableArrays(simplifiedCfa);
     Map<MemoryLocation, TransformableArray> arrayMemoryLocationToTransformableArray =
         new HashMap<>();
     for (TransformableArray transformableArray : transformableArrays) {
@@ -251,8 +255,8 @@ public class ArrayAbstraction {
     }
 
     ImmutableSet<TransformableLoop> transformableLoops =
-        TransformableLoop.getTransformableLoops(pCfa);
-    MutableCfaNetwork graph = MutableCfaNetwork.of(pCfa);
+        TransformableLoop.getTransformableLoops(simplifiedCfa);
+    MutableCfaNetwork graph = MutableCfaNetwork.of(simplifiedCfa);
     VariableGenerator variableGenerator = new VariableGenerator("__nondet_variable_");
     ArrayOperationReplacementMap arrayOperationReplacementMap = new ArrayOperationReplacementMap();
 
@@ -357,7 +361,7 @@ public class ArrayAbstraction {
     return CCfaTransformer.createCfa(
         pConfiguration,
         pLogger,
-        pCfa,
+        simplifiedCfa,
         graph,
         (originalCfaEdge, originalAstNode) ->
             originalAstNode.accept(
