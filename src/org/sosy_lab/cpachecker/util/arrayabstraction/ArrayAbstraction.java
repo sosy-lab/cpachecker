@@ -244,6 +244,8 @@ public class ArrayAbstraction {
     CFA simplifiedCfa =
         CfaSimplifications.simplifyArrayAccesses(
             pConfiguration, pLogger, pCfa, new VariableGenerator("__array_access_variable_"));
+    simplifiedCfa =
+        CfaSimplifications.simplifyPointerArrayAccesses(pConfiguration, pLogger, simplifiedCfa);
 
     ImmutableSet<TransformableArray> transformableArrays =
         TransformableArray.getTransformableArrays(simplifiedCfa);

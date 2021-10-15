@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -110,46 +109,6 @@ public class ArrayAccess {
 
   public CExpression getExpression() {
     return expression;
-  }
-
-  public Optional<CArraySubscriptExpression> toArraySubscriptExpression() {
-
-    CArraySubscriptExpression arraySubscriptExpression = null;
-
-    if (expression instanceof CArraySubscriptExpression) {
-      arraySubscriptExpression = (CArraySubscriptExpression) expression;
-    }
-
-    if (expression instanceof CPointerExpression) {
-
-      CPointerExpression pointerExpression = (CPointerExpression) expression;
-      CExpression operand = pointerExpression.getOperand();
-
-      if (operand instanceof CIdExpression) {
-        arraySubscriptExpression =
-            new CArraySubscriptExpression(
-                expression.getFileLocation(),
-                expression.getExpressionType(),
-                operand,
-                CIntegerLiteralExpression.ZERO);
-      }
-
-      if (operand instanceof CBinaryExpression) {
-
-        CBinaryExpression binaryExpression = (CBinaryExpression) operand;
-        BinaryOperator operator = binaryExpression.getOperator();
-        CExpression operand1 = binaryExpression.getOperand1();
-        CExpression operand2 = binaryExpression.getOperand2();
-
-        if (operator == BinaryOperator.PLUS && operand1 instanceof CIdExpression) {
-          arraySubscriptExpression =
-              new CArraySubscriptExpression(
-                  expression.getFileLocation(), expression.getExpressionType(), operand1, operand2);
-        }
-      }
-    }
-
-    return Optional.ofNullable(arraySubscriptExpression);
   }
 
   @Override

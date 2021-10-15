@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
@@ -24,9 +26,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -128,6 +133,81 @@ final class CfaSimplifications {
               finished.put(current, substituteExpression);
             }
           }
+        }
+      }
+    }
+
+    return CCfaTransformer.createCfa(
+        pConfiguration,
+        pLogger,
+        pCfa,
+        graph,
+        (edge, originalAstNode) ->
+            ArrayAccessSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode));
+  }
+
+  /**
+   * Returns a simplified CFA with pointer expressions replaced with array subscript expressions
+   * (where applicable).
+   *
+   * <p>This simplification only works on CFAs that contain {@code <= 1} array accesses per CFA
+   * edge.
+   *
+   * @param pCfa the CFA to simplify
+   * @return the simplified CFA
+   * @throws IllegalArgumentException if any CFA edge has multiple array accesses
+   */
+  static CFA simplifyPointerArrayAccesses(
+      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+
+    MutableCfaNetwork graph = MutableCfaNetwork.of(pCfa);
+    CAstNodeSubstitution substitution = new CAstNodeSubstitution();
+
+    // copy of edges to prevent concurrent modification of graph
+    for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
+
+      ImmutableSet<ArrayAccess> arrayAccesses = ArrayAccess.getArrayAccesses(edge);
+      checkArgument(arrayAccesses.stream().count() <= 1);
+
+      for (ArrayAccess arrayAccess : arrayAccesses) {
+
+        CExpression expression = arrayAccess.getExpression();
+        CArraySubscriptExpression arraySubscriptExpression = null;
+
+        if (expression instanceof CPointerExpression) {
+
+          CPointerExpression pointerExpression = (CPointerExpression) expression;
+          CExpression operand = pointerExpression.getOperand();
+
+          if (operand instanceof CIdExpression) {
+            arraySubscriptExpression =
+                new CArraySubscriptExpression(
+                    expression.getFileLocation(),
+                    expression.getExpressionType(),
+                    operand,
+                    CIntegerLiteralExpression.ZERO);
+          }
+
+          if (operand instanceof CBinaryExpression) {
+
+            CBinaryExpression binaryExpression = (CBinaryExpression) operand;
+            BinaryOperator operator = binaryExpression.getOperator();
+            CExpression operand1 = binaryExpression.getOperand1();
+            CExpression operand2 = binaryExpression.getOperand2();
+
+            if (operator == BinaryOperator.PLUS && operand1 instanceof CIdExpression) {
+              arraySubscriptExpression =
+                  new CArraySubscriptExpression(
+                      expression.getFileLocation(),
+                      expression.getExpressionType(),
+                      operand1,
+                      operand2);
+            }
+          }
+        }
+
+        if (arraySubscriptExpression != null) {
+          substitution.insertSubstitute(edge, expression, arraySubscriptExpression);
         }
       }
     }
