@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Equivalence;
+import com.google.common.collect.ImmutableList;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import java.util.ArrayList;
@@ -22,21 +22,31 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
-public class MutableCfaNetwork
-    extends ForwardingMutableNetwork<CFANode, Equivalence.Wrapper<CFAEdge>> {
+public class MutableCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
 
-  private MutableCfaNetwork(MutableNetwork<CFANode, Equivalence.Wrapper<CFAEdge>> pDelegate) {
+  private MutableCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
     super(pDelegate);
   }
 
-  public static Equivalence.Wrapper<CFAEdge> wrap(CFAEdge pCfaEdge) {
-    return Equivalence.identity().wrap(checkNotNull(pCfaEdge));
-  }
-
+  /**
+   * Returns a new {@code MutableCfaNetwork} instance representing the specified CFA.
+   *
+   * <p>The returned CFA contains all nodes, regular edges, and summary edges in the specified CFA.
+   *
+   * <p>Modifying the returned mutable network does not change the original CFA, so calling methods
+   * on the returned {@code MutableCfaNetwork} instance is safe. However, mutating existing {@code
+   * CFANode} and {@code CFAEdge} objects may change (and break) the original CFA.
+   *
+   * @param pCfa the CFA to create the {@code MutableCfaNetwork} for
+   * @return the {@code MutableCfaNetwork} for the specified CFA
+   * @throws IllegalArgumentException if the specified CFA contains parallel edges (i.e., edges
+   *     connected to the same nodes in the same order)
+   * @throws NullPointerException if {@code pCfa == null}
+   */
   public static MutableCfaNetwork of(CFA pCfa) {
 
-    MutableNetwork<CFANode, Equivalence.Wrapper<CFAEdge>> mutableNetwork =
-        NetworkBuilder.directed().allowsParallelEdges(true).allowsSelfLoops(true).build();
+    MutableNetwork<CFANode, CFAEdge> mutableNetwork =
+        NetworkBuilder.directed().allowsSelfLoops(true).build();
 
     for (CFANode cfaNode : pCfa.getAllNodes()) {
       mutableNetwork.addNode(cfaNode);
@@ -50,8 +60,8 @@ public class MutableCfaNetwork
     for (CFANode predecessor : pCfa.getAllNodes()) {
       for (CFAEdge cfaEdge : CFAUtils.allLeavingEdges(predecessor)) {
         CFANode successor = cfaEdge.getSuccessor();
-        Equivalence.Wrapper<CFAEdge> wrappedCfaEdge = wrap(cfaEdge);
-        mutableNetwork.addEdge(predecessor, successor, wrappedCfaEdge);
+        boolean edgeAdded = mutableNetwork.addEdge(predecessor, successor, cfaEdge);
+        checkArgument(edgeAdded, "CFA must not contain parallel edges");
       }
     }
 
@@ -70,13 +80,12 @@ public class MutableCfaNetwork
    *
    * }</pre>
    */
-  public void insertPredecessor(
-      CFANode pNewPredecessor, CFANode pNode, Equivalence.Wrapper<CFAEdge> pNewInEdge) {
+  public void insertPredecessor(CFANode pNewPredecessor, CFANode pNode, CFAEdge pNewInEdge) {
 
-    List<Equivalence.Wrapper<CFAEdge>> nodeInEdges = new ArrayList<>(inEdges(pNode));
+    List<CFAEdge> nodeInEdges = ImmutableList.copyOf(inEdges(pNode));
     List<CFANode> nodeUs = new ArrayList<>(nodeInEdges.size());
 
-    for (var nodeInEdge : nodeInEdges) {
+    for (CFAEdge nodeInEdge : nodeInEdges) {
       nodeUs.add(incidentNodes(nodeInEdge).nodeU());
       removeEdge(nodeInEdge);
     }
@@ -102,13 +111,12 @@ public class MutableCfaNetwork
    *
    * }</pre>
    */
-  public void insertSuccessor(
-      CFANode pNode, CFANode pNewSuccessor, Equivalence.Wrapper<CFAEdge> pNewOutEdge) {
+  public void insertSuccessor(CFANode pNode, CFANode pNewSuccessor, CFAEdge pNewOutEdge) {
 
-    List<Equivalence.Wrapper<CFAEdge>> nodeOutEdges = new ArrayList<>(outEdges(pNode));
+    List<CFAEdge> nodeOutEdges = ImmutableList.copyOf(outEdges(pNode));
     List<CFANode> nodeVs = new ArrayList<>(nodeOutEdges.size());
 
-    for (var nodeOutEdge : nodeOutEdges) {
+    for (CFAEdge nodeOutEdge : nodeOutEdges) {
       nodeVs.add(incidentNodes(nodeOutEdge).nodeV());
       removeEdge(nodeOutEdge);
     }

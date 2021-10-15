@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.graph.EndpointPair;
@@ -124,7 +123,7 @@ public final class CCfaTransformer {
     private final BiFunction<CFAEdge, CAstNode, CAstNode> astNodeSubstitutionFunction;
 
     private final Map<CFANode, CFANode> oldNodeToNewNode;
-    private final Map<Equivalence.Wrapper<CFAEdge>, Equivalence.Wrapper<CFAEdge>> oldEdgeToNewEdge;
+    private final Map<CFAEdge, CFAEdge> oldEdgeToNewEdge;
 
     private CfaBuilder(
         MutableCfaNetwork pMutableCfaNetwork,
@@ -199,23 +198,22 @@ public final class CCfaTransformer {
     }
 
     private CFunctionSummaryEdge newCFunctionSummaryEdge(
-        Equivalence.Wrapper<CFAEdge> pOldEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
+        CFunctionSummaryEdge pOldSummaryEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
 
-      CFunctionSummaryEdge oldSummaryEdge = (CFunctionSummaryEdge) pOldEdge.get();
-      CFANode oldSummaryEdgeNodeU = graph.incidentNodes(pOldEdge).nodeU();
+      CFANode oldSummaryEdgeNodeU = graph.incidentNodes(pOldSummaryEdge).nodeU();
 
-      for (Equivalence.Wrapper<CFAEdge> outEdge : graph.outEdges(oldSummaryEdgeNodeU)) {
-        if (outEdge.get() instanceof CFunctionCallEdge) {
+      for (CFAEdge outEdge : graph.outEdges(oldSummaryEdgeNodeU)) {
+        if (outEdge instanceof CFunctionCallEdge) {
 
           CFANode oldEntryNode = graph.incidentNodes(outEdge).nodeV();
           CFunctionEntryNode newEntryNode = (CFunctionEntryNode) toNew(oldEntryNode);
 
           CFunctionCall newFunctionCall =
-              (CFunctionCall) substituteAst(oldSummaryEdge, oldSummaryEdge.getExpression());
+              (CFunctionCall) substituteAst(pOldSummaryEdge, pOldSummaryEdge.getExpression());
 
           return new CFunctionSummaryEdge(
-              oldSummaryEdge.getRawStatement(),
-              oldSummaryEdge.getFileLocation(),
+              pOldSummaryEdge.getRawStatement(),
+              pOldSummaryEdge.getFileLocation(),
               pNewNodeU,
               pNewNodeV,
               newFunctionCall,
@@ -224,24 +222,22 @@ public final class CCfaTransformer {
       }
 
       throw new IllegalStateException(
-          "Missing function call edge for summary edge: " + oldSummaryEdge);
+          "Missing function call edge for summary edge: " + pOldSummaryEdge);
     }
 
     private CFunctionCallEdge newCFunctionCallEdge(
-        Equivalence.Wrapper<CFAEdge> pOldEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
+        CFunctionCallEdge pOldCallEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
 
-      CFunctionCallEdge oldCallEdge = (CFunctionCallEdge) pOldEdge.get();
-      CFANode oldCallEdgeNodeU = graph.incidentNodes(pOldEdge).nodeU();
+      CFANode oldCallEdgeNodeU = graph.incidentNodes(pOldCallEdge).nodeU();
 
-      for (Equivalence.Wrapper<CFAEdge> outEdge : graph.outEdges(oldCallEdgeNodeU)) {
+      for (CFAEdge outEdge : graph.outEdges(oldCallEdgeNodeU)) {
+        if (outEdge instanceof CFunctionSummaryEdge) {
 
-        if (outEdge.get() instanceof CFunctionSummaryEdge) {
-
-          CFunctionSummaryEdge newSummaryEdge = (CFunctionSummaryEdge) toNew(outEdge, true).get();
+          CFunctionSummaryEdge newSummaryEdge = (CFunctionSummaryEdge) toNew(outEdge, true);
 
           return new CFunctionCallEdge(
-              oldCallEdge.getRawStatement(),
-              oldCallEdge.getFileLocation(),
+              pOldCallEdge.getRawStatement(),
+              pOldCallEdge.getFileLocation(),
               pNewNodeU,
               (CFunctionEntryNode) pNewNodeV,
               newSummaryEdge.getExpression(),
@@ -251,22 +247,21 @@ public final class CCfaTransformer {
       }
 
       throw new IllegalStateException(
-          "Missing summary edge for function call edge: " + oldCallEdge);
+          "Missing summary edge for function call edge: " + pOldCallEdge);
     }
 
     private CFunctionReturnEdge newCFunctionReturnEdge(
-        Equivalence.Wrapper<CFAEdge> pOldEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
+        CFunctionReturnEdge pOldReturnEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
 
-      CFunctionReturnEdge oldReturnEdge = (CFunctionReturnEdge) pOldEdge.get();
-      CFANode oldReturnEdgeNodeV = graph.incidentNodes(pOldEdge).nodeV();
+      CFANode oldReturnEdgeNodeV = graph.incidentNodes(pOldReturnEdge).nodeV();
 
-      for (Equivalence.Wrapper<CFAEdge> inEdge : graph.inEdges(oldReturnEdgeNodeV)) {
-        if (inEdge.get() instanceof CFunctionSummaryEdge) {
+      for (CFAEdge inEdge : graph.inEdges(oldReturnEdgeNodeV)) {
+        if (inEdge instanceof CFunctionSummaryEdge) {
 
-          CFunctionSummaryEdge newSummaryEdge = (CFunctionSummaryEdge) toNew(inEdge, true).get();
+          CFunctionSummaryEdge newSummaryEdge = (CFunctionSummaryEdge) toNew(inEdge, true);
 
           return new CFunctionReturnEdge(
-              oldReturnEdge.getFileLocation(),
+              pOldReturnEdge.getFileLocation(),
               (FunctionExitNode) pNewNodeU,
               pNewNodeV,
               newSummaryEdge);
@@ -274,13 +269,12 @@ public final class CCfaTransformer {
       }
 
       throw new IllegalStateException(
-          "Missing summary edge for function return edge: " + oldReturnEdge);
+          "Missing summary edge for function return edge: " + pOldReturnEdge);
     }
 
-    private Equivalence.Wrapper<CFAEdge> toNew(
-        Equivalence.Wrapper<CFAEdge> pOldEdge, boolean pBuildSupergraph) {
+    private CFAEdge toNew(CFAEdge pOldEdge, boolean pBuildSupergraph) {
 
-      Equivalence.Wrapper<CFAEdge> newEdge = oldEdgeToNewEdge.get(pOldEdge);
+      CFAEdge newEdge = oldEdgeToNewEdge.get(pOldEdge);
       if (newEdge != null) {
         return newEdge;
       }
@@ -351,7 +345,7 @@ public final class CCfaTransformer {
             @Override
             public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
               if (pBuildSupergraph) {
-                return newCFunctionCallEdge(pOldEdge, newNodeU, newNodeV);
+                return newCFunctionCallEdge(pCFunctionCallEdge, newNodeU, newNodeV);
               } else {
                 return null;
               }
@@ -360,7 +354,7 @@ public final class CCfaTransformer {
             @Override
             public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
               if (pBuildSupergraph) {
-                return newCFunctionReturnEdge(pOldEdge, newNodeU, newNodeV);
+                return newCFunctionReturnEdge(pCFunctionReturnEdge, newNodeU, newNodeV);
               } else {
                 return null;
               }
@@ -369,7 +363,7 @@ public final class CCfaTransformer {
             @Override
             public CFAEdge visit(CFunctionSummaryEdge pCFunctionSummaryEdge) {
               if (pBuildSupergraph) {
-                return newCFunctionSummaryEdge(pOldEdge, newNodeU, newNodeV);
+                return newCFunctionSummaryEdge(pCFunctionSummaryEdge, newNodeU, newNodeV);
               } else {
                 return new SummaryPlaceholderEdge(
                     "",
@@ -430,24 +424,21 @@ public final class CCfaTransformer {
             }
           };
 
-      CCfaEdge oldCCfaEdge = (CCfaEdge) pOldEdge.get();
-      CFAEdge newCfaEdge = oldCCfaEdge.accept(transformingEdgeVisitor);
+      newEdge = ((CCfaEdge) pOldEdge).accept(transformingEdgeVisitor);
 
-      if (newCfaEdge != null) {
+      if (newEdge != null) {
 
-        newEdge = MutableCfaNetwork.wrap(newCfaEdge);
-
-        if (!(newCfaEdge instanceof SummaryPlaceholderEdge)) {
+        if (!(newEdge instanceof SummaryPlaceholderEdge)) {
           oldEdgeToNewEdge.put(pOldEdge, newEdge);
         }
 
-        if (newCfaEdge instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newCfaEdge;
+        if (newEdge instanceof CFunctionSummaryEdge) {
+          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newEdge;
           newNodeU.addLeavingSummaryEdge(cfaSummaryEdge);
           newNodeV.addEnteringSummaryEdge(cfaSummaryEdge);
         } else {
-          newNodeU.addLeavingEdge(newCfaEdge);
-          newNodeV.addEnteringEdge(newCfaEdge);
+          newNodeU.addLeavingEdge(newEdge);
+          newNodeV.addEnteringEdge(newEdge);
         }
       }
 
@@ -515,7 +506,7 @@ public final class CCfaTransformer {
       }
 
       for (CFANode oldNode : oldNodeToNewNode.keySet()) {
-        for (Equivalence.Wrapper<CFAEdge> outEdge : graph.outEdges(oldNode)) {
+        for (CFAEdge outEdge : graph.outEdges(oldNode)) {
           // pBuildSupergraph == false
           toNew(outEdge, false);
         }
@@ -550,7 +541,7 @@ public final class CCfaTransformer {
       // create supergraph (includes call, return, and summary edges)
       removeSummaryPlaceholderEdges();
       for (CFANode oldNode : oldNodeToNewNode.keySet()) {
-        for (Equivalence.Wrapper<CFAEdge> outEdge : graph.outEdges(oldNode)) {
+        for (CFAEdge outEdge : graph.outEdges(oldNode)) {
           // pBuildSupergraph == true
           toNew(outEdge, true);
         }
