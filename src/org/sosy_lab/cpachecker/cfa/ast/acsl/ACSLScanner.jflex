@@ -79,6 +79,7 @@ import org.sosy_lab.common.log.LogManager;
         }
         token = next_token();
       }
+      symbols.add(symbol(ACSLSymbols.ANNOTATION_END));
       assert !pred_start;
 
       if (invalidAnnotation) {
