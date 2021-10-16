@@ -16,17 +16,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
- * A visitor that is used to create modified copies of abstract syntax tree (AST) nodes where
- * certain nodes are substituted.
+ * A visitor for creating modified copies of abstract syntax tree (AST) nodes by applying a user
+ * defined node substitution.
  *
- * <p>The substitution is specified by a {@link Function} ({@code originalCAstNode ->
- * substituteCAstNode}). If the substitution function returns an instance of {@code CAstNode}, the
- * returned instance is used as a substitute. Otherwise, if {@code null} is returned, the node is
- * not substituted. Only if a node is not substituted, are its children recursively visited and
- * checked for substitution.
+ * <p>A substitution is a {@link Function} that maps original nodes to substitute nodes. If the
+ * substitution function returns an instance of {@link CAstNode}, the returned instance is used as a
+ * substitute. Otherwise, if {@code null} is returned, the node is not substituted and its children
+ * are recursively visited and check for substitution.
  *
- * <p>Modified AST-nodes are created by calling {@link CAstNode#accept(CAstNodeVisitor)} with an
- * {@code SubstitutingCAstNodeVisitor}:
+ * <p>Modified AST nodes are created by calling {@link CAstNode#accept(CAstNodeVisitor)}:
  *
  * <pre>{@code
  * CAstNode modifiedAstNode = originalAstNode.accept(substitutingVisitor);
@@ -40,8 +38,10 @@ public final class SubstitutingCAstNodeVisitor
   /**
    * Creates a {@code SubstitutingCAstNodeVisitor} instance for a specified substitution.
    *
-   * @param pSubstitution The substitution function {@code originalCAstNode -> substituteCAstNode}.
-   *     If {@code null} is returned, the node is not substituted.
+   * @param pSubstitution The substitution function that maps original nodes to substitute nodes. If
+   *     the substitution function returns an instance of {@link CAstNode}, the returned instance is
+   *     used as a substitute. Otherwise, if {@code null} is returned, the node is not substituted
+   *     and its children are recursively visited and check for substitution.
    * @throws NullPointerException if {@code pSubstitution == null}
    */
   public SubstitutingCAstNodeVisitor(Function<CAstNode, CAstNode> pSubstitution) {
@@ -49,7 +49,7 @@ public final class SubstitutingCAstNodeVisitor
   }
 
   /**
-   * Returns the substitute for a specified {@code CAstNode}, or, if the substitution function
+   * Returns the substitute for a specified {@link CAstNode}, or, if the substitution function
    * returns {@code null}, the value returned by the specified supplier.
    */
   private CAstNode substitute(CAstNode pCAstNode, Supplier<CAstNode> pDefaultSupplier) {
