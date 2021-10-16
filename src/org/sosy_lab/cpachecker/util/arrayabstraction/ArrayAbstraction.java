@@ -28,8 +28,6 @@ public class ArrayAbstraction {
         CfaSimplifications.simplifyArrayAccesses(
             pConfiguration, pLogger, pCfa, new VariableGenerator("__array_access_variable_"));
     simplifiedCfa =
-        CfaSimplifications.simplifyPointerArrayAccesses(pConfiguration, pLogger, simplifiedCfa);
-    simplifiedCfa =
         CfaSimplifications.simplifyIncDecLoopEdges(pConfiguration, pLogger, simplifiedCfa);
 
     return simplifiedCfa;
