@@ -57,7 +57,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class ArrayAccess {
+/**
+ * Represents an array access via a subscript expression.
+ *
+ * <p>Array accesses can either be reading accesses (e.g., {@code int value = array[index + 1];}) or
+ * a writing accesses (e.g., {@code array[index + 1] = value;}).
+ */
+final class ArrayAccess {
 
   private final ArrayAccess.Type type;
   private final CExpression expression;
@@ -67,7 +73,58 @@ public class ArrayAccess {
     expression = pExpression;
   }
 
-  public static ImmutableSet<ArrayAccess> getArrayAccesses(CAstNode pCAstNode) {
+  private static Optional<CArraySubscriptExpression> toArraySubscriptExpression(
+      CExpression pExpression) {
+
+    if (pExpression instanceof CArraySubscriptExpression) {
+      return Optional.of((CArraySubscriptExpression) pExpression);
+    }
+
+    if (pExpression instanceof CPointerExpression) {
+
+      CPointerExpression pointerExpression = (CPointerExpression) pExpression;
+      CExpression operand = pointerExpression.getOperand();
+
+      if (operand instanceof CIdExpression) {
+        CArraySubscriptExpression arraySubscriptExpression =
+            new CArraySubscriptExpression(
+                pExpression.getFileLocation(),
+                pExpression.getExpressionType(),
+                operand,
+                CIntegerLiteralExpression.ZERO);
+        return Optional.of(arraySubscriptExpression);
+      }
+
+      if (operand instanceof CBinaryExpression) {
+
+        CBinaryExpression binaryExpression = (CBinaryExpression) operand;
+        CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
+        CExpression operand1 = binaryExpression.getOperand1();
+        CExpression operand2 = binaryExpression.getOperand2();
+
+        if (operator == CBinaryExpression.BinaryOperator.PLUS) {
+          CArraySubscriptExpression arraySubscriptExpression =
+              new CArraySubscriptExpression(
+                  pExpression.getFileLocation(),
+                  pExpression.getExpressionType(),
+                  operand1,
+                  operand2);
+          return Optional.of(arraySubscriptExpression);
+        }
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * Returns a set of all array accesses contained in the specified AST node.
+   *
+   * @param pCAstNode AST node to search for array accesses
+   * @return a set of all array accesses contained in the specified AST node
+   * @throws NullPointerException if {@code pCAstNode == null}
+   */
+  public static ImmutableSet<ArrayAccess> findArrayAccesses(CAstNode pCAstNode) {
 
     ImmutableSet.Builder<ArrayAccess> builder = ImmutableSet.builder();
 
@@ -78,37 +135,90 @@ public class ArrayAccess {
     return builder.build();
   }
 
-  public static ImmutableSet<ArrayAccess> getArrayAccesses(CFAEdge pEdge) {
+  /**
+   * Returns a set of all array accesses contained in the specified CFA edge.
+   *
+   * @param pEdge CFA edge to search for array accesses
+   * @return a set of all array accesses contained in the specified CFA edge
+   * @throws NullPointerException if {@code pEdge == null}
+   */
+  public static ImmutableSet<ArrayAccess> findArrayAccesses(CFAEdge pEdge) {
 
     if (pEdge instanceof CFunctionSummaryEdge) {
-      return getArrayAccesses(((CFunctionSummaryEdge) pEdge).getExpression());
+      return findArrayAccesses(((CFunctionSummaryEdge) pEdge).getExpression());
     }
 
     Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
     if (optAstNode.isPresent()) {
       AAstNode astNode = optAstNode.get();
       if (astNode instanceof CAstNode) {
-        return getArrayAccesses((CAstNode) astNode);
+        return findArrayAccesses((CAstNode) astNode);
       }
     }
 
     return ImmutableSet.of();
   }
 
+  /**
+   * Returns the type of this array access (read/write).
+   *
+   * @return the type of this array access (read/write).
+   */
   public ArrayAccess.Type getType() {
     return type;
   }
 
+  /**
+   * Returns whether this array access is a reading array access.
+   *
+   * @return If this array access is a reading access, {@code true} is returned. Otherwise, if this
+   *     array access is a writing array access, {@code false} is returned.
+   */
   public boolean isRead() {
     return type == ArrayAccess.Type.READ;
   }
 
+  /**
+   * Returns whether this array access is a writing array access.
+   *
+   * @return If this array access is a writing access, {@code true} is returned. Otherwise, if this
+   *     array access is a reading array access, {@code false} is returned.
+   */
   public boolean isWrite() {
     return type == ArrayAccess.Type.WRITE;
   }
 
+  /**
+   * Returns the expression of this array access (e.g., {@code array[index + 1]}).
+   *
+   * @return expression of this array access
+   */
   public CExpression getExpression() {
     return expression;
+  }
+
+  /**
+   * Returns the array expression of this array access.
+   *
+   * <p>Example: the expression of {@code array} from the array access {@code array[index + 1]} is
+   * returned.
+   *
+   * @return the array expression of this array access
+   */
+  public CExpression getArrayExpression() {
+    return toArraySubscriptExpression(expression).orElseThrow().getArrayExpression();
+  }
+
+  /**
+   * Returns the subscript expression of this array access.
+   *
+   * <p>Example: the expression of {@code index + 1} from the array access {@code array[index + 1]}
+   * is returned.
+   *
+   * @return the subscript expression of this array access
+   */
+  public CExpression getSubscriptExpression() {
+    return toArraySubscriptExpression(expression).orElseThrow().getSubscriptExpression();
   }
 
   @Override
@@ -145,7 +255,7 @@ public class ArrayAccess {
     READ
   }
 
-  /** AST-visitor for finding array accesses. */
+  /** AST node visitor for finding array accesses. */
   private static final class ArrayAccessFinder implements CAstNodeVisitor<Void, NoException> {
 
     private final BiConsumer<ArrayAccess.Type, CExpression> consumer;
@@ -324,7 +434,9 @@ public class ArrayAccess {
     @Override
     public Void visit(CPointerExpression pPointerExpression) {
 
-      consumer.accept(mode, pPointerExpression);
+      if (toArraySubscriptExpression(pPointerExpression).isPresent()) {
+        consumer.accept(mode, pPointerExpression);
+      }
 
       ArrayAccess.Type prev = mode;
 

@@ -70,7 +70,7 @@ final class CfaSimplifications {
     // copy of edges to prevent concurrent modification of graph
     for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
 
-      Set<ArrayAccess> remainingArrayAccesses = new HashSet<>(ArrayAccess.getArrayAccesses(edge));
+      Set<ArrayAccess> remainingArrayAccesses = new HashSet<>(ArrayAccess.findArrayAccesses(edge));
 
       // finished array access ---> substitute for finished array access
       Map<ArrayAccess, CExpression> finished = new HashMap<>();
@@ -86,7 +86,7 @@ final class CfaSimplifications {
 
           ArrayAccess current = remainingArrayAccessesIterator.next();
           ImmutableSet<ArrayAccess> currentArrayAccesses =
-              ArrayAccess.getArrayAccesses(current.getExpression());
+              ArrayAccess.findArrayAccesses(current.getExpression());
 
           // array accesses can only be processes after all the array accesses they rely on are
           // finished (e.g., a[b[10]] -> process b[10] -> b[10] finished -> process a[b[10]])
@@ -173,7 +173,7 @@ final class CfaSimplifications {
     // copy of edges to prevent concurrent modification of graph
     for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
 
-      ImmutableSet<ArrayAccess> arrayAccesses = ArrayAccess.getArrayAccesses(edge);
+      ImmutableSet<ArrayAccess> arrayAccesses = ArrayAccess.findArrayAccesses(edge);
       checkArgument(arrayAccesses.stream().count() <= 1);
 
       for (ArrayAccess arrayAccess : arrayAccesses) {
