@@ -3443,6 +3443,9 @@ dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.
 # are renamed (could be unsound)
 differential.ignoreDeclarations = false
 
+# perform assumption implication check
+differential.implicationCheck = true
+
 # Program to check against
 differential.program = no default value
 

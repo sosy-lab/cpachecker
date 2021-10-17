@@ -32,6 +32,7 @@ SPDX-License-Identifier: Apache-2.0
 - Lemberger, Thomas (since 2014); LMU Munich, Germany
 - Markin, Grigory (since 2017); University of Lübeck, Germany
 - Mutilin, Vadim (since 2012); ISP RAS, Russia
+- Pollandt, Tim (since 2021); TU Darmstadt, Germany
 - Port, Valentin (since 2019); LMU Munich, Germany
 - Schüss, Balthasar (since 2019); LMU Munich, Germany
 - Selberg, Jakob (since 2018); LMU Munich, Germany
