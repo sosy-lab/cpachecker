@@ -124,7 +124,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
         transfer =
             new ModificationsPropTransferRelation(
                 true,
-                ignoreDeclarations,
+                implicationCheck,
                 origFunToDeclNames,
                 varDeclCollect.getVisitedDeclarations(),
                 solver,
@@ -132,7 +132,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
                 logger);
       } else {
         transfer =
-            new ModificationsPropTransferRelation(ignoreDeclarations, solver, converter, logger);
+            new ModificationsPropTransferRelation(implicationCheck, solver, converter, logger);
       }
 
     } catch (ParserException pE) {

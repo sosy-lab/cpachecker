@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -26,6 +27,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public final class ModificationsPropState
     implements AvoidanceReportingState,
         AbstractQueryableState,
+        AbstractStateWithLocation,
         LatticeAbstractState<ModificationsPropState>,
         Graphable {
 
@@ -198,5 +200,10 @@ public final class ModificationsPropState
         // variables modifier must be a subset, else join is necessary
         // can stop if location pair is already known to be bad
         && (pOther.changedVariables.containsAll(changedVariables) || pOther.isBad);
+  }
+
+  @Override
+  public CFANode getLocationNode() {
+    return getLocationInGivenCfa();
   }
 }

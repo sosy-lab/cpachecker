@@ -198,6 +198,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             }
           }
 
+          // TODO: track function calls with modified vars
           // TODO: look for assignments to same variable?
 
           // case 5
@@ -457,6 +458,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
   private ImmutableSet<String> removeVariableFromSetIfAssignedInEdge(
       final CFAEdge pEdge, final ImmutableSet<String> pVars) {
 
+    ImmutableSet<String> vars = pVars;
+
     if (pEdge instanceof CStatementEdge) {
       String lhs = CFAEdgeUtils.getLeftHandVariable(pEdge);
       Set<String> rhs = new HashSet<>();
@@ -485,11 +488,14 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
       }
 
       if (lhs != null && pVars.contains(lhs)) {
-        return FluentIterable.from(pVars).filter(Predicates.not(Predicates.equalTo(lhs))).toSet();
+        vars = FluentIterable.from(pVars).filter(Predicates.not(Predicates.equalTo(lhs))).toSet();
+        if (!Collections.disjoint(pVars, rhs)) {
+          // add lhs variable because written expression includes modified variable
+          return new ImmutableSet.Builder<String>().addAll(vars).add(lhs).build();
+        }
       }
     }
-
-    return pVars;
+    return vars;
   }
 
   // Check whether one of the given variables is used in the edge. If the edge is an assignment we
@@ -511,7 +517,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
         if (initl instanceof CInitializerExpression) {
           usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
         } else {
-          return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          return !pVars.isEmpty(); // not implemented for this initializer types, fallback TODO
         }
       }
 
@@ -525,7 +531,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
     } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
       usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
     } else if (pEdge instanceof CStatementEdge) { // StatementEdge
-      return false;
+      return false; // ignored as handled later
     } else if (pEdge instanceof BlankEdge) { // BlankEdge
       return false;
     } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
