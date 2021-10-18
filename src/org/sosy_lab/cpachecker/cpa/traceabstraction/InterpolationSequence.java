@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -123,10 +124,8 @@ class InterpolationSequence {
 
   private ImmutableSet<Entry<CFANode, AbstractionPredicate>> convertedPredicates(
       ImmutableSet<Entry<CFANode, IndexedAbstractionPredicate>> entries) {
-    return entries
-        .stream()
-        .map(x -> Map.entry(x.getKey(), x.getValue().getPredicate()))
-        .collect(ImmutableSet.toImmutableSet());
+    return transformedImmutableSetCopy(
+        entries, x -> Map.entry(x.getKey(), x.getValue().getPredicate()));
   }
 
   @Override
