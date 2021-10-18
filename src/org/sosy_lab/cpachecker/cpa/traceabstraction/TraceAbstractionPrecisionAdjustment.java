@@ -180,8 +180,8 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
     logger.logf(
         Level.FINE,
         "Taking edge: N%s -> N%s // %s\n",
-        curLocation.getNodeNumber(),
         parentLocation.getNodeNumber(),
+        curLocation.getNodeNumber(),
         connectingCfaEdges.stream().map(CFAEdge::getDescription).collect(Collectors.joining("\n")));
 
     // TAStates only store predicates that actually hold in the respective states

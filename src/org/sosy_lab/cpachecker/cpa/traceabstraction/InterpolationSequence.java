@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
@@ -18,6 +19,8 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -111,7 +114,18 @@ class InterpolationSequence {
     if (this.equals(pOtherSequence)) {
       return false;
     }
-    return pOtherSequence.localPredicates.entries().containsAll(localPredicates.entries());
+
+    // TODO: implement a better data structure that allows more easily to check
+    // for a subset.
+    // The implementation below is likely quite inefficient and hence only a workaround for now.
+    return convertedPredicates(pOtherSequence.localPredicates.entries())
+        .containsAll(convertedPredicates(localPredicates.entries()));
+  }
+
+  private ImmutableSet<Entry<CFANode, AbstractionPredicate>> convertedPredicates(
+      ImmutableSet<Entry<CFANode, IndexedAbstractionPredicate>> entries) {
+    return transformedImmutableSetCopy(
+        entries, x -> Map.entry(x.getKey(), x.getValue().getPredicate()));
   }
 
   @Override
