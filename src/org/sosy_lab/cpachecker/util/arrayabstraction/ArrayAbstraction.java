@@ -35,8 +35,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult.Status;
@@ -82,6 +85,26 @@ public class ArrayAbstraction {
     return builder.build();
   }
 
+  private static ImmutableSet<CFAEdge> getTransformableEdges(
+      MutableCfaNetwork pGraph, TransformableLoop pLoop) {
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+      builder.add(edge);
+      if (edge instanceof FunctionSummaryEdge) {
+        CFANode summaryEdgeNodeU = pGraph.incidentNodes(edge).nodeU();
+        for (CFAEdge callEdge : pGraph.outEdges(summaryEdgeNodeU)) {
+          if (callEdge instanceof FunctionCallEdge) {
+            builder.add(callEdge);
+          }
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
   private static Status transformLoop(
       MutableCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
@@ -118,7 +141,7 @@ public class ArrayAbstraction {
     Status status = Status.PRECISE;
 
     // transform inner loop edges
-    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+    for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
       Status edgeTransformationStatus =
           transformEdge(pGraph, pTransformableArrayMap, pCfa, edge, Optional.of(pLoop));
       if (edgeTransformationStatus == Status.FAILED) {
@@ -394,8 +417,13 @@ public class ArrayAbstraction {
         CSimpleDeclaration indexDeclaration = loop.getIndex().getVariableDeclaration();
         CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
 
+        CFAEdge postDominatedEdge = pEdge;
+        if (pEdge instanceof CFunctionCallEdge) {
+          postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
+        }
+
         if (indexDeclaration.equals(subscriptDeclaration)
-            && loop.getPostDominatedInnerLoopEdges(updateIndexEdge).contains(pEdge)) {
+            && loop.getPostDominatedInnerLoopEdges(updateIndexEdge).contains(postDominatedEdge)) {
           return Status.PRECISE;
         }
       }
@@ -502,9 +530,12 @@ public class ArrayAbstraction {
     }
 
     // handle array access edges outside transformable loops
-    ImmutableSet<CFAEdge> innerLoopEdges = createInnerLoopEdgeSet(transformableLoops);
+    ImmutableSet<CFAEdge> transformedEdges =
+        transformableLoops.stream()
+            .flatMap(loop -> getTransformableEdges(graph, loop).stream())
+            .collect(ImmutableSet.toImmutableSet());
     for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
-      if (!innerLoopEdges.contains(edge)) {
+      if (!transformedEdges.contains(edge)) {
         Status edgeTransformationStatus =
             transformEdge(graph, transformableArrayMap, simplifiedCfa, edge, Optional.empty());
         if (edgeTransformationStatus == Status.FAILED) {

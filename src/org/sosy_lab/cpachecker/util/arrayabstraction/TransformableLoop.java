@@ -24,7 +24,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -50,11 +53,26 @@ final class TransformableLoop {
     index = pIndex;
   }
 
+  private static ImmutableSet<CFAEdge> allInnerLoopEdges(LoopStructure.Loop pLoop) {
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+    builder.addAll(pLoop.getInnerLoopEdges());
+
+    for (CFANode node : pLoop.getLoopNodes()) {
+      FunctionSummaryEdge summaryEdge = node.getLeavingSummaryEdge();
+      if (summaryEdge != null) {
+        builder.add(summaryEdge);
+      }
+    }
+
+    return builder.build();
+  }
+
   private static ImmutableSet<CFAEdge> getDominatedInnerLoopEdges(
       CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
 
     checkArgument(pLoop.getLoopNodes().contains(pLoopStart));
-    checkArgument(pLoop.getInnerLoopEdges().contains(pEdge));
+    checkArgument(allInnerLoopEdges(pLoop).contains(pEdge));
 
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
@@ -64,7 +82,7 @@ final class TransformableLoop {
     int startId = domTree.getId(startNode);
     for (int id = 0; id < domTree.getNodeCount(); id++) {
       if (id == startId || domTree.isAncestorOf(startId, id)) {
-        builder.addAll(CFAUtils.leavingEdges(domTree.getNode(id)));
+        builder.addAll(CFAUtils.allLeavingEdges(domTree.getNode(id)));
       }
     }
 
@@ -75,7 +93,7 @@ final class TransformableLoop {
       CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
 
     checkArgument(pLoop.getLoopNodes().contains(pLoopStart));
-    checkArgument(pLoop.getInnerLoopEdges().contains(pEdge));
+    checkArgument(allInnerLoopEdges(pLoop).contains(pEdge));
 
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
@@ -85,7 +103,7 @@ final class TransformableLoop {
     int startId = postDomTree.getId(startNode);
     for (int id = 0; id < postDomTree.getNodeCount(); id++) {
       if (id == startId || postDomTree.isAncestorOf(startId, id)) {
-        builder.addAll(CFAUtils.enteringEdges(postDomTree.getNode(id)));
+        builder.addAll(CFAUtils.allEnteringEdges(postDomTree.getNode(id)));
       }
     }
 
@@ -100,7 +118,7 @@ final class TransformableLoop {
     dominatedEdges.addAll(getDominatedInnerLoopEdges(pEdge, pLoop, pLoopNode));
     dominatedEdges.addAll(getPostDominatedInnerLoopEdges(pEdge, pLoop, pLoopNode));
 
-    return Sets.difference(pLoop.getInnerLoopEdges(), dominatedEdges).isEmpty();
+    return Sets.difference(allInnerLoopEdges(pLoop), dominatedEdges).isEmpty();
   }
 
   private static ImmutableSet<CFAEdge> getIncomingDefs(
@@ -189,7 +207,7 @@ final class TransformableLoop {
     EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
 
     int count = 0;
-    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+    for (CFAEdge edge : allInnerLoopEdges(pLoop)) {
       if (extractor.extract(edge).getDefs().contains(memoryLocation)) {
         count++;
       }
@@ -251,7 +269,7 @@ final class TransformableLoop {
     CFAEdge updateIndexEdge = null;
     SpecialOperation.UpdateAssign updateIndexOperation = null;
     EdgeDefUseData.Extractor defUseExtractor = EdgeDefUseData.createExtractor(false);
-    ImmutableSet<CFAEdge> innerLoopEdges = pLoop.getInnerLoopEdges();
+    ImmutableSet<CFAEdge> innerLoopEdges = allInnerLoopEdges(pLoop);
     for (CFAEdge innerLoopEdge : innerLoopEdges) {
 
       Optional<SpecialOperation.UpdateAssign> optUpdateAssign =
@@ -343,7 +361,7 @@ final class TransformableLoop {
   }
 
   public ImmutableSet<CFAEdge> getInnerLoopEdges() {
-    return loop.getInnerLoopEdges();
+    return allInnerLoopEdges(loop);
   }
 
   public CFAEdge getIncomingEdge() {
@@ -384,6 +402,9 @@ final class TransformableLoop {
         if (declaration instanceof CVariableDeclaration) {
           builder.add(declaration);
         }
+      } else if (innerLoopEdge instanceof CFunctionCallEdge) {
+        CFunctionEntryNode functionEntryNode = ((CFunctionCallEdge) innerLoopEdge).getSuccessor();
+        builder.addAll(functionEntryNode.getFunctionDefinition().getParameters());
       }
     }
 
