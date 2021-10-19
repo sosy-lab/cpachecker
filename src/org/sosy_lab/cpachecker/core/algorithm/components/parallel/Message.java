@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 import com.google.common.base.Splitter;
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 public class Message {
 
@@ -23,16 +24,16 @@ public class Message {
   private final int targetNodeNumber;
   private final String uniqueBlockId;
   private final MessageType type;
-  private final String condition;
+  private final String payload;
 
-  public Message(
+  private Message(
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      String pCondition) {
+      String pPayload) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
-    condition = pCondition;
+    payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
   }
 
@@ -40,8 +41,8 @@ public class Message {
     return targetNodeNumber;
   }
 
-  public String getCondition() {
-    return condition;
+  public String getPayload() {
+    return payload;
   }
 
   public MessageType getType() {
@@ -58,7 +59,7 @@ public class Message {
         "targetNodeNumber=" + targetNodeNumber +
         ", uniqueBlockId='" + uniqueBlockId + '\'' +
         ", type=" + type +
-        ", condition='" + condition + '\'' +
+        ", condition='" + payload + '\'' +
         '}';
   }
 
@@ -69,21 +70,21 @@ public class Message {
     }
     Message message = (Message) comp;
     return targetNodeNumber == message.targetNodeNumber && Objects.equals(uniqueBlockId,
-        message.uniqueBlockId) && type == message.type && Objects.equals(condition,
-        message.condition);
+        message.uniqueBlockId) && type == message.type && Objects.equals(payload,
+        message.payload);
   }
 
   public static String encode(Message m) {
     String result = "NodeNumber:" + m.getTargetNodeNumber() + "\n";
     result += "BlockId:" + m.getUniqueBlockId() + "\n";
     result += "Type:" + m.getType() + "\n";
-    result += "Condition:" + m.getCondition();
+    result += "Payload:" + m.getPayload();
     return result;
   }
 
   public static Message decode(String s) {
     String blockId = "";
-    String condition = "";
+    String payload = "";
     int nodeNumber = 0;
     MessageType type = MessageType.POSTCONDITION;
     for (String line: Splitter.on("\n").limit(4).splitToList(s)) {
@@ -94,8 +95,8 @@ public class Message {
         case "NodeNumber":
           nodeNumber = Integer.parseInt(value);
           break;
-        case "Condition":
-          condition = value;
+        case "Payload":
+          payload = value;
           break;
         case "Type":
           type = MessageType.valueOf(value);
@@ -107,11 +108,33 @@ public class Message {
           throw new IllegalArgumentException("Argument does not exist: " + key);
       }
     }
-    return new Message(type, blockId, nodeNumber, condition);
+    return new Message(type, blockId, nodeNumber, payload);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(targetNodeNumber, uniqueBlockId, type, condition);
+    return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
+  }
+
+  public static class FinishMessage extends Message {
+
+    public FinishMessage(
+        String pUniqueBlockId,
+        int pTargetNodeNumber,
+        Result pResult) {
+      super(MessageType.FINISHED, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+    }
+
+  }
+
+  public static class ConditionMessage extends Message {
+
+    public ConditionMessage(
+        MessageType pType,
+        String pUniqueBlockId,
+        int pTargetNodeNumber,
+        String pPayload) {
+      super(pType, pUniqueBlockId, pTargetNodeNumber, pPayload);
+    }
   }
 }

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -68,6 +69,8 @@ public class AlgorithmFactory {
       ConfigurableProgramAnalysis wrappedCPA = cpas.remove(0);
       if (wrappedCPA instanceof BlockCPA) {
         ((BlockCPA) wrappedCPA).init(node);
+      } else if (wrappedCPA instanceof BlockCPABackward) {
+        ((BlockCPABackward) wrappedCPA).init(node);
       }
       if (wrappedCPA instanceof CompositeCPA) {
         cpas.addAll(((CompositeCPA) wrappedCPA).getWrappedCPAs());
@@ -92,8 +95,7 @@ public class AlgorithmFactory {
       singleConfigBuilder.clearOption(ignore);
     }
 
-    return singleConfigBuilder.setOption("CompositeCPA.cpas",
-        "cpa.block.BlockCPA,cpa.predicate.PredicateCPA").build();
+    return singleConfigBuilder.build();
   }
 
   private static ReachedSet createInitialReachedSet(

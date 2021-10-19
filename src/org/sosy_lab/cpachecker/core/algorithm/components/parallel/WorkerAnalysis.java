@@ -22,8 +22,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.ConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.FinishMessage;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.StateTransformer;
@@ -45,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class WorkerAnalysis {
 
@@ -189,13 +193,13 @@ public abstract class WorkerAnalysis {
           throw new AssertionError(
               "States need to have a location but they do not:" + targetState.get());
         }
-        return new Message(MessageType.POSTCONDITION, block.getId(),
+        return new ConditionMessage(MessageType.POSTCONDITION, block.getId(),
             targetNode.get().getNodeNumber(), fmgr.dumpFormula(bmgr.makeTrue()).toString());
       }
       Map<AbstractState, BooleanFormula>
           formulas = StateTransformer.transformReachedSet(reachedSet, block.getLastNode(), fmgr);
-      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.and(formulas.values());
-      return new Message(MessageType.PRECONDITION, block.getId(),
+      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
+      return new ConditionMessage(MessageType.PRECONDITION, block.getId(),
           block.getLastNode().getNodeNumber(), fmgr.dumpFormula(result).toString());
     }
   }
@@ -220,9 +224,18 @@ public abstract class WorkerAnalysis {
       status = algorithm.run(reachedSet);
       Map<AbstractState, BooleanFormula>
           formulas = StateTransformer.transformReachedSet(reachedSet, block.getStartNode(), fmgr);
-      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.and(formulas.values());
-      return new Message(MessageType.POSTCONDITION, block.getId(), block.getStartNode().getNodeNumber(),
+      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
+      // by definition: if the post-condition reaches the root element, the specification is violated
+      if (block.getPredecessors().isEmpty()) {
+        return new FinishMessage(block.getId(), block.getStartNode().getNodeNumber(), Result.FALSE);
+      }
+      return new ConditionMessage(MessageType.POSTCONDITION, block.getId(), block.getStartNode().getNodeNumber(),
           fmgr.dumpFormula(result).toString());
+    }
+
+    public boolean cantContinue(String currentPreCondition, String receivedPostCondition)
+        throws SolverException, InterruptedException {
+      return solver.isUnsat(bmgr.and(fmgr.parse(currentPreCondition), fmgr.parse(receivedPostCondition)));
     }
   }
 }

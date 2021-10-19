@@ -18,44 +18,49 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger.Action;
 
 public class WorkerSocket {
 
   private Selector selector;
-  private final Map<SocketChannel, List<byte[]>> dataMapper;
   private final InetSocketAddress listenAddress;
   private final BlockingQueue<Message> sharedQueue;
   private final LogManager logger;
+  private final String workerId;
+  private final ActionLogger actionLogger;
+
+  private static final int BUFFER_SIZE = 1024;
 
   private WorkerSocket(
       LogManager pLogger,
+      ActionLogger pActionLogger,
       BlockingQueue<Message> pSharedQueue,
-      InetSocketAddress pAddress) {
+      InetSocketAddress pAddress,
+      String pWorkerId) {
     listenAddress = pAddress;
-    dataMapper = new HashMap<>();
     sharedQueue = pSharedQueue;
     logger = pLogger;
+    workerId = pWorkerId;
+    actionLogger = pActionLogger;
   }
 
   // create server channel
   public void startServer() throws IOException {
-    this.selector = Selector.open();
+    selector = Selector.open();
     ServerSocketChannel serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking(false);
 
     // retrieve server socket and bind to port
     serverChannel.socket().bind(listenAddress);
-    serverChannel.register(this.selector, SelectionKey.OP_ACCEPT);
+    serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
     logger.log(Level.INFO, "Server started...");
 
@@ -77,10 +82,11 @@ public class WorkerSocket {
         }
 
         if (key.isAcceptable()) {
-          this.accept(key);
-        }
-        else if (key.isReadable()) {
-          this.read(key);
+          accept(key);
+        } else if (key.isReadable()) {
+          if (read(key)) {
+            return;
+          }
         }
       }
     }
@@ -96,31 +102,50 @@ public class WorkerSocket {
     logger.log(Level.INFO, "Connected to: " + remoteAddr);
 
     // register channel with selector for further IO
-    dataMapper.put(channel, new ArrayList<>());
     channel.register(this.selector, SelectionKey.OP_READ);
   }
 
   //read from the socket channel
-  private void read(SelectionKey key) throws IOException {
+  private boolean read(SelectionKey key) throws IOException {
     SocketChannel channel = (SocketChannel) key.channel();
-    ByteBuffer buffer = ByteBuffer.allocate(1024);
+    ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
     int numRead = channel.read(buffer);
 
     if (numRead == -1) {
-      this.dataMapper.remove(channel);
       Socket socket = channel.socket();
       SocketAddress remoteSocketAddress = socket.getRemoteSocketAddress();
       logger.log(Level.INFO, "Connection closed by client: " + remoteSocketAddress);
       channel.close();
       key.cancel();
-      return;
+      return false;
     }
 
-    byte[] data = new byte[numRead];
-    System.arraycopy(buffer.array(), 0, data, 0, numRead);
-    Message received = Message.decode(new String(data));
+    StringBuilder builder = new StringBuilder();
+
+    do {
+      if (numRead > 0) {
+        buffer.flip();
+        byte[] read = new byte[numRead];
+        buffer.get(read, 0, numRead);
+        builder.append(new String(read));
+        buffer.compact();
+      }
+      if (numRead != BUFFER_SIZE) {
+        break;
+      }
+      numRead = channel.read(buffer);
+    } while(true);
+
+    buffer.flip();
+    buffer.compact();
+    buffer.clear();
+
+    Message received = Message.decode(builder.toString());
+    actionLogger.log(Action.RECEIVE, received);
     sharedQueue.add(received);
     logger.log(Level.INFO, "Socket received message: " + received);
+    return received.getType() == MessageType.FINISHED && workerId.equals(received.getUniqueBlockId());
   }
 
   public static class WorkerSocketFactory {
@@ -133,12 +158,14 @@ public class WorkerSocket {
 
     public WorkerSocket makeSocket(
         LogManager pLogger,
+        ActionLogger pActionLogger,
         BlockingQueue<Message> pSharedQueue,
+        String pWorkerId,
         String pAddress,
         int pPort) throws IOException {
       InetSocketAddress address = new InetSocketAddress(pAddress, pPort);
       addresses.add(address);
-      return new WorkerSocket(pLogger, pSharedQueue, address);
+      return new WorkerSocket(pLogger, pActionLogger, pSharedQueue, address, pWorkerId);
     }
 
     public Set<InetSocketAddress> getAddresses() {

@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation.BackwardBlockTran
 public class BlockCPABackward extends AbstractCPA {
 
   private final BlockStateFactory factory;
-  private CFANode startNode;
 
   public BlockCPABackward(BlockStateFactory pStateFactory) {
     super("join", "sep", new BackwardBlockTransferRelation(pStateFactory));
@@ -34,12 +33,12 @@ public class BlockCPABackward extends AbstractCPA {
   }
 
   public void init(BlockNode pBlockNode) {
-    startNode = pBlockNode.getStartNode();
+    CFANode startNode = pBlockNode.getStartNode();
     factory.setStartNode(startNode);
     TransferRelation relation = getTransferRelation();
-    checkState(relation instanceof BlockTransferRelation, "Expected %s but got %s",
-        BlockTransferRelation.class, relation.getClass());
-    ((BlockTransferRelation) relation).init(pBlockNode);
+    checkState(relation instanceof BackwardBlockTransferRelation, "Expected %s but got %s",
+        BackwardBlockTransferRelation.class, relation.getClass());
+    ((BackwardBlockTransferRelation) relation).init(pBlockNode);
   }
 
   public static CPAFactory factory() {

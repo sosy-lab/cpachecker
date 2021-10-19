@@ -21,19 +21,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BackwardsBlockState;
 
-@Options(prefix = "cpa.location")
+@Options(prefix = "cpa.block")
 public class BlockStateFactory {
 
   private final BlockState[] states;
   private final AnalysisDirection locationType;
   private CFANode startNode;
+  private final ImmutableSortedSet<CFANode> allNodes;
 
   public BlockStateFactory(CFA pCfa, AnalysisDirection pLocationType, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
     locationType = checkNotNull(pLocationType);
+    startNode = pCfa.getMainFunction();
 
-    ImmutableSortedSet<CFANode> allNodes;
     Collection<CFANode> tmpNodes = pCfa.getAllNodes();
     if (tmpNodes instanceof ImmutableSortedSet) {
       allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
@@ -51,6 +52,10 @@ public class BlockStateFactory {
 
   public void setStartNode(final CFANode pStartNode) {
     startNode = pStartNode;
+    for (CFANode node : allNodes) {
+      BlockState state = createLocationState(node);
+      states[node.getNodeNumber()] = state;
+    }
   }
 
   public BlockState getState(CFANode node) {

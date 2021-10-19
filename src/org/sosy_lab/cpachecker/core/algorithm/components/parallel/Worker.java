@@ -22,16 +22,21 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.FinishMessage;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket.WorkerSocketFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger.Action;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class Worker implements Runnable {
 
@@ -55,6 +60,10 @@ public class Worker implements Runnable {
   private Optional<Message> lastPreConditionMessage;
   private Optional<Message> lastPostConditionMessage;
 
+  private final ActionLogger actionLogger;
+
+  private final Thread socketThread;
+
   public static Worker registerNodeAndGetWorker(
       BlockNode pNode,
       LogManager pLogger,
@@ -67,9 +76,10 @@ public class Worker implements Runnable {
       int pPort)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     BlockingQueue<Message> sharedQueue = new LinkedBlockingQueue<>();
-    WorkerSocket socket = pFactory.makeSocket(pLogger, sharedQueue, pAddress,
+    ActionLogger actionLogger = new ActionLogger(pNode.getId());
+    WorkerSocket socket = pFactory.makeSocket(pLogger, actionLogger, sharedQueue, pNode.getId(), pAddress,
         pPort);
-    return new Worker(pNode, sharedQueue, socket, pLogger, pCFA, pSpecification, pConfiguration,
+    return new Worker(pNode, sharedQueue, socket, actionLogger, pLogger, pCFA, pSpecification, pConfiguration,
         pShutdownManager);
   }
 
@@ -77,10 +87,11 @@ public class Worker implements Runnable {
     clients.add(client);
   }
 
-  public Worker(
+  private Worker(
       BlockNode pBlock,
       BlockingQueue<Message> pOutputStream,
       WorkerSocket pWorkerSocket,
+      ActionLogger pActionLogger,
       LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
@@ -90,6 +101,7 @@ public class Worker implements Runnable {
     block = pBlock;
     read = pOutputStream;
     logger = pLogger;
+    actionLogger = pActionLogger;
     finished = false;
 
     clients = new ArrayList<>();
@@ -98,8 +110,8 @@ public class Worker implements Runnable {
     postConditionUpdates = new ConcurrentHashMap<>();
     preConditionUpdates = new ConcurrentHashMap<>();
 
-    // TODO make this config a new properties file
     Configuration backward = Configuration.builder()
+        .copyFrom(pConfiguration)
         .loadFromFile(
             "config/includes/predicateAnalysisBackward.properties")
         .clearOption("analysis.initialStatesFor")
@@ -110,7 +122,10 @@ public class Worker implements Runnable {
         .setOption("specification", "../specification/MainEntry.spc")
         .build();
 
-    forwardAnalysis = new ForwardAnalysis(pLogger, pBlock, pCFA, pSpecification, pConfiguration,
+    Configuration forward = Configuration.builder().copyFrom(pConfiguration).setOption("CompositeCPA.cpas",
+        "cpa.block.BlockCPA,cpa.predicate.PredicateCPA").build();
+
+    forwardAnalysis = new ForwardAnalysis(pLogger, pBlock, pCFA, pSpecification, forward,
         pShutdownManager);
     backwardAnalysis = new BackwardAnalysis(pLogger, pBlock, pCFA, pSpecification, backward, pShutdownManager);
 
@@ -120,74 +135,103 @@ public class Worker implements Runnable {
     lastPostConditionMessage = Optional.empty();
 
     // start thread
-    new Thread(() -> {
+    socketThread = new Thread(() -> {
       try {
         socket.startServer();
       } catch (IOException pE) {
         logger.log(Level.SEVERE, pE);
       }
-    }).start();
+    });
+    socketThread.start();
   }
 
   public BooleanFormula getPostCondition(FormulaManagerView fmgr) {
+    if (postConditionUpdates.isEmpty()) {
+      return fmgr.getBooleanFormulaManager().makeTrue();
+    }
     return postConditionUpdates.values().stream().map(message ->
-            fmgr.parse(message.getCondition()))
+            fmgr.parse(message.getPayload()))
         .collect(fmgr.getBooleanFormulaManager().toDisjunction());
   }
 
   public BooleanFormula getPreCondition(FormulaManagerView fmgr) {
-    return preConditionUpdates.values().stream().map(message -> fmgr.parse(message.getCondition()))
+    if (preConditionUpdates.isEmpty()) {
+      return fmgr.getBooleanFormulaManager().makeTrue();
+    }
+    return preConditionUpdates.values().stream().map(message -> fmgr.parse(message.getPayload()))
         .collect(fmgr.getBooleanFormulaManager().toDisjunction());
   }
 
-  public void analyze() throws InterruptedException, CPAException, IOException {
-    while (true) {
+  public void analyze() throws InterruptedException, CPAException, IOException, SolverException {
+    while (!finished) {
       Message m = read.take();
+      actionLogger.log(Action.TAKE, m);
       processMessage(m);
-      if (finished) {
-        return;
-      }
     }
   }
 
   private void processMessage(Message message)
-      throws InterruptedException, CPAException, IOException {
-    Optional<CFANode> optionalMessageNode = block.getNodesInBlock().stream()
-        .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
-    if (optionalMessageNode.isEmpty()) {
+      throws InterruptedException, CPAException, IOException, SolverException {
+
+    if (message.getType() == MessageType.FINISHED) {
+      actionLogger.log(Action.FINISH, message);
+      finished = true;
+      broadcast(new FinishMessage(block.getId(), message.getTargetNodeNumber(), Result.valueOf(message.getPayload())));
+      shutdownCommunication();
+      logger.log(Level.INFO, "Shutting down worker for", block.getId());
+      Thread.currentThread().interrupt();
       return;
     }
-    CFANode node = optionalMessageNode.orElseThrow();
-    switch (message.getType()) {
-      case FINISHED:
-        finished = true;
-        break;
-      case PRECONDITION:
-        if (node.equals(block.getStartNode())) {
-          preConditionUpdates.put(message.getUniqueBlockId(), message);
-          Message toSend = forwardAnalysis(node);
-          if (lastPreConditionMessage.isEmpty() || !toSend.equals(
-              lastPreConditionMessage.orElseThrow())) {
-            broadcast(toSend);
-          }
-          lastPreConditionMessage = Optional.of(toSend);
-        }
-        break;
-      case POSTCONDITION:
-        if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
-            block.getStartNode()) && block.getNodesInBlock().contains(node)) {
-          postConditionUpdates.put(message.getUniqueBlockId(), message);
-          Message toSend = backwardAnalysis(node);
-          if (lastPostConditionMessage.isEmpty() || !toSend.equals(
-              lastPostConditionMessage.orElseThrow())) {
-            broadcast(toSend);
-          }
-          lastPostConditionMessage = Optional.of(toSend);
-        }
-        break;
-      default:
-        throw new AssertionError("Message type " + message.getType() + " does not exist");
+
+    Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
+        .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
+    if (optionalCFANode.isEmpty()) {
+      actionLogger.log(Action.DUMP, message);
+      return;
     }
+    CFANode node = optionalCFANode.orElseThrow();
+
+    if (message.getType() == MessageType.PRECONDITION) {
+      if (node.equals(block.getStartNode())) {
+        actionLogger.log(Action.FORWARD, message);
+        preConditionUpdates.put(message.getUniqueBlockId(), message);
+        Message toSend = forwardAnalysis(node);
+        if (lastPreConditionMessage.isEmpty() || !toSend.equals(
+            lastPreConditionMessage.orElseThrow())) {
+          actionLogger.log(Action.BROADCAST, toSend);
+          broadcast(toSend);
+        } else {
+          actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
+        }
+        lastPreConditionMessage = Optional.of(toSend);
+      } else {
+        actionLogger.log(Action.DUMP, message);
+      }
+      return;
+    } else if (message.getType() == MessageType.POSTCONDITION) {
+      if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
+          block.getStartNode()) && block.getNodesInBlock().contains(node)) {
+        if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.get().getPayload(), message.getPayload())) {
+          return;
+        }
+        actionLogger.log(Action.BACKWARD, message);
+        postConditionUpdates.put(message.getUniqueBlockId(), message);
+        Message toSend = backwardAnalysis(node);
+        if (lastPostConditionMessage.isEmpty() || !toSend.equals(
+            lastPostConditionMessage.orElseThrow())) {
+          actionLogger.log(Action.BROADCAST, toSend);
+          broadcast(toSend);
+        } else {
+          actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
+        }
+        lastPostConditionMessage = Optional.of(toSend);
+      } else {
+        actionLogger.log(Action.DUMP, message);
+      }
+      return;
+    }
+
+    throw new AssertionError("Message type " + message.getType() + " does not exist");
   }
 
   private void broadcast(Message toSend) throws IOException {
@@ -209,18 +253,13 @@ public class Worker implements Runnable {
     Message message =
         backwardAnalysis.analyze(getPostCondition(backwardAnalysis.getFmgr()), pStartNode);
     status = backwardAnalysis.getStatus();
-    if (message.getType() == MessageType.PRECONDITION) {
-      lastPreConditionMessage = Optional.of(message);
-    } else if (message.getType() == MessageType.POSTCONDITION) {
-      lastPostConditionMessage = Optional.of(message);
-    }
     return message;
   }
 
   private void runContinuousAnalysis() {
     try {
       analyze();
-    } catch (InterruptedException | CPAException | IOException pE) {
+    } catch (InterruptedException | CPAException | IOException | SolverException pE) {
       if (!finished) {
         logger.log(Level.SEVERE, this + " run into an error while waiting because of " + pE);
         logger.log(Level.SEVERE, "Restarting Worker " + this + "...");
@@ -245,6 +284,13 @@ public class Worker implements Runnable {
       logger.log(Level.SEVERE, "ComponentAnalysis run into an error: %s", pE);
       logger.log(Level.SEVERE, "Stopping analysis...");
     }
+  }
+
+  public void shutdownCommunication() throws IOException {
+    for (WorkerClient client : clients) {
+      client.close();
+    }
+    socketThread.interrupt();
   }
 
   @Override

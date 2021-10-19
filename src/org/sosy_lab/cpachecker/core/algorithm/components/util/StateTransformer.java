@@ -63,13 +63,10 @@ public class StateTransformer {
 
   public static Map<AbstractState, BooleanFormula> transformReachedSet(ReachedSet reachedSet, CFANode targetNode, FormulaManagerView fmgr) {
     Map<AbstractState, BooleanFormula> formulas = new HashMap<>();
-    for (AbstractState abstractState : reachedSet) {
-      Optional<CFANode> maybeNode = findCFANodeOfState(abstractState);
-      if (maybeNode.isPresent() && maybeNode.get().equals(targetNode)) {
-        BooleanFormula formula = transform(abstractState, fmgr);
-        if (!fmgr.getBooleanFormulaManager().isTrue(formula)) {
-          formulas.put(abstractState, formula);
-        }
+    for (AbstractState abstractState : reachedSet.getReached(targetNode)) {
+      BooleanFormula formula = transform(abstractState, fmgr);
+      if (!fmgr.getBooleanFormulaManager().isTrue(formula)) {
+        formulas.put(abstractState, formula);
       }
     }
     return formulas;
@@ -100,7 +97,7 @@ public class StateTransformer {
       String name = stringFormulaEntry.getKey();
       Formula formula = stringFormulaEntry.getValue();
       List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2) {
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty()) {
         substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
         continue;
       }
