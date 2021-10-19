@@ -380,7 +380,7 @@ public class SMGTransferRelation
         SMGRegion stringObj =
             initialNewState
                 .addAnonymousVariable(
-                    machineModel.getSizeofPtrInBits() * (strExp.getValue().length() + 1))
+                    machineModel.getSizeofCharInBits() * (strExp.getValue().length() + 1))
                 .orElseThrow();
        CInitializerExpression initializer =
            new CInitializerExpression(exp.getFileLocation(), exp);
