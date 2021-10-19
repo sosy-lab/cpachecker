@@ -132,6 +132,10 @@ public final class CoverageData {
   public void addInfoOnEdge(
       final CFAEdge pEdge, PersistentMultimap<String, SMGKnownExpValue> pInfo) {
     final FileLocation loc = pEdge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      // dummy location
+      return;
+    }
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
     final int endingLine = loc.getEndingLineInOrigin();
     collector.addAdditionalInfo(endingLine, pInfo);
@@ -139,6 +143,10 @@ public final class CoverageData {
 
   public void addCounterInfoOnEdge(final CFAEdge pEdge, Integer pCounter, TimeSpan pTimeSpan) {
     final FileLocation loc = pEdge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      // dummy location
+      return;
+    }
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
     final int endingLine = loc.getEndingLineInOrigin();
     collector.addCounterInfo(endingLine, pCounter, pTimeSpan);
