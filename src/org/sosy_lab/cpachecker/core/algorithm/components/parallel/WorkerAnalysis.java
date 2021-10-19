@@ -8,54 +8,43 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.StateTransformer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
 
 public abstract class WorkerAnalysis {
 
@@ -67,11 +56,12 @@ public abstract class WorkerAnalysis {
   protected final Algorithm algorithm;
   protected final ReachedSet reachedSet;
 
-  protected final CompositeState startState;
   protected final Precision emptyPrecision;
 
   protected final BlockNode block;
   protected final LogManager logger;
+
+  protected final ConfigurableProgramAnalysis cpa;
 
   protected AlgorithmStatus status;
 
@@ -93,11 +83,12 @@ public abstract class WorkerAnalysis {
                 "cpa.predicate.blk.alwaysAtBranch",
                 "cpa.predicate.blk.alwaysAtProgramExit"), pBlock);
     algorithm = parts.getFirst();
-    status = AlgorithmStatus.NO_PROPERTY_CHECKED;
-    solver = extractAnalysis(parts.getSecond(), PredicateCPA.class).getSolver();
+    cpa = parts.getSecond();
     reachedSet = parts.getThird();
-    startState = extractCompositeStateFromReachedSet(reachedSet);
+
+    solver = StateTransformer.extractAnalysis(cpa, PredicateCPA.class).getSolver();
     emptyPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
+    status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
     fmgr = solver.getFormulaManager();
     bmgr = fmgr.getBooleanFormulaManager();
@@ -112,50 +103,32 @@ public abstract class WorkerAnalysis {
     logger = pLogger;
   }
 
-  protected <T extends ConfigurableProgramAnalysis> T extractAnalysis(
-      ConfigurableProgramAnalysis cpa,
-      Class<T> pTarget) {
-    ARGCPA argCpa = (ARGCPA) cpa;
-    if (argCpa.getWrappedCPAs().size() > 1) {
-      throw new AssertionError("Wrapper expected but got " + cpa + "instead");
-    }
-    if (!(argCpa.getWrappedCPAs().get(0) instanceof CompositeCPA)) {
-      throw new AssertionError(
-          "Expected " + CompositeCPA.class + " but got " + argCpa.getWrappedCPAs().get(0)
-              .getClass());
-    }
-    CompositeCPA compositeCPA = (CompositeCPA) argCpa.getWrappedCPAs().get(0);
-    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-      if (wrappedCPA.getClass().equals(pTarget)) {
-        return pTarget.cast(wrappedCPA);
+  public ARGState getStartState(BooleanFormula condition, CFANode node)
+      throws InterruptedException {
+    CompositeState compositeState =
+        StateTransformer.extractCompositeStateFromAbstractState(getInitialStateFor(node));
+    PredicateAbstractState firstPredicateState =
+        StateTransformer.getStatesFromCompositeState(compositeState, PredicateAbstractState.class)
+            .stream().findFirst()
+            .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
+    firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+        pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(),
+            condition),
+        firstPredicateState);
+    List<AbstractState> states = new ArrayList<>();
+    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
+      if (wrappedState instanceof PredicateAbstractState) {
+        states.add(firstPredicateState);
+      } else {
+        states.add(wrappedState);
       }
     }
-    throw new AssertionError(
-        "Expected analysis " + pTarget + " is not part of the composite cpa " + cpa);
+    CompositeState actualStartState = new CompositeState(states);
+    return new ARGState(actualStartState, null);
   }
 
-  protected CompositeState extractCompositeStateFromReachedSet(ReachedSet pReachedSet) {
-    AbstractState state = pReachedSet.getFirstState();
-    checkNotNull(state, "ReachedSet has to have a starting state");
-    checkState(state instanceof ARGState, "First state has to be an ARGState");
-    ARGState argState = (ARGState) state;
-    checkState(argState.getWrappedState() instanceof CompositeState,
-        "First state must contain a CompositeState");
-    return (CompositeState) argState.getWrappedState();
-  }
-
-  protected <T extends AbstractState> ImmutableSet<T> getStatesFromCompositeState(
-      CompositeState pCompositeState,
-      Class<T> pTarget) {
-    Set<T> result = new HashSet<>();
-    for (AbstractState wrappedState : pCompositeState.getWrappedStates()) {
-      if (pTarget.isAssignableFrom(wrappedState.getClass())) {
-        result.add(pTarget.cast(wrappedState));
-      } else if (wrappedState instanceof CompositeState) {
-        result.addAll(getStatesFromCompositeState((CompositeState) wrappedState, pTarget));
-      }
-    }
-    return ImmutableSet.copyOf(result);
+  public AbstractState getInitialStateFor(CFANode pNode) throws InterruptedException {
+    return cpa.getInitialState(pNode, StateSpacePartition.getDefaultPartition());
   }
 
   public Solver getSolver() {
@@ -174,10 +147,6 @@ public abstract class WorkerAnalysis {
     return bmgr;
   }
 
-  public CompositeState getStartState() {
-    return startState;
-  }
-
   public PathFormulaManagerImpl getPathFormulaManager() {
     return pathFormulaManager;
   }
@@ -190,36 +159,10 @@ public abstract class WorkerAnalysis {
     return status;
   }
 
-  public static BooleanFormula uninstantiate(PathFormula pPathFormula, FormulaManagerView fmgr) {
-    SSAMap ssaMap = pPathFormula.getSsa();
-    Map<String, Formula> variableToFormula = fmgr.extractVariables(pPathFormula.getFormula());
-    Map<Formula, Formula> substitutions = new HashMap<>();
-    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
-      String name = stringFormulaEntry.getKey();
-      Formula formula = stringFormulaEntry.getValue();
-      List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2) {
-        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
-        continue;
-      }
-      name = nameAndIndex.get(0);
-      int index = Integer.parseInt(nameAndIndex.get(1));
-      int highestIndex = ssaMap.getIndex(name);
-      if (index != highestIndex) {
-        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name + "." + index));
-      } else {
-        substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
-      }
-    }
-    return fmgr.substitute(pPathFormula.getFormula(), substitutions);
-  }
-
-  public abstract Message analyze(ARGState pStartState)
+  public abstract Message analyze(BooleanFormula condition, CFANode node)
       throws CPAException, InterruptedException;
 
   public static class ForwardAnalysis extends WorkerAnalysis {
-
-    private final BackwardAnalysis backwardAnalysis;
 
     public ForwardAnalysis(
         LogManager pLogger,
@@ -227,61 +170,33 @@ public abstract class WorkerAnalysis {
         CFA pCFA,
         Specification pSpecification,
         Configuration pConfiguration,
-        ShutdownManager pShutdownManager,
-        BackwardAnalysis pBackwardAnalysis)
+        ShutdownManager pShutdownManager)
         throws CPAException, InterruptedException, InvalidConfigurationException {
       super(pLogger, pBlock, pCFA, pSpecification, pConfiguration, pShutdownManager);
-      backwardAnalysis = pBackwardAnalysis;
-    }
-
-    public ARGState getStartState(BooleanFormula condition) {
-      PredicateAbstractState firstPredicateState =
-          getStatesFromCompositeState(startState, PredicateAbstractState.class).stream().findFirst()
-              .orElseThrow(() -> new AssertionError("Analysis has to contain a PredicateState"));
-      firstPredicateState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-          pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(),
-              condition),
-          firstPredicateState);
-      List<AbstractState> states = new ArrayList<>();
-      for (AbstractState wrappedState : startState.getWrappedStates()) {
-        if (wrappedState instanceof PredicateAbstractState) {
-          states.add(firstPredicateState);
-        } else {
-          states.add(wrappedState);
-        }
-      }
-      CompositeState actualStartState = new CompositeState(states);
-      return new ARGState(actualStartState, null);
     }
 
     @Override
-    public Message analyze(ARGState pStartState) throws CPAException, InterruptedException {
+    public Message analyze(BooleanFormula condition, CFANode node)
+        throws CPAException, InterruptedException {
       reachedSet.clear();
-      reachedSet.add(pStartState, emptyPrecision);
+      reachedSet.add(getStartState(condition, node), emptyPrecision);
       status = algorithm.run(reachedSet);
       Optional<ARGState> targetState = from(reachedSet).filter(AbstractStates::isTargetState)
           .filter(ARGState.class).first();
       if (targetState.isPresent()) {
-        return backwardAnalysis.analyze(targetState.get());
-      }
-      ImmutableSet<ARGState> finalStates = ARGUtils.getFinalStates(reachedSet);
-      List<BooleanFormula> formulas = new ArrayList<>();
-      if (!finalStates.isEmpty()) {
-        for (ARGState l : finalStates) {
-          CompositeState compositeState = (CompositeState) l.getWrappedState();
-          for (AbstractState wrappedState : compositeState.getWrappedStates()) {
-            if (wrappedState instanceof PredicateAbstractState) {
-              PredicateAbstractState predicateAbstractState = (PredicateAbstractState) wrappedState;
-              formulas.add(uninstantiate(predicateAbstractState.getPathFormula(), fmgr));
-              break;
-            }
-          }
+        Optional<CFANode> targetNode = StateTransformer.findCFANodeOfState(targetState.get());
+        if (!targetNode.isPresent()) {
+          throw new AssertionError(
+              "States need to have a location but they do not:" + targetState.get());
         }
-      } else {
-        logger.log(Level.WARNING, "The reached set does not contain any states: " + reachedSet);
-        formulas.add(bmgr.makeTrue());
+        return new Message(MessageType.POSTCONDITION, block.getId(),
+            targetNode.get().getNodeNumber(), fmgr.dumpFormula(bmgr.makeTrue()).toString());
       }
-      return new Message(MessageType.PRECONDITION, block.getId(), block.getLastNode().getNodeNumber(), fmgr.dumpArbitraryFormula(bmgr.or(formulas)));
+      Map<AbstractState, BooleanFormula>
+          formulas = StateTransformer.transformReachedSet(reachedSet, block.getLastNode(), fmgr);
+      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.and(formulas.values());
+      return new Message(MessageType.PRECONDITION, block.getId(),
+          block.getLastNode().getNodeNumber(), fmgr.dumpFormula(result).toString());
     }
   }
 
@@ -299,11 +214,15 @@ public abstract class WorkerAnalysis {
     }
 
     @Override
-    public Message analyze(ARGState pStartState) throws CPAException, InterruptedException {
+    public Message analyze(BooleanFormula condition, CFANode node) throws CPAException, InterruptedException {
       reachedSet.clear();
-      reachedSet.add(pStartState, emptyPrecision);
+      reachedSet.add(getStartState(condition, node), emptyPrecision);
+      status = algorithm.run(reachedSet);
+      Map<AbstractState, BooleanFormula>
+          formulas = StateTransformer.transformReachedSet(reachedSet, block.getStartNode(), fmgr);
+      BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.and(formulas.values());
       return new Message(MessageType.POSTCONDITION, block.getId(), block.getStartNode().getNodeNumber(),
-          fmgr.dumpArbitraryFormula(bmgr.makeTrue()));
+          fmgr.dumpFormula(result).toString());
     }
   }
 }
