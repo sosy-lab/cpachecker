@@ -104,7 +104,7 @@ public abstract class WorkerAnalysis {
     logger = pLogger;
   }
 
-  public ARGState getStartState(BooleanFormula condition, CFANode node)
+  protected ARGState getStartState(BooleanFormula condition, CFANode node)
       throws InterruptedException {
     CompositeState compositeState =
         StateTransformer.extractCompositeStateFromAbstractState(getInitialStateFor(node));
@@ -128,7 +128,7 @@ public abstract class WorkerAnalysis {
     return new ARGState(actualStartState, null);
   }
 
-  public AbstractState getInitialStateFor(CFANode pNode) throws InterruptedException {
+  private AbstractState getInitialStateFor(CFANode pNode) throws InterruptedException {
     return cpa.getInitialState(pNode, StateSpacePartition.getDefaultPartition());
   }
 
