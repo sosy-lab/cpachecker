@@ -454,7 +454,7 @@ final class TransformableArray {
 
     @Override
     public Boolean visit(CIdExpression pIastIdExpression) {
-      return pIastIdExpression.getDeclaration().equals(arrayDeclaration);
+      return arrayDeclaration.equals(pIastIdExpression.getDeclaration());
     }
 
     @Override
