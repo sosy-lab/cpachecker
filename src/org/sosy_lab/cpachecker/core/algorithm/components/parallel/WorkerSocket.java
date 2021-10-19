@@ -66,7 +66,7 @@ public class WorkerSocket {
 
     while (true) {
       // wait for events
-      this.selector.select();
+      selector.select();
 
       //work on selected keys
       Iterator<SelectionKey> keys = this.selector.selectedKeys().iterator();
@@ -136,10 +136,6 @@ public class WorkerSocket {
       }
       numRead = channel.read(buffer);
     } while(true);
-
-    buffer.flip();
-    buffer.compact();
-    buffer.clear();
 
     Message received = Message.decode(builder.toString());
     actionLogger.log(Action.RECEIVE, received);

@@ -12,6 +12,8 @@ import com.google.common.base.Splitter;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class Message {
 
@@ -127,14 +129,25 @@ public class Message {
 
   }
 
-  public static class ConditionMessage extends Message {
+  public static class PreconditionMessage extends Message {
 
-    public ConditionMessage(
-        MessageType pType,
+    public PreconditionMessage(
         String pUniqueBlockId,
         int pTargetNodeNumber,
-        String pPayload) {
-      super(pType, pUniqueBlockId, pTargetNodeNumber, pPayload);
+        BooleanFormula pPayload,
+        FormulaManagerView pFmgr) {
+      super(MessageType.PRECONDITION, pUniqueBlockId, pTargetNodeNumber, pFmgr.dumpFormula(pPayload).toString());
+    }
+  }
+
+  public static class PostConditionMessage extends Message {
+
+    public PostConditionMessage(
+        String pUniqueBlockId,
+        int pTargetNodeNumber,
+        BooleanFormula pPayload,
+        FormulaManagerView pFmgr) {
+      super(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pFmgr.dumpFormula(pPayload).toString());
     }
   }
 }

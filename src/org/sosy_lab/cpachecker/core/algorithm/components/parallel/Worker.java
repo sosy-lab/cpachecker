@@ -211,7 +211,7 @@ public class Worker implements Runnable {
     } else if (message.getType() == MessageType.POSTCONDITION) {
       if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
           block.getStartNode()) && block.getNodesInBlock().contains(node)) {
-        if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.get().getPayload(), message.getPayload())) {
+        if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
           return;
         }
         actionLogger.log(Action.BACKWARD, message);
