@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -34,9 +33,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -152,7 +151,8 @@ final class CfaSimplifications {
         pCfa,
         graph,
         (edge, originalAstNode) ->
-            ArrayAccessSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode));
+            originalAstNode.accept(
+                new SubstitutingCAstNodeVisitor(node -> substitution.getSubstitute(edge, node))));
   }
 
   /**
@@ -327,52 +327,6 @@ final class CfaSimplifications {
         (edge, originalAstNode) ->
             IdExpressionSubstitutingCAstNodeVisitor.substitute(
                 substitution, edge, originalAstNode));
-  }
-
-  private static final class ArrayAccessSubstitutingCAstNodeVisitor
-      extends AbstractTransformingCAstNodeVisitor<NoException> {
-
-    private final CAstNodeSubstitution substitution;
-    private final CFAEdge edge;
-
-    public ArrayAccessSubstitutingCAstNodeVisitor(
-        CAstNodeSubstitution pSubstitution, CFAEdge pEdge) {
-      substitution = pSubstitution;
-      edge = pEdge;
-    }
-
-    private static CAstNode substitute(
-        CAstNodeSubstitution pSubstitution, CFAEdge pEdge, CAstNode pOriginalAstNode) {
-
-      ArrayAccessSubstitutingCAstNodeVisitor transformingVisitor =
-          new ArrayAccessSubstitutingCAstNodeVisitor(pSubstitution, pEdge);
-
-      return pOriginalAstNode.accept(transformingVisitor);
-    }
-
-    @Override
-    public CAstNode visit(CArraySubscriptExpression pCArraySubscriptExpression) {
-
-      CAstNode substitute = substitution.getSubstitute(edge, pCArraySubscriptExpression);
-
-      if (substitute != null) {
-        return substitute;
-      }
-
-      return super.visit(pCArraySubscriptExpression);
-    }
-
-    @Override
-    public CAstNode visit(CPointerExpression pCPointerExpression) {
-
-      CAstNode substitute = substitution.getSubstitute(edge, pCPointerExpression);
-
-      if (substitute != null) {
-        return substitute;
-      }
-
-      return super.visit(pCPointerExpression);
-    }
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor
