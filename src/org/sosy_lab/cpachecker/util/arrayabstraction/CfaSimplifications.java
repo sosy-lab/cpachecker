@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
-
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -54,7 +54,10 @@ final class CfaSimplifications {
   /**
    * Returns a simplified CFA with only a single array operation per CFA-edge.
    *
+   * @param pConfiguration the configuration to use
+   * @param pLogger the logger to use
    * @param pCfa the CFA to simplify
+   * @param pVariableGenerator the variable generator to use
    * @return the simplified CFA
    */
   static CFA simplifyArrayAccesses(
@@ -152,6 +155,26 @@ final class CfaSimplifications {
             ArrayAccessSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode));
   }
 
+  /**
+   * Returns a simplified CFA where certain loop carried dependencies are eliminated.
+   *
+   * <p>Example simplification:
+   *
+   * <pre>
+   * {@code int j = 0; for (int i = 0; i < 100; i++) { print(j); j = j + 5; } }
+   * </pre>
+   *
+   * <p>is turned into
+   *
+   * <pre>
+   * {@code int j = 0; for (int i = 0; i < 100; i++) { print(j + (i * 5)); } }
+   * </pre>
+   *
+   * @param pConfiguration the configuration to use
+   * @param pLogger the logger to use
+   * @param pCfa the CFA to simplify
+   * @return the simplified CFA
+   */
   static CFA simplifyIncDecLoopEdges(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
 
     MutableCfaNetwork graph = MutableCfaNetwork.of(pCfa);
@@ -159,18 +182,30 @@ final class CfaSimplifications {
 
     VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
 
-    for (TransformableLoop loop : TransformableLoop.getTransformableLoops(pCfa)) {
-      for (CFAEdge innerLoopEdge : loop.getInnerLoopEdges()) {
-        Optional<TransformableLoop.IncDecEdge> optIncDecEdge =
-            TransformableLoop.createIncDecEdge(innerLoopEdge);
-        if (optIncDecEdge.isPresent()) {
-          TransformableLoop.IncDecEdge incDecEdge = optIncDecEdge.orElseThrow();
-          CSimpleDeclaration declaration = incDecEdge.getDeclaration();
+    for (TransformableLoop loop : TransformableLoop.findTransformableLoops(pCfa)) {
 
-          if (declaration.equals(loop.getIndexVariable())) {
+      // we only support loops with indices that are increased by one every loop iteration
+      // TODO: this can be further optimized if necessary
+      if (!loop.getIndex().getUpdateOperation().getStepValue().equals(BigInteger.ONE)) {
+        continue;
+      }
+
+      for (CFAEdge innerLoopEdge : loop.getInnerLoopEdges()) {
+        Optional<SpecialOperation.UpdateAssign> optUpdateAssign =
+            SpecialOperation.UpdateAssign.forEdge(
+                innerLoopEdge, pCfa.getMachineModel(), ImmutableMap.of());
+        if (optUpdateAssign.isPresent()) {
+
+          SpecialOperation.UpdateAssign updateAssign = optUpdateAssign.orElseThrow();
+          CSimpleDeclaration declaration = updateAssign.getDeclaration();
+
+          // the index cannot cannot be eliminated
+          if (declaration.equals(loop.getIndex().getVariableDeclaration())) {
             continue;
           }
 
+          // we don't remember the value when leaving the loop
+          // TODO: this can be further optimized if necessary
           if (loop.hasOutgoingUses(declaration)) {
             continue;
           }
@@ -184,36 +219,52 @@ final class CfaSimplifications {
             continue;
           }
 
-          if (incDecEdge.getOperator() != BinaryOperator.PLUS) {
+          // we only support variables that are increased every loop iteration
+          // TODO: this can be further optimized if necessary
+          if (updateAssign.getStepValue().compareTo(BigInteger.ZERO) <= 0) {
             continue;
           }
 
-          CFAEdge updateIndexEdge = loop.getUpdateIndexEdge();
+          if (!loop.isExecutedEveryIteration(innerLoopEdge)) {
+            continue;
+          }
+
+          CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
           CIdExpression indexIdExpression =
-              new CIdExpression(innerLoopEdge.getFileLocation(), loop.getIndexVariable());
+              new CIdExpression(
+                  innerLoopEdge.getFileLocation(), loop.getIndex().getVariableDeclaration());
 
           ImmutableSet<CFAEdge> indexDominated = loop.getDominatedInnerLoopEdges(updateIndexEdge);
           ImmutableSet<CFAEdge> indexPostDominated =
               loop.getPostDominatedInnerLoopEdges(updateIndexEdge);
 
-          ImmutableSet<CFAEdge> dominated = loop.getDominatedInnerLoopEdges(innerLoopEdge);
-          ImmutableSet<CFAEdge> postDominated = loop.getPostDominatedInnerLoopEdges(innerLoopEdge);
+          ImmutableSet<CFAEdge> currentDominated = loop.getDominatedInnerLoopEdges(innerLoopEdge);
+          ImmutableSet<CFAEdge> currentPostDominated =
+              loop.getPostDominatedInnerLoopEdges(innerLoopEdge);
 
-          for (CFAEdge edge : Iterables.concat(dominated, postDominated)) {
+          for (CFAEdge edge : Iterables.concat(currentDominated, currentPostDominated)) {
+
+            // formula: (j at edge) = (j before loop) + (((index at edge) + indexPlus) * (j update
+            // step))
+
+            // edge permutations => indexPlus:
+            //   indexUpdate currentUpdate edge =>  0
+            //   indexUpdate edge currentUpdate => -1
+            //   currentUpdate indexUpdate edge =>  0
+            //   currentUpdate edge indexUpdate => +1
+            //   edge indexUpdate currentUpdate =>  0
+            //   edge currentUpdate indexUpdate =>  0
+
             int indexPlus = 0;
-            if (indexDominated.contains(edge) && postDominated.contains(edge)) {
+            if (indexDominated.contains(edge) && currentPostDominated.contains(edge)) {
               indexPlus = -1;
-            } else if (indexPostDominated.contains(edge) && dominated.contains(edge)) {
+            } else if (indexPostDominated.contains(edge) && currentDominated.contains(edge)) {
               indexPlus = 1;
             }
 
             CIntegerLiteralExpression indexPlusExpression =
                 new CIntegerLiteralExpression(
                     edge.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(indexPlus));
-
-            CIntegerLiteralExpression stepExpression =
-                new CIntegerLiteralExpression(
-                    edge.getFileLocation(), CNumericTypes.INT, incDecEdge.getConstant());
 
             CBinaryExpression indexBinaryExpression =
                 new CBinaryExpression(
@@ -223,6 +274,10 @@ final class CfaSimplifications {
                     indexIdExpression,
                     indexPlusExpression,
                     BinaryOperator.PLUS);
+
+            CIntegerLiteralExpression stepExpression =
+                new CIntegerLiteralExpression(
+                    edge.getFileLocation(), CNumericTypes.INT, updateAssign.getStepValue());
 
             CBinaryExpression stepIndexResultExpression =
                 new CBinaryExpression(
@@ -249,17 +304,17 @@ final class CfaSimplifications {
             declarationSubstitution.put(declaration, substituteExpression);
           }
 
+          // replace update edge with empty placeholder
           var endpoints = graph.incidentNodes(innerLoopEdge);
           graph.removeEdge(innerLoopEdge);
-
-          BlankEdge placeholderEdge =
+          graph.addEdge(
+              endpoints,
               new BlankEdge(
                   "",
                   innerLoopEdge.getFileLocation(),
                   innerLoopEdge.getPredecessor(),
                   innerLoopEdge.getSuccessor(),
-                  "");
-          graph.addEdge(endpoints, placeholderEdge);
+                  ""));
         }
       }
     }
