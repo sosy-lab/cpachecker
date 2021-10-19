@@ -121,8 +121,8 @@ final class TransformableArray {
     return new CDeclarationEdge(
         pArrayDeclarationEdge.getRawStatement(),
         pArrayDeclarationEdge.getFileLocation(),
-        pArrayDeclarationEdge.getPredecessor(),
-        pArrayDeclarationEdge.getSuccessor(),
+        new CFANode(pArrayDeclarationEdge.getPredecessor().getFunction()),
+        new CFANode(pArrayDeclarationEdge.getSuccessor().getFunction()),
         valueDeclaration);
   }
 
@@ -151,8 +151,8 @@ final class TransformableArray {
     return new CDeclarationEdge(
         pArrayDeclarationEdge.getRawStatement(),
         pArrayDeclarationEdge.getFileLocation(),
-        pArrayDeclarationEdge.getPredecessor(),
-        pArrayDeclarationEdge.getSuccessor(),
+        new CFANode(pArrayDeclarationEdge.getPredecessor().getFunction()),
+        new CFANode(pArrayDeclarationEdge.getSuccessor().getFunction()),
         valueDeclaration);
   }
 

@@ -19,9 +19,12 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -369,6 +372,22 @@ final class TransformableLoop {
 
   public int countInnerLoopDefs(CSimpleDeclaration pDeclaration) {
     return countInnerLoopDefs(loop, pDeclaration);
+  }
+
+  public ImmutableSet<CSimpleDeclaration> getInnerLoopDeclarations() {
+
+    ImmutableSet.Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
+
+    for (CFAEdge innerLoopEdge : getInnerLoopEdges()) {
+      if (innerLoopEdge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) innerLoopEdge).getDeclaration();
+        if (declaration instanceof CVariableDeclaration) {
+          builder.add(declaration);
+        }
+      }
+    }
+
+    return builder.build();
   }
 
   public static final class Index {

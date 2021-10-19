@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
+import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
 /**
@@ -92,7 +93,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
   private final ShutdownManager shutdownManager;
   private final Collection<Statistics> stats;
-  private final CFA transformedCfa;
+  private final ArrayAbstractionResult arrayAbstractionResult;
   private final CFA originalCfa;
 
   public ArrayAbstractionAlgorithm(
@@ -107,7 +108,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     stats = new CopyOnWriteArrayList<>();
     originalCfa = pCfa;
-    transformedCfa = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
+    arrayAbstractionResult = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
 
     pConfiguration.inject(this);
   }
@@ -160,8 +161,10 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
 
-    if (transformedCfa != null) {
-      status = runDelegateAnalysis(transformedCfa, forwardingReachedSet, aggregatedReached);
+    if (arrayAbstractionResult.getStatus() == ArrayAbstractionResult.Status.PRECISE) {
+      status =
+          runDelegateAnalysis(
+              arrayAbstractionResult.getTransformedCfa(), forwardingReachedSet, aggregatedReached);
     }
 
     if (checkCounterexamples && forwardingReachedSet.wasTargetReached()) {
@@ -176,7 +179,10 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     pStatsCollection.addAll(stats);
 
-    if (transformedCfa != null) {
+    if (arrayAbstractionResult.getStatus() != ArrayAbstractionResult.Status.FAILED) {
+
+      CFA transformedCfa = arrayAbstractionResult.getTransformedCfa();
+
       if (exportDotTransformedCfa && exportDotTransformedCfaFile != null) {
         try (Writer writer =
             IO.openOutputFile(exportDotTransformedCfaFile, Charset.defaultCharset())) {
