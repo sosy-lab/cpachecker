@@ -92,7 +92,7 @@ abstract class SpecialOperation {
     return declaration;
   }
 
-  /** Operation for these assign edges: {@code &lt;var&gt; = &lt;expression&gt;;} */
+  /** Operation for these assign edges: <code>&lt;var&gt; = &lt;expression&gt;;</code> */
   private static final class ExpressionAssign extends SpecialOperation {
 
     private final CExpression expression;
@@ -150,7 +150,7 @@ abstract class SpecialOperation {
     }
   }
 
-  /** Operation for these assign edges: {@code &lt;var&gt; = &lt;constant-expression&gt;;} */
+  /** Operation for these assign edges: <code>&lt;var&gt; = &lt;constant-expression&gt;;</code> */
   public static final class ConstantAssign extends SpecialOperation {
 
     private final BigInteger value;
@@ -206,8 +206,8 @@ abstract class SpecialOperation {
   }
 
   /**
-   * Operation for these assign edges: {@code &lt;var&gt; = &lt;var&gt; &#123; + | - &#125;
-   * &lt;constant-expression&gt;;} (the {@code &lt;var&gt;} must be equal)
+   * Operation for these assign edges: <code>&lt;var&gt; = &lt;var&gt; &#123; + | - &#125;
+   * &lt;constant-expression&gt;;</code> (the <code>&lt;var&gt;</code> must be equal)
    */
   public static final class UpdateAssign extends SpecialOperation {
 
@@ -293,8 +293,8 @@ abstract class SpecialOperation {
   }
 
   /**
-   * Operation for these assume edges: {@code &lt;var&gt; &#123; &lt; | &lt;= | &gt; | &gt;= &#125;
-   * &lt;constant-expression&gt;}
+   * Operation for these assume edges: <code>&lt;var&gt; &#123; &lt; | &lt;= | &gt; | &gt;= &#125;
+   * &lt;constant-expression&gt;</code>
    */
   public static final class ComparisonAssume extends SpecialOperation {
 
@@ -395,8 +395,8 @@ abstract class SpecialOperation {
     }
 
     /**
-     * Returns the comparison operator of this comparison ({@code &lt;operator&gt;} in {@code
-     * &lt;var&gt; &lt;operator&gt; &lt;value&gt;}).
+     * Returns the comparison operator of this comparison (<code>&lt;operator&gt;</code> in <code>
+     * &lt;var&gt; &lt;operator&gt; &lt;value&gt;</code>).
      *
      * @return the comparison operator of this comparison
      */
@@ -405,8 +405,8 @@ abstract class SpecialOperation {
     }
 
     /**
-     * Returns the value to which the variable is compared ({@code &lt;value&gt;} in {@code
-     * &lt;var&gt; &lt;operator&gt; &lt;value&gt;}).
+     * Returns the value to which the variable is compared (<code>&lt;value&gt;</code> in <code>
+     * &lt;var&gt; &lt;operator&gt; &lt;value&gt;</code>).
      *
      * @return the value to which the variable is compared
      */
@@ -414,7 +414,7 @@ abstract class SpecialOperation {
       return value;
     }
 
-    /** The comparison operator ({@code &lt;} or {@code &gt;}) */
+    /** The comparison operator (<code>&lt;</code> or <code>&gt;</code>) */
     public enum Operator {
       LESS_EQUAL,
       GREATER_EQUAL
