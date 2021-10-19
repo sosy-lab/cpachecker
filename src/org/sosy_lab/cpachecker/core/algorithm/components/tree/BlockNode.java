@@ -63,9 +63,9 @@ public class BlockNode {
   }
 
   private static String generateUniqueId(CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock) {
-    StringBuilder id = new StringBuilder("N" + pStartNode.getNodeNumber() + "-");
+    StringBuilder id = new StringBuilder("N" + pStartNode.getNodeNumber());
     for(CFANode n: pNodesInBlock) {
-      id.append("N").append(n.getNodeNumber()).append("-");
+      id.append("N").append(n.getNodeNumber());
     }
     return id.append("N").append(pEndNode.getNodeNumber()).toString();
   }

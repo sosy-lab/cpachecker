@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket.WorkerSocketFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger.Action;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -60,7 +60,7 @@ public class Worker implements Runnable {
   private Optional<Message> lastPreConditionMessage;
   private Optional<Message> lastPostConditionMessage;
 
-  private final ActionLogger actionLogger;
+  private final MessageLogger messageLogger;
 
   private final Thread socketThread;
 
@@ -76,10 +76,10 @@ public class Worker implements Runnable {
       int pPort)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     BlockingQueue<Message> sharedQueue = new LinkedBlockingQueue<>();
-    ActionLogger actionLogger = new ActionLogger(pNode.getId());
-    WorkerSocket socket = pFactory.makeSocket(pLogger, actionLogger, sharedQueue, pNode.getId(), pAddress,
+    MessageLogger messageLogger = new MessageLogger(pNode.getId());
+    WorkerSocket socket = pFactory.makeSocket(pLogger, messageLogger, sharedQueue, pNode.getId(), pAddress,
         pPort);
-    return new Worker(pNode, sharedQueue, socket, actionLogger, pLogger, pCFA, pSpecification, pConfiguration,
+    return new Worker(pNode, sharedQueue, socket, messageLogger, pLogger, pCFA, pSpecification, pConfiguration,
         pShutdownManager);
   }
 
@@ -91,7 +91,7 @@ public class Worker implements Runnable {
       BlockNode pBlock,
       BlockingQueue<Message> pOutputStream,
       WorkerSocket pWorkerSocket,
-      ActionLogger pActionLogger,
+      MessageLogger pMessageLogger,
       LogManager pLogger,
       CFA pCFA,
       Specification pSpecification,
@@ -101,7 +101,7 @@ public class Worker implements Runnable {
     block = pBlock;
     read = pOutputStream;
     logger = pLogger;
-    actionLogger = pActionLogger;
+    messageLogger = pMessageLogger;
     finished = false;
 
     clients = new ArrayList<>();
@@ -165,7 +165,7 @@ public class Worker implements Runnable {
   public void analyze() throws InterruptedException, CPAException, IOException, SolverException {
     while (!finished) {
       Message m = read.take();
-      actionLogger.log(Action.TAKE, m);
+      messageLogger.log(Action.TAKE, m);
       processMessage(m);
     }
   }
@@ -191,7 +191,7 @@ public class Worker implements Runnable {
   private void processFinishMessage(Message message) throws IOException {
     Preconditions.checkArgument(message.getType() == MessageType.FINISHED,
         "can only process messages with type %s", MessageType.FINISHED);
-    actionLogger.log(Action.FINISH, message);
+    messageLogger.log(Action.FINISH, message);
     finished = true;
     broadcast(Message.newFinishMessage(block.getId(), message.getTargetNodeNumber(),
         Result.valueOf(message.getPayload())));
@@ -207,24 +207,24 @@ public class Worker implements Runnable {
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
-      actionLogger.log(Action.DUMP, message);
+      messageLogger.log(Action.DUMP, message);
       return;
     }
     CFANode node = optionalCFANode.orElseThrow();
     if (node.equals(block.getStartNode())) {
-      actionLogger.log(Action.FORWARD, message);
+      messageLogger.log(Action.FORWARD, message);
       preConditionUpdates.put(message.getUniqueBlockId(), message);
       Message toSend = forwardAnalysis(node);
       if (lastPreConditionMessage.isEmpty() || !toSend.equals(
           lastPreConditionMessage.orElseThrow())) {
-        actionLogger.log(Action.BROADCAST, toSend);
+        messageLogger.log(Action.BROADCAST, toSend);
         broadcast(toSend);
       } else {
-        actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
+        messageLogger.log(Action.ALREADY_ENQUEUED, toSend);
       }
       lastPreConditionMessage = Optional.of(toSend);
     } else {
-      actionLogger.log(Action.DUMP, message);
+      messageLogger.log(Action.DUMP, message);
     }
   }
 
@@ -235,7 +235,7 @@ public class Worker implements Runnable {
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
-      actionLogger.log(Action.DUMP, message);
+      messageLogger.log(Action.DUMP, message);
       return;
     }
     CFANode node = optionalCFANode.orElseThrow();
@@ -244,19 +244,19 @@ public class Worker implements Runnable {
       if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
         return;
       }
-      actionLogger.log(Action.BACKWARD, message);
+      messageLogger.log(Action.BACKWARD, message);
       postConditionUpdates.put(message.getUniqueBlockId(), message);
       Message toSend = backwardAnalysis(node);
       if (lastPostConditionMessage.isEmpty() || !toSend.equals(
           lastPostConditionMessage.orElseThrow())) {
-        actionLogger.log(Action.BROADCAST, toSend);
+        messageLogger.log(Action.BROADCAST, toSend);
         broadcast(toSend);
       } else {
-        actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
+        messageLogger.log(Action.ALREADY_ENQUEUED, toSend);
       }
       lastPostConditionMessage = Optional.of(toSend);
     } else {
-      actionLogger.log(Action.DUMP, message);
+      messageLogger.log(Action.DUMP, message);
     }
   }
 

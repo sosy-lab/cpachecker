@@ -22,7 +22,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
 
-public class ActionLogger {
+public class MessageLogger {
 
   public enum Action {
     RECEIVE, TAKE, FORWARD, BACKWARD, FINISH, DUMP, BROADCAST, ALREADY_ENQUEUED
@@ -34,7 +34,7 @@ public class ActionLogger {
 
   private final List<Map<String, Object>> entries;
 
-  public ActionLogger(String pWorkerId) throws IOException {
+  public MessageLogger(String pWorkerId) throws IOException {
     workerId = pWorkerId;
     reportFile = Path.of("./output/worker_log/" + workerId + ".json");
     IO.openOutputFile(reportFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE);

@@ -25,8 +25,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger.Action;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger.Action;
 
 public class WorkerSocket {
 
@@ -35,13 +35,13 @@ public class WorkerSocket {
   private final BlockingQueue<Message> sharedQueue;
   private final LogManager logger;
   private final String workerId;
-  private final ActionLogger actionLogger;
+  private final MessageLogger messageLogger;
 
   private static final int BUFFER_SIZE = 1024;
 
   private WorkerSocket(
       LogManager pLogger,
-      ActionLogger pActionLogger,
+      MessageLogger pActionLogger,
       BlockingQueue<Message> pSharedQueue,
       InetSocketAddress pAddress,
       String pWorkerId) {
@@ -49,7 +49,7 @@ public class WorkerSocket {
     sharedQueue = pSharedQueue;
     logger = pLogger;
     workerId = pWorkerId;
-    actionLogger = pActionLogger;
+    messageLogger = pActionLogger;
   }
 
   // create server channel
@@ -138,7 +138,7 @@ public class WorkerSocket {
     } while(true);
 
     Message received = Message.decode(builder.toString());
-    actionLogger.log(Action.RECEIVE, received);
+    messageLogger.log(Action.RECEIVE, received);
     sharedQueue.add(received);
     // logger.log(Level.INFO, "Socket received message: " + received);
     return received.getType() == MessageType.FINISHED && workerId.equals(received.getUniqueBlockId());
@@ -154,14 +154,14 @@ public class WorkerSocket {
 
     public WorkerSocket makeSocket(
         LogManager pLogger,
-        ActionLogger pActionLogger,
+        MessageLogger pMessageLogger,
         BlockingQueue<Message> pSharedQueue,
         String pWorkerId,
         String pAddress,
         int pPort) throws IOException {
       InetSocketAddress address = new InetSocketAddress(pAddress, pPort);
       addresses.add(address);
-      return new WorkerSocket(pLogger, pActionLogger, pSharedQueue, address, pWorkerId);
+      return new WorkerSocket(pLogger, pMessageLogger, pSharedQueue, address, pWorkerId);
     }
 
     public Set<InetSocketAddress> getAddresses() {

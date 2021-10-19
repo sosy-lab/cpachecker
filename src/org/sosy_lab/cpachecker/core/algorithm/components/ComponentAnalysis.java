@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerSocket.WorkerSocketFactory;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockTree;
-import org.sosy_lab.cpachecker.core.algorithm.components.util.ActionLogger;
+import org.sosy_lab.cpachecker.core.algorithm.components.util.MessageLogger;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -75,7 +75,7 @@ public class ComponentAnalysis implements Algorithm {
       }
       WorkerSocketFactory factory = new WorkerSocketFactory();
       BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
-      WorkerSocket mainSocket = factory.makeSocket(logger, new ActionLogger("main"), messages, "main", "localhost", 8090);
+      WorkerSocket mainSocket = factory.makeSocket(logger, new MessageLogger("main"), messages, "main", "localhost", 8090);
       Thread mainSocketThread = new Thread(() -> {
         try {
           mainSocket.startServer();
