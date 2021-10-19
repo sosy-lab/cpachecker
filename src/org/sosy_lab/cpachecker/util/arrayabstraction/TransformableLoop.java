@@ -241,7 +241,7 @@ final class TransformableLoop {
     // don't allow loop indices that are addressed, so we don't miss any defs,
     // even without pointer information
     if (isAddressed(pCfa, indexVariableDeclaration)) {
-      Optional.empty();
+      return Optional.empty();
     }
 
     // find the index update edge inside the loop
