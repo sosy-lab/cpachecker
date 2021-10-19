@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.components.cut.BlockOperatorCutter;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.FinishMessage;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Worker;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerClient;
@@ -111,7 +110,7 @@ public class ComponentAnalysis implements Algorithm {
           result = Result.valueOf(m.getPayload());
           finished.add(m);
           if (finished.size() == workers.size()) {
-            mainClient.broadcast(new FinishMessage("main", 0, result));
+            mainClient.broadcast(Message.newFinishMessage("main", 0, result));
             break;
           }
         }

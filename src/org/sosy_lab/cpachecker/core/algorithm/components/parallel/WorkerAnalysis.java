@@ -25,9 +25,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.PostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.PreconditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.FinishMessage;
 import org.sosy_lab.cpachecker.core.algorithm.components.tree.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.components.util.StateTransformer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -193,13 +190,13 @@ public abstract class WorkerAnalysis {
           throw new AssertionError(
               "States need to have a location but they do not:" + targetState.get());
         }
-        return new PostConditionMessage(block.getId(),
+        return Message.newPostconditionMessage(block.getId(),
             targetNode.get().getNodeNumber(), bmgr.makeTrue(), fmgr);
       }
       Map<AbstractState, BooleanFormula>
           formulas = StateTransformer.transformReachedSet(reachedSet, block.getLastNode(), fmgr);
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
-      return new PreconditionMessage(block.getId(), block.getLastNode().getNodeNumber(), result,
+      return Message.newPreconditionMessage(block.getId(), block.getLastNode().getNodeNumber(), result,
           fmgr);
     }
   }
@@ -227,9 +224,9 @@ public abstract class WorkerAnalysis {
       BooleanFormula result = formulas.isEmpty() ? bmgr.makeTrue() : bmgr.or(formulas.values());
       // by definition: if the post-condition reaches the root element, the specification is violated
       if (block.getPredecessors().isEmpty()) {
-        return new FinishMessage(block.getId(), block.getStartNode().getNodeNumber(), Result.FALSE);
+        return Message.newFinishMessage(block.getId(), block.getStartNode().getNodeNumber(), Result.FALSE);
       }
-      return new PostConditionMessage(block.getId(), block.getStartNode().getNodeNumber(), result, fmgr);
+      return Message.newPostconditionMessage(block.getId(), block.getStartNode().getNodeNumber(), result, fmgr);
     }
 
     public boolean cantContinue(String currentPreCondition, String receivedPostCondition)

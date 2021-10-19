@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.FinishMessage;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.components.parallel.WorkerAnalysis.ForwardAnalysis;
@@ -173,16 +173,37 @@ public class Worker implements Runnable {
   private void processMessage(Message message)
       throws InterruptedException, CPAException, IOException, SolverException {
 
-    if (message.getType() == MessageType.FINISHED) {
-      actionLogger.log(Action.FINISH, message);
-      finished = true;
-      broadcast(new FinishMessage(block.getId(), message.getTargetNodeNumber(), Result.valueOf(message.getPayload())));
-      shutdownCommunication();
-      logger.log(Level.INFO, "Shutting down worker for", block.getId());
-      Thread.currentThread().interrupt();
-      return;
+    switch (message.getType()) {
+      case POSTCONDITION:
+        processPostConditionMessage(message);
+        break;
+      case PRECONDITION:
+        processPreconditionMessage(message);
+        break;
+      case FINISHED:
+        processFinishMessage(message);
+        break;
+      default:
+        throw new AssertionError("Message type " + message.getType() + " does not exist");
     }
+  }
 
+  private void processFinishMessage(Message message) throws IOException {
+    Preconditions.checkArgument(message.getType() == MessageType.FINISHED,
+        "can only process messages with type %s", MessageType.FINISHED);
+    actionLogger.log(Action.FINISH, message);
+    finished = true;
+    broadcast(Message.newFinishMessage(block.getId(), message.getTargetNodeNumber(),
+        Result.valueOf(message.getPayload())));
+    shutdownCommunication();
+    logger.log(Level.INFO, "Shutting down worker for", block.getId());
+    Thread.currentThread().interrupt();
+  }
+
+  private void processPreconditionMessage(Message message)
+      throws IOException, CPAException, InterruptedException {
+    Preconditions.checkArgument(message.getType() == MessageType.PRECONDITION,
+        "can only process messages with type %s", MessageType.PRECONDITION);
     Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
         .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
     if (optionalCFANode.isEmpty()) {
@@ -190,48 +211,53 @@ public class Worker implements Runnable {
       return;
     }
     CFANode node = optionalCFANode.orElseThrow();
+    if (node.equals(block.getStartNode())) {
+      actionLogger.log(Action.FORWARD, message);
+      preConditionUpdates.put(message.getUniqueBlockId(), message);
+      Message toSend = forwardAnalysis(node);
+      if (lastPreConditionMessage.isEmpty() || !toSend.equals(
+          lastPreConditionMessage.orElseThrow())) {
+        actionLogger.log(Action.BROADCAST, toSend);
+        broadcast(toSend);
+      } else {
+        actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
+      }
+      lastPreConditionMessage = Optional.of(toSend);
+    } else {
+      actionLogger.log(Action.DUMP, message);
+    }
+  }
 
-    if (message.getType() == MessageType.PRECONDITION) {
-      if (node.equals(block.getStartNode())) {
-        actionLogger.log(Action.FORWARD, message);
-        preConditionUpdates.put(message.getUniqueBlockId(), message);
-        Message toSend = forwardAnalysis(node);
-        if (lastPreConditionMessage.isEmpty() || !toSend.equals(
-            lastPreConditionMessage.orElseThrow())) {
-          actionLogger.log(Action.BROADCAST, toSend);
-          broadcast(toSend);
-        } else {
-          actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
-        }
-        lastPreConditionMessage = Optional.of(toSend);
-      } else {
-        actionLogger.log(Action.DUMP, message);
-      }
-      return;
-    } else if (message.getType() == MessageType.POSTCONDITION) {
-      if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
-          block.getStartNode()) && block.getNodesInBlock().contains(node)) {
-        if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
-          return;
-        }
-        actionLogger.log(Action.BACKWARD, message);
-        postConditionUpdates.put(message.getUniqueBlockId(), message);
-        Message toSend = backwardAnalysis(node);
-        if (lastPostConditionMessage.isEmpty() || !toSend.equals(
-            lastPostConditionMessage.orElseThrow())) {
-          actionLogger.log(Action.BROADCAST, toSend);
-          broadcast(toSend);
-        } else {
-          actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
-        }
-        lastPostConditionMessage = Optional.of(toSend);
-      } else {
-        actionLogger.log(Action.DUMP, message);
-      }
+  private void processPostConditionMessage(Message message)
+      throws SolverException, InterruptedException, IOException, CPAException {
+    Preconditions.checkArgument(message.getType() == MessageType.POSTCONDITION,
+        "can only process messages with type %s", MessageType.POSTCONDITION);
+    Optional<CFANode> optionalCFANode = block.getNodesInBlock().stream()
+        .filter(node -> node.getNodeNumber() == message.getTargetNodeNumber()).findAny();
+    if (optionalCFANode.isEmpty()) {
+      actionLogger.log(Action.DUMP, message);
       return;
     }
-
-    throw new AssertionError("Message type " + message.getType() + " does not exist");
+    CFANode node = optionalCFANode.orElseThrow();
+    if (node.equals(block.getLastNode()) || !node.equals(block.getLastNode()) && !node.equals(
+        block.getStartNode()) && block.getNodesInBlock().contains(node)) {
+      if (lastPreConditionMessage.isPresent() && backwardAnalysis.cantContinue(lastPreConditionMessage.orElseThrow().getPayload(), message.getPayload())) {
+        return;
+      }
+      actionLogger.log(Action.BACKWARD, message);
+      postConditionUpdates.put(message.getUniqueBlockId(), message);
+      Message toSend = backwardAnalysis(node);
+      if (lastPostConditionMessage.isEmpty() || !toSend.equals(
+          lastPostConditionMessage.orElseThrow())) {
+        actionLogger.log(Action.BROADCAST, toSend);
+        broadcast(toSend);
+      } else {
+        actionLogger.log(Action.ALREADY_ENQUEUED, toSend);
+      }
+      lastPostConditionMessage = Optional.of(toSend);
+    } else {
+      actionLogger.log(Action.DUMP, message);
+    }
   }
 
   private void broadcast(Message toSend) throws IOException {

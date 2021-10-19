@@ -23,8 +23,8 @@ public class WorkerClient {
   }
 
   public void broadcast(Message pMessage) throws IOException {
-    String gson = Message.encode(pMessage);
-    byte [] message = gson.getBytes();
+    String json = pMessage.toJSON();
+    byte [] message = json.getBytes();
     ByteBuffer buffer = ByteBuffer.wrap(message);
     client.write(buffer);
     buffer.clear();

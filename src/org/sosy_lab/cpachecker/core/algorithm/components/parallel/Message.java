@@ -8,8 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.components.parallel;
 
-import com.google.common.base.Splitter;
-import java.util.List;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import java.io.IOException;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -76,41 +87,37 @@ public class Message {
         message.payload);
   }
 
-  public static String encode(Message m) {
-    String result = "NodeNumber:" + m.getTargetNodeNumber() + "\n";
-    result += "BlockId:" + m.getUniqueBlockId() + "\n";
-    result += "Type:" + m.getType() + "\n";
-    result += "Payload:" + m.getPayload();
-    return result;
+  public static Message newPreconditionMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BooleanFormula pPayload,
+      FormulaManagerView pFmgr) {
+    return new Message(MessageType.PRECONDITION, pUniqueBlockId, pTargetNodeNumber,
+        pFmgr.dumpFormula(pPayload).toString());
   }
 
-  public static Message decode(String s) {
-    String blockId = "";
-    String payload = "";
-    int nodeNumber = 0;
-    MessageType type = MessageType.POSTCONDITION;
-    for (String line: Splitter.on("\n").limit(4).splitToList(s)) {
-      List<String> separatedLine = Splitter.on(":").limit(2).splitToList(line);
-      String key = separatedLine.get(0);
-      String value = separatedLine.get(1);
-      switch (key) {
-        case "NodeNumber":
-          nodeNumber = Integer.parseInt(value);
-          break;
-        case "Payload":
-          payload = value;
-          break;
-        case "Type":
-          type = MessageType.valueOf(value);
-          break;
-        case "BlockId":
-          blockId = value;
-          break;
-        default:
-          throw new IllegalArgumentException("Argument does not exist: " + key);
-      }
-    }
-    return new Message(type, blockId, nodeNumber, payload);
+  public static Message newPostconditionMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BooleanFormula pPayload,
+      FormulaManagerView pFmgr) {
+    return new Message(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
+        pFmgr.dumpFormula(pPayload).toString());
+  }
+
+  public static Message newFinishMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      Result pResult) {
+    return new Message(MessageType.FINISHED, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+  }
+
+  public String toJSON() throws JsonProcessingException {
+    return MessageConverter.getInstance().messageToJson(this);
+  }
+
+  public static Message decode(String s) throws JsonProcessingException {
+    return MessageConverter.getInstance().jsonToMessage(s);
   }
 
   @Override
@@ -118,36 +125,75 @@ public class Message {
     return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
-  public static class FinishMessage extends Message {
+  static class MessageSerializer extends StdSerializer<Message> {
 
-    public FinishMessage(
-        String pUniqueBlockId,
-        int pTargetNodeNumber,
-        Result pResult) {
-      super(MessageType.FINISHED, pUniqueBlockId, pTargetNodeNumber, pResult.name());
+    private MessageSerializer(Class<Message> t) {
+      super(t);
     }
 
-  }
-
-  public static class PreconditionMessage extends Message {
-
-    public PreconditionMessage(
-        String pUniqueBlockId,
-        int pTargetNodeNumber,
-        BooleanFormula pPayload,
-        FormulaManagerView pFmgr) {
-      super(MessageType.PRECONDITION, pUniqueBlockId, pTargetNodeNumber, pFmgr.dumpFormula(pPayload).toString());
+    @Override
+    public void serialize(
+        Message pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
+        throws IOException {
+        pJsonGenerator.writeStartObject();
+        pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
+        pJsonGenerator.writeNumberField("targetNodeNumber", pMessage.getTargetNodeNumber());
+        pJsonGenerator.writeStringField("type", pMessage.getType().name());
+        pJsonGenerator.writeStringField("payload", pMessage.getPayload());
+        pJsonGenerator.writeEndObject();
     }
   }
 
-  public static class PostConditionMessage extends Message {
+  static class MessageConverter {
 
-    public PostConditionMessage(
-        String pUniqueBlockId,
-        int pTargetNodeNumber,
-        BooleanFormula pPayload,
-        FormulaManagerView pFmgr) {
-      super(MessageType.POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pFmgr.dumpFormula(pPayload).toString());
+    private static final MessageConverter instance = new MessageConverter();
+
+    private final ObjectMapper mapper;
+
+    private MessageConverter() {
+      mapper = new ObjectMapper();
+      SimpleModule serializer =
+          new SimpleModule("MessageSerializer", new Version(1, 0, 0, null, null, null));
+      serializer.addSerializer(Message.class, new MessageSerializer(Message.class));
+      mapper.registerModule(serializer);
+
+      SimpleModule deserializer =
+          new SimpleModule("CustomCarDeserializer", new Version(1, 0, 0, null, null, null));
+      deserializer.addDeserializer(Message.class, new MessageDeserializer(Message.class));
+      mapper.registerModule(deserializer);
+    }
+
+    public String messageToJson(Message pMessage) throws JsonProcessingException {
+      return mapper.writeValueAsString(pMessage);
+    }
+
+    public Message jsonToMessage(String pJSON) throws JsonProcessingException {
+      return mapper.readValue(pJSON, Message.class);
+    }
+
+    public static MessageConverter getInstance() {
+      return instance;
     }
   }
+
+  static class MessageDeserializer extends StdDeserializer<Message> {
+
+    public MessageDeserializer(Class<Message> vc) {
+      super(vc);
+    }
+
+    @Override
+    public Message deserialize(JsonParser parser, DeserializationContext deserializer)
+        throws IOException {
+      ObjectCodec codec = parser.getCodec();
+      JsonNode node = codec.readTree(parser);
+
+      String uniqueBlockId = node.get("uniqueBlockId").asText();
+      int nodeNumber = node.get("targetNodeNumber").asInt();
+      MessageType type = MessageType.valueOf(node.get("type").asText());
+      String payload = node.get("payload").asText();
+      return new Message(type, uniqueBlockId, nodeNumber, payload);
+    }
+  }
+
 }
