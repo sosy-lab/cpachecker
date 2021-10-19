@@ -140,7 +140,7 @@ public class WorkerSocket {
     Message received = Message.decode(builder.toString());
     messageLogger.log(Action.RECEIVE, received);
     sharedQueue.add(received);
-    // logger.log(Level.INFO, "Socket received message: " + received);
+    logger.log(Level.INFO, "Socket received message: " + received);
     return received.getType() == MessageType.FINISHED && workerId.equals(received.getUniqueBlockId());
   }
 

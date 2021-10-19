@@ -34,9 +34,14 @@ public class AnyStateTransformer extends AbstractStateTransformer<AbstractState>
   @Override
   protected BooleanFormula transform(
       AbstractState state, FormulaManagerView fmgr, AnalysisDirection direction, String uniqueVariableId) {
-    if (transformerMap.containsKey(state.getClass())) {
-      return transformerMap.get(state.getClass()).safeTransform(state, fmgr, direction, uniqueVariableId);
+    Class<?> superClasses = state.getClass();
+    while (superClasses != null) {
+      if (transformerMap.containsKey(superClasses)) {
+        return transformerMap.get(superClasses).safeTransform(state, fmgr, direction, uniqueVariableId);
+      }
+      superClasses = superClasses.getSuperclass();
     }
+
     return fmgr.getBooleanFormulaManager().makeTrue();
   }
 

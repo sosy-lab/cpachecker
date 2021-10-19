@@ -34,7 +34,7 @@ public class PredicateAbstractStateTransformer extends AbstractStateTransformer<
       String name = stringFormulaEntry.getKey();
       Formula formula = stringFormulaEntry.getValue();
       List<String> nameAndIndex = Splitter.on("@").limit(2).splitToList(name);
-      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty()) {
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || name.contains(".")) {
         substitutions.put(formula, fmgr.makeVariable(fmgr.getFormulaType(formula), name));
         continue;
       }
