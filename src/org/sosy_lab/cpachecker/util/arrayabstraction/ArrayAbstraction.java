@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult.Stat
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+/** Array abstraction algorithm. */
 public class ArrayAbstraction {
 
   private ArrayAbstraction() {}
@@ -73,9 +74,9 @@ public class ArrayAbstraction {
         pTruthAssumption);
   }
 
-  private static ImmutableSet<TransformableArray> getTransformableArrays(
-      TransformableLoop pLoop,
-      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap) {
+  private static ImmutableSet<TransformableArray> getLoopTransformableArrays(
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      TransformableLoop pLoop) {
 
     ImmutableSet.Builder<TransformableArray> builder = ImmutableSet.builder();
 
@@ -112,6 +113,8 @@ public class ArrayAbstraction {
     return builder.build();
   }
 
+  // Index step condition is required to only allow loop body access, if:
+  //   ((index) % (index step value)) == ((index initial value) % (index step value))
   private static Optional<CExpression> createIndexStepCondition(TransformableLoop.Index pIndex) {
 
     BigInteger updateStepValue = pIndex.getUpdateOperation().getStepValue();
@@ -255,7 +258,7 @@ public class ArrayAbstraction {
     return arrayPreciseSubscriptExpressionBuilder.build();
   }
 
-  // Is this loop even transformable?
+  // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.FAILED
   private static Status loopTransformable(
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       TransformableLoop pLoop) {
@@ -300,79 +303,18 @@ public class ArrayAbstraction {
     return Status.PRECISE;
   }
 
-  private static Status transformLoop(
+  private static void insertLoopConditions(
       MutableCfaNetwork pGraph,
-      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
-      CFA pCfa,
-      TransformableLoop pLoop) {
+      ImmutableSet<TransformableArray> pLoopTransformableArrays,
+      TransformableLoop pLoop,
+      CFANode pBodyEntryNode,
+      CFANode pBodyExitNode) {
 
-    Status status = loopTransformable(pTransformableArrayMap, pLoop);
-
-    if (status == Status.FAILED) {
-      return status;
-    }
-
-    // transform loop into branching
-    CFANode loopNode = pLoop.getLoopNode();
-    CFAEdge loopIncomingEdge = pLoop.getIncomingEdge();
-    CFAEdge loopOutgoingEdge = pLoop.getOutgoingEdge();
-
-    CFAEdge loopBodyFirstEdge = null;
-    CFAEdge loopBodyLastEdge = null;
-    for (CFAEdge edge : pGraph.incidentEdges(loopNode)) {
-      if (pGraph.incidentNodes(edge).nodeU().equals(loopNode) && !edge.equals(loopOutgoingEdge)) {
-        loopBodyFirstEdge = edge;
-      }
-      if (pGraph.incidentNodes(edge).nodeV().equals(loopNode) && !edge.equals(loopIncomingEdge)) {
-        loopBodyLastEdge = edge;
-      }
-    }
-
-    CFANode loopBodyFirstEdgeNodeV = pGraph.incidentNodes(loopBodyFirstEdge).nodeV();
-    CFANode loopOutgoingEdgeNodeV = pGraph.incidentNodes(loopOutgoingEdge).nodeV();
-
-    pGraph.removeEdge(loopBodyFirstEdge);
-    pGraph.removeEdge(loopOutgoingEdge);
-
-    CFANode loopIncomingEdgeNodeU = pGraph.incidentNodes(loopIncomingEdge).nodeU();
-    pGraph.removeEdge(loopIncomingEdge);
-    pGraph.addEdge(loopIncomingEdgeNodeU, loopBodyFirstEdgeNodeV, loopIncomingEdge);
-
-    CFANode loopBodyLastEdgeNodeU = pGraph.incidentNodes(loopBodyLastEdge).nodeU();
-    pGraph.removeEdge(loopBodyLastEdge);
-    pGraph.addEdge(loopBodyLastEdgeNodeU, loopOutgoingEdgeNodeV, loopBodyLastEdge);
-
-    ImmutableSet<TransformableArray> loopTransformableArrays =
-        getTransformableArrays(pLoop, pTransformableArrayMap);
-    assert loopTransformableArrays.size() >= 1;
-    TransformableArray anyTransformableArray =
-        loopTransformableArrays.stream().findAny().orElseThrow();
-
-    CFANode bodyEntryNode = loopBodyFirstEdgeNodeV;
-    CFANode bodyExitNode = loopOutgoingEdgeNodeV;
-    AFunctionDeclaration function = loopNode.getFunction();
+    AFunctionDeclaration function = pLoop.getLoopNode().getFunction();
     TransformableLoop.Index index = pLoop.getIndex();
 
-    ImmutableMap<TransformableArray, CExpression> preciseArraySubscriptExpressions =
-        insertTransformableArrayAssumes(
-            pGraph, pTransformableArrayMap, pLoop, loopTransformableArrays, bodyEntryNode);
-
-    // transform inner loop edges
-    for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
-      Status edgeTransformationStatus =
-          transformEdge(
-              pGraph,
-              pTransformableArrayMap,
-              pCfa,
-              edge,
-              Optional.of(pLoop),
-              Optional.of(preciseArraySubscriptExpressions));
-      if (edgeTransformationStatus == Status.FAILED) {
-        return Status.FAILED;
-      } else if (edgeTransformationStatus == Status.IMPRECISE) {
-        status = Status.IMPRECISE;
-      }
-    }
+    TransformableArray anyTransformableArray =
+        pLoopTransformableArrays.stream().findAny().orElseThrow();
 
     CIdExpression loopIndexIdExpression =
         new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
@@ -388,7 +330,7 @@ public class ArrayAbstraction {
             FileLocation.DUMMY,
             new CFANode(function),
             new CFANode(function));
-    pGraph.insertPredecessor(new CFANode(function), bodyEntryNode, indexInitStatementEdge);
+    pGraph.insertPredecessor(new CFANode(function), pBodyEntryNode, indexInitStatementEdge);
 
     List<CExpression> conditions = new ArrayList<>();
     CExpression indexStartValueExpression =
@@ -437,25 +379,97 @@ public class ArrayAbstraction {
 
     createIndexStepCondition(index).ifPresent(conditions::add);
 
-    // reverse list to make the element added to the list first the outermost condition in the CFA
+    // reverse list, because the last edge inserted with insertSuccessor is the first condition edge
     Collections.reverse(conditions);
     for (CExpression condition : conditions) {
 
       CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
-      pGraph.insertSuccessor(bodyEntryNode, new CFANode(function), enterBodyEdge);
+      pGraph.insertSuccessor(pBodyEntryNode, new CFANode(function), enterBodyEdge);
 
       CAssumeEdge skipBodyEdge = createAssumeEdge(function, condition, false);
-      pGraph.addEdge(bodyEntryNode, bodyExitNode, skipBodyEdge);
+      pGraph.addEdge(pBodyEntryNode, pBodyExitNode, skipBodyEdge);
+    }
+  }
+
+  private static Status transformLoop(
+      MutableCfaNetwork pGraph,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      CFA pCfa,
+      TransformableLoop pLoop) {
+
+    Status status = loopTransformable(pTransformableArrayMap, pLoop);
+
+    if (status == Status.FAILED) {
+      return status;
     }
 
-    // replace index update edge with blank placeholder
+    // transform loop into branching
+    CFANode loopNode = pLoop.getLoopNode();
+    CFAEdge loopIncomingEdge = pLoop.getIncomingEdge();
+    CFAEdge loopOutgoingEdge = pLoop.getOutgoingEdge();
+
+    CFAEdge loopBodyFirstEdge = null;
+    CFAEdge loopBodyLastEdge = null;
+    for (CFAEdge edge : pGraph.incidentEdges(loopNode)) {
+      if (pGraph.incidentNodes(edge).nodeU().equals(loopNode) && !edge.equals(loopOutgoingEdge)) {
+        loopBodyFirstEdge = edge;
+      }
+      if (pGraph.incidentNodes(edge).nodeV().equals(loopNode) && !edge.equals(loopIncomingEdge)) {
+        loopBodyLastEdge = edge;
+      }
+    }
+
+    CFANode loopBodyFirstEdgeNodeV = pGraph.incidentNodes(loopBodyFirstEdge).nodeV();
+    CFANode loopOutgoingEdgeNodeV = pGraph.incidentNodes(loopOutgoingEdge).nodeV();
+
+    pGraph.removeEdge(loopBodyFirstEdge);
+    pGraph.removeEdge(loopOutgoingEdge);
+
+    CFANode loopIncomingEdgeNodeU = pGraph.incidentNodes(loopIncomingEdge).nodeU();
+    pGraph.removeEdge(loopIncomingEdge);
+    pGraph.addEdge(loopIncomingEdgeNodeU, loopBodyFirstEdgeNodeV, loopIncomingEdge);
+
+    CFANode loopBodyLastEdgeNodeU = pGraph.incidentNodes(loopBodyLastEdge).nodeU();
+    pGraph.removeEdge(loopBodyLastEdge);
+    pGraph.addEdge(loopBodyLastEdgeNodeU, loopOutgoingEdgeNodeV, loopBodyLastEdge);
+
+    ImmutableSet<TransformableArray> loopTransformableArrays =
+        getLoopTransformableArrays(pTransformableArrayMap, pLoop);
+    assert loopTransformableArrays.size() >= 1;
+
+    CFANode bodyEntryNode = loopBodyFirstEdgeNodeV;
+    CFANode bodyExitNode = loopOutgoingEdgeNodeV;
+
+    ImmutableMap<TransformableArray, CExpression> preciseArraySubscriptExpressions =
+        insertTransformableArrayAssumes(
+            pGraph, pTransformableArrayMap, pLoop, loopTransformableArrays, bodyEntryNode);
+
+    // transform inner loop edges
+    for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
+      Status edgeTransformationStatus =
+          transformEdge(
+              pGraph,
+              pTransformableArrayMap,
+              pCfa,
+              edge,
+              Optional.of(pLoop),
+              Optional.of(preciseArraySubscriptExpressions));
+      if (edgeTransformationStatus == Status.FAILED) {
+        return Status.FAILED;
+      } else if (edgeTransformationStatus == Status.IMPRECISE) {
+        status = Status.IMPRECISE;
+      }
+    }
+
+    insertLoopConditions(pGraph, loopTransformableArrays, pLoop, bodyEntryNode, bodyExitNode);
+
+    // replace index update edge with blank placeholder edge
+    TransformableLoop.Index index = pLoop.getIndex();
     var indexUpdateEdgeEndpoints = pGraph.incidentNodes(index.getUpdateEdge());
     pGraph.removeEdge(index.getUpdateEdge());
     pGraph.addEdge(
         indexUpdateEdgeEndpoints,
-        createBlankEdge(
-            indexUpdateEdgeEndpoints.nodeU().getFunction(),
-            "removed: " + index.getUpdateEdge().getRawStatement()));
+        createBlankEdge(indexUpdateEdgeEndpoints.nodeU().getFunction(), ""));
 
     return status;
   }
