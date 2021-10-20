@@ -306,6 +306,19 @@ final class TransformableLoop {
 
     assert updateIndexOperation != null;
 
+    // don't transform loops with nonsensical index update step or loop condition
+    if (updateIndexOperation.getStepValue().compareTo(BigInteger.ZERO) > 0) {
+      if (loopCondition.getOperator() != SpecialOperation.ComparisonAssume.Operator.LESS_EQUAL) {
+        return Optional.empty();
+      }
+    } else if (updateIndexOperation.getStepValue().compareTo(BigInteger.ZERO) < 0) {
+      if (loopCondition.getOperator() != SpecialOperation.ComparisonAssume.Operator.GREATER_EQUAL) {
+        return Optional.empty();
+      }
+    } else {
+      return Optional.empty();
+    }
+
     // there must be exactly one incoming index definition to be able to determine the initial index
     // value
     ImmutableSet<CFAEdge> incomingDefs = getIncomingDefs(incomingEdge, indexVariableDeclaration);
